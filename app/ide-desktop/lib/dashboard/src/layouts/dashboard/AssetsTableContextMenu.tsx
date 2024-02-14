@@ -60,20 +60,20 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { isCloud, category, hasPasteData, selectedKeys, setSelectedKeys, nodeMapRef } = props
   const { event, dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
+  const rootDirectory = React.useMemo(() => user?.rootDirectory(), [user])
 
   const pluralized = pluralize(selectedKeys.size)
   // This works because all items are mutated, ensuring their value stays
   // up to date.
   const ownsAllSelectedAssets =
     !isCloud ||
-    (organization != null &&
+    (user != null &&
       Array.from(selectedKeys, key => {
         const userPermissions = nodeMapRef.current.get(key)?.item.value.permissions
         const selfPermission = userPermissions?.find(
-          permission => permission.user.user_email === organization.value.email
+          permission => permission.user.user_email === user.value.email
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))

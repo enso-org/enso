@@ -32,9 +32,9 @@ export interface GlobalContextMenuProps {
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { hidden = false, isCloud, hasPasteData, directoryKey, directory } = props
   const { dispatchAssetListEvent, doPaste } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const rootDirectory = React.useMemo(() => organization?.rootDirectory(), [organization])
+  const rootDirectory = React.useMemo(() => user?.rootDirectory(), [user])
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   return rootDirectory == null ? (
     <></>
@@ -59,7 +59,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
               unsetModal()
             }
           }}
-        ></input>
+        />
       )}
       <MenuEntry
         hidden={hidden}

@@ -64,7 +64,7 @@ type Context
        - groups: a list of grouping expressions, for each entry a GROUP BY is
          added, the resulting query can then directly include only the
          grouped-by columns or aggregate expressions.
-       - limit: an optional maximum number of elements that the equery should
+       - limit: an optional maximum number of elements that the query should
          return.
     Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (distinct_on : Nothing | Vector SQL_Expression)
 

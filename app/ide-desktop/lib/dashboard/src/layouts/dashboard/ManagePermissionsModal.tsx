@@ -53,7 +53,7 @@ export default function ManagePermissionsModal<
   Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
   const { item, setItem, self, doRemoveSelf, eventTarget } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = item.value
@@ -85,25 +85,23 @@ export default function ManagePermissionsModal<
       permissions.every(
         permission =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          permission.user.user_email === organization?.value.email
+          permission.user.user_email === user?.value.email
       ),
-    [organization?.value.email, permissions, self.permission]
+    [user?.value.email, permissions, self.permission]
   )
 
   React.useEffect(() => {
     setItem(object.merger<backendModule.AnyAsset>({ permissions }))
   }, [permissions, /* should never change */ setItem])
 
-  if (organization == null) {
+  if (user == null) {
     // This should never happen - the local backend does not have the "shared with" column,
     // and `organization` is absent only when offline - in which case the user should only
     // be able to access the local backend.
     // This MUST be an error, otherwise the hooks below are considered as conditionally called.
     throw new Error('Cannot share assets on the local backend.')
   } else {
-    const listedUsers = asyncEffectHooks.useAsyncEffect([], () => organization.listUsers(), [
-      organization,
-    ])
+    const listedUsers = asyncEffectHooks.useAsyncEffect([], () => user.listUsers(), [user])
     const allUsers = React.useMemo(
       () =>
         listedUsers.filter(
@@ -137,10 +135,7 @@ export default function ManagePermissionsModal<
           setUsers([])
           setEmail('')
           if (email != null) {
-            await organization.invite({
-              organizationId: organization.value.id,
-              userEmail: backendModule.EmailAddress(email),
-            })
+            await user.invite(backendModule.EmailAddress(email))
             toast.toast.success(`You've invited '${email}' to join Enso!`)
           }
         } catch (error) {
@@ -150,10 +145,9 @@ export default function ManagePermissionsModal<
         setUsers([])
         const addedUsersPermissions = users.map<backendModule.UserPermission>(newUser => ({
           user: {
-            // The names come from a third-party API and cannot be
-            // changed.
+            // The names come from a third-party API and cannot be changed.
             /* eslint-disable @typescript-eslint/naming-convention */
-            organization_id: organization.value.id,
+            organization_id: user.value.id,
             pk: newUser.id,
             user_email: newUser.email,
             user_name: newUser.name,
@@ -191,7 +185,7 @@ export default function ManagePermissionsModal<
       }
     }
 
-    const doDelete = async (userToDelete: backendModule.User) => {
+    const doDelete = async (userToDelete: backendModule.UserInfo) => {
       if (userToDelete.pk === self.user.pk) {
         doRemoveSelf()
       } else {
@@ -225,10 +219,7 @@ export default function ManagePermissionsModal<
           tabIndex={-1}
           style={
             position != null
-              ? {
-                  left: position.left + window.scrollX,
-                  top: position.top + window.scrollY,
-                }
+              ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
               : {}
           }
           className="sticky w-115.25 rounded-2xl before:absolute before:bg-frame-selected before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
@@ -279,11 +270,11 @@ export default function ManagePermissionsModal<
                   values={users}
                   setValues={setUsers}
                   items={allUsers}
-                  itemToKey={user => user.id}
-                  itemToString={user => `${user.name} (${user.email})`}
-                  matches={(user, text) =>
-                    user.email.toLowerCase().includes(text.toLowerCase()) ||
-                    user.name.toLowerCase().includes(text.toLowerCase())
+                  itemToKey={otherUser => otherUser.id}
+                  itemToString={otherUser => `${otherUser.name} (${otherUser.email})`}
+                  matches={(otherUser, text) =>
+                    otherUser.email.toLowerCase().includes(text.toLowerCase()) ||
+                    otherUser.name.toLowerCase().includes(text.toLowerCase())
                   }
                   text={email}
                   setText={setEmail}

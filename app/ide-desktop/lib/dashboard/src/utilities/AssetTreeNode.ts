@@ -162,6 +162,7 @@ export default class AssetTreeNode {
       [backendModule.AssetType.directory]: [],
       [backendModule.AssetType.project]: [],
       [backendModule.AssetType.file]: [],
+      [backendModule.AssetType.dataLink]: [],
       [backendModule.AssetType.secret]: [],
       [backendModule.AssetType.specialLoading]: [],
       [backendModule.AssetType.specialEmpty]: [],

@@ -83,7 +83,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { smartAsset, setItem, assetEvents, doOpenManually, onClose, openEditor } = props
   const { state } = props
   const { isCloud } = state
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -105,16 +105,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
           // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
           const { opened_by, ...newProjectState2 } = newProjectState
           newProjectState = newProjectState2
-        } else if (organization != null) {
-          newProjectState = object.merge(newProjectState, {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            opened_by: organization.value.email,
-          })
+        } else if (user != null) {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          newProjectState = object.merge(newProjectState, { opened_by: user.value.email })
         }
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [organization, /* should never change */ setItem]
+    [user, /* should never change */ setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -130,8 +128,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     React.useState<AbortController | null>(null)
   const [closeProjectAbortController, setCloseProjectAbortController] =
     React.useState<AbortController | null>(null)
-  const isOtherUserUsingProject =
-    isCloud && asset.projectState.opened_by !== organization?.value.email
+  const isOtherUserUsingProject = isCloud && asset.projectState.opened_by !== user?.value.email
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {

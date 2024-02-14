@@ -7,6 +7,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
+import InviteUsersModal from '#/layouts/dashboard/InviteUsersModal'
 import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import UserMenu from '#/layouts/dashboard/UserMenu'
@@ -37,12 +38,12 @@ export interface UserBarProps {
 export default function UserBar(props: UserBarProps) {
   const { supportsLocalBackend, isCloud, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const self =
-    organization != null
+    user != null
       ? projectAsset?.value.permissions?.find(
-          permissions => permissions.user.user_email === organization.value.email
+          permissions => permissions.user.user_email === user.value.email
         ) ?? null
       : null
   const shouldShowShareButton =
@@ -51,6 +52,8 @@ export default function UserBar(props: UserBarProps) {
     projectAsset != null &&
     setProjectAsset != null &&
     self != null
+  const shouldShowInviteButton =
+    sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
   return (
     <div className="flex shrink-0 items-center bg-frame backdrop-blur-3xl rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto">
       <Button
@@ -60,6 +63,17 @@ export default function UserBar(props: UserBarProps) {
           setIsHelpChatOpen(!isHelpChatOpen)
         }}
       />
+      {shouldShowInviteButton && (
+        <button
+          className="text-inversed bg-share rounded-full leading-5 h-6 px-2 py-px"
+          onClick={event => {
+            event.stopPropagation()
+            setModal(<InviteUsersModal eventTarget={null} />)
+          }}
+        >
+          Invite
+        </button>
+      )}
       {shouldShowShareButton && (
         <button
           className="text-inversed bg-share rounded-full leading-5 h-6 px-2 py-px"
@@ -95,7 +109,7 @@ export default function UserBar(props: UserBarProps) {
         }}
       >
         <img
-          src={organization?.value.profilePicture ?? DefaultUserIcon}
+          src={user?.value.profilePicture ?? DefaultUserIcon}
           alt="Open user menu"
           height={28}
           width={28}

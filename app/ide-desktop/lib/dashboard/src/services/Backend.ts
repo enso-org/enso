@@ -15,8 +15,8 @@ import * as uniqueString from '#/utilities/uniqueString'
 /* eslint-disable @typescript-eslint/no-redeclare */
 
 /** Unique identifier for a user/organization. */
-export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
-export const UserOrOrganizationId = newtype.newtypeConstructor<UserOrOrganizationId>()
+export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
+export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
@@ -62,6 +62,10 @@ export const TagId = newtype.newtypeConstructor<TagId>()
 export type Address = newtype.Newtype<string, 'Address'>
 export const Address = newtype.newtypeConstructor<Address>()
 
+/** A HTTPS URL. */
+export type HttpsUrl = newtype.Newtype<string, 'HttpsUrl'>
+export const HttpsUrl = newtype.newtypeConstructor<HttpsUrl>()
+
 /** An email address. */
 export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
 export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
@@ -90,9 +94,11 @@ export enum BackendType {
   remote = 'remote',
 }
 
-/** A user/organization in the application. These are the primary owners of a project. */
-export interface UserOrOrganization {
-  readonly id: UserOrOrganizationId
+/** A user in the application. These are the primary owners of a project. */
+export interface User {
+  /** The ID of the parent organization. If this is a sole user, they are implicitly in an
+   * organization consisting of only themselves. */
+  readonly id: OrganizationId
   readonly name: string
   readonly email: EmailAddress
   /** A URL. */
@@ -279,17 +285,28 @@ export interface ResourceUsage {
 }
 
 /** Metadata uniquely identifying a user. */
-export interface User {
+export interface UserInfo {
   /* eslint-disable @typescript-eslint/naming-convention */
   readonly pk: Subject
   readonly user_name: string
   readonly user_email: EmailAddress
-  readonly organization_id: UserOrOrganizationId
+  readonly organization_id: OrganizationId
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
+/** Metadata for an organization. */
+export interface OrganizationInfo {
+  readonly pk: OrganizationId
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly organization_name: string | null
+  readonly email: EmailAddress | null
+  readonly website: HttpsUrl | null
+  readonly address: string | null
+  readonly picture: HttpsUrl | null
+}
+
 /** Metadata uniquely identifying a user inside an organization.
- * This is similar to {@link User}, but without `organization_id`. */
+ * This is similar to {@link UserInfo}, but without `organization_id`. */
 export interface SimpleUser {
   readonly id: Subject
   readonly name: string
@@ -298,7 +315,7 @@ export interface SimpleUser {
 
 /** User permission for a specific user. */
 export interface UserPermission {
-  readonly user: User
+  readonly user: UserInfo
   readonly permission: permissions.PermissionAction
 }
 
@@ -602,7 +619,7 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
 export interface CreateUserRequestBody {
   readonly userName: string
   readonly userEmail: EmailAddress
-  readonly organizationId: UserOrOrganizationId | null
+  readonly organizationId: OrganizationId | null
 }
 
 /** HTTP request body for the "update user" endpoint. */
@@ -610,10 +627,12 @@ export interface UpdateUserRequestBody {
   username: string | null
 }
 
-/** HTTP request body for the "invite user" endpoint. */
-export interface InviteUserRequestBody {
-  readonly organizationId: UserOrOrganizationId
-  readonly userEmail: EmailAddress
+/** HTTP request body for the "update organization" endpoint. */
+export interface UpdateOrganizationRequestBody {
+  name?: string
+  email?: EmailAddress
+  website?: HttpsUrl
+  location?: string
 }
 
 /** HTTP request body for the "create permission" endpoint. */
@@ -685,8 +704,8 @@ export interface ListDirectoryRequestParams {
   readonly labels: LabelName[] | null
 }
 
-/** URL query string parameters for the "upload user profile picture" endpoint. */
-export interface UploadUserPictureRequestParams {
+/** URL query string parameters for the "upload profile picture" endpoint. */
+export interface UploadPictureRequestParams {
   readonly fileName: string | null
 }
 
@@ -780,27 +799,37 @@ export interface SmartObject<T> {
   readonly withValue: (value: T) => this
 }
 
-/** A smart wrapper around a {@link UserOrOrganization}. */
-export interface SmartUser extends SmartObject<UserOrOrganization> {
+/** A smart wrapper around a {@link User}. */
+export interface SmartUser extends SmartObject<User> {
   /** Change the username of the current user. */
   readonly update: (body: UpdateUserRequestBody) => Promise<void>
   /** Delete the current user. */
   readonly delete: () => Promise<void>
   /** Upload a new profile picture for the current user. */
-  readonly uploadPicture: (
-    params: UploadUserPictureRequestParams,
-    file: Blob
-  ) => Promise<UserOrOrganization>
+  readonly uploadPicture: (params: UploadPictureRequestParams, file: Blob) => Promise<User>
   /** Get the root directory for this user. */
   readonly rootDirectory: () => SmartDirectory
   /** Invite a new user to the organization by email. */
-  readonly invite: (body: InviteUserRequestBody) => Promise<void>
+  readonly invite: (email: EmailAddress) => Promise<void>
   /** List all users in the same organization. */
   readonly listUsers: () => Promise<SimpleUser[]>
   /** List recently modified assets. */
   readonly listRecentFiles: () => Promise<AnySmartAsset[]>
   /** List all secrets in all directories. */
   readonly listSecrets: () => Promise<SecretInfo[]>
+  /** Get the details of the current user's organization. */
+  readonly getOrganization: () => Promise<SmartOrganization>
+}
+
+/** A smart wrapper around an {@link OrganizationInfo}. */
+export interface SmartOrganization extends SmartObject<OrganizationInfo | null> {
+  /** Change the details of the current user's organization. */
+  readonly update: (body: UpdateOrganizationRequestBody) => Promise<OrganizationInfo | null>
+  /** Upload a new profile picture for the current user's organization. */
+  readonly uploadPicture: (
+    params: UploadPictureRequestParams,
+    file: Blob
+  ) => Promise<OrganizationInfo>
 }
 
 /** A smart wrapper around an {@link AnyAsset}. */
@@ -940,7 +969,7 @@ export default abstract class Backend {
   /** Return user details for the current user. */
   abstract self(): Promise<SmartUser | null>
   /** Set the username of the current user. */
-  abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
+  abstract createUser(body: CreateUserRequestBody): Promise<User>
   /** Create a label used for categorizing assets. */
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */

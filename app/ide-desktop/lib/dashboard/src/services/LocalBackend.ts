@@ -74,8 +74,8 @@ class SmartObject<T> implements backend.SmartObject<T> {
   }
 }
 
-/** A smart wrapper around a {@link backend.UserOrOrganization}. */
-class SmartUser extends SmartObject<backend.UserOrOrganization> implements backend.SmartUser {
+/** A smart wrapper around a {@link backend.User}. */
+class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
   /** Invalid operation. */
   update() {
     return this.invalidOperation()
@@ -114,6 +114,11 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
 
   /** Invalid operation. */
   listSecrets() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  getOrganization() {
     return this.invalidOperation()
   }
 }
@@ -553,7 +558,7 @@ export default class LocalBackend extends Backend {
     return Promise.resolve(
       new SmartUser(this.projectManager, {
         email: backend.EmailAddress(''),
-        id: backend.UserOrOrganizationId('organization-local'),
+        id: backend.OrganizationId('organization-local'),
         isEnabled: false,
         rootDirectoryId: backend.DirectoryId(`${backend.AssetType.directory}-local`),
         name: 'Local User',

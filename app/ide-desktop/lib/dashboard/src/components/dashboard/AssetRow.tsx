@@ -89,7 +89,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { isCloud, rootDirectory, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
-  const { organization, user } = authProvider.useNonPartialUserSession()
+  const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
@@ -171,7 +171,7 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+            permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
@@ -197,8 +197,8 @@ export default function AssetRow(props: AssetRowProps) {
     },
     [
       rootDirectory.value.id,
-      organization,
       user,
+      userInfo,
       smartAsset,
       asset,
       item.key,
@@ -421,10 +421,10 @@ export default function AssetRow(props: AssetRowProps) {
       }
       case AssetEventType.removeSelf: {
         // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-        if (event.id === asset.id && user != null) {
+        if (event.id === asset.id && userInfo != null) {
           setInsertionVisibility(Visibility.hidden)
           try {
-            await smartAsset.setPermissions({ action: null, userSubjects: [user.id] })
+            await smartAsset.setPermissions({ action: null, userSubjects: [userInfo.id] })
             dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
             setInsertionVisibility(Visibility.visible)

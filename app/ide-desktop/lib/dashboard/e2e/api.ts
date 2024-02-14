@@ -48,9 +48,9 @@ export async function mockApi({ page }: MockParams) {
   // eslint-disable-next-line no-restricted-syntax
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
-  const defaultOrganizationId = backend.UserOrOrganizationId('organization-placeholder id')
+  const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
   const defaultDirectoryId = backend.DirectoryId('directory-placeholder id')
-  const defaultUser: backend.UserOrOrganization = {
+  const defaultUser: backend.User = {
     email: defaultEmail,
     name: defaultUsername,
     id: defaultOrganizationId,
@@ -58,7 +58,7 @@ export async function mockApi({ page }: MockParams) {
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
   }
-  let currentUser: backend.UserOrOrganization | null = defaultUser
+  let currentUser: backend.User | null = defaultUser
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []
@@ -477,10 +477,14 @@ export async function mockApi({ page }: MockParams) {
       BASE_URL + remoteBackendPaths.updateDirectoryPath(GLOB_DIRECTORY_ID),
       async (route, request) => {
         if (request.method() === 'PUT') {
+          /** The type for the JSON request payload for this endpoint. */
+          interface Body {
+            readonly title: string
+          }
           const directoryId = request.url().match(/[/]directories[/]([^?]+)/)?.[1] ?? ''
           // The type of the body sent by this app is statically known.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const body: backend.UpdateDirectoryRequestBody = request.postDataJSON()
+          const body: Body = request.postDataJSON()
           const asset = assetMap.get(backend.DirectoryId(directoryId))
           if (asset == null) {
             await route.abort()
@@ -740,7 +744,7 @@ export async function mockApi({ page }: MockParams) {
     get currentUser() {
       return currentUser
     },
-    setCurrentUser: (user: backend.UserOrOrganization | null) => {
+    setCurrentUser: (user: backend.User | null) => {
       currentUser = user
     },
     addAsset,

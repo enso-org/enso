@@ -61,7 +61,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     () => jsonSchema.isMatch(DEFS, SCHEMA.$defs.DataLink, dataLinkValue),
     [dataLinkValue]
   )
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<AssetTreeNode>) => {
@@ -74,7 +74,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const asset = smartAsset.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === organization?.value.email
+    permission => permission.user.user_email === user?.value.email
   )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =

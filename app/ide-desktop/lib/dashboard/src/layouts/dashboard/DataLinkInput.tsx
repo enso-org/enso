@@ -84,7 +84,7 @@ export interface DataLinkInputProps {
 export default function DataLinkInput(props: DataLinkInputProps) {
   const { dropdownTitle, schema = SCHEMA.$defs.DataLink, readOnly = false, value: valueRaw } = props
   const { setValue: setValueRaw } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const [value, setValue] = React.useState(valueRaw)
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
     typeof value === 'string' ? value : null
@@ -116,7 +116,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           if (autocompleteItems == null) {
             setAutocompleteItems([])
             void (async () => {
-              const secrets = (await organization?.listSecrets()) ?? []
+              const secrets = (await user?.listSecrets()) ?? []
               // FIXME: Extract secret path instead of ID.
               setAutocompleteItems(secrets.map(secret => secret.id))
             })()

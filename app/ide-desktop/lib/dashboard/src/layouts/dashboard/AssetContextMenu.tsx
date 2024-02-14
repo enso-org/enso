@@ -60,13 +60,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { doCreateLabel } = state
 
   const logger = loggerProvider.useLogger()
-  const { organization, accessToken } = authProvider.useNonPartialUserSession()
+  const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const smartAsset = item.item
   const asset = smartAsset.value
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === organization?.value.email
+    permission => permission.user.user_email === user?.value.email
   )
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
@@ -82,7 +82,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     isCloud &&
     backendModule.assetIsProject(asset) &&
     asset.projectState.opened_by != null &&
-    asset.projectState.opened_by !== organization?.value.email
+    asset.projectState.opened_by !== user?.value.email
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return category === Category.trash ? (

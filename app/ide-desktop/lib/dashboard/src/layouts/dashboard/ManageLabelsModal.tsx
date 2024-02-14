@@ -39,7 +39,7 @@ export default function ManageLabelsModal<
   Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 >(props: ManageLabelsModalProps<Asset>) {
   const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [labels, setLabelsRaw] = React.useState(item.value.labels ?? [])
@@ -98,7 +98,7 @@ export default function ManageLabelsModal<
     ]
   )
 
-  return organization == null ? null : (
+  return user == null ? null : (
     <Modal
       centered={eventTarget == null}
       className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-1"

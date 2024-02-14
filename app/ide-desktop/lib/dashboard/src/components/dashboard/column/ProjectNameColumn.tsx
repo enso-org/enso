@@ -42,7 +42,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { isCloud, numberOfSelectedItems, assetEvents, nodeMap, dispatchAssetEvent } = state
   const { doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const smartAsset = item.item
   if (smartAsset.type !== backendModule.AssetType.project) {
@@ -67,18 +67,14 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const asset = smartAssetWithProjectState.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
-    asset.permissions?.find(
-      permission => permission.user.user_email === organization?.value.email
-    ) ?? null
+    asset.permissions?.find(permission => permission.user.user_email === user?.value.email) ?? null
   const projectState = asset.projectState
   const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
   const canExecute =
     !isCloud ||
     (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
   const isOtherUserUsingProject =
-    isCloud &&
-    projectState.opened_by != null &&
-    projectState.opened_by !== organization?.value.email
+    isCloud && projectState.opened_by != null && projectState.opened_by !== user?.value.email
 
   const doRename = async (newTitle: string) => {
     setRowState(object.merger({ isEditingName: false }))

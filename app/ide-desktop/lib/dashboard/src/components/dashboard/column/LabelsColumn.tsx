@@ -34,13 +34,13 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, setItem, state, rowState } = props
   const { category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const smartAsset = item.item
   const asset = smartAsset.value
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === organization?.value.email
+    permission => permission.user.user_email === user?.value.email
   )
   const managesThisAsset =
     category !== Category.trash &&

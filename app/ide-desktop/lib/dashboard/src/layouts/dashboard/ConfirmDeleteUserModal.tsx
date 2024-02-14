@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import Modal from '#/components/Modal'
@@ -12,18 +11,22 @@ import Modal from '#/components/Modal'
 // === ConfirmDeleteUserModal ===
 // ==============================
 
+/** Props for a {@link ConfirmDeleteUserModal}. */
+export interface ConfirmDeleteUserModalProps {
+  readonly description: string
+  readonly doDelete: () => Promise<void>
+}
+
 /** A modal for confirming the deletion of a user. */
-export default function ConfirmDeleteUserModal() {
-  const { organization } = authProvider.useNonPartialUserSession()
+export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
+  const { description, doDelete } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
-  const { signOut } = authProvider.useAuth()
 
   const onSubmit = async () => {
     unsetModal()
     try {
-      await organization?.delete()
-      await signOut()
+      await doDelete()
     } catch (error) {
       toastAndLog(null, error)
     }
@@ -53,10 +56,10 @@ export default function ConfirmDeleteUserModal() {
       >
         <h3 className="relative font-bold text-xl h-9.5 py-0.5">Are you sure?</h3>
         <div className="relative flex flex-col gap-2">
-          Once deleted, this user account will be gone forever.
+          Once deleted, this {description} will be gone forever.
           <button type="submit" className="rounded-full bg-danger text-inversed px-2 py-1">
             <span className="leading-5 h-6 py-px">
-              I confirm that I want to delete this user account.
+              I confirm that I want to delete this {description}.
             </span>
           </button>
         </div>

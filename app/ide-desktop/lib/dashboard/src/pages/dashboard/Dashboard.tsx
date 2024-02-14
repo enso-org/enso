@@ -117,7 +117,7 @@ export default function Dashboard(props: DashboardProps) {
   const { supportsLocalBackend, backend, setBackend, appRunner } = props
   const { initialProjectName: rawInitialProjectName, projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
-  const { organization, accessToken } = authProvider.useNonPartialUserSession()
+  const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { modalRef } = modalProvider.useModalRef()
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -142,7 +142,7 @@ export default function Dashboard(props: DashboardProps) {
   )
   const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
   const isCloud = backend.type === backendModule.BackendType.remote
-  const self = asyncEffectHooks.useAsyncEffect(organization, () => backend.self(), [backend])
+  const self = asyncEffectHooks.useAsyncEffect(user, () => backend.self(), [backend])
   const rootDirectory = React.useMemo(() => self?.rootDirectory() ?? null, [self])
 
   React.useEffect(() => {

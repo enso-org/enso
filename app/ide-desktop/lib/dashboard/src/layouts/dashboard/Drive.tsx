@@ -113,7 +113,7 @@ export default function Drive(props: DriveProps) {
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { type: sessionType, organization } = authProvider.useNonPartialUserSession()
+  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
@@ -129,7 +129,7 @@ export default function Drive(props: DriveProps) {
     [labels]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
-  const isEnabled = organization?.value.isEnabled ?? false
+  const isEnabled = user?.value.isEnabled ?? false
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
@@ -157,15 +157,15 @@ export default function Drive(props: DriveProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (isCloud && organization?.value.isEnabled === true) {
+      if (isCloud && isEnabled) {
         setLabels(await backend.listTags())
       }
     })()
-  }, [backend, isCloud, organization?.value.isEnabled, /* should never change */ setLabels])
+  }, [backend, isCloud, isEnabled, /* should never change */ setLabels])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
-      if (isCloud && organization == null) {
+      if (isCloud && user == null) {
         // This should never happen, however display a nice error message in case it does.
         toastAndLog('Files cannot be uploaded while offline')
       } else if (rootDirectory != null) {
@@ -177,13 +177,7 @@ export default function Drive(props: DriveProps) {
         })
       }
     },
-    [
-      isCloud,
-      organization,
-      rootDirectory,
-      toastAndLog,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [isCloud, user, rootDirectory, toastAndLog, /* should never change */ dispatchAssetListEvent]
   )
 
   const doCreateProject = React.useCallback(

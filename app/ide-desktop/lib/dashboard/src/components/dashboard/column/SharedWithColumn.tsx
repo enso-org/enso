@@ -38,12 +38,12 @@ interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'i
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state } = props
   const { category, dispatchAssetEvent } = state
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
   const smartAsset = item.item
   const asset = smartAsset.value
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === organization?.value.email
+    permission => permission.user.user_email === user?.value.email
   )
   const managesThisAsset =
     category !== Category.trash &&
@@ -53,9 +53,9 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
 
   return (
     <div className="group flex items-center gap-1">
-      {(asset.permissions ?? []).map(user => (
-        <PermissionDisplay key={user.user.pk} action={user.permission}>
-          {user.user.user_name}
+      {(asset.permissions ?? []).map(otherUser => (
+        <PermissionDisplay key={otherUser.user.pk} action={otherUser.permission}>
+          {otherUser.user.user_name}
         </PermissionDisplay>
       ))}
       {managesThisAsset && (

@@ -25,6 +25,8 @@ import * as uniqueString from '#/utilities/uniqueString'
 const STATUS_SUCCESS_FIRST = 200
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_LAST = 299
+/** HTTP status indicating that the resource does not exist. */
+const STATUS_NOT_FOUND = 404
 /** HTTP status indicating that the server encountered a fatal exception. */
 const STATUS_SERVER_ERROR = 500
 /** The interval between requests checking whether the IDE is ready. */
@@ -188,14 +190,34 @@ class SmartObject<T> implements backend.SmartObject<T> {
     return this.client.put<R>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
   }
 
+  /** Send a binary HTTP PUT request to the given path. */
+  protected httpPutBinary<R = void>(path: string, payload: Blob) {
+    return this.client.putBinary<R>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+  }
+
   /** Send an HTTP DELETE request to the given path. */
   protected httpDelete<R = void>(path: string) {
     return this.client.delete<R>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
   }
 }
 
-/** A smart wrapper around a {@link backend.UserOrOrganization}. */
-class SmartUser extends SmartObject<backend.UserOrOrganization> implements backend.SmartUser {
+/** A smart wrapper around a {@link backend.User}. */
+class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
+  /** Return details for the current organization.
+   * @returns `null` if a non-successful status code (not 200-299) was received. */
+  async getOrganization(): Promise<backend.SmartOrganization> {
+    const path = remoteBackendPaths.GET_ORGANIZATION_PATH
+    const response = await this.httpGet<backend.OrganizationInfo>(path)
+    if (response.status === STATUS_NOT_FOUND) {
+      // Organization info has not yet been created.
+      return new SmartOrganization(this.client, this.logger, null)
+    } else if (!responseIsSuccessful(response)) {
+      return this.throw('Could not get organization.')
+    } else {
+      return new SmartOrganization(this.client, this.logger, await response.json())
+    }
+  }
+
   /** Change the username of the current user. */
   async update(body: backend.UpdateUserRequestBody): Promise<void> {
     const path = remoteBackendPaths.UPDATE_CURRENT_USER_PATH
@@ -223,16 +245,16 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
 
   /** Upload a new profile picture for the current user. */
   async uploadPicture(
-    params: backend.UploadUserPictureRequestParams,
+    params: backend.UploadPictureRequestParams,
     file: Blob
-  ): Promise<backend.UserOrOrganization> {
+  ): Promise<backend.User> {
     const paramsString = new URLSearchParams({
       /* eslint-disable @typescript-eslint/naming-convention */
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
       /* eslint-enable @typescript-eslint/naming-convention */
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
-    const response = await this.httpPostBinary<backend.UserOrOrganization>(path, file)
+    const response = await this.httpPutBinary<backend.User>(path, file)
     if (!responseIsSuccessful(response)) {
       return this.throw('Could not upload user profile picture.')
     } else {
@@ -247,11 +269,11 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
   }
 
   /** Invite a new user to the organization by email. */
-  async invite(body: backend.InviteUserRequestBody): Promise<void> {
+  async invite(email: backend.EmailAddress): Promise<void> {
     const path = remoteBackendPaths.INVITE_USER_PATH
-    const response = await this.httpPost(path, body)
+    const response = await this.httpPost(path, { organizationId: this.value.id, userEmail: email })
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not invite user '${body.userEmail}'.`)
+      return this.throw(`Could not invite user '${email}'.`)
     } else {
       return
     }
@@ -317,6 +339,48 @@ class SmartUser extends SmartObject<backend.UserOrOrganization> implements backe
       return this.throw('Could not list secrets.')
     } else {
       return (await response.json()).secrets
+    }
+  }
+}
+
+/** A smart wrapper around an {@link backend.OrganizationInfo}. */
+class SmartOrganization
+  extends SmartObject<backend.OrganizationInfo | null>
+  implements backend.SmartOrganization
+{
+  /** Update details for the current organization. */
+  async update(
+    body: backend.UpdateOrganizationRequestBody
+  ): Promise<backend.OrganizationInfo | null> {
+    const path = remoteBackendPaths.UPDATE_ORGANIZATION_PATH
+    const response = await this.httpPatch<backend.OrganizationInfo>(path, body)
+
+    if (response.status === STATUS_NOT_FOUND) {
+      // Organization info has not yet been created.
+      return null
+    } else if (!responseIsSuccessful(response)) {
+      return this.throw('Could not update organization.')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Upload a new profile picture for the current organization. */
+  async uploadPicture(
+    params: backend.UploadPictureRequestParams,
+    file: Blob
+  ): Promise<backend.OrganizationInfo> {
+    const paramsString = new URLSearchParams({
+      /* eslint-disable @typescript-eslint/naming-convention */
+      ...(params.fileName != null ? { file_name: params.fileName } : {}),
+      /* eslint-enable @typescript-eslint/naming-convention */
+    }).toString()
+    const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
+    const response = await this.httpPutBinary<backend.OrganizationInfo>(path, file)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('Could not upload user profile picture.')
+    } else {
+      return await response.json()
     }
   }
 }
@@ -414,7 +478,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
   /** Set permissions for a user. */
   async setPermissions(body: backend.CreatePermissionRequestBody): Promise<void> {
     const path = remoteBackendPaths.CREATE_PERMISSION_PATH
-    const response = await this.httpPost<backend.UserOrOrganization>(path, {
+    const response = await this.httpPost<backend.User>(path, {
       ...body,
       resourceId: this.value.id,
     })
@@ -1203,11 +1267,9 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Set the username and parent organization of the current user. */
-  override async createUser(
-    body: backend.CreateUserRequestBody
-  ): Promise<backend.UserOrOrganization> {
+  override async createUser(body: backend.CreateUserRequestBody): Promise<backend.User> {
     const path = remoteBackendPaths.CREATE_USER_PATH
-    const response = await this.post<backend.UserOrOrganization>(path, body)
+    const response = await this.post<backend.User>(path, body)
     if (!responseIsSuccessful(response)) {
       return this.throw('Could not create user.')
     } else {
@@ -1219,7 +1281,7 @@ export default class RemoteBackend extends Backend {
    * @returns `null` if a non-successful status code (not 200-299) was received. */
   override async self(): Promise<SmartUser | null> {
     const path = remoteBackendPaths.USERS_ME_PATH
-    const response = await this.get<backend.UserOrOrganization>(path)
+    const response = await this.get<backend.User>(path)
     if (!responseIsSuccessful(response)) {
       // This user has probably not finished registering.
       return null
