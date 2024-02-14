@@ -84,6 +84,10 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: npm install
         run: npm install
 env:
