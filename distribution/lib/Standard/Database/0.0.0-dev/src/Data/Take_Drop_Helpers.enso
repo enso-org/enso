@@ -8,7 +8,6 @@ from Standard.Base.Data.Index_Sub_Range import normalize_ranges, resolve_ranges,
 
 from Standard.Table import Set_Mode
 
-import project.Data.Column.Column
 import project.Data.Table.Table
 from project.Errors import Unsupported_Database_Operation
 
