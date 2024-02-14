@@ -16,13 +16,15 @@ polyglot java import java.io.IOException
 polyglot java import org.enso.aws.ClientBuilder
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
 polyglot java import software.amazon.awssdk.services.s3.model.CopyObjectRequest
-polyglot java import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
+polyglot java import software.amazon.awssdk.services.s3.model.Delete
+polyglot java import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
 polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchBucketException
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
+polyglot java import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 polyglot java import software.amazon.awssdk.services.s3.model.PutObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
@@ -157,8 +159,12 @@ upload_file (local_file : File) (bucket : Text) (key : Text) credentials:(AWS_Cr
    and `False` if the object was not found.
 delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = time_it "delete_object" key=key <| handle_s3_errors bucket=bucket key=key <|
     client = make_client credentials
-    request = DeleteObjectRequest.builder . bucket bucket . key key . build
-    client.deleteObject request . if_not_error <| Nothing
+    object_identifier = ObjectIdentifier.builder . key key . build
+    what = Delete.builder . objects object_identifier . build
+    request = DeleteObjectsRequest.builder . bucket bucket . delete what . build
+    response = client.deleteObjects request
+    IO.println response.deleted
+    response.deleted.length > 0
 
 ## PRIVATE
 copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:(AWS_Credential | Nothing)=Nothing = time_it "copy_object" key=(source_key+" -> "+target_key) <| handle_s3_errors bucket=source_bucket key=source_key <|

@@ -174,17 +174,16 @@ type S3_File
     ## UNSTABLE
        Deletes the object.
     delete : Nothing
-    delete self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Deleting an S3_File is forbidden as the Output context is disabled.") else
-            translate_file_errors self <| S3.delete_object self.bucket self.prefix self.credentials . if_not_error <| Nothing
+    delete self =
+        was_deleted = delete_internal self
+        if was_deleted then Nothing else
+            # If the file was not deleted, it means it was not found.
+            Error.throw (File_Error.Not_Found self)
 
     ## Deletes the file if it had existed.
     delete_if_exists : Nothing
     delete_if_exists self =
-        r = self.delete
-        r.catch File_Error err-> case err of
-            File_Error.Not_Found _ -> Nothing
-            _ -> r
+        delete_internal self . if_not_error <| Nothing
 
     ## Copies the file to the specified destination.
 
@@ -343,6 +342,12 @@ type S3_File
                 sub_folders = pair.first . map key-> S3_File.Value self.bucket key self.credentials
                 files = pair.second . map key-> S3_File.Value self.bucket key self.credentials
                 sub_folders + files
+
+## PRIVATE
+delete_internal file =
+    if file.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." file.uri) else
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Deleting an S3_File is forbidden as the Output context is disabled.") else
+            translate_file_errors file <| S3.delete_object file.bucket file.prefix file.credentials
 
 ## PRIVATE
 File_Format_Metadata.from (that : S3_File) = File_Format_Metadata.Value that.uri that.name (that.extension.catch _->Nothing)
