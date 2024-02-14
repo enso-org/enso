@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
-import Standard.Database.Data.Column.Column
+import Standard.Database.Data.DB_Column.DB_Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
 from Standard.Table import Value_Type, Column_Ref
@@ -707,6 +707,8 @@ add_specs suite_builder setup =
 
         group_builder.specify "should report error if incomparable types are compared" <|
             t = table_builder [["X", [1, 2]], ["Y", ["a", "b"]], ["Z", [True, False]]]
+            r42 = (t.at "X") < (t.at "Y")
+            r42.should_fail_with Invalid_Value_Type
 
             [(<), (<=), (>), (>=)].each op->
                 r1 = op (t.at "X") (t.at "Y")
@@ -1483,7 +1485,7 @@ add_specs suite_builder setup =
                 col.text_replace 'hello' 'bye' . name . should_equal 'replace([x], \'hello\', \'bye\')'
             if supported_replace_params.contains (Replace_Params.Value Regex Case_Sensitivity.Default False) then
                 col.text_replace 'a[bcd]'.to_regex 'hey' . name . should_equal 'replace([x], \'a[bcd]\', \'hey\')'
-            if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
+            if supported_replace_params.contains (Replace_Params.Value DB_Column Case_Sensitivity.Default False) then
                 col.text_replace patterns replacements . name . should_equal 'replace([x], [patterns], [replacements])'
 
     suite_builder.group prefix+"Column Operations - Text Replace (in-memory only)" group_builder->

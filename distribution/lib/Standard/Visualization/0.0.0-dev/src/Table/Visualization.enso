@@ -5,7 +5,7 @@ import Standard.Table.Data.Column.Column as Dataframe_Column
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Dataframe_Table
 
-import Standard.Database.Data.Column.Column as Database_Column
+import Standard.Database.Data.DB_Column.DB_Column
 import Standard.Database.Data.Table.Table as Database_Table
 
 import project.Helpers
@@ -37,7 +37,7 @@ prepare_visualization y max_rows=1000 =
             all_rows_count = x.row_count
             index = Dataframe_Column.from_vector "#" (Vector.new dataframe.row_count i->i)
             make_json_for_table dataframe [index] all_rows_count
-        _ : Database_Column -> prepare_visualization x.to_table max_rows
+        _ : DB_Column -> prepare_visualization x.to_table max_rows
         _ : Database_Table ->
             dataframe = x.read max_rows warn_if_more_rows=False
             all_rows_count = x.row_count
@@ -185,7 +185,7 @@ make_json_for_value val level=0 = case val of
             prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
             "{" + (prepared.join ", ") + "}"
     _ : Dataframe_Column -> make_json_for_value val.to_table level
-    _ : Database_Column -> make_json_for_value val.to_table level
+    _ : DB_Column -> make_json_for_value val.to_table level
     _ : Dataframe_Table ->
         if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
             truncated = val.columns.take 5 . map _.name
