@@ -23,11 +23,8 @@ type Decimal
 
     ## Construct a `Decimal` from a string or integer.
 
-       We do not provide a constructor from `Float`, but instead require the use
-       of `Decimal.from_float`, since it is inexact.
-
        Arguments:
-       - x: The `Integer` or `Text` to construct a `Decimal` from.
+       - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
 
        ? Number Format
@@ -39,11 +36,12 @@ type Decimal
 
          - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
-    new : Text | Integer -> Math_Context -> Decimal | Number_Parse_Error
-    new (x : Text | Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
+    new : Text | Integer | Float -> Math_Context -> Decimal | Number_Parse_Error
+    new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         case x of
             _ : Text -> Decimal.from_text x mc
             _ : Integer -> Decimal.from_integer x mc
+            _ : Float -> Decimal.from_float x mc
 
     ## Construct a `Decimal` from a `Text`.
 
@@ -108,7 +106,10 @@ type Decimal
     + self (that:Decimal) = self.add that
 
     == self that =
-        (self.big_decimal.compareTo that.big_decimal) == 0
+        case that of
+            _ : Integer -> self.big_decimal.compareTo(Decimal.from_integer that . big_decimal) == 0
+            _ : Float -> self.big_decimal.compareTo(Decimal.from_float that . big_decimal) == 0
+            _ : Decimal -> self.big_decimal.compareTo(that.big_decimal) == 0
 
     add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
@@ -143,7 +144,6 @@ handle_precision_loss original_value conversion_result:Decimal_Utils.Conversion_
         new_value = conversion_result.newValue
         Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
 
-## We do not provide a `from` instance for `Float`, but instead require the use
-   of `Decimal.from_float`, since it is inexact.
 Decimal.from (that:Text) = Decimal.from_text that
 Decimal.from (that:Integer) = Decimal.from_integer that
+Decimal.from (that:Float) = Decimal.from_float that
