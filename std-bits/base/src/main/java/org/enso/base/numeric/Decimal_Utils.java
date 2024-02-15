@@ -6,7 +6,7 @@ import java.math.MathContext;
 
 /** Utils for the Enso Decmial type. */
 public class Decimal_Utils {
-  public static record ConversionResult(BigDecimal newValue, bool hasPrecisionLoss) {}
+  public static record ConversionResult(BigDecimal newValue, boolean hasPrecisionLoss) {}
 
   public static BigDecimal fromEnsoInteger(Object o) {
     if (o instanceof Long l) {
@@ -43,7 +43,7 @@ public class Decimal_Utils {
     return BigDecimal.valueOf(d);
   }
 
-  public static BigDecimal fromEnsoFloat(Double d, MathContext mc) {
+  public static ConversionResult fromEnsoFloat(Double d, MathContext mc) {
     BigDecimal bd = new BigDecimal(d, mc);
     double backToDouble = bd.doubleValue();
     System.out.println("AAA d " + d + " " + (d == backToDouble) + " " + d + " " + backToDouble + " " + (d-backToDouble));
