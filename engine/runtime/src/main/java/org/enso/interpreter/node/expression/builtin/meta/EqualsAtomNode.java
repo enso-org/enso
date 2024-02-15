@@ -125,7 +125,7 @@ public abstract class EqualsAtomNode extends Node {
     if (self.getConstructor() != other.getConstructor()) {
       return false;
     } else {
-      return equalsAtomsUncached(frame.materialize(), self, other);
+      return equalsAtomsUncached(frame == null ? null : frame.materialize(), self, other);
     }
   }
 

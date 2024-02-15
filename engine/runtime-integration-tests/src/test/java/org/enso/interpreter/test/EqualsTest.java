@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.oracle.truffle.api.frame.VirtualFrame;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -43,7 +44,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          testRootNode = new TestRootNode();
+          testRootNode = new TestRootNode(EqualsTest::equalityCheck);
           equalsNode = EqualsNode.create();
           hostValueToEnsoNode = HostValueToEnsoNode.build();
           testRootNode.insertChildren(equalsNode, hostValueToEnsoNode);
@@ -87,8 +88,13 @@ public class EqualsTest extends TestBase {
     }
   }
 
+  private static boolean equalityCheck(VirtualFrame frame) {
+    var args = frame.getArguments();
+    return equalsNode.execute(frame, args[0], args[1]);
+  }
+
   private boolean equalityCheck(Object first, Object second) {
-    return equalsNode.execute(null, first, second);
+    return (Boolean) testRootNode.getCallTarget().call(first, second);
   }
 
   @Theory

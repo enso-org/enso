@@ -43,9 +43,16 @@ public final class EqualsNode extends Node {
   @Child private WithConversionNode convert1;
   @Child private WithConversionNode convert2;
 
-  private EqualsNode(EqualsSimpleNode node, TypeOfNode types) {
+  private static final EqualsNode UNCACHED =
+      new EqualsNode(EqualsSimpleNodeGen.getUncached(), TypeOfNode.getUncached(), true);
+
+  private EqualsNode(EqualsSimpleNode node, TypeOfNode types, boolean uncached) {
     this.node = node;
     this.types = types;
+    if (uncached) {
+      convert1 = EqualsNodeFactory.WithConversionNodeGen.getUncached();
+      convert2 = convert1;
+    }
   }
 
   @NeverDefault
@@ -55,12 +62,12 @@ public final class EqualsNode extends Node {
 
   @NeverDefault
   public static EqualsNode create() {
-    return new EqualsNode(EqualsSimpleNode.build(), TypeOfNode.build());
+    return new EqualsNode(EqualsSimpleNode.build(), TypeOfNode.build(), false);
   }
 
   @NeverDefault
   public static EqualsNode getUncached() {
-    return new EqualsNode(EqualsSimpleNodeGen.getUncached(), TypeOfNode.getUncached());
+    return UNCACHED;
   }
 
   /**
