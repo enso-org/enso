@@ -170,10 +170,11 @@ class Abstractor {
           ? [this.abstractToken(tree.opr.value)]
           : Array.from(tree.opr.error.payload.operators, this.abstractToken.bind(this))
         const rhs = tree.rhs ? this.abstractTree(tree.rhs) : undefined
-        if (opr.length === 1 && opr[0]?.node.code() === '.' && rhs?.node instanceof MutableIdent) {
+        const soleOpr = tryGetSoleValue(opr)
+        if (soleOpr?.node.code() === '.' && rhs?.node instanceof MutableIdent) {
           // Propagate type.
           const rhs_ = { ...rhs, node: rhs.node }
-          node = PropertyAccess.concrete(this.module, lhs, opr[0], rhs_)
+          node = PropertyAccess.concrete(this.module, lhs, soleOpr, rhs_)
         } else {
           node = OprApp.concrete(this.module, lhs, opr, rhs)
         }
@@ -441,13 +442,12 @@ export function parseBlock(code: string, inModule?: MutableModule) {
 export function parse(code: string, module?: MutableModule): Owned {
   const module_ = module ?? MutableModule.Transient()
   const ast = parseBlock(code, module_)
-  const statements = Array.from(ast.statements())
-  const [expr] = statements
-  if (!expr || statements.length !== 1) return ast
-  const parent = parentId(expr)
+  const soleStatement = tryGetSoleValue(ast.statements())
+  if (!soleStatement) return ast
+  const parent = parentId(soleStatement)
   if (parent) module_.delete(parent)
-  expr.fields.set('parent', undefined)
-  return asOwned(expr)
+  soleStatement.fields.set('parent', undefined)
+  return asOwned(soleStatement)
 }
 
 export function parseBlockWithSpans(

@@ -42,6 +42,7 @@ import {
 import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
 import type { Diagnostic as LSDiagnostic } from 'shared/languageServerTypes'
+import { tryGetSoleValue } from 'shared/util/data/iterable'
 
 export function lsDiagnosticsToCMDiagnostics(
   source: string,
@@ -117,8 +118,7 @@ function astToCodeMirrorTree(
   const [start, end] = ast.span()
   const children = ast.children()
 
-  const hasSingleTokenChild = children.length === 1 && children[0]!.isToken()
-  const childrenToConvert = hasSingleTokenChild ? [] : children
+  const childrenToConvert = tryGetSoleValue(children)?.isToken() ? [] : children
 
   const tree = new Tree(
     nodeSet.types[ast.inner.type + (ast.isToken() ? RawAst.Tree.typeNames.length : 0)]!,
