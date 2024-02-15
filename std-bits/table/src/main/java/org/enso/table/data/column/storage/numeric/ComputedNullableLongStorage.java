@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
@@ -105,7 +104,7 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Index.NOT_FOUND) {
+      if (position == Storage.NOT_FOUND_INDEX) {
         newMissing.set(i);
       } else {
         Long item = computeItem(position);

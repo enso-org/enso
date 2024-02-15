@@ -9,7 +9,6 @@ import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
@@ -196,7 +195,7 @@ public final class LongStorage extends AbstractLongStorage {
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Index.NOT_FOUND || isMissing.get(position)) {
+      if (position == Storage.NOT_FOUND_INDEX || isMissing.get(position)) {
         newMissing.set(i);
       } else {
         newData[i] = data[position];

@@ -179,15 +179,14 @@ type Table
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
         cols = Vector.from_polyglot_array self.java_table.getColumns
-        index =  self.java_table.getIndex
-        col_names = ([index.getName] + cols.map .getName) . map normalize_string_for_display
+        col_names = ([""] + cols.map .getName) . map normalize_string_for_display
         col_vals = cols.map .getStorage
         num_rows = self.row_count
         display_rows = num_rows.min show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->
                 if col.isNa row_num then "Nothing" else get_item_string col row_num
-            [index.ilocString row_num] + cols
+            [row_num.to_text] + cols
         table = print_table col_names rows 1 format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'

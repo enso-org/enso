@@ -19,8 +19,6 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.CrossTabIndex;
-import org.enso.table.data.index.DefaultIndex;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.OrderedMultiValueKey;
@@ -160,18 +158,9 @@ public class Table {
   }
 
   /**
-   * Returns the index of this table.
-   *
-   * @return the index of this table
-   */
-  public Index getIndex() {
-    return new DefaultIndex(rowCount());
-  }
-
-  /**
    * Creates an index for this table by using values from the specified columns.
    *
-   * @param columns set of columns to use as an Index
+   * @param columns set of columns to use as an index
    * @return a table indexed by the proper column
    */
   public MultiValueIndex<?> indexFromColumns(
@@ -206,7 +195,7 @@ public class Table {
   /**
    * Creates a new table with the rows sorted
    *
-   * @param columns set of columns to use as an Index
+   * @param columns set of columns to use as an index
    * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
    * @return a table indexed by the proper column
    */
@@ -229,7 +218,7 @@ public class Table {
   /**
    * Creates a new table keeping only rows with distinct key columns.
    *
-   * @param keyColumns set of columns to use as an Index
+   * @param keyColumns set of columns to use as an index
    * @param textFoldingStrategy a strategy for folding text columns
    * @param problemAggregator an aggregator for problems
    * @return a table where duplicate rows with the same key are removed

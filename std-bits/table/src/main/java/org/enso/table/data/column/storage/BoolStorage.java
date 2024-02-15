@@ -12,7 +12,6 @@ import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.bool.BooleanIsInOp;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -207,7 +206,7 @@ public final class BoolStorage extends Storage<Boolean> {
     BitSet newVals = new BitSet();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Index.NOT_FOUND || isMissing.get(position)) {
+      if (position == Storage.NOT_FOUND_INDEX || isMissing.get(position)) {
         newNa.set(i);
       } else if (values.get(position)) {
         newVals.set(i);

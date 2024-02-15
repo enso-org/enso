@@ -6,7 +6,6 @@ import java.util.List;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
@@ -130,7 +129,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     T[] newData = newUnderlyingArray(mask.length());
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      newData[i] = position == Index.NOT_FOUND ? null : data[position];
+      newData[i] = position == Storage.NOT_FOUND_INDEX ? null : data[position];
       context.safepoint();
     }
     return newInstance(newData, newData.length);

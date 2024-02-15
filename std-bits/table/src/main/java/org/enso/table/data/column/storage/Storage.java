@@ -22,6 +22,11 @@ import org.graalvm.polyglot.Value;
 /** An abstract representation of a data column. */
 public abstract class Storage<T> {
   /**
+   * A constant representing the index of a missing value in a column.
+   */
+  public static final int NOT_FOUND_INDEX = -1;
+
+  /**
    * @return the number of elements in this column (including NAs)
    */
   public abstract int size();

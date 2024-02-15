@@ -9,8 +9,6 @@ import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.DefaultIndex;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.InvalidColumnNameException;
@@ -211,13 +209,6 @@ public class Column {
     }
 
     return new Column(name, builder.seal());
-  }
-
-  /**
-   * @return the index of this column
-   */
-  public Index getIndex() {
-    return new DefaultIndex(getSize());
   }
 
   /**
