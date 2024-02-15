@@ -67,6 +67,8 @@ import Dashboard from '#/pages/dashboard/Dashboard'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
+import LocalStorage from '#/utilities/LocalStorage'
+
 import * as authServiceModule from '#/authentication/service'
 
 // ============================
@@ -76,11 +78,27 @@ import * as authServiceModule from '#/authentication/service'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly keyboardShortcuts: Partial<
+    readonly inputBindings: Partial<
       Readonly<Record<inputBindingsModule.DashboardBindingKey, string[]>>
     >
   }
 }
+
+LocalStorage.registerKey('inputBindings', {
+  tryParse: value =>
+    typeof value !== 'object' || value == null
+      ? null
+      : Object.fromEntries(
+          // This is SAFE, as it is a readonly upcast.
+          // eslint-disable-next-line no-restricted-syntax
+          Object.entries(value as Readonly<Record<string, unknown>>).flatMap(kv => {
+            const [k, v] = kv
+            return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
+              ? [[k, v]]
+              : []
+          })
+        ),
+})
 
 // ======================
 // === getMainPageUrl ===
@@ -167,10 +185,25 @@ function AppRouter(props: AppProps) {
     window.navigate = navigate
   }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
+  React.useEffect(() => {
+    const savedInputBindings = localStorage.get('inputBindings')
+    for (const k in savedInputBindings) {
+      // This is UNSAFE, hence the `?? []` below.
+      // eslint-disable-next-line no-restricted-syntax
+      const bindingKey = k as inputBindingsModule.DashboardBindingKey
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings ?? []) {
+        inputBindingsRaw.delete(bindingKey, oldBinding)
+      }
+      for (const newBinding of savedInputBindings[bindingKey] ?? []) {
+        inputBindingsRaw.add(bindingKey, newBinding)
+      }
+    }
+  }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
   const inputBindings = React.useMemo(() => {
     const updateLocalStorage = () => {
       localStorage.set(
-        'keyboardShortcuts',
+        'inputBindings',
         Object.fromEntries(
           Object.entries(inputBindingsRaw.metadata).map(kv => {
             const [k, v] = kv
