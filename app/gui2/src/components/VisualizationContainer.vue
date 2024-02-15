@@ -266,6 +266,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   border-radius: var(--radius-full);
   gap: 12px;
   padding: 8px;
+  z-index: 20;
 
   &:before {
     content: '';
