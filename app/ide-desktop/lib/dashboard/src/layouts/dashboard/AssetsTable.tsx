@@ -1819,16 +1819,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   const columns = columnUtils.getColumnList(backend.type, extraColumns)
 
   const headerRow = (
-    <tr ref={headerRowRef} className="sticky top-0">
+    <tr ref={headerRowRef} className="sticky top-0 text-sm font-semibold">
       {columns.map(column => {
         // This is a React component, even though it does not contain JSX.
         // eslint-disable-next-line no-restricted-syntax
         const Heading = columnHeading.COLUMN_HEADING[column]
         return (
-          <th
-            key={column}
-            className={`text-sm font-semibold ${columnUtils.COLUMN_CSS_CLASS[column]}`}
-          >
+          <th key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
             <Heading state={state} />
           </th>
         )
