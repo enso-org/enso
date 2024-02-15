@@ -654,20 +654,6 @@ function rawBlockToInline(tree: RawAst.Tree.Tree) {
   return tryGetSoleValue(tree.statements)?.expression ?? tree
 }
 
-function analyzeCode(code: string, asBlock: boolean, module: MutableModule) {
-  const rawParsedBlock = parseEnso(code)
-  const rawParsed = asBlock ? rawParsedBlock : rawBlockToInline(rawParsedBlock)
-  // NOTE: We could do the initial analysis much more efficiently by operating on the raw tree; we just need to separate
-  // the logic for mapping raw types to `Ast` from the actual construction of the `Ast` types.
-  const parsed = abstract(module, rawParsed, code)
-  const newNodesBySpan = parsed.spans.nodes
-  const newSpans = new Map<AstId, SourceRange>()
-  for (const [key, asts] of parsed.spans.nodes) {
-    for (const ast of asts) newSpans.set(ast.id, sourceRangeFromKey(key))
-  }
-  return { parsedRoot: parsed.root, newSpans, newNodesBySpan, rawParsed }
-}
-
 /** Update `ast` to match the given source code, while modifying it as little as possible. */
 export function syncToCode(ast: MutableAst, code: string) {
   const codeBefore = ast.code()
@@ -679,7 +665,15 @@ function applyTextEditsToAst(ast: Ast, textEdits: TextEdit[], edit: MutableModul
   const printed = print(ast)
   const code = applyTextEdits(printed.code, textEdits)
 
-  const { parsedRoot, newSpans } = analyzeCode(code, ast instanceof BodyBlock, edit)
+  const asBlock = ast instanceof BodyBlock
+  const rawParsedBlock = parseEnso(code)
+  const rawParsed = asBlock ? rawParsedBlock : rawBlockToInline(rawParsedBlock)
+  const parsed = abstract(edit, rawParsed, code)
+  const newSpans = new Map<AstId, SourceRange>()
+  for (const [key, asts] of parsed.spans.nodes) {
+    for (const ast of asts) newSpans.set(ast.id, sourceRangeFromKey(key))
+  }
+  const parsedRoot = parsed.root
 
   // Retained-code matching: For each new tree, check for some old tree of the same type such that the new tree is the
   // smallest node to contain all characters of the old tree's code that were not deleted in the edit.
