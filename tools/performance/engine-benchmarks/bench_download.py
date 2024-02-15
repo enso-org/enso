@@ -46,6 +46,7 @@ Dependencies for the script:
 """
 
 import sys
+
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     print("ERROR: python version lower than 3.7")
     exit(1)
@@ -67,10 +68,10 @@ from os import path
 from typing import List, Dict, Optional, Any, Set
 import xml.etree.ElementTree as ET
 
-from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_DATE_FORMAT, ENSO_COMMIT_BASE_URL, \
-    GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, JINJA_TEMPLATE, ENSO_REPO, Author, Commit, JobRun, JobReport, \
-    BenchDatapoint, TemplateBenchData, JinjaData, Source
+from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_DATE_FORMAT, GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, JINJA_TEMPLATE, ENSO_REPO, Author, Commit, JobRun, JobReport, \
+    TemplateBenchData, JinjaData, Source
 from bench_tool.gh import invoke_gh_api, ensure_gh_installed
+from bench_tool.template_render import create_template_data, render_html
 
 try:
     import pandas as pd
@@ -381,114 +382,6 @@ def populate_cache(cache_dir: str) -> Cache:
     return cache
 
 
-def create_template_data(
-        job_reports_per_branch: Dict[str, List[JobReport]],
-        bench_labels: Set[str]) -> List[TemplateBenchData]:
-    """
-    Creates all the necessary data for the Jinja template from all collected
-    benchmark job reports.
-    :param job_reports_per_branch: Mapping of branch name to list of job reports.
-    job reports should be sorted by the commit date, otherwise the difference
-    between scores might be wrongly computed.
-    :param bench_labels:
-    :return:
-    """
-
-    def pct_to_str(score_diff_perc: float) -> str:
-        if not np.isnan(score_diff_perc):
-            buff = "+" if score_diff_perc > 0 else ""
-            buff += "{:.5f}".format(score_diff_perc * 100)
-            buff += "%"
-            return buff
-        else:
-            return "NaN"
-
-    def diff_str(score_diff: float, score_diff_perc: float) -> str:
-        if not np.isnan(score_diff):
-            diff_str = "+" if score_diff > 0 else ""
-            diff_str += "{:.5f}".format(score_diff)
-            diff_str += " ("
-            diff_str += pct_to_str(score_diff_perc)
-            diff_str += ")"
-            return diff_str
-        else:
-            return "NA"
-
-    template_bench_datas: List[TemplateBenchData] = []
-    for bench_label in bench_labels:
-        logging.debug(f"Creating template data for benchmark {bench_label}")
-        branch_datapoints: Dict[str, List[BenchDatapoint]] = {}
-        for branch, job_reports in job_reports_per_branch.items():
-            logging.debug(f"Creating datapoints for branch {branch} from {len(job_reports)} job reports")
-            datapoints: List[BenchDatapoint] = []
-            for job_report in job_reports:
-                prev_datapoint: Optional[BenchDatapoint] = \
-                    datapoints[-1] if len(datapoints) > 0 else None
-                if bench_label in job_report.label_score_dict:
-                    score = job_report.label_score_dict[bench_label]
-                    commit = job_report.bench_run.head_commit
-                    timestamp = datetime.strptime(
-                        commit.timestamp,
-                        GH_DATE_FORMAT
-                    )
-                    commit_msg_header = \
-                        commit.message.splitlines()[0].replace('"', "'")
-                    series = pd.Series([
-                        prev_datapoint.score if prev_datapoint else None,
-                        score
-                    ])
-                    score_diff = series.diff()[1]
-                    score_diff_perc = series.pct_change()[1]
-                    tooltip = "score = " + str(score) + "\\n"
-                    tooltip += "date = " + str(timestamp) + "\\n"
-                    tooltip += "branch = " + branch + "\\n"
-                    tooltip += "diff = " + diff_str(score_diff, score_diff_perc)
-                    author_name = commit.author.name\
-                        .replace('"', '\\"')\
-                        .replace("'", "\\'")
-                    datapoints.append(BenchDatapoint(
-                        timestamp=timestamp,
-                        score=score,
-                        score_diff=str(score_diff),
-                        score_diff_perc=pct_to_str(score_diff_perc),
-                        tooltip=tooltip,
-                        bench_run_url=job_report.bench_run.html_url,
-                        commit_id=commit.id,
-                        commit_msg=commit_msg_header,
-                        commit_author=author_name,
-                        commit_url=ENSO_COMMIT_BASE_URL + commit.id,
-                    ))
-            logging.debug(f"{len(datapoints)} datapoints created for branch {branch}")
-            branch_datapoints[branch] = datapoints.copy()
-        logging.debug(f"Template data for benchmark {bench_label} created")
-        template_bench_datas.append(TemplateBenchData(
-            id=_label_to_id(bench_label),
-            name=_label_to_name(bench_label),
-            branches_datapoints=branch_datapoints,
-        ))
-    return template_bench_datas
-
-
-def _label_to_id(label: str) -> str:
-    return label.replace(".", "_")
-
-
-def _label_to_name(label: str) -> str:
-    items = label.split(".")
-    assert len(items) >= 2
-    filtered_items = \
-        [item for item in items if item not in (
-            "org",
-            "enso",
-            "benchmark",
-            "benchmarks",
-            "semantic",
-            "interpreter",
-            "bench"
-        )]
-    return "_".join(filtered_items)
-
-
 def _gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
     """
     Iterates through all the job reports and gathers all the benchmark labels
@@ -500,18 +393,6 @@ def _gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
         for labels in job_report.label_score_dict.keys():
             all_labels.add(labels)
     return all_labels
-
-
-def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) -> None:
-    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader("."))
-    jinja_template = jinja_env.get_template(template_file)
-    generated_html = jinja_template.render(jinja_data.__dict__)
-    if path.exists(html_out_fname):
-        logging.info(f"{html_out_fname} already exist, rewritting")
-    with open(html_out_fname, "w") as html_file:
-        html_file.write(generated_html)
-
-
 
 
 async def main():
