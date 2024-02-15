@@ -63,16 +63,14 @@ import zipfile
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from csv import DictWriter
 from datetime import datetime, timedelta
-from enum import Enum
 from os import path
-from typing import List, Dict, Optional, Any, Union, Set
-from dataclasses import dataclass
+from typing import List, Dict, Optional, Any, Set
 import xml.etree.ElementTree as ET
-from urllib.parse import urlencode
 
-from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_DATE_FORMAT, ENGINE_BENCH_WORKFLOW_ID, \
-    NEW_ENGINE_BENCH_WORKFLOW_ID, STDLIBS_BENCH_WORKFLOW_ID, ENSO_COMMIT_BASE_URL, \
-    GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, JINJA_TEMPLATE
+from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_DATE_FORMAT, ENSO_COMMIT_BASE_URL, \
+    GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, JINJA_TEMPLATE, ENSO_REPO, Author, Commit, JobRun, JobReport, \
+    BenchDatapoint, TemplateBenchData, JinjaData, Source
+from bench_tool.gh import invoke_gh_api, ensure_gh_installed
 
 try:
     import pandas as pd
@@ -83,119 +81,6 @@ except ModuleNotFoundError as err:
     print("Install either with `pip install pandas numpy jinja2` or "
           "with `apt-get install python3-pandas python3-numpy python3-jinja2`", file=sys.stderr)
     exit(1)
-
-
-class Source(Enum):
-    ENGINE = "engine"
-    STDLIB = "stdlib"
-
-    def workflow_ids(self) -> List[int]:
-        if self == Source.ENGINE:
-            return [ENGINE_BENCH_WORKFLOW_ID, NEW_ENGINE_BENCH_WORKFLOW_ID]
-        elif self == Source.STDLIB:
-            return [STDLIBS_BENCH_WORKFLOW_ID]
-        else:
-            raise ValueError(f"Unknown source {self}")
-
-
-@dataclass
-class Author:
-    name: str
-
-
-@dataclass
-class Commit:
-    """ Corresponds to the commit from GH API """
-    id: str
-    author: Author
-    timestamp: str
-    message: str
-
-
-@dataclass
-class JobRun:
-    """
-    Gathered via the GH API. Defines a single run of an Engine benchmark job.
-    """
-    id: str
-    display_title: str
-    html_url: str
-    run_attempt: int
-    """ An event as defined by the GitHub API, for example 'push' or 'schedule' """
-    event: str
-    head_commit: Commit
-
-
-@dataclass
-class JobReport:
-    """
-    Gathered via the GH API - a report that is pushed as an aritfact to the job.
-    Contains a XML file with scores for all the benchmarks.
-    """
-    label_score_dict: Dict[str, float]
-    """ A mapping of benchmark labels to their scores """
-    bench_run: JobRun
-
-
-@dataclass
-class BenchmarkData:
-    """
-    Data for a single benchmark compiled from all the job reports.
-    """
-
-    @dataclass
-    class Entry:
-        score: float
-        commit: Commit
-        bench_run_url: str
-        bench_run_event: str
-
-    label: str
-    """ Label for the benchmark, as reported by org.enso.interpreter.bench.BenchmarksRunner """
-    entries: List[Entry]
-    """ Entries sorted by timestamps """
-
-
-@dataclass
-class BenchDatapoint:
-    """
-    A single datapoint that will be on the chart. `timestamp` is on X axis,
-    `score` on Y axis, and the rest of the fields is used either for the tooltip,
-    or for the selection info.
-    """
-    timestamp: datetime
-    score: float
-    score_diff: str
-    """ Difference of the score with previous datapoint, or NaN """
-    score_diff_perc: str
-    tooltip: str
-    bench_run_url: str
-    commit_id: str
-    commit_msg: str
-    commit_author: str
-    commit_url: str
-
-
-@dataclass
-class TemplateBenchData:
-    """ Data for one benchmark label (with a unique name and ID) """
-    id: str
-    """ ID of the benchmark, must not contain dots """
-    name: str
-    """ Human readable name of the benchmark """
-    branches_datapoints: Dict[str, List[BenchDatapoint]]
-    """ Mapping of branches to datapoints for that branch """
-
-
-@dataclass
-class JinjaData:
-    bench_source: Source
-    bench_datas: List[TemplateBenchData]
-    branches: List[str]
-    since: datetime
-    until: datetime
-    display_since: datetime
-    """ The date from which all the datapoints are first displayed """
 
 
 def _parse_bench_run_from_json(obj: Dict[Any, Any]) -> JobRun:
