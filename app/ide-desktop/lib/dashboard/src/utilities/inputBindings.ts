@@ -343,6 +343,8 @@ export interface KeybindsWithMetadata {
   readonly description?: string
   readonly icon?: string
   readonly color?: string
+  /** Defaults to `true`. */
+  readonly rebindable?: boolean
 }
 
 /** A helper type used to autocomplete and validate an array of keyboard shortcuts (and its
@@ -356,6 +358,8 @@ export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata
   readonly description?: string
   readonly icon?: string
   readonly color?: string
+  /** Defaults to `true`. */
+  readonly rebindable?: boolean
 }
 
 /** All the corresponding value for an arbitrary key of a {@link Keybinds}. */
