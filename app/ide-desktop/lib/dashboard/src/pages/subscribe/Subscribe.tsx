@@ -72,11 +72,6 @@ export default function Subscribe() {
     if (plan != null && sessionId == null) {
       void (async () => {
         try {
-          // FIXME [NP]: Store the client secret and session ID in the localStorage (the
-          // session ID can maybe go in the URL query?) so that if the checkout session
-          // does not enter the "complete" state immediately (i.e., it remains in the
-          // "open" state), then the EmbeddedCheckout component can be remounted so that
-          // the user can complete the checkout process.
           const checkoutSession = await backend.createCheckoutSession(plan)
           setClientSecret(checkoutSession.clientSecret)
           setSessionId(checkoutSession.id)
