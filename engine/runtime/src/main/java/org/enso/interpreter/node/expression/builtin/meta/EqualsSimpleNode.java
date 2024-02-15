@@ -69,6 +69,18 @@ public abstract class EqualsSimpleNode extends Node {
   }
 
   @Specialization
+  boolean equalsInteropBool(
+      TruffleObject self,
+      boolean other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
+    try {
+      return other == interop.asBoolean(self);
+    } catch (UnsupportedMessageException ex) {
+      return false;
+    }
+  }
+
+  @Specialization
   boolean equalsLongLong(long self, long other) {
     return self == other;
   }
@@ -186,11 +198,6 @@ public abstract class EqualsSimpleNode extends Node {
   }
 
   @Specialization
-  boolean equalsBigIntBool(EnsoBigInteger self, boolean other) {
-    return false;
-  }
-
-  @Specialization
   boolean equalsBigIntText(EnsoBigInteger self, Text other) {
     return false;
   }
@@ -212,11 +219,6 @@ public abstract class EqualsSimpleNode extends Node {
   @Specialization(guards = {"selfText.is_normalized()", "otherText.is_normalized()"})
   boolean equalsTextText(Text selfText, Text otherText) {
     return selfText.toString().compareTo(otherText.toString()) == 0;
-  }
-
-  @Specialization
-  boolean equalsTextBool(Text self, boolean other) {
-    return false;
   }
 
   @Specialization
