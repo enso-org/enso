@@ -67,6 +67,10 @@ from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 from urllib.parse import urlencode
 
+from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_DATE_FORMAT, ENGINE_BENCH_WORKFLOW_ID, \
+    NEW_ENGINE_BENCH_WORKFLOW_ID, STDLIBS_BENCH_WORKFLOW_ID, ENSO_COMMIT_BASE_URL, \
+    GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, JINJA_TEMPLATE
+
 
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     print("ERROR: python version lower than 3.7")
@@ -78,33 +82,6 @@ try:
 except ModuleNotFoundError as err:
     print("ERROR: One of pandas, numpy, or jinja2 packages not installed", file=sys.stderr)
     exit(1)
-
-DATE_FORMAT = "%Y-%m-%d"
-ENGINE_BENCH_WORKFLOW_ID = 29450898
-"""
-Workflow ID of engine benchmarks, got via `gh api 
-'/repos/enso-org/enso/actions/workflows'`.
-The name of the workflow is 'Benchmark Engine'
-"""
-NEW_ENGINE_BENCH_WORKFLOW_ID = 67075764
-"""
-Workflow ID for 'Benchmark Engine' workflow, which is the new workflow
-since 2023-08-22.
-"""
-STDLIBS_BENCH_WORKFLOW_ID = 66661001
-"""
-Workflow ID of stdlibs benchmarks, got via `gh api 
-'/repos/enso-org/enso/actions/workflows'`.
-The name is 'Benchmark Standard Libraries'
-"""
-GH_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
-""" Date format as returned from responses in GH API"""
-ENSO_COMMIT_BASE_URL = "https://github.com/enso-org/enso/commit/"
-JINJA_TEMPLATE = "templates/template_jinja.html"
-""" Path to the Jinja HTML template """
-TEMPLATES_DIR = "templates"
-GENERATED_SITE_DIR = "generated_site"
-GH_ARTIFACT_RETENTION_PERIOD = timedelta(days=90)
 
 
 class Source(Enum):
