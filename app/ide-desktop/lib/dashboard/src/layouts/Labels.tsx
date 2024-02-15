@@ -6,11 +6,11 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as modalProvider from '#/providers/ModalProvider'
 
-import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import SvgMask from '#/components/SvgMask'
 
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import DragModal from '#/modals/DragModal'
 import NewLabelModal from '#/modals/NewLabelModal'
 

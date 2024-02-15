@@ -15,8 +15,9 @@ import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
-import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import MenuEntry from '#/components/MenuEntry'
+
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import * as backendModule from '#/services/Backend'
 

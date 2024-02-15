@@ -15,16 +15,16 @@ import AssetListEventType from '#/events/AssetListEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
-import ManagePermissionsModal from '#/layouts/ManagePermissionsModal'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
 import ContextMenuSeparator from '#/components/ContextMenuSeparator'
 import type * as assetRow from '#/components/dashboard/AssetRow'
-import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import MenuEntry from '#/components/MenuEntry'
 
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
+import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'

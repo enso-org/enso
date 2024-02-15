@@ -13,11 +13,11 @@ import * as refreshHooks from '#/hooks/refreshHooks'
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
-import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
 
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import * as object from '#/utilities/object'
 

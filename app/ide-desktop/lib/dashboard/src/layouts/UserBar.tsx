@@ -8,11 +8,12 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
-import ManagePermissionsModal from '#/layouts/ManagePermissionsModal'
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
 
 import Button from '#/components/Button'
+
+import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as backendModule from '#/services/Backend'
 
