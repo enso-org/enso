@@ -56,6 +56,11 @@ export function textChangeToEdits(before: string, after: string): TextEdit[] {
   return textEdits
 }
 
+/** Translate a `TextEdit` by the specified offset. */
+export function offsetEdit(textEdit: TextEdit, offset: number): TextEdit {
+  return { ...textEdit, range: [textEdit.range[0] + offset, textEdit.range[1] + offset] }
+}
+
 /** Given:
  *  @param textEdits - A change described by a set of text edits.
  *  @param spansBefore - A collection of spans in the text before the edit.

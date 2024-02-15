@@ -120,13 +120,21 @@ export class DistributedModule {
     this.undoManager = new Y.UndoManager([this.doc.nodes])
   }
 
-  transact<T>(fn: () => T): T {
-    return this.doc.ydoc.transact(fn, 'local')
-  }
-
   dispose(): void {
     this.doc.ydoc.destroy()
   }
+}
+
+export const localOrigins = ['local', 'local:CodeEditor'] as const
+export type LocalOrigin = (typeof localOrigins)[number]
+/** Locally-originated changes not otherwise specified. */
+export const defaultLocalOrigin: LocalOrigin = 'local'
+export function isLocalOrigin(origin: string): origin is LocalOrigin {
+  const localOriginNames: readonly string[] = localOrigins
+  return localOriginNames.includes(origin)
+}
+export function tryAsLocalOrigin(origin: string): LocalOrigin | undefined {
+  if (isLocalOrigin(origin)) return origin
 }
 
 export type SourceRange = readonly [start: number, end: number]

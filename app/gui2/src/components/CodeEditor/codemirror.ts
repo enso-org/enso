@@ -13,7 +13,7 @@ export {
 } from '@codemirror/language'
 export { forceLinting, lintGutter, linter, type Diagnostic } from '@codemirror/lint'
 export { highlightSelectionMatches } from '@codemirror/search'
-export { Annotation, EditorState, StateEffect, StateField } from '@codemirror/state'
+export { Annotation, EditorState, StateEffect, StateField, type ChangeSet } from '@codemirror/state'
 export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'

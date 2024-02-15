@@ -740,3 +740,23 @@ test('Code edit: No-op block change', () => {
   block.syncToCode(code)
   expect(module.root()?.code()).toBe(code)
 })
+
+test('Code edit X', () => {
+  const code = 'main =\n    x = y \n    x'
+  const expression = Ast.parse(code)
+  const module = expression.module
+  module.replaceRoot(expression)
+  const newCode = 'main =\n    x = y +\n    x'
+  expression.syncToCode(newCode)
+  expect(module.root()?.code()).toBe(newCode)
+})
+
+test('Code edit Y', () => {
+  const code = 'main =\n    x = y +\n    x'
+  const expression = Ast.parse(code)
+  const module = expression.module
+  module.replaceRoot(expression)
+  const newCode = 'main =\n    x = y + \n    x'
+  expression.syncToCode(newCode)
+  expect(module.root()?.code()).toBe(newCode)
+})

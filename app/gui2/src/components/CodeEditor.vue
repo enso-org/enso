@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
+import type { ChangeSet, Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
 import { Annotation, StateEffect, StateField } from '@/components/CodeEditor/codemirror'
 import { usePointer } from '@/composables/events'
 import { useGraphStore, type NodeId } from '@/stores/graph'
@@ -11,8 +11,10 @@ import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
 import { createDebouncer } from 'lib0/eventloop'
-import { rangeEncloses } from 'shared/yjsModel'
-import { computed, onMounted, ref, shallowRef, watch, watchEffect } from 'vue'
+import { MutableModule } from 'shared/ast'
+import { textChangeToEdits, type TextEdit } from 'shared/util/data/text'
+import { rangeEncloses, type LocalOrigin } from 'shared/yjsModel'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {
@@ -176,34 +178,103 @@ watchEffect(() => {
   viewInitialized.value = true
 })
 
+function changeSetToTextEdits(changes: ChangeSet) {
+  const textEdits = new Array<TextEdit>()
+  changes.iterChanges((from, to, _fromB, _toB, insert) =>
+    textEdits.push({ range: [from, to], insert: insert.toString() }),
+  )
+  return textEdits
+}
+function textEditToChangeSpec({ range: [from, to], insert }: TextEdit) {
+  return { from, to, insert }
+}
+
+let pendingChanges: ChangeSet | undefined
+let currentModule: MutableModule | undefined
+/** Set the editor contents the current module state, discarding any pending editor-initiated changes. */
+function resetView() {
+  console.info(`Resetting the editor to the module code.`)
+  pendingChanges = undefined
+  currentModule = undefined
+  const viewText = editorView.state.doc.toString()
+  const code = graphStore.moduleSource.text
+  editorView.dispatch({
+    changes: textChangeToEdits(viewText, code).map(textEditToChangeSpec),
+    annotations: synchronizedModule.of(graphStore.startEdit()),
+  })
+}
+
+/** Apply any pending changes to the currently-synchronized module, clearing the set of pending changes. */
+function commitPendingChanges() {
+  if (!pendingChanges || !currentModule) return
+  try {
+    currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges))
+    graphStore.commitEdit(currentModule, undefined, 'local:CodeEditor')
+  } catch (error) {
+    console.error(`Code Editor failed to modify module`, error)
+    resetView()
+  }
+  pendingChanges = undefined
+}
+
 function updateListener() {
   const debouncer = createDebouncer(0)
   return EditorView.updateListener.of((update) => {
     for (const transaction of update.transactions) {
-      if (transaction.annotation(synchronizedModule) === undefined && transaction.docChanged) {
+      const newModule = transaction.annotation(synchronizedModule)
+      if (newModule) {
+        // Flush the pipeline of edits that were based on the old module.
+        commitPendingChanges()
+        currentModule = newModule
+      } else if (transaction.docChanged && currentModule) {
+        pendingChanges = pendingChanges
+          ? pendingChanges.compose(transaction.changes)
+          : transaction.changes
         // Defer the update until after pending events have been processed, so that if changes are arriving faster than
         // we would be able to apply them individually we coalesce them to keep up.
-        debouncer(() => {
-          const newCode = editorView.state.doc.toString()
-          graphStore.edit((edit) => edit.syncToCode(newCode))
-        })
+        debouncer(commitPendingChanges)
       }
     }
   })
 }
-// Indicates a change that originated from outside the editor.
-const synchronizedModule = Annotation.define<boolean>()
-watchEffect(() => {
-  if (!viewInitialized.value) return
-  const code = graphStore.moduleSource.text
-  if (!code) return
-  if (editorView.state.doc.toString() === code) return
-  const end = editorView.state.doc.length
+
+let needResync = false
+// Indicates a change updating the text to correspond to the given module state.
+const synchronizedModule = Annotation.define<MutableModule>()
+watch(
+  viewInitialized,
+  (ready) => {
+    if (ready) graphStore.moduleSource.observe(observeSourceChange)
+  },
+  { immediate: true },
+)
+onUnmounted(() => graphStore.moduleSource.unobserve(observeSourceChange))
+
+function observeSourceChange(textEdits: TextEdit[], origin: LocalOrigin | undefined) {
+  // If we received an update from outside the Code Editor while the editor contained uncommitted changes, we cannot
+  // proceed incrementally; we wait for the changes to be merged as Y.Js AST updates, and then set the view to the
+  // resulting code.
+  if (needResync) {
+    if (!pendingChanges) {
+      resetView()
+      needResync = false
+    }
+    return
+  }
+  // When we aren't in the `needResync` state, we can ignore updates that originated in the Code Editor.
+  if (origin === 'local:CodeEditor') return
+  if (pendingChanges) {
+    console.info(`Deferring update (editor dirty).`)
+    needResync = true
+    return
+  }
+
+  // If none of the above exit-conditions were reached, the transaction is applicable to our current state.
   editorView.dispatch({
-    changes: { from: 0, to: end, insert: code },
-    annotations: synchronizedModule.of(true),
+    changes: textEdits.map(textEditToChangeSpec),
+    annotations: synchronizedModule.of(graphStore.startEdit()),
   })
-})
+}
 
 // The LS protocol doesn't identify what version of the file updates are in reference to. When diagnostics are received
 // from the LS, we map them to the text assuming that they are applicable to the current version of the module. This

@@ -19,6 +19,7 @@ import {
   type SourceRange,
   type SourceRangeKey,
 } from '../yjsModel'
+import { graphParentPointers } from './debug'
 import { parse_tree, xxHash128 } from './ffi'
 import * as RawAst from './generated/ast'
 import { MutableModule } from './mutableModule'
@@ -416,7 +417,11 @@ export function printAst(
       // Extra structural validation.
       assertEqual(childNode.id, child.node)
       if (parentId(childNode) !== ast.id) {
-        console.error(`Inconsistent parent pointer (expected ${ast.id})`, childNode)
+        console.error(
+          `Inconsistent parent pointer (expected ${ast.id})`,
+          childNode,
+          graphParentPointers(ast.module.root()!),
+        )
       }
       assertEqual(parentId(childNode), ast.id)
     }
@@ -501,12 +506,12 @@ export function parseBlockWithSpans(
 export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?: MutableModule) {
   const rawRoot = parseEnso(code)
   const module = inModule ?? MutableModule.Transient()
-  const { root, spans, toRaw, idMapUpdates } = module.ydoc.transact(() => {
+  const { root, spans, toRaw, idMapUpdates } = module.transact(() => {
     const { root, spans, toRaw } = abstract(module, rawRoot, code)
     root.module.replaceRoot(root)
     const idMapUpdates = idMap ? setExternalIds(root.module, spans, idMap) : 0
     return { root, spans, toRaw, idMapUpdates }
-  }, 'local')
+  })
   const getSpan = spanMapToSpanGetter(spans)
   const idMapOut = spanMapToIdMap(spans)
   return { root, idMap: idMapOut, getSpan, toRaw, idMapUpdates }
@@ -780,7 +785,7 @@ function calculateCorrespondence(
 }
 
 /** Update `ast` according to changes to its corresponding source code. */
-function applyTextEditsToAst(ast: MutableAst, textEdits: TextEdit[]) {
+export function applyTextEditsToAst(ast: MutableAst, textEdits: TextEdit[]) {
   const printed = print(ast)
   const code = applyTextEdits(printed.code, textEdits)
   const rawParsedBlock = parseEnso(code)
@@ -794,7 +799,18 @@ function applyTextEditsToAst(ast: MutableAst, textEdits: TextEdit[]) {
     parsed.spans.nodes,
     textEdits,
   )
-  syncTree(ast, parsed.root, toSync, ast.module)
+  const syncedAst = syncTree(ast, parsed.root, toSync, ast.module)
+  const codeAfter = syncedAst.code()
+  if (codeAfter !== code) {
+    const diffFromResultToExpected = textChangeToEdits(codeAfter, code)
+    console.error(
+      `applyTextEditsToAst failed to synchronize`,
+      printed.code,
+      textEdits,
+      diffFromResultToExpected,
+    )
+    assert(codeAfter === code, `applyTextEditsToAst synchronized with code`)
+  }
 }
 
 /** Replace `target` with `newContent`, reusing nodes according to the correspondence in `toSync`. */
@@ -826,8 +842,10 @@ function syncTree(target: Ast, newContent: Owned, toSync: Map<AstId, Ast>, edit:
   const syncRoot = toSync.get(target.id)
   if (syncRoot && syncRoot.id === newContent.id) {
     syncFields(edit.getVersion(target), syncRoot, childReplacerFor(target.id))
+    return target
   } else {
     parent.replaceChild(target.id, newContent)
+    return newContent
   }
 }
 

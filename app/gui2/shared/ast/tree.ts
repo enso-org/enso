@@ -19,18 +19,22 @@ import {
   isTokenId,
   newExternalId,
   parentId,
+} from '.'
+import { assert, assertDefined, assertEqual, bail } from '../util/assert'
+import type { Result } from '../util/data/result'
+import { Err, Ok } from '../util/data/result'
+import type { TextEdit } from '../util/data/text'
+import type { ExternalId, VisualizationMetadata } from '../yjsModel'
+import * as RawAst from './generated/ast'
+import {
+  applyTextEditsToAst,
   parse,
   parseBlock,
   print,
   printAst,
   printBlock,
   syncToCode,
-} from '.'
-import { assert, assertDefined, assertEqual, bail } from '../util/assert'
-import type { Result } from '../util/data/result'
-import { Err, Ok } from '../util/data/result'
-import type { ExternalId, VisualizationMetadata } from '../yjsModel'
-import * as RawAst from './generated/ast'
+} from './parse'
 
 declare const brandAstId: unique symbol
 export type AstId = string & { [brandAstId]: never }
@@ -295,6 +299,11 @@ export abstract class MutableAst extends Ast {
   /** Modify this tree to represent the given code, while minimizing changes from the current set of `Ast`s. */
   syncToCode(code: string) {
     syncToCode(this, code)
+  }
+
+  /** Update the AST according to changes to its corresponding source code. */
+  applyTextEdits(textEdits: TextEdit[]) {
+    applyTextEditsToAst(this, textEdits)
   }
 
   ///////////////////
