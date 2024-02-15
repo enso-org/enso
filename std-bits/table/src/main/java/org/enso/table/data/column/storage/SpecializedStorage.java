@@ -109,18 +109,18 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> mask(BitSet mask, int cardinality) {
+  public SpecializedStorage<T> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
-    T[] newData = newUnderlyingArray(cardinality);
+    T[] newData = newUnderlyingArray(newLength);
     int resIx = 0;
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         newData[resIx++] = data[i];
       }
 
       context.safepoint();
     }
-    return newInstance(newData, cardinality);
+    return newInstance(newData, newLength);
   }
 
   @Override

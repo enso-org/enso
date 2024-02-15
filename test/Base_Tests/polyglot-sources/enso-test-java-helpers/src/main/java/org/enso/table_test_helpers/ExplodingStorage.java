@@ -94,7 +94,7 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Storage<Long> mask(BitSet mask, int cardinality) {
+  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
     return null;
   }
 

@@ -169,13 +169,13 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public Storage<Long> mask(BitSet mask, int cardinality) {
+  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
     BitSet newMissing = new BitSet();
-    long[] newData = new long[cardinality];
+    long[] newData = new long[newLength];
     int resIx = 0;
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         if (isMissing.get(i)) {
           newMissing.set(resIx++);
         } else {
@@ -185,7 +185,7 @@ public final class LongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, cardinality, newMissing, type);
+    return new LongStorage(newData, newLength, newMissing, type);
   }
 
   @Override

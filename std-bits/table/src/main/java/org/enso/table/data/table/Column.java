@@ -91,7 +91,7 @@ public class Column {
    * @return a new column, masked with the given mask
    */
   public Column mask(BitSet mask, int cardinality) {
-    return new Column(name, storage.mask(mask, cardinality));
+    return new Column(name, storage.applyFilter(mask, cardinality));
   }
 
   /**
@@ -182,7 +182,7 @@ public class Column {
    * Creates a new column with given name and an element to repeat.
    *
    * @param name the name to use
-   * @param items the item repeated in the column
+   * @param item the item repeated in the column
    * @return a column with given name and items
    */
   public static Column fromRepeatedItem(

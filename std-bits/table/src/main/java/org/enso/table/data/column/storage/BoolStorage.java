@@ -176,13 +176,13 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  public BoolStorage mask(BitSet mask, int cardinality) {
+  public BoolStorage applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();
     BitSet newValues = new BitSet();
     int resultIx = 0;
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         if (isMissing.get(i)) {
           newMissing.set(resultIx++);
         } else if (values.get(i)) {
@@ -196,7 +196,7 @@ public final class BoolStorage extends Storage<Boolean> {
 
       context.safepoint();
     }
-    return new BoolStorage(newValues, newMissing, cardinality, negated);
+    return new BoolStorage(newValues, newMissing, newLength, negated);
   }
 
   @Override

@@ -477,11 +477,11 @@ public abstract class Storage<T> {
   /**
    * Return a new storage, containing only the items marked true in the mask.
    *
-   * @param mask the mask to use
-   * @param cardinality the number of true values in mask
-   * @return a new storage, masked with the given mask
+   * @param filterMask the mask to use
+   * @param newLength the number of true values in mask
+   * @return a new storage, filtered with the given mask
    */
-  public abstract Storage<T> mask(BitSet mask, int cardinality);
+  public abstract Storage<T> applyFilter(BitSet filterMask, int newLength);
 
   /**
    * Returns a new storage, ordered according to the rules specified in a mask.
