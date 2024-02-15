@@ -156,26 +156,10 @@ public final class EqualsNode extends Node {
         @Shared("typeOf") @Cached TypeOfNode typeOfNode,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
         @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
-      /*
-      if (that instanceof EnsoMultiValue multi) {
-        for (var thatType : multi.allTypes()) {
-          var fn = findSymbol(symbol, thatType);
-          if (fn != null) {
-            var result =
-                doDispatch(
-                    frame, self, multi.castTo(thatType), thatType, fn, convertNode, equalityNode);
-            if (result != null) {
-              return result;
-            }
-          }
-        }
-      } else */
-      {
-        var thatType = findType(typeOfNode, that);
-        if (thatType != null) {
-          var result = doDispatch(frame, self, that, thatType, convertNode, equalityNode);
-          return result;
-        }
+      var thatType = findType(typeOfNode, that);
+      if (thatType != null) {
+        var result = doDispatch(frame, self, that, thatType, convertNode, equalityNode);
+        return result;
       }
       return false;
     }
