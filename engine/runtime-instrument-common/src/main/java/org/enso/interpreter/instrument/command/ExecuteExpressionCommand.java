@@ -4,14 +4,13 @@ import java.util.UUID;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.instrument.job.ExecuteExpressionJob;
 import org.enso.interpreter.instrument.job.ExecuteJob;
+import org.enso.polyglot.runtime.Runtime$Api$ContextNotExistError;
 import org.enso.polyglot.runtime.Runtime$Api$VisualizationAttached;
 import scala.Option;
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
-import scala.runtime.BoxedUnit;
 
 /** The command that handles the execute expression request. */
-public final class ExecuteExpressionCommand extends ContextCmd {
+public final class ExecuteExpressionCommand extends SynchronousCommand {
 
   private final UUID contextId;
   private final UUID visualizationId;
@@ -33,7 +32,7 @@ public final class ExecuteExpressionCommand extends ContextCmd {
       UUID visualizationId,
       UUID expressionId,
       String expression) {
-    super(contextId, maybeRequestId);
+    super(maybeRequestId);
     this.contextId = contextId;
     this.visualizationId = visualizationId;
     this.expressionId = expressionId;
@@ -41,10 +40,15 @@ public final class ExecuteExpressionCommand extends ContextCmd {
   }
 
   @Override
-  public Future<BoxedUnit> executeCmd(RuntimeContext ctx, ExecutionContext ec) {
-    reply(new Runtime$Api$VisualizationAttached(), ctx);
-    return ctx.jobProcessor()
-        .run(new ExecuteExpressionJob(contextId, visualizationId, expressionId, expression))
-        .flatMap(executable -> ctx.jobProcessor().run(ExecuteJob.apply(executable)), ec);
+  public void executeSynchronously(RuntimeContext ctx, ExecutionContext ec) {
+    if (ctx.contextManager().contains(contextId)) {
+      reply(new Runtime$Api$VisualizationAttached(), ctx);
+      ctx.jobControlPlane().abortJobs(contextId);
+      ctx.jobProcessor()
+          .run(new ExecuteExpressionJob(contextId, visualizationId, expressionId, expression))
+          .flatMap(executable -> ctx.jobProcessor().run(ExecuteJob.apply(executable)), ec);
+    } else {
+      reply(new Runtime$Api$ContextNotExistError(contextId), ctx);
+    }
   }
 }
