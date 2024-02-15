@@ -393,9 +393,9 @@ export const DEFAULT_HANDLER = Symbol('default handler')
  * if the event should be considered not handled (and thus propagated). Returning true or just
  * nothing from the function will cause propagation of event stop.
  * @param namespace - should be unique among other `defineKeybinds` calls.
- * @param bindings - an object defining actions and their key bindings. Each property name is an
- * action name, and value is list of default key bindings. See "Keybinds should be parsed
- * correctly" test for examples of valid strings.
+ * @param originalBindings - an object defining actions and their key bindings. Each property name
+ * is an action name, and the value is a list of default key bindings. See "Keybinds should be
+ * parsed correctly" test for examples of valid strings.
  * @returns an object with defined `handler` function.
  * @example
  * Define bindings:
@@ -441,7 +441,7 @@ export const DEFAULT_HANDLER = Symbol('default handler')
  */
 export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   namespace: string,
-  bindings: Keybinds<T>
+  originalBindings: Keybinds<T>
 ) {
   /** The name of a binding in this set of keybinds. */
   type BindingKey = string & keyof T
@@ -457,6 +457,13 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     Record<PointerButtonFlags, Partial<Record<ModifierFlags, Set<BindingKey>>>>
   > = []
 
+  const bindings = structuredClone(originalBindings)
+  // This is SAFE, as it is a `readonly` upcast.
+  const bindingsAsRecord =
+    // eslint-disable-next-line no-restricted-syntax
+    bindings as Readonly<Record<string, KeybindValue>>
+
+  // This non-null assertion is SAFE, as it is immediately assigned by `rebuildMetadata()`.
   let metadata!: Record<BindingKey, KeybindsWithMetadata>
   const rebuildMetadata = () => {
     // This is SAFE, as this type is a direct mapping from `bindingsAsRecord`, which has `BindingKey`
@@ -474,13 +481,8 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     ) as Record<BindingKey, KeybindsWithMetadata>
   }
 
-  const originalBindings = { ...bindings }
-  // This is SAFE, as it is a `readonly` upcast.
-  const bindingsAsRecord =
-    // eslint-disable-next-line no-restricted-syntax
-    bindings as Readonly<Record<string, KeybindValue>>
-
   const rebuildLookups = () => {
+    rebuildMetadata()
     keyboardShortcuts = {}
     mouseShortcuts = []
     for (const [nameRaw, value] of Object.entries(bindingsAsRecord)) {
@@ -507,7 +509,6 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
         }
       }
     }
-    rebuildMetadata()
   }
   rebuildLookups()
 
@@ -592,13 +593,13 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     }
   }
 
-  const reset = (bindingName: BindingKey) => {
-    bindings[bindingName] = originalBindings[bindingName]
+  const reset = (key: BindingKey) => {
+    bindings[key] = structuredClone(originalBindings[key])
     rebuildLookups()
   }
 
-  const deleteFunction = (bindingName: BindingKey, binding: string) => {
-    const bindingsOrInfo = bindingsAsRecord[bindingName]
+  const deleteFunction = (key: BindingKey, binding: string) => {
+    const bindingsOrInfo = bindingsAsRecord[key]
     const bindingsList =
       bindingsOrInfo != null && 'bindings' in bindingsOrInfo
         ? bindingsOrInfo.bindings
@@ -609,8 +610,8 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     }
   }
 
-  const add = (bindingName: BindingKey, binding: string) => {
-    const bindingsOrInfo = bindingsAsRecord[bindingName]
+  const add = (key: BindingKey, binding: string) => {
+    const bindingsOrInfo = bindingsAsRecord[key]
     const bindingsList =
       bindingsOrInfo != null && 'bindings' in bindingsOrInfo
         ? bindingsOrInfo.bindings
@@ -633,7 +634,10 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     delete: deleteFunction,
     /** Add a new binding to the bindings for a specific action. */
     add,
-    metadata,
+    /** Metadata for every input binding. */
+    get metadata() {
+      return metadata
+    },
   } as const
 }
 

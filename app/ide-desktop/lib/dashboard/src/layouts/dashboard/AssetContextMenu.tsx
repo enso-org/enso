@@ -261,7 +261,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               } else {
                 setModal(
                   <ConfirmDeleteModal
-                    description={`the ${asset.type} '${asset.title}'`}
+                    actionText={`delete the ${asset.type} '${asset.title}'`}
                     doDelete={doDelete}
                   />
                 )

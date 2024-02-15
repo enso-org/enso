@@ -13,14 +13,16 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
-  /** Must fit in the sentence "Are you sure you want to delete <description>?". */
-  readonly description: string
+  /** Must fit in the sentence "Are you sure you want to <action>?". */
+  readonly actionText: string
+  /** The label shown on the colored confirmation button. "Delete" by default. */
+  readonly actionButtonLabel?: string
   readonly doDelete: () => void
 }
 
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-  const { description, doDelete } = props
+  const { actionText, actionButtonLabel = 'Delete', doDelete } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
 
@@ -57,13 +59,13 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           onSubmit()
         }}
       >
-        <div className="relative">Are you sure you want to delete {description}?</div>
+        <div className="relative">Are you sure you want to {actionText}?</div>
         <div className="relative flex gap-2">
           <button
             type="submit"
             className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1"
           >
-            Delete
+            {actionButtonLabel}
           </button>
           <button
             type="button"

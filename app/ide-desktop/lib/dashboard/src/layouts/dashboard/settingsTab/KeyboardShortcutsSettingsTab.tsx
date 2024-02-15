@@ -4,11 +4,16 @@ import * as React from 'react'
 import BlankIcon from 'enso-assets/blank.svg'
 import CrossIcon from 'enso-assets/cross.svg'
 import Plus2Icon from 'enso-assets/plus2.svg'
+import ReloadInCircleIcon from 'enso-assets/reload_in_circle.svg'
+
+import type * as inputBindingsModule from '#/configurations/inputBindings'
 
 import * as refreshHooks from '#/hooks/refreshHooks'
 
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 
+import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
 
@@ -21,6 +26,7 @@ import * as object from '#/utilities/object'
 /** Settings tab for viewing and editing account information. */
 export default function KeyboardShortcutsSettingsTab() {
   const inputBindings = inputBindingsManager.useInputBindings()
+  const { setModal } = modalProvider.useSetModal()
   const [, doRefresh] = refreshHooks.useRefresh()
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
@@ -55,6 +61,29 @@ export default function KeyboardShortcutsSettingsTab() {
   return (
     <div className="flex flex-col flex-1 gap-2.5 w-full pr-4">
       <h3 className="font-bold text-xl h-9.5 py-0.5">Keyboard shortcuts</h3>
+      <div className="flex gap-2.5">
+        <button
+          className="flex items-center bg-frame rounded-full h-8 px-2.5"
+          onClick={event => {
+            event.stopPropagation()
+            setModal(
+              <ConfirmDeleteModal
+                actionText="reset all keyboard shortcuts"
+                actionButtonLabel="Reset All"
+                doDelete={() => {
+                  for (const k in inputBindings.metadata) {
+                    // eslint-disable-next-line no-restricted-syntax
+                    inputBindings.reset(k as inputBindingsModule.DashboardBindingKey)
+                  }
+                  doRefresh()
+                }}
+              />
+            )
+          }}
+        >
+          <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">Reset All</span>
+        </button>
+      </div>
       {/* There is a horizontal scrollbar for some reason without `px-px`. */}
       <div ref={scrollContainerRef} className="overflow-auto px-px">
         <table className="rounded-rows table-fixed border-collapse">
@@ -118,7 +147,7 @@ export default function KeyboardShortcutsSettingsTab() {
                               doRefresh()
                             }}
                           >
-                            <img className="w-4.5 h-4.5" src={Plus2Icon} />
+                            <img className="w-4.5 h-4.5" src={ReloadInCircleIcon} />
                           </button>
                         </div>
                       </div>

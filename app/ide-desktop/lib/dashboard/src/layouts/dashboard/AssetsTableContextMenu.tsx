@@ -97,7 +97,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     } else {
       setModal(
         <ConfirmDeleteModal
-          description={`${selectedKeys.size} selected ${pluralized}`}
+          actionText={`delete ${selectedKeys.size} selected ${pluralized}`}
           doDelete={() => {
             setSelectedKeys(new Set())
             dispatchAssetEvent({

@@ -99,7 +99,7 @@ export default function Labels(props: LabelsProps) {
                       event.stopPropagation()
                       setModal(
                         <ConfirmDeleteModal
-                          description={`the label '${label.value}'`}
+                          actionText={`delete the label '${label.value}'`}
                           doDelete={() => {
                             doDeleteLabel(label.id, label.value)
                           }}
