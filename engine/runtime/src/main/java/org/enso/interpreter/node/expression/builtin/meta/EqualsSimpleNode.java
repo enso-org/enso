@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -28,7 +29,7 @@ public abstract class EqualsSimpleNode extends Node {
     return EqualsSimpleNodeGen.create();
   }
 
-  public abstract boolean execute(Object self, Object right);
+  public abstract boolean execute(VirtualFrame frame, Object self, Object right);
 
   @Specialization
   boolean equalsBoolBool(boolean self, boolean other) {
@@ -274,58 +275,54 @@ public abstract class EqualsSimpleNode extends Node {
 
   @Specialization
   boolean equalsAtoms(
+      VirtualFrame frame,
       Atom self,
       Atom other,
       @Cached EqualsAtomNode equalsAtomNode,
       @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode) {
-    return isSameObjectNode.execute(self, other) || equalsAtomNode.execute(self, other);
-  }
-
-  @Specialization
-  boolean equalsReverseBoolean(
-      TruffleObject self,
-      boolean other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("reverse") @Cached EqualsNode reverse) {
-    return reverse.execute(other, self);
+    return isSameObjectNode.execute(self, other) || equalsAtomNode.execute(frame, self, other);
   }
 
   @Specialization
   boolean equalsReverseLong(
+      VirtualFrame frame,
       TruffleObject self,
       long other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("reverse") @Cached EqualsNode reverse) {
-    return reverse.execute(other, self);
+      @Shared("reverse") @Cached EqualsSimpleNode reverse) {
+    return reverse.execute(frame, other, self);
   }
 
   @Specialization
   boolean equalsReverseDouble(
+      VirtualFrame frame,
       TruffleObject self,
       double other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("reverse") @Cached EqualsNode reverse) {
-    return reverse.execute(other, self);
+      @Shared("reverse") @Cached EqualsSimpleNode reverse) {
+    return reverse.execute(frame, other, self);
   }
 
   @Specialization
   boolean equalsReverseBigInt(
+      VirtualFrame frame,
       TruffleObject self,
       EnsoBigInteger other,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("reverse") @Cached EqualsNode reverse) {
-    return reverse.execute(other, self);
+      @Shared("reverse") @Cached EqualsSimpleNode reverse) {
+    return reverse.execute(frame, other, self);
   }
 
   @Specialization(guards = "isNotPrimitive(self, other, interop, warnings)")
   boolean equalsComplex(
+      VirtualFrame frame,
       Object self,
       Object other,
       @Cached EqualsComplexNode equalsComplex,
       @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warnings) {
-    return isSameObjectNode.execute(self, other) || equalsComplex.execute(self, other);
+    return isSameObjectNode.execute(self, other) || equalsComplex.execute(frame, self, other);
   }
 
   static boolean isNotPrimitive(

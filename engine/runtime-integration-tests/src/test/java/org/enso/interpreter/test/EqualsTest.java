@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.MethodNames;
@@ -45,7 +44,7 @@ public class EqualsTest extends TestBase {
         context,
         () -> {
           testRootNode = new TestRootNode();
-          equalsNode = EqualsNode.build();
+          equalsNode = EqualsNode.create();
           hostValueToEnsoNode = HostValueToEnsoNode.build();
           testRootNode.insertChildren(equalsNode, hostValueToEnsoNode);
           return null;
@@ -93,8 +92,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          boolean firstResult = equalsNode.execute(firstValue, secondValue);
-          boolean secondResult = equalsNode.execute(secondValue, firstValue);
+          boolean firstResult = equalsNode.execute(null, firstValue, secondValue);
+          boolean secondResult = equalsNode.execute(null, secondValue, firstValue);
           assertEquals("equals should be symmetric", firstResult, secondResult);
           return null;
         });
@@ -105,8 +104,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          Object firstResult = equalsNode.execute(value, value);
-          Object secondResult = equalsNode.execute(value, value);
+          Object firstResult = equalsNode.execute(null, value, value);
+          Object secondResult = equalsNode.execute(null, value, value);
           assertEquals("equals should be consistent", firstResult, secondResult);
           return null;
         });
@@ -117,8 +116,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          Object uncachedRes = EqualsNodeGen.getUncached().execute(firstVal, secondVal);
-          Object cachedRes = equalsNode.execute(firstVal, secondVal);
+          Object uncachedRes = EqualsNode.getUncached().execute(null, firstVal, secondVal);
+          Object cachedRes = equalsNode.execute(null, firstVal, secondVal);
           assertEquals(
               "Result from uncached EqualsNode should be the same as result from its cached"
                   + " variant",
@@ -140,7 +139,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoDate, javaDate));
+          assertTrue(equalsNode.execute(null, ensoDate, javaDate));
           return null;
         });
   }
@@ -158,7 +157,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoTime, javaDate));
+          assertTrue(equalsNode.execute(null, ensoTime, javaDate));
           return null;
         });
   }
@@ -181,7 +180,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoDateTime, javaDateTime));
+          assertTrue(equalsNode.execute(null, ensoDateTime, javaDateTime));
           return null;
         });
   }
@@ -194,7 +193,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(javaNumber + " == " + ensoNumber, equalsNode.execute(javaNumber, ensoNumber));
+          assertTrue(
+              javaNumber + " == " + ensoNumber, equalsNode.execute(null, javaNumber, ensoNumber));
           return null;
         });
   }
@@ -207,7 +207,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(ensoNumber + " == " + javaNumber, equalsNode.execute(ensoNumber, javaNumber));
+          assertTrue(
+              ensoNumber + " == " + javaNumber, equalsNode.execute(null, ensoNumber, javaNumber));
           return null;
         });
   }
@@ -220,7 +221,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(javaNumber + " == " + hostNumber, equalsNode.execute(javaNumber, hostNumber));
+          assertTrue(
+              javaNumber + " == " + hostNumber, equalsNode.execute(null, javaNumber, hostNumber));
           return null;
         });
   }
@@ -233,7 +235,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(hostNumber + " == " + javaNumber, equalsNode.execute(hostNumber, javaNumber));
+          assertTrue(
+              hostNumber + " == " + javaNumber, equalsNode.execute(null, hostNumber, javaNumber));
           return null;
         });
   }
@@ -246,7 +249,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoVector, javaVector));
+          assertTrue(equalsNode.execute(null, ensoVector, javaVector));
           return null;
         });
   }
@@ -258,9 +261,9 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoNumber, foreignNumber.asDirect()));
-          assertTrue(equalsNode.execute(ensoNumber, foreignNumber));
-          assertTrue(equalsNode.execute(foreignNumber, ensoNumber));
+          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber.asDirect()));
+          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber));
+          assertTrue(equalsNode.execute(null, foreignNumber, ensoNumber));
           return null;
         });
   }
@@ -272,9 +275,9 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoNumber, foreignNumber.asDirect()));
-          assertTrue(equalsNode.execute(ensoNumber, foreignNumber));
-          assertTrue(equalsNode.execute(foreignNumber, ensoNumber));
+          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber.asDirect()));
+          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber));
+          assertTrue(equalsNode.execute(null, foreignNumber, ensoNumber));
           return null;
         });
   }
@@ -287,8 +290,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoNumber, foreignNumber));
-          assertTrue(equalsNode.execute(foreignNumber, ensoNumber));
+          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber));
+          assertTrue(equalsNode.execute(null, foreignNumber, ensoNumber));
           return null;
         });
   }
@@ -301,9 +304,9 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoBoolean, foreignBoolean.asDirect()));
-          assertTrue(equalsNode.execute(ensoBoolean, foreignBoolean));
-          assertTrue(equalsNode.execute(foreignBoolean, ensoBoolean));
+          assertTrue(equalsNode.execute(null, ensoBoolean, foreignBoolean.asDirect()));
+          assertTrue(equalsNode.execute(null, ensoBoolean, foreignBoolean));
+          assertTrue(equalsNode.execute(null, foreignBoolean, ensoBoolean));
           return null;
         });
   }
@@ -315,9 +318,9 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(ensoText, foreignString.asDirect()));
-          assertTrue(equalsNode.execute(ensoText, foreignString));
-          assertTrue(equalsNode.execute(foreignString, ensoText));
+          assertTrue(equalsNode.execute(null, ensoText, foreignString.asDirect()));
+          assertTrue(equalsNode.execute(null, ensoText, foreignString));
+          assertTrue(equalsNode.execute(null, foreignString, ensoText));
           return null;
         });
   }
@@ -336,8 +339,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(142L, hundred42));
-          assertTrue(equalsNode.execute(hundred42, 142L));
+          assertTrue(equalsNode.execute(null, 142L, hundred42));
+          assertTrue(equalsNode.execute(null, hundred42, 142L));
           return null;
         });
   }
@@ -376,14 +379,17 @@ public class EqualsTest extends TestBase {
           context,
           () -> {
             assertTrue(
-                "Conversions from same module are the same", equalsNode.execute(conv1, conv1_2));
+                "Conversions from same module are the same",
+                equalsNode.execute(null, conv1, conv1_2));
             assertTrue(
-                "Conversions from same module are the same", equalsNode.execute(conv2, conv2_2));
+                "Conversions from same module are the same",
+                equalsNode.execute(null, conv2, conv2_2));
             assertFalse(
-                "Conversions from other modules aren't the same", equalsNode.execute(conv1, conv2));
+                "Conversions from other modules aren't the same",
+                equalsNode.execute(null, conv1, conv2));
             assertFalse(
                 "Conversions from other modueles aren't the same",
-                equalsNode.execute(conv2_2, conv1_2));
+                equalsNode.execute(null, conv2_2, conv1_2));
             return null;
           });
 
