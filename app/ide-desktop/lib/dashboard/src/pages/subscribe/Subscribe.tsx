@@ -139,23 +139,24 @@ export default function Subscribe() {
             </button>
           ))}
         </div>
-        {sessionId && clientSecret && (
+        {sessionId && clientSecret ? (
           <div className="overflow-auto">
             <stripeReact.EmbeddedCheckoutProvider
               key={sessionId}
               stripe={stripePromise}
-              // Above, `sessionId` is updated when the `checkoutSession` is
-              // created. This triggers a fetch of the session's `status`. The
-              // `status` is not going to be `complete` at that point (unless the
-              // user completes the checkout process before the fetch is
-              // complete).  So the `status` needs to be fetched again when the
-              // `checkoutSession` is updated. This is done by passing a function
-              // to `onComplete`.
+              // Above, `sessionId` is updated when the `checkoutSession` is created.
+              // This triggers a fetch of the session's `status`.
+              // The `status` is not going to be `complete` at that point
+              // (unless the user completes the checkout process before the fetch is complete).
+              // So the `status` needs to be fetched again when the `checkoutSession` is updated.
+              // This is done by passing a function to `onComplete`.
               options={{ clientSecret, onComplete }}
             >
               <stripeReact.EmbeddedCheckout />
             </stripeReact.EmbeddedCheckoutProvider>
           </div>
+        ) : (
+          <div className="h-155 transition-all"></div>
         )}
       </div>
     </Modal>
