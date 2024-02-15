@@ -27,10 +27,6 @@ type Complex
     < self (that:Complex) = Complex_Comparator.compare self that == Ordering.Less
     > self (that:Complex) = Complex_Comparator.compare self that == Ordering.Greater
 
-    == self (that:Complex) = Complex_Comparator.compare self that == Ordering.Equal
-
-    pending_equality -> Text = "== with conversions isn't yet supported"
-
 Complex.from (that:Number) = Complex.new that
 
 type Complex_Comparator
@@ -591,7 +587,7 @@ add_specs suite_builder =
             v2 = (Complex.new 6 6)
             Ordering.compare v1 v2 . catch Incomparable_Values (_->42) . should_equal 42
 
-        group_builder.specify "Equality of complex and number" pending=Complex.pending_equality <|
+        group_builder.specify "Equality of complex and number" <|
             v1 = (Complex.new 3)
             v2 = 3
             v1 . should_equal v2
@@ -599,7 +595,7 @@ add_specs suite_builder =
             v1==v2 . should_be_true
             v2==v1 . should_be_true
 
-        group_builder.specify "Equality of number and complex" pending=Complex.pending_equality <|
+        group_builder.specify "Equality of number and complex" <|
             v1 = 3
             v2 = (Complex.new 3)
             v1 . should_equal v2
