@@ -104,11 +104,6 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Storage<Long> countMask(int[] counts, int total) {
-    return null;
-  }
-
-  @Override
   public Storage<Long> slice(int offset, int limit) {
     return null;
   }

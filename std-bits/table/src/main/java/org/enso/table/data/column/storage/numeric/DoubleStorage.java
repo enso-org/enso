@@ -293,28 +293,6 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     }
     return new DoubleStorage(newData, newData.length, newMissing);
   }
-
-  @Override
-  public Storage<Double> countMask(int[] counts, int total) {
-    long[] newData = new long[total];
-    BitSet newMissing = new BitSet();
-    int pos = 0;
-    Context context = Context.getCurrent();
-    for (int i = 0; i < counts.length; i++) {
-      if (isMissing.get(i)) {
-        newMissing.set(pos, pos + counts[i]);
-        pos += counts[i];
-      } else {
-        for (int j = 0; j < counts[i]; j++) {
-          newData[pos++] = data[i];
-        }
-      }
-
-      context.safepoint();
-    }
-    return new DoubleStorage(newData, total, newMissing);
-  }
-
   public BitSet getIsMissing() {
     return isMissing;
   }

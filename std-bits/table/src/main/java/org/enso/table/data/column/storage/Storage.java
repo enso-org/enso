@@ -486,19 +486,6 @@ public abstract class Storage<T> {
   public abstract Storage<T> applyMask(OrderMask mask);
 
   /**
-   * Returns a new storage, resulting from applying the rules specified in a mask. The resulting
-   * storage should contain the elements of the original storage, in the same order. However, the
-   * number of consecutive copies of the i-th element of the original storage should be {@code
-   * counts[i]}.
-   *
-   * @param counts the mask specifying elements duplication
-   * @param total the sum of all elements in the mask, also interpreted as the length of the
-   *     resulting storage
-   * @return the storage masked according to the specified rules
-   */
-  public abstract Storage<T> countMask(int[] counts, int total);
-
-  /**
    * @return a copy of the storage containing a slice of the original data
    */
   public abstract Storage<T> slice(int offset, int limit);

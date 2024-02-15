@@ -218,25 +218,6 @@ public final class BoolStorage extends Storage<Boolean> {
     return new BoolStorage(newVals, newNa, mask.length(), negated);
   }
 
-  @Override
-  public BoolStorage countMask(int[] counts, int total) {
-    Context context = Context.getCurrent();
-    BitSet newNa = new BitSet();
-    BitSet newVals = new BitSet();
-    int pos = 0;
-    for (int i = 0; i < counts.length; i++) {
-      if (isMissing.get(i)) {
-        newNa.set(pos, pos + counts[i]);
-      } else if (values.get(i)) {
-        newVals.set(pos, pos + counts[i]);
-      }
-      pos += counts[i];
-
-      context.safepoint();
-    }
-    return new BoolStorage(newVals, newNa, total, negated);
-  }
-
   public boolean isNegated() {
     return negated;
   }

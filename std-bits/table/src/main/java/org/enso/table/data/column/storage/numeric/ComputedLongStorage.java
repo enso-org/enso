@@ -97,23 +97,6 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public Storage<Long> countMask(int[] counts, int total) {
-    long[] newData = new long[total];
-    BitSet newMissing = new BitSet();
-    int pos = 0;
-    Context context = Context.getCurrent();
-    for (int i = 0; i < counts.length; i++) {
-      long item = getItem(i);
-      for (int j = 0; j < counts[i]; j++) {
-        newData[pos++] = item;
-      }
-
-      context.safepoint();
-    }
-    return new LongStorage(newData, total, newMissing, getType());
-  }
-
-  @Override
   public Storage<Long> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
     long[] newData = new long[newSize];

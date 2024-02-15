@@ -136,20 +136,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     return newInstance(newData, newData.length);
   }
 
-  @Override
-  public SpecializedStorage<T> countMask(int[] counts, int total) {
-    Context context = Context.getCurrent();
-    T[] newData = newUnderlyingArray(total);
-    int pos = 0;
-    for (int i = 0; i < counts.length; i++) {
-      for (int j = 0; j < counts[i]; j++) {
-        newData[pos++] = data[i];
-        context.safepoint();
-      }
-    }
-    return newInstance(newData, total);
-  }
-
   public T[] getData() {
     return data;
   }

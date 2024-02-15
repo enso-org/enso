@@ -103,12 +103,6 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public Storage<Object> countMask(int[] counts, int total) {
-    Storage<?> newStorage = underlyingStorage.countMask(counts, total);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
   public Storage<Object> slice(int offset, int limit) {
     Storage<?> newStorage = underlyingStorage.slice(offset, limit);
     return new MixedStorageFacade(newStorage);

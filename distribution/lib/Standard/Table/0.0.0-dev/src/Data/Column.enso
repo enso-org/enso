@@ -10,6 +10,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
+from Standard.Base.Metadata.Widget import Numeric_Input
 from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
 
 import project.Data.Constants.Previous_Value
@@ -2093,6 +2094,7 @@ type Column
              import Standard.Examples
 
              example_at = Examples.integer_column.at 0
+    @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
     at self (index : Integer) =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
@@ -2111,6 +2113,7 @@ type Column
              import Standard.Examples
 
              example_at = Examples.integer_column.get 0 -1
+    @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     get : Integer -> Any -> Any | Nothing
     get self (index : Integer) (~default=Nothing) =
         valid_index = (index >= 0) && (index < self.length)
