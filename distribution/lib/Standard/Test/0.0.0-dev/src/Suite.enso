@@ -52,8 +52,9 @@ type Suite
 
        Arguments:
        - filter: Either text or Nothing. If Nothing, matches all the specs and all the groups.
-         If text, only groups or specs that contains the filter as substring are matched.
-       - should_exit: If true, executes `System.exit` at the end.
+         If text, only groups or specs that exactly match the text are run.
+       - should_exit: If true, executes `System.exit` at the end, so the method does not return.
+         If false, return boolean from the method indicating whether some tests failed.
 
        Returns: Boolean if `should_exit` is False, otherwise exits the process.
     run_with_filter self (filter : (Text | Nothing) = Nothing) should_exit=True -> (Boolean | Nothing) =
