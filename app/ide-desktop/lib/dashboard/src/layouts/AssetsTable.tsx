@@ -343,7 +343,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
 
-  const { organization, user, accessToken } = authProvider.useNonPartialUserSession()
+  const { user, userInfo, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -361,8 +361,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const [assetTree, setAssetTree] = React.useState<AssetTreeNode>(() => {
     const rootParentDirectoryId = backendModule.DirectoryId('')
@@ -1003,7 +1003,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [category, accessToken, organization, backend]
+    [category, accessToken, user, backend]
   )
 
   React.useEffect(() => {
@@ -1251,7 +1251,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
           projectState: null,
           labels: [],
           description: null,
@@ -1273,13 +1273,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: projectName,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
           projectState: {
             type: backendModule.ProjectState.placeholder,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            ...(organization != null ? { opened_by: organization.email } : {}),
+            ...(user != null ? { opened_by: user.email } : {}),
           },
           labels: [],
           description: null,
@@ -1308,7 +1308,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const duplicateProjects = projects.filter(project =>
           siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
         )
-        const ownerPermission = permissions.tryGetSingletonOwnerPermission(organization, user)
+        const ownerPermission = permissions.tryGetSingletonOwnerPermission(user, userInfo)
         if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
           const placeholderFiles = files.map(file =>
             backendModule.createPlaceholderFileAsset(file.name, event.parentId, ownerPermission)
@@ -1318,7 +1318,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               project.name,
               event.parentId,
               ownerPermission,
-              organization
+              user
             )
           )
           doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
@@ -1364,7 +1364,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 basename,
                 event.parentId,
                 ownerPermission,
-                organization
+                user
               ),
               file: project,
             }
@@ -1409,7 +1409,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                       backendModule.stripProjectExtension(project.name),
                       event.parentId,
                       ownerPermission,
-                      organization
+                      user
                     )
                     fileMap.set(asset.id, project)
                     return asset
@@ -1433,7 +1433,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
           projectState: null,
           labels: [],
           description: null,
@@ -1454,7 +1454,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           title: event.name,
           modifiedAt: dateTime.toRfc3339(new Date()),
           parentId: event.parentId,
-          permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+          permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
           projectState: null,
           labels: [],
           description: null,

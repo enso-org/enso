@@ -10,7 +10,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
-from Standard.Base.Widget_Helpers import make_regex_text_widget
+from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
 
 import project.Data.Constants.Previous_Value
 import project.Data.Data_Formatter.Data_Formatter
@@ -1667,8 +1667,8 @@ type Column
          can be used. For `Boolean`, it should be two values that represent true
          and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
          passed to provide complete customisation of the formatting. If
-         `Nothing` is provided, the default formatting settings of the backend
-         will be used. `Nothing` is currently the only setting accepted by the
+         `""` is provided, the default formatting settings of the backend
+         will be used. `""` is currently the only setting accepted by the
          Database backends.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
@@ -1725,16 +1725,13 @@ type Column
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
-    parse : Value_Type | Auto -> Text | Data_Formatter | Nothing -> Problem_Behavior -> Column
-    parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
+    @format (make_format_chooser include_number=False)
+    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse self type=Auto format:(Text|Data_Formatter)="" on_problems=Report_Warning =
         Value_Type.expect_text self <|
             formatter = case format of
-                _ : Text ->
-                    Data_Formatter.Value.with_format type format
+                _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
                 _ : Data_Formatter -> format
-                Nothing -> Data_Formatter.Value
-                _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter or Nothing.")
-
             parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
 
@@ -1749,9 +1746,8 @@ type Column
 
        Arguments:
        - format: The type-dependent format string to use to format the values.
-         If `format` is `""` or `Nothing`, .to_text is used to format the value.
-         In case of date/time columns, the format can also be a
-         `Date_Time_Formatter`.
+         If `format` is `""`, .to_text is used to format the value.
+         In case of date/time columns, a `Date_Time_Formatter` can be used.
        - locale: The locale in which the format should be interpreted.
          If a `Date_Time_Formatter` is provided for `format` and the `locale` is
          set to anything else than `Locale.default`, then that locale will
@@ -1823,18 +1819,17 @@ type Column
              input.format "#,##0.00" locale=(Locale.new "fr")
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
     @locale Locale.default_widget
-    format : Text | Date_Time_Formatter | Column | Nothing -> Locale -> Column ! Illegal_Argument
-    format self format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default =
-        new_column = case format of
-            format_column : Column -> Value_Type.expect_text format_column <|
-                formatter = make_value_formatter_for_value_type self.value_type locale
-                formatter.if_not_error <|
-                    formatter_flipped value format = formatter format value
-                    Column_Ops.map_2_over_storage self format_column formatter_flipped make_string_builder
-            _ ->
-                formatter = make_value_formatter_for_value_type self.value_type locale format
-                Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
-        new_column
+    @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
+    format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
+    format self format:(Text | Date_Time_Formatter | Column)="" locale=Locale.default = case format of
+        format_column : Column -> Value_Type.expect_text format_column <|
+            formatter = make_value_formatter_for_value_type self.value_type locale
+            formatter.if_not_error <|
+                formatter_flipped value format = formatter format value
+                Column_Ops.map_2_over_storage self format_column formatter_flipped make_string_builder
+        _ ->
+            formatter = make_value_formatter_for_value_type self.value_type locale format
+            Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
 
     ## GROUP Standard.Base.Conversions
        ICON convert

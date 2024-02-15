@@ -33,12 +33,12 @@ export interface GlobalContextMenuProps {
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { hidden = false, hasCopyData, directoryKey, directoryId, dispatchAssetListEvent } = props
   const { doPaste } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote

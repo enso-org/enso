@@ -3,11 +3,12 @@ import * as React from 'react'
 
 import BellIcon from 'enso-assets/bell.svg'
 import KeyboardShortcutsIcon from 'enso-assets/keyboard_shortcuts.svg'
+import PeopleSettingsIcon from 'enso-assets/people_settings.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 import SlidersIcon from 'enso-assets/sliders.svg'
 
-import SettingsTab from '#/layouts/settingsTab/SettingsTab'
+import SettingsTab from '#/layouts/Settings/SettingsTab'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -23,6 +24,12 @@ const SECTIONS: SettingsSectionData[] = [
         name: 'Account',
         settingsTab: SettingsTab.account,
         icon: SettingsIcon,
+        visible: true,
+      },
+      {
+        name: 'Organization',
+        settingsTab: SettingsTab.organization,
+        icon: PeopleSettingsIcon,
         visible: true,
       },
       {
@@ -94,7 +101,7 @@ export interface SettingsSidebarProps {
 export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { settingsTab, setSettingsTab } = props
   return (
-    <div className="flex flex-col gap-4 w-51.5 overflow-y-auto">
+    <div className="flex flex-col gap-4 w-51.5 overflow-y-auto shrink-0">
       {SECTIONS.flatMap(section => {
         const tabs = section.tabs.filter(tab => tab.visible)
         return tabs.length === 0

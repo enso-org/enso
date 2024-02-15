@@ -42,7 +42,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === session.organization?.email
+    permission => permission.user.user_email === session.user?.email
   )
   const managesThisAsset =
     category !== Category.trash &&
