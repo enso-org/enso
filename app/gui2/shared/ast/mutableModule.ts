@@ -14,6 +14,7 @@ import {
   composeFieldData,
   invalidFields,
   materializeMutable,
+  setAll,
 } from './tree'
 
 export interface Module {
@@ -270,17 +271,18 @@ export class MutableModule implements Module {
     const map_ = map as unknown as FixedMap<{}>
     const id = overrideId ?? newAstId(type)
     const metadata = new Y.Map<unknown>() as unknown as FixedMap<{}>
-    const metadataFields = composeFieldData(metadata, {
+    const metadataFields = setAll(metadata, {
       externalId: externalId ?? newExternalId(),
     })
-    const fields = composeFieldData(map_, {
+    const fields = setAll(map_, {
       id,
       type: type,
       parent: undefined,
       metadata: metadataFields,
     })
-    this.nodes.set(id, fields)
-    return fields
+    const fieldObject = composeFieldData(fields, {})
+    this.nodes.set(id, fieldObject)
+    return fieldObject
   }
 
   /** @internal */

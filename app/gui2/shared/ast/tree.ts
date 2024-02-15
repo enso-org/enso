@@ -2036,16 +2036,25 @@ interface LegalFieldContent {
 }
 
 /** Modifies the input `map`. Returns the same object with an extended type. */
-export function composeFieldData<Fields1, Fields2 extends FieldObject>(
+export function setAll<Fields1, Fields2 extends object>(
   map: FixedMap<Fields1>,
   fields: Fields2,
 ): FixedMap<Fields1 & Fields2> {
-  const map_ = map as FixedMap<Fields1 & Fields2 & LegalFieldContent>
+  const map_ = map as FixedMap<Fields1 & Fields2>
   for (const [k, v] of Object.entries(fields)) {
     const k_ = k as string & (keyof Fields1 | keyof Fields2)
     map_.set(k_, v as any)
   }
   return map_
+}
+
+/** Modifies the input `map`. Returns the same object with an extended type. The added fields are required to have only
+ *  types extending `FieldData`; the returned object is branded as `LegalFieldContent`. */
+export function composeFieldData<Fields1, Fields2 extends FieldObject>(
+  map: FixedMap<Fields1>,
+  fields: Fields2,
+): FixedMap<Fields1 & Fields2 & LegalFieldContent> {
+  return setAll(map, fields) as FixedMap<Fields1 & Fields2 & LegalFieldContent>
 }
 
 function claimChild<T extends MutableAst>(
