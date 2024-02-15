@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data
 import project.Data.Array.Array
 import project.Data.Boolean
+import project.Data.Decimal.Decimal
 import project.Data.Enso_Cloud.Enso_File.Enso_File
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Enso_Cloud.Enso_User.Enso_User
@@ -18,6 +19,8 @@ import project.Data.Locale.Locale
 import project.Data.Map.Map
 import project.Data.Maybe.Maybe
 import project.Data.Numbers
+import project.Data.Numeric.Math_Context.Math_Context
+import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Ordering.Comparable
 import project.Data.Ordering.Default_Comparator
 import project.Data.Ordering.Natural_Order
@@ -100,6 +103,7 @@ from project.System.File_Format.Plain_Text_Format import Plain_Text
 export project.Any.Any
 export project.Data
 export project.Data.Array.Array
+export project.Data.Decimal.Decimal
 export project.Data.Enso_Cloud.Enso_File.Enso_File
 export project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 export project.Data.Enso_Cloud.Enso_User.Enso_User
@@ -115,6 +119,8 @@ export project.Data.List.List
 export project.Data.Locale.Locale
 export project.Data.Map.Map
 export project.Data.Maybe.Maybe
+export project.Data.Numeric.Math_Context.Math_Context
+export project.Data.Numeric.Rounding_Mode.Rounding_Mode
 export project.Data.Ordering.Comparable
 export project.Data.Ordering.Default_Comparator
 export project.Data.Ordering.Natural_Order

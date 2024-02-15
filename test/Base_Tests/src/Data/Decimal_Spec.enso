@@ -1,0 +1,86 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Base.Data.Numbers import Number_Parse_Error
+from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision
+
+from Standard.Test import all
+
+Decimal.should_have_rep self rep = self.get_internal_representation . should_equal rep
+
+add_specs suite_builder =
+    suite_builder.group "construction" group_builder->
+        group_builder.specify "should be able to construct a Decimal from a string" <|
+            Decimal.new "123.45" . should_have_rep [12345, 5, 2]
+            Decimal.from_text "123.45" . should_have_rep [12345, 5, 2]
+
+        group_builder.specify "should throw Number_Parse_Error on a badly-formatted string" <|
+            Decimal.new "ee" . should_fail_with Number_Parse_Error
+            Decimal.new "--123.3.3" . should_fail_with Number_Parse_Error
+
+        group_builder.specify "should be able to construct a Decimal from a string, with an explicit precision, using the default rounding" <|
+            mc = Math_Context.new 4
+            Decimal.new "123.45" mc . should_have_rep [1235, 4, 1]
+            Decimal.new "123.45" mc . should_equal (Decimal.new "123.5")
+
+        group_builder.specify "should be able to construct a Decimal from a string, with an explicit precision, using a non-default rounding" <|
+            mc = Math_Context.new 4 Rounding_Mode.half_down
+            Decimal.new "123.45" mc . should_have_rep [1234, 4, 1]
+            Decimal.new "123.45" mc . should_equal (Decimal.new "123.4")
+
+        group_builder.specify "should be able to construct a Decimal from a long string" <|
+            Decimal.new "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+            Decimal.from_text "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+
+        group_builder.specify "should be able to construct a Decimal from a small integer" <|
+            Decimal.new 1234500 . should_have_rep [1234500, 7, 0]
+
+        group_builder.specify "should be able to construct a Decimal from a small integer, with an explicit precision, using the default rounding" <|
+            mc = Math_Context.new 4
+            Decimal.new 1234500 mc . should_have_rep [1235, 4, -3]
+            Decimal.new 1234500 mc . should_equal (Decimal.new 1235000)
+
+        group_builder.specify "should be able to construct a Decimal from a small integer, with an explicit precision, using the non-default rounding" <|
+            mc = Math_Context.new 4 Rounding_Mode.half_down
+            Decimal.new 1234500 mc . should_have_rep [1234, 4, -3]
+            Decimal.new 1234500 mc . should_equal (Decimal.new 1234000)
+
+        group_builder.specify "should be able to construct a Decimal from a large integer" <|
+            Decimal.new 495782984723948723947239938732974241234500 . should_have_rep [495782984723948723947239938732974241234500 , 42, 0]
+
+        group_builder.specify "should be able to construct a Decimal from a large integer, with an explicit precision, using the default rounding" <|
+            mc = Math_Context.new 39
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_have_rep [495782984723948723947239938732974241235 , 39, -3]
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_equal (Decimal.new 495782984723948723947239938732974241235000 )
+
+        group_builder.specify "should be able to construct a Decimal from a large integer, with an explicit precision, using the non-default rounding" <|
+            mc = Math_Context.new 39 Rounding_Mode.half_down
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_have_rep [495782984723948723947239938732974241234 , 39, -3]
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_equal (Decimal.new 495782984723948723947239938732974241234000 )
+
+        group_builder.specify "should be able to construct a Decimal from a float" <|
+            bd = Decimal.from_float 123.45
+            bd.should_have_rep [12345, 5, 2]
+            Problems.expect_warning Loss_Of_Floating_Point_Precision bd
+
+        group_builder.specify "should be able to construct a Decimal from a float, with an explicit precision, using the default rounding" <|
+            mc = Math_Context.new 5
+            bd = Decimal.from_float 123.125 mc
+            bd.should_have_rep [12313, 5, 2]
+            bd.should_equal (Decimal.new "123.13")
+            Problems.expect_warning Loss_Of_Floating_Point_Precision bd
+
+        group_builder.specify "should be able to construct a Decimal from a float, with an explicit precision, using a non-default rounding" <|
+            mc = Math_Context.new 5 Rounding_Mode.half_down
+            bd = Decimal.from_float 123.125 mc
+            bd.should_have_rep [12312, 5, 2]
+            bd.should_equal (Decimal.new "123.12")
+            Problems.expect_warning Loss_Of_Floating_Point_Precision bd
+
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
