@@ -45,6 +45,11 @@ Dependencies for the script:
         - Used as a template engine for the HTML.
 """
 
+import sys
+if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
+    print("ERROR: python version lower than 3.7")
+    exit(1)
+
 import asyncio
 import json
 import logging
@@ -53,8 +58,6 @@ import math
 import os
 import re
 import shutil
-import subprocess
-import sys
 import tempfile
 import zipfile
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
@@ -71,10 +74,6 @@ from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_DATE_FORMAT, ENGINE_B
     NEW_ENGINE_BENCH_WORKFLOW_ID, STDLIBS_BENCH_WORKFLOW_ID, ENSO_COMMIT_BASE_URL, \
     GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, JINJA_TEMPLATE
 
-
-if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
-    print("ERROR: python version lower than 3.7")
-    exit(1)
 try:
     import pandas as pd
     import numpy as np
