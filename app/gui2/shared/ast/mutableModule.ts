@@ -57,22 +57,6 @@ export class MutableModule implements Module {
     return instance as Mutable<T>
   }
 
-  checkedGetVersions<T extends { [name: string]: Ast }>(
-    asts: T,
-  ): { [K in keyof T]: Mutable<T[K]> } {
-    return Object.fromEntries(
-      Object.entries(asts).map(([key, value]) => [key, this.getVersion(value)]),
-    ) as any
-  }
-
-  getVersions<T extends { [name: string]: Ast }>(
-    asts: T,
-  ): { [K in keyof T]: Mutable<T[K]> | undefined } {
-    return Object.fromEntries(
-      Object.entries(asts).map(([key, value]) => [key, this.get(value.id)]),
-    ) as any
-  }
-
   edit(): MutableModule {
     const doc = new Y.Doc()
     Y.applyUpdateV2(doc, Y.encodeStateAsUpdateV2(this.ydoc))
