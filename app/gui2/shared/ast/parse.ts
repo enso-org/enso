@@ -2,6 +2,7 @@ import * as map from 'lib0/map'
 import type { AstId, NodeChild, Owned } from '.'
 import { Token, asOwned, isTokenId, parentId, rewriteRefs, subtreeRoots, syncFields } from '.'
 import { assert, assertDefined, assertEqual } from '../util/assert'
+import { tryGetSoleValue } from '../util/data/iterable'
 import type { SpanTree, TextEdit } from '../util/data/text'
 import {
   applyTextEdits,
@@ -650,11 +651,7 @@ function hashTree(root: Ast) {
 
 function rawBlockToInline(tree: RawAst.Tree.Tree) {
   if (tree.type !== RawAst.Tree.Type.BodyBlock) return tree
-  const statements = Array.from(tree.statements)
-  if (statements.length !== 1) return tree
-  const expression = statements[0]!.expression
-  if (expression === undefined) return tree
-  return expression
+  return tryGetSoleValue(tree.statements)?.expression ?? tree
 }
 
 function analyzeCode(code: string, asBlock: boolean, module: MutableModule) {
