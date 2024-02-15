@@ -1,6 +1,6 @@
 import { createXXHash128 } from 'hash-wasm'
 import init, { is_ident_or_operator, parse, parse_doc_to_json } from '../../rust-ffi/pkg/rust_ffi'
-import { assertDefined } from '../util/assert.ts'
+import { assertDefined } from '../util/assert'
 import { isNode } from '../util/detect'
 
 let xxHasher128: Awaited<ReturnType<typeof createXXHash128>> | undefined

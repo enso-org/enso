@@ -1,6 +1,6 @@
 import diff from 'fast-diff'
 import { rangeEncloses, rangeLength, type SourceRange } from '../../yjsModel'
-import { assertEqual } from '../assert.ts'
+import { assertEqual } from '../assert'
 
 export type TextEdit = { range: SourceRange; insert: string }
 
