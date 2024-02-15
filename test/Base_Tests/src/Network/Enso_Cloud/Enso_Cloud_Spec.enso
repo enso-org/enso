@@ -81,7 +81,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             Cloud_Tests_Setup.reset_token
 
 main =
+    setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
-        add_specs suite_builder
+        add_specs suite_builder setup
     suite.run_with_filter
-
