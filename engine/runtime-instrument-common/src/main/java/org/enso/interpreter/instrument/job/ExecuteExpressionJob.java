@@ -3,7 +3,6 @@ package org.enso.interpreter.instrument.job;
 import com.oracle.truffle.api.TruffleLogger;
 import java.util.UUID;
 import java.util.logging.Level;
-
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.execution.Executable;
 import org.enso.interpreter.instrument.execution.RuntimeContext;

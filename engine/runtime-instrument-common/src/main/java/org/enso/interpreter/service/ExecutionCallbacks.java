@@ -166,18 +166,18 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     OneshotExpression oneshotExpression = getOneshotExpression(nodeId);
 
     if (oneshotExpression != null) {
-        Object visualizationResult = null;
-        Throwable visualizationError = null;
-        try {
-          visualizationResult = info.eval(oneshotExpression.expression());
-        } catch (Exception exception) {
-          visualizationError = exception;
-        }
+      Object visualizationResult = null;
+      Throwable visualizationError = null;
+      try {
+        visualizationResult = info.eval(oneshotExpression.expression());
+      } catch (Exception exception) {
+        visualizationError = exception;
+      }
 
-        ExecutedVisualization executedVisualization =
-            new ExecutedVisualization(
-                visualizationResult, visualizationError, oneshotExpression.id(), nodeId, result);
-        callOnExecutedVisualizationCallback(executedVisualization);
+      ExecutedVisualization executedVisualization =
+          new ExecutedVisualization(
+              visualizationResult, visualizationError, oneshotExpression.id(), nodeId, result);
+      callOnExecutedVisualizationCallback(executedVisualization);
     }
   }
 
