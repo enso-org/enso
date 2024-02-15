@@ -33,17 +33,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
                 my_dir.is_directory . should_be_true
                 my_dir.exists . should_be_true
                 my_dir.name . should_equal my_name
-
-                # TODO this is a workaround because create does not return organizationId!
-                # Enso_File.root.list . should_contain my_dir
-                Enso_File.root.list.map .name . should_contain my_name
+                Enso_File.root.list . should_contain my_dir
 
             my_dir.delete . should_succeed
 
             with_retries <|
-                # TODO workaround for missing organizationId
-                # Enso_File.root.list . should_not_contain my_dir
-                Enso_File.root.list.map .name . should_not_contain my_name
+                Enso_File.root.list . should_not_contain my_dir
 
                 # TODO the dir still shows as 'existing' after deletion, probably because it still is there in the Trash
                 # my_dir.exists . should_be_false
@@ -200,4 +195,3 @@ main =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter
-
