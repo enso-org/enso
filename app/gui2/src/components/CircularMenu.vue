@@ -18,11 +18,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div
-    :class="`${
-      props.isFullMenuVisible ? 'CircularMenu CircularMenuFull' : 'CircularMenu CircularMenuPartial'
-    }`"
-  >
+  <div :class="`${props.isFullMenuVisible ? 'CircularMenu full' : 'CircularMenu partial'}`">
     <ToggleIcon
       icon="eye"
       class="icon-container button slot5"
@@ -54,33 +50,31 @@ const emit = defineEmits<{
   top: -36px;
   width: 114px;
   height: 114px;
-}
 
-.CircularMenuPartial {
   &:before {
     content: '';
     position: absolute;
-    top: 36px;
-    clip-path: path('m0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0');
     backdrop-filter: var(--blur-app-bg);
     background: var(--color-app-bg);
     width: 100%;
     height: 100%;
   }
-}
 
-.CircularMenuFull {
-  &:before {
-    content: '';
-    position: absolute;
-    clip-path: path(
-      evenodd,
-      'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
-    );
-    backdrop-filter: var(--blur-app-bg);
-    background: var(--color-app-bg);
-    width: 100%;
-    height: 100%;
+  &.partial {
+    &:before {
+      top: 36px;
+      clip-path: path(
+        'm0 16a52 52 0 0 0 52 52a16 16 0 0 0 0 -32a20 20 0 0 1-20-20a16 16 0 0 0-32 0'
+      );
+    }
+  }
+  &.full {
+    &:before {
+      clip-path: path(
+        evenodd,
+        'M0,52 A52,52 0,1,1 104,52 A52,52 0,1,1 0, 52 z m52,20 A20,20 0,1,1 52,32 20,20 0,1,1 52,72 z'
+      );
+    }
   }
 }
 

@@ -631,7 +631,7 @@ function openFullMenu() {
   z-index: 25;
 }
 
-.CircularMenuPartial {
+.CircularMenu.partial {
   z-index: 1;
 }
 
