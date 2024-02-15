@@ -1,13 +1,7 @@
 import logging
-import os
 from datetime import datetime
 from os import path
-from typing import List, Dict, Optional, Set, Tuple
-import re
-import subprocess
-import sys
-from argparse import ArgumentParser
-import shutil
+from typing import List, Dict, Optional, Set
 
 import jinja2
 import numpy as np
@@ -15,6 +9,7 @@ import pandas as pd
 
 from bench_tool import JobReport, TemplateBenchData, BenchDatapoint, GH_DATE_FORMAT, ENSO_COMMIT_BASE_URL, JinjaData
 
+_logger = logging.getLogger(__name__)
 
 def create_template_data(
         job_reports_per_branch: Dict[str, List[JobReport]],
@@ -51,10 +46,11 @@ def create_template_data(
 
     template_bench_datas: List[TemplateBenchData] = []
     for bench_label in bench_labels:
-        logging.debug(f"Creating template data for benchmark {bench_label}")
+        _logger.debug("Creating template data for benchmark %s", bench_label)
         branch_datapoints: Dict[str, List[BenchDatapoint]] = {}
         for branch, job_reports in job_reports_per_branch.items():
-            logging.debug(f"Creating datapoints for branch {branch} from {len(job_reports)} job reports")
+            _logger.debug("Creating datapoints for branch %s from %d job reports",
+                          branch, len(job_reports))
             datapoints: List[BenchDatapoint] = []
             for job_report in job_reports:
                 prev_datapoint: Optional[BenchDatapoint] = \
@@ -93,9 +89,10 @@ def create_template_data(
                         commit_author=author_name,
                         commit_url=ENSO_COMMIT_BASE_URL + commit.id,
                     ))
-            logging.debug(f"{len(datapoints)} datapoints created for branch {branch}")
+            _logger.debug("%d datapoints created for branch %s",
+                          len(datapoints), branch)
             branch_datapoints[branch] = datapoints.copy()
-        logging.debug(f"Template data for benchmark {bench_label} created")
+        _logger.debug("Template data for benchmark %s created", bench_label)
         template_bench_datas.append(TemplateBenchData(
             id=_label_to_id(bench_label),
             name=_label_to_name(bench_label),
@@ -109,7 +106,7 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
     jinja_template = jinja_env.get_template(template_file)
     generated_html = jinja_template.render(jinja_data.__dict__)
     if path.exists(html_out_fname):
-        logging.info(f"{html_out_fname} already exist, rewritting")
+        _logger.info("%s already exist, rewritting", html_out_fname)
     with open(html_out_fname, "w") as html_file:
         html_file.write(generated_html)
 
