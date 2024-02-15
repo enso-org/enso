@@ -292,6 +292,7 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     }
     return new DoubleStorage(newData, newData.length, newMissing);
   }
+
   public BitSet getIsMissing() {
     return isMissing;
   }
