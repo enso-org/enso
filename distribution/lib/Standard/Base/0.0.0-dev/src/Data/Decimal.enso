@@ -115,6 +115,9 @@ type Decimal
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
 
+    / : Decimal -> Decimal -> Decimal
+    / self (that:Decimal) = self.divide that
+
     == self that =
         case that of
             _ : Integer -> self.big_decimal.compareTo(Decimal.from_integer that . big_decimal) == 0
@@ -126,6 +129,12 @@ type Decimal
         case math_context of
             Nothing -> Decimal.Value (self.big_decimal.add that.big_decimal)
             _ -> Decimal.Value (self.big_decimal.add that.big_decimal math_context.math_context)
+
+    divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
+    divide self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
+        case math_context of
+            Nothing -> Decimal.Value (self.big_decimal.divide that.big_decimal)
+            _ -> Decimal.Value (self.big_decimal.divide that.big_decimal math_context.math_context)
 
     get_precision : Integer
     get_precision self = self.big_decimal.precision
