@@ -108,7 +108,10 @@ type Decimal
     + self (that:Decimal) = self.add that
 
     == self that =
-        (self.big_decimal.compareTo that.big_decimal) == 0
+        case that of
+            _ : Integer -> self.big_decimal.compareTo(Decimal.from_integer that . big_decimal) == 0
+            _ : Float -> self.big_decimal.compareTo(Decimal.from_float that . big_decimal) == 0
+            _ : Decimal -> self.big_decimal.compareTo(that.big_decimal) == 0
 
     add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
@@ -143,7 +146,6 @@ handle_precision_loss original_value conversion_result:Decimal_Utils.Conversion_
         new_value = conversion_result.newValue
         Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
 
-## We do not provide a `from` instance for `Float`, but instead require the use
-   of `Decimal.from_float`, since it is inexact.
 Decimal.from (that:Text) = Decimal.from_text that
 Decimal.from (that:Integer) = Decimal.from_integer that
+Decimal.from (that:Float) = Decimal.from_float that
