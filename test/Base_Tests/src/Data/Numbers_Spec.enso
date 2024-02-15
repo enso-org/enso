@@ -33,7 +33,8 @@ type Complex_Comparator
     compare x:Complex y:Complex = if x.re==y.re && x.im==y.im then Ordering.Equal else
         if x.im==0 && y.im==0 then Ordering.compare x.re y.re else
             Nothing
-    hash x:Complex = 7*x.re + 11*x.im
+    hash x:Complex = if x.im == 0 then Default_Comparator.hash x.re else
+        7*x.re + 11*x.im
 
 Comparable.from (_:Complex) = Complex_Comparator
 

@@ -83,6 +83,10 @@ public abstract class HashCodeNode extends Node {
     return HashCodeNodeGen.create();
   }
 
+  static HashCodeNode getUncached() {
+    return HashCodeNodeGen.getUncached();
+  }
+
   public abstract long execute(@AcceptsError Object object);
 
   /** Specializations for primitive values * */

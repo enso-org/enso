@@ -82,6 +82,12 @@ type Fool
 
 Fool.from (that : Any) = Fool.Value that
 
+type Fool_Comparator
+    compare x:Fool y:Fool = Ordering.compare x.fool y.fool
+    hash x:Fool = Default_Comparator.hash x.fool
+
+Comparable.from (_:Fool) = Fool_Comparator
+
 type Blob
     Text c:Text
     Binary b:File
