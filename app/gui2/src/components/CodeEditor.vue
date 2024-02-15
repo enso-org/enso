@@ -10,6 +10,7 @@ import { chain } from '@/util/data/iterable'
 import { unwrap } from '@/util/data/result'
 import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
+import { createDebouncer } from 'lib0/eventloop'
 import { rangeEncloses } from 'shared/yjsModel'
 import { computed, onMounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
@@ -175,17 +176,14 @@ watchEffect(() => {
   viewInitialized.value = true
 })
 
-let pendingChanges = false
 function updateListener() {
+  const debouncer = createDebouncer(0)
   return EditorView.updateListener.of((update) => {
     for (const transaction of update.transactions) {
       if (transaction.annotation(synchronizedModule) === undefined && transaction.docChanged) {
-        pendingChanges = true
         // Defer the update until after pending events have been processed, so that if changes are arriving faster than
         // we would be able to apply them individually we coalesce them to keep up.
-        setTimeout(() => {
-          if (!pendingChanges) return
-          pendingChanges = false
+        debouncer(() => {
           const newCode = editorView.state.doc.toString()
           graphStore.edit((edit) => edit.syncToCode(newCode))
         })
