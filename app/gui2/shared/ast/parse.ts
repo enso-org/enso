@@ -18,6 +18,7 @@ import {
   sourceRangeKey,
   type SourceRange,
   type SourceRangeKey,
+  type Uuid,
 } from '../yjsModel'
 import { parse_tree, xxHash128 } from './ffi'
 import * as RawAst from './generated/ast'
@@ -627,24 +628,30 @@ function resync(
   )
 }
 
-function hashSubtree(ast: Ast, hashesOut: Map<string, Ast[]>) {
+function hashSubtree(ast: Ast, hashesOut: Map<Hash, Ast[]>) {
   let content = ''
   content += ast.typeName + ':'
   for (const child of ast.concreteChildren()) {
     content += child.whitespace ?? ' '
     if (isTokenId(child.node)) {
-      content += 'Token:' + xxHash128(ast.module.getToken(child.node).code())
+      content += 'Token:' + hashString(ast.module.getToken(child.node).code())
     } else {
       content += hashSubtree(ast.module.get(child.node), hashesOut)
     }
   }
-  const astHash = xxHash128(content)
+  const astHash = hashString(content)
   map.setIfUndefined(hashesOut, astHash, (): Ast[] => []).unshift(ast)
   return astHash
 }
 
+declare const brandHash: unique symbol
+type Hash = string & { [brandHash]: never }
+function hashString(input: string): Hash {
+  return xxHash128(input) as Hash
+}
+
 function hashTree(root: Ast) {
-  const hashes = new Map<string, Ast[]>()
+  const hashes = new Map<Hash, Ast[]>()
   const rootHash = hashSubtree(root, hashes)
   return { root: rootHash, hashes }
 }
