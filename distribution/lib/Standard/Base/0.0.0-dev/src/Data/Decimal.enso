@@ -26,6 +26,8 @@ type Decimal
        Arguments:
        - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
 
        ? Number Format
 
@@ -48,6 +50,8 @@ type Decimal
        Arguments:
        - s: The `Text` to construct a `Decimal` from.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
 
        ? Number Format
 
@@ -57,12 +61,15 @@ type Decimal
        ! Error Conditions
 
          - If `s` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+           if a `Math_Context` value is explicitly passed.
     from_text : Text -> Math_Context -> Decimal | Number_Parse_Error
     from_text (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         handle_number_format_exception <|
             case mc of
-                _ : Math_Context -> Decimal.Value (BigDecimal.new s mc.math_context)
-                _ : Nothing -> Decimal.Value (BigDecimal.new s)
+                _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
+                _ : Nothing -> Decimal.Value (Decimal_Utils.fromString s)
 
     ## Construct a `Decimal` from an `Integer`.
 
