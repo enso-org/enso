@@ -46,6 +46,7 @@ public abstract class TestBase {
         .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
         .logHandler(System.err)
         .option(RuntimeOptions.STRICT_ERRORS, "true")
         .option(
