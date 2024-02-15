@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
@@ -14,7 +15,6 @@ from project.Errors.Common import Loss_Of_Numeric_Precision
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
 polyglot java import org.enso.base.numeric.Decimal_Utils
-polyglot java import org.enso.base.numeric.Decimal_Utils.Conversion_Result
 
 ## Decimal is the type of decimal (base-10-scaled) nubmers in Enso. An Enso
    `Decimal` is a wrapper around a Java `BigDecimal`.
@@ -82,7 +82,7 @@ type Decimal
     from_integer : Integer -> Math_Context -> Decimal ! Loss_Of_Numeric_Precision
     from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision =
         case mc of
-            _ : Math_Context -> handle_precision_loss i <| Decimal.Value (Decimal_Utils.fromEnsoInteger i mc.math_context)
+            _ : Math_Context -> Decimal.Value <| handle_precision_loss i <| Decimal_Utils.fromEnsoInteger i mc.math_context
             _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoInteger i)
 
     ## Construct a `Decimal` from a `Float`.
@@ -101,7 +101,7 @@ type Decimal
     from_float : Float -> Math_Context -> Decimal ! Loss_Of_Numeric_Precision
     from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision =
         case mc of
-            _ : Math_Context -> handle_precision_loss f <| Decimal.Value (Decimal_Utils.fromEnsoFloat f mc.math_context)
+            _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromEnsoFloat f mc.math_context
             _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
 
     + : Decimal -> Decimal -> Decimal
@@ -137,11 +137,11 @@ handle_number_format_exception ~action =
         Error.throw (Number_Parse_Error.Error caught_panic.payload.getMessage)
 
 ## PRIVATE
-handle_precision_loss : Any -> Conversion_Result -> Any ! Loss_Of_Numeric_Precision
-handle_precision_loss original_value conversion_result:Conversion_Result -> Any ! Loss_Of_Numeric_Precision =
-    if conversion_result.hasPrecisionloss.not then conversion_result.newValue else
+handle_precision_loss : Any -> Decimal_Utils.Conversion_Result -> Any ! Loss_Of_Numeric_Precision
+handle_precision_loss original_value conversion_result:Decimal_Utils.Conversion_Result -> Any ! Loss_Of_Numeric_Precision =
+    if conversion_result.hasPrecisionLoss.not then conversion_result.newValue else
         new_value = conversion_result.newValue
-        Warning.Attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
+        Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
 
 ## We do not provide a `from` instance for `Float`, but instead require the use
    of `Decimal.from_float`, since it is inexact.

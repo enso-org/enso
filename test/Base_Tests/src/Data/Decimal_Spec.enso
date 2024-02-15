@@ -64,21 +64,21 @@ add_specs suite_builder =
         group_builder.specify "should be able to construct a Decimal from a float" <|
             bd = Decimal.from_float 123.45
             bd.should_have_rep [12345, 5, 2]
-            Problems.expect_warning Loss_Of_Floating_Point_Precision bd
+            Problems.expect_warning Loss_Of_Numeric_Precision bd
 
         group_builder.specify "should be able to construct a Decimal from a float, with an explicit precision, using the default rounding" <|
             mc = Math_Context.new 5
             bd = Decimal.from_float 123.125 mc
             bd.should_have_rep [12313, 5, 2]
             bd.should_equal (Decimal.new "123.13")
-            Problems.expect_warning Loss_Of_Floating_Point_Precision bd
+            Problems.expect_warning Loss_Of_Numeric_Precision bd
 
         group_builder.specify "should be able to construct a Decimal from a float, with an explicit precision, using a non-default rounding" <|
             mc = Math_Context.new 5 Rounding_Mode.half_down
             bd = Decimal.from_float 123.125 mc
             bd.should_have_rep [12312, 5, 2]
             bd.should_equal (Decimal.new "123.12")
-            Problems.expect_warning Loss_Of_Floating_Point_Precision bd
+            Problems.expect_warning Loss_Of_Numeric_Precision bd
 
 main =
     suite = Test.build suite_builder->
