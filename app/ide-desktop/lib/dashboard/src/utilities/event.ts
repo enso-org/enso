@@ -38,7 +38,6 @@ export function isPotentiallyShortcut(event: KeyboardEvent | React.KeyboardEvent
 
 /** Whether `event.key` is a key used in text editing. */
 export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
-  // Allow `alt` key to be pressed in case it is being used to enter special characters.
   return (
     !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
     event.key === 'Backspace' ||

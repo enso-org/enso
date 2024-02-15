@@ -10,10 +10,6 @@ import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 
 import * as object from '#/utilities/object'
 
-// ============
-// === save ===
-// ============
-
 // =================
 // === InfoEntry ===
 // =================

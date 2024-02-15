@@ -38,7 +38,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     if (disabled) {
       return
     } else {
-      return inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         [action]: doAction,
       })
     }

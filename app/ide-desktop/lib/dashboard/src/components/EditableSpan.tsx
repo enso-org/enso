@@ -44,7 +44,7 @@ export default function EditableSpan(props: EditableSpanProps) {
 
   React.useEffect(() => {
     if (editable) {
-      return inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         cancelEditName: () => {
           onCancel()
           cancelled.current = true

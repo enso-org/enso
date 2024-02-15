@@ -788,15 +788,12 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [pasteData])
 
   React.useEffect(() => {
-    return inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
+    return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
       cancelCut: () => {
         if (pasteDataRef.current == null) {
           return false
         } else {
-          dispatchAssetEvent({
-            type: AssetEventType.cancelCut,
-            ids: pasteDataRef.current.data,
-          })
+          dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
           setPasteData(null)
           return
         }
@@ -1747,7 +1744,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document, 'click', {
+      inputBindings.attach(sanitizedEventTargets.document.body, 'click', {
         selectAdditional: () => {},
         selectAdditionalRange: () => {},
         [inputBindingsModule.DEFAULT_HANDLER]: () => {

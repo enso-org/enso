@@ -149,10 +149,7 @@ export default function AssetRow(props: AssetRowProps) {
       } catch (error) {
         toastAndLog(`Could not copy '${asset.title}'`, error)
         // Delete the new component representing the asset that failed to insert.
-        dispatchAssetListEvent({
-          type: AssetListEventType.delete,
-          key: item.key,
-        })
+        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       }
     },
     [
@@ -263,10 +260,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
       }
       await backend.deleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(
@@ -287,10 +281,7 @@ export default function AssetRow(props: AssetRowProps) {
     setInsertionVisibility(Visibility.hidden)
     try {
       await backend.undoDeleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
@@ -410,10 +401,7 @@ export default function AssetRow(props: AssetRowProps) {
               resourceId: asset.id,
               userSubjects: [user.id],
             })
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
             setInsertionVisibility(Visibility.visible)
             toastAndLog(null, error)

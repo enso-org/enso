@@ -54,7 +54,7 @@ export default function DriveBar(props: DriveBarProps) {
   const isHomeCategory = category === Category.home || !isCloud
 
   React.useEffect(() => {
-    return inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
+    return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
       ...(backend.type !== backendModule.BackendType.local
         ? {
             newFolder: () => {

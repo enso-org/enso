@@ -304,7 +304,7 @@ export default function Dashboard(props: DashboardProps) {
 
   React.useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document, 'keydown', {
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         closeModal: () => {
           updateModal(oldModal => {
             if (oldModal == null) {
