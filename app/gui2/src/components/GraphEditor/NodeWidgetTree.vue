@@ -40,7 +40,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
       if (ast) {
         edit.replaceValue(origin as Ast.AstId, ast)
       } else if (typeof value === 'string') {
-        edit.get(origin)?.syncToCode(value)
+        edit.tryGet(origin)?.syncToCode(value)
       }
     } else {
       console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)

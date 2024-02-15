@@ -433,10 +433,10 @@ test('Replace subexpression', () => {
   const newValue = Ast.TextLiteral.new('bar', edit)
   expect(newValue.code()).toBe("'bar'")
   edit.replace(assignment.expression!.id, newValue)
-  const assignment_ = edit.get(assignment.id)!
+  const assignment_ = edit.tryGet(assignment.id)!
   assert(assignment_ instanceof Ast.Assignment)
   expect(assignment_.expression!.id).toBe(newValue.id)
-  expect(edit.get(assignment_.expression!.id)?.code()).toBe("'bar'")
+  expect(edit.tryGet(assignment_.expression!.id)?.code()).toBe("'bar'")
   const printed = edit.getVersion(root).code()
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })

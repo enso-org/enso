@@ -137,7 +137,7 @@ export abstract class Ast {
       if (isTokenId(child.node)) {
         yield this.module.getToken(child.node)
       } else {
-        const node = this.module.checkedGet(child.node)
+        const node = this.module.get(child.node)
         if (node) yield node
       }
     }
@@ -149,7 +149,7 @@ export abstract class Ast {
   }
 
   parent(): Ast | undefined {
-    return this.module.checkedGet(this.parentId)
+    return this.module.get(this.parentId)
   }
 
   static parseBlock(source: string, inModule?: MutableModule) {
@@ -196,7 +196,7 @@ export abstract class MutableAst extends Ast {
   replace<T extends MutableAst>(replacement: Owned<T>): Owned<typeof this> {
     const parentId = this.fields.get('parent')
     if (parentId) {
-      const parent = this.module.checkedGet(parentId)
+      const parent = this.module.get(parentId)
       parent.replaceChild(this.id, replacement)
       this.fields.set('parent', undefined)
     }
@@ -241,7 +241,7 @@ export abstract class MutableAst extends Ast {
   takeIfParented(): Owned<typeof this> {
     const parent = parentId(this)
     if (parent) {
-      const parentAst = this.module.checkedGet(parent)
+      const parentAst = this.module.get(parent)
       const placeholder = Wildcard.new(this.module)
       parentAst.replaceChild(this.id, placeholder)
       this.fields.set('parent', undefined)
@@ -288,7 +288,7 @@ export abstract class MutableAst extends Ast {
   mutableParent(): MutableAst | undefined {
     const parentId = this.fields.get('parent')
     if (parentId === 'ROOT_ID') return
-    return this.module.checkedGet(parentId)
+    return this.module.get(parentId)
   }
 
   /** Modify this tree to represent the given code, while minimizing changes from the current set of `Ast`s. */
@@ -303,7 +303,7 @@ export abstract class MutableAst extends Ast {
     if (module === this.module) return
     for (const child of this.concreteChildren()) {
       if (!isTokenId(child.node)) {
-        const childInForeignModule = module.checkedGet(child.node)
+        const childInForeignModule = module.get(child.node)
         assert(childInForeignModule !== undefined)
         const importedChild = this.module.copy(childInForeignModule)
         importedChild.fields.set('parent', undefined)
@@ -482,13 +482,13 @@ export class App extends Ast {
   }
 
   get function(): Ast {
-    return this.module.checkedGet(this.fields.get('function').node)
+    return this.module.get(this.fields.get('function').node)
   }
   get argumentName(): Token | undefined {
     return this.module.getToken(this.fields.get('nameSpecification')?.name.node)
   }
   get argument(): Ast {
-    return this.module.checkedGet(this.fields.get('argument').node)
+    return this.module.get(this.fields.get('argument').node)
   }
 
   *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
@@ -598,7 +598,7 @@ export class UnaryOprApp extends Ast {
     return this.module.getToken(this.fields.get('operator').node)
   }
   get argument(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('argument')?.node)
+    return this.module.get(this.fields.get('argument')?.node)
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
@@ -656,7 +656,7 @@ export class NegationApp extends Ast {
     return this.module.getToken(this.fields.get('operator').node)
   }
   get argument(): Ast {
-    return this.module.checkedGet(this.fields.get('argument').node)
+    return this.module.get(this.fields.get('argument').node)
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
@@ -720,7 +720,7 @@ export class OprApp extends Ast {
   }
 
   get lhs(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('lhs')?.node)
+    return this.module.get(this.fields.get('lhs')?.node)
   }
   get operator(): Result<Token, NodeChild<Token>[]> {
     const operators = this.fields.get('operators')
@@ -732,7 +732,7 @@ export class OprApp extends Ast {
     return opr ? Ok(opr.node) : Err(operators_)
   }
   get rhs(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('rhs')?.node)
+    return this.module.get(this.fields.get('rhs')?.node)
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
@@ -834,13 +834,13 @@ export class PropertyAccess extends Ast {
   }
 
   get lhs(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('lhs')?.node)
+    return this.module.get(this.fields.get('lhs')?.node)
   }
   get operator(): Token {
     return this.module.getToken(this.fields.get('operator').node)
   }
   get rhs(): IdentifierOrOperatorIdentifierToken {
-    const ast = this.module.checkedGet(this.fields.get('rhs').node)
+    const ast = this.module.get(this.fields.get('rhs').node)
     assert(ast instanceof Ident)
     return ast.token as IdentifierOrOperatorIdentifierToken
   }
@@ -971,22 +971,22 @@ export class Import extends Ast {
   }
 
   get polyglot(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('polyglot')?.body?.node)
+    return this.module.get(this.fields.get('polyglot')?.body?.node)
   }
   get from(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('from')?.body?.node)
+    return this.module.get(this.fields.get('from')?.body?.node)
   }
   get import_(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('import').body?.node)
+    return this.module.get(this.fields.get('import').body?.node)
   }
   get all(): Token | undefined {
     return this.module.getToken(this.fields.get('all')?.node)
   }
   get as(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('as')?.body?.node)
+    return this.module.get(this.fields.get('as')?.body?.node)
   }
   get hiding(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('hiding')?.body?.node)
+    return this.module.get(this.fields.get('hiding')?.body?.node)
   }
 
   static concrete(
@@ -1216,7 +1216,7 @@ export class Documented extends Ast {
   }
 
   get expression(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('expression')?.node)
+    return this.module.get(this.fields.get('expression')?.node)
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
@@ -1255,7 +1255,7 @@ export class Invalid extends Ast {
   }
 
   get expression(): Ast {
-    return this.module.checkedGet(this.fields.get('expression').node)
+    return this.module.get(this.fields.get('expression').node)
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
@@ -1329,7 +1329,7 @@ export class Group extends Ast {
   }
 
   get expression(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('expression')?.node)
+    return this.module.get(this.fields.get('expression')?.node)
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<NodeChild> {
@@ -1423,10 +1423,10 @@ export class Function extends Ast {
   }
 
   get name(): Ast {
-    return this.module.checkedGet(this.fields.get('name').node)
+    return this.module.get(this.fields.get('name').node)
   }
   get body(): Ast | undefined {
-    return this.module.checkedGet(this.fields.get('body')?.node)
+    return this.module.get(this.fields.get('body')?.node)
   }
   get argumentDefinitions(): ArgumentDefinition[] {
     return this.fields.get('argumentDefinitions').map((raw) =>
@@ -1503,7 +1503,11 @@ export class Function extends Ast {
     for (const def of argumentDefinitions) yield* def
     yield { whitespace: equals.whitespace ?? ' ', node: this.module.getToken(equals.node) }
     if (body)
-      yield ensureSpacedOnlyIf(body, !(this.module.get(body.node) instanceof BodyBlock), verbatim)
+      yield ensureSpacedOnlyIf(
+        body,
+        !(this.module.tryGet(body.node) instanceof BodyBlock),
+        verbatim,
+      )
   }
 }
 export class MutableFunction extends Function implements MutableAst {
@@ -1577,10 +1581,10 @@ export class Assignment extends Ast {
   }
 
   get pattern(): Ast {
-    return this.module.checkedGet(this.fields.get('pattern').node)
+    return this.module.get(this.fields.get('pattern').node)
   }
   get expression(): Ast {
-    return this.module.checkedGet(this.fields.get('expression').node)
+    return this.module.get(this.fields.get('expression').node)
   }
 
   *concreteChildren(verbatim?: boolean): IterableIterator<NodeChild> {
@@ -1701,7 +1705,7 @@ export class MutableBodyBlock extends BodyBlock implements MutableAst {
     const oldLines = this.fields.get('lines')
     const filteredLines = oldLines.filter((line) => {
       if (!line.expression) return true
-      return keep(this.module.checkedGet(line.expression.node))
+      return keep(this.module.get(line.expression.node))
     })
     this.fields.set('lines', filteredLines)
   }
@@ -1725,7 +1729,7 @@ export type BlockLine = Line<Ast>
 export type OwnedBlockLine = Line<Owned>
 
 function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
-  const expression = raw.expression ? module.checkedGet(raw.expression.node) : undefined
+  const expression = raw.expression ? module.get(raw.expression.node) : undefined
   return {
     newline: { ...raw.newline, node: module.getToken(raw.newline.node) },
     expression: expression
@@ -1738,9 +1742,7 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
 }
 
 function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockLine {
-  const expression = raw.expression
-    ? module.checkedGet(raw.expression.node).takeIfParented()
-    : undefined
+  const expression = raw.expression ? module.get(raw.expression.node).takeIfParented() : undefined
   return {
     newline: { ...raw.newline, node: module.getToken(raw.newline.node) },
     expression: expression

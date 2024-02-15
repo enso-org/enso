@@ -249,7 +249,7 @@ export const useGraphStore = defineStore('graph', () => {
         for (const id of ids) {
           const node = db.nodeIdToNode.get(id)
           if (!node) continue
-          const outerExpr = edit.get(node.outerExprId)
+          const outerExpr = edit.tryGet(node.outerExprId)
           if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
           nodeRects.delete(id)
         }
@@ -276,7 +276,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
-    const nodeAst = syncModule.value?.get(nodeId)
+    const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
     const oldPos = nodeAst.nodeMetadata.get('position')
     if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
@@ -296,7 +296,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
-    const nodeAst = syncModule.value?.get(nodeId)
+    const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
     editNodeMetadata(nodeAst, (metadata) =>
       metadata.set(
@@ -307,7 +307,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
-    const nodeAst = syncModule.value?.get(nodeId)
+    const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
     editNodeMetadata(nodeAst, (metadata) =>
       metadata.set(
@@ -318,7 +318,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
-    const nodeAst = syncModule.value?.get(nodeId)
+    const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
     if (rect.pos.equals(Vec2.Zero) && !nodeAst.nodeMetadata.get('position')) {
       const { position } = nonDictatedPlacement(rect.size, {

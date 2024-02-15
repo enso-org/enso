@@ -282,7 +282,7 @@ const graphBindingsHandler = graphBindings.handler({
         // For collapsed function, only selected nodes would affect placement of the output node.
         collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
         edit
-          .checkedGet(refactoredNodeId)
+          .get(refactoredNodeId)
           .mutableNodeMetadata()
           .set('position', { x: position.x, y: position.y })
         if (outputNodeId != null) {
@@ -291,7 +291,7 @@ const graphBindingsHandler = graphBindings.handler({
             collapsedFunctionEnv,
           )
           edit
-            .checkedGet(outputNodeId)
+            .get(outputNodeId)
             .mutableNodeMetadata()
             .set('position', { x: position.x, y: position.y })
         }

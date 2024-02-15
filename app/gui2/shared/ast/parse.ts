@@ -360,7 +360,7 @@ export function printAst(
 ): string {
   let code = ''
   for (const child of ast.concreteChildren(verbatim)) {
-    if (!isTokenId(child.node) && ast.module.checkedGet(child.node) === undefined) continue
+    if (!isTokenId(child.node) && ast.module.get(child.node) === undefined) continue
     if (child.whitespace != null) {
       code += child.whitespace
     } else if (code.length != 0) {
@@ -373,7 +373,7 @@ export function printAst(
       info.tokens.set(span, token)
       code += token.code()
     } else {
-      const childNode = ast.module.checkedGet(child.node)
+      const childNode = ast.module.get(child.node)
       assert(childNode != null)
       code += childNode.printSubtree(info, offset + code.length, parentIndent, verbatim)
       // Extra structural validation.
@@ -420,7 +420,7 @@ export function printBlock(
       }
       const validIndent = (line.expression.whitespace?.length ?? 0) > (parentIndent?.length ?? 0)
       code += validIndent ? line.expression.whitespace : blockIndent
-      const lineNode = block.module.checkedGet(line.expression.node)
+      const lineNode = block.module.get(line.expression.node)
       assertEqual(lineNode.id, line.expression.node)
       assertEqual(parentId(lineNode), block.id)
       code += lineNode.printSubtree(info, offset + code.length, blockIndent, verbatim)
@@ -599,7 +599,7 @@ function resync(
   const parentsOfBadSubtrees = new Set<AstId>()
   const badAstIds = new Set(Array.from(badAsts, (ast) => ast.id))
   for (const id of subtreeRoots(edit, badAstIds)) {
-    const parent = edit.checkedGet(id)?.parentId
+    const parent = edit.get(id)?.parentId
     if (parent) parentsOfBadSubtrees.add(parent)
   }
 
@@ -613,7 +613,7 @@ function resync(
   assertEqual(spanOfBadParent.length, parentsOfBadSubtrees.size)
 
   for (const [id, span] of spanOfBadParent) {
-    const parent = edit.checkedGet(id)
+    const parent = edit.get(id)
     const goodAst = goodSpans.get(span)?.[0]
     // The parent of the root of a bad subtree must be a good AST.
     assertDefined(goodAst)
@@ -634,7 +634,7 @@ function hashSubtree(ast: Ast, hashesOut: Map<string, Ast[]>) {
     if (isTokenId(child.node)) {
       content += 'Token:' + xxHash128(ast.module.getToken(child.node).code())
     } else {
-      content += hashSubtree(ast.module.checkedGet(child.node), hashesOut)
+      content += hashSubtree(ast.module.get(child.node), hashesOut)
     }
   }
   const astHash = xxHash128(content)
@@ -755,16 +755,16 @@ function syncTree(target: Ast, newContent: Owned, toSync: Map<AstId, Ast>, edit:
   const childReplacerFor = (parentId: AstId) => (id: AstId) => {
     const original = newIdToEquivalent.get(id)
     if (original) {
-      edit.checkedGet(original).fields.set('parent', parentId)
+      edit.get(original).fields.set('parent', parentId)
       return original
     } else {
-      const child = edit.checkedGet(id)
+      const child = edit.get(id)
       if (child.parentId !== parentId) child.fields.set('parent', parentId)
     }
   }
   const parentId = target.fields.get('parent')
   assertDefined(parentId)
-  const parent = edit.checkedGet(parentId)
+  const parent = edit.get(parentId)
   newContent.visitRecursiveAst((ast) => {
     const syncFieldsFrom = toSync.get(ast.id)
     if (syncFieldsFrom) {

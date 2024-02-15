@@ -19,13 +19,14 @@ import {
 export interface Module {
   edit(): MutableModule
   root(): Ast | undefined
-  get(id: AstId): Ast | undefined
-  get(id: AstId | undefined): Ast | undefined
+  tryGet(id: AstId): Ast | undefined
+  tryGet(id: AstId | undefined): Ast | undefined
 
   /////////////////////////////////
 
-  checkedGet(id: AstId): Ast
-  checkedGet(id: AstId | undefined): Ast | undefined
+  /** Return the specified AST. Throws an exception if no AST with the provided ID was found. */
+  get(id: AstId): Ast
+  get(id: AstId | undefined): Ast | undefined
   getToken(token: SyncTokenId): Token
   getToken(token: SyncTokenId | undefined): Token | undefined
   getAny(node: AstId | SyncTokenId): Ast | Token
@@ -53,7 +54,7 @@ export class MutableModule implements Module {
 
   /** Return this module's copy of `ast`, if this module was created by cloning `ast`'s module. */
   getVersion<T extends Ast>(ast: T): Mutable<T> {
-    const instance = this.checkedGet(ast.id)
+    const instance = this.get(ast.id)
     return instance as Mutable<T>
   }
 
@@ -217,18 +218,18 @@ export class MutableModule implements Module {
     this.nodes.clear()
   }
 
-  checkedGet(id: AstId): Mutable
-  checkedGet(id: AstId | undefined): Mutable | undefined
-  checkedGet(id: AstId | undefined): Mutable | undefined {
+  get(id: AstId): Mutable
+  get(id: AstId | undefined): Mutable | undefined
+  get(id: AstId | undefined): Mutable | undefined {
     if (!id) return undefined
-    const ast = this.get(id)
+    const ast = this.tryGet(id)
     assert(ast !== undefined, 'id in module')
     return ast
   }
 
-  get(id: AstId): Mutable | undefined
-  get(id: AstId | undefined): Mutable | undefined
-  get(id: AstId | undefined): Mutable | undefined {
+  tryGet(id: AstId): Mutable | undefined
+  tryGet(id: AstId | undefined): Mutable | undefined
+  tryGet(id: AstId | undefined): Mutable | undefined {
     if (!id) return undefined
     const nodeData = this.nodes.get(id)
     if (!nodeData) return undefined
@@ -237,19 +238,19 @@ export class MutableModule implements Module {
   }
 
   replace(id: AstId, value: Owned): Owned | undefined {
-    return this.get(id)?.replace(value)
+    return this.tryGet(id)?.replace(value)
   }
 
   replaceValue(id: AstId, value: Owned): Owned | undefined {
-    return this.get(id)?.replaceValue(value)
+    return this.tryGet(id)?.replaceValue(value)
   }
 
   take(id: AstId): Owned {
-    return this.replace(id, Wildcard.new(this)) || asOwned(this.checkedGet(id))
+    return this.replace(id, Wildcard.new(this)) || asOwned(this.get(id))
   }
 
   updateValue<T extends MutableAst>(id: AstId, f: (x: Owned) => Owned<T>): T | undefined {
-    return this.get(id)?.updateValue(f)
+    return this.tryGet(id)?.updateValue(f)
   }
 
   /////////////////////////////////////////////
@@ -259,7 +260,7 @@ export class MutableModule implements Module {
   }
 
   private rootPointer(): MutableRootPointer | undefined {
-    const rootPointer = this.get(ROOT_ID)
+    const rootPointer = this.tryGet(ROOT_ID)
     if (rootPointer) return rootPointer as MutableRootPointer
   }
 
@@ -292,7 +293,7 @@ export class MutableModule implements Module {
   }
 
   getAny(node: AstId | SyncTokenId): MutableAst | Token {
-    return isTokenId(node) ? this.getToken(node) : this.checkedGet(node)
+    return isTokenId(node) ? this.getToken(node) : this.get(node)
   }
 
   /** @internal Copy a node into the module, if it is bound to a different module. */
