@@ -38,6 +38,9 @@ type Decimal
 
          - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+           if a `Math_Context` value is explicitly passed.
     new : Text | Integer | Float -> Math_Context -> Decimal | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         case x of
