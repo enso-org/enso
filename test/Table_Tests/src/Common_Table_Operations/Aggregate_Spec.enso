@@ -17,8 +17,8 @@ polyglot java import java.lang.Double
 type Test_Selection
     Config problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
 
-main =
-    run_default_backend add_specs
+main filter=Nothing =
+    run_default_backend add_specs filter
 
 type Data
     Value ~data

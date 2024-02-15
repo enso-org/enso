@@ -164,8 +164,8 @@ add_specs suite_builder =
             code = data.t1.aggregate ["C", "B"] [Aggregate_Column.Sum "A" "sum_a"] . to_sql . prepare
             code . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B", "T1"."sum_a" AS "sum_a" FROM (SELECT "T1"."C" AS "C", "T1"."B" AS "B", SUM("T1"."A") AS "sum_a" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B") AS "T1"', []]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -14,7 +14,7 @@ import project.Database.Helpers.Name_Generator
 
 type Data
     Value ~connection
-    
+
     setup create_connection_func =
         Data.Value (create_connection_func Nothing)
 
@@ -476,8 +476,8 @@ add_specs suite_builder prefix create_connection_func =
                     db_table.transpose attribute_column_name=name_a . should_fail_with Unsupported_Database_Operation
                     db_table.transpose value_column_name=name_a . should_fail_with Unsupported_Database_Operation
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder "[SQLite]" (_-> Database.connect (SQLite In_Memory))
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -12,7 +12,7 @@ from Standard.Test import all
 
 type Data
     Value ~data
-    
+
     simple_table self = self.data.at 0
     empty_table self = self.data.at 1
 
@@ -196,8 +196,8 @@ add_specs suite_builder = suite_builder.group "Aggregate Columns" group_builder-
         test_aggregator percentile_table (Percentile 0.66 0) "66%-ile tests" 70.78
         test_aggregator data.empty_table (Mode 0 test_name) test_name Nothing
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
