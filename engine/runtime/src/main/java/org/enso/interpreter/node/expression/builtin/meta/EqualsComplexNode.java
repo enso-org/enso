@@ -419,7 +419,8 @@ public abstract class EqualsComplexNode extends Node {
   // all the other guards on purpose.
   boolean fallbackGuard(
       Object left, Object right, InteropLibrary interop, WarningsLibrary warnings) {
-    if (EqualsNode.isPrimitive(left, interop) && EqualsNode.isPrimitive(right, interop)) {
+    if (EqualsSimpleNode.isPrimitive(left, interop)
+        && EqualsSimpleNode.isPrimitive(right, interop)) {
       return false;
     }
     if (isJavaObject(left) && isJavaObject(right)) {
