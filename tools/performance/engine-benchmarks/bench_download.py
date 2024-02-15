@@ -80,6 +80,8 @@ try:
     import jinja2
 except ModuleNotFoundError as err:
     print("ERROR: One of pandas, numpy, or jinja2 packages not installed", file=sys.stderr)
+    print("Install either with `pip install pandas numpy jinja2` or "
+          "with `apt-get install python3-pandas python3-numpy python3-jinja2`", file=sys.stderr)
     exit(1)
 
 
