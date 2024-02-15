@@ -2,7 +2,7 @@ import * as map from 'lib0/map'
 import type { AstId, NodeChild, Owned } from '.'
 import { Token, asOwned, isTokenId, parentId, rewriteRefs, subtreeRoots, syncFields } from '.'
 import { assert, assertDefined, assertEqual } from '../util/assert'
-import { tryGetSoleValue } from '../util/data/iterable'
+import { tryGetSoleValue, zip } from '../util/data/iterable'
 import type { SpanTree, TextEdit } from '../util/data/text'
 import {
   applyTextEdits,
@@ -732,9 +732,7 @@ function applyTextEditsToAst(ast: Ast, textEdits: TextEdit[], edit: MutableModul
   for (const [hash, newAsts] of newHashes) {
     const unmatchedNewAsts = newAsts.filter((ast) => !newIdsMatched.has(ast.id))
     const unmatchedOldAsts = oldHashes.get(hash)?.filter((ast) => !oldIdsMatched.has(ast.id)) ?? []
-    for (let i = 0; i < unmatchedNewAsts.length && i < unmatchedOldAsts.length; i++) {
-      const unmatchedNew = unmatchedNewAsts[i]!
-      const unmatchedOld = unmatchedOldAsts[i]!
+    for (const [unmatchedNew, unmatchedOld] of zip(unmatchedNewAsts, unmatchedOldAsts)) {
       toSync.set(unmatchedOld.id, unmatchedNew)
       // Update the matched-IDs indices.
       oldIdsMatched.add(unmatchedOld.id)
