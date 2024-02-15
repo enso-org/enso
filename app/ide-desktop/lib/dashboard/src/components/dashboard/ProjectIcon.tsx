@@ -145,10 +145,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               }
               await backend.openProject(
                 item.id,
-                {
-                  forceCreate: false,
-                  executeAsync: shouldRunInBackground,
-                },
+                { executeAsync: shouldRunInBackground },
                 item.title
               )
             }
@@ -166,14 +163,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             break
           }
           case backendModule.BackendType.local: {
-            await backend.openProject(
-              item.id,
-              {
-                forceCreate: false,
-                executeAsync: shouldRunInBackground,
-              },
-              item.title
-            )
+            await backend.openProject(item.id, { executeAsync: shouldRunInBackground }, item.title)
             setState(oldState =>
               oldState === backendModule.ProjectState.openInProgress
                 ? backendModule.ProjectState.opened

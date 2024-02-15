@@ -829,7 +829,6 @@ export interface UpdateProjectRequestBody {
 
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
-  readonly forceCreate: boolean
   readonly executeAsync: boolean
 }
 
