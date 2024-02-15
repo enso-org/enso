@@ -134,7 +134,8 @@ export default function KeyboardShortcutsSettingsTab() {
                         <div className="flex gap-1 shrink-0">
                           <button
                             className="align-middle invisible group-hover:visible"
-                            onClick={() => {
+                            onClick={event => {
+                              event.stopPropagation()
                               setModal(
                                 <CaptureKeyboardShortcutModal
                                   description={`'${info.name}'`}
