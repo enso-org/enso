@@ -17,6 +17,7 @@ def pkg_dir() -> Path:
     return Path(os.path.dirname(os.path.realpath(__file__)))
 
 
+ENSO_REPO = "enso-org/enso"
 DATE_FORMAT = "%Y-%m-%d"
 GH_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 ENGINE_BENCH_WORKFLOW_ID = 29450898

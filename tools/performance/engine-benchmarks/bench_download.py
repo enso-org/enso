@@ -161,32 +161,6 @@ def _read_json(json_file: str) -> Dict[Any, Any]:
         return json.load(f)
 
 
-async def _invoke_gh_api(endpoint: str,
-                   query_params: Dict[str, str] = {},
-                   result_as_text: bool = True) -> Union[Dict[str, Any], bytes]:
-    urlencode(query_params)
-    cmd = [
-        "gh",
-        "api",
-        f"/repos/enso-org/enso{endpoint}" + "?" + urlencode(query_params)
-    ]
-    logging.info(f"Starting subprocess `{' '.join(cmd)}`")
-    proc = await asyncio.create_subprocess_exec("gh", *cmd[1:],
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.PIPE)
-    out, err = await proc.communicate()
-    logging.info(f"Finished subprocess `{' '.join(cmd)}`")
-    if proc.returncode != 0:
-        print("Command `" + " ".join(cmd) + "` FAILED with errcode " + str(
-            proc.returncode))
-        print(err.decode())
-        exit(proc.returncode)
-    if result_as_text:
-        return json.loads(out.decode())
-    else:
-        return out
-
-
 class Cache:
     """
     Cache is a directory filled with json files that have name of format <bench_run_id>.json, and
@@ -270,7 +244,7 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow
         # Start with 1, just to determine the total count
         "per_page": "1"
     }
-    res = await _invoke_gh_api(f"/actions/workflows/{workflow_id}/runs", query_fields)
+    res = await invoke_gh_api(ENSO_REPO, f"/actions/workflows/{workflow_id}/runs", query_fields)
     total_count = int(res["total_count"])
     per_page = 3
     logging.debug(f"Total count of all runs: {total_count} for workflow ID "
@@ -279,7 +253,7 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow
     async def get_and_parse_run(page: int, parsed_bench_runs) -> None:
         _query_fields = query_fields.copy()
         _query_fields["page"] = str(page)
-        res = await _invoke_gh_api(f"/actions/workflows/{workflow_id}/runs", _query_fields)
+        res = await invoke_gh_api(ENSO_REPO, f"/actions/workflows/{workflow_id}/runs", _query_fields)
         bench_runs_json = res["workflow_runs"]
         _parsed_bench_runs = [_parse_bench_run_from_json(bench_run_json)
                               for bench_run_json in bench_runs_json]
@@ -316,7 +290,7 @@ async def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Op
     # There might be multiple artifacts in the artifact list for a benchmark run
     # We are looking for the one named 'Runtime Benchmark Report', which will
     # be downloaded as a ZIP file.
-    obj: Dict[str, Any] = await _invoke_gh_api(f"/actions/runs/{bench_run.id}/artifacts")
+    obj: Dict[str, Any] = await invoke_gh_api(ENSO_REPO, f"/actions/runs/{bench_run.id}/artifacts")
     artifacts = obj["artifacts"]
     assert len(artifacts) == 1, "There should be exactly one artifact for a benchmark run"
     bench_report_artifact = artifacts[0]
@@ -331,7 +305,7 @@ async def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Op
         return None
 
     # Get contents of the ZIP artifact file
-    artifact_ret = await _invoke_gh_api(f"/actions/artifacts/{artifact_id}/zip", result_as_text=False)
+    artifact_ret = await invoke_gh_api(ENSO_REPO, f"/actions/artifacts/{artifact_id}/zip", result_as_json=False)
     zip_file_name = os.path.join(temp_dir, artifact_id + ".zip")
     logging.debug(f"Writing artifact ZIP content into {zip_file_name}")
     with open(zip_file_name, "wb") as zip_file:
@@ -535,17 +509,6 @@ def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) 
         html_file.write(generated_html)
 
 
-def ensure_gh_installed() -> None:
-    try:
-        out = subprocess.run(["gh", "--version"], check=True, capture_output=True)
-        if out.returncode != 0:
-            print("`gh` command not found - GH CLI utility is not installed. "
-                  "See https://cli.github.com/", file=sys.stderr)
-            exit(1)
-    except subprocess.CalledProcessError:
-        print("`gh` command not found - GH CLI utility is not installed. "
-              "See https://cli.github.com/", file=sys.stderr)
-        exit(1)
 
 
 async def main():
