@@ -530,9 +530,10 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       // This MUST be `void` to allow implicit returns.
       // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
       Record<BindingKey | typeof DEFAULT_HANDLER, (event: Event) => boolean | void>
-    >
+    >,
+    stopAndPrevent = true
   ): ((event: Event, stopAndPrevent?: boolean) => boolean) => {
-    return (event, stopAndPrevent = true) => {
+    return (event, innerStopAndPrevent = stopAndPrevent) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
       const matchingBindings =
         'key' in event
@@ -560,7 +561,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       } else if (handle(event) === false) {
         return false
       } else {
-        if (stopAndPrevent) {
+        if (innerStopAndPrevent) {
           if ('stopImmediatePropagation' in event) {
             event.stopImmediatePropagation()
           } else {
@@ -589,9 +590,10 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       // This MUST be `void` to allow implicit returns.
       // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
       Record<BindingKey | typeof DEFAULT_HANDLER, (event: Event) => boolean | void>
-    >
+    >,
+    stopAndPrevent = true
   ) => {
-    const newHandler = handler(handlers)
+    const newHandler = handler(handlers, stopAndPrevent)
     target.addEventListener(eventName, newHandler)
     return () => {
       target.removeEventListener(eventName, newHandler)

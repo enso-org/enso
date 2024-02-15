@@ -1745,15 +1745,20 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'click', {
-        selectAdditional: () => {},
-        selectAdditionalRange: () => {},
-        [inputBindingsModule.DEFAULT_HANDLER]: () => {
-          if (selectedKeys.size !== 0) {
-            setSelectedKeys(new Set())
-          }
+      inputBindings.attach(
+        sanitizedEventTargets.document.body,
+        'click',
+        {
+          selectAdditional: () => {},
+          selectAdditionalRange: () => {},
+          [inputBindingsModule.DEFAULT_HANDLER]: () => {
+            if (selectedKeys.size !== 0) {
+              setSelectedKeys(new Set())
+            }
+          },
         },
-      }),
+        false
+      ),
     [
       selectedKeys,
       /* should never change */ setSelectedKeys,
@@ -1811,7 +1816,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         [inputBindingsModule.DEFAULT_HANDLER]: () => {
           setSelectedKeys(new Set([key]))
         },
-      })(event)
+      })(event, false)
       setPreviouslySelectedKey(key)
     },
     [displayItems, previouslySelectedKey, inputBindings, /* should never change */ setSelectedKeys]

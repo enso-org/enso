@@ -86,6 +86,9 @@ export default function EditableSpan(props: EditableSpanProps) {
               event.currentTarget.form?.requestSubmit()
             }
           }}
+          onContextMenu={event => {
+            event.stopPropagation()
+          }}
           onKeyDown={event => {
             if (
               !event.isPropagationStopped() &&
