@@ -628,15 +628,15 @@ function resync(
   )
 }
 
-function hashSubtree(ast: Ast, hashesOut: Map<Hash, Ast[]>) {
+function hashSubtreeSyntax(ast: Ast, hashesOut: Map<SyntaxHash, Ast[]>): SyntaxHash {
   let content = ''
   content += ast.typeName + ':'
   for (const child of ast.concreteChildren()) {
-    content += child.whitespace ?? ' '
+    content += child.whitespace ?? '?'
     if (isTokenId(child.node)) {
       content += 'Token:' + hashString(ast.module.getToken(child.node).code())
     } else {
-      content += hashSubtree(ast.module.get(child.node), hashesOut)
+      content += hashSubtreeSyntax(ast.module.get(child.node), hashesOut)
     }
   }
   const astHash = hashString(content)
@@ -645,14 +645,20 @@ function hashSubtree(ast: Ast, hashesOut: Map<Hash, Ast[]>) {
 }
 
 declare const brandHash: unique symbol
-type Hash = string & { [brandHash]: never }
-function hashString(input: string): Hash {
-  return xxHash128(input) as Hash
+type SyntaxHash = string & { [brandHash]: never }
+function hashString(input: string): SyntaxHash {
+  return xxHash128(input) as SyntaxHash
 }
 
-function hashTree(root: Ast) {
-  const hashes = new Map<Hash, Ast[]>()
-  const rootHash = hashSubtree(root, hashes)
+/** Calculates `SyntaxHash`es for the given node and all its children.
+ *
+ *  Each `SyntaxHash` summarizes the syntactic content of an AST. If two ASTs have the same code and were parsed the
+ *  same way (i.e. one was not parsed in a context that resulted in a different interpretation), they will have the same
+ *  hash. Note that the hash is invariant to metadata, including `externalId` assignments.
+ */
+function syntaxHash(root: Ast) {
+  const hashes = new Map<SyntaxHash, Ast[]>()
+  const rootHash = hashSubtreeSyntax(root, hashes)
   return { root: rootHash, hashes }
 }
 
@@ -721,8 +727,8 @@ function applyTextEditsToAst(ast: Ast, textEdits: TextEdit[], edit: MutableModul
   }
 
   // Movement matching: For each new tree that hasn't been matched, match it with any identical unmatched old tree.
-  const newHashes = hashTree(parsedRoot).hashes
-  const oldHashes = hashTree(ast).hashes
+  const newHashes = syntaxHash(parsedRoot).hashes
+  const oldHashes = syntaxHash(ast).hashes
   for (const [hash, newAsts] of newHashes) {
     const unmatchedNewAsts = newAsts.filter((ast) => !newIdsMatched.has(ast.id))
     const unmatchedOldAsts = oldHashes.get(hash)?.filter((ast) => !oldIdsMatched.has(ast.id)) ?? []
