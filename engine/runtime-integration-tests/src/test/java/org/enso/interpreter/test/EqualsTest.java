@@ -87,13 +87,17 @@ public class EqualsTest extends TestBase {
     }
   }
 
+  private boolean equalityCheck(Object first, Object second) {
+    return equalsNode.execute(null, first, second);
+  }
+
   @Theory
   public void equalsOperatorShouldBeSymmetric(Object firstValue, Object secondValue) {
     executeInContext(
         context,
         () -> {
-          boolean firstResult = equalsNode.execute(null, firstValue, secondValue);
-          boolean secondResult = equalsNode.execute(null, secondValue, firstValue);
+          boolean firstResult = equalityCheck(firstValue, secondValue);
+          boolean secondResult = equalityCheck(secondValue, firstValue);
           assertEquals("equals should be symmetric", firstResult, secondResult);
           return null;
         });
@@ -104,8 +108,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          Object firstResult = equalsNode.execute(null, value, value);
-          Object secondResult = equalsNode.execute(null, value, value);
+          Object firstResult = equalityCheck(value, value);
+          Object secondResult = equalityCheck(value, value);
           assertEquals("equals should be consistent", firstResult, secondResult);
           return null;
         });
@@ -117,7 +121,7 @@ public class EqualsTest extends TestBase {
         context,
         () -> {
           Object uncachedRes = EqualsNode.getUncached().execute(null, firstVal, secondVal);
-          Object cachedRes = equalsNode.execute(null, firstVal, secondVal);
+          Object cachedRes = equalityCheck(firstVal, secondVal);
           assertEquals(
               "Result from uncached EqualsNode should be the same as result from its cached"
                   + " variant",
@@ -139,7 +143,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, ensoDate, javaDate));
+          assertTrue(equalityCheck(ensoDate, javaDate));
           return null;
         });
   }
@@ -157,7 +161,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, ensoTime, javaDate));
+          assertTrue(equalityCheck(ensoTime, javaDate));
           return null;
         });
   }
@@ -180,7 +184,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, ensoDateTime, javaDateTime));
+          assertTrue(equalityCheck(ensoDateTime, javaDateTime));
           return null;
         });
   }
@@ -193,8 +197,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(
-              javaNumber + " == " + ensoNumber, equalsNode.execute(null, javaNumber, ensoNumber));
+          assertTrue(javaNumber + " == " + ensoNumber, equalityCheck(javaNumber, ensoNumber));
           return null;
         });
   }
@@ -207,8 +210,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(
-              ensoNumber + " == " + javaNumber, equalsNode.execute(null, ensoNumber, javaNumber));
+          assertTrue(ensoNumber + " == " + javaNumber, equalityCheck(ensoNumber, javaNumber));
           return null;
         });
   }
@@ -221,8 +223,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(
-              javaNumber + " == " + hostNumber, equalsNode.execute(null, javaNumber, hostNumber));
+          assertTrue(javaNumber + " == " + hostNumber, equalityCheck(javaNumber, hostNumber));
           return null;
         });
   }
@@ -235,8 +236,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(
-              hostNumber + " == " + javaNumber, equalsNode.execute(null, hostNumber, javaNumber));
+          assertTrue(hostNumber + " == " + javaNumber, equalityCheck(hostNumber, javaNumber));
           return null;
         });
   }
@@ -249,7 +249,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, ensoVector, javaVector));
+          assertTrue(equalityCheck(ensoVector, javaVector));
           return null;
         });
   }
@@ -261,9 +261,9 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber.asDirect()));
-          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber));
-          assertTrue(equalsNode.execute(null, foreignNumber, ensoNumber));
+          assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
+          assertTrue(equalityCheck(ensoNumber, foreignNumber));
+          assertTrue(equalityCheck(foreignNumber, ensoNumber));
           return null;
         });
   }
@@ -275,9 +275,9 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber.asDirect()));
-          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber));
-          assertTrue(equalsNode.execute(null, foreignNumber, ensoNumber));
+          assertTrue(equalityCheck(ensoNumber, foreignNumber.asDirect()));
+          assertTrue(equalityCheck(ensoNumber, foreignNumber));
+          assertTrue(equalityCheck(foreignNumber, ensoNumber));
           return null;
         });
   }
@@ -290,8 +290,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, ensoNumber, foreignNumber));
-          assertTrue(equalsNode.execute(null, foreignNumber, ensoNumber));
+          assertTrue(equalityCheck(ensoNumber, foreignNumber));
+          assertTrue(equalityCheck(foreignNumber, ensoNumber));
           return null;
         });
   }
@@ -304,9 +304,9 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, ensoBoolean, foreignBoolean.asDirect()));
-          assertTrue(equalsNode.execute(null, ensoBoolean, foreignBoolean));
-          assertTrue(equalsNode.execute(null, foreignBoolean, ensoBoolean));
+          assertTrue(equalityCheck(ensoBoolean, foreignBoolean.asDirect()));
+          assertTrue(equalityCheck(ensoBoolean, foreignBoolean));
+          assertTrue(equalityCheck(foreignBoolean, ensoBoolean));
           return null;
         });
   }
@@ -318,9 +318,9 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, ensoText, foreignString.asDirect()));
-          assertTrue(equalsNode.execute(null, ensoText, foreignString));
-          assertTrue(equalsNode.execute(null, foreignString, ensoText));
+          assertTrue(equalityCheck(ensoText, foreignString.asDirect()));
+          assertTrue(equalityCheck(ensoText, foreignString));
+          assertTrue(equalityCheck(foreignString, ensoText));
           return null;
         });
   }
@@ -339,8 +339,8 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          assertTrue(equalsNode.execute(null, 142L, hundred42));
-          assertTrue(equalsNode.execute(null, hundred42, 142L));
+          assertTrue(equalityCheck(142L, hundred42));
+          assertTrue(equalityCheck(hundred42, 142L));
           return null;
         });
   }
@@ -378,18 +378,12 @@ public class EqualsTest extends TestBase {
       executeInContext(
           context,
           () -> {
-            assertTrue(
-                "Conversions from same module are the same",
-                equalsNode.execute(null, conv1, conv1_2));
-            assertTrue(
-                "Conversions from same module are the same",
-                equalsNode.execute(null, conv2, conv2_2));
+            assertTrue("Conversions from same module are the same", equalityCheck(conv1, conv1_2));
+            assertTrue("Conversions from same module are the same", equalityCheck(conv2, conv2_2));
             assertFalse(
-                "Conversions from other modules aren't the same",
-                equalsNode.execute(null, conv1, conv2));
+                "Conversions from other modules aren't the same", equalityCheck(conv1, conv2));
             assertFalse(
-                "Conversions from other modueles aren't the same",
-                equalsNode.execute(null, conv2_2, conv1_2));
+                "Conversions from other modueles aren't the same", equalityCheck(conv2_2, conv1_2));
             return null;
           });
 
