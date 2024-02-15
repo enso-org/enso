@@ -597,8 +597,8 @@ add_specs suite_builder =
             py_vec_from_map map2 . should_contain_the_same_elements_as [["A", 1], [Nothing, 2]]
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

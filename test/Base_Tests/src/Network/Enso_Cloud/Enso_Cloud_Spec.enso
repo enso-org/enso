@@ -80,8 +80,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             # Ensure the token is reset after the last test, so that any other tests will again use the correct one.
             Cloud_Tests_Setup.reset_token
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -468,7 +468,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         res2 . should_equal True
         Warning.get_all res2 . map .value . should_equal ["WARNING2"]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
