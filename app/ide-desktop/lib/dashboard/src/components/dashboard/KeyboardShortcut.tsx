@@ -64,7 +64,7 @@ export interface KeyboardShortcutActionProps {
   readonly action: dashboardInputBindings.DashboardBindingKey
 }
 
-/** Props for a {@link KeyboardShortcut}, specifying the shortcut info. */
+/** Props for a {@link KeyboardShortcut}, specifying the shortcut string. */
 export interface KeyboardShortcutShortcutProps {
   readonly shortcut: string
 }

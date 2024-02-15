@@ -102,6 +102,11 @@ function modifierFlagsForModifiers(modifiers: Modifier[]): ModifierFlags {
   return ModifierFlags(result)
 }
 
+/** The names of all {@link Modifier}s in this {@link ModifierFlags}, in the OS' preferred order. */
+export function modifiersForModifierFlags(modifierFlags: ModifierFlags): Modifier[] {
+  return ALL_MODIFIERS.filter(modifier => (MODIFIER_FLAG[modifier] & modifierFlags) !== 0)
+}
+
 /** Returns the raw modifier key equivalent of a modifier. */
 export function toModifierKey(modifier: Modifier): ModifierKey {
   return MODIFIER_FLAG_NAME[modifier]
@@ -122,7 +127,7 @@ interface EventWithModifiers {
 }
 
 /** A number representing the unique combination of modifier flags for an event.. */
-function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags {
+export function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags {
   // eslint-disable-next-line no-restricted-syntax
   return ModifierFlags(
     (event.ctrlKey ? RAW_MODIFIER_FLAG.Ctrl : 0) |
@@ -666,10 +671,13 @@ const isPointer = includesPredicate(ALL_POINTERS)
  * Although this is exported, it should ONLY be used for testing, as it is an implementation
  * detail. */
 export function decomposeKeybindString(keybindString: string): ModifierStringDecomposition {
-  const parts = keybindString
-    .trim()
-    .split(/[\s+]+/)
-    .map(part => normalizedKeyboardSegmentLookup[part.toLowerCase()] ?? part)
+  const trimmed = keybindString.trim()
+  const parts =
+    trimmed === ''
+      ? []
+      : trimmed
+          .split(/[\s+]+/)
+          .map(part => normalizedKeyboardSegmentLookup[part.trim().toLowerCase()] ?? part)
   const modifiers = parts.filter(isModifier)
   const key = parts.find(part => !isModifier(part))
   return { key: key ?? '', modifiers }

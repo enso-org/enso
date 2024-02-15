@@ -17,6 +17,8 @@ import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
 
+import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
+
 import * as object from '#/utilities/object'
 
 // ====================================
@@ -133,9 +135,15 @@ export default function KeyboardShortcutsSettingsTab() {
                           <button
                             className="align-middle invisible group-hover:visible"
                             onClick={() => {
-                              // FIXME: capture keyboard shortcut
-                              inputBindings.add(action, '')
-                              doRefresh()
+                              setModal(
+                                <CaptureKeyboardShortcutModal
+                                  description={`'${info.name}'`}
+                                  onSubmit={shortcut => {
+                                    inputBindings.add(action, shortcut)
+                                    doRefresh()
+                                  }}
+                                />
+                              )
                             }}
                           >
                             <img className="w-4.5 h-4.5" src={Plus2Icon} />
