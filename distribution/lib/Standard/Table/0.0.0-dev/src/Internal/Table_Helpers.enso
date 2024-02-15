@@ -230,7 +230,7 @@ type Table_Column_Helper
             Blank_Selector.All_Cells -> Aggregate_Column.Minimum _
         aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
 
-        aggregate_result = just_indicators.aggregate aggregates on_problems=Problem_Behavior.Report_Error
+        aggregate_result = just_indicators.aggregate columns=aggregates on_problems=Problem_Behavior.Report_Error
         materialized_result = self.materialize <| aggregate_result.catch Any error->
             msg = "Unexpected dataflow error has been thrown in an `select_blank_columns_helper`. This is a bug in the Table library. The unexpected error was: "+error.to_display_text
             Panic.throw (Illegal_State.Error message=msg cause=error)
@@ -466,7 +466,7 @@ filter_blank_rows table when treat_nans_as_blank =
    Currently, it relies on a hack - it checks if the object has a method
    `is_table` and if it returns `True`.
 is_column obj =
-    known_types = ["Standard.Table.Data.Column.Column", "Standard.Database.Data.Column.Column"]
+    known_types = ["Standard.Table.Data.Column.Column", "Standard.Database.Data.DB_Column.DB_Column"]
     known_types.contains (Meta.get_qualified_type_name obj)
 
 ## PRIVATE

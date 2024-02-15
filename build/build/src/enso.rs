@@ -98,16 +98,6 @@ impl BuiltEnso {
         Ok(command)
     }
 
-    pub fn compile_lib(&self, target: impl AsRef<Path>) -> Result<Command> {
-        ide_ci::fs::require_exist(&target)?;
-        let mut command = self.cmd()?;
-        command
-            .arg(IrCaches::Yes)
-            .args(["--no-compile-dependencies", "--no-global-cache", "--compile"])
-            .arg(target.as_ref());
-        Ok(command)
-    }
-
     pub async fn run_tests(
         &self,
         ir_caches: IrCaches,

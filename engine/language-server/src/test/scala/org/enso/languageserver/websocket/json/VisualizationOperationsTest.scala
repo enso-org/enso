@@ -22,7 +22,7 @@ class VisualizationOperationsTest
       val client    = getInitialisedWsClient()
       val contextId = createExecutionContext(client)
       val visualizationConfig =
-        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
+        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y", Vector())
       client.send(
         ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
           1,
@@ -174,7 +174,7 @@ class VisualizationOperationsTest
       val contextId       = UUID.randomUUID()
       val client          = getInitialisedWsClient()
       val visualizationConfig =
-        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
+        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y", Vector())
       client.send(
         ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
           1,
@@ -201,7 +201,7 @@ class VisualizationOperationsTest
       val client    = getInitialisedWsClient()
       val contextId = createExecutionContext(client)
       val visualizationConfig =
-        VisualizationConfiguration(contextId, "Foo.Bar", "_")
+        VisualizationConfiguration(contextId, "Foo.Bar", "_", Vector())
       client.send(
         ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
           1,
@@ -249,7 +249,7 @@ class VisualizationOperationsTest
       val client    = getInitialisedWsClient()
       val contextId = createExecutionContext(client)
       val visualizationConfig =
-        VisualizationConfiguration(contextId, "Foo.Bar", "_")
+        VisualizationConfiguration(contextId, "Foo.Bar", "_", Vector())
       val expressionFailureMessage = "Method `to_json` could not be found."
       client.send(
         ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
@@ -395,12 +395,17 @@ class VisualizationOperationsTest
 
   "executionContext/modifyVisualization" must {
 
-    "return an empty response when the operation succeeds" in {
+    "allow modify text expression visualization" in {
       val visualizationId = UUID.randomUUID()
       val client          = getInitialisedWsClient()
       val contextId       = createExecutionContext(client)
       val visualizationConfig =
-        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
+        VisualizationConfiguration(
+          contextId,
+          "Foo.Bar.baz",
+          "a=x+y",
+          Vector("foo", "42")
+        )
       client.send(
         ExecutionContextJsonMessages.executionContextModifyVisualizationRequest(
           1,
@@ -415,9 +420,46 @@ class VisualizationOperationsTest
                 requestId,
                 Api.ModifyVisualization(`visualizationId`, config)
               ) =>
-            config.expression shouldBe visualizationConfig.expression.toApi
-            config.visualizationModule shouldBe visualizationConfig.visualizationModule
-            config.executionContextId shouldBe visualizationConfig.executionContextId
+            config shouldEqual visualizationConfig.toApi
+            requestId
+
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.VisualizationModified()
+      )
+      client.expectJson(ExecutionContextJsonMessages.ok(1))
+    }
+
+    "allow modify method pointer visualization" in {
+      val visualizationId = UUID.randomUUID()
+      val client          = getInitialisedWsClient()
+      val contextId       = createExecutionContext(client)
+      val visualizationConfig =
+        VisualizationConfiguration(
+          contextId,
+          "Foo.Bar.baz",
+          MethodPointer("Module", "DefinedOnType", "name"),
+          Vector("bar", "42")
+        )
+      client.send(
+        ExecutionContextJsonMessages.executionContextModifyVisualizationRequest(
+          1,
+          visualizationId,
+          visualizationConfig
+        )
+      )
+
+      val requestId =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.ModifyVisualization(`visualizationId`, config)
+              ) =>
+            config shouldEqual visualizationConfig.toApi
             requestId
 
           case msg =>
@@ -436,7 +478,7 @@ class VisualizationOperationsTest
       val contextId       = UUID.randomUUID()
       val client          = getInitialisedWsClient()
       val visualizationConfig =
-        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
+        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y", Vector())
 
       client.send(
         ExecutionContextJsonMessages.executionContextModifyVisualizationRequest(

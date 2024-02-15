@@ -199,6 +199,13 @@ type Value_Type
         _ -> False
 
     ## GROUP Standard.Base.Metadata
+       Checks if the `Value_Type` represents a Date_Time type.
+    is_date_time : Boolean
+    is_date_time self = case self of
+        Value_Type.Date_Time _ -> True
+        _ -> False
+
+    ## GROUP Standard.Base.Metadata
        Checks if the `Value_Type` represents a type that holds a date.
 
        It will return true for both `Date` and `Date_Time` types.

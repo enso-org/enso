@@ -1,4 +1,4 @@
-<script lang="ts">
+<script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
@@ -38,9 +38,7 @@ const prefixes = Prefixes.FromLines({
   skip: 'SKIP __',
   freeze: 'FREEZE __',
 })
-</script>
 
-<script setup lang="ts">
 const props = defineProps<{
   node: Node
   edited: boolean
@@ -84,7 +82,14 @@ const nodeSize = useResizeObserver(rootNode)
 const baseNodeSize = computed(
   () => new Vec2((contentNode.value?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX, nodeSize.value.y),
 )
-const menuVisible = ref(false)
+
+/// Menu can be full, partial or off
+enum MenuState {
+  Full,
+  Partial,
+  Off,
+}
+const menuVisible = ref(MenuState.Off)
 
 const error = computed(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
@@ -104,7 +109,9 @@ const error = computed(() => {
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
 watch(isSelected, (selected) => {
-  menuVisible.value = menuVisible.value && selected
+  if (!selected) {
+    menuVisible.value = MenuState.Off
+  }
 })
 
 const isDocsVisible = ref(false)
@@ -153,7 +160,7 @@ const dragPointer = usePointer((pos, event, type) => {
         pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
         nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
-        menuVisible.value = true
+        menuVisible.value = MenuState.Partial
       }
       startEvent = null
       startEpochMs.value = 0
@@ -332,6 +339,13 @@ function portGroupStyle(port: PortData) {
     '--port-clip-end': end,
   }
 }
+
+function openFullMenu() {
+  if (!nodeSelection?.isSelected(nodeId.value)) {
+    nodeSelection?.setSelection(new Set([nodeId.value]))
+  }
+  menuVisible.value = MenuState.Full
+}
 </script>
 
 <template>
@@ -360,19 +374,21 @@ function portGroupStyle(port: PortData) {
       {{ node.pattern?.code() ?? '' }}
     </div>
     <CircularMenu
-      v-if="menuVisible"
+      v-if="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       v-model:isOutputContextOverridden="isOutputContextOverridden"
       v-model:isDocsVisible="isDocsVisible"
       :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
       :isVisualizationVisible="isVisualizationVisible"
+      :isFullMenuVisible="menuVisible === MenuState.Full"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
+      @startEditing="startEditingNode"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
       :nodeSize="baseNodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
-      :isCircularMenuVisible="menuVisible"
+      :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       :currentType="node.vis?.identifier"
       :dataSource="{ type: 'node', nodeId: externalId }"
       :typename="expressionInfo?.typename"
@@ -384,7 +400,11 @@ function portGroupStyle(port: PortData) {
       @update:visible="emit('update:visualizationVisible', $event)"
     />
     <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
-      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
+      <SvgIcon
+        class="icon grab-handle"
+        :name="icon"
+        @pointerdown.right.stop="openFullMenu"
+      ></SvgIcon>
       <div ref="contentNode" class="widget-tree">
         <NodeWidgetTree :ast="displayedExpression" :nodeId="nodeId" />
       </div>
@@ -604,6 +624,10 @@ function portGroupStyle(port: PortData) {
 }
 
 .CircularMenu {
+  z-index: 25;
+}
+
+.CircularMenu.partial {
   z-index: 1;
 }
 

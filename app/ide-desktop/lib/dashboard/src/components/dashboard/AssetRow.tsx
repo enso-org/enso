@@ -86,7 +86,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
 
-  const { organization, user } = authProvider.useNonPartialUserSession()
+  const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -130,13 +130,13 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+            permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
         const copiedAsset = await backend.copyAsset(
           asset.id,
-          newParentId ?? organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+          newParentId ?? user?.rootDirectoryId ?? backendModule.DirectoryId(''),
           asset.title,
           null
         )
@@ -157,8 +157,8 @@ export default function AssetRow(props: AssetRowProps) {
     },
     [
       backend,
-      organization,
       user,
+      userInfo,
       asset,
       item.key,
       /* should never change */ setAsset,
@@ -172,7 +172,7 @@ export default function AssetRow(props: AssetRowProps) {
       newParentKey: backendModule.AssetId | null,
       newParentId: backendModule.DirectoryId | null
     ) => {
-      const rootDirectoryId = organization?.rootDirectoryId ?? backendModule.DirectoryId('')
+      const rootDirectoryId = user?.rootDirectoryId ?? backendModule.DirectoryId('')
       const nonNullNewParentKey = newParentKey ?? rootDirectoryId
       const nonNullNewParentId = newParentId ?? rootDirectoryId
       try {
@@ -213,7 +213,7 @@ export default function AssetRow(props: AssetRowProps) {
     },
     [
       backend,
-      organization,
+      user,
       asset,
       item.directoryId,
       item.directoryKey,
@@ -402,13 +402,13 @@ export default function AssetRow(props: AssetRowProps) {
       }
       case AssetEventType.removeSelf: {
         // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-        if (event.id === asset.id && user != null) {
+        if (event.id === asset.id && userInfo != null) {
           setInsertionVisibility(Visibility.hidden)
           try {
             await backend.createPermission({
               action: null,
               resourceId: asset.id,
-              userSubjects: [user.id],
+              userSubjects: [userInfo.id],
             })
             dispatchAssetListEvent({
               type: AssetListEventType.delete,

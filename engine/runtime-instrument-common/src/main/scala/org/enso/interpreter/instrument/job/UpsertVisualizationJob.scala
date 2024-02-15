@@ -369,7 +369,7 @@ object UpsertVisualizationJob {
     Either
       .catchNonFatal {
         expression match {
-          case Api.VisualizationExpression.Text(_, expression) =>
+          case Api.VisualizationExpression.Text(_, expression, _) =>
             ctx.locking.assertWriteCompilationLock()
             ctx.executionService.evaluateExpression(
               expressionModule,
