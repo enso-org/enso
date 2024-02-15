@@ -59,8 +59,8 @@ add_specs suite_builder = suite_builder.group "Serializable Visualization Identi
         t_3 = Table.new [c_3_1, c_3_2, c_3_3]
         t_3.default_visualization.should_equal Visualization.Id.table
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

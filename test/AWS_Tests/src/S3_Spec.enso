@@ -439,7 +439,7 @@ add_specs suite_builder =
             new_file = my_writable_dir / "nonexistent-file.txt"
             new_file.delete . should_succeed
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
