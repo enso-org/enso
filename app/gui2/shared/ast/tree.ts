@@ -49,16 +49,17 @@ export function asNodeMetadata(map: Map<string, unknown>): NodeMetadata {
   return map as unknown as NodeMetadata
 }
 /** @internal */
-export interface AstFields {
+interface RawAstFields {
   id: AstId
   type: string
   parent: AstId | undefined
   metadata: FixedMap<MetadataFields>
 }
+export interface AstFields extends RawAstFields, LegalFieldContent {}
 function allKeys<T>(keys: Record<keyof T, any>): (keyof T)[] {
   return Object.keys(keys) as any
 }
-const astFieldKeys = allKeys<AstFields>({
+const astFieldKeys = allKeys<RawAstFields>({
   id: null,
   type: null,
   parent: null,
@@ -326,21 +327,35 @@ export abstract class MutableAst extends Ast {
   }
 }
 
+/** Values that may be found in fields of `Ast` subtypes. */
 type FieldData =
   | NodeChild<AstId>
   | NodeChild
   | NodeChild<SyncTokenId>
-  | FieldObject
   | FieldData[]
   | undefined
+  | StructuralField
+/** Objects that do not directly contain `AstId`s or `SyncTokenId`s, but may have `NodeChild` fields. */
+type StructuralField =
+  | RawMultiSegmentAppSegment
+  | RawBlockLine
+  | RawOpenCloseTokens
+  | RawNameSpecification
+/** Type whose fields are all suitable for storage as `Ast` fields. */
 interface FieldObject {
   [field: string]: FieldData
+}
+/** Returns the fields of an `Ast` subtype that are not part of `AstFields`. */
+function* fieldDataEntries<Fields>(map: FixedMapView<Fields>) {
+  for (const entry of map.entries()) {
+    // All fields that are not from `AstFields` are `FieldData`.
+    if (!astFieldKeys.includes(entry[0] as any)) yield entry as [string, FieldData]
+  }
 }
 /** @internal */
 export function rewriteRefs(ast: MutableAst, f: (id: AstId) => AstId | undefined) {
   let fieldsChanged = 0
-  for (const [key, value] of (ast.fields as any as Map<string, FieldData>).entries()) {
-    if (astFieldKeys.includes(key as any)) continue
+  for (const [key, value] of fieldDataEntries(ast.fields)) {
     const newValue = rewriteFieldRefs(value, f)
     if (newValue !== undefined) {
       ast.fields.set(key as any, newValue)
@@ -352,8 +367,7 @@ export function rewriteRefs(ast: MutableAst, f: (id: AstId) => AstId | undefined
 export function syncFields(ast1: MutableAst, ast2: Ast, f: (id: AstId) => AstId | undefined) {
   const expressionMetadata =
     ast1 instanceof MutableAssignment ? ast1.expression.fields.get('metadata').clone() : undefined
-  for (const [key, value] of (ast2.fields as any as Map<string, FieldData>).entries()) {
-    if (astFieldKeys.includes(key as any)) continue
+  for (const [key, value] of fieldDataEntries(ast2.fields)) {
     const changedValue = rewriteFieldRefs(value, f)
     const newValue = changedValue ?? value
     if (!fieldEqual(ast1.fields.get(key as any), newValue)) ast1.fields.set(key as any, newValue)
@@ -365,7 +379,7 @@ export function syncFields(ast1: MutableAst, ast2: Ast, f: (id: AstId) => AstId 
 export function rewriteFieldRefs(field: FieldData, f: (id: AstId) => AstId | undefined): FieldData {
   if (field === undefined) return field
   if ('node' in field) {
-    const child = field.node as AstId | SyncTokenId
+    const child = field.node
     if (isTokenId(child)) return
     const newValue = f(child)
     if (newValue !== undefined) {
@@ -383,12 +397,14 @@ export function rewriteFieldRefs(field: FieldData, f: (id: AstId) => AstId | und
     })
     if (fieldChanged) return field
   } else {
-    const fieldObject = field as FieldObject
+    const fieldObject = field satisfies StructuralField
     let fieldChanged = false
     for (const [key, value] of Object.entries(fieldObject)) {
       const newValue = rewriteFieldRefs(value, f)
       if (newValue !== undefined) {
-        fieldObject[key] = newValue
+        // This update is safe because `newValue` was obtained by reading `fieldObject[key]` and modifying it in a
+        // type-preserving way.
+        ;(fieldObject as any)[key] = newValue
         fieldChanged = true
       }
     }
@@ -409,12 +425,13 @@ function fieldEqual(field1: FieldData, field2: FieldData): boolean {
   } else if (Array.isArray(field1) || Array.isArray(field2)) {
     return false
   } else {
-    const fieldObject1 = field1 as FieldObject
-    const fieldObject2 = field2 as FieldObject
+    const fieldObject1 = field1 satisfies StructuralField
+    const fieldObject2 = field2 satisfies StructuralField
     const keys = new Set<string>()
     for (const key of Object.keys(fieldObject1)) keys.add(key)
     for (const key of Object.keys(fieldObject2)) keys.add(key)
-    for (const key of keys) if (fieldObject1[key] !== fieldObject2[key]) return false
+    for (const key of keys)
+      if (!fieldEqual((fieldObject1 as any)[key], (fieldObject2 as any)[key])) return false
     return true
   }
 }
@@ -433,9 +450,17 @@ function applyMixins(derivedCtor: any, constructors: any[]) {
 
 interface AppFields {
   function: NodeChild<AstId>
-  parens: { open: NodeChild<SyncTokenId>; close: NodeChild<SyncTokenId> } | undefined
-  nameSpecification: { name: NodeChild<SyncTokenId>; equals: NodeChild<SyncTokenId> } | undefined
+  parens: RawOpenCloseTokens | undefined
+  nameSpecification: RawNameSpecification | undefined
   argument: NodeChild<AstId>
+}
+interface RawOpenCloseTokens {
+  open: NodeChild<SyncTokenId>
+  close: NodeChild<SyncTokenId>
+}
+interface RawNameSpecification {
+  name: NodeChild<SyncTokenId>
+  equals: NodeChild<SyncTokenId>
 }
 export class App extends Ast {
   declare fields: FixedMap<AstFields & AppFields>
@@ -457,7 +482,7 @@ export class App extends Ast {
   ) {
     const base = module.baseObject('App')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       function: concreteChild(module, func, id_),
       parens,
       nameSpecification,
@@ -583,7 +608,7 @@ export class UnaryOprApp extends Ast {
   ) {
     const base = module.baseObject('UnaryOprApp')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       operator,
       argument: concreteChild(module, argument, id_),
     })
@@ -641,7 +666,7 @@ export class NegationApp extends Ast {
   static concrete(module: MutableModule, operator: NodeChild<Token>, argument: NodeChild<Owned>) {
     const base = module.baseObject('NegationApp')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       operator,
       argument: concreteChild(module, argument, id_),
     })
@@ -702,7 +727,7 @@ export class OprApp extends Ast {
   ) {
     const base = module.baseObject('OprApp')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       lhs: concreteChild(module, lhs, id_),
       operators,
       rhs: concreteChild(module, rhs, id_),
@@ -825,7 +850,7 @@ export class PropertyAccess extends Ast {
   ) {
     const base = module.baseObject('PropertyAccess')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       lhs: concreteChild(module, lhs, id_),
       operator,
       rhs: concreteChild(module, rhs, id_),
@@ -882,7 +907,7 @@ export class Generic extends Ast {
   static concrete(module: MutableModule, children: NodeChild<Owned | Token>[]) {
     const base = module.baseObject('Generic')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       children: children.map((child) => concreteChild(module, child, id_)),
     })
     return asOwned(new MutableGeneric(module, fields))
@@ -1000,7 +1025,7 @@ export class Import extends Ast {
   ) {
     const base = module.baseObject('Import')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       polyglot: multiSegmentAppSegmentToRaw(module, polyglot, id_),
       from: multiSegmentAppSegmentToRaw(module, from, id_),
       import: multiSegmentAppSegmentToRaw(module, import_, id_),
@@ -1149,7 +1174,7 @@ export class TextLiteral extends Ast {
   ) {
     const base = module.baseObject('TextLiteral')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       open,
       newline,
       elements: elements.map((elem) => concreteChild(module, elem, id_)),
@@ -1206,7 +1231,7 @@ export class Documented extends Ast {
   ) {
     const base = module.baseObject('Documented')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       open,
       elements: elements.map((elem) => concreteChild(module, elem, id_)),
       newlines,
@@ -1277,7 +1302,7 @@ export function invalidFields(
   expression: NodeChild<Owned>,
 ): FixedMap<AstFields & InvalidFields> {
   const id_ = base.get('id')
-  return setAll(base, { expression: concreteChild(module, expression, id_) })
+  return composeFieldData(base, { expression: concreteChild(module, expression, id_) })
 }
 export class MutableInvalid extends Invalid implements MutableAst {
   declare readonly module: MutableModule
@@ -1318,7 +1343,11 @@ export class Group extends Ast {
   ) {
     const base = module.baseObject('Group')
     const id_ = base.get('id')
-    const fields = setAll(base, { open, expression: concreteChild(module, expression, id_), close })
+    const fields = composeFieldData(base, {
+      open,
+      expression: concreteChild(module, expression, id_),
+      close,
+    })
     return asOwned(new MutableGroup(module, fields))
   }
 
@@ -1371,7 +1400,7 @@ export class NumericLiteral extends Ast {
 
   static concrete(module: MutableModule, tokens: NodeChild<Token>[]) {
     const base = module.baseObject('NumericLiteral')
-    const fields = setAll(base, { tokens })
+    const fields = composeFieldData(base, { tokens })
     return asOwned(new MutableNumericLiteral(module, fields))
   }
 
@@ -1446,7 +1475,7 @@ export class Function extends Ast {
   ) {
     const base = module.baseObject('Function')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       name: concreteChild(module, name, id_),
       argumentDefinitions: argumentDefinitionsToRaw(module, argumentDefinitions, id_),
       equals,
@@ -1563,7 +1592,7 @@ export class Assignment extends Ast {
   ) {
     const base = module.baseObject('Assignment')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       pattern: concreteChild(module, pattern, id_),
       equals,
       expression: concreteChild(module, expression, id_),
@@ -1628,7 +1657,7 @@ export class BodyBlock extends Ast {
   static concrete(module: MutableModule, lines: OwnedBlockLine[]) {
     const base = module.baseObject('BodyBlock')
     const id_ = base.get('id')
-    const fields = setAll(base, {
+    const fields = composeFieldData(base, {
       lines: lines.map((line) => lineToRaw(line, module, id_)),
     })
     return asOwned(new MutableBodyBlock(module, fields))
@@ -1724,7 +1753,7 @@ interface Line<T> {
   expression: NodeChild<T> | undefined
 }
 
-type RawBlockLine = RawLine<AstId>
+interface RawBlockLine extends RawLine<AstId> {}
 export type BlockLine = Line<Ast>
 export type OwnedBlockLine = Line<Owned>
 
@@ -1786,7 +1815,7 @@ export class Ident extends Ast {
 
   static concrete(module: MutableModule, token: NodeChild<Token>) {
     const base = module.baseObject('Ident')
-    const fields = setAll(base, { token })
+    const fields = composeFieldData(base, { token })
     return asOwned(new MutableIdent(module, fields))
   }
 
@@ -1842,7 +1871,7 @@ export class Wildcard extends Ast {
 
   static concrete(module: MutableModule, token: NodeChild<Token>) {
     const base = module.baseObject('Wildcard')
-    const fields = setAll(base, { token })
+    const fields = composeFieldData(base, { token })
     return asOwned(new MutableWildcard(module, fields))
   }
 
@@ -1998,15 +2027,23 @@ function getAll<Fields extends object>(map: FixedMapView<Fields>): Fields {
   return Object.fromEntries(map.entries()) as Fields
 }
 
+declare const brandLegalFieldContent: unique symbol
+/** Used to add a constraint to all `AstFields`s subtypes ensuring that they were produced by `composeFieldData`, which
+ *  enforces a requirement that the provided fields extend `FieldObject`.
+ */
+interface LegalFieldContent {
+  [brandLegalFieldContent]: never
+}
+
 /** Modifies the input `map`. Returns the same object with an extended type. */
-export function setAll<Fields1, Fields2 extends object>(
+export function composeFieldData<Fields1, Fields2 extends FieldObject>(
   map: FixedMap<Fields1>,
   fields: Fields2,
 ): FixedMap<Fields1 & Fields2> {
-  const map_ = map as FixedMap<Fields1 & Fields2>
+  const map_ = map as FixedMap<Fields1 & Fields2 & LegalFieldContent>
   for (const [k, v] of Object.entries(fields)) {
     const k_ = k as string & (keyof Fields1 | keyof Fields2)
-    map_.set(k_, v)
+    map_.set(k_, v as any)
   }
   return map_
 }

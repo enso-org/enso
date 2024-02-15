@@ -11,9 +11,9 @@ import {
   MutableAst,
   MutableInvalid,
   Wildcard,
+  composeFieldData,
   invalidFields,
   materializeMutable,
-  setAll,
 } from './tree'
 
 export interface Module {
@@ -270,10 +270,10 @@ export class MutableModule implements Module {
     const map_ = map as unknown as FixedMap<{}>
     const id = overrideId ?? newAstId(type)
     const metadata = new Y.Map<unknown>() as unknown as FixedMap<{}>
-    const metadataFields = setAll(metadata, {
+    const metadataFields = composeFieldData(metadata, {
       externalId: externalId ?? newExternalId(),
     })
-    const fields = setAll(map_, {
+    const fields = composeFieldData(map_, {
       id,
       type: type,
       parent: undefined,
