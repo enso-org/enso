@@ -90,20 +90,8 @@ export default function EditableSpan(props: EditableSpanProps) {
             event.stopPropagation()
           }}
           onKeyDown={event => {
-            if (
-              !event.isPropagationStopped() &&
-              ((event.ctrlKey &&
-                !event.shiftKey &&
-                !event.altKey &&
-                !event.metaKey &&
-                /^[xcvzy]$/.test(event.key)) ||
-                (event.ctrlKey &&
-                  event.shiftKey &&
-                  !event.altKey &&
-                  !event.metaKey &&
-                  /[Z]/.test(event.key)))
-            ) {
-              // This is an event that will be handled by the input.
+            if (event.key !== 'Escape') {
+              // The input may handle the event.
               event.stopPropagation()
             }
           }}
