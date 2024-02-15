@@ -292,7 +292,10 @@ async def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Op
     # be downloaded as a ZIP file.
     obj: Dict[str, Any] = await invoke_gh_api(ENSO_REPO, f"/actions/runs/{bench_run.id}/artifacts")
     artifacts = obj["artifacts"]
-    assert len(artifacts) == 1, "There should be exactly one artifact for a benchmark run"
+    if len(artifacts) != 1:
+        logging.warning("Bench run %s does not contain an artifact, but it is a successful run.",
+                      bench_run.id)
+        return None
     bench_report_artifact = artifacts[0]
     assert bench_report_artifact, "Benchmark Report artifact not found"
     artifact_id = str(bench_report_artifact["id"])
