@@ -89,6 +89,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: npm install
-        run: npm install
+        run: npm -ddd install
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
