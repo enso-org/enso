@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import all
 
-import Standard.Database.Data.Column.Column as Database_Column
+import Standard.Database.Data.DB_Column.DB_Column
 
 from Standard.Test import Test
 import Standard.Test.Extensions
@@ -241,7 +241,7 @@ add_specs suite_builder setup =
         negate vorc = case vorc of
             _ : Vector -> vorc.map (x-> x.if_not_nothing x.not) # Invert values first
             _ : Column -> vorc.not                              # Set negated bit
-            _ : Database_Column -> vorc.not                     # Set negated bit
+            _ : DB_Column -> vorc.not                     # Set negated bit
         negation_cases = [["normal input, normal argument", identity, identity]]
             + [["negated input, normal argument", negate, identity]]
             + [["normal input, negated argument", identity, negate]]

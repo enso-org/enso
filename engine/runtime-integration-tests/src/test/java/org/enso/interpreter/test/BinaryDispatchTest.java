@@ -12,7 +12,6 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class BinaryDispatchTest extends TestBase {
@@ -212,7 +211,6 @@ public class BinaryDispatchTest extends TestBase {
   }
 
   @Test
-  @Ignore // PENDING: #8805
   public void staticWithRFirstArgumentIsConverted() {
     var rOperator = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.---");
 
@@ -251,7 +249,6 @@ public class BinaryDispatchTest extends TestBase {
   }
 
   @Test
-  @Ignore // PENDING #8805
   public void staticWithRFirstAndZSecondNoConversionHappens() {
     var zOperator = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.---");
 

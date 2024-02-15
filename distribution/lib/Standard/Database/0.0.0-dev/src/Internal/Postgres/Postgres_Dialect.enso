@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
-import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Data.Column.Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
 from Standard.Table import Value_Type
@@ -12,7 +12,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Connection.Connection.Connection
-import project.Data.Column.Column
+import project.Data.DB_Column.DB_Column
 import project.Data.Dialect
 import project.Data.SQL.SQL_Builder
 import project.Data.SQL.SQL_Fragment
@@ -263,11 +263,11 @@ type Postgres_Dialect
 
 
     ## PRIVATE
-    value_type_for_upload_of_existing_column : Column -> Value_Type
+    value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column = case column of
         # Return the type as-is for database columns.
-        _ : Column -> column.value_type
-        _ : Materialized_Column ->
+        _ : DB_Column -> column.value_type
+        _ : Column ->
             base_type = column.value_type
             case base_type of
                 Value_Type.Decimal precision scale ->
@@ -553,7 +553,7 @@ supported_replace_params =
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
+    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
     Set.from_vector <| e0 + e1 + e2 + e3 + e4
 
 ## PRIVATE
@@ -596,7 +596,7 @@ replace args metadata =
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
                         SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
-        Column ->
+        DB_Column ->
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->

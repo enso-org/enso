@@ -124,7 +124,7 @@ type Date_Time_Formatter
              Date.parse "1 Nov '95" "d MMM ''yy{2099}" == (Date.new 2095 11 01)
     @locale Locale.default_widget
     from_simple_pattern : Text -> Locale -> Date_Time_Formatter ! Date_Time_Format_Parse_Error
-    from_simple_pattern pattern:Text locale:Locale=Locale.default =
+    from_simple_pattern pattern:Text='' locale:Locale=Locale.default =
         used_locale = if locale == Locale.default then Locale.us else locale
         FormatterCache.SIMPLE_FORMAT.get_or_set (FormatterCacheKey.new pattern used_locale.java_locale) _->
             parsed = Tokenizer.tokenize pattern |> Parser.parse_simple_date_pattern
@@ -349,7 +349,6 @@ type Date_Time_Formatter
             "iso_date" -> "(ISO date) yyyy-MM-dd"
             "iso_time" -> "(ISO time) HH:mm[:ss[.f]]"
             other -> other
-
 
 ## PRIVATE
 Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =
