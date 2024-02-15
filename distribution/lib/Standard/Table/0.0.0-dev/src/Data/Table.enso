@@ -1418,7 +1418,7 @@ type Table
     filter : (Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
         _ : Column ->
-            mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
+            mask filter_column = Table.Value (self.java_table.filter filter_column.java_column)
             case filter of
                 _ : Filter_Condition ->
                     resolved = (self:Table_Ref).resolve_condition filter

@@ -102,11 +102,11 @@ public class Table {
    * Returns a table resulting from selecting only the rows corresponding to true entries in the
    * provided column.
    *
-   * @param maskCol the masking column
+   * @param filterColumn the column for selecting rows
    * @return the result of masking this table with the provided column
    */
-  public Table mask(Column maskCol) {
-    if (!(maskCol.getStorage() instanceof BoolStorage storage)) {
+  public Table filter(Column filterColumn) {
+    if (!(filterColumn.getStorage() instanceof BoolStorage storage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
 
@@ -117,7 +117,7 @@ public class Table {
     int cardinality = mask.cardinality();
     Column[] newColumns = new Column[columns.length];
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].mask(mask, cardinality);
+      newColumns[i] = columns[i].applyFilter(mask, cardinality);
     }
     return new Table(newColumns);
   }
@@ -233,7 +233,7 @@ public class Table {
     int cardinality = rowsToKeep.cardinality();
     Column[] newColumns = new Column[this.columns.length];
     for (int i = 0; i < this.columns.length; i++) {
-      newColumns[i] = this.columns[i].mask(rowsToKeep, cardinality);
+      newColumns[i] = this.columns[i].applyFilter(rowsToKeep, cardinality);
     }
 
     return new Table(newColumns);
