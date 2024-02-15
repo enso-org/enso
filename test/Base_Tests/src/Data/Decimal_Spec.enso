@@ -93,6 +93,11 @@ add_specs suite_builder =
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc4)
             Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc5)
 
+        group_builder.specify "should throw Illegal_Argument for NaN/Inf" <|
+            Decimal.new Number.nan . should_fail_with Illegal_Argument
+            Decimal.new Number.positive_infinity . should_fail_with Illegal_Argument
+            Decimal.new Number.negative_infinity . should_fail_with Illegal_Argument
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder

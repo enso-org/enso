@@ -35,13 +35,11 @@ public class Decimal_Utils {
       BigDecimal bd = new BigDecimal(l, mc);
       BigDecimal withoutMC = new BigDecimal(l);
       long backToLong = bd.longValue();
-      System.out.println("AAA l " + o + " " + (l == backToLong) + " " + l + " " + backToLong + " " + (l-backToLong) );
       return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
     } else if (o instanceof BigInteger bi) {
       BigDecimal bd = new BigDecimal(bi, mc);
       BigDecimal withoutMC = new BigDecimal(bi);
       BigInteger backToBigInteger = bd.toBigInteger();
-      System.out.println("AAA bi " + o + " " + (bi.compareTo(backToBigInteger) == 0) + " " + bi + " " + backToBigInteger + " " + (bi.subtract(backToBigInteger)));
       return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
     } else {
       throw new IllegalArgumentException("Input must be Long or BigInteger");
@@ -49,6 +47,7 @@ public class Decimal_Utils {
   }
 
   public static BigDecimal fromEnsoFloat(Double d) {
+    System.out.println("fEF " + d);
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
@@ -56,10 +55,10 @@ public class Decimal_Utils {
   }
 
   public static ConversionResult fromEnsoFloat(Double d, MathContext mc) {
+    System.out.println("fEF mc " + d);
     BigDecimal bd = new BigDecimal(d, mc);
     BigDecimal withoutMC = new BigDecimal(d);
     double backToDouble = bd.doubleValue();
-    System.out.println("AAA d " + d + " " + (d == backToDouble) + " " + d + " " + backToDouble + " " + (d-backToDouble));
     return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
   }
 }
