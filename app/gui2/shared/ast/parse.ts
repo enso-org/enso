@@ -18,7 +18,6 @@ import {
   sourceRangeKey,
   type SourceRange,
   type SourceRangeKey,
-  type Uuid,
 } from '../yjsModel'
 import { parse_tree, xxHash128 } from './ffi'
 import * as RawAst from './generated/ast'

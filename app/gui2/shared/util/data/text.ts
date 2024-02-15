@@ -1,5 +1,4 @@
 import diff from 'fast-diff'
-import { Ast } from '../../ast'
 import { rangeEncloses, rangeLength, type SourceRange } from '../../yjsModel'
 import { assertEqual } from '../assert.ts'
 
