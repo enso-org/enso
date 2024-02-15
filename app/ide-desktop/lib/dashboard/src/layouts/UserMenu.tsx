@@ -11,11 +11,12 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
-import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+import * as pageSwitcher from '#/layouts/PageSwitcher'
 
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
+
+import ChangePasswordModal from '#/modals/ChangePasswordModal'
 
 import * as github from '#/utilities/github'
 

@@ -15,11 +15,12 @@ import * as modalProvider from '#/providers/ModalProvider'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
+import Category from '#/layouts/CategorySwitcher/Category'
 
 import Button from '#/components/Button'
+
+import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
 

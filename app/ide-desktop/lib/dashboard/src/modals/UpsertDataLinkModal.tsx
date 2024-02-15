@@ -5,7 +5,7 @@ import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 
 import * as modalProvider from '#/providers/ModalProvider'
 
-import DataLinkInput from '#/layouts/dashboard/DataLinkInput'
+import DataLinkInput from '#/layouts/DataLinkInput'
 
 import Modal from '#/components/Modal'
 

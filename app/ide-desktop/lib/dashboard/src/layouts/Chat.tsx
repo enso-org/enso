@@ -15,7 +15,7 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+import * as pageSwitcher from '#/layouts/PageSwitcher'
 
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'

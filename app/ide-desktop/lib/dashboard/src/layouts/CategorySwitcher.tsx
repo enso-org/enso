@@ -11,7 +11,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import Category from '#/layouts/CategorySwitcher/Category'
 
 import SvgMask from '#/components/SvgMask'
 

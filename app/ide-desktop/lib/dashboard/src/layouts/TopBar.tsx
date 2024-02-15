@@ -1,11 +1,11 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
-import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import AssetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import BackendSwitcher from '#/layouts/dashboard/BackendSwitcher'
-import PageSwitcher, * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import UserBar from '#/layouts/dashboard/UserBar'
+import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import AssetSearchBar from '#/layouts/AssetSearchBar'
+import BackendSwitcher from '#/layouts/BackendSwitcher'
+import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
+import UserBar from '#/layouts/UserBar'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 

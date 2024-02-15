@@ -8,11 +8,12 @@ import * as modalProvider from '#/providers/ModalProvider'
 import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import ContextMenu from '#/components/ContextMenu'
 import MenuEntry from '#/components/MenuEntry'
+
+import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
 
 import * as backendModule from '#/services/Backend'
 

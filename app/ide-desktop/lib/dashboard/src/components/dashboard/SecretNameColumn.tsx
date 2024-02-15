@@ -14,10 +14,10 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
-
 import type * as column from '#/components/dashboard/column'
 import SvgMask from '#/components/SvgMask'
+
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
 

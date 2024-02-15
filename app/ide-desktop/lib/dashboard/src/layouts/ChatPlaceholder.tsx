@@ -12,8 +12,8 @@ import * as navigateHooks from '#/hooks/navigateHooks'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
 
-import * as chat from '#/layouts/dashboard/Chat'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+import * as chat from '#/layouts/Chat'
+import * as pageSwitcher from '#/layouts/PageSwitcher'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {

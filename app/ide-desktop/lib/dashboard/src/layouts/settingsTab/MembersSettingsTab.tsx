@@ -6,9 +6,9 @@ import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
-import InviteUsersModal from '#/layouts/dashboard/InviteUsersModal'
-
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+
+import InviteUsersModal from '#/modals/InviteUsersModal'
 
 // ==========================
 // === MembersSettingsTab ===

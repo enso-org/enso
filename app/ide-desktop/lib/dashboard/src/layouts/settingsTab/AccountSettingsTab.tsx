@@ -11,7 +11,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import * as object from '#/utilities/object'
 
-import ConfirmDeleteUserModal from '../ConfirmDeleteUserModal'
+import ConfirmDeleteUserModal from '../../modals/ConfirmDeleteUserModal'
 
 // =================
 // === InfoEntry ===

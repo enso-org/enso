@@ -5,11 +5,11 @@ import * as localStorageProvider from '#/providers/LocalStorageProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 
-import AssetProperties from '#/layouts/dashboard/AssetProperties'
-import AssetVersions from '#/layouts/dashboard/AssetVersions'
-import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import type * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import UserBar from '#/layouts/dashboard/UserBar'
+import AssetProperties from '#/layouts/AssetProperties'
+import AssetVersions from '#/layouts/AssetVersions'
+import type Category from '#/layouts/CategorySwitcher/Category'
+import type * as pageSwitcher from '#/layouts/PageSwitcher'
+import UserBar from '#/layouts/UserBar'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 

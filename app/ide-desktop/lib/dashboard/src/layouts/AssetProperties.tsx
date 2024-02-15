@@ -12,8 +12,8 @@ import * as backendProvider from '#/providers/BackendProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 
-import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import DataLinkInput from '#/layouts/dashboard/DataLinkInput'
+import type Category from '#/layouts/CategorySwitcher/Category'
+import DataLinkInput from '#/layouts/DataLinkInput'
 
 import Button from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'

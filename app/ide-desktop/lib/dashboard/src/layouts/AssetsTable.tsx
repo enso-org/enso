@@ -18,11 +18,10 @@ import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/dashboard/AssetPanel'
-import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import DuplicateAssetsModal from '#/layouts/dashboard/DuplicateAssetsModal'
+import type * as assetPanel from '#/layouts/AssetPanel'
+import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
+import Category from '#/layouts/CategorySwitcher/Category'
 
 import Button from '#/components/Button'
 import type * as assetRow from '#/components/dashboard/AssetRow'
@@ -32,8 +31,10 @@ import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import NameColumn from '#/components/dashboard/column/NameColumn'
 import * as columnHeading from '#/components/dashboard/columnHeading'
 import Label from '#/components/dashboard/Label'
-import DragModal from '#/components/DragModal'
 import Spinner, * as spinner from '#/components/Spinner'
+
+import DragModal from '#/modals/DragModal'
+import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 
 import * as backendModule from '#/services/Backend'
 

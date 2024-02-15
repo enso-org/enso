@@ -1,8 +1,8 @@
 /** @file Home screen. */
 import * as React from 'react'
 
-import Samples from '#/layouts/dashboard/Samples'
-import WhatsNew from '#/layouts/dashboard/WhatsNew'
+import Samples from '#/layouts/Samples'
+import WhatsNew from '#/layouts/WhatsNew'
 
 import type * as spinner from '#/components/Spinner'
 

@@ -41,6 +41,8 @@ module.exports = {
           '',
           '^#[/]components[/]',
           '',
+          '^#[/]modals[/]',
+          '',
           '^#[/]services[/]',
           '',
           '^#[/]utilities[/]',

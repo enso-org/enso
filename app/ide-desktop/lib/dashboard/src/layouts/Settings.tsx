@@ -3,11 +3,11 @@ import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
 
-import SettingsSidebar from '#/layouts/dashboard/SettingsSidebar'
-import AccountSettingsTab from '#/layouts/dashboard/settingsTab/AccountSettingsTab'
-import KeyboardShortcutsSettingsTab from '#/layouts/dashboard/settingsTab/KeyboardShortcutsSettingsTab'
-import MembersSettingsTab from '#/layouts/dashboard/settingsTab/MembersSettingsTab'
-import SettingsTab from '#/layouts/dashboard/settingsTab/SettingsTab'
+import SettingsSidebar from '#/layouts/SettingsSidebar'
+import AccountSettingsTab from '#/layouts/settingsTab/AccountSettingsTab'
+import KeyboardShortcutsSettingsTab from '#/layouts/settingsTab/KeyboardShortcutsSettingsTab'
+import MembersSettingsTab from '#/layouts/settingsTab/MembersSettingsTab'
+import SettingsTab from '#/layouts/settingsTab/SettingsTab'
 
 // ================
 // === Settings ===

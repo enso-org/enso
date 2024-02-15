@@ -5,7 +5,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
-import AssetVersion from '#/layouts/dashboard/AssetVersion'
+import AssetVersion from '#/layouts/AssetVersion'
 
 import type * as backend from '#/services/Backend'
 

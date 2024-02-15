@@ -7,7 +7,7 @@ import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 import SlidersIcon from 'enso-assets/sliders.svg'
 
-import SettingsTab from '#/layouts/dashboard/settingsTab/SettingsTab'
+import SettingsTab from '#/layouts/settingsTab/SettingsTab'
 
 import SvgMask from '#/components/SvgMask'
 

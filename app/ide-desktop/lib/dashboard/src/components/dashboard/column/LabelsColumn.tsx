@@ -9,8 +9,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
+import Category from '#/layouts/CategorySwitcher/Category'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
@@ -18,6 +17,8 @@ import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
+
+import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import type * as backendModule from '#/services/Backend'
 

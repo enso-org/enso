@@ -10,8 +10,8 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
+import Category from '#/layouts/CategorySwitcher/Category'
+import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
