@@ -84,11 +84,14 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - run: df -h
       - name: Build Script Setup
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: df -h
       - name: npm install
         run: npm -ddd install
+      - run: df -h
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
