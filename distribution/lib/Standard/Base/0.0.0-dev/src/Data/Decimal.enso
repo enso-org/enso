@@ -23,11 +23,8 @@ type Decimal
 
     ## Construct a `Decimal` from a string or integer.
 
-       We do not provide a constructor from `Float`, but instead require the use
-       of `Decimal.from_float`, since it is inexact.
-
        Arguments:
-       - x: The `Integer` or `Text` to construct a `Decimal` from.
+       - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
 
        ? Number Format
@@ -39,11 +36,12 @@ type Decimal
 
          - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
-    new : Text | Integer -> Math_Context -> Decimal | Number_Parse_Error
-    new (x : Text | Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
+    new : Text | Integer | Float -> Math_Context -> Decimal | Number_Parse_Error
+    new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         case x of
             _ : Text -> Decimal.from_text x mc
             _ : Integer -> Decimal.from_integer x mc
+            _ : Float -> Decimal.from_float x mc
 
     ## Construct a `Decimal` from a `Text`.
 
