@@ -2,6 +2,7 @@ private
 
 import project.Data.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Data.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Data.Enso_Cloud.Errors.Not_Logged_In
 import project.Data.Pair.Pair
 import project.Data.Text.Text
@@ -57,3 +58,27 @@ internal_cloud_project_directory = AuthenticationProvider.getCurrentWorkingDirec
 ## PRIVATE
 flush_caches : Nothing
 flush_caches = AuthenticationProvider.flushCloudCaches
+
+## PRIVATE
+   Performs a standard request to the Enso Cloud API,
+   parsing the result as JSON.
+http_request_as_json (url : URI) (method : HTTP_Method) (body : Request_Body) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) =
+    response = http_request url method body additional_headers error_handlers
+    response.parse_json.catch Invalid_JSON error->
+        Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+
+## PRIVATE
+   Performs a standard request to the Enso Cloud API,
+   returning a raw response on success, but handling the error responses.
+
+   Custom error handles can be provided
+http_request (url : URI) (method : HTTP_Method) (body : Request_Body) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) =
+    all_headers = [authorization_header] + additional_headers
+    response = HTTP.request (Request.new method url headers=all_headers body=body) error_on_failure_code=False
+    if response.status_code.is_success then response else
+        payload = response.decode_as_text
+        json_payload = payload.parse_json.catch Invalid_JSON (_->Nothing)
+        error_code = json_payload.get "code"
+        handler = error_code.if_not_nothing <| error_handlers.get error_code
+        if handler.is_nothing then handler json_payload else
+            Error.throw (Enso_Cloud_Error.Unexpected_Error response.status_code payload)

@@ -6,3 +6,17 @@ type Not_Logged_In
     ## PRIVATE
     to_display_text : Text
     to_display_text self = "Not logged into Enso cloud. Please log in and restart."
+
+## PRIVATE
+type Enso_Cloud_Error
+    ## PRIVATE
+    Unexpected_Error status_code:HTTP_Status_Code payload:Text
+
+    ## PRIVATE
+    Invalid_Response_Payload cause
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = case self of
+        Enso_Cloud_Error.Unexpected_Error status_code payload -> "Unexpected error response from Enso Cloud: " + status_code.to_text + ": " + payload
+        Enso_Cloud_Error.Invalid_Response_Payload cause -> "Internal error: A response from Enso Cloud could not be parsed: " + cause.to_display_text
