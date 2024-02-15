@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test_New import all
-import Standard.Test_New.Test_Environment
+from Standard.Test import all
+import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
@@ -161,16 +161,16 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             dir = Enso_File.root / "test-directory"
             dir.path . should_equal "enso://test-directory/"
             dir.parent . should_equal Enso_File.root
-            dir.is_child_of Enso_File.root . should_be_true
-            Enso_File.root.is_child_of dir . should_be_false
+            dir.is_descendant_of Enso_File.root . should_be_true
+            Enso_File.root.is_descendant_of dir . should_be_false
             dir.creation_time . should_be_a Date_Time
             dir.last_modified_time . should_be_a Date_Time
 
             nested_file = dir / "another.txt"
             nested_file.path . should_equal "enso://test-directory/another.txt"
             nested_file.parent . should_equal dir
-            nested_file.is_child_of dir . should_be_true
-            nested_file.is_child_of Enso_File.root . should_be_true
+            nested_file.is_descendant_of dir . should_be_true
+            nested_file.is_descendant_of Enso_File.root . should_be_true
             nested_file.creation_time . should_be_a Date_Time
             nested_file.last_modified_time . should_be_a Date_Time
 

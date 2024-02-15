@@ -221,37 +221,41 @@ function requiredImportToAst(value: RequiredImport, module?: MutableModule) {
 }
 
 /** A list of required imports for specific suggestion entry */
-export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): RequiredImport[] {
+export function requiredImports(
+  db: SuggestionDb,
+  entry: SuggestionEntry,
+  directConImport: boolean = false,
+): RequiredImport[] {
+  const unqualifiedImport = (from: QualifiedName): UnqualifiedImport[] => [
+    {
+      kind: 'Unqualified',
+      from,
+      import: entry.name,
+    },
+  ]
   switch (entry.kind) {
     case SuggestionKind.Module:
       return entry.reexportedIn
-        ? [
-            {
-              kind: 'Unqualified',
-              from: entry.reexportedIn,
-              import: entry.name,
-            },
-          ]
+        ? unqualifiedImport(entry.reexportedIn)
         : [
             {
               kind: 'Qualified',
               module: entry.definedIn,
             },
           ]
-    case SuggestionKind.Type: {
-      const from = entry.reexportedIn ? entry.reexportedIn : entry.definedIn
-      return [
-        {
-          kind: 'Unqualified',
-          from,
-          import: entry.name,
-        },
-      ]
-    }
-    case SuggestionKind.Constructor: {
-      const selfType = selfTypeEntry(db, entry)
-      return selfType ? requiredImports(db, selfType) : []
-    }
+    case SuggestionKind.Type:
+      return unqualifiedImport(entry.reexportedIn ? entry.reexportedIn : entry.definedIn)
+    case SuggestionKind.Constructor:
+      if (directConImport) {
+        return entry.reexportedIn
+          ? unqualifiedImport(entry.reexportedIn)
+          : entry.memberOf
+          ? unqualifiedImport(entry.memberOf)
+          : []
+      } else {
+        const selfType = selfTypeEntry(db, entry)
+        return selfType ? requiredImports(db, selfType) : []
+      }
     case SuggestionKind.Method: {
       const isStatic = entry.selfType == null
       const selfType = selfTypeEntry(db, entry)
@@ -270,6 +274,16 @@ export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): Requi
     default:
       return []
   }
+}
+
+export function requiredImportsByFQN(
+  db: SuggestionDb,
+  fqn: QualifiedName,
+  directConImport: boolean = false,
+) {
+  const entry = db.getEntryByQualifiedName(fqn)
+  if (!entry) return []
+  return requiredImports(db, entry, directConImport)
 }
 
 function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
@@ -537,8 +551,8 @@ if (import.meta.vitest) {
   })
 
   const parseImport = (code: string): Import | null => {
-    const ast: Ast.Ast = Ast.parse(code)
-    return ast instanceof Ast.Import ? recognizeImport(ast) : null
+    const ast = Ast.Import.tryParse(code)
+    return ast ? recognizeImport(ast) : null
   }
 
   test.each([

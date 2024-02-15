@@ -9,9 +9,9 @@ import * as object from '#/utilities/object'
 
 /** Metadata describing runtime behavior associated with a {@link LocalStorageKey}. */
 export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
-  isUserSpecific?: boolean
+  readonly isUserSpecific?: boolean
   /** A type-safe way to deserialize a value from `localStorage`. */
-  tryParse: (value: unknown) => LocalStorageData[K] | null
+  readonly tryParse: (value: unknown) => LocalStorageData[K] | null
 }
 
 /** The data that can be stored in a {@link LocalStorage}.
@@ -44,7 +44,7 @@ export default class LocalStorage {
             // This is SAFE, as the `tryParse` function is required by definition to
             // return a value of the correct type.
             // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-            this.values[key] = value as any
+            object.unsafeMutable(this.values)[key] = value as any
           }
         }
       }

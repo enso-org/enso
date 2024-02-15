@@ -25,6 +25,11 @@ enum HttpMethod {
 // === HttpClient ===
 // ==================
 
+/** A {@link Response} with a properly typed return type for `response.json()`. */
+export interface ResponseWithTypedJson<U> extends Response {
+  readonly json: () => Promise<U>
+}
+
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export default class HttpClient {
   /** Create a new HTTP client with the specified headers to be sent on every request. */
@@ -59,6 +64,11 @@ export default class HttpClient {
   /** Send a JSON HTTP PUT request to the specified URL. */
   put<T = void>(url: string, payload: object) {
     return this.request<T>(HttpMethod.put, url, JSON.stringify(payload), 'application/json')
+  }
+
+  /** Send a base64-encoded binary HTTP POST request to the specified URL. */
+  async putBinary<T = void>(url: string, payload: Blob) {
+    return await this.request<T>(HttpMethod.put, url, payload, 'application/octet-stream')
   }
 
   /** Send an HTTP DELETE request to the specified URL. */
@@ -98,9 +108,4 @@ export default class HttpClient {
       throw error
     }
   }
-}
-
-/** A {@link Response} with a properly typed return type for `response.json()`. */
-export interface ResponseWithTypedJson<U> extends Response {
-  json: () => Promise<U>
 }

@@ -31,28 +31,31 @@ import * as uniqueString from '#/utilities/uniqueString'
 // === Constants ===
 // =================
 
-/** The user-facing name of this asset type. */
-const ASSET_TYPE_NAME = 'item'
-/** The user-facing plural name of this asset type. */
-const ASSET_TYPE_NAME_PLURAL = 'items'
 // This is a function, even though does not look like one.
 // eslint-disable-next-line no-restricted-syntax
-const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
+const pluralize = string.makePluralize('item', 'items')
+
+// ==============================
+// === AssetsTableContextMenu ===
+// ==============================
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
-  hidden?: boolean
-  category: Category
-  pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
-  selectedKeys: Set<backendModule.AssetId>
-  setSelectedKeys: (items: Set<backendModule.AssetId>) => void
-  nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
-  event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  doCopy: () => void
-  doCut: () => void
-  doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+  readonly hidden?: boolean
+  readonly category: Category
+  readonly pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
+  readonly selectedKeys: Set<backendModule.AssetId>
+  readonly setSelectedKeys: (items: Set<backendModule.AssetId>) => void
+  readonly nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
+  readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+  readonly doCopy: () => void
+  readonly doCut: () => void
+  readonly doPaste: (
+    newParentKey: backendModule.AssetId,
+    newParentId: backendModule.DirectoryId
+  ) => void
 }
 
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
@@ -62,11 +65,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -75,11 +78,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   // up to date.
   const ownsAllSelectedAssets =
     !isCloud ||
-    (organization != null &&
+    (user != null &&
       Array.from(selectedKeys, key => {
         const userPermissions = nodeMapRef.current.get(key)?.item.permissions
         const selfPermission = userPermissions?.find(
-          permission => permission.user.user_email === organization.email
+          permission => permission.user.user_email === user.email
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))

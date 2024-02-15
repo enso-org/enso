@@ -111,15 +111,15 @@ export interface Config {
   /** URL of the OAuth redirect when running in the cloud app.
    *
    * The desktop app redirects to a static deep link, so it does not have to be configured. */
-  cloudRedirect: auth.OAuthRedirect
+  readonly cloudRedirect: auth.OAuthRedirect
   /** Base URL for requests to our Cloud API backend. */
-  apiUrl: ApiUrl
+  readonly apiUrl: ApiUrl
   /** URL to the websocket endpoint of the Help Chat. */
-  chatUrl: ChatUrl
+  readonly chatUrl: ChatUrl
   /** Key used to authenticate with the Stripe API. Must point at the same Stripe account that the
    * backend is configured to use (though the backend will use a secret key, while this component
    * uses a public key). */
-  stripeKey: string
+  readonly stripeKey: string
 }
 
 // ===================

@@ -17,8 +17,11 @@ import {
 import type { AstId } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
+import { initializeFFI } from 'shared/ast/ffi'
 import type { ExternalId, Uuid } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
+
+await initializeFFI()
 
 test.each([
   ['', 0, { type: 'insert', position: 0 }, {}],

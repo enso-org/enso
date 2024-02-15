@@ -39,8 +39,8 @@ const rootElement = ref<HTMLElement>()
 useAutoBlur(rootElement)
 
 const executionContextDiagnostics = computed(() =>
-  projectStore.module && graphStore.moduleCode
-    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleCode, projectStore.diagnostics)
+  projectStore.module && graphStore.moduleSource.text
+    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleSource.text, projectStore.diagnostics)
     : [],
 )
 
@@ -57,8 +57,9 @@ const expressionUpdatesDiagnostics = computed(() => {
     if (!externalId) continue
     const node = nodeMap.get(asNodeId(externalId))
     if (!node) continue
-    if (!node.rootSpan.span) continue
-    const [from, to] = node.rootSpan.span
+    const rootSpan = graphStore.moduleSource.getSpan(node.rootSpan.id)
+    if (!rootSpan) continue
+    const [from, to] = rootSpan
     switch (update.payload.type) {
       case 'Panic': {
         diagnostics.push({ from, to, message: update.payload.message, severity: 'error' })
@@ -88,10 +89,10 @@ watchEffect(() => {
   const awareness = projectStore.awareness.internal
   extensions: [yCollab(yText, awareness, { undoManager }), ...]
    */
-  if (!graphStore.moduleCode) return
+  if (!graphStore.moduleSource.text) return
   editorView.setState(
     EditorState.create({
-      doc: graphStore.moduleCode,
+      doc: graphStore.moduleSource.text,
       extensions: [
         minimalSetup,
         syntaxHighlighting(defaultHighlightStyle as Highlighter),
@@ -105,7 +106,8 @@ watchEffect(() => {
           const astSpan = ast.span()
           let foundNode: NodeId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
-            if (node.rootSpan.span && rangeEncloses(node.rootSpan.span, astSpan)) {
+            const rootSpan = graphStore.moduleSource.getSpan(node.rootSpan.id)
+            if (rootSpan && rangeEncloses(rootSpan, astSpan)) {
               foundNode = id
               break
             }

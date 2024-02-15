@@ -11,7 +11,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -25,7 +24,6 @@ import CategorySwitcher from '#/layouts/dashboard/CategorySwitcher'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DriveBar from '#/layouts/dashboard/DriveBar'
 import Labels from '#/layouts/dashboard/Labels'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 
 import type * as spinner from '#/components/Spinner'
 
@@ -45,7 +43,7 @@ import * as uniqueString from '#/utilities/uniqueString'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    driveCategory: Category
+    readonly driveCategory: Category
   }
 }
 
@@ -78,50 +76,47 @@ enum DriveStatus {
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
-  supportsLocalBackend: boolean
-  hidden: boolean
-  page: pageSwitcher.Page
-  initialProjectName: string | null
+  readonly supportsLocalBackend: boolean
+  readonly hidden: boolean
+  readonly initialProjectName: string | null
   /** These events will be dispatched the next time the assets list is refreshed, rather than
    * immediately. */
-  queuedAssetEvents: assetEvent.AssetEvent[]
-  assetListEvents: assetListEvent.AssetListEvent[]
-  dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
-  assetEvents: assetEvent.AssetEvent[]
-  dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
-  query: AssetQuery
-  setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  labels: backendModule.Label[]
-  setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
-  setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
-  projectStartupInfo: backendModule.ProjectStartupInfo | null
-  setAssetPanelProps: React.Dispatch<
+  readonly queuedAssetEvents: assetEvent.AssetEvent[]
+  readonly assetListEvents: assetListEvent.AssetListEvent[]
+  readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
+  readonly assetEvents: assetEvent.AssetEvent[]
+  readonly dispatchAssetEvent: (directoryEvent: assetEvent.AssetEvent) => void
+  readonly query: AssetQuery
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
+  readonly labels: backendModule.Label[]
+  readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
+  readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
+  readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
+  readonly setAssetPanelProps: React.Dispatch<
     React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
   >
-  doCreateProject: (templateId: string | null) => void
-  doOpenEditor: (
+  readonly doCreateProject: (templateId: string | null) => void
+  readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  doCloseEditor: (project: backendModule.ProjectAsset) => void
+  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, page, initialProjectName, queuedAssetEvents } = props
+  const { supportsLocalBackend, hidden, initialProjectName, queuedAssetEvents } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { type: sessionType, organization } = authProvider.useNonPartialUserSession()
+  const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { modalRef } = modalProvider.useModalRef()
   const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
-  const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [category, setCategory] = React.useState(
     () => localStorage.get('driveCategory') ?? Category.home
@@ -135,8 +130,8 @@ export default function Drive(props: DriveProps) {
     [labels]
   )
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
   const status =
@@ -144,7 +139,7 @@ export default function Drive(props: DriveProps) {
       ? DriveStatus.noProjectManager
       : isCloud && sessionType === authProvider.UserSessionType.offline
       ? DriveStatus.offline
-      : isCloud && organization?.isEnabled !== true
+      : isCloud && user?.isEnabled !== true
       ? DriveStatus.notEnabled
       : DriveStatus.ok
 
@@ -165,32 +160,16 @@ export default function Drive(props: DriveProps) {
   }, [])
 
   React.useEffect(() => {
-    if (modalRef.current != null) {
-      setIsFileBeingDragged(false)
-    }
-  }, [/* should never change */ modalRef])
-
-  React.useEffect(() => {
-    const onBlur = () => {
-      setIsFileBeingDragged(false)
-    }
-    window.addEventListener('blur', onBlur)
-    return () => {
-      window.removeEventListener('blur', onBlur)
-    }
-  }, [])
-
-  React.useEffect(() => {
     void (async () => {
-      if (backend.type !== backendModule.BackendType.local && organization?.isEnabled === true) {
+      if (backend.type !== backendModule.BackendType.local && user?.isEnabled === true) {
         setLabels(await backend.listTags())
       }
     })()
-  }, [backend, organization?.isEnabled, /* should never change */ setLabels])
+  }, [backend, user?.isEnabled, /* should never change */ setLabels])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
-      if (backend.type !== backendModule.BackendType.local && organization == null) {
+      if (backend.type !== backendModule.BackendType.local && user == null) {
         // This should never happen, however display a nice error message in case it does.
         toastAndLog('Files cannot be uploaded while offline')
       } else {
@@ -202,13 +181,7 @@ export default function Drive(props: DriveProps) {
         })
       }
     },
-    [
-      backend,
-      organization,
-      rootDirectoryId,
-      toastAndLog,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [backend, user, rootDirectoryId, toastAndLog, /* should never change */ dispatchAssetListEvent]
   )
 
   const doCreateProject = React.useCallback(
@@ -303,22 +276,18 @@ export default function Drive(props: DriveProps) {
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
   )
 
-  React.useEffect(() => {
-    const onDragEnter = (event: DragEvent) => {
-      if (
-        modalRef.current == null &&
-        page === pageSwitcher.Page.drive &&
-        category === Category.home &&
-        event.dataTransfer?.types.includes('Files') === true
-      ) {
-        setIsFileBeingDragged(true)
-      }
-    }
-    document.body.addEventListener('dragenter', onDragEnter)
-    return () => {
-      document.body.removeEventListener('dragenter', onDragEnter)
-    }
-  }, [page, category, /* should never change */ modalRef])
+  const doCreateDataLink = React.useCallback(
+    (name: string, value: unknown) => {
+      dispatchAssetListEvent({
+        type: AssetListEventType.newDataLink,
+        parentKey: rootDirectoryId,
+        parentId: rootDirectoryId,
+        name,
+        value,
+      })
+    },
+    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+  )
 
   switch (status) {
     case DriveStatus.offline: {
@@ -397,6 +366,7 @@ export default function Drive(props: DriveProps) {
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}
               doCreateSecret={doCreateSecret}
+              doCreateDataLink={doCreateDataLink}
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>
@@ -440,29 +410,6 @@ export default function Drive(props: DriveProps) {
               doCreateLabel={doCreateLabel}
             />
           </div>
-          {isFileBeingDragged && organization != null && isCloud ? (
-            <div
-              className="text-white text-lg fixed w-screen h-screen inset-0 bg-dim-darker backdrop-blur-xs grid place-items-center z-3"
-              onDragLeave={() => {
-                setIsFileBeingDragged(false)
-              }}
-              onDragOver={event => {
-                event.preventDefault()
-              }}
-              onDrop={event => {
-                event.preventDefault()
-                setIsFileBeingDragged(false)
-                dispatchAssetListEvent({
-                  type: AssetListEventType.uploadFiles,
-                  parentKey: rootDirectoryId,
-                  parentId: rootDirectoryId,
-                  files: Array.from(event.dataTransfer.files),
-                })
-              }}
-            >
-              Drop to upload files.
-            </div>
-          ) : null}
         </div>
       )
     }

@@ -174,13 +174,13 @@ export function importDirectory(rootPath: string): string {
 interface ProjectMetadata {
     /** The ID of the project. It is only used in communication with project manager;
      * it has no semantic meaning. */
-    id: string
+    readonly id: string
     /** The project variant. This is currently always `UserProject`. */
-    kind: 'UserProject'
+    readonly kind: 'UserProject'
     /** The date at which the project was created, in RFC3339 format. */
-    created: string
+    readonly created: string
     /** The date at which the project was last opened, in RFC3339 format. */
-    lastOpened: string
+    readonly lastOpened: string
 }
 
 /** A type guard function to check if an object conforms to the {@link ProjectMetadata} interface.

@@ -9,12 +9,11 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
 
-import Standard.Database.Data.Column.Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec

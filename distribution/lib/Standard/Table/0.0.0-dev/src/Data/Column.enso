@@ -10,7 +10,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
-from Standard.Base.Widget_Helpers import make_regex_text_widget
+from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
 
 import project.Data.Constants.Previous_Value
 import project.Data.Data_Formatter.Data_Formatter
@@ -32,9 +32,9 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -180,6 +180,7 @@ type Column
 
     ## ALIAS equals
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise equality comparison.
 
        Arguments:
@@ -219,6 +220,7 @@ type Column
         run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
     ## GROUP Standard.Base.Logical
+       ICON operators
        Element-wise case-insensitive text equality comparison.
 
        Arguments:
@@ -246,6 +248,7 @@ type Column
 
     ## ALIAS not equals
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise non-equality comparison.
 
        Arguments:
@@ -282,6 +285,7 @@ type Column
 
     ## ALIAS greater than or equal
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -312,6 +316,7 @@ type Column
 
     ## ALIAS less than or equal
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -342,6 +347,7 @@ type Column
 
     ## ALIAS greater than
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -372,6 +378,7 @@ type Column
 
     ## ALIAS less than
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise order comparison.
 
        Arguments:
@@ -401,6 +408,7 @@ type Column
             run_vectorized_binary_op self Java_Storage.Maps.LT fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Logical
+       ICON operators
        Element-wise inclusive bounds check.
 
        Arguments:
@@ -424,6 +432,7 @@ type Column
 
     ## ALIAS add, concatenate, plus
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise addition. Works on numeric types or text.
 
        Arguments:
@@ -463,6 +472,7 @@ type Column
 
     ## ALIAS minus, subtract
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise subtraction. Allows to subtract numeric types or compute a
        difference between two date/time values.
 
@@ -517,6 +527,7 @@ type Column
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise multiplication.
 
        Arguments:
@@ -556,6 +567,7 @@ type Column
 
     ## ALIAS divide
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise division.
 
        Arguments:
@@ -601,6 +613,7 @@ type Column
 
     ## ALIAS modulo, modulus
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise modulus.
 
        Arguments:
@@ -637,6 +650,7 @@ type Column
 
     ## ALIAS power
        GROUP Standard.Base.Operators
+       ICON math
        Element-wise raising to the power.
 
        Arguments:
@@ -676,6 +690,7 @@ type Column
 
     ## ALIAS and
        GROUP Standard.Base.Operators
+       ICON operators
        Element-wise boolean conjunction.
 
        Arguments:
@@ -707,6 +722,7 @@ type Column
 
     ## ALIAS or
        GROUP Standard.Base.Operators
+       ICON operators
 
        Element-wise boolean disjunction.
 
@@ -739,6 +755,7 @@ type Column
 
     ## ALIAS not
        GROUP Standard.Base.Logical
+       ICON operators
 
        Boolean negation of each element in self column.
 
@@ -756,6 +773,7 @@ type Column
 
     ## ALIAS if
        GROUP Standard.Base.Logical
+       ICON preparation
 
        Replaces `True` values with `when_true` and `False` with `when_false`.
        Only meant for use with boolean columns.
@@ -817,6 +835,7 @@ type Column
     const self value = self.to_table.make_constant_column value
 
     ## GROUP Standard.Base.Math
+       ICON math
        Round the values in a numeric column to a specified number of decimal
        places.
 
@@ -875,6 +894,7 @@ type Column
 
     ## ALIAS int
        GROUP Standard.Base.Rounding
+       ICON math
 
        If the column is numeric, truncate the floating-point values to an
        integer by dropping the fractional part. This is equivalent to
@@ -909,6 +929,7 @@ type Column
                 False -> Error.throw <| Invalid_Value_Type.Column "Numeric or Date_Time" self.value_type self.name
 
     ## GROUP Standard.Base.Rounding
+       ICON math
        Computes the nearest integer above this number for values in a numeric
        column.
 
@@ -928,6 +949,7 @@ type Column
                 simple_unary_op self Java_Storage.Maps.CEIL
 
     ## GROUP Standard.Base.Rounding
+       ICON math
        Computes the nearest integer below this number for values in a numeric
        column.
 
@@ -947,7 +969,7 @@ type Column
                 simple_unary_op self Java_Storage.Maps.FLOOR
 
     ## GROUP Standard.Base.Logical
-       ICON preparation
+       ICON operators
        Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
 
@@ -966,6 +988,7 @@ type Column
         run_vectorized_many_op self "coalesce" fallback values
 
     ## GROUP Standard.Base.Math
+       ICON sigma
        Returns a column of minimum on each row of `self` and `values`.
 
        Arguments:
@@ -987,6 +1010,7 @@ type Column
             run_vectorized_many_op self "min" fallback values
 
     ## GROUP Standard.Base.Math
+       ICON sigma
        Returns a column of maximum on each row of `self` and `values`.
 
        Arguments:
@@ -1008,6 +1032,7 @@ type Column
             run_vectorized_many_op self "max" fallback values
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
 
@@ -1023,6 +1048,7 @@ type Column
         run_vectorized_unary_op self Java_Storage.Maps.IS_NOTHING new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## GROUP Standard.Base.Math
+       ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
@@ -1040,6 +1066,7 @@ type Column
         run_vectorized_unary_op self Java_Storage.Maps.IS_NAN new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Math
+       ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
@@ -1063,9 +1090,14 @@ type Column
     internal_is_empty : Column
     internal_is_empty self =
         new_name = naming_helper.concat [naming_helper.to_expression_text self, "is empty"]
-        run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean skip_nulls=False
+        fallback x = case x of
+            _ : Text -> x == ""
+            Nothing  -> True
+            _        -> False
+        run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
 
@@ -1123,7 +1155,7 @@ type Column
              import Standard.Examples
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
-    @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=False)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector add_number=(self.value_type.is_numeric || self.value_type==Value_Type.Mixed) add_boolean=(self.value_type.is_boolean || self.value_type==Value_Type.Mixed) add_text=(self.value_type.is_text || self.value_type==Value_Type.Mixed))
     fill_nothing : Column | Previous_Value | Any -> Column
     fill_nothing self default =
         if Previous_Value == default then fill_previous self Nothing else
@@ -1160,7 +1192,7 @@ type Column
              import Standard.Examples
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
-    @default (Widget_Helpers.make_fill_default_value_selector include_custom_text=True)
+    @default (Widget_Helpers.make_fill_default_value_selector add_text=True)
     fill_empty : Column | Previous_Value | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
@@ -1300,6 +1332,7 @@ type Column
                 run_vectorized_binary_op self Java_Storage.Maps.TEXT_RIGHT n new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Checks for each element of the column if it contains `other`.
 
        Arguments:
@@ -1330,6 +1363,7 @@ type Column
         run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity) new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Checks for each element of the column if it matches an SQL-like pattern.
 
        Arguments:
@@ -1352,7 +1386,7 @@ type Column
                 run_vectorized_binary_op self Java_Storage.Maps.LIKE pattern expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Text
-       ICON dataframe_map_column
+       ICON text
        This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
 
@@ -1394,20 +1428,20 @@ type Column
        > Example
          Replace dashes with underscores.
 
-             column.replace "-" "_"
+             column.text_replace "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$".to_regex "$1"
+             column.text_replace "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"'.to_regex '($1)'
+             column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
-    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
-    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    text_replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    text_replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         Value_Type.expect_text self <|
             term_fn = wrap_text_or_regex_argument_as_value_provider term
             new_text_fn = wrap_text_argument_as_value_provider new_text
@@ -1432,6 +1466,7 @@ type Column
                 Column.from_storage new_name builder.seal
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the year as a number from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -1441,6 +1476,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.YEAR
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the month as a number (1-12) from the date stored in the column.
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
@@ -1450,6 +1486,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.MONTH
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the day of the month as a number (1-31) from the date stored in the
        column.
 
@@ -1460,6 +1497,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.DAY
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the hour as a number (0-23) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -1469,6 +1507,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.HOUR
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the minute as a number (0-59) from the time stored in the column.
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
@@ -1488,6 +1527,7 @@ type Column
         simple_unary_op self Java_Storage.Maps.SECOND
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Gets the date part of the date/time value.
 
        Returns a column of `Integer` type.
@@ -1497,6 +1537,7 @@ type Column
         Date_Time_Helpers.make_date_part_function self period simple_unary_op naming_helper
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Computes a time difference between the two dates.
 
        It returns a column of integers expressing how many periods fit between
@@ -1539,6 +1580,7 @@ type Column
 
 
     ## GROUP Standard.Base.DateTime
+       ICON date_and_time
        Shifts the date/time by a specified period, returning a new date/time
        column of the same type.
 
@@ -1574,6 +1616,7 @@ type Column
                     run_binary_op self fn amount new_name
 
     ## GROUP Standard.Base.Logical
+       ICON preparation
        Checks for each element of the column if it is contained within the
        provided vector or column.
 
@@ -1624,8 +1667,8 @@ type Column
          can be used. For `Boolean`, it should be two values that represent true
          and false, separated by a `|`. Alternatively, a `Data_Formatter` can be
          passed to provide complete customisation of the formatting. If
-         `Nothing` is provided, the default formatting settings of the backend
-         will be used. `Nothing` is currently the only setting accepted by the
+         `""` is provided, the default formatting settings of the backend
+         will be used. `""` is currently the only setting accepted by the
          Database backends.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default.
@@ -1682,16 +1725,13 @@ type Column
 
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
-    parse : Value_Type | Auto -> Text | Data_Formatter | Nothing -> Problem_Behavior -> Column
-    parse self type=Auto format=Data_Formatter.Value on_problems=Report_Warning =
+    @format (make_format_chooser include_number=False)
+    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
+    parse self type=Auto format:(Text|Data_Formatter)="" on_problems=Report_Warning =
         Value_Type.expect_text self <|
             formatter = case format of
-                _ : Text ->
-                    Data_Formatter.Value.with_format type format
+                _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
                 _ : Data_Formatter -> format
-                Nothing -> Data_Formatter.Value
-                _ -> Error.throw (Illegal_Argument.Error "Invalid format type. Expected Text or Data_Formatter or Nothing.")
-
             parser = formatter.make_value_type_parser type
             storage = self.java_column.getStorage
 
@@ -1706,9 +1746,8 @@ type Column
 
        Arguments:
        - format: The type-dependent format string to use to format the values.
-         If `format` is `""` or `Nothing`, .to_text is used to format the value.
-         In case of date/time columns, the format can also be a
-         `Date_Time_Formatter`.
+         If `format` is `""`, .to_text is used to format the value.
+         In case of date/time columns, a `Date_Time_Formatter` can be used.
        - locale: The locale in which the format should be interpreted.
          If a `Date_Time_Formatter` is provided for `format` and the `locale` is
          set to anything else than `Locale.default`, then that locale will
@@ -1780,18 +1819,17 @@ type Column
              input.format "#,##0.00" locale=(Locale.new "fr")
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
     @locale Locale.default_widget
-    format : Text | Date_Time_Formatter | Column | Nothing -> Locale -> Column ! Illegal_Argument
-    format self format:(Text | Date_Time_Formatter | Column | Nothing)=Nothing locale=Locale.default =
-        new_column = case format of
-            format_column : Column -> Value_Type.expect_text format_column <|
-                formatter = make_value_formatter_for_value_type self.value_type locale
-                formatter.if_not_error <|
-                    formatter_flipped value format = formatter format value
-                    Column_Ops.map_2_over_storage self format_column formatter_flipped make_string_builder
-            _ ->
-                formatter = make_value_formatter_for_value_type self.value_type locale format
-                Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
-        new_column
+    @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
+    format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
+    format self format:(Text | Date_Time_Formatter | Column)="" locale=Locale.default = case format of
+        format_column : Column -> Value_Type.expect_text format_column <|
+            formatter = make_value_formatter_for_value_type self.value_type locale
+            formatter.if_not_error <|
+                formatter_flipped value format = formatter format value
+                Column_Ops.map_2_over_storage self format_column formatter_flipped make_string_builder
+        _ ->
+            formatter = make_value_formatter_for_value_type self.value_type locale format
+            Column_Ops.map_over_storage self formatter make_string_builder on_problems=Problem_Behavior.Report_Error
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -1851,6 +1889,7 @@ type Column
                 Column.from_storage self.name new_storage
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Change the value type of the column to a more specific one, based on its
        contents.
 
@@ -2039,7 +2078,7 @@ type Column
     count self = self.length - self.count_nothing
 
     ## GROUP Standard.Base.Selections
-       ICON select_row
+       ICON select_column
        Returns the value contained in this column at the given index.
 
        Arguments:
@@ -2072,7 +2111,7 @@ type Column
              import Standard.Examples
 
              example_at = Examples.integer_column.get 0 -1
-    get : Integer -> (Any | Nothing)
+    get : Integer -> Any -> Any | Nothing
     get self (index : Integer) (~default=Nothing) =
         valid_index = (index >= 0) && (index < self.length)
         if valid_index.not then default else
@@ -2168,6 +2207,7 @@ type Column
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
+       ICON order
        Sorts the column according to the specified rules.
 
        Arguments:
@@ -2292,6 +2332,7 @@ type Column
     last self = self.at (self.length - 1)
 
     ## GROUP Standard.Base.Selections
+       ICON order
        Returns a column containing the values of `self` column with their order
        reversed.
 

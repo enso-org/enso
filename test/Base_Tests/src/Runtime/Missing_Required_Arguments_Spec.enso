@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Not_Invokable
 
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 my_function (xyz : Integer = Missing_Required_Argument.ensure_present "xyz") (y : Integer = 100) =

@@ -34,7 +34,7 @@ type Excel_Workbook
        - xls_format: Whether to use the old XLS format (default is XLSX).
        - headers: Whether to use the first row as headers (default is to infer).
     new : File | Temporary_File -> Boolean -> Boolean | Infer -> Excel_Workbook
-    new file:(File|Temporary_File) xls_format=False headers=Infer =
+    new file:(File | Temporary_File) xls_format=False headers=Infer =
         file_for_errors = if file.is_a Temporary_File then Nothing else file
 
         continuation raw_file =
