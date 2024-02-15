@@ -490,10 +490,18 @@ export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?
   return { root, idMap: idMapOut, getSpan, toRaw, idMapUpdates }
 }
 
+function astCount(ast: Ast): number {
+  let count = 0
+  ast.visitRecursiveAst((_subtree) => {
+    count += 1
+  })
+  return count
+}
+
 export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap) {
   let astsMatched = 0
-  let asts = 0
-  edit.root()?.visitRecursiveAst((_ast) => void (asts += 1))
+  const root = edit.root()
+  const astsTotal = root ? astCount(root) : 0
   for (const [key, externalId] of ids.entries()) {
     const asts = spans.nodes.get(key as NodeKey)
     if (asts) {
@@ -504,7 +512,7 @@ export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap) 
       }
     }
   }
-  return edit.root() ? asts - astsMatched : 0
+  return root ? astsTotal - astsMatched : 0
 }
 
 function checkSpans(expected: NodeSpanMap, encountered: NodeSpanMap, code: string) {
