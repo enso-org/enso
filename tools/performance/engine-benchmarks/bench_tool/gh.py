@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -64,3 +65,14 @@ async def invoke_gh_api(
         return json.loads(out.decode())
     else:
         return out
+
+
+async def fetch_file(repo: str, file_path: str) -> Optional[str]:
+    try:
+        ret = await invoke_gh_api(repo, f"/contents/{file_path}", result_as_json=True)
+        file_content = base64.b64decode(ret["content"]).decode()
+        return file_content
+    except subprocess.CalledProcessError as e:
+        _logger.error("Failed to fetch file %s from %s, with: %s",
+                      file_path, repo, e)
+        return None
