@@ -45,9 +45,6 @@ type Decimal
            if a `Math_Context` value is explicitly passed.
     new : Text | Integer | Float -> Math_Context -> Decimal | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
-        IO.println 'AAA new'
-        IO.println x
-        IO.println (Meta.get_simple_type_name x)
         case x of
             _ : Text -> Decimal.from_text x mc
             _ : Integer -> Decimal.from_integer x mc
@@ -74,7 +71,6 @@ type Decimal
            if a `Math_Context` value is explicitly passed.
     from_text : Text -> Math_Context -> Decimal | Number_Parse_Error
     from_text (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
-        IO.println "AAA ft"
         handle_number_format_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
@@ -181,5 +177,4 @@ Comparable.from (_:Decimal) = Decimal_Comparator
 Comparable.from (_:Number) = Decimal_Comparator
 
 Decimal.from (that:Text) = Decimal.from_text that
-Decimal.from (that:Integer) = Decimal.from_integer that
-Decimal.from (that:Float) = Decimal.from_float that
+Decimal.from (that:Number) = Decimal.new that
