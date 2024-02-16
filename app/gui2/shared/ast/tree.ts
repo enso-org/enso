@@ -25,6 +25,7 @@ import type { Result } from '../util/data/result'
 import { Err, Ok } from '../util/data/result'
 import type { TextEdit } from '../util/data/text'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'
+import { visMetadataEquals } from '../yjsModel'
 import * as RawAst from './generated/ast'
 import {
   applyTextEditsToAst,
@@ -297,13 +298,13 @@ export abstract class MutableAst extends Ast {
   }
 
   /** Modify this tree to represent the given code, while minimizing changes from the current set of `Ast`s. */
-  syncToCode(code: string) {
-    syncToCode(this, code)
+  syncToCode(code: string, metadataSource?: Module) {
+    syncToCode(this, code, metadataSource)
   }
 
   /** Update the AST according to changes to its corresponding source code. */
-  applyTextEdits(textEdits: TextEdit[]) {
-    applyTextEditsToAst(this, textEdits)
+  applyTextEdits(textEdits: TextEdit[], metadataSource?: Module) {
+    applyTextEditsToAst(this, textEdits, metadataSource ?? this.module)
   }
 
   ///////////////////
@@ -381,14 +382,19 @@ export function rewriteRefs(ast: MutableAst, f: (id: AstId) => AstId | undefined
  *  to `AstId`s in copied fields; see {@link rewriteRefs}.
  */
 export function syncFields(ast1: MutableAst, ast2: Ast, f: (id: AstId) => AstId | undefined) {
-  const expressionMetadata =
-    ast1 instanceof MutableAssignment ? ast1.expression.fields.get('metadata').clone() : undefined
   for (const [key, value] of fieldDataEntries(ast2.fields)) {
     const changedValue = rewriteFieldRefs(value, f)
     const newValue = changedValue ?? value
     if (!fieldEqual(ast1.fields.get(key as any), newValue)) ast1.fields.set(key as any, newValue)
   }
-  if (ast1 instanceof MutableAssignment) ast1.expression.fields.set('metadata', expressionMetadata!)
+}
+
+export function syncNodeMetadata(target: MutableNodeMetadata, source: NodeMetadata) {
+  const oldPos = target.get('position')
+  const newPos = source.get('position')
+  if (oldPos?.x !== newPos?.x || oldPos?.y !== newPos?.y) target.set('position', newPos)
+  const newVis = source.get('visualization')
+  if (!visMetadataEquals(target.get('visualization'), newVis)) target.set('visualization', newVis)
 }
 
 function rewriteFieldRefs(field: FieldData, f: (id: AstId) => AstId | undefined): FieldData {

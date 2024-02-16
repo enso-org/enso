@@ -512,7 +512,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           edit.getVersion(syncRoot).syncToCode(code)
           const editedRoot = edit.root()
           if (editedRoot instanceof Ast.BodyBlock) Ast.repair(editedRoot, edit)
-          Y.applyUpdateV2(this.doc.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc))
+          syncModule.applyEdit(edit)
         } else {
           const { root, spans } = Ast.parseBlockWithSpans(code, syncModule)
           syncModule.syncRoot(root)

@@ -1,6 +1,15 @@
 import * as map from 'lib0/map'
-import type { AstId, NodeChild, Owned } from '.'
-import { Token, asOwned, isTokenId, parentId, rewriteRefs, subtreeRoots, syncFields } from '.'
+import type { AstId, Module, NodeChild, Owned } from '.'
+import {
+  Token,
+  asOwned,
+  isTokenId,
+  parentId,
+  rewriteRefs,
+  subtreeRoots,
+  syncFields,
+  syncNodeMetadata,
+} from '.'
 import { assert, assertDefined, assertEqual } from '../util/assert'
 import { tryGetSoleValue, zip } from '../util/data/iterable'
 import type { SpanTree, TextEdit } from '../util/data/text'
@@ -37,6 +46,7 @@ import {
   Ident,
   Import,
   Invalid,
+  MutableAssignment,
   MutableAst,
   MutableBodyBlock,
   MutableIdent,
@@ -704,10 +714,10 @@ function rawBlockToInline(tree: RawAst.Tree.Tree) {
 }
 
 /** Update `ast` to match the given source code, while modifying it as little as possible. */
-export function syncToCode(ast: MutableAst, code: string) {
+export function syncToCode(ast: MutableAst, code: string, metadataSource?: Module) {
   const codeBefore = ast.code()
   const textEdits = textChangeToEdits(codeBefore, code)
-  applyTextEditsToAst(ast, textEdits)
+  applyTextEditsToAst(ast, textEdits, metadataSource ?? ast.module)
 }
 
 /** Find nodes in the input `ast` that should be treated as equivalents of nodes in `parsedRoot`. */
@@ -789,7 +799,11 @@ function calculateCorrespondence(
 }
 
 /** Update `ast` according to changes to its corresponding source code. */
-export function applyTextEditsToAst(ast: MutableAst, textEdits: TextEdit[]) {
+export function applyTextEditsToAst(
+  ast: MutableAst,
+  textEdits: TextEdit[],
+  metadataSource: Module,
+) {
   const printed = print(ast)
   const code = applyTextEdits(printed.code, textEdits)
   const rawParsedBlock = parseEnso(code)
@@ -804,17 +818,24 @@ export function applyTextEditsToAst(ast: MutableAst, textEdits: TextEdit[]) {
     textEdits,
     code,
   )
-  syncTree(ast, parsed.root, toSync, ast.module)
+  syncTree(ast, parsed.root, toSync, ast.module, metadataSource)
 }
 
 /** Replace `target` with `newContent`, reusing nodes according to the correspondence in `toSync`. */
-function syncTree(target: Ast, newContent: Owned, toSync: Map<AstId, Ast>, edit: MutableModule) {
+function syncTree(
+  target: Ast,
+  newContent: Owned,
+  toSync: Map<AstId, Ast>,
+  edit: MutableModule,
+  metadataSource: Module,
+) {
   const newIdToEquivalent = new Map<AstId, AstId>()
   for (const [beforeId, after] of toSync) newIdToEquivalent.set(after.id, beforeId)
   const childReplacerFor = (parentId: AstId) => (id: AstId) => {
     const original = newIdToEquivalent.get(id)
     if (original) {
-      edit.get(original).fields.set('parent', parentId)
+      const replacement = edit.get(original)
+      if (replacement.parentId !== parentId) replacement.fields.set('parent', parentId)
       return original
     } else {
       const child = edit.get(id)
@@ -824,24 +845,36 @@ function syncTree(target: Ast, newContent: Owned, toSync: Map<AstId, Ast>, edit:
   const parentId = target.fields.get('parent')
   assertDefined(parentId)
   const parent = edit.get(parentId)
-  newContent.visitRecursiveAst((ast) => {
+  const targetSyncEquivalent = toSync.get(target.id)
+  const syncRoot = targetSyncEquivalent?.id === newContent.id ? targetSyncEquivalent : undefined
+  if (!syncRoot) {
+    parent.replaceChild(target.id, newContent)
+    newContent.fields.set('metadata', target.fields.get('metadata').clone())
+  }
+  const newRoot = syncRoot ? target : newContent
+  newRoot.visitRecursiveAst((ast) => {
     const syncFieldsFrom = toSync.get(ast.id)
+    const editAst = edit.getVersion(ast)
     if (syncFieldsFrom) {
+      const originalAssignmentExpression =
+        ast instanceof Assignment
+          ? metadataSource.get(ast.fields.get('expression').node)
+          : undefined
       syncFields(edit.getVersion(ast), syncFieldsFrom, childReplacerFor(ast.id))
+      if (editAst instanceof MutableAssignment && originalAssignmentExpression) {
+        if (editAst.expression.externalId !== originalAssignmentExpression.externalId)
+          editAst.expression.setExternalId(originalAssignmentExpression.externalId)
+        syncNodeMetadata(
+          editAst.expression.mutableNodeMetadata(),
+          originalAssignmentExpression.nodeMetadata,
+        )
+      }
     } else {
-      rewriteRefs(edit.getVersion(ast), childReplacerFor(ast.id))
+      rewriteRefs(editAst, childReplacerFor(ast.id))
     }
     return true
   })
-  const syncRoot = toSync.get(target.id)
-  if (syncRoot && syncRoot.id === newContent.id) {
-    syncFields(edit.getVersion(target), syncRoot, childReplacerFor(target.id))
-    return target
-  } else {
-    parent.replaceChild(target.id, newContent)
-    newContent.fields.set('metadata', target.fields.get('metadata').clone())
-    return newContent
-  }
+  return newRoot
 }
 
 /** Provides a `SpanTree` view of an `Ast`, given span information. */

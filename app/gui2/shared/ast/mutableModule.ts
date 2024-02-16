@@ -130,10 +130,10 @@ export class MutableModule implements Module {
   }
 
   /** Update the module according to changes to its corresponding source code. */
-  applyTextEdits(textEdits: TextEdit[]) {
+  applyTextEdits(textEdits: TextEdit[], metadataSource?: Module) {
     const root = this.root()
     assertDefined(root)
-    root.applyTextEdits(textEdits)
+    root.applyTextEdits(textEdits, metadataSource)
   }
 
   private gc() {
