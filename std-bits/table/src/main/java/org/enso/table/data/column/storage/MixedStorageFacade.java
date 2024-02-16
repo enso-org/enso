@@ -91,20 +91,14 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public Storage<Object> mask(BitSet mask, int cardinality) {
-    Storage<?> newStorage = underlyingStorage.mask(mask, cardinality);
+  public Storage<Object> applyFilter(BitSet filterMask, int newLength) {
+    Storage<?> newStorage = underlyingStorage.applyFilter(filterMask, newLength);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
   public Storage<Object> applyMask(OrderMask mask) {
     Storage<?> newStorage = underlyingStorage.applyMask(mask);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
-  public Storage<Object> countMask(int[] counts, int total) {
-    Storage<?> newStorage = underlyingStorage.countMask(counts, total);
     return new MixedStorageFacade(newStorage);
   }
 

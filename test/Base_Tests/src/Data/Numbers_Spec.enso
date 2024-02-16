@@ -37,6 +37,7 @@ type Complex_Comparator
         7*x.re + 11*x.im
 
 Comparable.from (_:Complex) = Complex_Comparator
+Comparable.from (_:Number) = Complex_Comparator
 
 
 add_specs suite_builder =
