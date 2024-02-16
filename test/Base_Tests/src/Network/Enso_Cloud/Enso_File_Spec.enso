@@ -140,6 +140,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             dir.is_directory.should_be_true
             dir.is_regular_file.should_be_false
             dir.size . should_fail_with Illegal_Argument
+            dir.creation_time . should_be_a Date_Time
+            dir.last_modified_time . should_be_a Date_Time
 
             nested_file = dir / "another.txt"
             nested_file.exists.should_be_true
@@ -148,6 +150,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             nested_file.is_directory.should_be_false
             nested_file.is_regular_file.should_be_true
             nested_file.size . should_equal nested_file.read_bytes.length
+            nested_file.creation_time . should_be_a Date_Time
+            nested_file.last_modified_time . should_be_a Date_Time
 
         group_builder.specify "should be able to read file metadata (v2)" pending="TODO Enso_File more detailed metadata, waiting on https://github.com/enso-org/cloud-v2/issues/870" <|
             Enso_File.root.parent . should_equal Nothing
@@ -158,16 +162,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             dir.parent . should_equal Enso_File.root
             dir.is_descendant_of Enso_File.root . should_be_true
             Enso_File.root.is_descendant_of dir . should_be_false
-            dir.creation_time . should_be_a Date_Time
-            dir.last_modified_time . should_be_a Date_Time
 
             nested_file = dir / "another.txt"
             nested_file.path . should_equal "enso://test-directory/another.txt"
             nested_file.parent . should_equal dir
             nested_file.is_descendant_of dir . should_be_true
             nested_file.is_descendant_of Enso_File.root . should_be_true
-            nested_file.creation_time . should_be_a Date_Time
-            nested_file.last_modified_time . should_be_a Date_Time
 
         group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
             nested_file = Enso_File.root / "test-directory" / "another.txt"

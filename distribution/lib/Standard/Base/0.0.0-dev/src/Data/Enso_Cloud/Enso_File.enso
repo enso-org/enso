@@ -86,7 +86,10 @@ type Enso_File
     ## GROUP Metadata
        Gets the creation time of a file.
     creation_time : Date_Time
-    creation_time self = Unimplemented.throw "Enso_File.creation_time is not implemented"
+    creation_time self =
+        file_description = get_file_description self
+        Standard.Base.IO.println file_description
+        Nothing
 
     ## GROUP Metadata
        Gets the last modified time of a file.
