@@ -11,8 +11,8 @@ public interface OrderMask {
    *
    * <p>The resulting storage should contain the {@code positions[i]}-th element of the original
    * storage at the {@code idx}-th position. It may return {@link
-   * org.enso.table.data.index.Index.NOT_FOUND}, in which case a missing value should be inserted at
-   * this position.
+   * org.enso.table.data.storage.Storage.NOT_FOUND_INDEX}, in which case a missing value should be
+   * inserted at this position.
    */
   int get(int idx);
 
