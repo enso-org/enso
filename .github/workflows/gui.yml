@@ -86,5 +86,6 @@ jobs:
           submodules: recursive
       - name: npm install
         run: npm -ddd install
+        working-directory: app/gui
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
