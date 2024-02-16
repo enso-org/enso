@@ -11,6 +11,7 @@ define_env_var! {
     SBT_SERVER_FORCESTART, bool;
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct ServerAutostart(pub bool);
 impl Manipulator for ServerAutostart {
     fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
