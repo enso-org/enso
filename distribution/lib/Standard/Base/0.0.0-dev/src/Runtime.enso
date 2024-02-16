@@ -4,6 +4,7 @@ import project.Data.Boolean.Boolean
 import project.Data.Text.Case.Case
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Errors.Common.Assertion_Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Common.Type_Error
@@ -168,12 +169,20 @@ type Context
        function and returns the result. If not, panics.
 
        Arguments:
-       - environment: Name of the execution environment.
-       - context: The context to enable.
        - action: Action to be performed with the context enabled.
-    if_enabled : Function -> Text -> Any
-    if_enabled self ~action environment=Runtime.current_execution_environment =
-        if self.is_enabled environment then action else Panic.throw (Forbidden_Operation.Error self.name)
+       - environment: Name of the execution environment.
+       - disabled_message: Message to be used in the error if the context is
+         disabled.
+       - panic: If set to `True`, the error is raised as a Panic.
+         Otherwise, it is a dataflow error.
+         A dataflow error may be lost if the result of the action is not used,
+         so raising a `Panic` is safer. However, when we know that the result is
+         not discarded, the dataflow error is preferred.
+    if_enabled : Function -> Text -> Text -> Boolean -> Any ! Forbidden_Operation
+    if_enabled self ~action (environment : Text = Runtime.current_execution_environment) (disabled_message : Text = "The "+self.name+" context is disabled.") (panic : Boolean = True) =
+        if self.is_enabled environment then action else
+            error = Forbidden_Operation.Error disabled_message
+            if panic then Panic.throw error else Error.throw error
 
     ## PRIVATE
        ADVANCED
