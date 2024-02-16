@@ -7,7 +7,8 @@ import jinja2
 import numpy as np
 import pandas as pd
 
-from bench_tool import JobReport, TemplateBenchData, BenchDatapoint, GH_DATE_FORMAT, ENSO_COMMIT_BASE_URL, JinjaData
+from bench_tool import JobReport, TemplateBenchData, BenchDatapoint, GH_DATE_FORMAT, ENSO_COMMIT_BASE_URL, JinjaData, \
+    JINJA_TEMPLATE, TEMPLATES_DIR
 
 _logger = logging.getLogger(__name__)
 
@@ -101,9 +102,12 @@ def create_template_data(
     return template_bench_datas
 
 
-def render_html(jinja_data: JinjaData, template_file: str, html_out_fname: str) -> None:
-    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader("."))
-    jinja_template = jinja_env.get_template(template_file)
+def render_html(jinja_data: JinjaData, html_out_fname: str) -> None:
+    jinja_env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(TEMPLATES_DIR)
+    )
+    template_name = str(JINJA_TEMPLATE.name)
+    jinja_template = jinja_env.get_template(template_name)
     generated_html = jinja_template.render(jinja_data.__dict__)
     if path.exists(html_out_fname):
         _logger.info("%s already exist, rewritting", html_out_fname)
