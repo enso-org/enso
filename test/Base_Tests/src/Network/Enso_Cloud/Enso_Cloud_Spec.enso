@@ -61,7 +61,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
                 users.should_contain Enso_User.current
 
-            group_builder.specify "user can be fetched from real API" pending=setup.real_cloud_pending <|
+            group_builder.specify "user can be fetched from real API" pending=(setup.real_cloud_pending.if_nothing "Disabled until https://github.com/enso-org/cloud-v2/issues/912 is resolved.") <|
                 Enso_User.list . should_contain Enso_User.current
 
             group_builder.specify "will fail if the user is not logged in" <|
