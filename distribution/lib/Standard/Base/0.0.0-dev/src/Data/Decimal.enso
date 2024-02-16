@@ -3,6 +3,7 @@ import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.IO
 import project.Meta
 import project.Nothing.Nothing
@@ -26,6 +27,8 @@ type Decimal
        Arguments:
        - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
 
        ? Number Format
 
@@ -36,8 +39,14 @@ type Decimal
 
          - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
            is thrown.
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+           if a `Math_Context` value is explicitly passed.
     new : Text | Integer | Float -> Math_Context -> Decimal | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
+        IO.println 'AAA new'
+        IO.println x
+        IO.println (Meta.get_simple_type_name x)
         case x of
             _ : Text -> Decimal.from_text x mc
             _ : Integer -> Decimal.from_integer x mc
@@ -48,6 +57,8 @@ type Decimal
        Arguments:
        - s: The `Text` to construct a `Decimal` from.
        - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+         If a `Math_Context` is used, there is a possibility of a loss of
+         precision.
 
        ? Number Format
 
@@ -57,12 +68,16 @@ type Decimal
        ! Error Conditions
 
          - If `s` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+         - If the construction of the Decimal results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+           if a `Math_Context` value is explicitly passed.
     from_text : Text -> Math_Context -> Decimal | Number_Parse_Error
     from_text (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
+        IO.println "AAA ft"
         handle_number_format_exception <|
             case mc of
-                _ : Math_Context -> Decimal.Value (BigDecimal.new s mc.math_context)
-                _ : Nothing -> Decimal.Value (BigDecimal.new s)
+                _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
+                _ : Nothing -> Decimal.Value (Decimal_Utils.fromString s)
 
     ## Construct a `Decimal` from an `Integer`.
 
@@ -96,27 +111,38 @@ type Decimal
          - If the construction of the Decimal results in a loss of precision, a
            `Loss_Of_Numeric_Precision` warning is attached. This can only happen
            if a `Math_Context` value is explicitly passed.
-    from_float : Float -> Math_Context -> Decimal ! Loss_Of_Numeric_Precision
-    from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision =
-        case mc of
-            _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromEnsoFloat f mc.math_context
-            _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
+         - If `f` is NaN or +/-Inf, an Illegal_Argument error is thrown.
+    from_float : Float -> Math_Context -> Decimal ! Loss_Of_Numeric_Precision ! Illegal_Argument
+    from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision ! Illegal_Argument =
+        is_exceptional = f.is_nan || f.is_infinite
+        if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
+            case mc of
+                _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromEnsoFloat f mc.math_context
+                _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
 
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
 
-    ##
-        == self that =
-            case that of
-                _ : Integer -> self.big_decimal.compareTo(Decimal.from_integer that . big_decimal) == 0
-                _ : Float -> self.big_decimal.compareTo(Decimal.from_float that . big_decimal) == 0
-                _ : Decimal -> self.big_decimal.compareTo(that.big_decimal) == 0
+    / : Decimal -> Decimal -> Decimal
+    / self (that:Decimal) = self.divide that
+
+    == self that =
+        case that of
+            _ : Integer -> self.big_decimal.compareTo(Decimal.from_integer that . big_decimal) == 0
+            _ : Float -> self.big_decimal.compareTo(Decimal.from_float that . big_decimal) == 0
+            _ : Decimal -> self.big_decimal.compareTo(that.big_decimal) == 0
 
     add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
         case math_context of
             Nothing -> Decimal.Value (self.big_decimal.add that.big_decimal)
             _ -> Decimal.Value (self.big_decimal.add that.big_decimal math_context.math_context)
+
+    divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
+    divide self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
+        case math_context of
+            Nothing -> Decimal.Value (self.big_decimal.divide that.big_decimal)
+            _ -> Decimal.Value (self.big_decimal.divide that.big_decimal math_context.math_context)
 
     get_precision : Integer
     get_precision self = self.big_decimal.precision

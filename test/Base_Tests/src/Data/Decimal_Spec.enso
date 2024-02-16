@@ -62,27 +62,27 @@ add_specs suite_builder =
             Decimal.new 495782984723948723947239938732974241234500 mc . should_equal (Decimal.new 495782984723948723947239938732974241234000 )
 
         group_builder.specify "should be able to construct a Decimal from a float" <|
-            bd = Decimal.from_float 123.45
-            bd.should_have_rep [12345, 5, 2]
+            d = Decimal.from_float 123.45
+            d.should_have_rep [12345, 5, 2]
 
         group_builder.specify "should be able to construct a Decimal from a float, with an explicit precision, using the default rounding" <|
             mc = Math_Context.new 5
-            bd = Decimal.from_float 123.125 mc
-            bd.should_have_rep [12313, 5, 2]
-            bd.should_equal (Decimal.new "123.13")
+            d = Decimal.from_float 123.125 mc
+            d.should_have_rep [12313, 5, 2]
+            d.should_equal (Decimal.new "123.13")
 
         group_builder.specify "should be able to construct a Decimal from a float, with an explicit precision, using a non-default rounding" <|
             mc = Math_Context.new 5 Rounding_Mode.half_down
-            bd = Decimal.from_float 123.125 mc
-            bd.should_have_rep [12312, 5, 2]
-            bd.should_equal (Decimal.new "123.12")
+            d = Decimal.from_float 123.125 mc
+            d.should_have_rep [12312, 5, 2]
+            d.should_equal (Decimal.new "123.12")
 
         group_builder.specify "should report precision loss accurately" <|
             mc4 = Math_Context.new 4
             mc5 = Math_Context.new 5
 
             Problems.not_expect_warning (Decimal.new "123.25")
-            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc4)
+            Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc4)
             Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc5)
 
             Problems.not_expect_warning (Decimal.new 123.25)
@@ -92,6 +92,11 @@ add_specs suite_builder =
             Problems.not_expect_warning (Decimal.new 12325)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc4)
             Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc5)
+
+        group_builder.specify "should throw Illegal_Argument for NaN/Inf" <|
+            Decimal.new Number.nan . should_fail_with Illegal_Argument
+            Decimal.new Number.positive_infinity . should_fail_with Illegal_Argument
+            Decimal.new Number.negative_infinity . should_fail_with Illegal_Argument
 
 main =
     suite = Test.build suite_builder->

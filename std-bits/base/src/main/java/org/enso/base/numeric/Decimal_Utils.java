@@ -8,6 +8,16 @@ import java.math.MathContext;
 public class Decimal_Utils {
   public static record ConversionResult(BigDecimal newValue, boolean hasPrecisionLoss) {}
 
+  public static BigDecimal fromString(String s) {
+    return new BigDecimal(s);
+  }
+
+  public static ConversionResult fromString(String s, MathContext mc) {
+    BigDecimal bd = new BigDecimal(s, mc);
+    BigDecimal withoutMC = new BigDecimal(s);
+    return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
+  }
+
   public static BigDecimal fromEnsoInteger(Object o) {
     if (o instanceof Long l) {
       // According to the BigInteger Javadocs, valueOf is preferred "because it
@@ -23,20 +33,21 @@ public class Decimal_Utils {
   public static ConversionResult fromEnsoInteger(Object o, MathContext mc) {
     if (o instanceof Long l) {
       BigDecimal bd = new BigDecimal(l, mc);
+      BigDecimal withoutMC = new BigDecimal(l);
       long backToLong = bd.longValue();
-      System.out.println("AAA l " + o + " " + (l == backToLong) + " " + l + " " + backToLong + " " + (l-backToLong) );
-      return new ConversionResult(bd, l != backToLong);
+      return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
     } else if (o instanceof BigInteger bi) {
       BigDecimal bd = new BigDecimal(bi, mc);
+      BigDecimal withoutMC = new BigDecimal(bi);
       BigInteger backToBigInteger = bd.toBigInteger();
-      System.out.println("AAA bi " + o + " " + (bi.compareTo(backToBigInteger) == 0) + " " + bi + " " + backToBigInteger + " " + (bi.subtract(backToBigInteger)));
-      return new ConversionResult(bd, bi.compareTo(backToBigInteger) != 0);
+      return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
     } else {
       throw new IllegalArgumentException("Input must be Long or BigInteger");
     }
   }
 
   public static BigDecimal fromEnsoFloat(Double d) {
+    System.out.println("fEF " + d);
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
@@ -44,9 +55,10 @@ public class Decimal_Utils {
   }
 
   public static ConversionResult fromEnsoFloat(Double d, MathContext mc) {
+    System.out.println("fEF mc " + d);
     BigDecimal bd = new BigDecimal(d, mc);
+    BigDecimal withoutMC = new BigDecimal(d);
     double backToDouble = bd.doubleValue();
-    System.out.println("AAA d " + d + " " + (d == backToDouble) + " " + d + " " + backToDouble + " " + (d-backToDouble));
-    return new ConversionResult(bd, d != backToDouble);
+    return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
   }
 }
