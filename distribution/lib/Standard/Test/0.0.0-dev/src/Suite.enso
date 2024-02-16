@@ -99,7 +99,7 @@ type Suite
                 pending_groups = matching_specs.keys.filter (group-> group.is_pending)
                 pending_groups_details = case pending_groups.is_empty of
                     True -> "."
-                    False -> ": " + pending_groups.to_text
+                    False -> ": " + (pending_groups.map (it-> it.name) . to_text)
                 IO.println <| pending_groups.length.to_text + " groups skipped" + pending_groups_details
                 exit_code = if failed_tests > 0 then 1 else 0
                 System.exit exit_code
