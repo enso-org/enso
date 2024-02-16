@@ -40,4 +40,4 @@ type HTTP_Error
        Utility method for running an action with Java exceptions mapping.
     handle_java_exceptions (uri:URI) ~action =
         Panic.catch IOException action caught_panic->
-            HTTP_Error.IO_Error uri ("An IO error has occurred: " + caught_panic.payload.to_text)
+            Error.throw (HTTP_Error.IO_Error uri ("An IO error has occurred: " + caught_panic.payload.to_text))
