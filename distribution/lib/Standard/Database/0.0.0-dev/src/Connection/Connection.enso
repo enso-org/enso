@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
-import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
@@ -356,7 +355,7 @@ type Connection
          representing the query to execute.
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
-        if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
+        if Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False else
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
                 result = case self.supports_large_update.get of
