@@ -1,4 +1,4 @@
-/** @file Settings tab for viewing and editing account information. */
+/** @file Settings tab for viewing and editing all users in the organization. */
 import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
@@ -41,10 +41,10 @@ export default function MembersSettingsTab() {
         <table className="self-start table-fixed">
           <thead>
             <tr className="h-8">
-              <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0 text-sm font-semibold w-32">
+              <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 text-sm font-semibold w-32">
                 Name
               </th>
-              <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0 text-sm font-semibold w-48">
+              <th className="text-left bg-clip-padding border-transparent border-l-2 text-sm font-semibold w-48">
                 Email
               </th>
             </tr>

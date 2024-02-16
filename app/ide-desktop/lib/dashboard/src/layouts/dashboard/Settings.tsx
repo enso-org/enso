@@ -73,7 +73,9 @@ export default function Settings() {
       <div className="flex gap-2.5 font-bold text-xl h-9.5 px-4.75">
         <span className="py-0.5">Settings for </span>
         <div className="rounded-full leading-144.5 bg-frame h-9 px-2.25 pt-0.5 pb-1.25">
-          {settingsTab !== SettingsTab.organization
+          {settingsTab !== SettingsTab.organization &&
+          settingsTab !== SettingsTab.members &&
+          settingsTab !== SettingsTab.memberRoles
             ? user?.name ?? 'your account'
             : organization.organization_name ?? 'your organization'}
         </div>

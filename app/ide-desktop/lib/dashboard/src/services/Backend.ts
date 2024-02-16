@@ -347,6 +347,7 @@ export interface SimpleUser {
   readonly id: Subject
   readonly name: string
   readonly email: EmailAddress
+  readonly roles?: string[]
 }
 
 /** User permission for a specific user. */
