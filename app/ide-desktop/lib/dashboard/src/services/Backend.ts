@@ -119,6 +119,7 @@ export interface CreatedDirectory {
 export enum ProjectState {
   created = 'Created',
   new = 'New',
+  scheduled = 'Scheduled',
   openInProgress = 'OpenInProgress',
   provisioned = 'Provisioned',
   opened = 'Opened',
@@ -150,6 +151,7 @@ export interface ProjectStateType {
 export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.created]: false,
   [ProjectState.new]: false,
+  [ProjectState.scheduled]: false,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
   [ProjectState.opened]: true,

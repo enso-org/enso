@@ -47,6 +47,7 @@ const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingSlow,
+  [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -59,6 +60,7 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingMedium,
+  [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 
@@ -361,6 +363,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         </button>
       )
     case backendModule.ProjectState.openInProgress:
+    case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
