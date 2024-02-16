@@ -352,7 +352,7 @@ export default function Drive(props: DriveProps) {
         <div
           data-testid="drive-view"
           className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 mt-8 ${
-            hidden ? 'hidden' : ''
+            hidden ? 'hidden' : 'hidden'
           }`}
         >
           <div className="flex flex-col self-start gap-3">

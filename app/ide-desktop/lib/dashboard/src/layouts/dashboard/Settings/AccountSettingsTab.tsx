@@ -11,7 +11,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
-import SvgIcon from '#/components/SvgIcon'
+import SvgMask from '#/components/SvgMask'
 
 import * as object from '#/utilities/object'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -67,7 +67,7 @@ function Input(props: InternalInputProps) {
 
   const input = (
     <input
-      className="rounded-full font-bold leading-5 w-full h-6 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors invalid:border invalid:border-red-700"
+      className="rounded-full font-bold leading-5 w-full h-6 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors placeholder-primary/30 invalid:border invalid:border-red-700"
       type={isShowingPassword ? 'text' : type}
       size={1}
       defaultValue={originalValue}
@@ -88,10 +88,9 @@ function Input(props: InternalInputProps) {
     <div className="relative">
       {input}
       {
-        <SvgIcon
+        <SvgMask
           src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
-          className="cursor-pointer rounded-full"
-          positionClassName="right-0 top-0"
+          className="absolute cursor-pointer rounded-full right-2 top-1"
           onClick={() => {
             setIsShowingPassword(show => !show)
           }}
@@ -232,7 +231,8 @@ export default function AccountSettingsTab() {
                   currentPassword === '' ||
                   newPassword === '' ||
                   confirmNewPassword === '' ||
-                  newPassword !== confirmNewPassword
+                  newPassword !== confirmNewPassword ||
+                  !validation.PASSWORD_REGEX.test(newPassword)
                 }
                 type="submit"
                 className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px disabled:opacity-50"
