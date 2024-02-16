@@ -88,14 +88,21 @@ function Input(props: InternalInputProps) {
 /** Settings tab for viewing and editing account information. */
 export default function AccountSettingsTab() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { setUser, signOut } = authProvider.useAuth()
+  const { setUser, changePassword, signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
-  const { user } = authProvider.useNonPartialUserSession()
+  const { user, accessToken } = authProvider.useNonPartialUserSession()
   const [passwordFormKey, setPasswordFormKey] = React.useState('')
   const [currentPassword, setCurrentPassword] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
   const [confirmNewPassword, setConfirmNewPassword] = React.useState('')
+
+  // The shape of the JWT payload is statically known.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const username: string | null =
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
+    accessToken != null ? JSON.parse(atob(accessToken.split('.')[1]!)).username : null
+  const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
 
   const doUpdateName = async (newName: string) => {
     const oldName = user?.name ?? ''
@@ -147,79 +154,84 @@ export default function AccountSettingsTab() {
             </div>
           </div>
         </div>
-        <div key={passwordFormKey}>
-          <h3 className="font-bold text-xl h-9.5 py-0.5">Change Password</h3>
-          <div className="flex gap-4.75">
-            <span className="leading-5 w-36 h-8 py-1.25">Current Password</span>
-            <span className="grow font-bold leading-5 h-8 py-1.25">
-              <Input
-                originalValue=""
-                placeholder="Enter your current password"
-                onChange={event => {
-                  setCurrentPassword(event.currentTarget.value)
+        {canChangePassword && (
+          <div key={passwordFormKey}>
+            <h3 className="font-bold text-xl h-9.5 py-0.5">Change Password</h3>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-36 h-8 py-1.25">Current Password</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
+                <Input
+                  originalValue=""
+                  placeholder="Enter your current password"
+                  onChange={event => {
+                    setCurrentPassword(event.currentTarget.value)
+                  }}
+                />
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-36 h-8 py-1.25">New Password</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
+                <Input
+                  originalValue=""
+                  placeholder="Enter your new password"
+                  onChange={event => {
+                    const newValue = event.currentTarget.value
+                    setNewPassword(newValue)
+                    event.currentTarget.setCustomValidity(
+                      newValue === '' || validation.PASSWORD_REGEX.test(newValue)
+                        ? ''
+                        : validation.PASSWORD_ERROR
+                    )
+                  }}
+                />
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-36 h-8 py-1.25">Confirm New Password</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
+                <Input
+                  originalValue=""
+                  placeholder="Confirm your new password"
+                  onChange={event => {
+                    const newValue = event.currentTarget.value
+                    setConfirmNewPassword(newValue)
+                    event.currentTarget.setCustomValidity(
+                      newValue === '' || newValue === newPassword ? '' : 'Passwords must match.'
+                    )
+                  }}
+                />
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={
+                  currentPassword === '' ||
+                  newPassword === '' ||
+                  confirmNewPassword === '' ||
+                  newPassword !== confirmNewPassword
+                }
+                type="submit"
+                className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px disabled:opacity-50"
+                onClick={() => {
+                  setPasswordFormKey(uniqueString.uniqueString())
+                  void changePassword(currentPassword, newPassword)
                 }}
-              />
-            </span>
-          </div>
-          <div className="flex gap-4.75">
-            <span className="leading-5 w-36 h-8 py-1.25">New Password</span>
-            <span className="grow font-bold leading-5 h-8 py-1.25">
-              <Input
-                originalValue=""
-                placeholder="Enter your new password"
-                onChange={event => {
-                  const newValue = event.currentTarget.value
-                  setNewPassword(newValue)
-                  event.currentTarget.setCustomValidity(
-                    validation.PASSWORD_REGEX.test(newValue) ? '' : validation.PASSWORD_ERROR
-                  )
+              >
+                Change
+              </button>
+              <button
+                type="button"
+                className="bg-frame-selected font-medium rounded-full h-6 py-px px-2 -my-px"
+                onClick={() => {
+                  setPasswordFormKey(uniqueString.uniqueString())
                 }}
-              />
-            </span>
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-          <div className="flex gap-4.75">
-            <span className="leading-5 w-36 h-8 py-1.25">Confirm New Password</span>
-            <span className="grow font-bold leading-5 h-8 py-1.25">
-              <Input
-                originalValue=""
-                placeholder="Confirm your new password"
-                onChange={event => {
-                  const newValue = event.currentTarget.value
-                  setConfirmNewPassword(newValue)
-                  event.currentTarget.setCustomValidity(
-                    newValue === newPassword ? '' : 'Passwords must match.'
-                  )
-                }}
-              />
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <button
-              disabled={
-                currentPassword === '' ||
-                newPassword === '' ||
-                confirmNewPassword === '' ||
-                newPassword !== confirmNewPassword
-              }
-              type="submit"
-              className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px disabled:opacity-50"
-              onClick={() => {
-                setPasswordFormKey(uniqueString.uniqueString())
-              }}
-            >
-              Change
-            </button>
-            <button
-              type="button"
-              className="bg-frame-selected font-medium rounded-full h-6 py-px px-2 -my-px"
-              onClick={() => {
-                setPasswordFormKey(uniqueString.uniqueString())
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        )}
         <div className="flex flex-col gap-2.5 rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
           <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">Danger Zone</h3>
           <div className="flex gap-2">
