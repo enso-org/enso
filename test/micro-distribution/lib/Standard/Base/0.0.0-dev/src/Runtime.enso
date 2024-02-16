@@ -6,6 +6,7 @@ import project.Errors.Common.Forbidden_Operation
 import project.Function.Function
 import project.Panic.Panic
 
+from project.Data.Boolean import True
 from project.Runtime.Context import Input, Output
 
 @Builtin_Type
