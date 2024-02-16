@@ -34,7 +34,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 parsed_user.home.is_directory.should_be_true
 
                 invalid_json = Json.parse "{}"
-                Enso_User.from invalid_json . should_fail_with Illegal_Argument
+                r = Enso_User.from invalid_json
+                r.should_fail_with Enso_Cloud_Error
+                r.catch.should_be_a Enso_Cloud_Error.Invalid_Response_Payload
                 Test.expect_panic No_Such_Conversion (Enso_User.from (Json.parse "[]"))
 
         suite_builder.group "Enso_User - local mock integration tests" group_builder->
