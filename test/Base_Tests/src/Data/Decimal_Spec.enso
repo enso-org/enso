@@ -147,6 +147,31 @@ add_specs suite_builder =
                 (a > a) . should_be_false
                 (b > b) . should_be_false
 
+                Decimal.new (pr.at 0) . should_equal (Decimal.new (pr.at 0))
+                Decimal.new (pr.at 1) . should_equal (Decimal.new (pr.at 1))
+
+                a . should_equal a
+                b . should_equal b
+                a . should_not_equal b
+                b . should_not_equal a
+
+        group_builder.specify "should compare correctly, even with different internal representations" <|
+            a = Decimal.new "12000"
+            b = Decimal.new "12000" (Math_Context.new 2)
+            c = Decimal.new "12000" (Math_Context.new 3)
+            [[a, b], [a, c], [b, c]].map pr->
+                x0 = pr.at 0
+                x1 = pr.at 1
+                ir0 = x0.get_internal_representation
+                ir1 = x1.get_internal_representation
+                # TODO: specialization error if we sipmly say (ir0 != ir1)
+                ([0, 1, 2].all i-> ((ir0.at i) == (ir1.at i))) . should_be_false
+
+                (x0 == x1) . should_be_true
+                (x1 == x0) . should_be_true
+                (x0 != x1) . should_be_false
+                (x1 != x0) . should_be_false
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
