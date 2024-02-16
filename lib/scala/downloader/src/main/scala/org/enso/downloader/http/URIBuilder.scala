@@ -1,6 +1,7 @@
 package org.enso.downloader.http
 
-import java.net.URI
+import java.net.{URI, URLEncoder}
+import java.nio.charset.StandardCharsets
 
 /** A simple immutable builder for URIs based on URLs.
   *
@@ -25,13 +26,15 @@ case class URIBuilder private (uri: URI) {
     * The query is appended at the end.
     */
   def addQuery(key: String, value: String): URIBuilder = {
-    val scheme    = uri.getScheme
-    val authority = uri.getAuthority
-    val path      = uri.getPath
-    val query     = if (uri.getQuery == null) "" else uri.getQuery + "&"
-    val fragment  = uri.getFragment
-    val newQuery  = query + key + "=" + value
-    val newUri    = new URI(scheme, authority, path, newQuery, fragment)
+    val scheme       = uri.getScheme
+    val authority    = uri.getAuthority
+    val path         = uri.getPath
+    val query        = if (uri.getQuery == null) "" else uri.getQuery + "&"
+    val fragment     = uri.getFragment
+    val encodedKey   = URLEncoder.encode(key, StandardCharsets.UTF_8)
+    val encodedValue = URLEncoder.encode(value, StandardCharsets.UTF_8)
+    val newQuery     = query + encodedKey + "=" + encodedValue
+    val newUri       = new URI(scheme, authority, path, newQuery, fragment)
     copy(newUri)
   }
 

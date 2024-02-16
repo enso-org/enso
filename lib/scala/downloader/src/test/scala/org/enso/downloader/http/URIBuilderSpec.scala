@@ -16,6 +16,12 @@ class URIBuilderSpec extends AnyWordSpec with Matchers {
       val uri  = bldr.addQuery("foo", "bar").addQuery("baz", "qux").build()
       uri.toString mustEqual "http://google.com?foo=bar&baz=qux"
     }
+
+    "Handle non-standard symbols in queries" in {
+      val bldr = URIBuilder.fromUri("http://google.com")
+      val uri  = bldr.addQuery("foo", "bar baz").addQuery("baz", "qux").build()
+      uri.toString mustEqual "http://google.com?foo=bar+baz&baz=qux"
+    }
   }
 
 }
