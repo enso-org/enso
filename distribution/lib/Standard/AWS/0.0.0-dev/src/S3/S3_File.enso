@@ -181,7 +181,7 @@ type S3_File
     delete_if_exists : Nothing
     delete_if_exists self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Deleting an S3_File is forbidden as the Output context is disabled.") else
-            translate_file_errors self <| S3.delete_object self.bucket self.prefix self.credentials . if_not_error <| Nothing
+            translate_file_errors self <| S3.delete_object self.bucket self.prefix self.credentials . if_not_error Nothing
 
     ## Copies the file to the specified destination.
 
@@ -218,7 +218,7 @@ type S3_File
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
             r = self.copy_to destination replace_existing=replace_existing
             r.if_not_error <|
-                self.delete.if_not_error <| r
+                self.delete.if_not_error r
 
     ## GROUP Standard.Base.Operators
        Join two path segments together.

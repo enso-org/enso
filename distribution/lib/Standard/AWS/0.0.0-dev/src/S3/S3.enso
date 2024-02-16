@@ -143,7 +143,7 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3
 put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing request_body = handle_s3_errors bucket=bucket key=key <|
     client = make_client credentials
     request = PutObjectRequest.builder.bucket bucket . key key . build
-    client.putObject request request_body . if_not_error <| Nothing
+    client.putObject request request_body . if_not_error Nothing
 
 ## PRIVATE
 upload_file (local_file : File) (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
@@ -156,7 +156,7 @@ upload_file (local_file : File) (bucket : Text) (key : Text) credentials:(AWS_Cr
 delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
     client = make_client credentials
     request = DeleteObjectRequest.builder . bucket bucket . key key . build
-    client.deleteObject request . if_not_error <| Nothing
+    client.deleteObject request . if_not_error Nothing
 
 ## PRIVATE
 copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=source_bucket key=source_key <|
@@ -167,7 +167,7 @@ copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (t
         . sourceBucket source_bucket
         . sourceKey source_key
         . build
-    client.copyObject request . if_not_error <| Nothing
+    client.copyObject request . if_not_error Nothing
 
 ## PRIVATE
    Splits a S3 URI into bucket and key.

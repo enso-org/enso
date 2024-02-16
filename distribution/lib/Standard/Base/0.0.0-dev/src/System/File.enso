@@ -657,7 +657,7 @@ type File
                 _ ->
                     r = destination.copy_from_local self replace_existing
                     r.if_not_error <|
-                        self.delete . if_not_error <| r
+                        self.delete . if_not_error r
 
     ## Deletes the file if it exists on disk.
 

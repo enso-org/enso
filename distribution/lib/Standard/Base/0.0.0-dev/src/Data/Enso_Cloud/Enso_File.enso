@@ -257,7 +257,7 @@ type Enso_File
         uri = if self.is_directory then Utils.directory_api + "/" + self.id else self.internal_uri
         auth_header = Utils.authorization_header
         response = HTTP.post uri Request_Body.Empty HTTP_Method.Delete [auth_header]
-        response.if_not_error <| Nothing
+        response.if_not_error Nothing
 
     ## Deletes the file if it had existed.
     delete_if_exists : Nothing
