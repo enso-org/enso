@@ -456,6 +456,7 @@ export default class LocalBackend extends Backend {
   override listSecrets() {
     return Promise.resolve([])
   }
+
   /** Invalid operation. */
   override createTag() {
     return this.invalidOperation()
@@ -474,5 +475,10 @@ export default class LocalBackend extends Backend {
   /** Do nothing. This function should never need to be called. */
   override deleteTag() {
     return Promise.resolve()
+  }
+
+  /** Invalid operation. */
+  override listRoles() {
+    return this.invalidOperation()
   }
 }

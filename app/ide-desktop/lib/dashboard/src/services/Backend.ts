@@ -341,13 +341,26 @@ export interface OrganizationInfo {
   readonly picture: HttpsUrl | null
 }
 
+/** A role and its associated metadata. */
+export interface RoleInfo {
+  readonly name: string
+  readonly createdAt: dateTime.Rfc3339DateTime
+  readonly users: SimpleUser[]
+}
+
+/** Metadata for all roles. */
+export interface RolesInfo {
+  readonly roles: RoleInfo[]
+  readonly usersWithoutRoles: SimpleUser[]
+}
+
 /** Metadata uniquely identifying a user inside an organization.
  * This is similar to {@link UserInfo}, but without `organization_id`. */
 export interface SimpleUser {
   readonly id: Subject
   readonly name: string
   readonly email: EmailAddress
-  readonly roles?: string[]
+  readonly picture?: string
 }
 
 /** User permission for a specific user. */
@@ -1085,6 +1098,8 @@ export default abstract class Backend {
   abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string | null): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
+  /** Return all roles in the organization, and their members. */
+  abstract listRoles(): Promise<RolesInfo>
   /** Return a list of backend or IDE versions. */
   abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }

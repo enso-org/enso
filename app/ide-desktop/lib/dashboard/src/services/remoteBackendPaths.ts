@@ -53,6 +53,8 @@ export const CREATE_CONNECTOR_PATH = 'connectors'
 export const CREATE_TAG_PATH = 'tags'
 /** Relative HTTP path to the "list tags" endpoint of the Cloud backend API. */
 export const LIST_TAGS_PATH = 'tags'
+/** Relative HTTP path to the "list roles" endpoint of the Cloud backend API. */
+export const LIST_ROLES_PATH = 'roles'
 /** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
 export const LIST_VERSIONS_PATH = 'versions'
 /** Relative HTTP path to the "list asset versions" endpoint of the Cloud backend API. */

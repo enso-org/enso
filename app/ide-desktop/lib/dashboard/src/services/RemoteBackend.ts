@@ -837,6 +837,18 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** List all roles in the organization.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async listRoles(): Promise<backendModule.RolesInfo> {
+    const path = remoteBackendPaths.LIST_ROLES_PATH
+    const response = await this.get<backendModule.RolesInfo>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not list roles.`)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Return a list of backend or IDE versions.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listVersions(
