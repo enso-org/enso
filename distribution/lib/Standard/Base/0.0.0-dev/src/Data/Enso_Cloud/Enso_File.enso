@@ -301,7 +301,9 @@ type Enso_File
 
     ## Returns the text representation of the file descriptor.
     to_text : Text
-    to_text self = self.asset_type.to_text + " " + self.name
+    to_text self -> Text =
+        if self == Enso_File.root then "Cloud Root Directory" else
+            "Cloud " + self.asset_type.to_text + " " + self.name
 
 ## PRIVATE
 list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
