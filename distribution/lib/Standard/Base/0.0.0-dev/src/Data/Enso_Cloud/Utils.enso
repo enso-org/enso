@@ -11,6 +11,7 @@ import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Function.Function
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
@@ -93,5 +94,6 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_B
         json_payload = payload.parse_json.catch Invalid_JSON (_->Nothing)
         error_code = json_payload.get "code"
         handler = error_code.if_not_nothing <| error_handlers.get error_code
-        if handler.is_nothing then handler json_payload else
-            Error.throw (Enso_Cloud_Error.Unexpected_Error response.code payload)
+        case handler of
+            Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Error response.code payload)
+            _ : Function -> handler json_payload
