@@ -47,7 +47,7 @@ if (LOG_REQUESTS) {
         console.log(`  Query: ${JSON.stringify(req.query)}`)
         console.log(`  Body: ${JSON.stringify(req.body)}`)
         next()
-    });
+    })
 }
 
 const tmpDir = path.join(os.tmpdir(), 'enso-library-repo-uploads')
