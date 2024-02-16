@@ -38,7 +38,21 @@ class RemoteCache(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    async def put(self, bench_id: str, job_report: JobReport) -> None:
+        """
+        Puts a job report to the remote cache, or to the internal data structures.
+        :param bench_id:
+        :param job_report:
+        :return:
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     async def sync(self) -> None:
+        """
+        Synchronizes the remote cache with the local state.
+        :return:
+        """
         raise NotImplementedError
 
 
@@ -74,6 +88,11 @@ class ReadonlyRemoteCache(RemoteCache):
         self._fetched_items[bench_id] = bench_report
         return bench_report
 
+    async def put(self, bench_id: str, job_report: JobReport) -> None:
+        assert _is_benchrun_id(bench_id)
+        assert bench_id not in self._fetched_items
+        self._fetched_items[bench_id] = job_report
+
     async def sync(self) -> None:
         # Nop
         pass
@@ -104,8 +123,14 @@ class SyncRemoteCache(RemoteCache):
         if path.exists():
             with path.open() as f:
                 return _parse_bench_report_from_json(json.load(f))
-        else:
-            return None
+        return None
+
+    async def put(self, bench_id: str, job_report: JobReport) -> None:
+        assert self._cache_dir.exists()
+        path = self._cache_dir.joinpath(bench_id + ".json")
+        assert not path.exists()
+        with path.open("w") as f:
+            json.dump(job_report, f)
 
     async def sync(self) -> None:
         status = await git.status(self._repo_root_dir)

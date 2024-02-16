@@ -47,6 +47,8 @@ Dependencies for the script:
 
 import sys
 
+from bench_tool.remote_cache import RemoteCache, ReadonlyRemoteCache
+
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     print("ERROR: python version lower than 3.7")
     exit(1)
@@ -68,7 +70,8 @@ from os import path
 from typing import List, Dict, Optional, Any, Set
 import xml.etree.ElementTree as ET
 
-from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_DATE_FORMAT, GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, JINJA_TEMPLATE, ENSO_REPO, Author, Commit, JobRun, JobReport, \
+from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_DATE_FORMAT, GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, \
+    JINJA_TEMPLATE, ENSO_REPO, Author, Commit, JobRun, JobReport, \
     TemplateBenchData, JinjaData, Source
 from bench_tool.gh import invoke_gh_api, ensure_gh_installed
 from bench_tool.template_render import create_template_data, render_html
@@ -274,39 +277,44 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow
     return parsed_bench_runs
 
 
-async def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Optional[JobReport]:
+async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: RemoteCache) -> Optional[JobReport]:
     """
     Extracts some data from the given bench_run, which was fetched via the GH API,
     optionally getting it from the cache.
     An artifact in GH can expire, in such case, returns None.
     :param bench_run:
-    :param cache:
     :param temp_dir: Used for downloading and unzipping artifacts.
     :return: None if the corresponding artifact expired.
     """
-    if bench_run.id in cache:
-        logging.info(f"Getting bench run with ID {bench_run.id} from cache")
-        return cache[bench_run.id]
-
     # There might be multiple artifacts in the artifact list for a benchmark run
     # We are looking for the one named 'Runtime Benchmark Report', which will
     # be downloaded as a ZIP file.
     obj: Dict[str, Any] = await invoke_gh_api(ENSO_REPO, f"/actions/runs/{bench_run.id}/artifacts")
     artifacts = obj["artifacts"]
     if len(artifacts) != 1:
-        logging.warning("Bench run %s does not contain an artifact, but it is a successful run.",
+        logging.warning("Bench run %s does not contain exactly one artifact, but it is a successful run.",
                       bench_run.id)
         return None
     bench_report_artifact = artifacts[0]
     assert bench_report_artifact, "Benchmark Report artifact not found"
     artifact_id = str(bench_report_artifact["id"])
-    if bench_report_artifact["expired"]:
-        created_at = bench_report_artifact["created_at"]
-        updated_at = bench_report_artifact["updated_at"]
-        expires_at = bench_report_artifact["expires_at"]
-        logging.warning(f"Artifact with ID {artifact_id} from bench report {bench_run.id} has expired. "
-                        f"created_at={created_at}, updated_at={updated_at}, expires_at={expires_at}")
+    created_at = bench_report_artifact["created_at"]
+    updated_at = bench_report_artifact["updated_at"]
+    expires_at = bench_report_artifact["expires_at"]
+    is_expired = bench_report_artifact["expired"]
+    logging.debug(f"Got artifact with ID {artifact_id}, from bench run {bench_run.id}: "
+                  f"created_at={created_at}, updated_at={updated_at}, expires_at={expires_at}, "
+                  f"is_expired={is_expired}")
+
+    job_report = await remote_cache.fetch(bench_run.id)
+    if is_expired and job_report is None:
+        logging.error(f"Artifact {artifact_id} from bench run {bench_run.id} is expired, and it is not in the remote cache")
         return None
+    if job_report:
+        logging.debug(f"Got job report from the cache for {bench_run.id}")
+        return job_report
+
+    assert not is_expired
 
     # Get contents of the ZIP artifact file
     artifact_ret = await invoke_gh_api(ENSO_REPO, f"/actions/artifacts/{artifact_id}/zip", result_as_json=False)
@@ -327,7 +335,7 @@ async def get_bench_report(bench_run: JobRun, cache: Cache, temp_dir: str) -> Op
     assert path.exists(bench_report_xml)
 
     bench_report_parsed = _parse_bench_report_from_xml(bench_report_xml, bench_run)
-    cache[bench_run.id] = bench_report_parsed
+    await remote_cache.put(bench_run.id, bench_report_parsed)
     return bench_report_parsed
 
 
@@ -365,23 +373,6 @@ def write_bench_reports_to_csv(bench_reports: List[JobReport], csv_fname: str) -
                 })
 
 
-def populate_cache(cache_dir: str) -> Cache:
-    """
-    Initializes cache from `cache_dir`, if there are any items.
-    See docs of `Cache`.
-
-    :param cache_dir: Path to the cache directory. Does not have to exist
-    :return: Populated cache. Might be empty.
-    """
-    if not path.exists(cache_dir):
-        logging.info(f"No cache at {cache_dir}, creating the cache directory")
-        os.mkdir(cache_dir)
-    logging.debug(f"Initializing cache from {cache_dir}")
-    cache = Cache(cache_dir)
-    logging.debug(f"Cache populated with {len(cache)} items")
-    return cache
-
-
 def _gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
     """
     Iterates through all the job reports and gathers all the benchmark labels
@@ -398,7 +389,6 @@ def _gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
 async def main():
     default_since: datetime = (datetime.now() - timedelta(days=14))
     default_until: datetime = datetime.now()
-    default_cache_dir = path.expanduser("~/.cache/enso_bench_download")
     default_csv_out = "Engine_Benchs/data/benchs.csv"
     date_format_help = DATE_FORMAT.replace("%", "%%")
 
@@ -434,17 +424,6 @@ async def main():
                             help=f"The date until which the benchmark results will be gathered. "
                                  f"Format is {date_format_help}. "
                                  f"The default is today")
-    arg_parser.add_argument("--use-cache",
-                            default=False,
-                            metavar="(true|false)",
-                            type=lambda input: True if input in ("true", "True") else False,
-                            help="Whether the cache directory should be used. The default is False.")
-    arg_parser.add_argument("-c", "--cache", action="store",
-                            default=default_cache_dir,
-                            metavar="CACHE_DIR",
-                            help=f"Cache directory. Makes sense only iff specified with --use-cache argument. "
-                                 f"The default is {default_cache_dir}. If there are any troubles with the "
-                                 f"cache, just do `rm -rf {default_cache_dir}`.")
     arg_parser.add_argument("-b", "--branches", action="store",
                             nargs="+",
                             default=["develop"],
@@ -476,20 +455,17 @@ async def main():
 
     since: datetime = args.since
     until: datetime = args.until
-    cache_dir: str = args.cache
     if not args.tmp_dir:
         temp_dir: str = tempfile.mkdtemp()
     else:
         temp_dir: str = args.tmp_dir
-    use_cache: bool = args.use_cache
-    assert cache_dir and temp_dir
     bench_source: Source = args.source
     csv_output: str = args.csv_output
     create_csv: bool = args.create_csv
     branches: List[str] = args.branches
     labels_override: Set[str] = args.labels
-    logging.debug(f"parsed args: since={since}, until={until}, cache_dir={cache_dir}, "
-                 f"temp_dir={temp_dir}, use_cache={use_cache}, bench_source={bench_source}, "
+    logging.debug(f"parsed args: since={since}, until={until}, "
+                 f"temp_dir={temp_dir}, bench_source={bench_source}, "
                  f"csv_output={csv_output}, "
                  f"create_csv={create_csv}, branches={branches}, "
                  f"labels_override={labels_override}")
@@ -499,22 +475,16 @@ async def main():
     # If the user requires benchmarks for which artifacts are not retained
     # anymore, then cache should be used.
     min_since_without_cache = datetime.today() - GH_ARTIFACT_RETENTION_PERIOD
-    if not use_cache and since < min_since_without_cache:
-        logging.warning(f"The default GH artifact retention period is "
+    if since < min_since_without_cache:
+        logging.info(f"The default GH artifact retention period is "
                         f"{GH_ARTIFACT_RETENTION_PERIOD.days} days. "
                         f"This means that all the artifacts older than "
                         f"{min_since_without_cache.date()} are expired."
-                        f"The use_cache parameter is set to False, so no "
-                        f"expired artifacts will be fetched.")
-        logging.warning(f"The `since` parameter is reset to "
-                        f"{min_since_without_cache.date()} to prevent "
-                        f"unnecessary GH API queries.")
-        since = min_since_without_cache
+                        f"The since date was set to {since}, so the remote cache is enabled, "
+                        f"and the older artifacts will be fetched from the cache.")
 
-    if use_cache:
-        cache = populate_cache(cache_dir)
-    else:
-        cache = FakeCache()
+    remote_cache = ReadonlyRemoteCache()
+    await remote_cache.initialize()
 
     bench_labels: Optional[Set[str]] = None
     """ Set of all gathered benchmark labels from all the job reports """
@@ -534,7 +504,7 @@ async def main():
         job_reports: List[JobReport] = []
 
         async def _process_report(_bench_run):
-            _job_report = await get_bench_report(_bench_run, cache, temp_dir)
+            _job_report = await get_bench_report(_bench_run, temp_dir, remote_cache)
             if _job_report:
                 job_reports.append(_job_report)
 
