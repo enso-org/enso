@@ -2,12 +2,16 @@
 import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
+import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
+import EyeIcon from 'enso-assets/eye.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+
+import SvgIcon from '#/components/SvgIcon'
 
 import * as object from '#/utilities/object'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -22,16 +26,16 @@ import ConfirmDeleteUserModal from '../ConfirmDeleteUserModal'
 /** Props for an {@link Input}. */
 interface InternalInputProps {
   readonly originalValue: string
+  readonly type?: string
   readonly placeholder?: string
-  readonly pattern?: string
   readonly onChange?: React.ChangeEventHandler<HTMLInputElement>
   readonly onSubmit?: (value: string) => void
 }
 
 /** A styled input. */
 function Input(props: InternalInputProps) {
-  const { originalValue, placeholder, pattern, onChange, onSubmit } = props
-  const ref = React.useRef<HTMLInputElement>(null)
+  const { originalValue, type, placeholder, onChange, onSubmit } = props
+  const [isShowingPassword, setIsShowingPassword] = React.useState(false)
   const cancelled = React.useRef(false)
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -61,15 +65,13 @@ function Input(props: InternalInputProps) {
     }
   }
 
-  return (
+  const input = (
     <input
-      ref={ref}
       className="rounded-full font-bold leading-5 w-full h-6 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors invalid:border invalid:border-red-700"
-      type="text"
+      type={isShowingPassword ? 'text' : type}
       size={1}
       defaultValue={originalValue}
       placeholder={placeholder}
-      pattern={pattern}
       onKeyDown={onKeyDown}
       onChange={onChange}
       onBlur={event => {
@@ -78,6 +80,24 @@ function Input(props: InternalInputProps) {
         }
       }}
     />
+  )
+
+  return type !== 'password' ? (
+    input
+  ) : (
+    <div className="relative">
+      {input}
+      {
+        <SvgIcon
+          src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
+          className="cursor-pointer rounded-full"
+          positionClassName="right-0 top-0"
+          onClick={() => {
+            setIsShowingPassword(show => !show)
+          }}
+        />
+      }
+    </div>
   )
 }
 
@@ -161,6 +181,7 @@ export default function AccountSettingsTab() {
               <span className="leading-5 w-36 h-8 py-1.25">Current Password</span>
               <span className="grow font-bold leading-5 h-8 py-1.25">
                 <Input
+                  type="password"
                   originalValue=""
                   placeholder="Enter your current password"
                   onChange={event => {
@@ -173,6 +194,7 @@ export default function AccountSettingsTab() {
               <span className="leading-5 w-36 h-8 py-1.25">New Password</span>
               <span className="grow font-bold leading-5 h-8 py-1.25">
                 <Input
+                  type="password"
                   originalValue=""
                   placeholder="Enter your new password"
                   onChange={event => {
@@ -191,6 +213,7 @@ export default function AccountSettingsTab() {
               <span className="leading-5 w-36 h-8 py-1.25">Confirm New Password</span>
               <span className="grow font-bold leading-5 h-8 py-1.25">
                 <Input
+                  type="password"
                   originalValue=""
                   placeholder="Confirm your new password"
                   onChange={event => {
@@ -215,6 +238,9 @@ export default function AccountSettingsTab() {
                 className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px disabled:opacity-50"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmNewPassword('')
                   void changePassword(currentPassword, newPassword)
                 }}
               >
@@ -225,6 +251,9 @@ export default function AccountSettingsTab() {
                 className="bg-frame-selected font-medium rounded-full h-6 py-px px-2 -my-px"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmNewPassword('')
                 }}
               >
                 Cancel
