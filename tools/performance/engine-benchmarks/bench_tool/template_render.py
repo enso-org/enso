@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from os import path
+from pathlib import Path
 from typing import List, Dict, Optional, Set
 
 import jinja2
@@ -11,6 +11,7 @@ from bench_tool import JobReport, TemplateBenchData, BenchDatapoint, GH_DATE_FOR
     JINJA_TEMPLATE, TEMPLATES_DIR
 
 _logger = logging.getLogger(__name__)
+
 
 def create_template_data(
         job_reports_per_branch: Dict[str, List[JobReport]],
@@ -75,8 +76,8 @@ def create_template_data(
                     tooltip += "date = " + str(timestamp) + "\\n"
                     tooltip += "branch = " + branch + "\\n"
                     tooltip += "diff = " + diff_str(score_diff, score_diff_perc)
-                    author_name = commit.author.name\
-                        .replace('"', '\\"')\
+                    author_name = commit.author.name \
+                        .replace('"', '\\"') \
                         .replace("'", "\\'")
                     datapoints.append(BenchDatapoint(
                         timestamp=timestamp,
@@ -102,16 +103,16 @@ def create_template_data(
     return template_bench_datas
 
 
-def render_html(jinja_data: JinjaData, html_out_fname: str) -> None:
+def render_html(jinja_data: JinjaData, html_out: Path) -> None:
     jinja_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(TEMPLATES_DIR)
     )
     template_name = str(JINJA_TEMPLATE.name)
     jinja_template = jinja_env.get_template(template_name)
     generated_html = jinja_template.render(jinja_data.__dict__)
-    if path.exists(html_out_fname):
-        _logger.info("%s already exist, rewritting", html_out_fname)
-    with open(html_out_fname, "w") as html_file:
+    if html_out.exists():
+        _logger.info("%s already exist, rewriting", html_out)
+    with html_out.open("w") as html_file:
         html_file.write(generated_html)
 
 

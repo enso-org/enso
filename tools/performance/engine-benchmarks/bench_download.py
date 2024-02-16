@@ -570,10 +570,9 @@ async def main():
         os.mkdir(GENERATED_SITE_DIR)
 
     logging.debug(f"Rendering HTML from {JINJA_TEMPLATE} to {GENERATED_SITE_DIR}")
-    site_path = path.join(GENERATED_SITE_DIR, bench_source.value + "-benchs.html")
+    site_path = GENERATED_SITE_DIR.joinpath(bench_source.value + "-benchs.html")
     render_html(
         jinja_data,
-        JINJA_TEMPLATE,
         site_path
     )
     logging.debug(f"Copying static site content from {TEMPLATES_DIR} to {GENERATED_SITE_DIR}")
