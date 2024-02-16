@@ -25,7 +25,7 @@ export default function MemberRolesSettingsTab() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2.5">
         <h3 className="font-bold text-xl h-9.5 py-0.5">Member Roles</h3>
-        <table className="self-start table-fixed">
+        <table className="rounded-rows self-start table-fixed">
           <thead>
             <tr className="h-8">
               <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 text-sm font-semibold w-32">
@@ -42,7 +42,7 @@ export default function MemberRolesSettingsTab() {
           <tbody className="select-text">
             {isLoading ? (
               <tr className="h-8">
-                <td colSpan={2}>
+                <td colSpan={3} className="bg-transparent">
                   <div className="flex justify-center">
                     <StatelessSpinner
                       size={32}
@@ -55,9 +55,9 @@ export default function MemberRolesSettingsTab() {
               roles.roles.map(role => {
                 return (
                   <tr key={role.name} className="h-8">
-                    <td>{role.name}</td>
+                    <td className="rounded-l-full">{role.name}</td>
                     <td>{dateTime.formatDateTime(new Date(role.createdAt))}</td>
-                    <td>
+                    <td className="rounded-r-full">
                       <div className="flex gap-1">
                         {role.users.map(user => (
                           <div

@@ -5,6 +5,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 
 import AccountSettingsTab from '#/layouts/dashboard/Settings/AccountSettingsTab'
+import MemberRolesSettingsTab from '#/layouts/dashboard/Settings/MemberRolesSettingsTab'
 import MembersSettingsTab from '#/layouts/dashboard/Settings/MembersSettingsTab'
 import OrganizationSettingsTab from '#/layouts/dashboard/Settings/OrganizationSettingsTab'
 import SettingsTab from '#/layouts/dashboard/Settings/SettingsTab'
@@ -59,6 +60,10 @@ export default function Settings() {
     }
     case SettingsTab.members: {
       content = <MembersSettingsTab />
+      break
+    }
+    case SettingsTab.memberRoles: {
+      content = <MemberRolesSettingsTab />
       break
     }
     default: {

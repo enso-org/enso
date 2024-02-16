@@ -38,7 +38,7 @@ export default function MembersSettingsTab() {
             </span>
           </button>
         </div>
-        <table className="self-start table-fixed">
+        <table className="rounded-rows self-start table-fixed">
           <thead>
             <tr className="h-8">
               <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 text-sm font-semibold w-32">
@@ -52,7 +52,7 @@ export default function MembersSettingsTab() {
           <tbody className="select-text">
             {isLoading ? (
               <tr className="h-8">
-                <td colSpan={2}>
+                <td colSpan={2} className="bg-transparent">
                   <div className="flex justify-center">
                     <StatelessSpinner
                       size={32}
@@ -64,8 +64,8 @@ export default function MembersSettingsTab() {
             ) : (
               members.map(member => (
                 <tr key={member.id} className="h-8">
-                  <td>{member.name}</td>
-                  <td>{member.email}</td>
+                  <td className="rounded-l-full">{member.name}</td>
+                  <td className="rounded-r-full">{member.email}</td>
                 </tr>
               ))
             )}

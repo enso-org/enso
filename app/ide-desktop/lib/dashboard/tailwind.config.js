@@ -88,6 +88,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         29: '7.25rem',
         30: '7.5rem',
         30.25: '7.5625rem',
+        33.25: '8.3125rem',
         38.25: '9.5625rem',
         42: '10.5rem',
         45: '11.25rem',
