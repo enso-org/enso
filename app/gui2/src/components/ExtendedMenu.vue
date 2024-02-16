@@ -17,14 +17,22 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
       <div v-show="isDropdownOpen" class="ExtendedMenuPane">
         <div class="row">
           <div class="zoomBar row">
-            <div class="button">Zoom</div>
+            <div class="label">Zoom</div>
             <div class="zoomControl last">
-              <div class="zoomButton minus" @pointerdown="emit('zoomOut')" />
+              <div
+                class="zoomButton minus"
+                title="Decrease zoom"
+                @pointerdown.stop="emit('zoomOut')"
+              />
               <span
                 class="zoomScaleLabel"
                 v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
               ></span>
-              <div class="zoomButton plus" @pointerdown="emit('zoomIn')" />
+              <div
+                class="zoomButton plus"
+                title="increase zoom"
+                @pointerdown.stop="emit('zoomIn')"
+              />
             </div>
           </div>
           <div class="divider"></div>
@@ -42,29 +50,41 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
 <style scoped>
 .ExtendedMenu {
   display: flex;
-  border-radius: var(--radius-full);
-  background: var(--color-frame-bg);
-  backdrop-filter: var(--blur-app-bg);
   place-items: center;
   gap: 12px;
-  padding: 4px 10px 4px 8px;
   width: 32px;
   height: 32px;
   margin-left: auto;
   margin-right: 125px;
 }
 
-.ExtendedMenuPane {
+.ExtendedMenu:before {
   position: absolute;
-  display: flex;
-  left: -268px;
-  width: 300px;
-  top: 100%;
-  margin-top: 6px;
-  padding: 4px;
+  content: '';
   border-radius: var(--radius-full);
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
+  width: 32px;
+  height: 32px;
+}
+
+.ExtendedMenuPane {
+  position: fixed;
+  display: flex;
+  width: 300px;
+  top: 40px;
+  margin-top: 6px;
+  padding: 4px;
+  right: 0px;
+
+  border-radius: var(--radius-full);
+  background: var(--color-frame-bg);
+  backdrop-filter: var(--blur-app-bg);
+}
+
+.label {
+  user-select: none;
+  pointer-events: none;
 }
 
 .row {
@@ -85,6 +105,7 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
   margin-top: 2px;
   margin-left: 10px;
   margin-right: 10px;
+  opacity: 0.3;
 }
 
 .zoomControl {
@@ -96,6 +117,7 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
 .showAllIcon {
   margin-right: 10px;
   margin-top: 2px;
+  cursor: pointer;
 }
 
 .zoomScaleLabel {
@@ -109,7 +131,7 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
   text-align: center;
   font-size: 24px;
   font-family: var(--font-code);
-  position: absolute;
+  position: relative;
   right: -4px;
   top: 8px;
 }
@@ -119,7 +141,6 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
 }
 
 .zoomButton {
-  border: 2px solid;
   width: 15px;
   height: 15px;
   border-radius: var(--radius-full);
@@ -127,6 +148,12 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
   margin: 4px;
   display: inline-block;
   vertical-align: middle;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.zoomButton:hover {
+  background-color: var(--color-menu-entry-hover-bg);
 }
 
 .zoomButton.plus:before,
