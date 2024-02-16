@@ -32,8 +32,9 @@ async def invoke_gh_api(
         repo: str,
         endpoint: str,
         query_params: Dict[str, str] = {},
-        result_as_json: bool = True
-) -> Union[Dict[str, Any], bytes]:
+        result_as_json: bool = True,
+        method: str = "GET"
+) -> Optional[Union[Dict[str, Any], bytes]]:
     """
     Invokes the GitHub API using the `gh` command line tool.
     :param repo: Repository name in the form `owner/repo`
@@ -41,13 +42,15 @@ async def invoke_gh_api(
     :param query_params: Additional query parameters.
     :param result_as_json: If result should be parsed as JSON.
           If false, the raw bytes are returned.
-    :return:
+    :param method: HTTP method to use, 'GET' by default.
+    :return: None if the query fails
     """
     assert endpoint.startswith("/")
     urlencode(query_params)
     cmd = [
         "gh",
         "api",
+        "--method", method,
         f"/repos/{repo}{endpoint}" + "?" + urlencode(query_params)
     ]
     _logger.debug("Invoking gh API with `%s`", " ".join(cmd))
@@ -60,7 +63,7 @@ async def invoke_gh_api(
         _logger.error("Command `%s` FAILED with errcode %d",
                       " ".join(cmd),
                       proc.returncode)
-        exit(proc.returncode)
+        return None
     if result_as_json:
         return json.loads(out.decode())
     else:
