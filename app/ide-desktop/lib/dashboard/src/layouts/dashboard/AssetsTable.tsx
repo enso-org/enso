@@ -510,14 +510,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       switch (sortColumn) {
         case columnUtils.Column.name: {
           compare = (a, b) => {
-            const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
-            const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
-            const typeDelta = aTypeOrder - bTypeOrder
             const aTitle = a.item.title.toLowerCase()
             const bTitle = b.item.title.toLowerCase()
-            if (typeDelta !== 0) {
-              return typeDelta
-            } else if (aTitle === bTitle) {
+            if (aTitle === bTitle) {
               const delta = a.item.title > b.item.title ? 1 : a.item.title < b.item.title ? -1 : 0
               return multiplier * delta
             } else {
@@ -529,16 +524,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         case columnUtils.Column.modified: {
           compare = (a, b) => {
-            const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
-            const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
-            const typeDelta = aTypeOrder - bTypeOrder
-            if (typeDelta !== 0) {
-              return typeDelta
-            } else {
-              const aOrder = Number(new Date(a.item.modifiedAt))
-              const bOrder = Number(new Date(b.item.modifiedAt))
-              return multiplier * (aOrder - bOrder)
-            }
+            const aOrder = Number(new Date(a.item.modifiedAt))
+            const bOrder = Number(new Date(b.item.modifiedAt))
+            return multiplier * (aOrder - bOrder)
           }
           break
         }
