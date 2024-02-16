@@ -60,7 +60,7 @@ public final class ModuleCache
   public byte[] serialize(EnsoContext context, CachedModule entry) throws IOException {
     var arr =
         Persistance.write(
-            entry.moduleIR(), CacheUtils.writeReplace(context.getCompiler().context()));
+            entry.moduleIR(), CacheUtils.writeReplace(context.getCompiler().context(), true));
     return arr;
   }
 
