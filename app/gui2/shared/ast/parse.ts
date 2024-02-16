@@ -799,7 +799,18 @@ export function applyTextEditsToAst(ast: MutableAst, textEdits: TextEdit[]) {
     parsed.spans.nodes,
     textEdits,
   )
-  syncTree(ast, parsed.root, toSync, ast.module)
+  const syncedAst = syncTree(ast, parsed.root, toSync, ast.module)
+  const codeAfter = syncedAst.code()
+  if (codeAfter !== code) {
+    const diffFromResultToExpected = textChangeToEdits(codeAfter, code)
+    console.error(
+      `applyTextEditsToAst failed to synchronize`,
+      printed.code,
+      textEdits,
+      diffFromResultToExpected,
+    )
+    assert(codeAfter === code, `applyTextEditsToAst synchronized with code`)
+  }
 }
 
 /** Replace `target` with `newContent`, reusing nodes according to the correspondence in `toSync`. */

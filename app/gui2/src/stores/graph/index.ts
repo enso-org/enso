@@ -410,6 +410,7 @@ export const useGraphStore = defineStore('graph', () => {
    *  for better performance.
    */
   function commitEdit(edit: MutableModule, skipTreeRepair?: boolean, origin?: LocalOrigin) {
+    console.warn(`commitEdit`)
     const root = edit.root()
     if (!(root instanceof Ast.BodyBlock)) {
       console.error(`BUG: Cannot commit edit: No module root block.`)
@@ -440,6 +441,7 @@ export const useGraphStore = defineStore('graph', () => {
         Ast.repair(root, edit)
       }
       if (!direct) syncModule.value!.applyEdit(edit)
+      console.warn(`edit`)
     })
     return result!
   }
