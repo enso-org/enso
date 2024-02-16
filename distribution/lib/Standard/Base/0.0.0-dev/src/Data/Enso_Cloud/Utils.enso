@@ -88,7 +88,9 @@ http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = R
    Performs a standard request to the Enso Cloud API,
    returning a raw response on success, but handling the error responses.
 
-   Custom error handles can be provided
+   Custom error handles can be provided as a mapping from error codes
+   (defined in the cloud project) to functions that take the full JSON payload
+   and return a custom error.
 http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) -> Response ! Enso_Cloud_Error =
     all_headers = [authorization_header] + additional_headers
     as_connection_error err = Error.throw (Enso_Cloud_Error.Connection_Error err)
@@ -98,6 +100,9 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_B
     if response.code.is_success then response else
         if response.code == HTTP_Status_Code.unauthorized then Error.throw Enso_Cloud_Error.Unauthorized else
             payload = response.decode_as_text
+            ## If the payload can be parsed as JSON, contains a `code` field and this `code` is found in the error
+               handlers, a specialized handler will be used for the error. Otherwise, a generic Unexpected_Service_Error
+               will be reported, containing the payload for inspection.
             json_payload = payload.parse_json.catch Invalid_JSON (_->Nothing)
             error_code = json_payload.get "code"
             handler = error_code.if_not_nothing <| error_handlers.get error_code
