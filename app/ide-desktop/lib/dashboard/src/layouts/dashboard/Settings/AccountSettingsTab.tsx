@@ -11,48 +11,9 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import * as object from '#/utilities/object'
 import * as uniqueString from '#/utilities/uniqueString'
+import * as validation from '#/utilities/validation'
 
 import ConfirmDeleteUserModal from '../ConfirmDeleteUserModal'
-
-// =================
-// === InfoEntry ===
-// =================
-
-/** Props for a transparent wrapper component. */
-interface InternalTransparentWrapperProps {
-  readonly children: React.ReactNode
-}
-
-/** A transparent wrapper component */
-// This is a React component even though it does not contain JSX.
-// eslint-disable-next-line no-restricted-syntax
-function Name(props: InternalTransparentWrapperProps) {
-  return props.children
-}
-
-/** A transparent wrapper component */
-// This is a React component even though it does not contain JSX.
-// eslint-disable-next-line no-restricted-syntax
-function Value(props: InternalTransparentWrapperProps) {
-  return props.children
-}
-
-/** Props for a {@link InfoEntry}. */
-interface InternalInfoEntryProps {
-  readonly children: [React.ReactNode, React.ReactNode]
-}
-
-/** Styled information display containing key and value. */
-function InfoEntry(props: InternalInfoEntryProps) {
-  const { children } = props
-  const [name, value] = children
-  return (
-    <div className="flex gap-4.75">
-      <span className="leading-5 w-12 h-8 py-1.25">{name}</span>
-      <span className="grow font-bold leading-5 h-8 py-1.25">{value}</span>
-    </div>
-  )
-}
 
 // =============
 // === Input ===
@@ -62,20 +23,16 @@ function InfoEntry(props: InternalInfoEntryProps) {
 interface InternalInputProps {
   readonly originalValue: string
   readonly placeholder?: string
-  readonly onSubmit: (value: string) => void
+  readonly pattern?: string
+  readonly onChange?: React.ChangeEventHandler<HTMLInputElement>
+  readonly onSubmit?: (value: string) => void
 }
 
 /** A styled input. */
 function Input(props: InternalInputProps) {
-  const { originalValue, placeholder, onSubmit } = props
+  const { originalValue, placeholder, pattern, onChange, onSubmit } = props
   const ref = React.useRef<HTMLInputElement>(null)
   const cancelled = React.useRef(false)
-
-  const onBlur = () => {
-    if (!cancelled.current) {
-      onSubmit(ref.current?.value ?? '')
-    }
-  }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     switch (event.key) {
@@ -107,13 +64,19 @@ function Input(props: InternalInputProps) {
   return (
     <input
       ref={ref}
-      className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
+      className="rounded-full font-bold leading-5 w-full h-6 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors invalid:border invalid:border-red-700"
       type="text"
       size={1}
       defaultValue={originalValue}
       placeholder={placeholder}
-      onBlur={onBlur}
+      pattern={pattern}
       onKeyDown={onKeyDown}
+      onChange={onChange}
+      onBlur={event => {
+        if (!cancelled.current) {
+          onSubmit?.(event.currentTarget.value)
+        }
+      }}
     />
   )
 }
@@ -172,50 +135,64 @@ export default function AccountSettingsTab() {
         <div className="flex flex-col gap-2.5">
           <h3 className="font-bold text-xl h-9.5 py-0.5">User Account</h3>
           <div className="flex flex-col">
-            <InfoEntry>
-              <Name>Name</Name>
-              <Value>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-12 h-8 py-1.25">Name</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
                 <Input originalValue={user?.name ?? ''} onSubmit={doUpdateName} />
-              </Value>
-            </InfoEntry>
-            <InfoEntry>
-              <Name>Email</Name>
-              <Value>{user?.email ?? ''}</Value>
-            </InfoEntry>
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-12 h-8 py-1.25">Email</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">{user?.email ?? ''}</span>
+            </div>
           </div>
         </div>
         <div key={passwordFormKey}>
           <h3 className="font-bold text-xl h-9.5 py-0.5">Change Password</h3>
-          <InfoEntry>
-            <Name>Current Password</Name>
-            <Value>
+          <div className="flex gap-4.75">
+            <span className="leading-5 w-36 h-8 py-1.25">Current Password</span>
+            <span className="grow font-bold leading-5 h-8 py-1.25">
               <Input
                 originalValue=""
                 placeholder="Enter your current password"
-                onSubmit={setCurrentPassword}
+                onChange={event => {
+                  setCurrentPassword(event.currentTarget.value)
+                }}
               />
-            </Value>
-          </InfoEntry>
-          <InfoEntry>
-            <Name>New Password</Name>
-            <Value>
+            </span>
+          </div>
+          <div className="flex gap-4.75">
+            <span className="leading-5 w-36 h-8 py-1.25">New Password</span>
+            <span className="grow font-bold leading-5 h-8 py-1.25">
               <Input
                 originalValue=""
                 placeholder="Enter your new password"
-                onSubmit={setNewPassword}
+                onChange={event => {
+                  const newValue = event.currentTarget.value
+                  setNewPassword(newValue)
+                  event.currentTarget.setCustomValidity(
+                    validation.PASSWORD_REGEX.test(newValue) ? '' : validation.PASSWORD_ERROR
+                  )
+                }}
               />
-            </Value>
-          </InfoEntry>
-          <InfoEntry>
-            <Name>Confirm New Password</Name>
-            <Value>
+            </span>
+          </div>
+          <div className="flex gap-4.75">
+            <span className="leading-5 w-36 h-8 py-1.25">Confirm New Password</span>
+            <span className="grow font-bold leading-5 h-8 py-1.25">
               <Input
                 originalValue=""
                 placeholder="Confirm your new password"
-                onSubmit={setConfirmNewPassword}
+                onChange={event => {
+                  const newValue = event.currentTarget.value
+                  setConfirmNewPassword(newValue)
+                  event.currentTarget.setCustomValidity(
+                    newValue === newPassword ? '' : 'Passwords must match.'
+                  )
+                }}
               />
-            </Value>
-          </InfoEntry>
+            </span>
+          </div>
           <div className="flex gap-2">
             <button
               disabled={
@@ -225,7 +202,7 @@ export default function AccountSettingsTab() {
                 newPassword !== confirmNewPassword
               }
               type="submit"
-              className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px"
+              className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px disabled:opacity-50"
               onClick={() => {
                 setPasswordFormKey(uniqueString.uniqueString())
               }}
