@@ -361,7 +361,10 @@ function* fieldDataEntries<Fields>(map: FixedMapView<Fields>) {
     if (!astFieldKeys.includes(entry[0] as any)) yield entry as [string, FieldData]
   }
 }
-/** @internal */
+
+/** Apply the given function to each `AstId` in the fields of `ast`. For each value that it returns an output, that
+ *  output will be substituted for the input ID.
+ */
 export function rewriteRefs(ast: MutableAst, f: (id: AstId) => AstId | undefined) {
   let fieldsChanged = 0
   for (const [key, value] of fieldDataEntries(ast.fields)) {
@@ -373,6 +376,10 @@ export function rewriteRefs(ast: MutableAst, f: (id: AstId) => AstId | undefined
   }
   return fieldsChanged
 }
+
+/** Copy all fields except the `Ast` base fields from `ast2` to `ast1`. A reference-rewriting function will be applied
+ *  to `AstId`s in copied fields; see {@link rewriteRefs}.
+ */
 export function syncFields(ast1: MutableAst, ast2: Ast, f: (id: AstId) => AstId | undefined) {
   const expressionMetadata =
     ast1 instanceof MutableAssignment ? ast1.expression.fields.get('metadata').clone() : undefined
@@ -384,8 +391,7 @@ export function syncFields(ast1: MutableAst, ast2: Ast, f: (id: AstId) => AstId 
   if (ast1 instanceof MutableAssignment) ast1.expression.fields.set('metadata', expressionMetadata!)
 }
 
-/** @internal */
-export function rewriteFieldRefs(field: FieldData, f: (id: AstId) => AstId | undefined): FieldData {
+function rewriteFieldRefs(field: FieldData, f: (id: AstId) => AstId | undefined): FieldData {
   if (field === undefined) return field
   if ('node' in field) {
     const child = field.node
@@ -420,11 +426,15 @@ export function rewriteFieldRefs(field: FieldData, f: (id: AstId) => AstId | und
     if (fieldChanged) return fieldObject
   }
 }
+
 function fieldEqual(field1: FieldData, field2: FieldData): boolean {
   if (field1 === undefined) return field2 === undefined
   if (field2 === undefined) return false
   if ('node' in field1 && 'node' in field2) {
-    return field1['whitespace'] === field2['whitespace'] && field1.node === field2.node
+    if (field1['whitespace'] !== field2['whitespace']) return false
+    if (isTokenId(field1.node) && isTokenId(field2.node))
+      return Token.equal(field1.node, field2.node)
+    else return field1.node === field2.node
   } else if ('node' in field1 || 'node' in field2) {
     return false
   } else if (Array.isArray(field1) && Array.isArray(field2)) {
