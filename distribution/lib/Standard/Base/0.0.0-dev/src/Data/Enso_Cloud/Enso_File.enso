@@ -299,6 +299,10 @@ type Enso_File
             if name.contains "/" then Error.throw (Illegal_Argument.Error "Resolving sub-paths (/) is not implemented. Temporary workaround: use the `/` operator multiple times.") else
                 self.list . find f-> f.name == name
 
+    ## Returns the text representation of the file descriptor.
+    to_text : Text
+    to_text self = self.asset_type.to_text + " " + self.name
+
 ## PRIVATE
 list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
      response = Utils.http_request_as_json HTTP_Method.Get parent.internal_uri
