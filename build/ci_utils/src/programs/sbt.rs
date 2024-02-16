@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use crate::define_env_var;
+use crate::program::command::Manipulator;
 
 
 
@@ -10,6 +11,14 @@ define_env_var! {
     SBT_SERVER_FORCESTART, bool;
 }
 
+pub struct ServerAutostart(pub bool);
+impl Manipulator for ServerAutostart {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        let arg = "sbt.server.autostart";
+        let arg = format!("-D{arg}={}", self.0);
+        command.arg(arg);
+    }
+}
 
 macro_rules! strong_string {
     ($name:ident($inner_ty:ty)) => {
