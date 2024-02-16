@@ -9,6 +9,8 @@ import * as backendProvider from '#/providers/BackendProvider'
 
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
+import * as dateTime from '#/utilities/dateTime'
+
 // ==============================
 // === MemberRolesSettingsTab ===
 // ==============================
@@ -54,7 +56,7 @@ export default function MemberRolesSettingsTab() {
                 return (
                   <tr key={role.name} className="h-8">
                     <td>{role.name}</td>
-                    <td>{role.createdAt}</td>
+                    <td>{dateTime.formatDateTime(new Date(role.createdAt))}</td>
                     <td>
                       <div className="flex gap-1">
                         {role.users.map(user => (
