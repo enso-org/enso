@@ -172,8 +172,8 @@ consistent one should not attempt to use smaller `id`s than previously assigned.
 One should also not delete any `Persistance` classes.
 
 Additionally, `PerMap.serialVersionUID` version provides a seed to the version
-stamp calculated from all `Persistance` classes. Changing the `serialVersionUID`
-will invalidate all caches.
+stamp calculated from all `Persistance` classes. Increasing the
+`serialVersionUID` will invalidate all caches.
 
 ## Loading the IR
 
