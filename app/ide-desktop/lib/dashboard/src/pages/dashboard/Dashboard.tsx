@@ -207,7 +207,7 @@ export default function Dashboard(props: DashboardProps) {
                   savedProjectStartupInfo.projectAsset.id,
                   savedProjectStartupInfo.projectAsset.title
                 )
-                if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[oldProject.state.type]) {
+                if (backendModule.IS_OPENING_OR_OPENED[oldProject.state.type]) {
                   await remoteBackendModule.waitUntilProjectIsReady(
                     remoteBackend,
                     savedProjectStartupInfo.projectAsset,

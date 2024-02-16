@@ -101,7 +101,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         let newProjectState: backendModule.ProjectStateType = object.merge(oldItem.projectState, {
           type: newState,
         })
-        if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[newState]) {
+        if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
           // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
           const { opened_by, ...newProjectState2 } = newProjectState
           newProjectState = newProjectState2
@@ -321,7 +321,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     setOpenProjectAbortController(null)
     const abortController = new AbortController()
     setCloseProjectAbortController(abortController)
-    if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
+    if (backendModule.IS_OPENING_OR_OPENED[state]) {
       try {
         if (
           backend.type === backendModule.BackendType.local &&

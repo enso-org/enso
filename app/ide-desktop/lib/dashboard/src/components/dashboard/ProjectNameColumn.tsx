@@ -62,7 +62,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const projectState = asset.projectState ?? {
     type: backendModule.ProjectState.closed,
   }
-  const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
+  const isRunning = backendModule.IS_OPENING_OR_OPENED[projectState.type]
   const canExecute =
     backend.type === backendModule.BackendType.local ||
     (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])

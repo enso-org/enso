@@ -148,7 +148,7 @@ export interface ProjectStateType {
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Readonly<Record<ProjectState, boolean>> = {
+export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.created]: false,
   [ProjectState.new]: false,
   [ProjectState.scheduled]: true,
