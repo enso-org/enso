@@ -748,10 +748,7 @@ test('Code edit merging', () => {
   module.replaceRoot(block)
 
   const editA = module.edit()
-  const initialA = Y.encodeStateVector(editA.ydoc)
   editA.getVersion(block).syncToCode('a = 10\nb = 2')
-  editA.gc()
-  Y.logUpdateV2(Y.encodeStateAsUpdateV2(editA.ydoc, initialA))
 
   const editB = module.edit()
   editB.getVersion(block).syncToCode('a = 1\nb = 20')
