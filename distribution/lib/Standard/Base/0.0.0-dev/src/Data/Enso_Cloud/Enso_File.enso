@@ -238,7 +238,7 @@ type Enso_File
        Gets a list of assets within self.
     list : Vector Enso_File
     list self =
-        # Remove secrets from the list
+        # Remove secrets from the list - they are handled separately in `Enso_Secret.list`.
         list_assets self . filter f-> f.asset_type != Enso_Asset_Type.Secret
 
     ## UNSTABLE
@@ -306,7 +306,7 @@ type Enso_File
 ## PRIVATE
 list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
      response = Utils.http_request_as_json HTTP_Method.Get parent.internal_uri
-     assets = response.get "assets" if_missing=(Error.throw (Illegal_Argument.Error "Invalid JSON response from the Cloud: missing expected field `assets`."))
+     assets = get_required_field "assets" response
      assets.map t-> t.into Enso_File
 
 ## PRIVATE
