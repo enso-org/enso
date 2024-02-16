@@ -106,6 +106,47 @@ add_specs suite_builder =
             Decimal.from 12345 . should_equal (Decimal.new 12345)
             Decimal.from 12345 . should_equal (Decimal.from_integer 12345)
 
+        group_builder.specify "should compare correctly" <|
+            nums = [["-45.23", "124.872"], [-45.23, 124.872], [-45, 124]]
+            nums.map pr->
+                a = Decimal.new (pr.at 0)
+                b = Decimal.new (pr.at 1)
+
+                (a == a) . should_be_true
+                (b == b) . should_be_true
+                (a == b) . should_be_false
+                (b == a) . should_be_false
+
+                (a != a) . should_be_false
+                (b != b) . should_be_false
+                (a != b) . should_be_true
+                (b != a) . should_be_true
+
+                (a <= a) . should_be_true
+                (b <= b) . should_be_true
+                (a <= b) . should_be_true
+                (b <= a) . should_be_false
+
+                (a >= a) . should_be_true
+                (b >= b) . should_be_true
+                (a >= b) . should_be_false
+                (b >= a) . should_be_true
+
+                (a < b) . should_be_true
+                (b > a) . should_be_true
+                (a > b) . should_be_false
+                (b < a) . should_be_false
+
+                (a <= b) . should_be_true
+                (b >= a) . should_be_true
+                (a >= b) . should_be_false
+                (b <= a) . should_be_false
+
+                (a < a) . should_be_false
+                (b < b) . should_be_false
+                (a > a) . should_be_false
+                (b > b) . should_be_false
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
