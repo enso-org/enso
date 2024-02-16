@@ -9,6 +9,7 @@ import {
   applyTextEditsToSpans,
   enclosingSpans,
   textChangeToEdits,
+  trimEnd,
 } from '../util/data/text'
 import {
   IdMap,
@@ -716,6 +717,7 @@ function calculateCorrespondence(
   parsedRoot: Ast,
   parsedSpans: NodeSpanMap,
   textEdits: TextEdit[],
+  codeAfter: string,
 ): Map<AstId, Ast> {
   const newSpans = new Map<AstId, SourceRange>()
   for (const [key, asts] of parsedSpans) {
@@ -730,7 +732,9 @@ function calculateCorrespondence(
   const toSync = new Map<AstId, Ast>()
   const candidates = new Map<AstId, Ast>()
   const allSpansBefore = Array.from(astSpans.keys(), sourceRangeFromKey)
-  const spansBeforeAndAfter = applyTextEditsToSpans(textEdits, allSpansBefore)
+  const spansBeforeAndAfter = applyTextEditsToSpans(textEdits, allSpansBefore).map(
+    ([before, after]) => [before, trimEnd(after, codeAfter)] satisfies [any, any],
+  )
   const partAfterToAstBefore = new Map<SourceRangeKey, Ast>()
   for (const [spanBefore, partAfter] of spansBeforeAndAfter) {
     const astBefore = astSpans.get(sourceRangeKey(spanBefore) as NodeKey)?.[0]!
@@ -798,6 +802,7 @@ export function applyTextEditsToAst(ast: MutableAst, textEdits: TextEdit[]) {
     parsed.root,
     parsed.spans.nodes,
     textEdits,
+    code,
   )
   syncTree(ast, parsed.root, toSync, ast.module)
 }

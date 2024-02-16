@@ -742,6 +742,30 @@ test('Code edit: No-op block change', () => {
   expect(module.root()?.code()).toBe(code)
 })
 
+test('Code edit: Shifting whitespace ownership', () => {
+  const beforeRoot = Ast.parseBlock('value = 1 +\n')
+  beforeRoot.module.replaceRoot(beforeRoot)
+  const before = findExpressions(beforeRoot, {
+    value: Ast.Ident,
+    '1': Ast.NumericLiteral,
+    'value = 1 +': Ast.Assignment,
+  })
+  const edit = beforeRoot.module.edit()
+  const newCode = 'value = 1 \n'
+  edit.getVersion(beforeRoot).syncToCode(newCode)
+  // Ensure the change was made.
+  expect(edit.root()?.code()).toBe(newCode)
+  // Ensure the identities of all the original nodes were maintained.
+  const after = findExpressions(edit.root()!, {
+    value: Ast.Ident,
+    '1': Ast.NumericLiteral,
+    'value = 1': Ast.Assignment,
+  })
+  expect(after.value.id).toBe(before.value.id)
+  expect(after['1'].id).toBe(before['1'].id)
+  expect(after['value = 1'].id).toBe(before['value = 1 +'].id)
+})
+
 test('Code edit merging', () => {
   const block = Ast.parseBlock('a = 1\nb = 2')
   const module = block.module

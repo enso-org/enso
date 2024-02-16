@@ -1,32 +1,34 @@
 import { expect, test } from 'vitest'
-import { applyTextEditsToSpans, textChangeToEdits } from '../text'
+import { applyTextEditsToSpans, textChangeToEdits, trimEnd } from '../text'
 
 /** Tests that:
  *  - When the code in `a[0]` is edited to become the code in `b[0]`,
- *    `applyTextEditsToSpans` transforms the spans in `a.slice(1)` into the spans in `b.slice(1)`.
+ *    `applyTextEditsToSpans` followed by `trimEnd` transforms the spans in `a.slice(1)` into the spans in `b.slice(1)`.
  *  - The same holds when editing from `b` to `a`.
  */
 function checkCorrespondence(a: string[], b: string[]) {
-  const checkCorrespondenceForward = (before: string[], after: string[]) => {
-    const leadingSpacesAndLength = (input: string): [number, number] => [
-      input.lastIndexOf(' ') + 1,
-      input.length,
-    ]
-    const spacesAndHyphens = ([spaces, length]: readonly [number, number]) => {
-      let s = ''
-      for (let i = 0; i < spaces; i++) s += ' '
-      for (let i = spaces; i < length; i++) s += '-'
-      return s
-    }
-    const edits = textChangeToEdits(before[0]!, after[0]!)
-    const spansAfter = applyTextEditsToSpans(
-      edits,
-      before.slice(1).map(leadingSpacesAndLength),
-    ).map(([_before, after]) => after)
-    expect([after[0]!, ...spansAfter.map(spacesAndHyphens)]).toEqual(after)
-  }
   checkCorrespondenceForward(a, b)
   checkCorrespondenceForward(b, a)
+}
+
+/** Performs the same check as {@link checkCorrespondence}, for correspondences that are not expected to be reversible.
+ */
+function checkCorrespondenceForward(before: string[], after: string[]) {
+  const leadingSpacesAndLength = (input: string): [number, number] => [
+    input.lastIndexOf(' ') + 1,
+    input.length,
+  ]
+  const spacesAndHyphens = ([spaces, length]: readonly [number, number]) => {
+    let s = ''
+    for (let i = 0; i < spaces; i++) s += ' '
+    for (let i = spaces; i < length; i++) s += '-'
+    return s
+  }
+  const edits = textChangeToEdits(before[0]!, after[0]!)
+  const spansAfter = applyTextEditsToSpans(edits, before.slice(1).map(leadingSpacesAndLength)).map(
+    ([_spanBefore, spanAfter]) => trimEnd(spanAfter, after[0]!),
+  )
+  expect([after[0]!, ...spansAfter.map(spacesAndHyphens)]).toEqual(after)
 }
 
 test('applyTextEditsToSpans: Add and remove argument names.', () => {
@@ -120,6 +122,19 @@ test('applyTextEditsToSpans: Distinguishing repeated subexpressions.', () => {
       '    -------',
       '                         -----',
       '                        -------',
+    ],
+  )
+})
+
+test('applyTextEditsToSpans: Space after line content.', () => {
+  checkCorrespondenceForward(
+    [
+      'value = 1 +', // prettier-ignore
+      '-----------',
+    ],
+    [
+      'value = 1 ', // prettier-ignore
+      '---------',
     ],
   )
 })

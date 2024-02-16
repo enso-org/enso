@@ -148,3 +148,9 @@ export function enclosingSpans<NodeId>(
   if (ranges.length) results.push([tree.id(), ranges])
   return results
 }
+
+/** Return the given range with any trailing spaces stripped. */
+export function trimEnd(range: SourceRange, text: string): SourceRange {
+  const trimmedLength = text.slice(range[0], range[1]).search(/ +$/)
+  return trimmedLength === -1 ? range : [range[0], range[0] + trimmedLength]
+}
