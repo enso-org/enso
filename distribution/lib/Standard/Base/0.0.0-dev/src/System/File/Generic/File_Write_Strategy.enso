@@ -1,5 +1,4 @@
 import project.Error.Error
-import project.Errors.Common.Forbidden_Operation
 import project.Errors.File_Error.File_Error
 import project.Panic.Panic
 import project.Runtime.Context
