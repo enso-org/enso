@@ -208,5 +208,25 @@ class DataflowErrorsTest extends InterpreterTest {
         "(Syntax_Error.Error 'Unexpected expression')"
       )
     }
+
+    "report correct stack trace for errors thrown from a suspended default argument" in {
+      val code =
+        """import Standard.Base.IO
+          |import Standard.Base.Error.Error
+          |
+          |type My_Error
+          |    Value
+          |
+          |fn x ~y=(Error.throw My_Error.Value) =
+          |    if x == 0 then 0 else y
+          |
+          |main =
+          |    IO.println (fn 1).get_stack_trace_text
+          |""".stripMargin
+      eval(code)
+      consumeOut should contain(
+        "        at <enso> <default::Test.fn::y>(Test:7:10-35)"
+      )
+    }
   }
 }
