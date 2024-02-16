@@ -31,7 +31,12 @@ type File_Write_Strategy
        A remote file is downloaded to a temporary file and the provided action
        is called with that local temporary file. Then that file is uploaded to
        replace the remote file.
-    Value write_overwriting write_appending write_raising_error write_backing_up create_dry_run_file write_with_local_file
+
+       The `copy_from_local` action creates the file on a given backend from a
+       local file. It can be used to implement more efficient upload strategies
+       than ones based on just writing to an output stream.
+       The default `generic_copy` implementation can always be used here.
+    Value write_overwriting write_appending write_raising_error write_backing_up create_dry_run_file write_with_local_file copy_from_local
 
     ## PRIVATE
        Writes to a file according to the provided existing file behaviour.
@@ -128,3 +133,12 @@ dry_run_behavior file behavior:Existing_File_Behavior -> Dry_Run_File_Settings =
         Dry_Run_File_Settings.Value Existing_File_Behavior.Overwrite copy_original=False
     Existing_File_Behavior.Append ->
         Dry_Run_File_Settings.Value Existing_File_Behavior.Append copy_original=True
+
+## PRIVATE
+   Generic `copy` implementation between two backends.
+   The files only need to support `with_input_stream` and `with_output_stream`.
+generic_copy source destination replace_existing =
+    source.with_input_stream [File_Access.Read] input_stream->
+        options = if replace_existing then [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Write, File_Access.Create_New]
+        destination.with_output_stream options output_stream->
+            output_stream.write_stream input_stream . if_not_error destination

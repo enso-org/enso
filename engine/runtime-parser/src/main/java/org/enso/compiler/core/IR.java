@@ -30,7 +30,7 @@ import scala.collection.immutable.List;
  */
 public interface IR extends Serializable {
 
-  long serialVersionUID = 8145L; // Scala to Java
+  long serialVersionUID = 9057L; // Scala to Java
 
   /**
    * Storage for metadata that the node has been tagged with as the result of various compiler
