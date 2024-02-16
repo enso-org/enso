@@ -68,11 +68,9 @@ async def invoke_gh_api(
 
 
 async def fetch_file(repo: str, file_path: str) -> Optional[str]:
-    try:
-        ret = await invoke_gh_api(repo, f"/contents/{file_path}", result_as_json=True)
-        file_content = base64.b64decode(ret["content"]).decode()
-        return file_content
-    except subprocess.CalledProcessError as e:
-        _logger.error("Failed to fetch file %s from %s, with: %s",
-                      file_path, repo, e)
+    ret = await invoke_gh_api(repo, f"/contents/{file_path}", result_as_json=True)
+    if ret is None:
+        _logger.warning("File %s not found in %s", file_path, repo)
         return None
+    file_content = base64.b64decode(ret["content"]).decode()
+    return file_content
