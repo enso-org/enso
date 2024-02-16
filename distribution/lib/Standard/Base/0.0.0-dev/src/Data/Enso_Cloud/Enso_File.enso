@@ -286,7 +286,7 @@ type Enso_File
     move_to : Writable_File -> Boolean -> Nothing ! File_Error
     move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
         _ = [destination, replace_existing]
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
+        Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
             Unimplemented.throw "Enso_File.move_to is not implemented"
 
     ## UNSTABLE
