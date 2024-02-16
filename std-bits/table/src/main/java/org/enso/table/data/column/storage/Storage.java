@@ -20,7 +20,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
-public abstract class Storage<T> {
+public abstract class Storage<T> implements ColumnStorage {
   /** A constant representing the index of a missing value in a column. */
   public static final int NOT_FOUND_INDEX = -1;
 
@@ -531,5 +531,20 @@ public abstract class Storage<T> {
       StorageType targetType, CastProblemAggregator castProblemAggregator) {
     StorageConverter<?> converter = StorageConverter.fromStorageType(targetType);
     return converter.cast(this, castProblemAggregator);
+  }
+
+  @Override
+  public long getSize() {
+    return size();
+  }
+
+  @Override
+  public boolean isNothing(long index) {
+    return isNa(index);
+  }
+
+  @Override
+  public Object getItemAsObject(long index) {
+    return getItemBoxed((int) index);
   }
 }
