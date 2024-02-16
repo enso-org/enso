@@ -30,6 +30,7 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Enso_Cloud.Utils import get_required_field
 from project.Data.Text.Extensions import all
 from project.System.File.Generic.File_Write_Strategy import generic_copy
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
@@ -361,10 +362,3 @@ get_download_url_for_file file:Enso_File -> Text =
        presigned_url = file_description |> get_required_field "url"
     path = file_description |> get_required_field "file" |> get_required_field "path"
     path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"
-
-## PRIVATE
-   A helper that extracts a field from a response and handles unexpected
-   response structure.
-get_required_field key js_object = case js_object of
-    _ : JS_Object -> js_object.get key if_missing=(Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing required field `"+key+"` in "+js_object.to_display_text+"."))
-    _ -> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+js_object.to_display_text+".")
