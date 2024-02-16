@@ -71,8 +71,7 @@ type Enso_File
        Checks if the folder or file exists
     exists : Boolean
     exists self =
-        auth_header = Utils.authorization_header
-        response = HTTP.fetch self.internal_uri HTTP_Method.Get [auth_header]
+        response = Utils.http_request HTTP_Method.Get self.internal_uri
         response.code.is_success
 
     ## GROUP Metadata
@@ -241,12 +240,11 @@ type Enso_File
        Creates a subdirectory in a specified directory.
     create_directory : Text -> Enso_File
     create_directory self (name : Text) = if self.is_directory.not then Error.throw (Illegal_Argument.Error "Only directories can contain subdirectories.") else
-        auth_header = Utils.authorization_header
         name_field = [["title", name]]
         parent_field = if self.id == "" then [] else [["parentId", self.id]]
         body = JS_Object.from_pairs (name_field + parent_field)
-        response = HTTP.post Utils.directory_api body HTTP_Method.Post [auth_header]
-        response.if_not_error <| response.decode_as_json.into Enso_File
+        response = Utils.http_request_as_json HTTP_Method.Post Utils.directory_api body
+        response.into Enso_File
 
     ## UNSTABLE
        GROUP Output
@@ -255,8 +253,7 @@ type Enso_File
     delete self = if self.id == "" then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
         # TODO this is a mess
         uri = if self.is_directory then Utils.directory_api + "/" + self.id else self.internal_uri
-        auth_header = Utils.authorization_header
-        response = HTTP.post uri Request_Body.Empty HTTP_Method.Delete [auth_header]
+        response = Utils.http_request HTTP_Method.Delete uri
         response.if_not_error Nothing
 
     ## Deletes the file if it had existed.
@@ -300,12 +297,9 @@ type Enso_File
 
 ## PRIVATE
 list_assets parent = if parent.asset_type != Enso_Asset_Type.Directory then Error.throw (Illegal_Argument.Error "Only directories can be listed.") else
-     auth_header = Utils.authorization_header
-     response = HTTP.fetch parent.internal_uri HTTP_Method.Get [auth_header]
-     response.if_not_error <|
-         js_object = response.decode_as_json
-         assets = js_object.get "assets" if_missing=(Error.throw (Illegal_Argument.Error "Invalid JSON response from the Cloud."))
-         assets.map t-> t.into Enso_File
+     response = Utils.http_request_as_json HTTP_Method.Get parent.internal_uri
+     assets = response.get "assets" if_missing=(Error.throw (Illegal_Argument.Error "Invalid JSON response from the Cloud: missing expected field `assets`."))
+     assets.map t-> t.into Enso_File
 
 ## PRIVATE
 Enso_File.from (that:JS_Object) = if ["title", "id", "parentId"].any (k-> that.contains_key k . not) then Error.throw (Illegal_Argument.Error "Invalid JSON for an Enso_File.") else
@@ -345,11 +339,8 @@ File_Format_Metadata.from (that:Enso_File) = File_Format_Metadata.Value Nothing 
 
 ## PRIVATE
 get_file_description file:Enso_File -> JS_Object =
-    auth_header = Utils.authorization_header
-    response = HTTP.fetch file.internal_uri HTTP_Method.Get [auth_header]
-    response.if_not_error <|
-        js_object = response.decode_as_json
-        js_object.get "file" if_missing=(Error.throw (Illegal_State.Error "Invalid JSON for an Enso_File (missing `file` field): "+js_object.to_text))
+    response = Utils.http_request_as_json HTTP_Method.Get file.internal_uri
+    response.get "file" if_missing=(Error.throw (Illegal_State.Error "Invalid JSON for an Enso_File (missing `file` field): "+response.to_text))
 
 ## PRIVATE
 get_s3_url_for_file file:Enso_File -> Text =

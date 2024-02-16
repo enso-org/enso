@@ -11,13 +11,20 @@ type Not_Logged_In
 ## PRIVATE
 type Enso_Cloud_Error
     ## PRIVATE
+       An unhandled error response from Enso Cloud.
     Unexpected_Error status_code:HTTP_Status_Code payload:Text
 
     ## PRIVATE
+       An error response from Enso Cloud that could not be parsed.
     Invalid_Response_Payload cause
+
+    ## PRIVATE
+       An error response from Enso Cloud indicating that the provided user data is invalid.
+    Unauthorized
 
     ## PRIVATE
     to_display_text : Text
     to_display_text self = case self of
         Enso_Cloud_Error.Unexpected_Error status_code payload -> "Unexpected error response from Enso Cloud: " + status_code.to_text + ": " + payload
         Enso_Cloud_Error.Invalid_Response_Payload cause -> "Internal error: A response from Enso Cloud could not be parsed: " + cause.to_display_text
+        Enso_Cloud_Error.Unauthorized -> "Enso Cloud credentials file was found, but the service responded with 401 Unauthorized. You may try logging in again and restarting the workflow."

@@ -26,22 +26,15 @@ type Enso_User
     ## Fetch the current user.
     current : Enso_User
     current =
-        auth_header = Utils.authorization_header
-        user_api = Utils.cloud_root_uri + "users/me"
-        response = HTTP.fetch user_api HTTP_Method.Get [auth_header]
-        response.if_not_error <|
-            js_object = response.decode_as_json
-            Enso_User.from js_object
+        json = Utils.http_request_as_json HTTP_Method.Get (Utils.cloud_root_uri + "users/me")
+        Enso_User.from json
 
     ## Lists all known users.
     list : Vector Enso_User
     list =
-        auth_header = Utils.authorization_header
-        user_api = Utils.cloud_root_uri + "users"
-        response = HTTP.fetch user_api HTTP_Method.Get [auth_header]
-        response.if_not_error <|
-            js_object = response.decode_as_json
-            users = js_object.get 'users' []
+        json = Utils.http_request_as_json HTTP_Method.Get (Utils.cloud_root_uri + "users")
+        json.if_not_error <|
+            users = json.get 'users' []
             users.map (user-> Enso_User.from user)
 
     ## Flushes all cloud caches.
