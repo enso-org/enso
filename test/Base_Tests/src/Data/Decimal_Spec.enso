@@ -98,6 +98,14 @@ add_specs suite_builder =
             Decimal.new Number.positive_infinity . should_fail_with Illegal_Argument
             Decimal.new Number.negative_infinity . should_fail_with Illegal_Argument
 
+        group_builder.specify "should be convertible via .from" <|
+            Decimal.from "123.45" . should_equal (Decimal.new "123.45")
+            Decimal.from "123.45" . should_equal (Decimal.from_text "123.45")
+            Decimal.from 123.45 . should_equal (Decimal.new 123.45)
+            Decimal.from 123.45 . should_equal (Decimal.from_float 123.45)
+            Decimal.from 12345 . should_equal (Decimal.new 12345)
+            Decimal.from 12345 . should_equal (Decimal.from_integer 12345)
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
