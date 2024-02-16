@@ -52,7 +52,8 @@ type Suite
 
        Arguments:
        - filter: Either text or Nothing. If Nothing, matches all the specs and all the groups.
-         If text, only groups or specs that exactly match the text are run.
+         If `filter` is text, it is first compiled into a regex and all the groups or the
+         specs that match the regex are run.
        - should_exit: If true, executes `System.exit` at the end, so the method does not return.
          If false, return boolean from the method indicating whether some tests failed.
 
@@ -121,5 +122,8 @@ type Suite
 ## PRIVATE
 name_matches (name : Text) (filter : (Text | Nothing)) -> Boolean =
     case filter of
-        text : Text -> name == text
+        text : Text ->
+            regex = Regex.compile text
+            if regex.is_error.not then regex.match name != Nothing else
+                Panic.throw (Illegal_Argument.Error ("Filter '" + text + "' cannot be converted to regex"))
         Nothing -> True
