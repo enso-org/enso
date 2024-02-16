@@ -845,6 +845,7 @@ function syncTree(target: Ast, newContent: Owned, toSync: Map<AstId, Ast>, edit:
     return target
   } else {
     parent.replaceChild(target.id, newContent)
+    newContent.fields.set('metadata', target.fields.get('metadata').clone())
     return newContent
   }
 }
