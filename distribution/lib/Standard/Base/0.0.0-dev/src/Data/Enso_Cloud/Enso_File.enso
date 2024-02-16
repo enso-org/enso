@@ -354,8 +354,9 @@ get_file_description file:Enso_File -> JS_Object =
    The returned URL may be valid only for a very short time, so it should not be
    stored anywhere.
 get_download_url_for_file file:Enso_File -> Text =
-    # TODO migrate to the pre-signed URLs once that is implemented
     file_description = get_file_description file
+    ## TODO migrate to the pre-signed URLs once that is implemented
+       presigned_url = file_description |> get_required_field "url"
     path = file_description |> get_required_field "file" |> get_required_field "path"
     path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"
 
