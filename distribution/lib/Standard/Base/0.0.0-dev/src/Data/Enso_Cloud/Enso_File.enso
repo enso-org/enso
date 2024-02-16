@@ -61,9 +61,9 @@ type Enso_File
         "" -> if self.asset_type == Enso_Asset_Type.Directory then Utils.directory_api else
             Error.throw (Illegal_Argument.Error "Invalid ID for a "+self.asset_type.to_text+".")
         _ -> case self.asset_type of
-            Enso_Asset_Type.Directory -> Utils.directory_api + "?parent_id=" + self.id
+            Enso_Asset_Type.Directory -> Utils.directory_api + "/" + self.id
             Enso_Asset_Type.File -> Utils.files_api + "/" + self.id
-            Enso_Asset_Type.Project -> Utils.projects_api + "/" + self.id
+            Enso_Asset_Type.Project -> Utils.p + "/" + self.id
             Enso_Asset_Type.Data_Link -> Utils.secrets_api + "/" + self.id
             Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
 
@@ -254,9 +254,7 @@ type Enso_File
        Deletes the file or directory.
     delete : Nothing
     delete self = if self.id == "" then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
-        # TODO this is a mess
-        uri = if self.is_directory then Utils.directory_api + "/" + self.id else self.internal_uri
-        response = Utils.http_request HTTP_Method.Delete uri
+        response = Utils.http_request HTTP_Method.Delete self.internal_uri
         response.if_not_error Nothing
 
     ## Deletes the file if it had existed.
