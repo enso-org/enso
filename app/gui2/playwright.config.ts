@@ -37,7 +37,7 @@ export default defineConfig({
   globalSetup: './e2e/setup.ts',
   testDir: './e2e',
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  repeatEach: process.env.CI ? 3 : 1,
   ...(process.env.CI ? { workers: 1 } : {}),
   expect: {
     timeout: 5000,

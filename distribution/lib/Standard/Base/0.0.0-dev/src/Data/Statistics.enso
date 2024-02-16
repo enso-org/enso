@@ -8,8 +8,8 @@ import project.Data.Ordering.Ordering
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing

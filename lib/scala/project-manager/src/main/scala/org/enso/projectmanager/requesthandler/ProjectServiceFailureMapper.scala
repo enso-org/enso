@@ -41,7 +41,4 @@ object ProjectServiceFailureMapper {
       GlobalConfigurationAccessError(msg)
   }
 
-  /** [[FailureMapper]] instance for [[ProjectServiceFailure]]. */
-  implicit val failureMapper: FailureMapper[ProjectServiceFailure] =
-    (failure: ProjectServiceFailure) => mapFailure(failure)
 }

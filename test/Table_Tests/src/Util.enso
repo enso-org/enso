@@ -1,9 +1,9 @@
 from Standard.Base import all
 
 import Standard.Database.Data.Table.Table as Database_Table
-import Standard.Database.Data.Column.Column as Database_Column
+import Standard.Database.Data.DB_Column.DB_Column
 import Standard.Table.Data.Table.Table as In_Memory_Table
-import Standard.Table.Data.Column.Column as In_Memory_Column
+import Standard.Table.Data.Column.Column
 
 from Standard.Test import all
 
@@ -24,11 +24,11 @@ In_Memory_Table.should_equal self expected frames_to_skip=0 =
                 Test.fail msg
         _ -> Test.fail "Got a Table, but expected a "+expected.to_display_text+' (at '+loc+').'
 
-In_Memory_Column.should_equal : Any -> Integer -> Any
-In_Memory_Column.should_equal self expected frames_to_skip=0 =
+Column.should_equal : Any -> Integer -> Any
+Column.should_equal self expected frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     case expected of
-        _ : In_Memory_Column ->
+        _ : Column ->
             if self.name != expected.name then
                 Test.fail "Expected column name "+expected.name+", but got "+self.name+" (at "+loc+")."
             if self.length != expected.length then
@@ -42,8 +42,8 @@ Database_Table.should_equal self expected frames_to_skip=0 =
     t1 = expected.read
     t0 . should_equal t1 frames_to_skip
 
-Database_Column.should_equal : Database_Column -> Integer -> Any
-Database_Column.should_equal self expected frames_to_skip=0 =
+DB_Column.should_equal : DB_Column -> Integer -> Any
+DB_Column.should_equal self expected frames_to_skip=0 =
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 frames_to_skip

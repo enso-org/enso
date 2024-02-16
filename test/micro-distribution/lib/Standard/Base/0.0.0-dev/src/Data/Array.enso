@@ -1,6 +1,6 @@
-import project.Data.Vector.Vector
+from project.Data.Vector import array_like_at, array_like_length
 
 @Builtin_Type
 type Array
-    at self index = Vector.at self index
-    length self = Vector.length self
+    at self index = array_like_at self index
+    length self = array_like_length self

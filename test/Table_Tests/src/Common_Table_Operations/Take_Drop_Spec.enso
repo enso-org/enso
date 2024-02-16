@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Sum
+from Standard.Table import Aggregate_Column
 from Standard.Table.Errors import all
 
 from Standard.Test import all
@@ -254,7 +254,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "Should work correctly after aggregation" <|
             t0 = table_builder [["X", ["a", "b", "a", "c"]], ["Y", [1, 2, 4, 8]]]
-            t1 = t0.aggregate [Group_By "X", Sum "Y"]
+            t1 = t0.aggregate ["X"] [Aggregate_Column.Sum "Y"]
 
             t2 = t1.order_by "X" . take 2
             t2.at "X" . to_vector . should_equal ['a', 'b']

@@ -1,18 +1,18 @@
 package org.enso.projectmanager.protocol
 
-import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
-import org.enso.projectmanager.control.effect.{ErrorChannel, Exec}
+import org.enso.projectmanager.control.effect.{ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementServiceApi
 import org.enso.projectmanager.service.{
   LoggingServiceDescriptor,
   ProjectServiceApi
 }
+
+import java.util.UUID
 
 /** Project manager client controller factory.
   *
@@ -24,7 +24,7 @@ import org.enso.projectmanager.service.{
   * @param timeoutConfig a request timeout config
   */
 class ManagerClientControllerFactory[
-  F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel
+  F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel: Sync
 ](
   system: ActorSystem,
   projectService: ProjectServiceApi[F],

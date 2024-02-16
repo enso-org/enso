@@ -14,6 +14,7 @@ import {
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
+import { entryQn } from '@/stores/suggestionDatabase/entry'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import {
@@ -115,13 +116,12 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
 })
 
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
-  // If we inherit dynamic config, there is no point in attaching visualization.
-  if (props.input.dynamicConfig) return null
-
+  // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
+  // the current call and then merge them.
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
   if (astId == null || expressionId == null) return null
-  const info = graph.db.getMethodCallInfo(astId)
+  const info = methodCallInfo.value
   if (!info) return null
   const args = info.suggestion.annotations
   if (args.length === 0) return null
@@ -138,21 +138,31 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   }
 })
 
+const inheritedConfig = computed(() => {
+  if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
+  if (props.input.dynamicConfig?.kind === 'OneOfFunctionCalls' && methodCallInfo.value != null) {
+    const cfg = props.input.dynamicConfig
+    const info = methodCallInfo.value
+    const name = entryQn(info?.suggestion)
+    return cfg.possibleFunctions.get(name)
+  }
+  return undefined
+})
+
 const visualizationData = project.useVisualizationData(visualizationConfig)
 const widgetConfiguration = computed(() => {
-  if (props.input.dynamicConfig?.kind === 'FunctionCall') return props.input.dynamicConfig
   const data = visualizationData.value
   if (data?.ok) {
     const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
     if (parseResult.success) {
-      return functionCallConfiguration(parseResult.data)
+      return functionCallConfiguration(parseResult.data, inheritedConfig.value)
     } else {
       console.error('Unable to parse widget configuration.', data, parseResult.error)
     }
   } else if (data != null && !data.ok) {
     data.error.log('Cannot load dynamic configuration')
   }
-  return undefined
+  return inheritedConfig.value
 })
 
 /**
