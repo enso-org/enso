@@ -6,7 +6,6 @@ import java.util.List;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
@@ -110,18 +109,18 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> mask(BitSet mask, int cardinality) {
+  public SpecializedStorage<T> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
-    T[] newData = newUnderlyingArray(cardinality);
+    T[] newData = newUnderlyingArray(newLength);
     int resIx = 0;
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         newData[resIx++] = data[i];
       }
 
       context.safepoint();
     }
-    return newInstance(newData, cardinality);
+    return newInstance(newData, newLength);
   }
 
   @Override
@@ -130,24 +129,10 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     T[] newData = newUnderlyingArray(mask.length());
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      newData[i] = position == Index.NOT_FOUND ? null : data[position];
+      newData[i] = position == Storage.NOT_FOUND_INDEX ? null : data[position];
       context.safepoint();
     }
     return newInstance(newData, newData.length);
-  }
-
-  @Override
-  public SpecializedStorage<T> countMask(int[] counts, int total) {
-    Context context = Context.getCurrent();
-    T[] newData = newUnderlyingArray(total);
-    int pos = 0;
-    for (int i = 0; i < counts.length; i++) {
-      for (int j = 0; j < counts[i]; j++) {
-        newData[pos++] = data[i];
-        context.safepoint();
-      }
-    }
-    return newInstance(newData, total);
   }
 
   public T[] getData() {

@@ -11,11 +11,11 @@ import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.Output_Stream.Output_Stream
 from Standard.Base.System.File import find_extension_from_name
+from Standard.Base.System.File.Generic.File_Write_Strategy import generic_copy
 
 import project.AWS_Credential.AWS_Credential
 import project.Errors.S3_Error
 import project.Errors.S3_Key_Not_Found
-import project.Internal.Request_Body
 import project.Internal.S3_File_Write_Strategy
 import project.S3.S3
 
@@ -49,7 +49,7 @@ type S3_File
     exists self = if self.bucket == "" then True else
         if self.prefix == "" then translate_file_errors self <| S3.head self.bucket "" self.credentials . is_error . not else
             pair = translate_file_errors self <| S3.read_bucket self.bucket self.prefix self.credentials max_count=1
-            pair.second.length > 0
+            pair.second.contains self.prefix
 
     ## GROUP Standard.Base.Metadata
        Checks if this is a folder.
@@ -98,8 +98,7 @@ type S3_File
                             result = tmp_file.with_output_stream [File_Access.Write] action
                             # Only proceed if the write succeeded
                             result.if_not_error <|
-                                request_body = Request_Body.from_local_file tmp_file
-                                (translate_file_errors self <| S3.put_object self.bucket self.prefix self.credentials request_body) . if_not_error <|
+                                (translate_file_errors self <| S3.upload_file tmp_file self.bucket self.prefix self.credentials) . if_not_error <|
                                     result
 
 
@@ -172,12 +171,17 @@ type S3_File
     read_text self (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
         self.read (Plain_Text encoding) on_problems
 
-    ## UNSTABLE
-       Deletes the object.
+    ## Deletes the object.
     delete : Nothing
     delete self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
+        if self.exists.not then Error.throw (File_Error.Not_Found self) else
+            self.delete_if_exists
+
+    ## Deletes the file if it had existed.
+    delete_if_exists : Nothing
+    delete_if_exists self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Deleting an S3_File is forbidden as the Output context is disabled.") else
-            translate_file_errors self <| S3.delete_object self.bucket self.prefix self.credentials . if_not_error <| Nothing
+            translate_file_errors self <| S3.delete_object self.bucket self.prefix self.credentials . if_not_error Nothing
 
     ## Copies the file to the specified destination.
 
@@ -185,8 +189,8 @@ type S3_File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : S3_File -> Boolean -> Any ! File_Error
-    copy_to self (destination : Writable_File) replace_existing=False =
+    copy_to : Writable_File -> Boolean -> Any ! File_Error
+    copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
         if self.is_directory then Error.throw (S3_Error.Error "Copying S3 folders is currently not implemented." self.uri) else
             if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Copying an S3_File is forbidden as the Output context is disabled.") else
                 case destination.file of
@@ -194,13 +198,27 @@ type S3_File
                     s3_destination : S3_File ->
                         if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
                             translate_file_errors self <| S3.copy_object self.bucket self.prefix s3_destination.bucket s3_destination.prefix self.credentials . if_not_error <| s3_destination
+                    _ -> generic_copy self destination.file replace_existing
 
-                    # Generic implementation using streams
-                    _ ->
-                        self.with_input_stream [File_Access.Read] input_stream->
-                            open_settings = if replace_existing then [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Write, File_Access.Create_New]
-                            destination.with_output_stream open_settings output_stream->
-                                output_stream.write_stream input_stream
+    ## Moves the file to the specified destination.
+
+       ! S3 Move is a Copy and Delete
+
+         Since S3 does not support moving files, this operation is implemented
+         as a copy followed by delete. Keep in mind that the space usage of the
+         file will briefly be doubled and that the operation may not be as fast
+         as a local move often is.
+
+       Arguments:
+       - destination: the destination to move the file to.
+       - replace_existing: specifies if the operation should proceed if the
+         destination file already exists. Defaults to `False`.
+    move_to : Writable_File -> Boolean -> Nothing ! File_Error
+    move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
+        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
+            r = self.copy_to destination replace_existing=replace_existing
+            r.if_not_error <|
+                self.delete.if_not_error r
 
     ## GROUP Standard.Base.Operators
        Join two path segments together.

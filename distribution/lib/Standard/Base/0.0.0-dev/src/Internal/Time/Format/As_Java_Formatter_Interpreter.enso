@@ -19,7 +19,7 @@ polyglot java import org.enso.base.Time_Utils
 ## PRIVATE
 interpret : Locale -> Vector (Common_Nodes | Standard_Date_Patterns | ISO_Week_Year_Patterns | Time_Patterns | Time_Zone_Patterns) -> Boolean -> DateTimeFormatter
 interpret locale nodes prepare_defaults=True =
-    builder = DateTimeFormatterBuilder.new
+    builder = DateTimeFormatterBuilder.new.parseCaseInsensitive
     interpret_node node = case node of
         Common_Nodes.Literal text ->
             builder.appendLiteral text

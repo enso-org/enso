@@ -105,6 +105,14 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
                 'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
             ],
         ],
+        [
+            `lib/Standard/Google_Api/*/polyglot/java/grpc-netty-shaded-*.jar`,
+            ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
+        ],
+        [
+            `lib/Standard/Google_Api/*/polyglot/java/conscrypt-openjdk-uber-*.jar`,
+            ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
+        ],
     ]
     return ArchiveToSign.lookupMany(engineDir, archivePatterns)
 }
