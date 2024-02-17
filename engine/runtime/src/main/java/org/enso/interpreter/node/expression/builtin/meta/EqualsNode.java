@@ -221,7 +221,7 @@ public final class EqualsNode extends Node {
       try {
         var thatAsSelf = convertNode.execute(convert, state, new Object[] {selfType, that});
         var result = equalityNode.execute(frame, self, thatAsSelf);
-        assert !result || assertHashCodeIsTheSame(self, thatAsSelf);
+        assert !result || assertHashCodeIsTheSame(that, thatAsSelf);
         return result;
       } catch (ArityException ex) {
         var assertsOn = false;
@@ -242,17 +242,17 @@ public final class EqualsNode extends Node {
       var selfHash = HashCodeNode.getUncached().execute(self);
       var convertedHash = HashCodeNode.getUncached().execute(converted);
       var ok = selfHash == convertedHash;
-      var msg =
-          "Different hash code! Original "
-              + self
-              + "[#"
-              + Long.toHexString(selfHash)
-              + "] got converted to "
-              + converted
-              + "[#"
-              + Long.toHexString(convertedHash)
-              + "]";
       if (!ok) {
+        var msg =
+            "Different hash code! Original "
+                + self
+                + "[#"
+                + Long.toHexString(selfHash)
+                + "] got converted to "
+                + converted
+                + "[#"
+                + Long.toHexString(convertedHash)
+                + "]";
         var ctx = EnsoContext.get(this);
         throw ctx.raiseAssertionPanic(this, msg, new AssertionError(msg));
       }

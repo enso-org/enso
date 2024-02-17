@@ -2,9 +2,11 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -81,10 +83,29 @@ public class EqualsConversionsTest extends TestBase {
     assertFalse("Num.Value not equal to Integer: ", gen.evaluate());
   }
 
+  @Test
+  public void testInconsistentHashFunction() {
+    var gen = new DefineComparableWrapper();
+    gen.intNumConversion = true;
+    gen.intComparator = true;
+    gen.numComparator = true;
+    gen.hashFn = "x.n*31";
+
+    boolean r;
+    try {
+      r = gen.evaluate();
+    } catch (PolyglotException ex) {
+      assertTrue(ex.getMessage(), ex.getMessage().contains("Different hash code!"));
+      return;
+    }
+    fail("Expecting assertion error, not: " + r);
+  }
+
   private static final class DefineComparableWrapper {
     boolean intNumConversion;
     boolean numComparator;
     boolean intComparator;
+    String hashFn = "Default_Comparator.hash x.n";
 
     boolean evaluate() {
       var block0 =
@@ -96,8 +117,9 @@ public class EqualsConversionsTest extends TestBase {
 
           type Num_Comparator
               compare x:Num y:Num = Ordering.compare x.n y.n
-              hash x:Num = x.n
-          """;
+              hash x:Num = {hashFn}
+          """
+              .replace("{hashFn}", hashFn);
 
       var block1 =
           !intNumConversion
