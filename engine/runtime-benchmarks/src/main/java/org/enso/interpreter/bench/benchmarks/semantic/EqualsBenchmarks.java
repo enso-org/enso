@@ -124,11 +124,11 @@ public class EqualsBenchmarks {
         codeBuilder
             .append(
                 generateVectorOfPrimitives(
-                    primitiveVectorSize, "vec1", 42, trueExpectedAt, random, "%f"))
+                    primitiveVectorSize, "vec1", 42, trueExpectedAt, random, "%d", "%f"))
             .append("\n")
             .append(
                 generateVectorOfPrimitives(
-                    primitiveVectorSize, "vec2", 42, trueExpectedAt, random, "%f"))
+                    primitiveVectorSize, "vec2", 42, trueExpectedAt, random, "%d", "%f"))
             .append("\n");
       }
       case "equalsWithConversion" -> {
@@ -143,11 +143,17 @@ public class EqualsBenchmarks {
         codeBuilder
             .append(
                 generateVectorOfPrimitives(
-                    primitiveVectorSize, "vec1", 42, trueExpectedAt, random, "%f"))
+                    primitiveVectorSize, "vec1", 42, trueExpectedAt, random, "%d", "%f"))
             .append("\n")
             .append(
                 generateVectorOfPrimitives(
-                    primitiveVectorSize, "vec2", 42, trueExpectedAt, random, "Num.Value %f"))
+                    primitiveVectorSize,
+                    "vec2",
+                    42,
+                    trueExpectedAt,
+                    random,
+                    "Num.Value %d",
+                    "Num.Value %f"))
             .append("\n");
       }
       case "equalsStrings" -> {
@@ -177,7 +183,7 @@ public class EqualsBenchmarks {
     }
 
     codeBuilder.append("""
-        bench x = eq_vec vec1 vec2
+        bench _ = eq_vec vec1 vec2
         """);
 
     module = ctx.eval(SrcUtil.source(benchmarkName, codeBuilder.toString()));
@@ -249,7 +255,8 @@ public class EqualsBenchmarks {
       Object identityElem,
       Collection<Integer> constantIdxs,
       Random random,
-      String format) {
+      String intFormat,
+      String doubleFormat) {
     var partSize = totalSize / 2;
     List<Object> primitiveValues = new ArrayList<>();
     random.ints(partSize).forEach(primitiveValues::add);
@@ -263,9 +270,9 @@ public class EqualsBenchmarks {
     sb.append(vecName).append(" = [");
     for (Object primitiveValue : primitiveValues) {
       if (primitiveValue instanceof Double dbl) {
-        sb.append(String.format(format, dbl)).append(",");
+        sb.append(String.format(doubleFormat, dbl)).append(",");
       } else {
-        sb.append(primitiveValue).append(",");
+        sb.append(String.format(intFormat, primitiveValue)).append(",");
       }
     }
     // Replace last comma
