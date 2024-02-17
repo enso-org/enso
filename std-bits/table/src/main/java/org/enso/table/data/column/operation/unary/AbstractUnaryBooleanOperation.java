@@ -20,7 +20,7 @@ abstract class AbstractUnaryBooleanOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  protected Builder createBuilder(ColumnStorage storage, ProblemAggregator problemAggregator) {
+  protected BoolBuilder createBuilder(ColumnStorage storage, ProblemAggregator problemAggregator) {
     if (storage.getSize() > Integer.MAX_VALUE) {
       throw new IllegalArgumentException(STR."Cannot currently operate on columns larger than \{Integer.MAX_VALUE}.");
     }
