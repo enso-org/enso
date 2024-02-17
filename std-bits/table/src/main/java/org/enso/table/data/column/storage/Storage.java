@@ -103,13 +103,8 @@ public abstract class Storage<T> implements ColumnStorage {
     public static final String CEIL = "ceil";
     public static final String FLOOR = "floor";
     public static final String ROUND = "round";
-    public static final String NOT = "not";
     public static final String AND = "&&";
     public static final String OR = "||";
-    public static final String IS_NOTHING = "is_nothing";
-    public static final String IS_NAN = "is_nan";
-    public static final String IS_INFINITE = "is_infinite";
-    public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
     public static final String TEXT_LENGTH = "text_length";
@@ -165,37 +160,6 @@ public abstract class Storage<T> implements ColumnStorage {
    */
   public abstract Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator);
-
-  /**
-   * Runs a unary function on each non-null element in this storage.
-   *
-   * @param function the function to run.
-   * @param skipNa whether rows containing missing values should be passed to the function.
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the function on each row
-   */
-  public final Storage<?> unaryMap(
-      Function<Object, Value> function,
-      boolean skipNa,
-      StorageType expectedResultType,
-      ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      Object it = getItemBoxed(i);
-      if (skipNa && it == null) {
-        storageBuilder.appendNulls(1);
-      } else {
-        Value result = function.apply(it);
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.appendNoGrow(converted);
-      }
-
-      context.safepoint();
-    }
-    return storageBuilder.seal();
-  }
 
   /**
    * Runs a 2-argument function on each element in this storage.
@@ -267,34 +231,6 @@ public abstract class Storage<T> implements ColumnStorage {
       context.safepoint();
     }
     return storageBuilder.seal();
-  }
-
-  /**
-   * Runs a unary operation.
-   *
-   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not
-   *     available; it should never raise dataflow errors.
-   * @param skipNa whether rows containing missing values should be passed to the fallback function.
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedOrFallbackUnaryMap(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      Function<Object, Value> fallback,
-      boolean skipNa,
-      StorageType expectedResultType) {
-    if (isUnaryOpVectorized(name)) {
-      return runVectorizedUnaryMap(name, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return unaryMap(fallback, skipNa, expectedResultType, problemAggregator);
-    }
   }
 
   /**

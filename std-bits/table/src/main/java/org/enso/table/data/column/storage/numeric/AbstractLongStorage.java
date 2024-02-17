@@ -19,12 +19,14 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparis
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
 
-public abstract class AbstractLongStorage extends NumericStorage<Long> {
+public abstract class AbstractLongStorage extends NumericStorage<Long> implements ColumnLongStorage {
   public abstract long getItem(int idx);
 
   public abstract BitSet getIsMissing();
@@ -151,32 +153,6 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(new EqualsComparison<>())
         .add(new GreaterOrEqualComparison<>())
         .add(new GreaterComparison<>())
-        .add(
-            new UnaryMapOperation<>(Storage.Maps.IS_NOTHING) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  AbstractLongStorage storage, MapOperationProblemAggregator problemAggregator) {
-                return new BoolStorage(storage.getIsMissing(), new BitSet(), storage.size(), false);
-              }
-            })
-        .add(
-            new UnaryMapOperation<>(Storage.Maps.IS_NAN) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  AbstractLongStorage storage, MapOperationProblemAggregator problemAggregator) {
-                BitSet isNaN = new BitSet();
-                return new BoolStorage(isNaN, storage.getIsMissing(), storage.size(), false);
-              }
-            })
-        .add(
-            new UnaryMapOperation<>(Storage.Maps.IS_INFINITE) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  AbstractLongStorage storage, MapOperationProblemAggregator problemAggregator) {
-                BitSet isInfinite = new BitSet();
-                return new BoolStorage(isInfinite, storage.getIsMissing(), storage.size(), false);
-              }
-            })
         .add(new LongIsInOp());
     return ops;
   }
@@ -222,4 +198,12 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
    * <p>Ideally it should avoid copying the data, if it's possible.
    */
   public abstract AbstractLongStorage widen(IntegerType widerType);
+
+  @Override
+  public long get(long index) throws ValueIsNothingException {
+    if (isNothing(index)) {
+      throw new ValueIsNothingException(index);
+    }
+    return getItem((int)index);
+  }
 }

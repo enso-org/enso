@@ -22,7 +22,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A boolean column storage. */
-public final class BoolStorage extends Storage<Boolean> {
+public final class BoolStorage extends Storage<Boolean> implements ColumnBooleanStorage, ColumnStorageWithNothingMap {
   private static final MapOperationStorage<Boolean, BoolStorage> ops = buildOps();
   private final BitSet values;
   private final BitSet isMissing;
@@ -256,15 +256,6 @@ public final class BoolStorage extends Storage<Boolean> {
   private static MapOperationStorage<Boolean, BoolStorage> buildOps() {
     MapOperationStorage<Boolean, BoolStorage> ops = new MapOperationStorage<>();
     ops.add(
-            new UnaryMapOperation<>(Maps.NOT) {
-              @Override
-              protected BoolStorage runUnaryMap(
-                  BoolStorage storage, MapOperationProblemAggregator problemAggregator) {
-                return new BoolStorage(
-                    storage.values, storage.isMissing, storage.size, !storage.negated);
-              }
-            })
-        .add(
             new BinaryMapOperation<>(Maps.EQ) {
               @Override
               public BoolStorage runBinaryMap(
@@ -446,14 +437,6 @@ public final class BoolStorage extends Storage<Boolean> {
                 return new BoolStorage(out, missing, storage.size, negated);
               }
             })
-        .add(
-            new UnaryMapOperation<>(Maps.IS_NOTHING) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  BoolStorage storage, MapOperationProblemAggregator problemAggregator) {
-                return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
-              }
-            })
         .add(new BooleanIsInOp());
     return ops;
   }
@@ -504,5 +487,18 @@ public final class BoolStorage extends Storage<Boolean> {
     }
 
     return new BoolStorage(newValues, newMissing, newSize, negated);
+  }
+
+  @Override
+  public BitSet getIsNothingMap() {
+    return isMissing;
+  }
+
+  @Override
+  public boolean get(long index) throws ValueIsNothingException {
+    if (isNothing(index)) {
+      throw new ValueIsNothingException(index);
+    }
+    return getItem(index);
   }
 }

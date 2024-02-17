@@ -23,6 +23,7 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualC
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -35,7 +36,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends NumericStorage<Double> implements DoubleArrayAdapter {
+public final class DoubleStorage extends NumericStorage<Double> implements DoubleArrayAdapter, ColumnStorageWithNothingMap {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -336,48 +337,6 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
         .add(new EqualsComparison<>())
         .add(new GreaterOrEqualComparison<>())
         .add(new GreaterComparison<>())
-        .add(
-            new UnaryMapOperation<>(Maps.IS_NOTHING) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
-                return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
-              }
-            })
-        .add(
-            new UnaryMapOperation<>(Maps.IS_NAN) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
-                BitSet nans = new BitSet();
-                Context context = Context.getCurrent();
-                for (int i = 0; i < storage.size; i++) {
-                  if (!storage.isNa(i) && Double.isNaN(storage.getItemAsDouble(i))) {
-                    nans.set(i);
-                  }
-
-                  context.safepoint();
-                }
-                return new BoolStorage(nans, storage.isMissing, storage.size, false);
-              }
-            })
-        .add(
-            new UnaryMapOperation<>(Maps.IS_INFINITE) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
-                BitSet infintes = new BitSet();
-                Context context = Context.getCurrent();
-                for (int i = 0; i < storage.size; i++) {
-                  if (!storage.isNa(i) && Double.isInfinite(storage.getItemAsDouble(i))) {
-                    infintes.set(i);
-                  }
-
-                  context.safepoint();
-                }
-                return new BoolStorage(infintes, storage.isMissing, storage.size, false);
-              }
-            })
         .add(new DoubleIsInOp());
     return ops;
   }
@@ -483,5 +442,10 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();
+  }
+
+  @Override
+  public BitSet getIsNothingMap() {
+    return isMissing;
   }
 }

@@ -5,6 +5,6 @@ public interface ColumnLongStorage extends ColumnStorage {
    * Gets the value at a given index.
    * Throws ValueIsNothingException if the index is nothing.
    * */
-  long get(long Item) throws ValueIsNothingException;
+  long get(long index) throws ValueIsNothingException;
 }
 

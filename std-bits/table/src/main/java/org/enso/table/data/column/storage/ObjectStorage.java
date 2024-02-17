@@ -35,23 +35,6 @@ public sealed class ObjectStorage extends SpecializedStorage<Object> permits Mix
 
   public static <T, S extends SpecializedStorage<T>> MapOperationStorage<T, S> buildObjectOps() {
     MapOperationStorage<T, S> ops = new MapOperationStorage<>();
-    ops.add(
-        new UnaryMapOperation<>(Maps.IS_NOTHING) {
-          @Override
-          protected BoolStorage runUnaryMap(
-              S storage, MapOperationProblemAggregator problemAggregator) {
-            Context context = Context.getCurrent();
-            BitSet r = new BitSet();
-            for (int i = 0; i < storage.size; i++) {
-              if (storage.data[i] == null) {
-                r.set(i);
-              }
-
-              context.safepoint();
-            }
-            return new BoolStorage(r, new BitSet(), storage.size, false);
-          }
-        });
     return ops;
   }
 }

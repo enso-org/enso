@@ -5,6 +5,6 @@ public interface ColumnBooleanStorage extends ColumnStorage {
    * Gets the value at a given index.
    * Throws ValueIsNothingException if the index is nothing.
    * */
-  boolean get(long Item) throws ValueIsNothingException;
+  boolean get(long index) throws ValueIsNothingException;
 }
 

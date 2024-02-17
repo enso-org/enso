@@ -33,6 +33,7 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.mask.OrderMask
@@ -769,7 +770,7 @@ type Column
     not self =
         Value_Type.expect_boolean self <|
             new_name = naming_helper.concat ["not", naming_helper.to_expression_text self]
-            run_vectorized_unary_op self Java_Storage.Maps.NOT new_name
+            apply_unary_operation self UnaryOperation.NOT new_name
 
     ## ALIAS if
        GROUP Standard.Base.Logical
@@ -1045,7 +1046,7 @@ type Column
     is_nothing : Column
     is_nothing self =
         new_name = naming_helper.concat [naming_helper.to_expression_text self, "is Nothing"]
-        run_vectorized_unary_op self Java_Storage.Maps.IS_NOTHING new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
+        apply_unary_operation self UnaryOperation.IS_NOTHING new_name
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -1061,9 +1062,8 @@ type Column
         new_name = naming_helper.function_name "is_nan" [self]
         fallback x = case x of
             _ : Float   -> x.is_nan
-            Nothing     -> Nothing
             _           -> False
-        run_vectorized_unary_op self Java_Storage.Maps.IS_NAN new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
+        apply_unary_operation self Java_Storage.Maps.IS_NAN new_name fallback expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -1077,7 +1077,7 @@ type Column
             _ : Float   -> x.is_infinite
             Nothing     -> Nothing
             _           -> False
-        run_vectorized_unary_op self Java_Storage.Maps.IS_INFINITE new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
+        apply_unary_operation self Java_Storage.Maps.IS_INFINITE new_name fallback expected_result_type=Value_Type.Boolean
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -1094,7 +1094,7 @@ type Column
             _ : Text -> x == ""
             Nothing  -> True
             _        -> False
-        run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean skip_nulls=False
+        apply_unary_operation self Java_Storage.Maps.IS_EMPTY new_name fallback expected_result_type=Value_Type.Boolean nothing_unchanged=False
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -2562,30 +2562,6 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
 
 ## PRIVATE
 
-   Executes a vectorized unary operation over the provided column.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - name: The name of the vectorized operation.
-   - new_name: The name of the column created as the result of this operation.
-   - fallback_fn: The function to call if a vectorized operation is not
-     available. It should never raise dataflow errors.
-   - expected_result_type: The expected result type of the operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-run_vectorized_unary_op : Column -> Text -> Text -> (Any -> Any) -> Value_Type -> Any -> Column
-run_vectorized_unary_op column name new_name fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        s = column.java_column.getStorage
-        storage_type = resolve_storage_type expected_result_type
-        rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-            s.vectorizedOrFallbackUnaryMap name problem_builder fallback_fn skip_nulls storage_type
-        Column.Value (Java_Column.new new_name rs)
-
-## PRIVATE
-
    Gets a textual representation of the item at position `ix` in `column`.
 
    Arguments:
@@ -2653,11 +2629,6 @@ run_vectorized_binary_case_text_op left op other case_sensitivity fallback new_n
             run_binary_op left fallback other new_name=new_name skip_nulls=True expected_result_type=result_type
 
 ## PRIVATE
-simple_unary_op column op_name =
-    new_name = naming_helper.function_name op_name [column]
-    run_vectorized_unary_op column op_name new_name
-
-## PRIVATE
    Converts the value type to a storage type, passing `Nothing` through.
 
    Sometimes we do not specify the storage type as it should be inferred by the
@@ -2719,3 +2690,26 @@ Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_v
 ## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector
+
+## PRIVATE
+   Applies a UnaryOperation to a column.
+   If not vectorized and a fallback if provided will be called.
+
+   Arguments:
+   - column: The column to apply the operation to.
+   - new_name: The name of the column created as the result of this operation.
+   - op_name: The name of the operation to apply.
+   - fallback: A function used if the vectorized operation isn't available.
+     It should never raise dataflow errors.
+   - expected_result_type: The expected result type of the operation.
+   - nothing_unchanged: If set to `True`, `Nothing` values will be passed through
+     the operation without being changed. If set to `False`, `Nothing` values will
+     be passed to the `fallback` function.
+apply_unary_operation column:Column new_name:Text op_name:Text fallback=Nothing expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
+    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+        java_column = UnaryOperation.apply column.java_column op_name new_name java_problem_aggregator
+        if java_column.is_nothing.not then Column.Value java_column else
+            if fallback.is_nothing then
+            storage_type = resolve_storage_type expected_result_type
+            map_column = UnaryOperation.mapFunction java_column fallback True storage_type new_name java_problem_aggregator
+            Column.Value map_column
