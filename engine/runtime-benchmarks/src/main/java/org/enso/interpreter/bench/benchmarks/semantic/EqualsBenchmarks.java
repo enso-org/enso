@@ -102,7 +102,9 @@ public class EqualsBenchmarks {
 
         eq_vec vec1 vec2 =
             (0.up_to vec1.length).map idx->
-                (vec1.at idx) == (vec2.at idx)
+                v1 = vec1.at idx
+                v2 = vec2.at idx
+                v1 == v2
 
         eq x y = x == y
         """);
