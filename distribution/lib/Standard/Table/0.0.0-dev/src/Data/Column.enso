@@ -1063,7 +1063,7 @@ type Column
         fallback x = case x of
             _ : Float   -> x.is_nan
             _           -> False
-        apply_unary_operation self Java_Storage.Maps.IS_NAN new_name fallback expected_result_type=Value_Type.Boolean
+        apply_unary_operation self UnaryOperation.IS_NAN new_name fallback expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -1077,7 +1077,7 @@ type Column
             _ : Float   -> x.is_infinite
             Nothing     -> Nothing
             _           -> False
-        apply_unary_operation self Java_Storage.Maps.IS_INFINITE new_name fallback expected_result_type=Value_Type.Boolean
+        apply_unary_operation self UnaryOperation.IS_INFINITE new_name fallback expected_result_type=Value_Type.Boolean
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -1094,7 +1094,7 @@ type Column
             _ : Text -> x == ""
             Nothing  -> True
             _        -> False
-        apply_unary_operation self Java_Storage.Maps.IS_EMPTY new_name fallback expected_result_type=Value_Type.Boolean nothing_unchanged=False
+        apply_unary_operation self UnaryOperation.IS_EMPTY new_name fallback expected_result_type=Value_Type.Boolean nothing_unchanged=False
 
     ## GROUP Standard.Base.Logical
        ICON preparation
