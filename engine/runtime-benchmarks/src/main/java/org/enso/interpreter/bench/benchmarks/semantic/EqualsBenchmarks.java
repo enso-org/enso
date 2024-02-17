@@ -75,6 +75,21 @@ public class EqualsBenchmarks {
         new StringBuilder(
             """
         import Standard.Base.Data.Range.Extensions
+        import Standard.Base.Data.Numbers.Number
+        import Standard.Base.Data.Ordering.Ordering
+        import Standard.Base.Data.Ordering.Comparable
+        import Standard.Base.Data.Ordering.Default_Comparator
+
+        type Num
+            Value n
+
+        Num.from (that:Number) = Num.Value that
+        Comparable.from (_:Number) = Num_Comparator
+        Comparable.from (_:Num) = Num_Comparator
+
+        type Num_Comparator
+            compare x:Num y:Num = Ordering.compare x.n y.n
+            hash x:Num = Default_Comparator.hash x.n
 
         type Node
             C1 f1
@@ -108,10 +123,31 @@ public class EqualsBenchmarks {
                 primitiveVectorSize / 64);
         codeBuilder
             .append(
-                generateVectorOfPrimitives(primitiveVectorSize, "vec1", 42, trueExpectedAt, random))
+                generateVectorOfPrimitives(
+                    primitiveVectorSize, "vec1", 42, trueExpectedAt, random, "%f"))
             .append("\n")
             .append(
-                generateVectorOfPrimitives(primitiveVectorSize, "vec2", 42, trueExpectedAt, random))
+                generateVectorOfPrimitives(
+                    primitiveVectorSize, "vec2", 42, trueExpectedAt, random, "%f"))
+            .append("\n");
+      }
+      case "equalsWithConversion" -> {
+        trueExpectedAt =
+            Set.of(
+                primitiveVectorSize / 2,
+                primitiveVectorSize / 4,
+                primitiveVectorSize / 8,
+                primitiveVectorSize / 16,
+                primitiveVectorSize / 32,
+                primitiveVectorSize / 64);
+        codeBuilder
+            .append(
+                generateVectorOfPrimitives(
+                    primitiveVectorSize, "vec1", 42, trueExpectedAt, random, "%f"))
+            .append("\n")
+            .append(
+                generateVectorOfPrimitives(
+                    primitiveVectorSize, "vec2", 42, trueExpectedAt, random, "Num.Value %f"))
             .append("\n");
       }
       case "equalsStrings" -> {
@@ -172,6 +208,11 @@ public class EqualsBenchmarks {
   }
 
   @Benchmark
+  public void equalsWithConversion(Blackhole blackHole) {
+    performBenchmark(blackHole);
+  }
+
+  @Benchmark
   public void equalsStrings(Blackhole blackhole) {
     performBenchmark(blackhole);
   }
@@ -207,7 +248,8 @@ public class EqualsBenchmarks {
       String vecName,
       Object identityElem,
       Collection<Integer> constantIdxs,
-      Random random) {
+      Random random,
+      String format) {
     var partSize = totalSize / 2;
     List<Object> primitiveValues = new ArrayList<>();
     random.ints(partSize).forEach(primitiveValues::add);
@@ -221,7 +263,7 @@ public class EqualsBenchmarks {
     sb.append(vecName).append(" = [");
     for (Object primitiveValue : primitiveValues) {
       if (primitiveValue instanceof Double dbl) {
-        sb.append(String.format("%f", dbl)).append(",");
+        sb.append(String.format(format, dbl)).append(",");
       } else {
         sb.append(primitiveValue).append(",");
       }
