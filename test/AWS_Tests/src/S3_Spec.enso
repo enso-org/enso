@@ -8,6 +8,7 @@ import Standard.Base.Runtime.Ref.Ref
 
 from Standard.AWS import S3, S3_File, AWS_Credential
 from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error, S3_Bucket_Not_Found, S3_Key_Not_Found
+import Standard.AWS.Internal.S3_Path
 
 # Needed for custom formats test
 from Standard.Table import Table, Excel, Worksheet
@@ -29,20 +30,20 @@ add_specs suite_builder =
     api_pending = if Environment.get "AWS_ACCESS_KEY_ID" . is_nothing then "No Access Key found." else Nothing
     cloud_setup = Cloud_Tests_Setup.prepare
 
-    suite_builder.group "S3.parse_uri" group_builder->
+    suite_builder.group "S3_Path.parse" group_builder->
         group_builder.specify "parse bucket only uris" <|
-            S3.parse_uri "s3://" . should_equal (Pair.new "" "")
-            S3.parse_uri "s3://asda" . should_equal (Pair.new "asda" "")
-            S3.parse_uri "s3://banana/" . should_equal (Pair.new "banana" "")
+            S3_Path.parse "s3://" . should_equal (S3_Path.Value "" "")
+            S3_Path.parse "s3://asda" . should_equal (S3_Path.Value "asda" "")
+            S3_Path.parse "s3://banana/" . should_equal (S3_Path.Value "banana" "")
 
         group_builder.specify "parse full paths uris" <|
-            S3.parse_uri "s3://banana/apple" . should_equal (Pair.new "banana" "apple")
-            S3.parse_uri "s3://banana/apple/orange" . should_equal (Pair.new "banana" "apple/orange")
+            S3_Path.parse "s3://banana/apple" . should_equal (S3_Path.Value "banana" "apple")
+            S3_Path.parse "s3://banana/apple/orange" . should_equal (S3_Path.Value "banana" "apple/orange")
 
         group_builder.specify "reject invalid urils" <|
-            S3.parse_uri "asda" . should_equal Nothing
-            S3.parse_uri "s3:///" . should_equal Nothing
-            S3.parse_uri "s3:///apple/orange" . should_equal Nothing
+            S3_Path.parse "asda" . should_fail_with Illegal_Argument
+            S3_Path.parse "s3:///" . should_fail_with Illegal_Argument
+            S3_Path.parse "s3:///apple/orange" . should_fail_with Illegal_Argument
 
     suite_builder.group "S3.list_buckets" pending=api_pending group_builder->
         group_builder.specify "should be able to list buckets" <|
@@ -170,14 +171,17 @@ add_specs suite_builder =
             bytes2.should_equal bytes
 
         group_builder.specify "should support path traversal" <|
-            root.prefix . should_equal ""
-            (root / "foo") . prefix . should_equal "foo"
+            root.name . should_equal "/"
             (root / "foo") . path . should_equal "s3://"+bucket_name+"/foo"
+            (root / "foo") . name . should_equal "foo"
             (root / "foo/" / "bar") . prefix . should_equal "foo/bar"
             (root / "foo/" / "bar") . path . should_equal "s3://"+bucket_name+"/foo/bar"
 
-            # If `foo` lacks a `/` it is treated as a directory and cannot have children.
+            # If `foo` lacks a `/` it is _not_ treated as a directory and cannot have children.
             (root / "foo" / "bar") . should_fail_with S3_Error
+
+            (root / "foo/../././bar") . should_equal (root / "bar")
+            (root / "..") . should_fail_with S3_Error
 
             hello_txt.parent.parent.parent . should_equal root
             hello_txt.parent . should_equal (root / "examples/" / "folder 2/")
@@ -198,11 +202,17 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to read file metadata" <|
             root.exists . should_be_true
-            hello_txt.exists . should_be_true
             root.is_directory . should_be_true
-            hello_txt.is_directory . should_be_false
             root.is_regular_file . should_be_false
+
+            hello_txt.exists . should_be_true
+            hello_txt.is_directory . should_be_false
             hello_txt.is_regular_file . should_be_true
+
+            parent = hello_txt.parent
+            parent.exists . should_be_true
+            parent.is_directory . should_be_true
+            parent.is_regular_file . should_be_false
 
             root.extension . should_fail_with S3_Error
             hello_txt.extension . should_equal ".txt"

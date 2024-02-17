@@ -170,17 +170,6 @@ copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (t
     client.copyObject request . if_not_error Nothing
 
 ## PRIVATE
-   Splits a S3 URI into bucket and key.
-parse_uri : Text -> Pair Text Text | Nothing
-parse_uri uri =
-    if uri.starts_with uri_prefix . not then Nothing else
-        no_prefix = uri.drop uri_prefix.length
-        index_of = no_prefix.index_of "/"
-        if index_of == 0 then Nothing else
-            if index_of.is_nothing then Pair.new no_prefix "" else
-                Pair.new (no_prefix.take index_of) (no_prefix.drop index_of+1)
-
-## PRIVATE
 handle_s3_errors : Any -> Text -> Text -> Any ! S3_Error | AWS_SDK_Error
 handle_s3_errors ~action bucket="" key="" =
     s3_inner_handler caught_panic =

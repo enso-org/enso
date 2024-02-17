@@ -1,0 +1,65 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Errors.S3_Error
+import project.S3.S3
+
+type S3_Path
+    Value (bucket : Text) (key : Text)
+
+    parse (uri : Text) -> S3_Path ! Illegal_Argument =
+        if uri.starts_with S3.uri_prefix . not then Error.throw (Illegal_Argument.Error "An S3 path must start with `"+S3.uri_prefix+"`.") else
+            without_prefix = uri.drop S3.uri_prefix.length
+            first_slash_index = without_prefix.index_of "/"
+            if first_slash_index == 0 then Error.throw (Illegal_Argument.Error "Invalid S3 path: empty bucket name.") else
+                if first_slash_index.is_nothing then S3_Path.Value without_prefix "" else
+                    Pair.new (without_prefix.take first_slash_index) (without_prefix.drop first_slash_index+1)
+
+    to_text self -> Text = S3.uri_prefix + self.bucket + "/" + self.key
+
+    is_root self -> Boolean = self.key.is_empty
+
+    is_directory self -> Boolean = self.is_root || (self.key.ends_with "/")
+
+    resolve self (subpath : Text) -> S3_Path =
+        trimmed = if subpath.starts_with "/" then subpath.drop (First 1) else subpath
+        parts = trimmed.split "/"
+
+        extend current part =
+            if current == "" then part else
+                if current.ends_with "/" then current + part else
+                    current + "/" + part
+
+        loop current remaining = if remaining.length == 0 then current else
+            new_current = case remaining.first of
+                ".." ->
+                    last_index = current.last_index_of "/"
+                    if last_index == Nothing then Error.throw (S3_Error.Error "Cannot move above root folder.") else current.take last_index
+                "." -> current
+                x -> extend current x
+            @Tail_Call loop new_current (remaining.drop 1)
+
+        initial = if subpath.starts_with "/" then "" else self.key
+        new_path = loop initial parts
+        S3_Path.Value self.bucket new_path
+
+    parent self -> S3_Path | Nothing =
+        if self.key == "" then Nothing else
+            last_index = case self.is_directory of
+                # For directories we drop the trailing slash and find the one before it:
+                True -> (self.key.drop (Last 1)).last_index_of "/"
+                False -> self.key.last_index_of "/"
+            ## We include the trailing slash in the path, as the parent is
+               always a directory and in S3 directories are distinguished only
+               by the presence of this slash.
+            new_key = if last_index == Nothing then "" else self.key.take last_index+1
+            S3_Path.Value self.bucket new_key
+
+    file_name self -> Text =
+        if self.is_root then "/" else
+            trimmed = if self.key.ends_with "/" then self.key.drop (Last 1) else self.key
+            last_index = trimmed.last_index_of "/"
+            if last_index == Nothing then trimmed else trimmed.drop (First last_index+1)
+
+    is_descendant_of self (other : S3_Path) -> Boolean =
+        other.is_directory && self.to_text.starts_with other.to_text
