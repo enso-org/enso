@@ -1,6 +1,6 @@
 package org.enso.launcher.project
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.distribution.DistributionManager
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
@@ -11,14 +11,14 @@ class ProjectManagerSpec
     extends RuntimeVersionManagerTest
     with Inside
     with OptionValues {
-  private val defaultEnsoVersion = SemVer(0, 0, 0, Some("default"))
+  private val defaultEnsoVersion = Version.of(0, 0, 0, "default")
   def makeProjectManager()
     : (GlobalRunnerConfigurationManager, ProjectManager) = {
     val env                 = fakeInstalledEnvironment()
     val distributionManager = new DistributionManager(env)
     val fakeConfigurationManager =
       new GlobalRunnerConfigurationManager(null, distributionManager) {
-        override def defaultVersion: SemVer = defaultEnsoVersion
+        override def defaultVersion: Version = defaultEnsoVersion
       }
     (fakeConfigurationManager, new ProjectManager())
   }

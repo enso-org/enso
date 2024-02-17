@@ -2,6 +2,7 @@ package org.enso.projectmanager.requesthandler
 
 import akka.actor.Props
 import org.enso.jsonrpc.Unused
+import com.github.zafarkhaja.semver.Version
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
@@ -52,4 +53,9 @@ object EngineListInstalledHandler {
     service: RuntimeVersionManagementServiceApi[F],
     requestTimeout: FiniteDuration
   ): Props = Props(new EngineListInstalledHandler[F](service, requestTimeout))
+
+  implicit object VersionOrdering extends Ordering[Version] {
+    def compare(x: Version, y: Version): Int = x.compareTo(y)
+
+  }
 }

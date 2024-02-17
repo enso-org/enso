@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import java.nio.file.Path
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 
 /** A base class for exceptions caused by [[RuntimeVersionManager]] logic.
   */
@@ -63,8 +63,8 @@ case class ComponentMissingError(message: String, cause: Throwable = null)
   * @param expectedVersion the minimum version that is required to run the engine
   */
 case class UpgradeRequiredError(
-  currentVersion: SemVer,
-  expectedVersion: SemVer
+  currentVersion: Version,
+  expectedVersion: Version
 ) extends ComponentsException(
       s"Minimum version required to use this engine is " +
       s"$expectedVersion. Current version is $currentVersion."

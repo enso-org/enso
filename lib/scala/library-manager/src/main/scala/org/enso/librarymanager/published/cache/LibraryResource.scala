@@ -1,11 +1,11 @@
 package org.enso.librarymanager.published.cache
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.distribution.locking.Resource
 import org.enso.editions.LibraryName
 
 /** A resource that synchronizes installation of a library in the cache. */
-case class LibraryResource(libraryName: LibraryName, version: SemVer)
+case class LibraryResource(libraryName: LibraryName, version: Version)
     extends Resource {
   override def name: String =
     s"cached-library-${libraryName.qualifiedName}-$version"

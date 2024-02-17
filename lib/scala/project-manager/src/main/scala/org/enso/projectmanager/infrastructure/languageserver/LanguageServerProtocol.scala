@@ -3,7 +3,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 import java.util.UUID
 
 import akka.actor.ActorRef
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.model.Project
 
@@ -22,7 +22,7 @@ object LanguageServerProtocol {
   case class StartServer(
     clientId: UUID,
     project: Project,
-    engineVersion: SemVer,
+    engineVersion: Version,
     progressTracker: ActorRef,
     engineUpdate: Boolean
   )

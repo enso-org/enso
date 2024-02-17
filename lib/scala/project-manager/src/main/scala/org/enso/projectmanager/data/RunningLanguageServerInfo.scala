@@ -1,6 +1,6 @@
 package org.enso.projectmanager.data
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 
 /** Information about running language server.
   *
@@ -11,7 +11,7 @@ import nl.gn0s1s.bump.SemVer
   * @param projectNamespace the namespace of the project
   */
 case class RunningLanguageServerInfo(
-  engineVersion: SemVer,
+  engineVersion: Version,
   sockets: LanguageServerSockets,
   projectName: String,
   projectNormalizedName: String,

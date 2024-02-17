@@ -2,7 +2,7 @@ package org.enso.projectmanager.service.versionmanagement
 
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.ProgressNotification
 import org.enso.distribution.ProgressAndLockNotificationForwarder
 import org.enso.runtimeversionmanager.components.{
@@ -27,7 +27,7 @@ class ControllerInterface(
     with RuntimeVersionManagementUserInterface {
 
   /** @inheritdoc */
-  override def shouldInstallMissingEngine(version: SemVer): Boolean =
+  override def shouldInstallMissingEngine(version: Version): Boolean =
     allowMissingComponents
 
   /** @inheritdoc */
@@ -35,7 +35,7 @@ class ControllerInterface(
     allowMissingComponents
 
   /** @inheritdoc */
-  override def shouldInstallBrokenEngine(version: SemVer): Boolean =
+  override def shouldInstallBrokenEngine(version: Version): Boolean =
     allowBrokenComponents
 
   /** @inheritdoc */

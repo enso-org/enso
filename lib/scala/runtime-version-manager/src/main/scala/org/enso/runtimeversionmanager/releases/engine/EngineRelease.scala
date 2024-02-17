@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.releases.engine
 
 import java.nio.file.Path
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.components.Manifest
 
@@ -10,7 +10,7 @@ import org.enso.runtimeversionmanager.components.Manifest
 trait EngineRelease {
 
   /** Engine version. */
-  def version: SemVer
+  def version: Version
 
   /** Manifest associated with the release. */
   def manifest: Manifest

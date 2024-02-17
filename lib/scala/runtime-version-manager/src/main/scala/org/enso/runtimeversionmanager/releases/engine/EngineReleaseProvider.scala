@@ -1,7 +1,7 @@
 package org.enso.runtimeversionmanager.releases.engine
 
 import java.nio.file.Path
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.components.{Engine, Manifest}
 import org.enso.runtimeversionmanager.releases.{
@@ -19,7 +19,7 @@ class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
     extends EnsoReleaseProvider[EngineRelease](releaseProvider) {
 
   /** @inheritdoc */
-  def fetchRelease(version: SemVer): Try[EngineRelease] = {
+  def fetchRelease(version: Version): Try[EngineRelease] = {
     val tag = tagPrefix + version.toString
     for {
       release <- wrapFetchError(releaseProvider.releaseForTag(tag))
@@ -74,7 +74,7 @@ class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
   }
 
   private case class DefaultEngineRelease(
-    version: SemVer,
+    version: Version,
     manifest: Manifest,
     isBroken: Boolean,
     release: Release

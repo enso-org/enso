@@ -1,6 +1,6 @@
 package org.enso.editions
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 
 /** Defines the general edition structure.
   *
@@ -56,7 +56,7 @@ trait Editions {
     */
   case class PublishedLibrary(
     override val name: LibraryName,
-    version: SemVer,
+    version: Version,
     repository: LibraryRepositoryType
   ) extends Library
 
@@ -73,7 +73,7 @@ trait Editions {
     */
   case class Edition(
     parent: Option[NestedEditionType]              = None,
-    engineVersion: Option[SemVer]                  = None,
+    engineVersion: Option[Version]                 = None,
     repositories: Map[String, Editions.Repository] = Map.empty,
     libraries: Map[LibraryName, Library]           = Map.empty
   ) {
@@ -101,7 +101,7 @@ trait Editions {
       */
     def make(
       parent: Option[NestedEditionType]      = None,
-      engineVersion: Option[SemVer]          = None,
+      engineVersion: Option[Version]         = None,
       repositories: Seq[Editions.Repository] = Seq.empty,
       libraries: Seq[Library]                = Seq.empty
     ): Edition = Edition(
@@ -159,7 +159,7 @@ object Editions {
       * is either the version override directly specified in the edition or the
       * version implied by its parent.
       */
-    def getEngineVersion: SemVer = edition.engineVersion.getOrElse {
+    def getEngineVersion: Version = edition.engineVersion.getOrElse {
       val parent = edition.parent.getOrElse {
         throw new IllegalStateException(
           "Internal error: Resolved edition does not imply an engine version."

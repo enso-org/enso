@@ -3,7 +3,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 import java.util.UUID
 
 import akka.actor.ActorRef
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckTimeout,
@@ -35,7 +35,7 @@ trait LanguageServerGateway[F[+_, +_]] {
     progressTracker: ActorRef,
     clientId: UUID,
     project: Project,
-    version: SemVer
+    version: Version
   ): F[ServerStartupFailure, LanguageServerSockets]
 
   /** Stops a language server.

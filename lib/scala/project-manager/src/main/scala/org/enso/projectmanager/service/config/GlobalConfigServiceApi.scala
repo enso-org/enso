@@ -1,6 +1,6 @@
 package org.enso.projectmanager.service.config
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.editions.EnsoVersion
 
 /** A contract for the Global Config Service.
@@ -33,12 +33,12 @@ trait GlobalConfigServiceApi[F[+_, +_]] {
     * to the latest installed (or latest available if none are installed)
     * version.
     */
-  def getDefaultEnsoVersion: F[GlobalConfigServiceFailure, SemVer]
+  def getDefaultEnsoVersion: F[GlobalConfigServiceFailure, Version]
 
   /** Resolves an [[EnsoVersion]] which can indicate to use a 'default' version
     * to a concrete version.
     */
   def resolveEnsoVersion(
     ensoVersion: EnsoVersion
-  ): F[GlobalConfigServiceFailure, SemVer]
+  ): F[GlobalConfigServiceFailure, Version]
 }

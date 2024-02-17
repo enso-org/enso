@@ -2,7 +2,7 @@ package org.enso.projectmanager.service
 
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.logger.masking.MaskedPath
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
@@ -33,7 +33,7 @@ class ProjectCreationService[
     progressTracker: ActorRef,
     path: Path,
     name: String,
-    engineVersion: SemVer,
+    engineVersion: Version,
     projectTemplate: Option[String],
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, Unit] = Sync[F]

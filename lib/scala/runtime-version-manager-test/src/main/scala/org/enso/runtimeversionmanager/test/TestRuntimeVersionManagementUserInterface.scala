@@ -1,7 +1,7 @@
 package org.enso.runtimeversionmanager.test
 
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.TaskProgress
 import org.enso.distribution.locking.Resource
 import org.enso.runtimeversionmanager.components.{
@@ -21,7 +21,7 @@ class TestRuntimeVersionManagementUserInterface(installBroken: Boolean)
   override def trackProgress(message: String, task: TaskProgress[_]): Unit = ()
 
   /** @inheritdoc */
-  override def shouldInstallBrokenEngine(version: SemVer): Boolean = {
+  override def shouldInstallBrokenEngine(version: Version): Boolean = {
     wasAskedForBroken = true
     installBroken
   }
@@ -31,7 +31,7 @@ class TestRuntimeVersionManagementUserInterface(installBroken: Boolean)
   def wasAskedToInstallBroken: Boolean = wasAskedForBroken
 
   /** @inheritdoc */
-  override def shouldInstallMissingEngine(version: SemVer): Boolean = true
+  override def shouldInstallMissingEngine(version: Version): Boolean = true
 
   /** @inheritdoc */
   override def shouldInstallMissingRuntime(version: GraalVMVersion): Boolean =

@@ -3,7 +3,7 @@ package org.enso.projectmanager.protocol
 import java.util.UUID
 import io.circe.Json
 import io.circe.syntax._
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.editions.EnsoVersion
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.projectmanager.data.{
@@ -86,7 +86,7 @@ object ProjectManagementApi {
     )
 
     case class Result(
-      engineVersion: SemVer,
+      engineVersion: Version,
       languageServerJsonAddress: Socket,
       languageServerSecureJsonAddress: Option[Socket],
       languageServerBinaryAddress: Socket,
@@ -192,7 +192,7 @@ object ProjectManagementApi {
 
   case object EngineInstall extends Method("engine/install") {
 
-    case class Params(version: SemVer, forceInstallBroken: Option[Boolean])
+    case class Params(version: Version, forceInstallBroken: Option[Boolean])
 
     implicit val hasParams: HasParams.Aux[this.type, EngineInstall.Params] =
       new HasParams[this.type] {
@@ -207,7 +207,7 @@ object ProjectManagementApi {
 
   case object EngineUninstall extends Method("engine/uninstall") {
 
-    case class Params(version: SemVer)
+    case class Params(version: Version)
 
     implicit val hasParams: HasParams.Aux[this.type, EngineUninstall.Params] =
       new HasParams[this.type] {
@@ -289,8 +289,8 @@ object ProjectManagementApi {
   case class BrokenComponentError(msg: String) extends Error(4021, msg)
 
   case class ProjectManagerUpgradeRequired(
-    currentVersion: SemVer,
-    minimumRequiredVersion: SemVer
+    currentVersion: Version,
+    minimumRequiredVersion: Version
   ) extends Error(
         4022,
         s"Project manager $minimumRequiredVersion is required to install the " +

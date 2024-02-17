@@ -1,17 +1,17 @@
 package org.enso.interpreter.test.instrument
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.editions.{Editions, LibraryName}
 
 import java.io.File
 
 object TestEdition {
 
-  val testLibraryVersion: SemVer = SemVer(0, 0, 0, Some("dev"))
+  val testLibraryVersion: Version = Version.of(0, 0, 0, "dev")
 
   val empty: Editions.RawEdition =
     Editions.Raw.Edition(
-      engineVersion = Some(SemVer(buildinfo.Info.ensoVersion).get),
+      engineVersion = Some(Version.parse(buildinfo.Info.ensoVersion)),
       repositories =
         Map("main" -> Editions.Repository("main", "http://example.com/")),
       libraries = Map()

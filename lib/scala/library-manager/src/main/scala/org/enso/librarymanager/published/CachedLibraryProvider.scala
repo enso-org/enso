@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.published.cache.ReadOnlyLibraryCache
 import org.enso.librarymanager.resolved.LibraryRoot
@@ -16,7 +16,7 @@ class CachedLibraryProvider(caches: List[ReadOnlyLibraryCache])
   @tailrec
   private def findCachedHelper(
     libraryName: LibraryName,
-    version: SemVer,
+    version: Version,
     caches: List[ReadOnlyLibraryCache]
   ): Option[LibraryRoot] = caches match {
     case head :: tail =>
@@ -30,13 +30,13 @@ class CachedLibraryProvider(caches: List[ReadOnlyLibraryCache])
   /** Looks for the library in the known caches. */
   override def findCachedLibrary(
     libraryName: LibraryName,
-    version: SemVer
+    version: Version
   ): Option[LibraryRoot] =
     findCachedHelper(libraryName, version, caches)
 
   /** @inheritdoc */
   override def isLibraryCached(
     libraryName: LibraryName,
-    version: SemVer
+    version: Version
   ): Boolean = findCachedLibrary(libraryName, version).isDefined
 }

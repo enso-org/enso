@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published.cache
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.resolved.LibraryRoot
 
@@ -16,6 +16,6 @@ trait ReadOnlyLibraryCache {
     */
   def findCachedLibrary(
     libraryName: LibraryName,
-    version: SemVer
+    version: Version
   ): Option[LibraryRoot]
 }

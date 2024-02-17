@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.runner
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 
 /** Represents settings that are used to launch the runner JAR.
   *
@@ -10,7 +10,7 @@ import nl.gn0s1s.bump.SemVer
   *                                 connect to launcher's logging service
   */
 case class RunSettings(
-  engineVersion: SemVer,
+  engineVersion: Version,
   runnerArguments: Seq[String],
   connectLoggerIfAvailable: Boolean
 )

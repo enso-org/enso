@@ -1,7 +1,7 @@
 package org.enso.projectmanager.protocol
 
 import io.circe.Json
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.runtimeversionmanager.components.GraalVMVersion
@@ -11,14 +11,14 @@ import org.scalatest.wordspec.AnyWordSpecLike
 trait MissingComponentBehavior {
   this: BaseServerSpec with AnyWordSpecLike with RetrySpec =>
   def buildRequest(
-    version: SemVer,
+    version: Version,
     missingComponentAction: MissingComponentAction
   ): Json
 
   def isSuccess(json: Json): Boolean
 
-  val defaultVersion = SemVer(0, 0, 1)
-  val brokenVersion  = SemVer(0, 9999, 0, Some("broken"))
+  val defaultVersion = Version.of(0, 0, 1)
+  val brokenVersion  = Version.of(0, 9999, 0, "broken")
 
   def correctlyHandleMissingComponents(): Unit = {
     "fail if a missing version is requested with Fail" in {

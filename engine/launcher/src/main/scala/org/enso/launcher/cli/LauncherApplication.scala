@@ -2,7 +2,7 @@ package org.enso.launcher.cli
 
 import cats.data.NonEmptyList
 import cats.implicits._
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli._
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
@@ -118,7 +118,7 @@ object LauncherApplication {
       showInUsage = false
     )
   private def versionOverride = {
-    Opts.optionalParameter[SemVer](
+    Opts.optionalParameter[Version](
       "use-enso-version",
       "VERSION",
       "Override the Enso version that would normally be used."
@@ -339,7 +339,7 @@ object LauncherApplication {
 
   private def upgradeCommand: Command[Config => Int] =
     Command("upgrade", "Upgrade the launcher.") {
-      val version = Opts.optionalArgument[SemVer](
+      val version = Opts.optionalArgument[Version](
         "VERSION",
         "VERSION specifies which launcher version to upgrade to. " +
         "If not provided, defaults to latest version."
@@ -413,7 +413,7 @@ object LauncherApplication {
       "Install the specified engine VERSION, defaulting to the latest if " +
       "unspecified."
     ) {
-      val version = Opts.optionalArgument[SemVer]("VERSION")
+      val version = Opts.optionalArgument[Version]("VERSION")
       version map { version => (config: Config) =>
         temporaryDirectoryManager.tryCleaningTemporaryDirectory()
         version match {
@@ -516,7 +516,7 @@ object LauncherApplication {
       "Uninstall the provided engine version. If the corresponding runtime " +
       "is not used by any remaining engine installations, it is also removed."
     ) {
-      val version = Opts.positionalArgument[SemVer]("VERSION")
+      val version = Opts.positionalArgument[Version]("VERSION")
       version map { version => (config: Config) =>
         Launcher(config).uninstallEngine(version)
       }

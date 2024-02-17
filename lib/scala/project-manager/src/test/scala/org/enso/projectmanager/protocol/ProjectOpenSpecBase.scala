@@ -3,7 +3,7 @@ package org.enso.projectmanager.protocol
 import akka.testkit.TestActors.blackholeProps
 import io.circe.Json
 import io.circe.literal.JsonStringContext
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.RetrySpec
@@ -72,11 +72,14 @@ abstract class ProjectOpenSpecBase
   }
 
   override def buildRequest(
-    version: SemVer,
+    version: Version,
     missingComponentAction: MissingComponentAction
   ): Json = {
     val projectId =
-      if (version.preRelease.contains("broken")) brokenProject
+      if (
+        !version
+          .isStable() && version.preReleaseVersion().get().contains("broken")
+      ) brokenProject
       else ordinaryProject
 
     json"""

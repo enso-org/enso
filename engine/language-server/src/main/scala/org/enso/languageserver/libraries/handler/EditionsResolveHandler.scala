@@ -3,7 +3,7 @@ package org.enso.languageserver.libraries.handler
 import akka.actor.{Actor, ActorRef, Props, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
@@ -36,7 +36,7 @@ class EditionsResolveHandler(editionReferenceResolver: EditionReferenceResolver)
   }
 
   private def responseStage(id: Id, replyTo: ActorRef): Receive = {
-    case engineVersion: SemVer =>
+    case engineVersion: Version =>
       replyTo ! ResponseResult(
         EditionsResolve,
         id,

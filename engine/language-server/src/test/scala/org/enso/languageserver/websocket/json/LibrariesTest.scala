@@ -3,7 +3,7 @@ package org.enso.languageserver.websocket.json
 import akka.testkit._
 import io.circe.literal._
 import io.circe.{Json, JsonObject}
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
@@ -41,7 +41,7 @@ class LibrariesTest
     override def libraries: Seq[DummyLibrary] = Seq(
       DummyLibrary(
         LibraryName("Foo", "Bar"),
-        SemVer(1, 0, 0),
+        Version.of(1, 0, 0),
         """import Standard.Base
           |
           |baz = 42
@@ -657,7 +657,7 @@ class LibrariesTest
         val cachedLibraryRoot = readOnlyCache
           .findCachedLibrary(
             LibraryName("Foo", "Bar"),
-            SemVer(1, 0, 0)
+            Version.of(1, 0, 0)
           )
           .value
 

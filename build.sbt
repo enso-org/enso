@@ -470,7 +470,6 @@ val zio = Seq(
 // === Other ==================================================================
 
 val bcpkixJdk15Version      = "1.70"
-val bumpVersion             = "0.1.3"
 val declineVersion          = "2.4.1"
 val directoryWatcherVersion = "0.18.0"
 val flatbuffersVersion      = "1.12.0"
@@ -2222,7 +2221,6 @@ lazy val launcher = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.typelevel"              %% "cats-core"        % catsVersion,
-      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaSLF4J
@@ -2455,8 +2453,8 @@ lazy val editions = project
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "nl.gn0s1s"                  %% "bump"          % bumpVersion,
       "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
+      "com.github.zafarkhaja"      % "java-semver"    % "0.10.2",
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
@@ -2579,7 +2577,6 @@ lazy val `runtime-version-manager` = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.typelevel"              %% "cats-core"        % catsVersion,
-      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaHttp

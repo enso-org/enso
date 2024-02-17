@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published.repository
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.TaskProgress
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.downloader.http.{HTTPDownload, URIBuilder}
@@ -24,13 +24,13 @@ object RepositoryHelper {
     /** Creates a [[LibraryAccess]] instance that aids with downloading data of
       * the given library.
       */
-    def accessLibrary(name: LibraryName, version: SemVer): LibraryAccess =
+    def accessLibrary(name: LibraryName, version: Version): LibraryAccess =
       new LibraryAccess(name, version, resolveLibraryRoot(name, version))
 
     /** Creates a [[URIBuilder]] that points to the directory in the repository
       * corresponding to the given library.
       */
-    def resolveLibraryRoot(name: LibraryName, version: SemVer): URIBuilder =
+    def resolveLibraryRoot(name: LibraryName, version: Version): URIBuilder =
       URIBuilder
         .fromUri(repository.url)
         .addPathSegment(name.namespace)
@@ -48,7 +48,7 @@ object RepositoryHelper {
     */
   class LibraryAccess(
     libraryName: LibraryName,
-    version: SemVer,
+    version: Version,
     libraryRoot: URIBuilder
   ) {
 

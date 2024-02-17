@@ -1,6 +1,6 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.runner.JVMSettings
@@ -40,7 +40,7 @@ case class LanguageServerDescriptor(
   rootPath: String,
   networkConfig: NetworkConfig,
   distributionConfiguration: DistributionConfiguration,
-  engineVersion: SemVer,
+  engineVersion: Version,
   jvmSettings: JVMSettings,
   discardOutput: Boolean,
   profilingPath: Option[Path],

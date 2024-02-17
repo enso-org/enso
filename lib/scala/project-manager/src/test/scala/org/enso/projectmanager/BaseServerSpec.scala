@@ -8,7 +8,7 @@ import akka.testkit.TestActors.blackholeProps
 import akka.testkit._
 import io.circe.Json
 import io.circe.parser.parse
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.apache.commons.io.FileUtils
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.FileSystem
@@ -63,7 +63,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   /** Tests can override this value to request a specific engine version to be
     * preinstalled when running the suite.
     */
-  val engineToInstall: Option[SemVer] = None
+  val engineToInstall: Option[Version] = None
 
   /** Tests can override this to set up a logging service that will print debug
     * logs.
@@ -291,7 +291,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     * In the future the fake release mechanism can be properly updated to allow
     * for this kind of configuration without special logic.
     */
-  def preInstallEngine(version: SemVer): Unit = {
+  def preInstallEngine(version: Version): Unit = {
     val os   = OS.operatingSystem.configName
     val ext  = if (OS.isWindows) "zip" else "tar.gz"
     val arch = OS.architecture
@@ -328,7 +328,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     }
   }
 
-  def uninstallEngine(version: SemVer): Unit = {
+  def uninstallEngine(version: Version): Unit = {
     val blackhole = system.actorOf(blackholeProps)
     val action = runtimeVersionManagementService.uninstallEngine(
       blackhole,

@@ -6,7 +6,7 @@ import io.circe.syntax._
 import io.circe.literal._
 import org.enso.editions.SemVerJson._
 import io.circe.parser.parse
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.projectmanager.data.{MissingComponentAction, Socket}
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
 import org.scalactic.source.Position
@@ -94,7 +94,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
     val Right(openReply) = parse(client.expectMessage(20.seconds.dilated))
     val openResult = for {
       result         <- openReply.hcursor.downExpectedField("result")
-      engineVer      <- result.downField("engineVersion").as[SemVer]
+      engineVer      <- result.downField("engineVersion").as[Version]
       jsonAddr       <- result.downExpectedField("languageServerJsonAddress")
       jsonHost       <- jsonAddr.downField("host").as[String]
       jsonPort       <- jsonAddr.downField("port").as[Int]

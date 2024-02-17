@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
@@ -16,12 +16,12 @@ trait PublishedLibraryCache {
   /** Checks if the library at the specific version is already available in the
     * caches.
     */
-  def isLibraryCached(libraryName: LibraryName, version: SemVer): Boolean
+  def isLibraryCached(libraryName: LibraryName, version: Version): Boolean
 
   /** Tries to locate a cached version of the requested library. */
   def findCachedLibrary(
     libraryName: LibraryName,
-    version: SemVer
+    version: Version
   ): Option[LibraryRoot]
 }
 

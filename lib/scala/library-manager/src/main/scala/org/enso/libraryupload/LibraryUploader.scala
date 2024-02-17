@@ -4,7 +4,7 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Source
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.distribution.FileSystem
 import org.enso.distribution.FileSystem.PathSyntax
@@ -44,7 +44,7 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
   )(implicit ec: ExecutionContext): Try[Unit] = Try {
     FileSystem.withTemporaryDirectory("enso-upload") { tmpDir =>
       val pkg = PackageManager.Default.loadPackage(projectRoot.toFile).get
-      val version = SemVer(pkg.getConfig().version).getOrElse {
+      val version = Try(Version.parse(pkg.getConfig().version)).getOrElse {
         throw new IllegalStateException(
           s"Project version [${pkg.getConfig().version}] is not a valid semver " +
           s"string."
@@ -112,7 +112,7 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
   private def buildUploadUri(
     baseUploadUrl: String,
     libraryName: LibraryName,
-    version: SemVer
+    version: Version
   ): Uri = {
     URIBuilder
       .fromUri(baseUploadUrl)

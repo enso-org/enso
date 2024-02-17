@@ -1,7 +1,7 @@
 package org.enso.librarymanager.published
 
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.librarymanager.published.cache.{
   LibraryCache,
@@ -25,7 +25,7 @@ class DefaultPublishedLibraryProvider(
   /** @inheritdoc */
   override def findLibrary(
     libraryName: LibraryName,
-    version: SemVer,
+    version: Version,
     recommendedRepository: Editions.Repository
   ): Try[LibraryRoot] = {
     val cachedLibrary = findCachedLibrary(libraryName, version)

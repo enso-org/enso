@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.components
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.ProgressReporter
 import org.enso.distribution.locking.LockUserInterface
 
@@ -16,7 +16,7 @@ trait RuntimeVersionManagementUserInterface
     * Depending on the return value, the missing engine will be installed or the
     * action will fail.
     */
-  def shouldInstallMissingEngine(version: SemVer): Boolean
+  def shouldInstallMissingEngine(version: Version): Boolean
 
   /** Called when a runtime required to complete an operation is missing.
     *
@@ -34,7 +34,7 @@ trait RuntimeVersionManagementUserInterface
     * Depending on the return value, the broken version will be installed or the
     * action will fail.
     */
-  def shouldInstallBrokenEngine(version: SemVer): Boolean
+  def shouldInstallBrokenEngine(version: Version): Boolean
 
   /** Called to allow for special handling of info-level logs. */
   def logInfo(message: => String): Unit

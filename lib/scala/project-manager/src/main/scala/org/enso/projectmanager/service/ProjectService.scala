@@ -3,7 +3,7 @@ package org.enso.projectmanager.service
 import akka.actor.ActorRef
 import cats.MonadError
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.editions.DefaultEdition
 import org.enso.pkg.Config
 import org.enso.pkg.validation.NameValidation
@@ -82,7 +82,7 @@ class ProjectService[
   override def createUserProject(
     progressTracker: ActorRef,
     projectName: String,
-    engineVersion: SemVer,
+    engineVersion: Version,
     projectTemplate: Option[String],
     missingComponentAction: MissingComponentAction,
     projectsDirectory: Option[File]
@@ -307,7 +307,7 @@ class ProjectService[
 
   private def preinstallEngine(
     progressTracker: ActorRef,
-    version: SemVer,
+    version: Version,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, Unit] =
     Sync[F]
@@ -439,7 +439,7 @@ class ProjectService[
 
   private def resolveProjectVersion(
     project: Project
-  ): F[ProjectServiceFailure, SemVer] =
+  ): F[ProjectServiceFailure, Version] =
     if (project.edition.contains(DefaultEdition.getDefaultEdition)) {
       CovariantFlatMap[F].pure(CurrentVersion.version)
     } else {

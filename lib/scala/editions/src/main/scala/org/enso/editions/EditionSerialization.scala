@@ -3,7 +3,6 @@ package org.enso.editions
 import cats.Show
 import io.circe._
 import io.circe.syntax.EncoderOps
-import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.{Raw, Repository}
 import org.enso.editions.SemVerJson._
 import org.enso.yaml.YamlHelper
@@ -11,6 +10,8 @@ import org.enso.yaml.YamlHelper
 import java.io.FileReader
 import java.nio.file.Path
 import scala.util.{Failure, Try, Using}
+
+import com.github.zafarkhaja.semver.Version
 
 /** Gathers methods for decoding and encoding of Raw editions. */
 object EditionSerialization {
@@ -48,7 +49,7 @@ object EditionSerialization {
   implicit val editionDecoder: Decoder[Raw.Edition] = { json =>
     for {
       parent        <- json.get[Option[EditionName]](Fields.parent)
-      engineVersion <- json.get[Option[SemVer]](Fields.engineVersion)
+      engineVersion <- json.get[Option[Version]](Fields.engineVersion)
       _ <-
         if (parent.isEmpty && engineVersion.isEmpty)
           Left(
@@ -160,7 +161,7 @@ object EditionSerialization {
     def makeLibrary(
       name: LibraryName,
       repository: String,
-      version: Option[SemVer]
+      version: Option[Version]
     ) =
       if (repository == Fields.localRepositoryName)
         if (version.isDefined)
@@ -187,7 +188,7 @@ object EditionSerialization {
     for {
       name       <- json.get[LibraryName](Fields.name)
       repository <- json.get[String](Fields.repository)
-      version    <- json.get[Option[SemVer]](Fields.version)
+      version    <- json.get[Option[Version]](Fields.version)
       res        <- makeLibrary(name, repository, version)
     } yield res
   }

@@ -1,7 +1,7 @@
 package org.enso.librarymanager.published.cache
 
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.locking.{
@@ -51,7 +51,7 @@ class DownloadingLibraryCache(
   /** @inheritdoc */
   override def findCachedLibrary(
     libraryName: LibraryName,
-    version: SemVer
+    version: Version
   ): Option[LibraryRoot] = {
     val path = LibraryCache.resolvePath(cacheRoot, libraryName, version)
     resourceManager.withResource(
@@ -72,7 +72,7 @@ class DownloadingLibraryCache(
   /** @inheritdoc */
   override def findOrInstallLibrary(
     libraryName: LibraryName,
-    version: SemVer,
+    version: Version,
     recommendedRepository: Editions.Repository
   ): Try[LibraryRoot] = {
     val cached = findCachedLibrary(libraryName, version)
@@ -95,7 +95,7 @@ class DownloadingLibraryCache(
 
   private def installLibrary(
     libraryName: LibraryName,
-    version: SemVer,
+    version: Version,
     recommendedRepository: Editions.Repository
   ): Try[LibraryRoot] = Try {
     logger.trace(s"Trying to install [$libraryName:$version].")
@@ -176,7 +176,7 @@ class DownloadingLibraryCache(
     */
   private def downloadLooseFiles(
     libraryName: LibraryName,
-    version: SemVer,
+    version: Version,
     access: LibraryAccess,
     localTmpDir: Path
   ): Unit = {
@@ -260,7 +260,7 @@ class DownloadingLibraryCache(
   /** @inheritdoc */
   override def preinstallLibrary(
     libraryName: LibraryName,
-    version: SemVer,
+    version: Version,
     recommendedRepository: Editions.Repository,
     dependencyResolver: LibraryName => Option[LibraryVersion]
   ): Try[Unit] = {

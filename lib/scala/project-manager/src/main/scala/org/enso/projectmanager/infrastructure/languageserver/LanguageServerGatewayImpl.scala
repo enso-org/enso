@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.util.Timeout
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
@@ -42,7 +42,7 @@ class LanguageServerGatewayImpl[
     progressTracker: ActorRef,
     clientId: UUID,
     project: Project,
-    version: SemVer
+    version: Version
   ): F[ServerStartupFailure, LanguageServerSockets] = {
     implicit val timeout: Timeout = Timeout(2 * timeoutConfig.bootTimeout)
 

@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.test
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.distribution.{
   DistributionManager,
   Environment,
@@ -81,7 +81,7 @@ class RuntimeVersionManagerTest
 
   /** Creates a new project using the default package manager.
     */
-  def newProject(name: String, path: Path, version: SemVer): Unit = {
+  def newProject(name: String, path: Path, version: Version): Unit = {
     PackageManager.Default.create(
       root    = path.toFile,
       name    = name,

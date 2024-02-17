@@ -1,6 +1,6 @@
 package org.enso.projectmanager.service.versionmanagement
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.TaskProgress
 import org.enso.distribution.locking.Resource
 import org.enso.runtimeversionmanager.components.{
@@ -14,11 +14,11 @@ import org.enso.runtimeversionmanager.components.{
 class NoOpInterface extends RuntimeVersionManagementUserInterface {
   override def trackProgress(message: String, task: TaskProgress[_]): Unit =
     ()
-  override def shouldInstallMissingEngine(version: SemVer): Boolean = false
+  override def shouldInstallMissingEngine(version: Version): Boolean = false
   override def shouldInstallMissingRuntime(version: GraalVMVersion): Boolean =
     false
-  override def shouldInstallBrokenEngine(version: SemVer): Boolean = false
-  override def logInfo(message: => String): Unit                   = ()
-  override def startWaitingForResource(resource: Resource): Unit   = ()
-  override def finishWaitingForResource(resource: Resource): Unit  = ()
+  override def shouldInstallBrokenEngine(version: Version): Boolean = false
+  override def logInfo(message: => String): Unit                    = ()
+  override def startWaitingForResource(resource: Resource): Unit    = ()
+  override def finishWaitingForResource(resource: Resource): Unit   = ()
 }

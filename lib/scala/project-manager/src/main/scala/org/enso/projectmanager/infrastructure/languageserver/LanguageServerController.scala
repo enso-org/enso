@@ -11,7 +11,7 @@ import akka.actor.{
   Terminated
 }
 import com.typesafe.scalalogging.LazyLogging
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.logger.akka.ActorMessageLogging
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
@@ -58,7 +58,7 @@ import java.util.UUID
   */
 class LanguageServerController(
   project: Project,
-  engineVersion: SemVer,
+  engineVersion: Version,
   bootProgressTracker: ActorRef,
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
@@ -435,7 +435,7 @@ object LanguageServerController {
     */
   def props(
     project: Project,
-    engineVersion: SemVer,
+    engineVersion: Version,
     bootProgressTracker: ActorRef,
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig,

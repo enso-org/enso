@@ -3,7 +3,7 @@ package org.enso.launcher.cli
 import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException, Path}
 import cats.implicits._
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.OS
 import org.enso.cli.arguments.Opts
 import org.enso.cli.arguments.Opts.implicits._
@@ -142,7 +142,7 @@ object InternalOpts {
       .hidden
 
     val continueUpgrade = Opts
-      .optionalParameter[SemVer](
+      .optionalParameter[Version](
         CONTINUE_UPGRADE,
         "VERSION",
         "Executes next step of the upgrade that should finally result in " +
@@ -196,7 +196,7 @@ object InternalOpts {
     if (buildinfo.Info.isRelease) Opts.pure(())
     else {
       val emulateVersion =
-        Opts.optionalParameter[SemVer](EMULATE_VERSION, "VERSION", "").hidden
+        Opts.optionalParameter[Version](EMULATE_VERSION, "VERSION", "").hidden
       val emulateLocation =
         Opts.optionalParameter[Path](EMULATE_LOCATION, "PATH", "").hidden
       val emulateRepository =
@@ -316,7 +316,7 @@ object InternalOpts {
       * @return exit code of the child process
       */
     def continueUpgrade(
-      targetVersion: SemVer,
+      targetVersion: Version,
       originalPath: Path,
       globalCLIOptions: GlobalCLIOptions
     ): Int = {

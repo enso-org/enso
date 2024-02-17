@@ -3,7 +3,7 @@ package org.enso.pkg
 import io.circe._
 import io.circe.syntax._
 import io.circe.yaml.Printer
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.editions.EditionSerialization._
 import org.enso.editions.{
   DefaultEnsoVersion,
@@ -286,7 +286,7 @@ object Config {
     * compatibility.
     */
   def makeCompatibilityEditionFromVersion(
-    ensoVersion: SemVer
+    ensoVersion: Version
   ): Editions.RawEdition = Editions.Raw.Edition(
     parent        = None,
     engineVersion = Some(ensoVersion),

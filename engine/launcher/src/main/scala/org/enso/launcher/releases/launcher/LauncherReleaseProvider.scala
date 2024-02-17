@@ -2,7 +2,7 @@ package org.enso.launcher.releases.launcher
 
 import java.nio.file.Path
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.releases.{
   EnsoReleaseProvider,
@@ -20,7 +20,7 @@ class LauncherReleaseProvider(releaseProvider: SimpleReleaseProvider)
 
   /** @inheritdoc
     */
-  override def fetchRelease(version: SemVer): Try[LauncherRelease] = {
+  override def fetchRelease(version: Version): Try[LauncherRelease] = {
     val tag = tagPrefix + version.toString
     for {
       release <- releaseProvider.releaseForTag(tag)
@@ -40,7 +40,7 @@ class LauncherReleaseProvider(releaseProvider: SimpleReleaseProvider)
   }
 
   private case class GitHubLauncherRelease(
-    version: SemVer,
+    version: Version,
     manifest: LauncherManifest,
     release: Release
   ) extends LauncherRelease {

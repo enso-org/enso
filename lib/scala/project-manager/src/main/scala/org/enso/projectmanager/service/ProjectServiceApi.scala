@@ -2,7 +2,7 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 import akka.actor.ActorRef
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.projectmanager.data.{
   LanguageServerStatus,
   MissingComponentAction,
@@ -31,7 +31,7 @@ trait ProjectServiceApi[F[+_, +_]] {
   def createUserProject(
     progressTracker: ActorRef,
     name: String,
-    engineVersion: SemVer,
+    engineVersion: Version,
     projectTemplate: Option[String],
     missingComponentAction: MissingComponentAction,
     projectsDirectory: Option[File]

@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.releases
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver
 
 import scala.util.Try
 
@@ -15,7 +15,7 @@ trait ReleaseProvider[ReleaseType] {
     * It ignores releases marked as broken, so the latest non-broken release is
     * returned.
     */
-  def findLatestVersion(): Try[SemVer]
+  def findLatestVersion(): Try[semver.Version]
 
   /** Returns sequence of all available versions (including ones marked as
     * broken).
@@ -28,16 +28,16 @@ trait ReleaseProvider[ReleaseType] {
     *
     * The sequence does not have to be sorted.
     */
-  def fetchAllValidVersions(): Try[Seq[SemVer]]
+  def fetchAllValidVersions(): Try[Seq[semver.Version]]
 
   /** Fetch release metadata for the given version.
     */
-  def fetchRelease(version: SemVer): Try[ReleaseType]
+  def fetchRelease(version: semver.Version): Try[ReleaseType]
 }
 
 object ReleaseProvider {
 
   val TagPrefix = "enso-"
 
-  case class Version(version: SemVer, markedAsBroken: Boolean)
+  case class Version(version: semver.Version, markedAsBroken: Boolean)
 }

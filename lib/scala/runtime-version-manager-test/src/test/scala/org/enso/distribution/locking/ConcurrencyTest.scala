@@ -1,6 +1,6 @@
 package org.enso.distribution.locking
 
-import nl.gn0s1s.bump.SemVer
+import com.github.zafarkhaja.semver.Version
 import org.enso.cli.task.TaskProgress
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.{
@@ -52,7 +52,7 @@ class ConcurrencyTest
     originalRelease: EngineRelease,
     callback: String => Unit
   ) extends EngineRelease {
-    override def version: SemVer = originalRelease.version
+    override def version: Version = originalRelease.version
     override def manifest: Manifest =
       originalRelease.manifest
     override def isBroken: Boolean = originalRelease.isBroken
@@ -125,7 +125,7 @@ class ConcurrencyTest
         copyIntoArchiveRoot = Seq("manifest.yaml")
       )
     ) {
-      override def fetchRelease(version: SemVer): Try[EngineRelease] =
+      override def fetchRelease(version: Version): Try[EngineRelease] =
         super.fetchRelease(version).map(WrapEngineRelease(_, releaseCallback))
     }
     val runtimeProvider = new GraalCEReleaseProvider(
@@ -195,8 +195,8 @@ class ConcurrencyTest
 
       /** Download only engines with associated runtimes.
         */
-      val engine1 = SemVer(0, 0, 0)
-      val engine2 = engine1.withPreRelease("pre")
+      val engine1 = Version.of(0, 0, 0)
+      val engine2 = Version.of(0, 0, 0, "pre")
 
       val tmpRoot = getTestDirectory / "test_data" / "tmp"
       Files.createDirectories(tmpRoot)
@@ -261,7 +261,7 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      val engineVersion = SemVer(0, 0, 0)
+      val engineVersion = Version.of(0, 0, 0)
 
       sync.startThread("t1") {
         val componentsManager = makeComponentsManager(
@@ -319,7 +319,7 @@ class ConcurrencyTest
         */
       val sync = new SlowTestSynchronizer
 
-      val engineVersion = SemVer(0, 0, 1)
+      val engineVersion = Version.of(0, 0, 1)
 
       sync.startThread("t1") {
         val componentsManager = makeComponentsManager(
