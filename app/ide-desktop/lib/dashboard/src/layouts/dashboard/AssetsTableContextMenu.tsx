@@ -86,39 +86,26 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))
+
   // This is not a React component even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
   const doDeleteAll = () => {
     if (isCloud) {
       unsetModal()
-      dispatchAssetEvent({
-        type: AssetEventType.delete,
-        ids: selectedKeys,
-      })
+      dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
     } else {
       setModal(
         <ConfirmDeleteModal
           description={`${selectedKeys.size} selected ${pluralized}`}
           doDelete={() => {
             setSelectedKeys(new Set())
-            dispatchAssetEvent({
-              type: AssetEventType.delete,
-              ids: selectedKeys,
-            })
+            dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
           }}
         />
       )
     }
   }
-  // This is not a React component even though it contains JSX.
-  // eslint-disable-next-line no-restricted-syntax
-  const doRestoreAll = () => {
-    unsetModal()
-    dispatchAssetEvent({
-      type: AssetEventType.restore,
-      ids: selectedKeys,
-    })
-  }
+
   if (category === Category.trash) {
     return selectedKeys.size === 0 ? (
       <></>
@@ -128,9 +115,32 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
           <MenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.restoreAllFromTrash}
-            doAction={doRestoreAll}
+            doAction={() => {
+              unsetModal()
+              dispatchAssetEvent({ type: AssetEventType.restore, ids: selectedKeys })
+            }}
           />
         </ContextMenu>
+        {isCloud && (
+          <ContextMenu hidden={hidden}>
+            <MenuEntry
+              hidden={hidden}
+              action={shortcutManager.KeyboardAction.deleteAllForever}
+              doAction={() => {
+                setModal(
+                  <ConfirmDeleteModal
+                    forever
+                    description={`${selectedKeys.size} selected ${pluralized}`}
+                    doDelete={() => {
+                      setSelectedKeys(new Set())
+                      dispatchAssetEvent({ type: AssetEventType.deleteForever, ids: selectedKeys })
+                    }}
+                  />
+                )
+              }}
+            />
+          </ContextMenu>
+        )}
       </ContextMenus>
     )
   } else if (category !== Category.home) {

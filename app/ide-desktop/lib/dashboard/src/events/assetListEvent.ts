@@ -36,6 +36,7 @@ interface AssetListEvents {
   readonly move: AssetListMoveEvent
   readonly willDelete: AssetListWillDeleteEvent
   readonly delete: AssetListDeleteEvent
+  readonly emptyTrash: AssetListEmptyTrashEvent
   readonly removeSelf: AssetListRemoveSelfEvent
 }
 
@@ -126,6 +127,9 @@ interface AssetListWillDeleteEvent extends AssetListBaseEvent<AssetListEventType
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
   readonly key: backend.AssetId
 }
+
+/** A signal to permanently delete all files in Trash. */
+interface AssetListEmptyTrashEvent extends AssetListBaseEvent<AssetListEventType.emptyTrash> {}
 
 /** A signal for a file to remove itself from the asset list, without being deleted. */
 interface AssetListRemoveSelfEvent extends AssetListBaseEvent<AssetListEventType.removeSelf> {

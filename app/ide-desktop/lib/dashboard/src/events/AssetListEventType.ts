@@ -13,6 +13,7 @@ enum AssetListEventType {
   move = 'move',
   willDelete = 'will-delete',
   delete = 'delete',
+  emptyTrash = 'empty-trash',
   removeSelf = 'remove-self',
 }
 

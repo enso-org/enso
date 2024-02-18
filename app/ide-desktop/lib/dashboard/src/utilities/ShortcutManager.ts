@@ -26,6 +26,8 @@ import SignInIcon from 'enso-assets/sign_in.svg'
 import SignOutIcon from 'enso-assets/sign_out.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TrashIcon from 'enso-assets/trash.svg'
+// FIXME:
+import TrashForeverIcon from 'enso-assets/trash.svg'
 import UntrashIcon from 'enso-assets/untrash.svg'
 import * as detect from 'enso-common/src/detect'
 
@@ -66,6 +68,8 @@ export enum KeyboardAction {
   moveAllToTrash = 'move-all-to-trash',
   delete = 'delete',
   deleteAll = 'delete-all',
+  deleteForever = 'delete-forever',
+  deleteAllForever = 'delete-all-forever',
   restoreFromTrash = 'restore-from-trash',
   restoreAllFromTrash = 'restore-all-from-trash',
   share = 'share',
@@ -442,6 +446,8 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Readonly<Record<KeyboardAction, KeyboardShortc
   [KeyboardAction.moveAllToTrash]: [keybind(KeyboardAction.moveAllToTrash, [], DELETE)],
   [KeyboardAction.delete]: [keybind(KeyboardAction.delete, [], DELETE)],
   [KeyboardAction.deleteAll]: [keybind(KeyboardAction.deleteAll, [], DELETE)],
+  [KeyboardAction.deleteForever]: [keybind(KeyboardAction.deleteForever, [], DELETE)],
+  [KeyboardAction.deleteAllForever]: [keybind(KeyboardAction.deleteAllForever, [], DELETE)],
   [KeyboardAction.restoreFromTrash]: [keybind(KeyboardAction.restoreFromTrash, [CTRL], 'R')],
   [KeyboardAction.restoreAllFromTrash]: [keybind(KeyboardAction.restoreAllFromTrash, [CTRL], 'R')],
   [KeyboardAction.share]: [keybind(KeyboardAction.share, [CTRL], 'Enter')],
@@ -499,6 +505,16 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutIn
   },
   [KeyboardAction.delete]: { name: 'Delete', icon: TrashIcon, colorClass: 'text-delete' },
   [KeyboardAction.deleteAll]: { name: 'Delete All', icon: TrashIcon, colorClass: 'text-delete' },
+  [KeyboardAction.deleteForever]: {
+    name: 'Delete Forever',
+    icon: TrashForeverIcon,
+    colorClass: 'text-delete',
+  },
+  [KeyboardAction.deleteAllForever]: {
+    name: 'Delete All Forever',
+    icon: TrashForeverIcon,
+    colorClass: 'text-delete',
+  },
   [KeyboardAction.restoreFromTrash]: { name: 'Restore From Trash', icon: UntrashIcon },
   [KeyboardAction.restoreAllFromTrash]: { name: 'Restore All From Trash', icon: UntrashIcon },
   [KeyboardAction.share]: { name: 'Share', icon: PeopleIcon },

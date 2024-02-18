@@ -13,6 +13,7 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
+  readonly forever?: boolean
   /** Must fit in the sentence "Are you sure you want to delete <description>?". */
   readonly description: string
   readonly doDelete: () => void
@@ -20,7 +21,7 @@ export interface ConfirmDeleteModalProps {
 
 /** A modal for confirming the deletion of an asset. */
 export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-  const { description, doDelete } = props
+  const { forever = false, description, doDelete } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
 
@@ -52,12 +53,13 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         }}
         onSubmit={event => {
           event.preventDefault()
-          // Consider not calling `onSubmit()` here to make it harder to accidentally
-          // delete an important asset.
           onSubmit()
         }}
       >
-        <div className="relative">Are you sure you want to delete {description}?</div>
+        <div className="relative">
+          Are you sure you want to delete {description}
+          {forever ? ' forever' : ''}?
+        </div>
         <div className="relative flex gap-2">
           <button
             type="submit"

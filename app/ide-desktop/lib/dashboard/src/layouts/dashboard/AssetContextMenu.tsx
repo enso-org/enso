@@ -98,6 +98,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     },
     [/* should never change */ setItem]
   )
+
   return category === Category.trash ? (
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
@@ -107,10 +108,23 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action={shortcutManager.KeyboardAction.restoreFromTrash}
             doAction={() => {
               unsetModal()
-              dispatchAssetEvent({
-                type: AssetEventType.restore,
-                ids: new Set([asset.id]),
-              })
+              dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set([asset.id]) })
+            }}
+          />
+          <MenuEntry
+            hidden={hidden}
+            action={shortcutManager.KeyboardAction.deleteForever}
+            doAction={() => {
+              setModal(
+                <ConfirmDeleteModal
+                  forever
+                  description={`the ${asset.type} '${asset.title}'`}
+                  doDelete={() => {
+                    const ids = new Set([asset.id])
+                    dispatchAssetEvent({ type: AssetEventType.deleteForever, ids })
+                  }}
+                />
+              )
             }}
           />
         </ContextMenu>

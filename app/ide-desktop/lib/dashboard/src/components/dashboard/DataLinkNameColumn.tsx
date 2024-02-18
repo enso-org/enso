@@ -69,6 +69,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -79,8 +80,8 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
         // Ignored. These events should all be unrelated to secrets.
-        // `deleteMultiple`, `restoreMultiple`, `download`,
-        // and `downloadSelected` are handled by `AssetRow`.
+        // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
+        // are handled by `AssetRow`.
         break
       }
       case AssetEventType.newDataLink: {
