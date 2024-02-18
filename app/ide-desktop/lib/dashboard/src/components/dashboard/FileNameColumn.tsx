@@ -62,7 +62,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:

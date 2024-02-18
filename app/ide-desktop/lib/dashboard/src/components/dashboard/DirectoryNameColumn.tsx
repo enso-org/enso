@@ -77,7 +77,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       case AssetEventType.openProject:
       case AssetEventType.updateFiles:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:

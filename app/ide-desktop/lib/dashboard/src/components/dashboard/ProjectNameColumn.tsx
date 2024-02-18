@@ -98,7 +98,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:
@@ -295,10 +294,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setItem={setAsset}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
-          doOpen={switchPage => {
+          doOpenEditor={switchPage => {
             doOpenEditor(asset, setAsset, switchPage)
           }}
-          doClose={() => {
+          doCloseEditor={() => {
             doCloseEditor(asset)
           }}
         />
