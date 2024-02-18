@@ -76,13 +76,13 @@ export interface ProjectIconProps {
   readonly assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
   readonly doOpenManually: (projectId: backendModule.ProjectId) => void
-  readonly onClose: () => void
-  readonly openIde: (switchPage: boolean) => void
+  readonly doClose: () => void
+  readonly doOpen: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
+  const { keyProp: key, item, setItem, assetEvents, doOpenManually, doClose, doOpen } = props
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
@@ -253,7 +253,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
         if (event.id !== item.id) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
-            if (!isOtherUserUsingProject) {
+            // Cancel opening projects, and close already opened projects.
+            if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
               void closeProject(false)
             }
           }
@@ -279,7 +280,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
           setOnSpinnerStateChange(null)
           openProjectAbortController?.abort()
           setOpenProjectAbortController(null)
-          if (!isOtherUserUsingProject) {
+          // Cancel opening only projects that are actually opening.
+          if (!isOtherUserUsingProject && backendModule.IS_OPENING[state]) {
             void closeProject(false)
           }
         }
@@ -299,7 +301,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
       if (shouldOpenWhenReady) {
-        openIde(shouldSwitchPage)
+        doOpen(shouldSwitchPage)
         setShouldOpenWhenReady(false)
       }
     }
@@ -309,7 +311,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const closeProject = async (triggerOnClose = true) => {
     if (triggerOnClose) {
-      onClose()
+      doClose()
       localStorage.delete('projectStartupInfo')
     }
     setToastId(null)
@@ -415,7 +417,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               onClick={clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()
-                openIde(true)
+                doOpen(true)
               }}
             >
               <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />

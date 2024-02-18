@@ -1525,9 +1525,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const doCloseIde = React.useCallback(
     (project: backendModule.ProjectAsset) => {
       if (project.id === projectStartupInfo?.projectAsset.id) {
-        dispatchAssetEvent({
-          type: AssetEventType.cancelOpeningAllProjects,
-        })
+        dispatchAssetEvent({ type: AssetEventType.cancelOpeningAllProjects })
         rawDoCloseIde(project)
       }
     },

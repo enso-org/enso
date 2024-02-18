@@ -408,10 +408,8 @@ export default function Dashboard(props: DashboardProps) {
 
   const doRemoveSelf = React.useCallback(() => {
     if (projectStartupInfo?.projectAsset != null) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.removeSelf,
-        id: projectStartupInfo.projectAsset.id,
-      })
+      const id = projectStartupInfo.projectAsset.id
+      dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id })
       setProjectStartupInfo(null)
     }
   }, [projectStartupInfo?.projectAsset, /* should never change */ dispatchAssetListEvent])
