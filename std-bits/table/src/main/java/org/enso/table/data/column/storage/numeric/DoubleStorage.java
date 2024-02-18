@@ -6,8 +6,6 @@ import java.util.List;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.UnaryMapOperation;
-import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
@@ -310,27 +308,6 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
         .add(new DivideOp<>())
         .add(new ModOp<>())
         .add(new PowerOp<>())
-        .add(
-            new DoubleLongMapOpWithSpecialNumericHandling(Maps.TRUNCATE) {
-              @Override
-              protected long doOperation(double a) {
-                return (long) a;
-              }
-            })
-        .add(
-            new DoubleLongMapOpWithSpecialNumericHandling(Maps.CEIL) {
-              @Override
-              protected long doOperation(double a) {
-                return (long) Math.ceil(a);
-              }
-            })
-        .add(
-            new DoubleLongMapOpWithSpecialNumericHandling(Maps.FLOOR) {
-              @Override
-              protected long doOperation(double a) {
-                return (long) Math.floor(a);
-              }
-            })
         .add(new DoubleRoundOp(Maps.ROUND))
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())

@@ -3,9 +3,7 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongRoundOp;
-import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.ModOp;
@@ -126,27 +124,6 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> implement
         .add(new DivideOp<>())
         .add(new ModOp<>())
         .add(new PowerOp<>())
-        .add(
-            new UnaryLongToLongOp(Maps.TRUNCATE) {
-              @Override
-              protected long doOperation(long a) {
-                return a;
-              }
-            })
-        .add(
-            new UnaryLongToLongOp(Maps.CEIL) {
-              @Override
-              protected long doOperation(long a) {
-                return a;
-              }
-            })
-        .add(
-            new UnaryLongToLongOp(Maps.FLOOR) {
-              @Override
-              protected long doOperation(long a) {
-                return a;
-              }
-            })
         .add(new LongRoundOp(Maps.ROUND))
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())

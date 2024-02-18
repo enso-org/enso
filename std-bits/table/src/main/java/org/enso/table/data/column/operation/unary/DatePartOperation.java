@@ -2,9 +2,9 @@ package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.operation.UnaryOperation;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.problems.ProblemAggregator;
 
 import java.time.temporal.ChronoField;
 import java.time.temporal.IsoFields;
@@ -39,7 +39,7 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
   }
 
   @Override
-  protected void applyObjectRow(Object value, LongBuilder builder, ProblemAggregator problemAggregator) {
+  protected void applyObjectRow(Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator) {
     if (value instanceof Temporal s) {
       var longValue = s.getLong(field);
       if (timeField) {

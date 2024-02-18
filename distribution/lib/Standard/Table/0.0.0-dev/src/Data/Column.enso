@@ -922,7 +922,7 @@ type Column
                     True ->
                         self.rename new_name
                     False ->
-                        simple_unary_op self Java_Storage.Maps.TRUNCATE
+                        apply_unary_operation self UnaryOperation.TRUNCATE
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
@@ -947,7 +947,7 @@ type Column
                 new_name = naming_helper.function_name "ceil" [self]
                 self.rename new_name
             False ->
-                simple_unary_op self Java_Storage.Maps.CEIL
+                apply_unary_operation self UnaryOperation.CEIL
 
     ## GROUP Standard.Base.Rounding
        ICON math
@@ -967,7 +967,7 @@ type Column
                 new_name = naming_helper.function_name "floor" [self]
                 self.rename new_name
             False ->
-                simple_unary_op self Java_Storage.Maps.FLOOR
+                apply_unary_operation self UnaryOperation.FLOOR
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -2707,7 +2707,7 @@ Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from
      be passed to the `fallback` function.
 apply_unary_operation column:Column op_name:Text new_name:Text|Nothing=Nothing fallback=Nothing expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
     used_name = new_name.if_nothing (naming_helper.function_name op_name [column])
-    Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply column.java_column op_name used_name java_problem_aggregator
         if java_column.is_nothing.not then Column.Value java_column else
             if fallback.is_nothing then Panic.throw (Illegal_State.Error "There is a bug in the Table library, attempted to apply unsupported unary operation with no fallback.") else

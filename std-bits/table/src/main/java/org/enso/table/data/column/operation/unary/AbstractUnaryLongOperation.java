@@ -2,9 +2,9 @@ package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.LongBuilder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.problems.ProblemAggregator;
 
 /**
  * An abstract base class for unary operations returning a long column.
@@ -24,7 +24,7 @@ abstract class AbstractUnaryLongOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  protected LongBuilder createBuilder(ColumnStorage storage, ProblemAggregator problemAggregator) {
+  protected LongBuilder createBuilder(ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
     if (storage.getSize() > Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Cannot currently operate on columns larger than "+Integer.MAX_VALUE+".");
     }
@@ -32,9 +32,9 @@ abstract class AbstractUnaryLongOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  protected final void applyObjectRow(Object value, Builder builder, ProblemAggregator problemAggregator) {
+  protected final void applyObjectRow(Object value, Builder builder, MapOperationProblemAggregator problemAggregator) {
     applyObjectRow(value, (LongBuilder)builder, problemAggregator);
   }
 
-  protected abstract void applyObjectRow(Object value, LongBuilder builder, ProblemAggregator problemAggregator);
+  protected abstract void applyObjectRow(Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator);
 }

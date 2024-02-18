@@ -2,11 +2,15 @@ package org.enso.table.data.column.operation;
 
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.unary.*;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
-import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -40,7 +44,7 @@ public interface UnaryOperation {
   String NANOSECOND = "nanosecond";
 
   /** Applies the operation to the given Column. If an unsupported by the operation returns null */
-  static Column apply(Column column, String operationName, String newColumnName, ProblemAggregator problemAggregator) {
+  static Column apply(Column column, String operationName, String newColumnName, MapOperationProblemAggregator problemAggregator) {
     UnaryOperation operation = UnaryOperation.getInstance(operationName);
     if (!operation.canApply(column.getStorage())) {
       return null;
@@ -50,7 +54,7 @@ public interface UnaryOperation {
     return new Column(newColumnName, (Storage<?>) result);
   }
 
-  static Column mapFunction(Column column, Function<Object, Value> function, boolean nothingUnchanged, StorageType expectedResultType, String newColumnName, ProblemAggregator problemAggregator) {
+  static Column mapFunction(Column column, Function<Object, Value> function, boolean nothingUnchanged, StorageType expectedResultType, String newColumnName, MapOperationProblemAggregator problemAggregator) {
     Builder storageBuilder = Builder.getForType(expectedResultType, column.getSize(), problemAggregator);
     applyStorageInner(column.getStorage(), nothingUnchanged, storageBuilder, i -> {
       Value result = function.apply(column.getStorage().getItemAsObject(i));
@@ -67,6 +71,9 @@ public interface UnaryOperation {
       case NOT -> NotOperation.INSTANCE;
       case IS_EMPTY -> IsEmptyOperation.INSTANCE;
       case TEXT_LENGTH -> TextLengthOperation.INSTANCE;
+      case CEIL -> UnaryRoundOperation.CEIL_INSTANCE;
+      case FLOOR -> UnaryRoundOperation.FLOOR_INSTANCE;
+      case TRUNCATE -> UnaryRoundOperation.TRUNCATE_INSTANCE;
       case IS_NAN -> IsNaNOperation.INSTANCE;
       case IS_INFINITE -> IsInfiniteOperation.INSTANCE;
       case YEAR -> DatePartOperation.YEAR_INSTANCE;
@@ -91,7 +98,7 @@ public interface UnaryOperation {
   boolean canApply(ColumnStorage storage);
 
   /** Applies the operation to the given Storage. */
-  ColumnStorage apply(ColumnStorage storage, ProblemAggregator problemAggregator);
+  ColumnStorage apply(ColumnStorage storage, MapOperationProblemAggregator problemAggregator);
 
   private static void applyStorageInner(ColumnStorage columnStorage, boolean nothingUnchanged, Builder builder, LongConsumer callback) {
     Context context = Context.getCurrent();

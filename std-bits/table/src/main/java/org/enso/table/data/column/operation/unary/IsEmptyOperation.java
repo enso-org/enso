@@ -2,9 +2,9 @@ package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.operation.UnaryOperation;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.problems.ProblemAggregator;
 
 /* An operation that checks if a column's row values are empty.
 * Only supported on Text values. */
@@ -21,7 +21,7 @@ public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  protected void applyObjectRow(Object value, BoolBuilder builder, ProblemAggregator problemAggregator) {
+  protected void applyObjectRow(Object value, BoolBuilder builder, MapOperationProblemAggregator problemAggregator) {
     if (value == null) {
       builder.appendBoolean(true);
     } else {

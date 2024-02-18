@@ -1,12 +1,8 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.graalvm.polyglot.Context;
 
 /** A column storing arbitrary Java objects. */
 public sealed class ObjectStorage extends SpecializedStorage<Object> permits MixedStorage {

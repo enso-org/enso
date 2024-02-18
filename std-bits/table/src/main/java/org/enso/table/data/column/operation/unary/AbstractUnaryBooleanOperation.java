@@ -2,8 +2,8 @@ package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.problems.ProblemAggregator;
 
 /**
  * An abstract base class for unary operations returning a boolean column.
@@ -20,7 +20,7 @@ abstract class AbstractUnaryBooleanOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  protected BoolBuilder createBuilder(ColumnStorage storage, ProblemAggregator problemAggregator) {
+  protected BoolBuilder createBuilder(ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
     if (storage.getSize() > Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Cannot currently operate on columns larger than "+Integer.MAX_VALUE+".");
     }
@@ -28,9 +28,9 @@ abstract class AbstractUnaryBooleanOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  protected final void applyObjectRow(Object value, Builder builder, ProblemAggregator problemAggregator) {
+  protected final void applyObjectRow(Object value, Builder builder, MapOperationProblemAggregator problemAggregator) {
     applyObjectRow(value, (BoolBuilder)builder, problemAggregator);
   }
 
-  protected abstract void applyObjectRow(Object value, BoolBuilder builder, ProblemAggregator problemAggregator);
+  protected abstract void applyObjectRow(Object value, BoolBuilder builder, MapOperationProblemAggregator problemAggregator);
 }
