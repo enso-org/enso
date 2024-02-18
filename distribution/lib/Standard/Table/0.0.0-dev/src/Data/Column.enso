@@ -1063,7 +1063,8 @@ type Column
         fallback x = case x of
             _ : Float   -> x.is_nan
             _           -> False
-        apply_unary_operation self UnaryOperation.IS_NAN new_name fallback expected_result_type=Value_Type.Boolean
+        apply_unary_operation self UnaryOperation.IS_NAN new_name . if_nothing <|
+            apply_unary_map self new_name fallback Value_Type.Boolean
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -1077,7 +1078,8 @@ type Column
             _ : Float   -> x.is_infinite
             Nothing     -> Nothing
             _           -> False
-        apply_unary_operation self UnaryOperation.IS_INFINITE new_name fallback expected_result_type=Value_Type.Boolean
+        apply_unary_operation self UnaryOperation.IS_INFINITE new_name . if_nothing <|
+            apply_unary_map self new_name fallback Value_Type.Boolean
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -1094,7 +1096,8 @@ type Column
             _ : Text -> x == ""
             Nothing  -> True
             _        -> False
-        apply_unary_operation self UnaryOperation.IS_EMPTY new_name fallback expected_result_type=Value_Type.Boolean nothing_unchanged=False
+        apply_unary_operation self UnaryOperation.IS_EMPTY new_name . if_nothing <|
+            apply_unary_map self new_name fallback Value_Type.Boolean nothing_unchanged=False
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1644,7 +1647,7 @@ type Column
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
                 set = Set.from_vector as_vector error_on_duplicates=False
-                run_unary_op self set.contains_relational new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
+                apply_unary_map self result_name set.contains_relational Value_Type.Boolean
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2501,27 +2504,6 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
         Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
-   Runs a unary operation over the provided column.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - function: The function to apply to each element of `column`.
-   - new_name: The name of the column created as the result of this operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-   - expected_result_type: The expected result type of the operation. If set to
-     `Nothing`, the result type is inferred from the values.
-run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing =
-    s = column.java_column.getStorage
-    storage_type = resolve_storage_type expected_result_type
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-            s.unaryMap function skip_nulls storage_type problem_builder
-        Column.Value (Java_Column.new new_name new_storage)
-
-## PRIVATE
 
    Executes a vectorized binary operation over the provided column.
 
@@ -2693,11 +2675,22 @@ Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from
 
 ## PRIVATE
    Applies a UnaryOperation to a column.
-   If not vectorized and a fallback if provided will be called.
 
    Arguments:
    - column: The column to apply the operation to.
    - op_name: The name of the operation to apply.
+   - new_name: The name of the column created as the result of this operation.
+apply_unary_operation column:Column op_name:Text new_name:Text|Nothing=Nothing =
+    used_name = new_name.if_nothing (naming_helper.function_name op_name [column])
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
+        java_column = UnaryOperation.apply column.java_column op_name used_name java_problem_aggregator
+        if java_column.is_nothing.not then Column.Value java_column else Nothing
+
+## PRIVATE
+   Applies a function to every row in the column.
+
+   Arguments:
+   - column: The column to apply the operation to.
    - new_name: The name of the column created as the result of this operation.
    - fallback: A function used if the vectorized operation isn't available.
      It should never raise dataflow errors.
@@ -2705,12 +2698,8 @@ Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from
    - nothing_unchanged: If set to `True`, `Nothing` values will be passed through
      the operation without being changed. If set to `False`, `Nothing` values will
      be passed to the `fallback` function.
-apply_unary_operation column:Column op_name:Text new_name:Text|Nothing=Nothing fallback=Nothing expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
-    used_name = new_name.if_nothing (naming_helper.function_name op_name [column])
+apply_unary_map column:Column new_name:Text fallback=Nothing expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
+    storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
-        java_column = UnaryOperation.apply column.java_column op_name used_name java_problem_aggregator
-        if java_column.is_nothing.not then Column.Value java_column else
-            if fallback.is_nothing then Panic.throw (Illegal_State.Error "There is a bug in the Table library, attempted to apply unsupported unary operation with no fallback.") else
-                storage_type = resolve_storage_type expected_result_type
-                map_column = UnaryOperation.mapFunction java_column fallback nothing_unchanged storage_type used_name java_problem_aggregator
-                Column.Value map_column
+        map_column = UnaryOperation.mapFunction column.java_column fallback nothing_unchanged storage_type new_name java_problem_aggregator
+        Column.Value map_column
