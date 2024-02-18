@@ -34,7 +34,7 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
         if (value instanceof Boolean b) {
           builder.appendBoolean(!b);
         } else {
-          throw new IllegalArgumentException(STR."Unsupported type: \{value.getClass()}");
+          throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected boolean type).");
         }
       });
     }

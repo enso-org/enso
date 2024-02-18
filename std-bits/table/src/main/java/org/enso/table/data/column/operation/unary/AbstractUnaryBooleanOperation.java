@@ -2,9 +2,7 @@ package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -24,7 +22,7 @@ abstract class AbstractUnaryBooleanOperation extends AbstractUnaryOperation {
   @Override
   protected BoolBuilder createBuilder(ColumnStorage storage, ProblemAggregator problemAggregator) {
     if (storage.getSize() > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(STR."Cannot currently operate on columns larger than \{Integer.MAX_VALUE}.");
+      throw new IllegalArgumentException("Cannot currently operate on columns larger than "+Integer.MAX_VALUE+".");
     }
     return new BoolBuilder((int)storage.getSize());
   }

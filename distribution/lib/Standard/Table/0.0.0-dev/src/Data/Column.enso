@@ -2712,5 +2712,5 @@ apply_unary_operation column:Column op_name:Text new_name:Text|Nothing=Nothing f
         if java_column.is_nothing.not then Column.Value java_column else
             if fallback.is_nothing then Panic.throw (Illegal_State.Error "There is a bug in the Table library, attempted to apply unsupported unary operation with no fallback.") else
                 storage_type = resolve_storage_type expected_result_type
-                map_column = UnaryOperation.mapFunction java_column fallback True storage_type used_name java_problem_aggregator
+                map_column = UnaryOperation.mapFunction java_column fallback nothing_unchanged storage_type used_name java_problem_aggregator
                 Column.Value map_column

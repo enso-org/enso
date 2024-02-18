@@ -47,7 +47,7 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
       }
       builder.appendLong(longValue);
     } else {
-      throw new IllegalArgumentException(STR."Unsupported type: \{value.getClass()}");
+      throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected date/time type).");
     }
   }
 }

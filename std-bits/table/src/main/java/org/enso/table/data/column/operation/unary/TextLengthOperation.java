@@ -8,8 +8,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.problems.ProblemAggregator;
 
-import java.time.temporal.Temporal;
-
 public class TextLengthOperation extends AbstractUnaryLongOperation {
   public static final UnaryOperation INSTANCE = new TextLengthOperation();
 
@@ -28,7 +26,7 @@ public class TextLengthOperation extends AbstractUnaryLongOperation {
       var longValue = Text_Utils.grapheme_length(s);
       builder.appendLong(longValue);
     } else {
-      throw new IllegalArgumentException(STR."Unsupported type: \{value.getClass()}");
+      throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected text type).");
     }
   }
 }

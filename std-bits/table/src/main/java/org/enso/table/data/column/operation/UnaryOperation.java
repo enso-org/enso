@@ -18,27 +18,26 @@ import java.util.function.LongConsumer;
  * A UnaryOperation is an operation that can be applied to a single ColumnStorage.
  */
 public interface UnaryOperation {
-  public static final String TRUNCATE = "truncate";
-  public static final String FLOOR = "floor";
-  public static final String CEIL = "ceil";
-  public static final String TEXT_LENGTH = "text_length";
-  public static final String IS_NAN = "is_nan";
-  public static final String IS_EMPTY = "is_empty";
-  public static final String IS_INFINITE = "is_infinite";
-  public static final String IS_NOTHING = "is_nothing";
-  public static final String NOT = "not";
-  public static final String YEAR = "year";
-  public static final String QUARTER = "quarter";
-  public static final String MONTH = "month";
-  public static final String WEEK = "week";
-  public static final String DAY = "day";
-  public static final String HOUR = "hour";
-  public static final String MINUTE = "minute";
-  public static final String SECOND = "second";
-  public static final String MILLISECOND = "millisecond";
-  public static final String MICROSECOND = "microsecond";
-  public static final String NANOSECOND = "nanosecond";
-
+  final String TRUNCATE = "truncate";
+  final String FLOOR = "floor";
+  final String CEIL = "ceil";
+  final String TEXT_LENGTH = "text_length";
+  final String IS_NAN = "is_nan";
+  final String IS_EMPTY = "is_empty";
+  final String IS_INFINITE = "is_infinite";
+  final String IS_NOTHING = "is_nothing";
+  final String NOT = "not";
+  final String YEAR = "year";
+  final String QUARTER = "quarter";
+  final String MONTH = "month";
+  final String WEEK = "week";
+  final String DAY = "day";
+  final String HOUR = "hour";
+  final String MINUTE = "minute";
+  final String SECOND = "second";
+  final String MILLISECOND = "millisecond";
+  final String MICROSECOND = "microsecond";
+  final String NANOSECOND = "nanosecond";
 
   /** Applies the operation to the given Column. If an unsupported by the operation returns null */
   static Column apply(Column column, String operationName, String newColumnName, ProblemAggregator problemAggregator) {
@@ -81,7 +80,7 @@ public interface UnaryOperation {
       case MILLISECOND -> DatePartOperation.MILLISECOND_INSTANCE;
       case MICROSECOND -> DatePartOperation.MICROSECOND_INSTANCE;
       case NANOSECOND -> DatePartOperation.NANOSECOND_INSTANCE;
-      default -> throw new IllegalArgumentException(STR."Unknown unary operation: \{name}");
+      default -> throw new IllegalArgumentException("Unknown unary operation: " + name + ".");
     };
   }
 

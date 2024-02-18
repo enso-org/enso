@@ -39,7 +39,7 @@ public class IsInfiniteOperation extends AbstractUnaryBooleanOperation {
       case Double d -> builder.appendBoolean(Double.isInfinite(d));
       case Float f -> builder.appendBoolean(Float.isInfinite(f));
       case Number ignored -> builder.appendBoolean(false);
-      default -> throw new IllegalArgumentException(STR."Unsupported type: \{value.getClass()}");
+      default -> throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected numeric type).");
     }
   }
 }

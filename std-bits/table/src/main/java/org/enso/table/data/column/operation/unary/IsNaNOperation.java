@@ -39,7 +39,7 @@ public class IsNaNOperation extends AbstractUnaryBooleanOperation {
       case Double d -> builder.appendBoolean(Double.isNaN(d));
       case Float f -> builder.appendBoolean(Float.isNaN(f));
       case Number ignored -> builder.appendBoolean(false);
-      default -> throw new IllegalArgumentException(STR."Unsupported type: \{value.getClass()}");
+      default -> throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected numeric type).");
     }
   }
 }

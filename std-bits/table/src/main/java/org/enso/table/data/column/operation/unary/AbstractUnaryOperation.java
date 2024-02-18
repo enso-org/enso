@@ -54,7 +54,7 @@ abstract class AbstractUnaryOperation implements UnaryOperation {
 
   protected Builder createBuilder(ColumnStorage storage, ProblemAggregator problemAggregator) {
     if (storage.getSize() > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(STR."Cannot currently operate on columns larger than \{Integer.MAX_VALUE}.");
+      throw new IllegalArgumentException("Cannot currently operate on columns larger than "+Integer.MAX_VALUE+".");
     }
 
     return new InferredBuilder((int)storage.getSize(), problemAggregator);

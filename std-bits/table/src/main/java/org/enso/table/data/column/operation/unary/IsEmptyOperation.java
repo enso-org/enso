@@ -28,7 +28,7 @@ public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
       if (value instanceof String s) {
         builder.appendBoolean(s.isEmpty());
       } else {
-        throw new IllegalArgumentException(STR."Unsupported type: \{value.getClass()}");
+        throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected text type).");
       }
     }
   }
