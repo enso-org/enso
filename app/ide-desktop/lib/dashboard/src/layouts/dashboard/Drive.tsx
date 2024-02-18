@@ -31,6 +31,7 @@ import * as backendModule from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
+import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as projectManager from '#/utilities/ProjectManager'
@@ -336,7 +337,7 @@ export default function Drive(props: DriveProps) {
                   if (downloadUrl == null) {
                     toastAndLog('Could not find a download link for the current OS')
                   } else {
-                    window.open(downloadUrl, '_blank')
+                    download.download(downloadUrl)
                   }
                 }}
               >
