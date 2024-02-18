@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.cast.CastProblemAggregator;
@@ -110,13 +109,6 @@ public abstract class Storage<T> implements ColumnStorage {
     public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
   }
-
-  /* Specifies if the given unary operation has a vectorized implementation available for this storage.*/
-  public abstract boolean isUnaryOpVectorized(String name);
-
-  /** Runs a vectorized unary operation. */
-  public abstract Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator);
 
   /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
   public abstract boolean isBinaryOpVectorized(String name);

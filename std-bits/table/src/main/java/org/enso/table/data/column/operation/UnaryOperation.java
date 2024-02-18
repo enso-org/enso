@@ -4,11 +4,7 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.unary.*;
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
@@ -46,7 +42,15 @@ public interface UnaryOperation {
   /** Applies the operation to the given Column. If an unsupported by the operation returns null */
   static Column apply(Column column, String operationName, String newColumnName, MapOperationProblemAggregator problemAggregator) {
     UnaryOperation operation = UnaryOperation.getInstance(operationName);
-    if (!operation.canApply(column.getStorage())) {
+
+    ColumnStorage storage = column.getStorage();
+
+    // If the storage has an inferred storage (e.g. a Mixed column) and the first level can't do get an inferred storage.
+    if (!operation.canApply(storage) && storage instanceof ColumnStorageWithInferredStorage withInferredStorage) {
+      storage = withInferredStorage.getInferredStorage();
+    }
+
+    if (!operation.canApply(storage)) {
       return null;
     }
 

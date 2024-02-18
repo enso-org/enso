@@ -11,36 +11,8 @@ import org.enso.table.data.column.storage.Storage;
  * @param <S> the storage type handled by these operations.
  */
 public class MapOperationStorage<T, S extends Storage<? super T>> {
-  private final Map<String, UnaryMapOperation<T, S>> unaryOps = new HashMap<>();
   private final Map<String, BinaryMapOperation<T, S>> binaryOps = new HashMap<>();
   private final Map<String, TernaryMapOperation<T, S>> ternaryOps = new HashMap<>();
-
-  /**
-   * Checks if a unary operation is supported by this set.
-   *
-   * @param n the operation name
-   * @return whether the operation is supported
-   */
-  public boolean isSupportedUnary(String n) {
-    return n != null && unaryOps.get(n) != null;
-  }
-
-  /**
-   * Runs the specified unary operation in map node.
-   *
-   * @param n the operation name
-   * @param storage the storage to run operation on
-   * @param problemAggregator the aggregator allowing to report computation problems
-   * @return the result of running the operation
-   */
-  public Storage<?> runUnaryMap(
-      String n, S storage, MapOperationProblemAggregator problemAggregator) {
-    if (!isSupportedUnary(n)) {
-      throw new IllegalStateException(
-          "Requested vectorized unary operation " + n + ", but no such operation is known.");
-    }
-    return unaryOps.get(n).runUnaryMap(storage, problemAggregator);
-  }
 
   /**
    * Checks if a binary operation is supported by this set.
@@ -127,17 +99,6 @@ public class MapOperationStorage<T, S extends Storage<? super T>> {
       arg = arg.tryGettingMoreSpecializedStorage();
     }
     return operation.runZip(storage, arg, problemAggregator);
-  }
-
-  /**
-   * Adds a new operation to this set.
-   *
-   * @param op the operation to add
-   * @return this operation set
-   */
-  public MapOperationStorage<T, S> add(UnaryMapOperation<T, S> op) {
-    unaryOps.put(op.getName(), op);
-    return this;
   }
 
   /**

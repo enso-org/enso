@@ -87,17 +87,6 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
-  @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return ops.isSupportedUnary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    return ops.runUnaryMap(name, this, problemAggregator);
-  }
-
   /**
    * @inheritDoc
    */

@@ -68,17 +68,6 @@ public final class BoolStorage extends Storage<Boolean> implements ColumnBoolean
     return isMissing.get(idx) ? null : getItem(idx);
   }
 
-  @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return ops.isSupportedUnary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    return ops.runUnaryMap(name, this, problemAggregator);
-  }
-
   public boolean getItem(long idx) {
     return negated != values.get((int) idx);
   }
