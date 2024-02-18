@@ -3,7 +3,10 @@ package org.enso.table.data.column.operation.unary;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
 /**

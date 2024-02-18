@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.BoolBuilder;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -44,7 +43,7 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  protected void applyObjectRow(Object value, Builder builder, ProblemAggregator problemAggregator) {
+  protected void applyObjectRow(Object value, BoolBuilder builder, ProblemAggregator problemAggregator) {
     throw new UnsupportedOperationException();
   }
 }

@@ -1287,7 +1287,7 @@ type Column
     text_length : Column
     text_length self =
         Value_Type.expect_text self <|
-            simple_unary_op self Java_Storage.Maps.TEXT_LENGTH
+            apply_unary_operation self UnaryOperation.TEXT_LENGTH
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1473,7 +1473,7 @@ type Column
        Returns a column of `Integer` type.
     year : Column ! Invalid_Value_Type
     year self = Value_Type.expect_has_date self <|
-        simple_unary_op self Java_Storage.Maps.YEAR
+        apply_unary_operation self UnaryOperation.YEAR
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1483,7 +1483,7 @@ type Column
        Returns a column of `Integer` type.
     month : Column ! Invalid_Value_Type
     month self = Value_Type.expect_has_date self <|
-        simple_unary_op self Java_Storage.Maps.MONTH
+        apply_unary_operation self UnaryOperation.MONTH
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1494,7 +1494,7 @@ type Column
        Returns a column of `Integer` type.
     day : Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self <|
-        simple_unary_op self Java_Storage.Maps.DAY
+        apply_unary_operation self UnaryOperation.DAY
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1504,7 +1504,7 @@ type Column
        Returns a column of `Integer` type.
     hour : Column ! Invalid_Value_Type
     hour self = Value_Type.expect_has_time self <|
-        simple_unary_op self Java_Storage.Maps.HOUR
+        apply_unary_operation self UnaryOperation.HOUR
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1514,7 +1514,7 @@ type Column
        Returns a column of `Integer` type.
     minute : Column ! Invalid_Value_Type
     minute self = Value_Type.expect_has_time self <|
-        simple_unary_op self Java_Storage.Maps.MINUTE
+        apply_unary_operation self UnaryOperation.MINUTE
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -1524,7 +1524,7 @@ type Column
        Returns a column of `Integer` type.
     second : Column ! Invalid_Value_Type
     second self = Value_Type.expect_has_time self <|
-        simple_unary_op self Java_Storage.Maps.SECOND
+        apply_unary_operation self UnaryOperation.SECOND
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1534,7 +1534,7 @@ type Column
     @period Date_Time_Helpers.make_period_selector_for_column
     date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
     date_part self period =
-        Date_Time_Helpers.make_date_part_function self period simple_unary_op naming_helper
+        Date_Time_Helpers.make_date_part_function self period apply_unary_operation naming_helper
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -2697,19 +2697,20 @@ Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from
 
    Arguments:
    - column: The column to apply the operation to.
-   - new_name: The name of the column created as the result of this operation.
    - op_name: The name of the operation to apply.
+   - new_name: The name of the column created as the result of this operation.
    - fallback: A function used if the vectorized operation isn't available.
      It should never raise dataflow errors.
    - expected_result_type: The expected result type of the operation.
    - nothing_unchanged: If set to `True`, `Nothing` values will be passed through
      the operation without being changed. If set to `False`, `Nothing` values will
      be passed to the `fallback` function.
-apply_unary_operation column:Column new_name:Text op_name:Text fallback=Nothing expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
+apply_unary_operation column:Column op_name:Text new_name:Text|Nothing=Nothing fallback=Nothing expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
+    used_name = new_name.if_nothing (naming_helper.function_name op_name [column])
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-        java_column = UnaryOperation.apply column.java_column op_name new_name java_problem_aggregator
+        java_column = UnaryOperation.apply column.java_column op_name used_name java_problem_aggregator
         if java_column.is_nothing.not then Column.Value java_column else
-            if fallback.is_nothing then
-            storage_type = resolve_storage_type expected_result_type
-            map_column = UnaryOperation.mapFunction java_column fallback True storage_type new_name java_problem_aggregator
-            Column.Value map_column
+            if fallback.is_nothing then Panic.throw (Illegal_State.Error "There is a bug in the Table library, attempted to apply unsupported unary operation with no fallback.") else
+                storage_type = resolve_storage_type expected_result_type
+                map_column = UnaryOperation.mapFunction java_column fallback True storage_type used_name java_problem_aggregator
+                Column.Value map_column

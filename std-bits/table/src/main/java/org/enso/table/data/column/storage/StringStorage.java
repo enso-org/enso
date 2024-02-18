@@ -106,13 +106,6 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(
-        new UnaryIntegerOp<>(Maps.TEXT_LENGTH) {
-          @Override
-          protected long doOperation(String a) {
-            return Text_Utils.grapheme_length(a);
-          }
-        });
-    t.add(
         new StringLongToStringOp(Maps.TEXT_LEFT) {
           @Override
           protected String doOperation(String a, long b) {

@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.BoolBuilder;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -22,12 +21,12 @@ public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  protected void applyObjectRow(Object value, Builder builder, ProblemAggregator problemAggregator) {
+  protected void applyObjectRow(Object value, BoolBuilder builder, ProblemAggregator problemAggregator) {
     if (value == null) {
-      ((BoolBuilder)builder).appendBoolean(true);
+      builder.appendBoolean(true);
     } else {
       if (value instanceof String s) {
-        ((BoolBuilder)builder).appendBoolean(s.isEmpty());
+        builder.appendBoolean(s.isEmpty());
       } else {
         throw new IllegalArgumentException(STR."Unsupported type: \{value.getClass()}");
       }

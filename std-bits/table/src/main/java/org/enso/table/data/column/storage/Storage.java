@@ -107,23 +107,11 @@ public abstract class Storage<T> implements ColumnStorage {
     public static final String OR = "||";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
-    public static final String TEXT_LENGTH = "text_length";
     public static final String TEXT_LEFT = "text_left";
     public static final String TEXT_RIGHT = "text_right";
     public static final String CONTAINS = "contains";
     public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
-    public static final String YEAR = "year";
-    public static final String QUARTER = "quarter";
-    public static final String MONTH = "month";
-    public static final String WEEK = "week";
-    public static final String DAY = "day";
-    public static final String HOUR = "hour";
-    public static final String MINUTE = "minute";
-    public static final String SECOND = "second";
-    public static final String MILLISECOND = "millisecond";
-    public static final String MICROSECOND = "microsecond";
-    public static final String NANOSECOND = "nanosecond";
   }
 
   /* Specifies if the given unary operation has a vectorized implementation available for this storage.*/

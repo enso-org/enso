@@ -18,16 +18,27 @@ import java.util.function.LongConsumer;
  * A UnaryOperation is an operation that can be applied to a single ColumnStorage.
  */
 public interface UnaryOperation {
-  public static final String ABSOLUTE = "absolute";
-  public static final String SIGNUM = "signum";
   public static final String TRUNCATE = "truncate";
   public static final String FLOOR = "floor";
   public static final String CEIL = "ceil";
+  public static final String TEXT_LENGTH = "text_length";
   public static final String IS_NAN = "is_nan";
   public static final String IS_EMPTY = "is_empty";
   public static final String IS_INFINITE = "is_infinite";
   public static final String IS_NOTHING = "is_nothing";
   public static final String NOT = "not";
+  public static final String YEAR = "year";
+  public static final String QUARTER = "quarter";
+  public static final String MONTH = "month";
+  public static final String WEEK = "week";
+  public static final String DAY = "day";
+  public static final String HOUR = "hour";
+  public static final String MINUTE = "minute";
+  public static final String SECOND = "second";
+  public static final String MILLISECOND = "millisecond";
+  public static final String MICROSECOND = "microsecond";
+  public static final String NANOSECOND = "nanosecond";
+
 
   /** Applies the operation to the given Column. If an unsupported by the operation returns null */
   static Column apply(Column column, String operationName, String newColumnName, ProblemAggregator problemAggregator) {
@@ -53,11 +64,23 @@ public interface UnaryOperation {
   /** Gets the Operation with the given name. */
   static UnaryOperation getInstance(String name) {
     return switch (name) {
-      case IS_EMPTY -> IsEmptyOperation.INSTANCE;
       case IS_NOTHING -> IsNothingOperation.INSTANCE;
+      case NOT -> NotOperation.INSTANCE;
+      case IS_EMPTY -> IsEmptyOperation.INSTANCE;
+      case TEXT_LENGTH -> TextLengthOperation.INSTANCE;
       case IS_NAN -> IsNaNOperation.INSTANCE;
       case IS_INFINITE -> IsInfiniteOperation.INSTANCE;
-      case NOT -> NotOperation.INSTANCE;
+      case YEAR -> DatePartOperation.YEAR_INSTANCE;
+      case QUARTER -> DatePartOperation.QUARTER_INSTANCE;
+      case MONTH -> DatePartOperation.MONTH_INSTANCE;
+      case WEEK -> DatePartOperation.WEEK_INSTANCE;
+      case DAY -> DatePartOperation.DAY_INSTANCE;
+      case HOUR -> DatePartOperation.HOUR_INSTANCE;
+      case MINUTE -> DatePartOperation.MINUTE_INSTANCE;
+      case SECOND -> DatePartOperation.SECOND_INSTANCE;
+      case MILLISECOND -> DatePartOperation.MILLISECOND_INSTANCE;
+      case MICROSECOND -> DatePartOperation.MICROSECOND_INSTANCE;
+      case NANOSECOND -> DatePartOperation.NANOSECOND_INSTANCE;
       default -> throw new IllegalArgumentException(STR."Unknown unary operation: \{name}");
     };
   }

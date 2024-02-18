@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public class IsNaNOperation extends AbstractUnaryOperation {
+public class IsNaNOperation extends AbstractUnaryBooleanOperation {
   public static final UnaryOperation INSTANCE = new IsNaNOperation();
 
   private IsNaNOperation() {
@@ -33,12 +33,12 @@ public class IsNaNOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  protected void applyObjectRow(Object value, Builder builder, ProblemAggregator problemAggregator) {
+  protected void applyObjectRow(Object value, BoolBuilder builder, ProblemAggregator problemAggregator) {
     // Null handled by base class
     switch (value) {
-      case Double d -> ((BoolBuilder)builder).appendBoolean(Double.isNaN(d));
-      case Float f -> ((BoolBuilder)builder).appendBoolean(Float.isNaN(f));
-      case Number ignored -> ((BoolBuilder)builder).appendBoolean(false);
+      case Double d -> builder.appendBoolean(Double.isNaN(d));
+      case Float f -> builder.appendBoolean(Float.isNaN(f));
+      case Number ignored -> builder.appendBoolean(false);
       default -> throw new IllegalArgumentException(STR."Unsupported type: \{value.getClass()}");
     }
   }
