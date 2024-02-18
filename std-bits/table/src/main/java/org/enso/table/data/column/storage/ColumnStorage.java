@@ -2,9 +2,7 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.storage.type.StorageType;
 
-/**
- * Basic interface of a column storage.
- * */
+/** Basic interface of a column storage. */
 public interface ColumnStorage {
   /* Gets the size of the storage. */
   long getSize();

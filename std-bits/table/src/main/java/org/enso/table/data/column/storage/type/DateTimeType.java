@@ -17,5 +17,4 @@ public record DateTimeType() implements StorageType {
   public boolean hasTime() {
     return true;
   }
-
 }

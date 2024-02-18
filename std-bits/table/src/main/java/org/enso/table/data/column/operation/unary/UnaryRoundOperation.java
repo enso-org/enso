@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.unary;
 
+import java.util.function.DoubleToLongFunction;
 import org.enso.table.data.column.builder.LongBuilder;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -7,12 +8,13 @@ import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 
-import java.util.function.DoubleToLongFunction;
-
 public class UnaryRoundOperation extends AbstractUnaryLongOperation {
-  public static final UnaryOperation CEIL_INSTANCE = new UnaryRoundOperation(UnaryOperation.CEIL, d -> (long) Math.ceil(d));
-  public static final UnaryOperation FLOOR_INSTANCE = new UnaryRoundOperation(UnaryOperation.FLOOR, d -> (long) Math.floor(d));
-  public static final UnaryOperation TRUNCATE_INSTANCE = new UnaryRoundOperation(UnaryOperation.TRUNCATE, d -> (long) d);
+  public static final UnaryOperation CEIL_INSTANCE =
+      new UnaryRoundOperation(UnaryOperation.CEIL, d -> (long) Math.ceil(d));
+  public static final UnaryOperation FLOOR_INSTANCE =
+      new UnaryRoundOperation(UnaryOperation.FLOOR, d -> (long) Math.floor(d));
+  public static final UnaryOperation TRUNCATE_INSTANCE =
+      new UnaryRoundOperation(UnaryOperation.TRUNCATE, d -> (long) d);
 
   private final DoubleToLongFunction function;
 
@@ -27,7 +29,8 @@ public class UnaryRoundOperation extends AbstractUnaryLongOperation {
   }
 
   @Override
-  public ColumnStorage apply(ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage apply(
+      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof ColumnLongStorage longStorage) {
       // For a long storage, the operation is an identity operation.
       return longStorage;
@@ -37,7 +40,8 @@ public class UnaryRoundOperation extends AbstractUnaryLongOperation {
   }
 
   @Override
-  protected void applyObjectRow(Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator) {
+  protected void applyObjectRow(
+      Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator) {
     // Null handled by base class
     switch (value) {
       case Double d -> {
@@ -51,7 +55,8 @@ public class UnaryRoundOperation extends AbstractUnaryLongOperation {
       }
       case Float f -> applyObjectRow((double) f, builder, problemAggregator);
       case Number n -> applyObjectRow(n.doubleValue(), builder, problemAggregator);
-      default -> throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected numeric type).");
+      default -> throw new IllegalArgumentException(
+          "Unsupported type: " + value.getClass() + " (expected numeric type).");
     }
   }
 }

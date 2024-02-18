@@ -1,5 +1,8 @@
 package org.enso.table.data.column.operation;
 
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.LongConsumer;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -10,13 +13,7 @@ import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.LongConsumer;
-
-/**
- * A UnaryOperation is an operation that can be applied to a single ColumnStorage.
- */
+/** A UnaryOperation is an operation that can be applied to a single ColumnStorage. */
 public interface UnaryOperation {
   String TRUNCATE = "truncate";
   String FLOOR = "floor";
@@ -40,13 +37,19 @@ public interface UnaryOperation {
   String NANOSECOND = "nanosecond";
 
   /** Applies the operation to the given Column. If an unsupported by the operation returns null */
-  static Column apply(Column column, String operationName, String newColumnName, MapOperationProblemAggregator problemAggregator) {
+  static Column apply(
+      Column column,
+      String operationName,
+      String newColumnName,
+      MapOperationProblemAggregator problemAggregator) {
     UnaryOperation operation = UnaryOperation.getInstance(operationName);
 
     ColumnStorage storage = column.getStorage();
 
-    // If the storage has an inferred storage (e.g. a Mixed column) and the first level can't do get an inferred storage.
-    if (!operation.canApply(storage) && storage instanceof ColumnStorageWithInferredStorage withInferredStorage) {
+    // If the storage has an inferred storage (e.g. a Mixed column) and the first level can't do get
+    // an inferred storage.
+    if (!operation.canApply(storage)
+        && storage instanceof ColumnStorageWithInferredStorage withInferredStorage) {
       storage = withInferredStorage.getInferredStorage();
     }
 
@@ -58,13 +61,24 @@ public interface UnaryOperation {
     return new Column(newColumnName, (Storage<?>) result);
   }
 
-  static Column mapFunction(Column column, Function<Object, Value> function, boolean nothingUnchanged, StorageType expectedResultType, String newColumnName, MapOperationProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, column.getSize(), problemAggregator);
-    applyStorageInner(column.getStorage(), nothingUnchanged, storageBuilder, i -> {
-      Value result = function.apply(column.getStorage().getItemAsObject(i));
-      Object converted = Polyglot_Utils.convertPolyglotValue(result);
-      storageBuilder.appendNoGrow(converted);
-    });
+  static Column mapFunction(
+      Column column,
+      Function<Object, Value> function,
+      boolean nothingUnchanged,
+      StorageType expectedResultType,
+      String newColumnName,
+      MapOperationProblemAggregator problemAggregator) {
+    Builder storageBuilder =
+        Builder.getForType(expectedResultType, column.getSize(), problemAggregator);
+    applyStorageInner(
+        column.getStorage(),
+        nothingUnchanged,
+        storageBuilder,
+        i -> {
+          Value result = function.apply(column.getStorage().getItemAsObject(i));
+          Object converted = Polyglot_Utils.convertPolyglotValue(result);
+          storageBuilder.appendNoGrow(converted);
+        });
     return new Column(newColumnName, storageBuilder.seal());
   }
 
@@ -104,7 +118,11 @@ public interface UnaryOperation {
   /** Applies the operation to the given Storage. */
   ColumnStorage apply(ColumnStorage storage, MapOperationProblemAggregator problemAggregator);
 
-  private static void applyStorageInner(ColumnStorage columnStorage, boolean nothingUnchanged, Builder builder, LongConsumer callback) {
+  private static void applyStorageInner(
+      ColumnStorage columnStorage,
+      boolean nothingUnchanged,
+      Builder builder,
+      LongConsumer callback) {
     Context context = Context.getCurrent();
     long size = columnStorage.getSize();
     for (long i = 0; i < size; i++) {
@@ -115,19 +133,32 @@ public interface UnaryOperation {
       }
       context.safepoint();
     }
-
   }
 
   /** Applies the operation to the given Storage. */
-  static void applyOverObjectStorage(ColumnStorage objectStorage, boolean nothingUnchanged, Builder builder, Consumer<Object> function)
-  {
-    applyStorageInner(objectStorage, nothingUnchanged, builder, i -> function.accept(objectStorage.getItemAsObject(i)));
+  static void applyOverObjectStorage(
+      ColumnStorage objectStorage,
+      boolean nothingUnchanged,
+      Builder builder,
+      Consumer<Object> function) {
+    applyStorageInner(
+        objectStorage,
+        nothingUnchanged,
+        builder,
+        i -> function.accept(objectStorage.getItemAsObject(i)));
   }
 
   /** Applies the operation to the given Boolean Storage. */
-  static void applyOverBooleanStorage(ColumnBooleanStorage booleanStorage, boolean nothingUnchanged, Builder builder, BooleanRowApplier function)
-  {
-    applyStorageInner(booleanStorage, nothingUnchanged, builder, i -> function.accept(booleanStorage.isNothing(i), booleanStorage.get(i)));
+  static void applyOverBooleanStorage(
+      ColumnBooleanStorage booleanStorage,
+      boolean nothingUnchanged,
+      Builder builder,
+      BooleanRowApplier function) {
+    applyStorageInner(
+        booleanStorage,
+        nothingUnchanged,
+        builder,
+        i -> function.accept(booleanStorage.isNothing(i), booleanStorage.get(i)));
   }
 
   @FunctionalInterface
@@ -136,9 +167,16 @@ public interface UnaryOperation {
   }
 
   /** Applies the operation to the given Long Storage. */
-  static void applyOverLongStorage(ColumnLongStorage longStorage, boolean nothingUnchanged, Builder builder, LongRowApplier function)
-  {
-    applyStorageInner(longStorage, nothingUnchanged, builder, i -> function.accept(longStorage.isNothing(i), longStorage.get(i)));
+  static void applyOverLongStorage(
+      ColumnLongStorage longStorage,
+      boolean nothingUnchanged,
+      Builder builder,
+      LongRowApplier function) {
+    applyStorageInner(
+        longStorage,
+        nothingUnchanged,
+        builder,
+        i -> function.accept(longStorage.isNothing(i), longStorage.get(i)));
   }
 
   @FunctionalInterface
@@ -147,9 +185,16 @@ public interface UnaryOperation {
   }
 
   /** Applies the operation to the given Double Storage. */
-  static void applyOverDoubleStorage(ColumnDoubleStorage doubleStorage, boolean nothingUnchanged, Builder builder, DoubleRowApplier function)
-  {
-    applyStorageInner(doubleStorage, nothingUnchanged, builder, i -> function.accept(doubleStorage.isNothing(i), doubleStorage.get(i)));
+  static void applyOverDoubleStorage(
+      ColumnDoubleStorage doubleStorage,
+      boolean nothingUnchanged,
+      Builder builder,
+      DoubleRowApplier function) {
+    applyStorageInner(
+        doubleStorage,
+        nothingUnchanged,
+        builder,
+        i -> function.accept(doubleStorage.isNothing(i), doubleStorage.get(i)));
   }
 
   @FunctionalInterface

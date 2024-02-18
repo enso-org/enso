@@ -6,35 +6,39 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 
-/**
- * An abstract base class for unary operations returning a long column.
- */
+/** An abstract base class for unary operations returning a long column. */
 abstract class AbstractUnaryLongOperation extends AbstractUnaryOperation {
   private final IntegerType valueType;
+
   /**
    * Creates a new AbstractUnaryOperation.
    *
-   * @param name             the name of the operation
+   * @param name the name of the operation
    * @param nothingUnchanged whether the operation should return nothing if the input is nothing
    */
-  protected AbstractUnaryLongOperation(String name, boolean nothingUnchanged, IntegerType valueType) {
+  protected AbstractUnaryLongOperation(
+      String name, boolean nothingUnchanged, IntegerType valueType) {
 
     super(name, nothingUnchanged);
     this.valueType = valueType;
   }
 
   @Override
-  protected LongBuilder createBuilder(ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+  protected LongBuilder createBuilder(
+      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
     if (storage.getSize() > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException("Cannot currently operate on columns larger than "+Integer.MAX_VALUE+".");
+      throw new IllegalArgumentException(
+          "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
     }
-    return LongBuilder.createLongBuilder((int)storage.getSize(), valueType, problemAggregator);
+    return LongBuilder.createLongBuilder((int) storage.getSize(), valueType, problemAggregator);
   }
 
   @Override
-  protected final void applyObjectRow(Object value, Builder builder, MapOperationProblemAggregator problemAggregator) {
-    applyObjectRow(value, (LongBuilder)builder, problemAggregator);
+  protected final void applyObjectRow(
+      Object value, Builder builder, MapOperationProblemAggregator problemAggregator) {
+    applyObjectRow(value, (LongBuilder) builder, problemAggregator);
   }
 
-  protected abstract void applyObjectRow(Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator);
+  protected abstract void applyObjectRow(
+      Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator);
 }

@@ -21,12 +21,14 @@ public class TextLengthOperation extends AbstractUnaryLongOperation {
   }
 
   @Override
-  protected void applyObjectRow(Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator) {
+  protected void applyObjectRow(
+      Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator) {
     if (value instanceof String s) {
       var longValue = Text_Utils.grapheme_length(s);
       builder.appendLong(longValue);
     } else {
-      throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected text type).");
+      throw new IllegalArgumentException(
+          "Unsupported type: " + value.getClass() + " (expected text type).");
     }
   }
 }

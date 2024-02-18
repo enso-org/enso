@@ -24,7 +24,8 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
 
-public abstract class AbstractLongStorage extends NumericStorage<Long> implements ColumnLongStorage {
+public abstract class AbstractLongStorage extends NumericStorage<Long>
+    implements ColumnLongStorage {
   public abstract long getItem(int idx);
 
   public abstract BitSet getIsMissing();
@@ -170,6 +171,6 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> implement
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);
     }
-    return getItem((int)index);
+    return getItem((int) index);
   }
 }

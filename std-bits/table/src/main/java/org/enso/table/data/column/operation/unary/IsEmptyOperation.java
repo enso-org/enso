@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
 
 /* An operation that checks if a column's row values are empty.
-* Only supported on Text values. */
+ * Only supported on Text values. */
 public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
   public static final UnaryOperation INSTANCE = new IsEmptyOperation();
 
@@ -21,14 +21,16 @@ public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  protected void applyObjectRow(Object value, BoolBuilder builder, MapOperationProblemAggregator problemAggregator) {
+  protected void applyObjectRow(
+      Object value, BoolBuilder builder, MapOperationProblemAggregator problemAggregator) {
     if (value == null) {
       builder.appendBoolean(true);
     } else {
       if (value instanceof String s) {
         builder.appendBoolean(s.isEmpty());
       } else {
-        throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected text type).");
+        throw new IllegalArgumentException(
+            "Unsupported type: " + value.getClass() + " (expected text type).");
       }
     }
   }
