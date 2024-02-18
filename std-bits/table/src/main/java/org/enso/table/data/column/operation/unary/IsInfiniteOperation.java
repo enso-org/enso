@@ -23,13 +23,13 @@ public class IsInfiniteOperation extends AbstractUnaryBooleanOperation {
   @Override
   protected void applyLong(ColumnLongStorage longStorage, Builder builder, MapOperationProblemAggregator problemAggregator) {
     var boolBuilder = (BoolBuilder)builder;
-    UnaryOperation.applyOverLongStorage(longStorage, true, builder, (isNothing, value) -> boolBuilder.appendBoolean(false));
+    UnaryOperation.applyOverLongStorage(longStorage, true, builder, (_, _) -> boolBuilder.appendBoolean(false));
   }
 
   @Override
   protected void applyDouble(ColumnDoubleStorage doubleStorage, Builder builder, MapOperationProblemAggregator problemAggregator) {
     var boolBuilder = (BoolBuilder)builder;
-    UnaryOperation.applyOverDoubleStorage(doubleStorage, true, builder, (isNothing, value) -> boolBuilder.appendBoolean(Double.isInfinite(value)));
+    UnaryOperation.applyOverDoubleStorage(doubleStorage, true, builder, (_, value) -> boolBuilder.appendBoolean(Double.isInfinite(value)));
   }
 
   @Override

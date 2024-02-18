@@ -28,7 +28,7 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
 
     var builder = createBuilder(storage, problemAggregator);
     if (storage instanceof ColumnBooleanStorage booleanStorage) {
-      UnaryOperation.applyOverBooleanStorage(booleanStorage, true, builder, (isNothing, value) -> builder.appendBoolean(!value));
+      UnaryOperation.applyOverBooleanStorage(booleanStorage, true, builder, (_, value) -> builder.appendBoolean(!value));
     } else {
       UnaryOperation.applyOverObjectStorage(storage, true, builder, (value) -> {
         if (value instanceof Boolean b) {
