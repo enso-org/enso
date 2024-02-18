@@ -18,26 +18,26 @@ import java.util.function.LongConsumer;
  * A UnaryOperation is an operation that can be applied to a single ColumnStorage.
  */
 public interface UnaryOperation {
-  final String TRUNCATE = "truncate";
-  final String FLOOR = "floor";
-  final String CEIL = "ceil";
-  final String TEXT_LENGTH = "text_length";
-  final String IS_NAN = "is_nan";
-  final String IS_EMPTY = "is_empty";
-  final String IS_INFINITE = "is_infinite";
-  final String IS_NOTHING = "is_nothing";
-  final String NOT = "not";
-  final String YEAR = "year";
-  final String QUARTER = "quarter";
-  final String MONTH = "month";
-  final String WEEK = "week";
-  final String DAY = "day";
-  final String HOUR = "hour";
-  final String MINUTE = "minute";
-  final String SECOND = "second";
-  final String MILLISECOND = "millisecond";
-  final String MICROSECOND = "microsecond";
-  final String NANOSECOND = "nanosecond";
+  String TRUNCATE = "truncate";
+  String FLOOR = "floor";
+  String CEIL = "ceil";
+  String TEXT_LENGTH = "text_length";
+  String IS_NAN = "is_nan";
+  String IS_EMPTY = "is_empty";
+  String IS_INFINITE = "is_infinite";
+  String IS_NOTHING = "is_nothing";
+  String NOT = "not";
+  String YEAR = "year";
+  String QUARTER = "quarter";
+  String MONTH = "month";
+  String WEEK = "week";
+  String DAY = "day";
+  String HOUR = "hour";
+  String MINUTE = "minute";
+  String SECOND = "second";
+  String MILLISECOND = "millisecond";
+  String MICROSECOND = "microsecond";
+  String NANOSECOND = "nanosecond";
 
   /** Applies the operation to the given Column. If an unsupported by the operation returns null */
   static Column apply(Column column, String operationName, String newColumnName, ProblemAggregator problemAggregator) {
