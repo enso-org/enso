@@ -28,6 +28,16 @@ async def clone(repo: str, dest: Path) -> None:
     assert dest.exists()
 
 
+async def pull(repo: Path) -> None:
+    _logger.debug("Pulling %s", repo)
+    # Avoid unnecessary merge commits by using `--ff-only`
+    args = ["pull", "--ff-only"]
+    proc = await asyncio.create_subprocess_exec("git", *args, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ret = await proc.wait()
+    if ret != 0:
+        raise RuntimeError(f"Failed to pull {repo}")
+
+
 async def status(repo: Path) -> GitStatus:
     assert repo.exists()
     proc = await asyncio.create_subprocess_exec("git", "status", "--porcelain", cwd=repo,
@@ -48,6 +58,8 @@ async def status(repo: Path) -> GitStatus:
 
 
 async def add(repo: Path, files: Set[str]) -> None:
+    _logger.debug("Adding %s to %s", files, repo)
+    assert len(files) > 0
     args = ["add"] + list(files)
     proc = await asyncio.create_subprocess_exec("git", *args, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = await proc.wait()
