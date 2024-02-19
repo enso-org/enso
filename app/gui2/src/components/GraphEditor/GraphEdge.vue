@@ -55,7 +55,10 @@ const targetPos = computed<Vec2 | undefined>(() => {
   if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
     const targetRectRelative = graph.getPortRelativeRect(expr)
     if (targetRectRelative == null) return
-    return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, 0))
+    const yAdjustment = targetIsSelfArgument.value
+      ? -(selfArgumentArrowHeight + selfArgumentArrowYOffset)
+      : 0
+    return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, yAdjustment))
   } else if (navigator?.sceneMousePos != null) {
     return navigator.sceneMousePos
   } else {
@@ -396,6 +399,13 @@ const activeStyle = computed(() => {
   }
 })
 
+const targetEndIsDimmed = computed(() => {
+  if (!hovered.value) return false
+  const distances = mouseLocationOnEdge.value
+  if (!distances) return false
+  return distances.sourceToMouse < distances.mouseToTarget
+})
+
 const baseStyle = computed(() => ({ '--node-base-color': edgeColor.value ?? 'tan' }))
 
 function click() {
@@ -420,6 +430,31 @@ const backwardEdgeArrowTransform = computed<string | undefined>(() => {
   if (points[1] == null) return
   return svgTranslate(source.center().add(points[1]))
 })
+
+const targetIsSelfArgument = computed(() => false)
+
+const selfArgumentArrowHeight = 9
+const selfArgumentArrowYOffset = 0
+const selfArgumentArrowTransform = computed<string | undefined>(() => {
+  const selfArgumentArrowTopOffset = 4
+  const selfArgumentArrowWidth = 12
+  if (!targetIsSelfArgument.value) return
+  const target = targetPos.value
+  if (target == null) return
+  const pos = target.sub(new Vec2(selfArgumentArrowWidth / 2, selfArgumentArrowTopOffset))
+  return svgTranslate(pos)
+})
+
+const selfArgumentArrowPath = [
+  'M10.9635 1.5547',
+  'L6.83205 7.75193',
+  'C6.43623 8.34566 5.56377 8.34566 5.16795 7.75192',
+  'L1.03647 1.5547',
+  'C0.593431 0.890146 1.06982 0 1.86852 0',
+  'L10.1315 0',
+  'C10.9302 0 11.4066 0.890147 10.9635 1.5547',
+  'Z',
+].join('')
 
 const connected = computed(() => isConnected(props.edge))
 </script>
@@ -488,6 +523,13 @@ const connected = computed(() => isConnected(props.edge))
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
       />
+      <path
+        v-if="selfArgumentArrowTransform"
+        :transform="selfArgumentArrowTransform"
+        :d="selfArgumentArrowPath"
+        :class="{ arrow: true, visible: true, dimmed: targetEndIsDimmed }"
+        :style="baseStyle"
+      />
     </g>
   </template>
 </template>
@@ -521,5 +563,9 @@ const connected = computed(() => isConnected(props.edge))
 .edge.visible.dimmed {
   /* stroke: rgba(255, 255, 255, 0.4); */
   stroke: color-mix(in oklab, var(--edge-color) 60%, white 40%);
+}
+
+.arrow.visible.dimmed {
+  fill: color-mix(in oklab, var(--edge-color) 60%, white 40%);
 }
 </style>
