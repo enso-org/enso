@@ -2720,8 +2720,8 @@ apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothi
    - nothing_unchanged: If set to `True`, `Nothing` values will be passed through
      the operation without being changed. If set to `False`, `Nothing` values will
      be passed to the function.
-apply_unary_map column:Column new_name:Text fallback expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
+apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
-        map_column = UnaryOperation.mapFunction column.java_column fallback nothing_unchanged storage_type new_name java_problem_aggregator
+        map_column = UnaryOperation.mapFunction column.java_column function nothing_unchanged storage_type new_name java_problem_aggregator
         Column.Value map_column
