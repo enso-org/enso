@@ -112,7 +112,7 @@ function createEdge(source: AstId, target: PortId) {
       :viewBox="props.navigator.viewBox"
       class="overlay aboveNodes nonInteractive"
     >
-      <GraphEdge :edge="graph.unconnectedEdge" mask-source />
+      <GraphEdge :edge="graph.unconnectedEdge" maskSource />
     </svg>
   </div>
 </template>
