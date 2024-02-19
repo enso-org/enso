@@ -37,7 +37,6 @@ class MyTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(1, len(bench_runs))
         bench_run = bench_runs[0]
         remote_cache = ReadonlyRemoteCache()
-        await remote_cache.initialize()
         with WithTempDir("test_get_bench_report") as temp_dir:
             bench_report = await get_bench_report(bench_run, temp_dir, remote_cache)
             self.assertIsNotNone(bench_report)

@@ -30,7 +30,6 @@ sample_job_report = JobReport(
 class TestReadonlyRemoteCache(unittest.IsolatedAsyncioTestCase):
     async def test_fetch_some_cache(self):
         remote_cache = ReadonlyRemoteCache()
-        await remote_cache.initialize()
         # This ID is definitelly in the cache
         bench_id = "3686412302"
         job_report = await remote_cache.fetch(bench_id)
@@ -41,14 +40,12 @@ class TestReadonlyRemoteCache(unittest.IsolatedAsyncioTestCase):
 
     async def test_non_existing_cache_should_not_fail(self):
         remote_cache = ReadonlyRemoteCache()
-        await remote_cache.initialize()
         bench_id = "FOOOO BAR"
         job_report = await remote_cache.fetch(bench_id)
         self.assertIsNone(job_report)
 
     async def test_put_job_report_into_cache(self):
         remote_cache = ReadonlyRemoteCache()
-        await remote_cache.initialize()
         bench_id = sample_job_report.bench_run.id
         await remote_cache.put(bench_id, sample_job_report)
         job_report = await remote_cache.fetch(bench_id)
