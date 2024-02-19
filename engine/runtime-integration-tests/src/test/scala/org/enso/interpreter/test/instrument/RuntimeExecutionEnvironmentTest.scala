@@ -184,7 +184,10 @@ class RuntimeExecutionEnvironmentTest
         idRes,
         IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
-          .Panic("Forbidden operation: Output.", Seq(idRes)),
+          .Panic(
+            "Forbidden operation: The Output context is disabled.",
+            Seq(idRes)
+          ),
         false
       ),
       context.executionComplete(contextId)
@@ -285,7 +288,10 @@ class RuntimeExecutionEnvironmentTest
         idRes,
         IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
-          .Panic("Forbidden operation: Input.", Seq(idRes)),
+          .Panic(
+            "Forbidden operation: The Input context is disabled.",
+            Seq(idRes)
+          ),
         false
       ),
       context.executionComplete(contextId)
@@ -342,6 +348,6 @@ object RuntimeExecutionEnvironmentTest {
         "Standard.Base.Runtime.Context",
         "if_enabled"
       ),
-      Vector(2)
+      Vector(2, 3, 4)
     )
 }
