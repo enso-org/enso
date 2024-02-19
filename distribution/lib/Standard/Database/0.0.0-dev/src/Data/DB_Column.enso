@@ -7,6 +7,7 @@ from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_wi
 
 import Standard.Table.Data.Column.Column
 import Standard.Table.Data.Constants.Previous_Value
+import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
@@ -91,8 +92,8 @@ type DB_Column
 
        The table behaves like `Table.info` - it lists the column name, the count
        of non-null items and the value type.
-    info : DB_Table
-    info self = self.to_table.info
+    info : Table
+    info self -> Table = self.to_table.info
 
     ## GROUP Standard.Base.Input
        ICON data_input
