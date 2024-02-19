@@ -120,9 +120,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               dispatchAssetEvent({ type: AssetEventType.restore, ids: selectedKeys })
             }}
           />
-        </ContextMenu>
-        {isCloud && (
-          <ContextMenu hidden={hidden}>
+          {isCloud && (
             <MenuEntry
               hidden={hidden}
               action={shortcutManager.KeyboardAction.deleteAllForever}
@@ -139,8 +137,8 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                 )
               }}
             />
-          </ContextMenu>
-        )}
+          )}
+        </ContextMenu>
       </ContextMenus>
     )
   } else if (category !== Category.home) {
