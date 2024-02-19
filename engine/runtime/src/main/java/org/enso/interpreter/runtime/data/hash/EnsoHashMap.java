@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -55,11 +56,11 @@ public final class EnsoHashMap implements EnsoObject {
   }
 
   EnsoHashMapBuilder getMapBuilder(
-      boolean readOnly, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+      VirtualFrame frame, boolean readOnly, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     if (readOnly) {
       return mapBuilder;
     } else {
-      return mapBuilder.asModifiable(generation, hashCodeNode, equalsNode);
+      return mapBuilder.asModifiable(frame, generation, hashCodeNode, equalsNode);
     }
   }
 
@@ -104,7 +105,7 @@ public final class EnsoHashMap implements EnsoObject {
       Object key,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
-    var entry = mapBuilder.get(key, generation, hashCodeNode, equalsNode);
+    var entry = mapBuilder.get(null, key, generation, hashCodeNode, equalsNode);
     return entry != null;
   }
 
@@ -122,7 +123,7 @@ public final class EnsoHashMap implements EnsoObject {
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode)
       throws UnknownKeyException {
-    StorageEntry entry = mapBuilder.get(key, generation, hashCodeNode, equalsNode);
+    StorageEntry entry = mapBuilder.get(null, key, generation, hashCodeNode, equalsNode);
     if (entry != null) {
       return entry.value();
     } else {
