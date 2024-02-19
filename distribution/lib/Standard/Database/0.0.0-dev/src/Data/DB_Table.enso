@@ -14,7 +14,6 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Runtime import assert
-from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import Standard.Table.Data.Blank_Selector.Blank_Selector
 import Standard.Table.Data.Calculations.Column_Operation.Column_Operation
@@ -2018,8 +2017,9 @@ type DB_Table
              table.parse "birthday" Value_Type.Date
     @type (Widget_Helpers.parse_type_selector include_auto=False)
     @columns Widget_Helpers.make_column_name_vector_selector
-    parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter | Nothing -> Boolean -> Problem_Behavior -> DB_Table
-    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format=Nothing error_on_missing_columns=True on_problems=Report_Warning =
+    @format (make_format_chooser include_number=False)
+    parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> DB_Table
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format:(Text|Data_Formatter)='' error_on_missing_columns=True on_problems=Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
         selected.fold self table-> column_to_parse->
             new_column = column_to_parse.parse type format on_problems
@@ -2100,8 +2100,9 @@ type DB_Table
              table.format
     @columns Widget_Helpers.make_column_name_vector_selector
     @locale Locale.default_widget
-    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | DB_Column | Nothing -> Locale -> Boolean -> Problem_Behavior -> DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument
-    format self columns format:(Text | Date_Time_Formatter | DB_Column | Nothing)=Nothing locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
+    @format (make_format_chooser include_number=False)
+    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | DB_Column -> Locale -> Boolean -> Problem_Behavior -> DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument
+    format self columns format:(Text | Date_Time_Formatter | DB_Column)="" locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
         _ = [columns, format, locale, error_on_missing_columns, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "DB_Table.format is not implemented yet for the Database backends.")
 
