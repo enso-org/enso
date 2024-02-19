@@ -11,9 +11,9 @@ import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type ImportsForEntry } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
-  type SuggestionId,
   type SuggestionEntry,
   type SuggestionEntryArgument,
+  type SuggestionId,
 } from '@/stores/suggestionDatabase/entry.ts'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
