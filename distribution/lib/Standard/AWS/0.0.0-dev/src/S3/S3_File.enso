@@ -36,25 +36,25 @@ type S3_File
         S3_File.Value parts.first parts.second credentials
 
     ## PRIVATE
-    Value path:S3_Path credentials:(AWS_Credential | Nothing)
+    Value s3_path:S3_Path credentials:(AWS_Credential | Nothing)
 
     ## GROUP Standard.Base.Metadata
        Gets the URI of this file
     uri : Text
-    uri self = self.path.to_text
+    uri self = self.s3_path.to_text
 
     ## GROUP Standard.Base.Metadata
        Checks if the folder or file exists
     exists : Boolean
-    exists self = if self.path.bucket == "" then True else
-        if self.path.is_root then translate_file_errors self <| S3.head self.path.bucket "" self.credentials . is_error . not else
-            pair = translate_file_errors self <| S3.read_bucket self.path.bucket self.path.key self.credentials max_count=1
-            pair.second.contains self.path.key
+    exists self = if self.s3_path.bucket == "" then True else
+        if self.s3_path.is_root then translate_file_errors self <| S3.head self.s3_path.bucket "" self.credentials . is_error . not else
+            pair = translate_file_errors self <| S3.read_bucket self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter max_count=1
+            pair.second.contains self.s3_path.key
 
     ## GROUP Standard.Base.Metadata
        Checks if this is a folder.
     is_directory : Boolean
-    is_directory self = self.path.is_directory
+    is_directory self = self.s3_path.is_directory
 
     ## GROUP Standard.Base.Metadata
        Checks if this is a regular file.
@@ -66,7 +66,7 @@ type S3_File
     size : Integer
     size self =
         if self.is_directory then Error.throw (S3_Error.Error "size can only be called on files." self.uri) else
-            content_length = translate_file_errors self <| S3.raw_head self.path.bucket self.path.key self.credentials . contentLength
+            content_length = translate_file_errors self <| S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials . contentLength
             if content_length.is_nothing then Error.throw (S3_Error.Error "ContentLength header is missing." self.uri) else content_length
 
     ## PRIVATE
@@ -98,7 +98,7 @@ type S3_File
                             result = tmp_file.with_output_stream [File_Access.Write] action
                             # Only proceed if the write succeeded
                             result.if_not_error <|
-                                (translate_file_errors self <| S3.upload_file tmp_file self.path.bucket self.path.key self.credentials) . if_not_error <|
+                                (translate_file_errors self <| S3.upload_file tmp_file self.s3_path.bucket self.s3_path.key self.credentials) . if_not_error <|
                                     result
 
 
@@ -118,7 +118,7 @@ type S3_File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! S3_Error | Illegal_Argument
     with_input_stream self (open_options : Vector) action = if self.is_directory then Error.throw (Illegal_Argument.Error "S3 folders cannot be opened as a stream." self.uri) else
         if (open_options != [File_Access.Read]) then Error.throw (S3_Error.Error "S3 files can only be opened for reading." self.uri) else
-            response_body = translate_file_errors self <| S3.get_object self.path.bucket self.path.key self.credentials
+            response_body = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
             response_body.with_stream action
 
     ## ALIAS load, open
@@ -142,10 +142,10 @@ type S3_File
         _ = on_problems
         case format of
             Auto_Detect -> if self.is_directory then format.read self on_problems else
-                response = translate_file_errors self <| S3.get_object self.path.bucket self.path.key self.credentials
+                response = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
                 response.decode Auto_Detect
             _ ->
-                metadata = File_Format_Metadata.Value path=self.path name=self.name
+                metadata = File_Format_Metadata.Value path=self.s3_path name=self.name
                 self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
@@ -181,7 +181,7 @@ type S3_File
     delete_if_exists : Nothing
     delete_if_exists self = if self.is_directory then Error.throw (S3_Error.Error "Deleting S3 folders is currently not implemented." self.uri) else
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Deleting an S3_File is forbidden as the Output context is disabled.") else
-            translate_file_errors self <| S3.delete_object self.path.bucket self.path.key self.credentials . if_not_error Nothing
+            translate_file_errors self <| S3.delete_object self.s3_path.bucket self.s3_path.key self.credentials . if_not_error Nothing
 
     ## Copies the file to the specified destination.
 
@@ -197,7 +197,7 @@ type S3_File
                     # Special shortcut for more efficient handling of S3 file copying (no need to move the data to our machine)
                     s3_destination : S3_File ->
                         if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
-                            translate_file_errors self <| S3.copy_object self.path.bucket self.path.key s3_destination.bucket s3_destination.prefix self.credentials . if_not_error <| s3_destination
+                            translate_file_errors self <| S3.copy_object self.s3_path.bucket self.s3_path.key s3_destination.bucket s3_destination.prefix self.credentials . if_not_error <| s3_destination
                     _ -> generic_copy self destination.file replace_existing
 
     ## Moves the file to the specified destination.
@@ -227,7 +227,7 @@ type S3_File
        - subpath: The path to join to the path of `self`.
     / : Text -> S3_File
     / self subpath = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else
-        S3_File.Value (self.path.resolve subpath) self.credentials
+        S3_File.Value (self.s3_path.resolve subpath) self.credentials
 
     ## GROUP Standard.Base.Calculations
        Join two or more path segments together, normalizing the `..` and `.` subpaths.
@@ -243,24 +243,24 @@ type S3_File
        Resolves the parent of this file.
     parent : S3_File | Nothing
     parent self =
-        parent_path = self.path.parent
+        parent_path = self.s3_path.parent
         parent_path.if_not_nothing <|
             S3_File.Value parent_path self.credentials
 
     ## GROUP Standard.Base.Metadata
        Checks if `self` is a descendant of `other`.
     is_descendant_of : S3_File -> Boolean
-    is_descendant_of self other = self.path.is_descendant_of other.path
+    is_descendant_of self other = self.s3_path.is_descendant_of other.path
 
     ## GROUP Standard.Base.Metadata
        Returns the path of this file.
     path : Text
-    path self = self.uri
+    path self = self.s3_path.to_text
 
     ## GROUP Standard.Base.Metadata
        Returns the name of this file.
     name : Text
-    name self = self.path.name
+    name self = self.s3_path.name
 
     ## GROUP Standard.Base.Metadata
        Returns the extension of the file.
@@ -279,7 +279,7 @@ type S3_File
     last_modified_time : Date_Time ! File_Error
     last_modified_time self =
         if self.is_directory then Error.throw (S3_Error.Error "`last_modified_time` can only be called on files." self.uri) else
-            instant = translate_file_errors self <| S3.raw_head self.path.bucket self.path.key self.credentials . lastModified
+            instant = translate_file_errors self <| S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials . lastModified
             if instant.is_nothing then Error.throw (S3_Error.Error "Missing information for: lastModified" self.uri) else
                 instant.at_zone Time_Zone.system
 
@@ -305,10 +305,10 @@ type S3_File
         check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else action
 
         check_directory <| check_recursion <| check_name_filter <|
-            if self.path.bucket == "" then translate_file_errors self <| S3.list_buckets self.credentials . map bucket-> S3_File.Value bucket "" self.credentials else
-                pair = translate_file_errors self <| S3.read_bucket self.path.bucket self.path.key self.credentials
-                sub_folders = pair.first . map key-> S3_File.Value self.path.bucket key self.credentials
-                files = pair.second . map key-> S3_File.Value self.path.bucket key self.credentials
+            if self.s3_path.bucket == "" then translate_file_errors self <| S3.list_buckets self.credentials . map bucket-> S3_File.Value bucket "" self.credentials else
+                pair = translate_file_errors self <| S3.read_bucket self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
+                sub_folders = pair.first . map key-> S3_File.Value self.s3_path.bucket key self.credentials
+                files = pair.second . map key-> S3_File.Value self.s3_path.bucket key self.credentials
                 sub_folders + files
 
 ## PRIVATE
