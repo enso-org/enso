@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Set
 
@@ -7,8 +6,9 @@ import jinja2
 import numpy as np
 import pandas as pd
 
-from bench_tool import JobReport, TemplateBenchData, BenchDatapoint, GH_DATE_FORMAT, ENSO_COMMIT_BASE_URL, JinjaData, \
+from bench_tool import JobReport, TemplateBenchData, BenchDatapoint, ENSO_COMMIT_BASE_URL, JinjaData, \
     JINJA_TEMPLATE, TEMPLATES_DIR
+from bench_tool.utils import parse_commit_timestamp
 
 _logger = logging.getLogger(__name__)
 
@@ -60,10 +60,7 @@ def create_template_data(
                 if bench_label in job_report.label_score_dict:
                     score = job_report.label_score_dict[bench_label]
                     commit = job_report.bench_run.head_commit
-                    timestamp = datetime.strptime(
-                        commit.timestamp,
-                        GH_DATE_FORMAT
-                    )
+                    timestamp = parse_commit_timestamp(commit)
                     commit_msg_header = \
                         commit.message.splitlines()[0].replace('"', "'")
                     series = pd.Series([

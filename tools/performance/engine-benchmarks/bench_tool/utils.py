@@ -1,8 +1,9 @@
 import shutil
 import tempfile
+from datetime import datetime
 from typing import List, Set
 
-from bench_tool import JobReport
+from bench_tool import JobReport, GH_DATE_FORMAT, Commit
 
 
 class WithTempDir:
@@ -29,3 +30,8 @@ def gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
         for labels in job_report.label_score_dict.keys():
             all_labels.add(labels)
     return all_labels
+
+
+def parse_commit_timestamp(commit: Commit) -> datetime:
+    """ Parses the timestamp from the commit based on the GH's formatting. """
+    return datetime.strptime(commit.timestamp, GH_DATE_FORMAT)
