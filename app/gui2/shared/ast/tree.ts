@@ -23,7 +23,7 @@ import {
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
 import type { Result } from '../util/data/result'
 import { Err, Ok } from '../util/data/result'
-import type { TextEdit } from '../util/data/text'
+import type { SourceRangeEdit } from '../util/data/text'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'
 import { visMetadataEquals } from '../yjsModel'
 import * as RawAst from './generated/ast'
@@ -303,7 +303,7 @@ export abstract class MutableAst extends Ast {
   }
 
   /** Update the AST according to changes to its corresponding source code. */
-  applyTextEdits(textEdits: TextEdit[], metadataSource?: Module) {
+  applyTextEdits(textEdits: SourceRangeEdit[], metadataSource?: Module) {
     applyTextEditsToAst(this, textEdits, metadataSource ?? this.module)
   }
 
@@ -2061,7 +2061,7 @@ interface LegalFieldContent {
 }
 
 /** Modifies the input `map`. Returns the same object with an extended type. */
-export function setAll<Fields1, Fields2 extends object>(
+export function setAll<Fields1, Fields2 extends Record<string, any>>(
   map: FixedMap<Fields1>,
   fields: Fields2,
 ): FixedMap<Fields1 & Fields2> {

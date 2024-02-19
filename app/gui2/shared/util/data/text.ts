@@ -1,11 +1,11 @@
 import diff from 'fast-diff'
 import { rangeEncloses, rangeLength, type SourceRange } from '../../yjsModel'
-import { assertEqual } from '../assert'
+import { Resumable } from './iterable'
 
-export type TextEdit = { range: SourceRange; insert: string }
+export type SourceRangeEdit = { range: SourceRange; insert: string }
 
 /** Given text and a set of `TextEdit`s, return the result of applying the edits to the text. */
-export function applyTextEdits(oldText: string, textEdits: TextEdit[]) {
+export function applyTextEdits(oldText: string, textEdits: SourceRangeEdit[]) {
   textEdits.sort((a, b) => a.range[0] - b.range[0])
   let start = 0
   let newText = ''
@@ -18,10 +18,10 @@ export function applyTextEdits(oldText: string, textEdits: TextEdit[]) {
   return newText
 }
 
-/** Given text before and after a change, return one possible set of `TextEdit`s describing the change. */
-export function textChangeToEdits(before: string, after: string): TextEdit[] {
-  const textEdits: TextEdit[] = []
-  let nextEdit: undefined | TextEdit
+/** Given text before and after a change, return one possible set of {@link SourceRangeEdit}s describing the change. */
+export function textChangeToEdits(before: string, after: string): SourceRangeEdit[] {
+  const textEdits: SourceRangeEdit[] = []
+  let nextEdit: undefined | SourceRangeEdit
   let pos = 0
   // Sequences fast-diff emits:
   // EQUAL, INSERT
@@ -52,12 +52,11 @@ export function textChangeToEdits(before: string, after: string): TextEdit[] {
     }
   }
   if (nextEdit) textEdits.push(nextEdit)
-  assertEqual(applyTextEdits(before, textEdits), after)
   return textEdits
 }
 
 /** Translate a `TextEdit` by the specified offset. */
-export function offsetEdit(textEdit: TextEdit, offset: number): TextEdit {
+export function offsetEdit(textEdit: SourceRangeEdit, offset: number): SourceRangeEdit {
   return { ...textEdit, range: [textEdit.range[0] + offset, textEdit.range[1] + offset] }
 }
 
@@ -66,47 +65,41 @@ export function offsetEdit(textEdit: TextEdit, offset: number): TextEdit {
  *  @param spansBefore - A collection of spans in the text before the edit.
  *  @returns - A sequence of: Each span from `spansBefore` paired with the smallest span of the text after the edit that
  *  contains all text that was in the original span and has not been deleted. */
-export function applyTextEditsToSpans(textEdits: TextEdit[], spansBefore: SourceRange[]) {
-  // Gather the start and end locations of all spans.
-  const starts = new Array<number>()
-  const ends = new Array<number>()
-  for (const [start, end] of spansBefore) {
-    starts.push(start)
-    ends.push(end)
-  }
+export function applyTextEditsToSpans(textEdits: SourceRangeEdit[], spansBefore: SourceRange[]) {
+  // Gather start and end points.
   const numerically = (a: number, b: number) => a - b
-  starts.sort(numerically)
-  ends.sort(numerically)
+  const starts = new Resumable(spansBefore.map(([start, _end]) => start).sort(numerically))
+  const ends = new Resumable(spansBefore.map(([_start, end]) => end).sort(numerically))
 
   // Construct translations from old locations to new locations for all start and end points.
   const startMap = new Map<number, number>()
   const endMap = new Map<number, number>()
   let offset = 0
   for (const { range, insert } of textEdits) {
-    while (starts[0] !== undefined) {
-      if (starts[0] < range[0]) {
-        startMap.set(starts[0], starts[0] + offset)
-      } else if (starts[0] <= range[1]) {
-        startMap.set(starts[0], range[0] + offset + insert.length)
-      } else {
-        break
+    starts.advanceWhile((start) => {
+      if (start < range[0]) {
+        startMap.set(start, start + offset)
+        return true
+      } else if (start <= range[1]) {
+        startMap.set(start, range[0] + offset + insert.length)
+        return true
       }
-      starts.shift()
-    }
-    while (ends[0] !== undefined) {
-      if (ends[0] <= range[0]) {
-        endMap.set(ends[0], ends[0] + offset)
-      } else if (ends[0] <= range[1]) {
-        endMap.set(ends[0], range[0] + offset)
-      } else {
-        break
+      return false
+    })
+    ends.advanceWhile((end) => {
+      if (end <= range[0]) {
+        endMap.set(end, end + offset)
+        return true
+      } else if (end <= range[1]) {
+        endMap.set(end, range[0] + offset)
+        return true
       }
-      ends.shift()
-    }
+      return false
+    })
     offset += insert.length - rangeLength(range)
   }
-  for (const start of starts) startMap.set(start, start + offset)
-  for (const end of ends) endMap.set(end, end + offset)
+  starts.forEach((start) => startMap.set(start, start + offset))
+  ends.forEach((end) => endMap.set(end, end + offset))
 
   // Apply the translations to the map.
   const spansBeforeAndAfter = new Array<readonly [SourceRange, SourceRange]>()

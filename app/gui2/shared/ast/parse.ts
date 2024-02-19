@@ -12,7 +12,7 @@ import {
 } from '.'
 import { assert, assertDefined, assertEqual } from '../util/assert'
 import { tryGetSoleValue, zip } from '../util/data/iterable'
-import type { SpanTree, TextEdit } from '../util/data/text'
+import type { SourceRangeEdit, SpanTree } from '../util/data/text'
 import {
   applyTextEdits,
   applyTextEditsToSpans,
@@ -724,7 +724,7 @@ function calculateCorrespondence(
   astSpans: NodeSpanMap,
   parsedRoot: Ast,
   parsedSpans: NodeSpanMap,
-  textEdits: TextEdit[],
+  textEdits: SourceRangeEdit[],
   codeAfter: string,
 ): Map<AstId, Ast> {
   const newSpans = new Map<AstId, SourceRange>()
@@ -799,7 +799,7 @@ function calculateCorrespondence(
 /** Update `ast` according to changes to its corresponding source code. */
 export function applyTextEditsToAst(
   ast: MutableAst,
-  textEdits: TextEdit[],
+  textEdits: SourceRangeEdit[],
   metadataSource: Module,
 ) {
   const printed = print(ast)

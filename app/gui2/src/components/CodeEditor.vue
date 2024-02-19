@@ -12,7 +12,7 @@ import { qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { useLocalStorage } from '@vueuse/core'
 import { createDebouncer } from 'lib0/eventloop'
 import { MutableModule } from 'shared/ast'
-import { textChangeToEdits, type TextEdit } from 'shared/util/data/text'
+import { textChangeToEdits, type SourceRangeEdit } from 'shared/util/data/text'
 import { rangeEncloses, type Origin } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
@@ -179,13 +179,13 @@ watchEffect(() => {
 })
 
 function changeSetToTextEdits(changes: ChangeSet) {
-  const textEdits = new Array<TextEdit>()
+  const textEdits = new Array<SourceRangeEdit>()
   changes.iterChanges((from, to, _fromB, _toB, insert) =>
     textEdits.push({ range: [from, to], insert: insert.toString() }),
   )
   return textEdits
 }
-function textEditToChangeSpec({ range: [from, to], insert }: TextEdit) {
+function textEditToChangeSpec({ range: [from, to], insert }: SourceRangeEdit) {
   return { from, to, insert }
 }
 
@@ -250,7 +250,7 @@ watch(
 )
 onUnmounted(() => graphStore.moduleSource.unobserve(observeSourceChange))
 
-function observeSourceChange(textEdits: TextEdit[], origin: Origin | undefined) {
+function observeSourceChange(textEdits: SourceRangeEdit[], origin: Origin | undefined) {
   // If we received an update from outside the Code Editor while the editor contained uncommitted changes, we cannot
   // proceed incrementally; we wait for the changes to be merged as Y.Js AST updates, and then set the view to the
   // resulting code.

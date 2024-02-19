@@ -69,3 +69,30 @@ export function tryGetSoleValue<T>(iter: Iterable<T>): T | undefined {
   if (!excessResult.done) return
   return result.value
 }
+
+/** Utility to simplify consuming an iterator a part at a time. */
+export class Resumable<T> {
+  private readonly iterator: Iterator<T>
+  private current: IteratorResult<T>
+  constructor(iterable: Iterable<T>) {
+    this.iterator = iterable[Symbol.iterator]()
+    this.current = this.iterator.next()
+  }
+
+  /** The given function peeks at the current value. If the function returns `true`, the current value will be advanced
+   *  and the function called again; if it returns `false`, the peeked value remains current and `advanceWhile` returns.
+   */
+  advanceWhile(f: (value: T) => boolean) {
+    while (!this.current.done && f(this.current.value)) {
+      this.current = this.iterator.next()
+    }
+  }
+
+  /** Apply the given function to all values remaining in the iterator. */
+  forEach(f: (value: T) => void) {
+    while (!this.current.done) {
+      f(this.current.value)
+      this.current = this.iterator.next()
+    }
+  }
+}

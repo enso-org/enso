@@ -1,6 +1,6 @@
 import { print, type AstId, type Module, type ModuleUpdate } from '.'
 import { assertDefined } from '../util/assert'
-import type { TextEdit } from '../util/data/text'
+import type { SourceRangeEdit } from '../util/data/text'
 import { offsetEdit, textChangeToEdits } from '../util/data/text'
 import type { Origin, SourceRange } from '../yjsModel'
 import { rangeEquals, sourceRangeFromKey } from '../yjsModel'
@@ -37,7 +37,7 @@ export class SourceDocument {
     for (const id of update.nodesDeleted) this.spans.delete(id)
     const root = module.root()
     if (!root) return
-    const subtreeTextEdits = new Array<TextEdit>()
+    const subtreeTextEdits = new Array<SourceRangeEdit>()
     const printed = print(root)
     for (const [key, nodes] of printed.info.nodes) {
       const range = sourceRangeFromKey(key)
@@ -82,9 +82,12 @@ export class SourceDocument {
     if (index !== undefined) this.observers.splice(index, 1)
   }
 
-  private notifyObservers(textEdits: TextEdit[], origin: Origin | undefined) {
+  private notifyObservers(textEdits: SourceRangeEdit[], origin: Origin | undefined) {
     for (const o of this.observers) o(textEdits, origin)
   }
 }
 
-export type SourceDocumentObserver = (textEdits: TextEdit[], origin: Origin | undefined) => void
+export type SourceDocumentObserver = (
+  textEdits: SourceRangeEdit[],
+  origin: Origin | undefined,
+) => void

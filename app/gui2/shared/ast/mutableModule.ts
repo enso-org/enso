@@ -11,7 +11,7 @@ import {
   type SyncTokenId,
 } from '.'
 import { assert, assertDefined } from '../util/assert'
-import type { TextEdit } from '../util/data/text'
+import type { SourceRangeEdit } from '../util/data/text'
 import { defaultLocalOrigin, tryAsOrigin, type ExternalId, type Origin } from '../yjsModel'
 import type { AstFields, FixedMap, Mutable } from './tree'
 import {
@@ -122,7 +122,7 @@ export class MutableModule implements Module {
   }
 
   /** Update the module according to changes to its corresponding source code. */
-  applyTextEdits(textEdits: TextEdit[], metadataSource?: Module) {
+  applyTextEdits(textEdits: SourceRangeEdit[], metadataSource?: Module) {
     const root = this.root()
     assertDefined(root)
     root.applyTextEdits(textEdits, metadataSource)
