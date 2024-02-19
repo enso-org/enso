@@ -108,6 +108,7 @@ jobs:
       # We want to upload the directory as an artifact, even if the build fails.
       - name: Upload logs
         uses: actions/upload-artifact@v2
+        if: always()
         with:
           name: logs
           path: ~/.npm/_logs
