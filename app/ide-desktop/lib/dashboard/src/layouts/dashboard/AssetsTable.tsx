@@ -23,6 +23,7 @@ import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DuplicateAssetsModal from '#/layouts/dashboard/DuplicateAssetsModal'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import Button from '#/components/Button'
 import type * as assetRow from '#/components/dashboard/AssetRow'
@@ -870,33 +871,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     setSelectedKeys(new Set())
   }, [/* should never change */ setSelectedKeys])
 
-  React.useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const [firstSelectedKey] = selectedKeysRef.current
-      if (selectedKeysRef.current.size === 1 && firstSelectedKey != null) {
-        if (event.key === 'ArrowUp') {
-          event.preventDefault()
-          const oldIndex = displayItems.findIndex(item => item.key === firstSelectedKey)
-          const newItem = displayItems[oldIndex - 1]
-          if (newItem != null) {
-            setSelectedKeys(new Set([newItem.key]))
-          }
-        } else if (event.key === 'ArrowDown') {
-          event.preventDefault()
-          const oldIndex = displayItems.findIndex(item => item.key === firstSelectedKey)
-          const newItem = displayItems[oldIndex + 1]
-          if (newItem != null) {
-            setSelectedKeys(new Set([newItem.key]))
-          }
-        }
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [displayItems, /* should never change */ setSelectedKeys])
-
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
       // This is required, otherwise we are using an outdated
@@ -1230,6 +1204,108 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
     [category, backend]
   )
+
+  React.useEffect(() => {
+    // This is not a React component, even though it contains JSX.
+    // eslint-disable-next-line no-restricted-syntax
+    const onKeyDown = (event: KeyboardEvent) => {
+      const [firstSelectedKey] = selectedKeysRef.current
+      if (selectedKeysRef.current.size === 1 && firstSelectedKey != null) {
+        if (event.key === 'Enter') {
+          const item = displayItems.find(displayItem => displayItem.key === firstSelectedKey)
+          switch (item?.item.type) {
+            case backendModule.AssetType.directory: {
+              event.preventDefault()
+              event.stopPropagation()
+              doToggleDirectoryExpansion(item.item.id, item.key)
+              break
+            }
+            case backendModule.AssetType.project: {
+              event.preventDefault()
+              event.stopPropagation()
+              dispatchAssetEvent({
+                type: AssetEventType.openProject,
+                id: item.item.id,
+                runInBackground: false,
+                shouldAutomaticallySwitchPage: true,
+              })
+              break
+            }
+            case backendModule.AssetType.dataLink: {
+              event.preventDefault()
+              event.stopPropagation()
+              // TODO:
+              break
+            }
+            case backendModule.AssetType.secret: {
+              event.preventDefault()
+              event.stopPropagation()
+              const id = item.item.id
+              setModal(
+                <UpsertSecretModal
+                  id={item.item.id}
+                  name={item.item.title}
+                  doCreate={async (_name, value) => {
+                    try {
+                      await backend.updateSecret(id, { value }, item.item.title)
+                    } catch (error) {
+                      toastAndLog(null, error)
+                    }
+                  }}
+                />
+              )
+              break
+            }
+            default: {
+              break
+            }
+          }
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault()
+          event.stopPropagation()
+          const oldIndex = displayItems.findIndex(item => item.key === firstSelectedKey)
+          const newItem = displayItems[oldIndex - 1]
+          if (newItem != null) {
+            setSelectedKeys(new Set([newItem.key]))
+          }
+        } else if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          event.stopPropagation()
+          const oldIndex = displayItems.findIndex(item => item.key === firstSelectedKey)
+          const newItem = displayItems[oldIndex + 1]
+          if (newItem != null) {
+            setSelectedKeys(new Set([newItem.key]))
+          }
+        } else if (event.key === 'ArrowLeft') {
+          const item = displayItems.find(displayItem => displayItem.key === firstSelectedKey)
+          if (item?.item.type === backendModule.AssetType.directory && item.children != null) {
+            event.preventDefault()
+            event.stopPropagation()
+            doToggleDirectoryExpansion(item.item.id, item.key, null, false)
+          }
+        } else if (event.key === 'ArrowRight') {
+          const item = displayItems.find(displayItem => displayItem.key === firstSelectedKey)
+          if (item?.item.type === backendModule.AssetType.directory && item.children == null) {
+            event.preventDefault()
+            event.stopPropagation()
+            doToggleDirectoryExpansion(item.item.id, item.key, null, true)
+          }
+        }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [
+    displayItems,
+    backend,
+    doToggleDirectoryExpansion,
+    /* should never change */ toastAndLog,
+    /* should never change */ setModal,
+    /* should never change */ setSelectedKeys,
+    /* should never change */ dispatchAssetEvent,
+  ])
 
   const getNewProjectName = React.useCallback(
     (templateName: string | null, parentKey: backendModule.DirectoryId | null) => {
