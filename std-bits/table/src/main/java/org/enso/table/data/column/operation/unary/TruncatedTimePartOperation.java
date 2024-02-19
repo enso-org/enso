@@ -15,10 +15,12 @@ public class TruncatedTimePartOperation extends DatePartOperation {
 
   public static final String NANOSECOND = "nanosecond";
   public static final UnaryOperation NANOSECOND_INSTANCE =
-      new TruncatedTimePartOperation(NANOSECOND, ChronoField.NANO_OF_SECOND, 1000);  private final int truncation;
+      new TruncatedTimePartOperation(NANOSECOND, ChronoField.NANO_OF_SECOND, 1000);
+
+  private final int truncation;
 
   private TruncatedTimePartOperation(String name, TemporalField field, int truncation) {
-    super(name, field, false);
+    super(name, field, true);
     this.truncation = truncation;
   }
 
