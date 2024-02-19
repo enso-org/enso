@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from . import JobReport, JobRun, Commit, Author
 from .remote_cache import ReadonlyRemoteCache, SyncRemoteCache
@@ -55,14 +56,31 @@ class TestReadonlyRemoteCache(unittest.IsolatedAsyncioTestCase):
         self.assertEquals(bench_id, job_report.bench_run.id)
 
 
-# WARNING: This case can take very long
 class TestSyncRemoteCache(unittest.IsolatedAsyncioTestCase):
-    async def test_init_sync_remote_cache(self):
+    LOCAL_REPO_ROOT = Path("/home/pavel/dev/engine-benchmark-results")
+
+    async def test_init_sync_remote_cache_from_local_repo(self):
+        if not self.LOCAL_REPO_ROOT.exists():
+            self.skipTest(f"Local repo {self.LOCAL_REPO_ROOT} does not exist")
+        remote_cache = SyncRemoteCache(self.LOCAL_REPO_ROOT)
+        await remote_cache.initialize()
+        root_dir = remote_cache.repo_root_dir()
+        self.assertTrue(root_dir.exists())
+        self.assertTrue(root_dir.is_dir())
+        cache_dir = remote_cache.cache_dir()
+        self.assertTrue(cache_dir.exists())
+        self.assertTrue(cache_dir.is_dir())
+        self.assertTrue(remote_cache.engine_index_html().exists())
+        self.assertTrue(remote_cache.stdlib_index_html().exists())
+
+    async def test_clone_sync_remote_cache(self):
         remote_cache = SyncRemoteCache()
         await remote_cache.initialize()
         root_dir = remote_cache.repo_root_dir()
         self.assertTrue(root_dir.exists())
         self.assertTrue(root_dir.is_dir())
-        cache_dir = root_dir.joinpath("cache")
+        cache_dir = remote_cache.cache_dir()
         self.assertTrue(cache_dir.exists())
         self.assertTrue(cache_dir.is_dir())
+        self.assertTrue(remote_cache.engine_index_html().exists())
+        self.assertTrue(remote_cache.stdlib_index_html().exists())
