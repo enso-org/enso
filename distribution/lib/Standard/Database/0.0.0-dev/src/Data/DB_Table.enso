@@ -28,7 +28,7 @@ import Standard.Table.Data.Join_Kind_Cross.Join_Kind_Cross
 import Standard.Table.Data.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
-import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Extensions.Table_Ref.Table_Ref
 import Standard.Table.Internal.Add_Row_Number
@@ -2396,7 +2396,7 @@ type DB_Table
          If `Nothing`, all available rows are returned.
        - warn_if_more_rows: if set to `True`, a warning is attached to the
          result if the number of rows returned by the query exceeds `max_rows`.
-    read : (Integer | Nothing) -> Boolean -> Materialized_Table
+    read : (Integer | Nothing) -> Boolean -> Table
     read self (max_rows : Integer | Nothing = 1000) (warn_if_more_rows:Boolean = True) =
         preprocessed = if max_rows.is_nothing then self else
             if warn_if_more_rows then self.limit max_rows+1 else self.limit max_rows
@@ -2446,7 +2446,7 @@ type DB_Table
 
        The table lists all columns, counts of non-null items and value types of
        each column.
-    info : Materialized_Table
+    info : Table
     info self =
         cols = self.internal_columns
         count_query =
@@ -2465,7 +2465,7 @@ type DB_Table
         type_mapping = self.connection.dialect.get_type_mapping
         types = cols.map col->
             type_mapping.sql_type_to_value_type col.sql_type_reference.get
-        Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]
+        Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]
 
     ## PRIVATE
 
@@ -2769,7 +2769,7 @@ make_table connection table_name columns ctx on_problems =
      line will be included that will say how many hidden rows there are.
    - format_term: A boolean flag, specifying whether to use ANSI escape codes
      for rich formatting in the terminal.
-display_dataframe : Materialized_Table -> Integer -> Integer -> Boolean -> Text
+display_dataframe : Table -> Integer -> Integer -> Boolean -> Text
 display_dataframe df indices_count all_rows_count format_terminal =
     cols = Vector.from_polyglot_array df.java_table.getColumns
     col_names = cols.map .getName . map normalize_string_for_display
@@ -2793,12 +2793,12 @@ default_join_condition table join_kind = case join_kind of
     _ -> [Join_Condition.Equals table.column_names.first]
 
 ## PRIVATE
-Materialized_Table.from (that:DB_Table) =
+Table.from (that:DB_Table) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
 
 ## PRIVATE
-DB_Table.from (that:Materialized_Table) =
+DB_Table.from (that:Table) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Either materialize the other table using `.read` or upload the table into the database using `.select_into_database_table`.")
 
