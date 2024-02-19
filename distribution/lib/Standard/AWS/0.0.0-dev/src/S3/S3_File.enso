@@ -35,7 +35,7 @@ type S3_File
         S3_File.Value (S3_Path.parse uri) credentials
 
     ## PRIVATE
-    Value s3_path:S3_Path credentials:(AWS_Credential | Nothing)
+    Value (s3_path : S3_Path) (credentials : AWS_Credential | Nothing)
 
     ## GROUP Standard.Base.Metadata
        Gets the URI of this file
