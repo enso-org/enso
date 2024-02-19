@@ -90,18 +90,18 @@ jobs:
           submodules: recursive
       # "npm run clean-old-generated-directory && npm run build-rust-ffi && npm run generate-ast-schema && npm run generate-ast-types && npm run generate-metadata",
       - run: npm run clean-old-generated-directory
-        working-directory: app/gui
+        working-directory: app/gui2
       - run: npm run build-rust-ffi
-        working-directory: app/gui
+        working-directory: app/gui2
       - run: npm run generate-ast-schema
-        working-directory: app/gui
+        working-directory: app/gui2
       - run: npm run generate-ast-types
-        working-directory: app/gui
+        working-directory: app/gui2
       - run: npm run generate-metadata
-        working-directory: app/gui
+        working-directory: app/gui2
         
       - name: npm install
         run: npm -ddd install
-        working-directory: app/gui
+        working-directory: app/gui2
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
