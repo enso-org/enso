@@ -483,22 +483,21 @@ object ProgramExecutionSupport {
           contextId,
           value.getExpressionId
         )
-      visualizations.collect {
-        case visualization: Visualization.AttachedVisualization =>
-          executeAndSendVisualizationUpdate(
-            contextId,
-            syncState,
-            visualization,
-            value.getExpressionId,
-            value.getValue
-          )
+      visualizations.foreach { visualization =>
+        executeAndSendVisualizationUpdate(
+          contextId,
+          syncState,
+          visualization,
+          value.getExpressionId,
+          value.getValue
+        )
       }
     }
   }
 
   private def executeVisualization(
     contextId: ContextId,
-    visualization: Visualization.AttachedVisualization,
+    visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Either[Throwable, AnyRef] =
@@ -614,25 +613,23 @@ object ProgramExecutionSupport {
     visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
-  )(implicit ctx: RuntimeContext): Unit =
-    visualization match {
-      case visualization: Visualization.AttachedVisualization =>
-        val visualizationResult = executeVisualization(
-          contextId,
-          visualization,
-          expressionId,
-          expressionValue
-        )
-        sendVisualizationUpdate(
-          visualizationResult,
-          contextId,
-          syncState,
-          visualization.id,
-          expressionId,
-          expressionValue
-        )
-      case _: Visualization.OneshotExpression =>
-    }
+  )(implicit ctx: RuntimeContext): Unit = {
+    val visualizationResult =
+      executeVisualization(
+        contextId,
+        visualization,
+        expressionId,
+        expressionValue
+      )
+    sendVisualizationUpdate(
+      visualizationResult,
+      contextId,
+      syncState,
+      visualization.id,
+      expressionId,
+      expressionValue
+    )
+  }
 
   /** Convert the result of Enso visualization function to a byte array.
     *

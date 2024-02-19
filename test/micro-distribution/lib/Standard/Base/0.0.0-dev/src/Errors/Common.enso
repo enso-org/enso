@@ -73,6 +73,6 @@ type Arity_Error
 
 @Builtin_Type
 type Forbidden_Operation
-    Error operation
+    Error message
 
-    to_display_text self = "Forbidden operation: "+self.operation+"."
+    to_display_text self = "Forbidden operation: "+self.message
