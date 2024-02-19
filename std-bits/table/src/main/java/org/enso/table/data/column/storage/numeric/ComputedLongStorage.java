@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
@@ -63,19 +62,19 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public Storage<Long> mask(BitSet mask, int cardinality) {
+  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
     BitSet newMissing = new BitSet();
-    long[] newData = new long[cardinality];
+    long[] newData = new long[newLength];
     int resIx = 0;
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         newData[resIx++] = getItem(i);
       }
 
       context.safepoint();
     }
-    return new LongStorage(newData, cardinality, newMissing, getType());
+    return new LongStorage(newData, newLength, newMissing, getType());
   }
 
   @Override
@@ -85,7 +84,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Index.NOT_FOUND) {
+      if (position == Storage.NOT_FOUND_INDEX) {
         newMissing.set(i);
       } else {
         newData[i] = getItem(position);
@@ -94,23 +93,6 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
       context.safepoint();
     }
     return new LongStorage(newData, newData.length, newMissing, getType());
-  }
-
-  @Override
-  public Storage<Long> countMask(int[] counts, int total) {
-    long[] newData = new long[total];
-    BitSet newMissing = new BitSet();
-    int pos = 0;
-    Context context = Context.getCurrent();
-    for (int i = 0; i < counts.length; i++) {
-      long item = getItem(i);
-      for (int j = 0; j < counts[i]; j++) {
-        newData[pos++] = item;
-      }
-
-      context.safepoint();
-    }
-    return new LongStorage(newData, total, newMissing, getType());
   }
 
   @Override

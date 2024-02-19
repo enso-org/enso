@@ -10,6 +10,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
+from Standard.Base.Metadata.Widget import Numeric_Input
 from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_widget
 
 import project.Data.Constants.Previous_Value
@@ -144,7 +145,6 @@ type Column
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
         java_col = self.java_column
-        index = java_col.getIndex
         col_name = normalize_string_for_display java_col.getName
         storage = java_col.getStorage
         num_rows = java_col.getSize
@@ -152,8 +152,8 @@ type Column
         items = Vector.new display_rows num->
             row = if storage.isNa num then "Nothing" else
                 get_item_string storage num
-            [index.ilocString num, row]
-        table = print_table [index.getName, col_name] items 1 format_terminal
+            [num.to_text, row]
+        table = print_table ["", col_name] items 1 format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -2093,6 +2093,7 @@ type Column
              import Standard.Examples
 
              example_at = Examples.integer_column.at 0
+    @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
     at self (index : Integer) =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
@@ -2111,6 +2112,7 @@ type Column
              import Standard.Examples
 
              example_at = Examples.integer_column.get 0 -1
+    @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
     get : Integer -> Any -> Any | Nothing
     get self (index : Integer) (~default=Nothing) =
         valid_index = (index >= 0) && (index < self.length)
