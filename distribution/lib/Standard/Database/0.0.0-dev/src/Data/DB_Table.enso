@@ -74,7 +74,7 @@ polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure backed by a database.
-type Table
+type DB_Table
     ## PRIVATE
 
        Represents a column-oriented table data structure backed by a database.
@@ -219,7 +219,7 @@ type Table
 
              table.select_columns [-1, 0, 1] reorder=True
     @columns Widget_Helpers.make_column_name_vector_selector
-    select_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
+    select_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Boolean -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (reorder:Boolean=False) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
         new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
         self.updated_columns new_columns
@@ -273,7 +273,7 @@ type Table
 
              table.remove_columns [-1, 0, 1]
     @columns Widget_Helpers.make_column_name_vector_selector
-    remove_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
+    remove_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns
     remove_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
         new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
@@ -299,7 +299,7 @@ type Table
          Select completely blank columns from a table.
 
              table.select_blank_columns
-    select_blank_columns : Blank_Selector -> Boolean -> Table
+    select_blank_columns : Blank_Selector -> Boolean -> DB_Table
     select_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) treat_nans_as_blank=False =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank
         self.updated_columns new_columns
@@ -325,7 +325,7 @@ type Table
          Remove completely blank columns from a table.
 
              table.remove_blank_columns
-    remove_blank_columns : Blank_Selector -> Boolean -> Table
+    remove_blank_columns : Blank_Selector -> Boolean -> DB_Table
     remove_blank_columns self (when:Blank_Selector = Blank_Selector.All_Cells) treat_nans_as_blank=False =
         new_columns = self.columns_helper.select_blank_columns_helper when treat_nans_as_blank invert_selection=True
         self.updated_columns new_columns
@@ -380,7 +380,7 @@ type Table
 
              table.reorder_columns [0] position=Position.After_Other_Columns
     @columns Widget_Helpers.make_column_name_vector_selector
-    reorder_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns
+    reorder_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns
     reorder_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (position:Position=Position.Before_Other_Columns) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
         new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
         self.updated_columns new_columns
@@ -409,7 +409,7 @@ type Table
          Sort columns in descending order.
 
              table.reorder_columns Sort_Direction.Descending
-    sort_columns : Sort_Direction -> Text_Ordering -> Table
+    sort_columns : Sort_Direction -> Text_Ordering -> DB_Table
     sort_columns self order=Sort_Direction.Ascending text_ordering=Text_Ordering.Default =
         new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns order text_ordering
         self.updated_columns new_columns
@@ -477,7 +477,7 @@ type Table
 
               table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
-    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
+    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
         new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
@@ -502,10 +502,10 @@ type Table
          Rename the column based on the first row
 
               table.use_first_row_as_names
-    use_first_row_as_names : Problem_Behavior -> Table
+    use_first_row_as_names : Problem_Behavior -> DB_Table
     use_first_row_as_names self (on_problems=Report_Warning) =
         _ = on_problems
-        Error.throw (Unsupported_Database_Operation.Error "Table.use_first_row_as_names is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.use_first_row_as_names is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## PRIVATE
 
@@ -574,7 +574,7 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     @filter Widget_Helpers.make_filter_condition_selector
-    filter : (DB_Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
+    filter : (DB_Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
        _ : DB_Column ->
            mask filter_column = case Helpers.check_integrity self filter_column of
@@ -630,7 +630,7 @@ type Table
          Select people celebrating a jubilee.
 
              people.filter_by_expression "[age] % 10 == 0"
-    filter_by_expression : Text -> Problem_Behavior -> Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    filter_by_expression : Text -> Problem_Behavior -> DB_Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
     filter_by_expression self expression on_problems=Report_Warning =
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
@@ -663,7 +663,7 @@ type Table
 
              table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
-    take : (Index_Sub_Range | Range | Integer) -> Table
+    take : (Index_Sub_Range | Range | Integer) -> DB_Table
     take self range=(First 1) =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Take self range
 
@@ -695,13 +695,13 @@ type Table
 
              table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     @range Index_Sub_Range.default_widget
-    drop : (Index_Sub_Range | Range | Integer) -> Table
+    drop : (Index_Sub_Range | Range | Integer) -> DB_Table
     drop self range=(First 1) =
         Take_Drop_Helpers.take_drop_helper Take_Drop.Drop self range
 
     ## PRIVATE
        Filter out all rows.
-    remove_all_rows : Table
+    remove_all_rows : DB_Table
     remove_all_rows self = self.filter_by_expression "0==1"
 
     ## ALIAS add index column, rank, record id
@@ -738,7 +738,7 @@ type Table
            problem is reported.
     @group_by Widget_Helpers.make_column_name_vector_selector
     @order_by Widget_Helpers.make_order_by_selector
-    add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+    add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> DB_Table
     add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
@@ -809,7 +809,7 @@ type Table
              t1 = table.order_by [Sort_Column.Name "A"] . limit 5
              t2 = t1.filter 'A' (Greater than=5)
              t2.read
-    limit : Integer -> Table
+    limit : Integer -> DB_Table
     limit self max_rows =
         new_ctx = self.context.set_limit max_rows
         self.updated_context new_ctx
@@ -858,7 +858,7 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @new_name Widget_Helpers.make_column_name_selector
-    set : DB_Column | Text | Array | Vector | Range | Date_Range | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set : DB_Column | Text | Array | Vector | Range | Date_Range | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column (new_name : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
@@ -875,7 +875,7 @@ type Table
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Array` for `set` in the database.")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Range` for `set` in the database.")
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Date_Range` for `set` in the database.")
-            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
+            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `DB_Table.set`.")
 
         ## If `new_name` was specified, use that. Otherwise, if `column` is a
            `DB_Column`, use its name. In these two cases, do not make it unique.
@@ -952,8 +952,8 @@ type Table
 
     ## PRIVATE
        Run a table transformer with a temporary column added.
-    with_temporary_column :  DB_Column -> (Text -> Table -> Table) -> Table
-    with_temporary_column self new_column:DB_Column f:(Text -> Table -> Table) =
+    with_temporary_column :  DB_Column -> (Text -> DB_Table -> DB_Table) -> DB_Table
+    with_temporary_column self new_column:DB_Column f:(Text -> DB_Table -> DB_Table) =
         new_column_name = self.make_temp_column_name
         with_new_column = self.set new_column new_column_name set_mode=Set_Mode.Add
         modified_table = f new_column_name with_new_column
@@ -962,7 +962,7 @@ type Table
     ## PRIVATE
        Filter a table on a boolean column. The column does not have to be part
        of the table, but it must be derived from it and share a context.
-    filter_on_predicate_column : DB_Column -> Table
+    filter_on_predicate_column : DB_Column -> DB_Table
     filter_on_predicate_column self predicate_column =
         self.with_temporary_column predicate_column name-> table->
             table.filter name Filter_Condition.Is_True
@@ -1087,7 +1087,7 @@ type Table
 
               table.order_by [(Sort_Column.Select_By_Name "a.*".to_regex case_sensitivity=Case_Sensitivity.Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
-    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
+    order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> DB_Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
     order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -1168,7 +1168,7 @@ type Table
            `Floating_Point_Equality` is reported according to the `on_problems`
            setting.
     @columns Widget_Helpers.make_column_name_vector_selector
-    distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
+    distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self columns=self.column_names case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
         key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
@@ -1251,14 +1251,14 @@ type Table
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     @on Widget_Helpers.make_join_condition_selector
-    join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
+    join : DB_Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> DB_Table
     join self right (join_kind : Join_Kind = Join_Kind.Left_Outer) (on : Join_Condition | Text | Vector (Join_Condition | Text) = (default_join_condition self join_kind)) (right_prefix:Text="Right ") (on_problems:Problem_Behavior=Report_Warning) =
         self.join_or_cross_join right join_kind on right_prefix on_problems
 
     ## PRIVATE
        Implementation of both `join` and `cross_join`.
-    join_or_cross_join : Table -> Join_Kind | Join_Kind_Cross -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
-    join_or_cross_join self right:Table join_kind on right_prefix on_problems =
+    join_or_cross_join : DB_Table -> Join_Kind | Join_Kind_Cross -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> DB_Table
+    join_or_cross_join self right:DB_Table join_kind on right_prefix on_problems =
         can_proceed = Helpers.ensure_same_connection "table" [self, right] <|
             join_conditions_ok = join_kind != Join_Kind_Cross.Cross || on == []
             if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
@@ -1310,7 +1310,7 @@ type Table
             problem_builder.attach_problems_before on_problems <|
                 new_from = From_Spec.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
-                Table.Value new_table_name self.connection result_columns new_ctx
+                DB_Table.Value new_table_name self.connection result_columns new_ctx
 
     ## ALIAS append, cartesian join
        GROUP Standard.Base.Calculations
@@ -1356,8 +1356,8 @@ type Table
        ? Result Ordering For Database Tables
 
          The ordering of rows in the resulting table is not specified.
-    cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
-    cross_join self right:Table right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
+    cross_join : DB_Table -> Integer | Nothing -> Text -> Problem_Behavior -> DB_Table
+    cross_join self right:DB_Table right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
         limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
             True ->
                 [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
@@ -1421,8 +1421,8 @@ type Table
            - If `add_new_columns` is `False` and the lookup table has columns
              that are not present in this table, an `Unexpected_Extra_Columns`.
     @key_columns Widget_Helpers.make_column_name_vector_selector
-    merge : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    merge : DB_Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    merge self lookup_table:DB_Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         Helpers.ensure_same_connection "table" [self, lookup_table] <|
             Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
@@ -1500,10 +1500,10 @@ type Table
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
-    replace : Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    replace : DB_Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(DB_Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         _ = [lookup_table, column, from_column, to_column, allow_unmatched_rows, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.replace is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.replace is not implemented yet for the Database backends.")
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1552,10 +1552,10 @@ type Table
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
     @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
-    zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
+    zip : DB_Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> DB_Table
     zip self right keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
         _ = [right, keep_unmatched, right_prefix, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.zip is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.zip is not implemented yet for the Database backends.")
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
@@ -1648,10 +1648,10 @@ type Table
          are meant to be mixed, at least one of them should be explicitly
          retyped to the `Mixed` type to indicate that intention. Note that the
          `Mixed` type may not be supported by most Database backends.
-    union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
-    union self tables:(Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+    union : (DB_Table | Vector DB_Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> DB_Table
+    union self tables:(DB_Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
         all_tables = case tables of
-            v : Vector -> [self] + (v.map t-> Table.from t)
+            v : Vector -> [self] + (v.map t-> DB_Table.from t)
             single_table -> [self, single_table]
         Helpers.ensure_same_connection "table" all_tables <|
             ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
@@ -1715,7 +1715,7 @@ type Table
                         input_column = Internal_Column.Value name (infer_return_type expression) expression
                         dialect.adapt_unified_column input_column result_type infer_return_type
 
-                    Table.Value union_alias self.connection new_columns new_ctx
+                    DB_Table.Value union_alias self.connection new_columns new_ctx
 
     ## ALIAS group by, summarize
        GROUP Standard.Base.Calculations
@@ -1787,7 +1787,7 @@ type Table
               table.aggregate ["Key"] [Aggregate_Column.Count]
     @group_by Widget_Helpers.make_column_name_vector_selector
     @columns Widget_Helpers.make_aggregate_column_vector_selector
-    aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self group_by=[] columns=[] (error_on_missing_columns=False) (on_problems=Report_Warning) =
         normalized_group_by = Vector.unify_vector_or_element group_by
         if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "At least one column must be specified.") else
@@ -1893,7 +1893,7 @@ type Table
             B  | Name      | Another
             B  | Country   | Germany
     @key_columns Widget_Helpers.make_column_name_vector_selector
-    transpose : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
+    transpose : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text -> Text -> Boolean -> Problem_Behavior -> DB_Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
     transpose self key_columns=[] (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -1955,7 +1955,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values Widget_Helpers.make_aggregate_column_selector
-    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
+    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -2018,7 +2018,7 @@ type Table
     @type (Widget_Helpers.parse_type_selector include_auto=False)
     @columns Widget_Helpers.make_column_name_vector_selector
     @format (make_format_chooser include_number=False)
-    parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
+    parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> DB_Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format:(Text|Data_Formatter)='' error_on_missing_columns=True on_problems=Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
         selected.fold self table-> column_to_parse->
@@ -2101,10 +2101,10 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     @locale Locale.default_widget
     @format (make_format_chooser include_number=False)
-    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | DB_Column -> Locale -> Boolean -> Problem_Behavior -> Table ! Date_Time_Format_Parse_Error | Illegal_Argument
+    format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | DB_Column -> Locale -> Boolean -> Problem_Behavior -> DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument
     format self columns format:(Text | Date_Time_Formatter | DB_Column)="" locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
         _ = [columns, format, locale, error_on_missing_columns, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.format is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.format is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2125,10 +2125,10 @@ type Table
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
-    split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
+    split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> DB_Table
     split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
         _ = [column, delimiter, column_count, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.split_to_columns is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.split_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2140,10 +2140,10 @@ type Table
        - delimiter: The term or terms used to split the text.
     @column Widget_Helpers.make_column_name_selector
     @delimiter make_delimiter_selector
-    split_to_rows : Text | Integer -> Text -> Table
+    split_to_rows : Text | Integer -> Text -> DB_Table
     split_to_rows self column delimiter="," =
         _ = [column, delimiter]
-        Error.throw (Unsupported_Database_Operation.Error "Table.split_to_rows is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.split_to_rows is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2168,10 +2168,10 @@ type Table
          If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
          be reported according to the `on_problems` behavior.
     @column Widget_Helpers.make_column_name_selector
-    tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
+    tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> DB_Table
     tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
         _ = [column, pattern, case_sensitivity, column_count, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_columns is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2190,10 +2190,10 @@ type Table
          produce at least one row, with `Nothing` for the output column values.
          Equivalent to converting a tokenization output of [] to [Nothing].
     @column Widget_Helpers.make_column_name_selector
-    tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
+    tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> DB_Table
     tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
         _ = [column, pattern, case_sensitivity, at_least_one_row]
-        Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_rows is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_rows is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2222,10 +2222,10 @@ type Table
        If the new name is already in use it will be renamed following the normal
        suffixing strategy.
     @column Widget_Helpers.make_column_name_selector
-    parse_to_columns : Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+    parse_to_columns : Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         _ = [column, pattern, case_sensitivity, parse_values, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.parse_to_columns is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.parse_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Calculations
        ICON split_text
@@ -2237,10 +2237,10 @@ type Table
         - prefix: Prefix to add to the column names. If `Nothing` then the column
           name is used.
     @column Widget_Helpers.make_column_name_selector
-    expand_column : Text | Integer -> Vector | Nothing -> Text | Table -> Table ! Type_Error
+    expand_column : Text | Integer -> Vector | Nothing -> Text | DB_Table -> DB_Table ! Type_Error
     expand_column self column fields=Nothing prefix=Nothing =
             _ = [column, fields, prefix]
-            Error.throw (Unsupported_Database_Operation.Error "Table.expand_column is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+            Error.throw (Unsupported_Database_Operation.Error "DB_Table.expand_column is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## GROUP Standard.Base.Calculations
        ICON split_text
@@ -2275,10 +2275,10 @@ type Table
          table = Table.new [["aaa", [1, 2]], ["bbb", [[30, 31], [40, 41]]]]
          # => Table.new [["aaa", [1, 1, 2, 2]], ["bbb", [30, 31, 40, 41]]]
     @column Widget_Helpers.make_column_name_selector
-    expand_to_rows : Text | Integer -> Boolean -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
+    expand_to_rows : Text | Integer -> Boolean -> DB_Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_to_rows self column at_least_one_row=False =
         _ = [column, at_least_one_row]
-        Error.throw (Unsupported_Database_Operation.Error "Table.expand_to_rows is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.expand_to_rows is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2333,7 +2333,7 @@ type Table
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
     @columns Widget_Helpers.make_column_name_vector_selector
-    cast : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
+    cast : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type -> Boolean -> Problem_Behavior -> DB_Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self columns=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
         selected.fold self table-> column_to_cast->
@@ -2346,10 +2346,10 @@ type Table
        their contents.
 
        This operation is currently not available in the Database backend.
-    auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> Table
+    auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> DB_Table
     auto_value_types self columns=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         _ = [columns, shrink_types, error_on_missing_columns, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.auto_value_types is not supported in the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.auto_value_types is not supported in the Database backends.")
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
@@ -2364,7 +2364,7 @@ type Table
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    filter_blank_rows : Blank_Selector -> Boolean -> Table
+    filter_blank_rows : Blank_Selector -> Boolean -> DB_Table
     filter_blank_rows self (when:Blank_Selector = Blank_Selector.All_Cells) treat_nans_as_blank=False =
         Table_Helpers.filter_blank_rows self when treat_nans_as_blank
 
@@ -2491,8 +2491,8 @@ type Table
 
        Arguments:
        - columns: The columns with which to update this table.
-    updated_columns : Vector Internal_Column -> Table
-    updated_columns self internal_columns = Table.Value self.name self.connection internal_columns self.context
+    updated_columns : Vector Internal_Column -> DB_Table
+    updated_columns self internal_columns = DB_Table.Value self.name self.connection internal_columns self.context
 
     ## PRIVATE
 
@@ -2500,8 +2500,8 @@ type Table
 
        Arguments:
        - ctx: The new context for this table.
-    updated_context : Context -> Table
-    updated_context self ctx = Table.Value self.name self.connection self.internal_columns ctx
+    updated_context : Context -> DB_Table
+    updated_context self ctx = DB_Table.Value self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
 
@@ -2519,20 +2519,20 @@ type Table
          avoid nesting subqueries without necessity. However, for now, for
          simplicity, we are always wrapping brittle operations. This may be
          revised in the future, to generate better and more concise SQL code.
-    updated_context_and_columns : Context -> Vector Internal_Column -> Boolean -> Table
+    updated_context_and_columns : Context -> Vector Internal_Column -> Boolean -> DB_Table
     updated_context_and_columns self ctx internal_columns subquery=False = case subquery of
         True ->
             setup = ctx.as_subquery self.name [internal_columns]
             new_ctx = Context.for_subquery setup.subquery
             new_columns = setup.new_columns.first
-            Table.Value self.name self.connection new_columns new_ctx
+            DB_Table.Value self.name self.connection new_columns new_ctx
         False ->
-            Table.Value self.name self.connection internal_columns ctx
+            DB_Table.Value self.name self.connection internal_columns ctx
 
     ## PRIVATE
        Nests a table as a subquery, using `updated_context_and_columns`, which
        causes its columns to be referenced as names rather than expressions.
-    as_subquery : Table
+    as_subquery : DB_Table
     as_subquery self = self.updated_context_and_columns self.context self.internal_columns subquery=True
 
     ## PRIVATE
@@ -2646,7 +2646,7 @@ type Table
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns Widget_Helpers.make_column_name_vector_selector
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True add_number=True add_boolean=True)
-    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> DB_Column | Column_Ref | Previous_Value | Any -> Table
+    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> DB_Column | Column_Ref | Previous_Value | Any -> DB_Table
     fill_nothing self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
         transformer col = col.fill_nothing resolved_default
@@ -2674,7 +2674,7 @@ type Table
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns Widget_Helpers.make_column_name_vector_selector
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True)
-    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> DB_Column | Column_Ref | Previous_Value | Any -> Table
+    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> DB_Column | Column_Ref | Previous_Value | Any -> DB_Table
     fill_empty self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
         transformer col = col.fill_empty resolved_default
@@ -2734,7 +2734,7 @@ type Table
      column name and its expected SQL Type.
    - ctx: The context to use for the table.
    - on_problems: The behavior to use when problems are encountered.
-make_table : Connection -> Text -> Vector -> Context -> Problem_Behavior -> Table
+make_table : Connection -> Text -> Vector -> Context -> Problem_Behavior -> DB_Table
 make_table connection table_name columns ctx on_problems =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
         problem_builder = Problem_Builder.new
@@ -2750,7 +2750,7 @@ make_table connection table_name columns ctx on_problems =
         problem_builder.report_unique_name_strategy column_names_validator
         # We do not want to stop the table from being fetched, so we report the issues as warnings.
         problem_builder.attach_problems_before on_problems <|
-            Table.Value table_name connection cols ctx
+            DB_Table.Value table_name connection cols ctx
 
 ## PRIVATE
 
@@ -2786,20 +2786,20 @@ display_dataframe df indices_count all_rows_count format_terminal =
 ## PRIVATE
    By default, join on the first column, unless it's a cross join, in which
    case there are no join conditions.
-default_join_condition : Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
+default_join_condition : DB_Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
 default_join_condition table join_kind = case join_kind of
     Join_Kind_Cross.Cross -> []
     _ -> [Join_Condition.Equals table.column_names.first]
 
 ## PRIVATE
-Materialized_Table.from (that:Table) =
+Materialized_Table.from (that:DB_Table) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
 
 ## PRIVATE
-Table.from (that:Materialized_Table) =
+DB_Table.from (that:Materialized_Table) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Either materialize the other table using `.read` or upload the table into the database using `.select_into_database_table`.")
 
 ## PRIVATE
-Table_Ref.from (that:Table) = Table_Ref.Value that
+Table_Ref.from (that:DB_Table) = Table_Ref.Value that
