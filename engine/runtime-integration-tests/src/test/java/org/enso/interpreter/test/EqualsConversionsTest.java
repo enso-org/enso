@@ -1,13 +1,13 @@
 package org.enso.interpreter.test;
 
-import java.util.List;
-
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.PolyglotException;
-import org.junit.AfterClass;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.List;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -89,7 +89,8 @@ public class EqualsConversionsTest extends TestBase {
     gen.intNumConversion = true;
     gen.intComparator = true;
     gen.numComparator = false;
-    gen.extraBlock = """
+    gen.extraBlock =
+        """
     type Second_Comparator
         compare a:Num b:Num = Num_Comparator.compare a b
         hash a:Num = Num_Comparator.hash a
@@ -165,7 +166,8 @@ public class EqualsConversionsTest extends TestBase {
           r0 = 42 == num42
           r0
       """;
-      var res = TestBase.evalModule(context, block0 + block1 + block2 + block3 + mainBlock + extraBlock);
+      var res =
+          TestBase.evalModule(context, block0 + block1 + block2 + block3 + mainBlock + extraBlock);
       return res.asBoolean();
     }
   }
