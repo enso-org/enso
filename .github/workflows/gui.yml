@@ -89,7 +89,7 @@ jobs:
           clean: false
           submodules: recursive
       # "npm run clean-old-generated-directory && npm run build-rust-ffi && npm run generate-ast-schema && npm run generate-ast-types && npm run generate-metadata",
-        
+
       - name: npm install
         run: npm install
         working-directory: app/gui2
