@@ -1815,8 +1815,15 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
       ) {
         const newSelectedKeys = new Set(selectedKeysRef.current)
+        let count = 0
         for (const key of keys) {
-          set.setPresence(newSelectedKeys, key, !newSelectedKeys.has(key))
+          if (selectedKeysRef.current.has(key)) {
+            count += 1
+          }
+        }
+        for (const key of keys) {
+          const add = count * 2 < keys.length
+          set.setPresence(newSelectedKeys, key, add)
         }
         return newSelectedKeys
       } else {
@@ -1974,7 +1981,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           }}
           onDragStart={event => {
             let newSelectedKeys = selectedKeysRef.current
-            if (!selectedKeysRef.current.has(key)) {
+            if (!newSelectedKeys.has(key)) {
               setPreviouslySelectedKey(key)
               newSelectedKeys = new Set([key])
               setSelectedKeys(newSelectedKeys)

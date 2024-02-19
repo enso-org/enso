@@ -19,8 +19,9 @@ export interface SelectionBrushProps {
 /** A selection brush to indicate the area being selected by the mouse drag action. */
 export default function SelectionBrush(props: SelectionBrushProps) {
   const { onChange } = props
-  const isMouseDown = React.useRef(false)
-  const didMoveWhileDragging = React.useRef(false)
+  const isMouseDownRef = React.useRef(false)
+  const didMoveWhileDraggingRef = React.useRef(false)
+  const onChangeRef = React.useRef(onChange)
   const lastMouseEvent = React.useRef<MouseEvent | null>(null)
   const [anchor, setAnchor] = React.useState<geometry.Coordinate2D | null>(null)
   // This will be `null` if `anchor` is `null`.
@@ -34,6 +35,10 @@ export default function SelectionBrush(props: SelectionBrushProps) {
     (anchor.left === position.left && anchor.top === position.top)
 
   React.useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  React.useEffect(() => {
     if (anchor != null) {
       anchorAnimFactor.skip()
     }
@@ -41,32 +46,35 @@ export default function SelectionBrush(props: SelectionBrushProps) {
 
   React.useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
-      isMouseDown.current = true
-      didMoveWhileDragging.current = false
+      isMouseDownRef.current = true
+      didMoveWhileDraggingRef.current = false
       lastMouseEvent.current = event
       const newAnchor = { left: event.pageX, top: event.pageY }
       setAnchor(newAnchor)
       setLastSetAnchor(newAnchor)
       setPosition(newAnchor)
     }
-    const onMouseUp = () => {
-      // This is required, otherwise the values are changed before the `onClick` handler is
-      // executed.
+    const onMouseUp = (event: MouseEvent) => {
+      if (didMoveWhileDraggingRef.current) {
+        onChangeRef.current(null, event)
+      }
+      // The `setTimeout` is required, otherwise the values are changed before the `onClick` handler
+      // is executed.
       window.setTimeout(() => {
-        isMouseDown.current = false
-        didMoveWhileDragging.current = false
+        isMouseDownRef.current = false
+        didMoveWhileDraggingRef.current = false
       })
       setAnchor(null)
     }
     const onMouseMove = (event: MouseEvent) => {
-      if (isMouseDown.current) {
-        didMoveWhileDragging.current = true
+      if (isMouseDownRef.current) {
+        didMoveWhileDraggingRef.current = true
         lastMouseEvent.current = event
         setPosition({ left: event.pageX, top: event.pageY })
       }
     }
     const onClick = (event: MouseEvent) => {
-      if (isMouseDown.current && didMoveWhileDragging.current) {
+      if (isMouseDownRef.current && didMoveWhileDraggingRef.current) {
         event.stopImmediatePropagation()
       }
     }
@@ -111,7 +119,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   const selectionRectangle = React.useMemo(() => (hidden ? null : rectangle), [hidden, rectangle])
 
   React.useEffect(() => {
-    if (lastMouseEvent.current != null) {
+    if (selectionRectangle != null && lastMouseEvent.current != null) {
       onChange(selectionRectangle, lastMouseEvent.current)
     }
     // `onChange` is a callback, not a dependency.
