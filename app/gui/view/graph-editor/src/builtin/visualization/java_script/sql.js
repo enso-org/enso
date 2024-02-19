@@ -80,8 +80,6 @@ loadScript('https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/4.0.2/sql-forma
  * interpolated query parameters.
  */
 class SqlVisualization extends Visualization {
-    // TODO Change the type below once #837 is done:
-    // 'Standard.Database.Data.DB_Table.DB_Table | Standard.Database.Data.DB_Column.DB_Column'
     static inputType =
         'Standard.Database.Data.DB_Table.DB_Table | Standard.Database.Data.DB_Column.DB_Column'
     static label = 'SQL Query'
