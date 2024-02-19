@@ -34,7 +34,6 @@ export class SourceDocument {
   }
 
   applyUpdate(module: Module, update: ModuleUpdate) {
-    update.debugLog()
     for (const id of update.nodesDeleted) this.spans.delete(id)
     const root = module.root()
     if (!root) return

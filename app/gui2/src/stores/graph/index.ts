@@ -320,7 +320,6 @@ export const useGraphStore = defineStore('graph', () => {
     const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
     if (rect.pos.equals(Vec2.Zero) && !nodeAst.nodeMetadata.get('position')) {
-      console.info(`placing node`, nodeId)
       const { position } = nonDictatedPlacement(rect.size, {
         nodeRects: visibleNodeAreas.value,
         // The rest of the properties should not matter.
