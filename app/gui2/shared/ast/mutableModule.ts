@@ -16,7 +16,6 @@ import { defaultLocalOrigin, tryAsOrigin, type ExternalId, type Origin } from '.
 import type { AstFields, FixedMap, Mutable } from './tree'
 import {
   Ast,
-  Invalid,
   MutableAst,
   MutableInvalid,
   Wildcard,

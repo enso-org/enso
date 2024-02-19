@@ -2,7 +2,6 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
-import * as Y from 'yjs'
 import { MutableModule, escape, unescape, type Identifier } from '../abstract'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
