@@ -124,19 +124,19 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       setIsShiftPressed(event.shiftKey)
       if (areSuggestionsVisibleRef.current) {
-        if (event.key === 'Tab') {
+        if (event.key === 'Tab' || event.key === 'ArrowUp' || event.key === 'ArrowDown') {
           event.preventDefault()
           querySource.current = QuerySource.tabbing
+          const reverse = (event.key === 'Tab' && event.shiftKey) || event.key === 'ArrowUp'
           setSelectedIndex(oldIndex => {
             const length = Math.max(1, suggestionsRef.current.length)
-            if (event.shiftKey) {
+            if (reverse) {
               return oldIndex == null ? length - 1 : (oldIndex + length - 1) % length
             } else {
               return oldIndex == null ? 0 : (oldIndex + 1) % length
             }
           })
-        }
-        if (event.key === 'Enter' || event.key === ' ') {
+        } else if (event.key === 'Enter' || event.key === ' ') {
           querySource.current = QuerySource.external
           if (searchRef.current != null) {
             searchRef.current.focus()
