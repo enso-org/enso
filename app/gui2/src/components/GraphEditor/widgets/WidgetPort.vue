@@ -45,7 +45,17 @@ const hasConnection = computed(
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
 )
+const isCurrentDisconectedEdgeTarget = computed(
+  () =>
+    graph.unconnectedEdge?.disconnectedEdgeTarget === portId.value &&
+    graph.unconnectedEdge?.target !== portId.value,
+)
 const connected = computed(() => hasConnection.value || isCurrentEdgeHoverTarget.value)
+const isTarget = computed(
+  () =>
+    (hasConnection.value && !isCurrentDisconectedEdgeTarget.value) ||
+    isCurrentEdgeHoverTarget.value,
+)
 
 const rootNode = shallowRef<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode, false)
@@ -145,6 +155,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     class="WidgetPort"
     :class="{
       connected,
+      isTarget,
       'r-24': connected,
       newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
@@ -153,7 +164,6 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     :data-h="randSlice"
   >
     <NodeWidget :input="innerWidget" />
-    <div v-if="connected" class="edgeAttachment" />
   </div>
 </template>
 
@@ -215,7 +225,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   }
 }
 
-.edgeAttachment {
+.WidgetPort.isTarget:after {
+  content: '';
   position: absolute;
   top: -4px;
   left: 50%;
