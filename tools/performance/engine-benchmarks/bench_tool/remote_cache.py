@@ -17,6 +17,8 @@ from . import gh, JobReport, BENCH_REPO, JobRun, Commit, Author, git
 _logger = logging.getLogger(__name__)
 
 CACHE_REMOTE_DIR = "cache"
+ENGINE_INDEX_HTML = "engine-benchs.html"
+STDLIB_INDEX_HTML = "stdlib-benchs.html"
 
 
 class RemoteCache(abc.ABC):
@@ -100,6 +102,15 @@ class SyncRemoteCache(RemoteCache):
 
     def repo_root_dir(self) -> Path:
         return self._repo_root_dir
+
+    def cache_dir(self) -> Path:
+        return self._cache_dir
+
+    def engine_index_html(self) -> Path:
+        return self._repo_root_dir.joinpath(ENGINE_INDEX_HTML)
+
+    def stdlib_index_html(self) -> Path:
+        return self._repo_root_dir.joinpath(STDLIB_INDEX_HTML)
 
     async def initialize(self) -> None:
         """
