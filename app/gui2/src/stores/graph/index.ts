@@ -35,7 +35,7 @@ import type {
   VisualizationIdentifier,
   VisualizationMetadata,
 } from 'shared/yjsModel'
-import { sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
+import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch, type ShallowRef } from 'vue'
 
 export { type Node, type NodeId } from '@/stores/graph/graphDatabase'
@@ -410,7 +410,11 @@ export const useGraphStore = defineStore('graph', () => {
    *  @param skipTreeRepair - If the edit is known not to require any parenthesis insertion, this may be set to `true`
    *  for better performance.
    */
-  function commitEdit(edit: MutableModule, skipTreeRepair?: boolean, origin?: LocalOrigin) {
+  function commitEdit(
+    edit: MutableModule,
+    skipTreeRepair?: boolean,
+    origin: LocalOrigin = defaultLocalOrigin,
+  ) {
     const root = edit.root()
     if (!(root instanceof Ast.BodyBlock)) {
       console.error(`BUG: Cannot commit edit: No module root block.`)

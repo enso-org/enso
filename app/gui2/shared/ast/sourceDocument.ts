@@ -2,7 +2,7 @@ import { print, type AstId, type Module, type ModuleUpdate } from '.'
 import { assertDefined } from '../util/assert'
 import type { TextEdit } from '../util/data/text'
 import { offsetEdit, textChangeToEdits } from '../util/data/text'
-import type { LocalOrigin, SourceRange } from '../yjsModel'
+import type { Origin, SourceRange } from '../yjsModel'
 import { rangeEquals, sourceRangeFromKey } from '../yjsModel'
 
 /** Provides a view of the text representation of a module,
@@ -87,12 +87,9 @@ export class SourceDocument {
     if (index !== undefined) this.observers.splice(index, 1)
   }
 
-  private notifyObservers(textEdits: TextEdit[], origin: LocalOrigin | undefined) {
+  private notifyObservers(textEdits: TextEdit[], origin: Origin | undefined) {
     for (const o of this.observers) o(textEdits, origin)
   }
 }
 
-export type SourceDocumentObserver = (
-  textEdits: TextEdit[],
-  origin: LocalOrigin | undefined,
-) => void
+export type SourceDocumentObserver = (textEdits: TextEdit[], origin: Origin | undefined) => void

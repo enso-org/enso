@@ -127,14 +127,16 @@ export class DistributedModule {
 
 export const localOrigins = ['local', 'local:CodeEditor'] as const
 export type LocalOrigin = (typeof localOrigins)[number]
+export type Origin = LocalOrigin | 'remote'
 /** Locally-originated changes not otherwise specified. */
 export const defaultLocalOrigin: LocalOrigin = 'local'
 export function isLocalOrigin(origin: string): origin is LocalOrigin {
   const localOriginNames: readonly string[] = localOrigins
   return localOriginNames.includes(origin)
 }
-export function tryAsLocalOrigin(origin: string): LocalOrigin | undefined {
+export function tryAsOrigin(origin: string): Origin | undefined {
   if (isLocalOrigin(origin)) return origin
+  if (origin === 'remote') return origin
 }
 
 export type SourceRange = readonly [start: number, end: number]

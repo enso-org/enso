@@ -12,12 +12,7 @@ import {
 } from '.'
 import { assert, assertDefined } from '../util/assert'
 import type { TextEdit } from '../util/data/text'
-import {
-  defaultLocalOrigin,
-  tryAsLocalOrigin,
-  type ExternalId,
-  type LocalOrigin,
-} from '../yjsModel'
+import { defaultLocalOrigin, tryAsOrigin, type ExternalId, type Origin } from '../yjsModel'
 import type { AstFields, FixedMap, Mutable } from './tree'
 import {
   Ast,
@@ -55,7 +50,7 @@ export interface ModuleUpdate {
   updateRoots: Set<AstId>
   fieldsUpdated: { id: AstId; fields: (readonly [string, unknown])[] }[]
   metadataUpdated: { id: AstId; changes: Map<string, unknown> }[]
-  origin: LocalOrigin | undefined
+  origin: Origin | undefined
   debugLog(): void
 }
 
@@ -83,12 +78,12 @@ export class MutableModule implements Module {
     return new MutableModule(doc)
   }
 
-  applyEdit(edit: MutableModule, origin?: LocalOrigin) {
-    Y.applyUpdateV2(this.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), origin ?? defaultLocalOrigin)
+  applyEdit(edit: MutableModule, origin: Origin = defaultLocalOrigin) {
+    Y.applyUpdateV2(this.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), origin)
   }
 
-  transact<T>(f: () => T, origin?: LocalOrigin): T {
-    return this.ydoc.transact(f, origin ?? defaultLocalOrigin)
+  transact<T>(f: () => T, origin: Origin = defaultLocalOrigin): T {
+    return this.ydoc.transact(f, origin)
   }
 
   root(): MutableAst | undefined {
@@ -174,7 +169,7 @@ export class MutableModule implements Module {
 
   observe(observer: (update: ModuleUpdate) => void) {
     const handle = (events: Y.YEvent<any>[], transaction: Y.Transaction) => {
-      observer(this.observeEvents(events, tryAsLocalOrigin(transaction.origin)))
+      observer(this.observeEvents(events, tryAsOrigin(transaction.origin)))
     }
     // Attach the observer first, so that if an update hook causes changes in reaction to the initial state update, we
     // won't miss them.
@@ -193,7 +188,7 @@ export class MutableModule implements Module {
     return updateBuilder
   }
 
-  applyUpdate(update: Uint8Array, origin?: LocalOrigin): ModuleUpdate | undefined {
+  applyUpdate(update: Uint8Array, origin: Origin): ModuleUpdate | undefined {
     let summary: ModuleUpdate | undefined
     const observer = (events: Y.YEvent<any>[]) => {
       summary = this.observeEvents(events, origin)
@@ -204,7 +199,7 @@ export class MutableModule implements Module {
     return summary
   }
 
-  private observeEvents(events: Y.YEvent<any>[], origin: LocalOrigin | undefined): ModuleUpdate {
+  private observeEvents(events: Y.YEvent<any>[], origin: Origin | undefined): ModuleUpdate {
     const updateBuilder = new UpdateBuilder(this, this.nodes, origin)
     for (const event of events) {
       if (event.target === this.nodes) {
@@ -353,8 +348,6 @@ export class MutableModule implements Module {
 }
 
 type MutableRootPointer = MutableInvalid & { get expression(): MutableAst | undefined }
-/** @internal */
-export interface RootPointer extends Invalid {}
 
 function newAstId(type: string): AstId {
   return `ast:${type}#${random.uint53()}` as AstId
@@ -370,7 +363,7 @@ class UpdateBuilder implements ModuleUpdate {
   readonly nodesDeleted = new Set<AstId>()
   readonly fieldsUpdated: { id: AstId; fields: (readonly [string, unknown])[] }[] = []
   readonly metadataUpdated: { id: AstId; changes: Map<string, unknown> }[] = []
-  readonly origin: LocalOrigin | undefined
+  readonly origin: Origin | undefined
 
   private readonly module: Module
   private readonly nodes: YNodes
@@ -386,7 +379,7 @@ class UpdateBuilder implements ModuleUpdate {
     if (this.metadataUpdated.length) console.info(`- metadataUpdated`, this.metadataUpdated)
   }
 
-  constructor(module: Module, nodes: YNodes, origin: LocalOrigin | undefined) {
+  constructor(module: Module, nodes: YNodes, origin: Origin | undefined) {
     this.module = module
     this.nodes = nodes
     this.origin = origin

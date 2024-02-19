@@ -13,7 +13,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { createDebouncer } from 'lib0/eventloop'
 import { MutableModule } from 'shared/ast'
 import { textChangeToEdits, type TextEdit } from 'shared/util/data/text'
-import { rangeEncloses, type LocalOrigin } from 'shared/yjsModel'
+import { rangeEncloses, type Origin } from 'shared/yjsModel'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from 'vue'
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
@@ -250,7 +250,7 @@ watch(
 )
 onUnmounted(() => graphStore.moduleSource.unobserve(observeSourceChange))
 
-function observeSourceChange(textEdits: TextEdit[], origin: LocalOrigin | undefined) {
+function observeSourceChange(textEdits: TextEdit[], origin: Origin | undefined) {
   // If we received an update from outside the Code Editor while the editor contained uncommitted changes, we cannot
   // proceed incrementally; we wait for the changes to be merged as Y.Js AST updates, and then set the view to the
   // resulting code.
