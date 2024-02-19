@@ -28,7 +28,6 @@
     "generate-ast-schema": "cargo run -p enso-parser-schema > shared/ast/generated/ast-schema.json",
     "generate-ast-types": "tsx ./parser-codegen/index.ts shared/ast/generated/ast-schema.json shared/ast/generated/ast.ts",
     "preinstall": "npm run clean-old-generated-directory && npm run build-rust-ffi && npm run generate-ast-schema && npm run generate-ast-types && npm run generate-metadata && npm run download-fonts",
-    "postinstall": "playwright install",
     "generate-metadata": "node scripts/generateIconMetadata.js",
     "download-fonts": "node scripts/downloadFonts.js"
   },
