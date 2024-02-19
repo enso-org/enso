@@ -148,6 +148,18 @@ export interface ProjectStateType {
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
+export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
+  [ProjectState.created]: false,
+  [ProjectState.new]: false,
+  [ProjectState.scheduled]: true,
+  [ProjectState.openInProgress]: true,
+  [ProjectState.provisioned]: true,
+  [ProjectState.opened]: false,
+  [ProjectState.closed]: false,
+  [ProjectState.placeholder]: true,
+  [ProjectState.closing]: false,
+}
+
 export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.created]: false,
   [ProjectState.new]: false,

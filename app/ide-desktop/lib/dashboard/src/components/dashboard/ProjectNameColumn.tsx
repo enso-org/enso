@@ -43,7 +43,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
   const { numberOfSelectedItems, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenManually, doOpenIde, doCloseIde } = state
+  const { nodeMap, doOpenManually, doOpenIde: doOpenEditor, doCloseIde: doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
@@ -98,7 +98,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:
@@ -295,11 +294,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setItem={setAsset}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
-          openIde={switchPage => {
-            doOpenIde(asset, setAsset, switchPage)
+          doOpenEditor={switchPage => {
+            doOpenEditor(asset, setAsset, switchPage)
           }}
-          onClose={() => {
-            doCloseIde(asset)
+          doCloseEditor={() => {
+            doCloseEditor(asset)
           }}
         />
       )}

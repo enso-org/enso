@@ -12,7 +12,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -76,17 +75,17 @@ export interface ProjectIconProps {
   readonly assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
   readonly doOpenManually: (projectId: backendModule.ProjectId) => void
-  readonly onClose: () => void
-  readonly openIde: (switchPage: boolean) => void
+  readonly doCloseEditor: () => void
+  readonly doOpenEditor: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
+  const { keyProp: key, item, setItem, assetEvents, doOpenManually } = props
+  const { doCloseEditor, doOpenEditor } = props
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const state = item.projectState.type
   const setState = React.useCallback(
@@ -253,8 +252,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
         if (event.id !== item.id) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
-            if (!isOtherUserUsingProject) {
-              void closeProject(false)
+            if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
+              // void closeProject(false)
             }
           }
         } else {
@@ -272,19 +271,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
         break
       }
-      case AssetEventType.cancelOpeningAllProjects: {
-        if (!isRunningInBackground) {
-          setShouldOpenWhenReady(false)
-          onSpinnerStateChange?.(null)
-          setOnSpinnerStateChange(null)
-          openProjectAbortController?.abort()
-          setOpenProjectAbortController(null)
-          if (!isOtherUserUsingProject) {
-            void closeProject(false)
-          }
-        }
-        break
-      }
       case AssetEventType.newProject: {
         if (event.placeholderId === key) {
           setOnSpinnerStateChange(() => event.onSpinnerStateChange)
@@ -299,7 +285,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
       if (shouldOpenWhenReady) {
-        openIde(shouldSwitchPage)
+        doOpenEditor(shouldSwitchPage)
         setShouldOpenWhenReady(false)
       }
     }
@@ -309,8 +295,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const closeProject = async (triggerOnClose = true) => {
     if (triggerOnClose) {
-      onClose()
-      localStorage.delete('projectStartupInfo')
+      doCloseEditor()
     }
     setToastId(null)
     setShouldOpenWhenReady(false)
@@ -415,7 +400,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               onClick={clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()
-                openIde(true)
+                doOpenEditor(true)
               }}
             >
               <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />

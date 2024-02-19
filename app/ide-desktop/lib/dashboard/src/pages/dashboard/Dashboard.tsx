@@ -378,7 +378,7 @@ export default function Dashboard(props: DashboardProps) {
     [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
   )
 
-  const openEditor = React.useCallback(
+  const doOpenEditor = React.useCallback(
     async (
       newProject: backendModule.ProjectAsset,
       setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
@@ -400,7 +400,7 @@ export default function Dashboard(props: DashboardProps) {
     [backend, projectStartupInfo?.project.projectId, session.accessToken]
   )
 
-  const closeEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
+  const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
     setProjectStartupInfo(oldInfo =>
       oldInfo?.projectAsset.id === closingProject.id ? null : oldInfo
     )
@@ -408,10 +408,8 @@ export default function Dashboard(props: DashboardProps) {
 
   const doRemoveSelf = React.useCallback(() => {
     if (projectStartupInfo?.projectAsset != null) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.removeSelf,
-        id: projectStartupInfo.projectAsset.id,
-      })
+      const id = projectStartupInfo.projectAsset.id
+      dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id })
       setProjectStartupInfo(null)
     }
   }, [projectStartupInfo?.projectAsset, /* should never change */ dispatchAssetListEvent])
@@ -480,8 +478,8 @@ export default function Dashboard(props: DashboardProps) {
             dispatchAssetEvent={dispatchAssetEvent}
             setAssetPanelProps={setAssetPanelProps}
             doCreateProject={doCreateProject}
-            doOpenEditor={openEditor}
-            doCloseEditor={closeEditor}
+            doOpenEditor={doOpenEditor}
+            doCloseEditor={doCloseEditor}
           />
           <Editor
             hidden={page !== pageSwitcher.Page.editor}
