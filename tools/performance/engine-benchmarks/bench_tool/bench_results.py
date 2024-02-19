@@ -13,6 +13,7 @@ from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport, Commit, Author
 from bench_tool.gh import invoke_gh_api
 from bench_tool.remote_cache import RemoteCache
 
+_logger = logging.getLogger(__name__)
 
 async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow_id: int) -> List[JobRun]:
     """
@@ -23,7 +24,7 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow
     :param branch: The branch for which the benchmark results will be gathered.
     :param workflow_id: The ID of the workflow for which the benchmark results will be gathered.
     """
-    logging.info(f"Looking for all successful Engine benchmark workflow run "
+    _logger.info(f"Looking for all successful Engine benchmark workflow run "
                  f"actions from {since} to {until} for branch {branch} "
                  f"and workflow ID {workflow_id}")
     query_fields = {
@@ -36,7 +37,7 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow
     res = await invoke_gh_api(ENSO_REPO, f"/actions/workflows/{workflow_id}/runs", query_fields)
     total_count = int(res["total_count"])
     per_page = 3
-    logging.debug(f"Total count of all runs: {total_count} for workflow ID "
+    _logger.debug(f"Total count of all runs: {total_count} for workflow ID "
                   f"{workflow_id}. Will process {per_page} runs per page")
 
     async def get_and_parse_run(page: int, parsed_bench_runs) -> None:
@@ -79,7 +80,7 @@ async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: Remot
     obj: Dict[str, Any] = await invoke_gh_api(ENSO_REPO, f"/actions/runs/{bench_run.id}/artifacts")
     artifacts = obj["artifacts"]
     if len(artifacts) != 1:
-        logging.warning("Bench run %s does not contain exactly one artifact, but it is a successful run.",
+        _logger.warning("Bench run %s does not contain exactly one artifact, but it is a successful run.",
                         bench_run.id)
         return None
     bench_report_artifact = artifacts[0]
@@ -89,17 +90,17 @@ async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: Remot
     updated_at = bench_report_artifact["updated_at"]
     expires_at = bench_report_artifact["expires_at"]
     is_expired = bench_report_artifact["expired"]
-    logging.debug(f"Got artifact with ID {artifact_id}, from bench run {bench_run.id}: "
+    _logger.debug(f"Got artifact with ID {artifact_id}, from bench run {bench_run.id}: "
                   f"created_at={created_at}, updated_at={updated_at}, expires_at={expires_at}, "
                   f"is_expired={is_expired}")
 
     job_report = await remote_cache.fetch(bench_run.id)
     if is_expired and job_report is None:
-        logging.error(
+        _logger.error(
             f"Artifact {artifact_id} from bench run {bench_run.id} is expired, and it is not in the remote cache")
         return None
     if job_report:
-        logging.debug(f"Got job report from the cache for {bench_run.id}")
+        _logger.debug(f"Got job report from the cache for {bench_run.id}")
         return job_report
 
     assert not is_expired
@@ -107,7 +108,7 @@ async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: Remot
     # Get contents of the ZIP artifact file
     artifact_ret = await invoke_gh_api(ENSO_REPO, f"/actions/artifacts/{artifact_id}/zip", result_as_json=False)
     zip_file_name = os.path.join(temp_dir, artifact_id + ".zip")
-    logging.debug(f"Writing artifact ZIP content into {zip_file_name}")
+    _logger.debug(f"Writing artifact ZIP content into {zip_file_name}")
     with open(zip_file_name, "wb") as zip_file:
         zip_file.write(artifact_ret)
 
@@ -116,7 +117,7 @@ async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: Remot
         shutil.rmtree(extracted_dirname)
     os.mkdir(extracted_dirname)
 
-    logging.debug(f"Extracting {zip_file_name} into {extracted_dirname}")
+    _logger.debug(f"Extracting {zip_file_name} into {extracted_dirname}")
     zip_file = zipfile.ZipFile(zip_file_name, "r")
     zip_file.extractall(extracted_dirname)
     bench_report_xml = path.join(extracted_dirname, "bench-report.xml")
@@ -128,7 +129,7 @@ async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: Remot
 
 
 def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) -> "JobReport":
-    logging.debug(f"Parsing BenchReport from {bench_report_xml_path}")
+    _logger.debug(f"Parsing BenchReport from {bench_report_xml_path}")
     tree = ET.parse(bench_report_xml_path)
     root = tree.getroot()
     label_score_dict: Dict[str, float] = dict()
@@ -140,7 +141,7 @@ def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) 
             scores = case.find("scores")
             scores_float = [float(score.text.strip()) for score in scores]
             if len(scores_float) > 1:
-                logging.warning(f"More than one score for benchmark {label}, "
+                _logger.warning(f"More than one score for benchmark {label}, "
                                 f"using the last one (the newest one).")
             label_score_dict[label] = scores_float[len(scores_float) - 1]
     return JobReport(
