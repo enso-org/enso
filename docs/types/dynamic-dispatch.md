@@ -66,9 +66,9 @@ another.
 Multiple dispatch is currently used for
 [binary operators](../syntax/functions.md#type-ascriptions-and-operator-resolution).
 
-Supporting for general functions remains an open question as to whether we want
-to support proper multiple dispatch in Enso. Multiple dispatch refers to the
-dynamic dispatch target being determined based not only on the type of the
+Supporting it for general functions remains an open question as to whether we
+want to support proper multiple dispatch in Enso. Multiple dispatch refers to
+the dynamic dispatch target being determined based not only on the type of the
 `this` argument, but the types of the other arguments to the function.
 
 To do multiple dispatch properly, it is very important to get a rigorous
