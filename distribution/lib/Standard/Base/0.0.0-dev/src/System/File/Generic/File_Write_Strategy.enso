@@ -1,5 +1,4 @@
 import project.Error.Error
-import project.Errors.Common.Forbidden_Operation
 import project.Errors.File_Error.File_Error
 import project.Panic.Panic
 import project.Runtime.Context
@@ -31,7 +30,12 @@ type File_Write_Strategy
        A remote file is downloaded to a temporary file and the provided action
        is called with that local temporary file. Then that file is uploaded to
        replace the remote file.
-    Value write_overwriting write_appending write_raising_error write_backing_up create_dry_run_file write_with_local_file
+
+       The `copy_from_local` action creates the file on a given backend from a
+       local file. It can be used to implement more efficient upload strategies
+       than ones based on just writing to an output stream.
+       The default `generic_copy` implementation can always be used here.
+    Value write_overwriting write_appending write_raising_error write_backing_up create_dry_run_file write_with_local_file copy_from_local
 
     ## PRIVATE
        Writes to a file according to the provided existing file behaviour.
@@ -74,7 +78,7 @@ default_raise_error file action =
 
 ## PRIVATE
 generic_remote_write_with_local_file (file : Writable_File) existing_file_behavior action =
-    if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Writing to remote file backends is not allowed in dry-run mode.") else
+    Context.Output.if_enabled disabled_message="Writing to remote file backends is not allowed in dry-run mode." panic=False <|
         temp_file = File.create_temporary_file prefix="remote-write-"
         Panic.with_finalizer temp_file.delete <|
             tmp_synchronized = case file.exists of
@@ -128,3 +132,12 @@ dry_run_behavior file behavior:Existing_File_Behavior -> Dry_Run_File_Settings =
         Dry_Run_File_Settings.Value Existing_File_Behavior.Overwrite copy_original=False
     Existing_File_Behavior.Append ->
         Dry_Run_File_Settings.Value Existing_File_Behavior.Append copy_original=True
+
+## PRIVATE
+   Generic `copy` implementation between two backends.
+   The files only need to support `with_input_stream` and `with_output_stream`.
+generic_copy source destination replace_existing =
+    source.with_input_stream [File_Access.Read] input_stream->
+        options = if replace_existing then [File_Access.Write, File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Write, File_Access.Create_New]
+        destination.with_output_stream options output_stream->
+            output_stream.write_stream input_stream . if_not_error destination
