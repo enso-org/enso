@@ -19,12 +19,14 @@ import org.graalvm.polyglot.Value;
 
 /** A UnaryOperation is an operation that can be applied to a single ColumnStorage. */
 public interface UnaryOperation {
-  /** Applies the operation to the given Column. If an unsupported by the operation returns null
+  /**
+   * Applies the operation to the given Column. If an unsupported by the operation returns null
+   *
    * @param column the column to apply the operation to.
    * @param operation the operation to apply.
    * @param newColumnName the name of the new column.
    * @param problemAggregator the problem aggregator to report problems to.
-   * */
+   */
   static Column apply(
       Column column,
       UnaryOperation operation,
@@ -47,14 +49,16 @@ public interface UnaryOperation {
     return new Column(newColumnName, (Storage<?>) result);
   }
 
-  /** Applies a function to every row in a column.
+  /**
+   * Applies a function to every row in a column.
+   *
    * @param column the column to apply the operation to.
    * @param function the function to apply.
    * @param nothingUnchanged whether to keep nothing values unchanged.
    * @param expectedResultType the expected type of the result.
    * @param newColumnName the name of the new column.
    * @param problemAggregator the problem aggregator to report problems to.
-   * */
+   */
   static Column mapFunction(
       Column column,
       Function<Object, Value> function,

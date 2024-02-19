@@ -23,29 +23,41 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  public ColumnStorage apply(ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage apply(
+      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof BoolStorage boolStorage) {
-      return new BoolStorage(boolStorage.getValues(), boolStorage.getIsNothingMap(), boolStorage.size(), !boolStorage.isNegated());
+      return new BoolStorage(
+          boolStorage.getValues(),
+          boolStorage.getIsNothingMap(),
+          boolStorage.size(),
+          !boolStorage.isNegated());
     }
 
     var builder = createBuilder(storage, problemAggregator);
     if (storage instanceof ColumnBooleanStorage booleanStorage) {
-      UnaryOperation.applyOverBooleanStorage(booleanStorage, true, builder, (isNothing, value) -> builder.appendBoolean(!value));
+      UnaryOperation.applyOverBooleanStorage(
+          booleanStorage, true, builder, (isNothing, value) -> builder.appendBoolean(!value));
     } else {
-      UnaryOperation.applyOverObjectStorage(storage, true, builder, (value) -> {
-        if (value instanceof Boolean b) {
-          builder.appendBoolean(!b);
-        } else {
-          throw new IllegalArgumentException("Unsupported type: "+value.getClass() + " (expected boolean type).");
-        }
-      });
+      UnaryOperation.applyOverObjectStorage(
+          storage,
+          true,
+          builder,
+          (value) -> {
+            if (value instanceof Boolean b) {
+              builder.appendBoolean(!b);
+            } else {
+              throw new IllegalArgumentException(
+                  "Unsupported type: " + value.getClass() + " (expected boolean type).");
+            }
+          });
     }
 
     return builder.seal();
   }
 
   @Override
-  protected void applyObjectRow(Object value, BoolBuilder builder, MapOperationProblemAggregator problemAggregator) {
+  protected void applyObjectRow(
+      Object value, BoolBuilder builder, MapOperationProblemAggregator problemAggregator) {
     throw new UnsupportedOperationException();
   }
 }
