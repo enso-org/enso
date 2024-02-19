@@ -13,7 +13,10 @@ from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport, Commit, Author
 from bench_tool.gh import invoke_gh_api
 from bench_tool.remote_cache import RemoteCache
 
+ARTIFACT_ID = "Runtime Benchmark Report"
+
 _logger = logging.getLogger(__name__)
+
 
 async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow_id: int) -> List[JobRun]:
     """
@@ -79,11 +82,12 @@ async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: Remot
     # be downloaded as a ZIP file.
     obj: Dict[str, Any] = await invoke_gh_api(ENSO_REPO, f"/actions/runs/{bench_run.id}/artifacts")
     artifacts = obj["artifacts"]
-    if len(artifacts) != 1:
-        _logger.warning("Bench run %s does not contain exactly one artifact, but it is a successful run.",
-                        bench_run.id)
+    artifacts_by_names = {artifact["name"]: artifact for artifact in artifacts}
+    if ARTIFACT_ID not in artifacts_by_names:
+        _logger.warning("Bench run %s does not contain the artifact named %s, but it is a successful run.",
+                        bench_run.id, ARTIFACT_ID)
         return None
-    bench_report_artifact = artifacts[0]
+    bench_report_artifact = artifacts_by_names[ARTIFACT_ID]
     assert bench_report_artifact, "Benchmark Report artifact not found"
     artifact_id = str(bench_report_artifact["id"])
     created_at = bench_report_artifact["created_at"]
