@@ -105,34 +105,6 @@ def _parse_bench_run_from_json(obj: Dict[Any, Any]) -> JobRun:
     )
 
 
-def _parse_bench_report_from_json(obj: Dict[Any, Any]) -> JobReport:
-    return JobReport(
-        bench_run=_parse_bench_run_from_json(obj["bench_run"]),
-        label_score_dict=obj["label_score_dict"]
-    )
-
-
-def _bench_report_to_json(bench_report: JobReport) -> Dict[Any, Any]:
-    return {
-        "bench_run": {
-            "id": bench_report.bench_run.id,
-            "html_url": bench_report.bench_run.html_url,
-            "run_attempt": bench_report.bench_run.run_attempt,
-            "event": bench_report.bench_run.event,
-            "display_title": bench_report.bench_run.display_title,
-            "head_commit": {
-                "id": bench_report.bench_run.head_commit.id,
-                "message": bench_report.bench_run.head_commit.message,
-                "timestamp": bench_report.bench_run.head_commit.timestamp,
-                "author": {
-                    "name": bench_report.bench_run.head_commit.author.name
-                }
-            }
-        },
-        "label_score_dict": bench_report.label_score_dict
-    }
-
-
 def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) -> "JobReport":
     logging.debug(f"Parsing BenchReport from {bench_report_xml_path}")
     tree = ET.parse(bench_report_xml_path)
@@ -153,86 +125,6 @@ def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) 
         label_score_dict=label_score_dict,
         bench_run=bench_run
     )
-
-
-def _is_benchrun_id(name: str) -> bool:
-    return re.match("\d{9}", name) is not None
-
-
-def _read_json(json_file: str) -> Dict[Any, Any]:
-    assert path.exists(json_file) and path.isfile(json_file)
-    with open(json_file, "r") as f:
-        return json.load(f)
-
-
-class Cache:
-    """
-    Cache is a directory filled with json files that have name of format <bench_run_id>.json, and
-    in every json, there is `BenchReport` dataclass serialized.
-    """
-
-    def __init__(self, dirname: str):
-        assert path.exists(dirname) and path.isdir(dirname)
-        self._dir = dirname
-        # Keys are BenchRun ids
-        self._items: Dict[str, JobReport] = {}
-        for fname in os.listdir(dirname):
-            fname_without_ext, ext = path.splitext(fname)
-            if _is_benchrun_id(fname_without_ext) and ext == ".json":
-                logging.debug(f"Loading into cache from {fname}")
-                bench_report = _parse_bench_report_from_json(
-                    _read_json(path.join(dirname, fname))
-                )
-                self._items[fname_without_ext] = bench_report
-
-    def __len__(self) -> int:
-        return len(self._items)
-
-    def __contains__(self, key: str) -> bool:
-        assert _is_benchrun_id(key)
-        return key in self._items
-
-    def __getitem__(self, item: str) -> Optional[JobReport]:
-        if not _is_benchrun_id(item):
-            return None
-        else:
-            return self._items[item]
-
-    def __setitem__(self, bench_run_id: str, bench_report: JobReport) -> None:
-        assert isinstance(bench_report, JobReport)
-        assert isinstance(bench_run_id, str)
-        assert _is_benchrun_id(bench_run_id)
-        self._items[bench_run_id] = bench_report
-        json_fname = path.join(self._dir, bench_run_id + ".json")
-        logging.debug(f"Putting {bench_run_id} into cache {json_fname}")
-        with open(json_fname, "w") as json_file:
-            json.dump(
-                _bench_report_to_json(bench_report),
-                json_file,
-                indent=2,
-                ensure_ascii=False
-            )
-
-    def __str__(self) -> str:
-        return str(self._items)
-
-    def contains(self, bench_run_id: str) -> bool:
-        return bench_run_id in self._items
-
-
-class FakeCache:
-    def __getitem__(self, item):
-        return None
-
-    def __setitem__(self, key, value):
-        pass
-
-    def __contains__(self, item):
-        return False
-
-    def __len__(self):
-        return 0
-
 
 async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow_id: int) -> List[JobRun]:
     """
