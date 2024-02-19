@@ -91,7 +91,7 @@ jobs:
       # "npm run clean-old-generated-directory && npm run build-rust-ffi && npm run generate-ast-schema && npm run generate-ast-types && npm run generate-metadata",
         
       - name: npm install
-        run: npm -ddd install
+        run: npm install
         working-directory: app/gui2
 
       - run: npm run clean-old-generated-directory
