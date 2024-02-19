@@ -3,13 +3,13 @@ package org.enso.interpreter.instrument.job;
 import com.oracle.truffle.api.TruffleLogger;
 import java.util.UUID;
 import java.util.logging.Level;
-import org.enso.interpreter.instrument.Visualization;
+import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.execution.Executable;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.util.ScalaConversions;
 
 /** The job that schedules the execution of the expression. */
-public class ExecuteExpressionJob extends Job<Executable> {
+public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<Executable> {
 
   private final UUID contextId;
   private final UUID visualizationId;
@@ -26,7 +26,7 @@ public class ExecuteExpressionJob extends Job<Executable> {
    */
   public ExecuteExpressionJob(
       UUID contextId, UUID visualizationId, UUID expressionId, String expression) {
-    super(ScalaConversions.cons(contextId, ScalaConversions.nil()), false, false);
+    super(ScalaConversions.cons(contextId, ScalaConversions.nil()), true, false);
     this.contextId = contextId;
     this.visualizationId = visualizationId;
     this.expressionId = expressionId;
@@ -39,9 +39,9 @@ public class ExecuteExpressionJob extends Job<Executable> {
     long lockTimestamp = ctx.locking().acquireContextLock(contextId);
 
     try {
-      Visualization visualization =
-          new Visualization.OneshotExpression(visualizationId, expressionId, contextId, expression);
-      ctx.contextManager().upsertVisualization(contextId, visualization);
+      OneshotExpression oneshotExpression =
+          new OneshotExpression(visualizationId, expressionId, contextId, expression);
+      ctx.contextManager().setOneshotExpression(contextId, oneshotExpression);
 
       var stack = ctx.contextManager().getStack(contextId);
       return new Executable(contextId, stack);
@@ -54,5 +54,10 @@ public class ExecuteExpressionJob extends Job<Executable> {
             this.getClass().getSimpleName(), System.currentTimeMillis() - lockTimestamp
           });
     }
+  }
+
+  @Override
+  public boolean equalsTo(UniqueJob<?> that) {
+    return that instanceof ExecuteExpressionJob;
   }
 }

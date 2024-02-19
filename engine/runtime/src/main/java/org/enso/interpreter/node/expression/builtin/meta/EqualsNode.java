@@ -8,18 +8,20 @@ import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
@@ -43,8 +45,7 @@ import org.enso.interpreter.runtime.state.State;
 public final class EqualsNode extends Node {
   @Child private EqualsSimpleNode node;
   @Child private TypeOfNode types;
-  @Child private WithConversionNode convert1;
-  @Child private WithConversionNode convert2;
+  @Child private WithConversionNode convert;
 
   private static final EqualsNode UNCACHED =
       new EqualsNode(EqualsSimpleNodeGen.getUncached(), TypeOfNode.getUncached(), true);
@@ -53,8 +54,7 @@ public final class EqualsNode extends Node {
     this.node = node;
     this.types = types;
     if (uncached) {
-      convert1 = EqualsNodeFactory.WithConversionNodeGen.getUncached();
-      convert2 = convert1;
+      convert = EqualsNodeFactory.WithConversionNodeGen.getUncached();
     }
   }
 
@@ -89,13 +89,11 @@ public final class EqualsNode extends Node {
       var selfType = types.execute(self);
       var otherType = types.execute(other);
       if (selfType != otherType) {
-        if (convert1 == null) {
+        if (convert == null) {
           CompilerDirectives.transferToInterpreter();
-          convert1 = insert(WithConversionNode.create());
-          convert2 = insert(WithConversionNode.create());
+          convert = insert(WithConversionNode.create());
         }
-        return convert1.executeWithConversion(frame, other, self)
-            || convert2.executeWithConversion(frame, self, other);
+        return convert.executeWithConversion(frame, other, self);
       }
     }
     return areEqual;
@@ -128,8 +126,6 @@ public final class EqualsNode extends Node {
       return findType(TypeOfNode.getUncached(), obj);
     }
 
-    record Convert(Function f1, Function f2, Function f3) {}
-
     private static boolean isDefinedIn(ModuleScope scope, Function fn) {
       if (fn.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRoot) {
         return ensoRoot.getModuleScope() == scope;
@@ -138,14 +134,41 @@ public final class EqualsNode extends Node {
       }
     }
 
-    Convert findConversions(Type selfType, Type thatType) {
+    @CompilerDirectives.TruffleBoundary
+    private static Object convertor(EnsoContext ctx, Function convFn, Object value) {
+      var argSchema = new CallArgumentInfo[] {new CallArgumentInfo(), new CallArgumentInfo()};
+      var node =
+          InvokeFunctionNode.build(
+              argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
+      var state = State.create(ctx);
+      return node.execute(
+          convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
+    }
+
+    /**
+     * @return {@code null} if no conversion found
+     */
+    Boolean findConversions(Type selfType, Type thatType, Object self, Object that) {
       if (selfType == null || thatType == null) {
         return null;
       }
       var ctx = EnsoContext.get(this);
-      var comparableType = ctx.getBuiltins().comparable().getType();
 
+      if (findConversionImpl(ctx, selfType, thatType, self, that)) {
+        return false;
+      } else {
+        if (findConversionImpl(ctx, thatType, selfType, that, self)) {
+          return true;
+        } else {
+          return null;
+        }
+      }
+    }
+
+    private static boolean findConversionImpl(
+        EnsoContext ctx, Type selfType, Type thatType, Object self, Object that) {
       var selfScope = selfType.getDefinitionScope();
+      var comparableType = ctx.getBuiltins().comparable().getType();
 
       var fromSelfType =
           UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, selfType);
@@ -155,15 +178,16 @@ public final class EqualsNode extends Node {
 
       if (isDefinedIn(selfScope, fromSelfType)
           && isDefinedIn(selfScope, fromThatType)
+          && convertor(ctx, fromSelfType, self) == convertor(ctx, fromThatType, that)
           && betweenBoth != null) {
-        return new Convert(fromSelfType, fromThatType, betweenBoth);
+        return true;
       } else {
-        return null;
+        return false;
       }
     }
 
     @Specialization(
-        limit = "3",
+        limit = "10",
         guards = {
           "selfType != null",
           "thatType != null",
@@ -175,18 +199,21 @@ public final class EqualsNode extends Node {
         Object self,
         Object that,
         @Shared("typeOf") @Cached TypeOfNode typeOfNode,
-        @CachedLibrary(limit = "3") TypesLibrary types,
         @Cached(value = "findType(typeOfNode, self)", uncached = "findTypeUncached(self)")
             Type selfType,
         @Cached(value = "findType(typeOfNode, that)", uncached = "findTypeUncached(that)")
             Type thatType,
-        @Cached("findConversions(selfType, thatType)") Convert convert,
+        @Cached("findConversions(selfType, thatType, self, that)") Boolean convert,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
         @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       if (convert == null) {
         return false;
       }
-      return doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+      if (convert) {
+        return doDispatch(frame, that, self, thatType, convertNode, equalityNode);
+      } else {
+        return doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+      }
     }
 
     @Specialization(replaces = "doConversionCached")
@@ -199,8 +226,12 @@ public final class EqualsNode extends Node {
         @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       var selfType = findType(typeOfNode, self);
       var thatType = findType(typeOfNode, that);
-      if (findConversions(selfType, thatType) != null) {
-        var result = doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+      var conv = findConversions(selfType, thatType, self, that);
+      if (conv != null) {
+        var result =
+            conv
+                ? doDispatch(frame, that, self, thatType, convertNode, equalityNode)
+                : doDispatch(frame, self, that, selfType, convertNode, equalityNode);
         return result;
       }
       return false;
@@ -221,7 +252,7 @@ public final class EqualsNode extends Node {
       try {
         var thatAsSelf = convertNode.execute(convert, state, new Object[] {selfType, that});
         var result = equalityNode.execute(frame, self, thatAsSelf);
-        assert !result || assertHashCodeIsTheSame(self, thatAsSelf);
+        assert !result || assertHashCodeIsTheSame(that, thatAsSelf);
         return result;
       } catch (ArityException ex) {
         var assertsOn = false;
@@ -242,17 +273,17 @@ public final class EqualsNode extends Node {
       var selfHash = HashCodeNode.getUncached().execute(self);
       var convertedHash = HashCodeNode.getUncached().execute(converted);
       var ok = selfHash == convertedHash;
-      var msg =
-          "Different hash code! Original "
-              + self
-              + "[#"
-              + Long.toHexString(selfHash)
-              + "] got converted to "
-              + converted
-              + "[#"
-              + Long.toHexString(convertedHash)
-              + "]";
       if (!ok) {
+        var msg =
+            "Different hash code! Original "
+                + self
+                + "[#"
+                + Long.toHexString(selfHash)
+                + "] got converted to "
+                + converted
+                + "[#"
+                + Long.toHexString(convertedHash)
+                + "]";
         var ctx = EnsoContext.get(this);
         throw ctx.raiseAssertionPanic(this, msg, new AssertionError(msg));
       }
