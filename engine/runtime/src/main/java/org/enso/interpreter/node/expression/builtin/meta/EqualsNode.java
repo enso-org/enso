@@ -134,6 +134,7 @@ public final class EqualsNode extends Node {
       }
     }
 
+    @CompilerDirectives.TruffleBoundary
     private static Object convertor(EnsoContext ctx, Function convFn, Object value) {
       var argSchema = new CallArgumentInfo[] {new CallArgumentInfo(), new CallArgumentInfo()};
       var node =
