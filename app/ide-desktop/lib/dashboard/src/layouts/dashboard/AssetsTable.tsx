@@ -372,7 +372,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => new Set()
   )
   const selectedKeysRef = React.useRef(selectedKeys)
-  const [dragSelectionRange, setDragSelectionRange] = React.useState<DragSelectionInfo | null>(null)
   const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
     ReadonlySet<backendModule.AssetId>
   > | null>(null)
@@ -1791,40 +1790,106 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [isLoading])
 
-  const onSelectionAreaChange = React.useCallback((rectangle: geometry.Rectangle | null) => {
-    const body = bodyRef.current
-    if (rectangle == null) {
-      // TODO: commit selection
-    } else if (body != null) {
-      const bodyRect = body.getBoundingClientRect()
-      const selectionTop = Math.max(0, rectangle.top - bodyRect.top)
-      const selectionBottom = Math.max(
-        0,
-        Math.min(bodyRect.height, rectangle.top + rectangle.height - bodyRect.top)
-      )
-      setDragSelectionRange(oldRange => {
-        if (oldRange == null) {
+  const calculateNewKeys = React.useCallback(
+    (
+      event: MouseEvent | React.MouseEvent,
+      keys: backendModule.AssetId[],
+      getRange: () => backendModule.AssetId[]
+    ) => {
+      event.stopPropagation()
+      if (
+        shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.selectRange, event)
+      ) {
+        return new Set(getRange())
+      } else if (
+        shortcutManager.matchesMouseAction(
+          shortcutManagerModule.MouseAction.selectAdditionalRange,
+          event
+        )
+      ) {
+        return new Set([...selectedKeysRef.current, ...getRange()])
+      } else if (
+        shortcutManager.matchesMouseAction(
+          shortcutManagerModule.MouseAction.selectAdditional,
+          event
+        )
+      ) {
+        const newSelectedKeys = new Set(selectedKeysRef.current)
+        for (const key of keys) {
+          set.setPresence(newSelectedKeys, key, !newSelectedKeys.has(key))
+        }
+        return newSelectedKeys
+      } else {
+        return new Set(keys)
+      }
+    },
+    [shortcutManager]
+  )
+
+  // Only non-`null` when it is different to`selectedKeys`.
+  const [visuallySelectedKeysOverride, setVisuallySelectedKeysOverride] =
+    React.useState<ReadonlySet<backendModule.AssetId> | null>(null)
+
+  const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
+  const onDragSelectionChange = React.useCallback(
+    (rectangle: geometry.DetailedRectangle | null, event: MouseEvent) => {
+      const body = bodyRef.current
+      if (rectangle == null) {
+        const range = dragSelectionRangeRef.current
+        if (range != null) {
+          const keys = displayItems.slice(range.start, range.end).map(node => node.key)
+          setSelectedKeys(calculateNewKeys(event, keys, () => []))
+        }
+        setVisuallySelectedKeysOverride(null)
+      } else if (body != null) {
+        const bodyRect = body.getBoundingClientRect()
+        const overlapsHorizontally =
+          bodyRect.right > rectangle.left && bodyRect.left < rectangle.right
+        const selectionTop = !overlapsHorizontally ? 0 : Math.max(0, rectangle.top - bodyRect.top)
+        const selectionBottom = !overlapsHorizontally
+          ? 0
+          : Math.max(0, Math.min(bodyRect.height, rectangle.bottom - bodyRect.top))
+        const range = dragSelectionRangeRef.current
+        if (range == null) {
           const topIndex = Math.floor((selectionTop + body.scrollTop) / ROW_HEIGHT)
           const bottomIndex = Math.ceil((selectionBottom + body.scrollTop) / ROW_HEIGHT)
-          return { initialScrollTop: body.scrollTop, start: topIndex, end: bottomIndex }
+          dragSelectionRangeRef.current = {
+            initialScrollTop: body.scrollTop,
+            start: topIndex,
+            end: bottomIndex,
+          }
         } else {
+          const scrollDelta = range.initialScrollTop - body.scrollTop
+          const shouldResetScrollTop =
+            (scrollDelta < 0 && rectangle.signedHeight > 0) ||
+            (scrollDelta > 0 && rectangle.signedHeight < 0)
+          const scrollTop = shouldResetScrollTop ? body.scrollTop : range.initialScrollTop
           const topIndex = Math.floor(
-            (selectionTop + Math.min(oldRange.initialScrollTop, body.scrollTop)) / ROW_HEIGHT
+            (selectionTop + Math.min(scrollTop, body.scrollTop)) / ROW_HEIGHT
           )
           const bottomIndex = Math.ceil(
-            (selectionBottom + Math.max(oldRange.initialScrollTop, body.scrollTop)) / ROW_HEIGHT
+            (selectionBottom + Math.max(scrollTop, body.scrollTop)) / ROW_HEIGHT
           )
-          return { initialScrollTop: oldRange.initialScrollTop, start: topIndex, end: bottomIndex }
+          dragSelectionRangeRef.current = {
+            initialScrollTop: scrollTop,
+            start: topIndex,
+            end: bottomIndex,
+          }
         }
-      })
-    }
-  }, [])
+        const keys = displayItems
+          .slice(dragSelectionRangeRef.current.start, dragSelectionRangeRef.current.end)
+          .map(node => node.key)
+        setVisuallySelectedKeysOverride(calculateNewKeys(event, keys, () => []))
+      }
+    },
+    [displayItems, calculateNewKeys, /* should never change */ setSelectedKeys]
+  )
 
   const onRowClick = React.useCallback(
     (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
       const { key } = innerRowProps
       event.stopPropagation()
-      const getNewlySelectedKeys = () => {
+      const getRange = () => {
         if (previouslySelectedKey == null) {
           return [key]
         } else {
@@ -1841,39 +1906,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           return selectedItems.map(AssetTreeNode.getKey)
         }
       }
-      if (
-        shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.selectRange, event)
-      ) {
-        setSelectedKeys(new Set(getNewlySelectedKeys()))
-      } else if (
-        shortcutManager.matchesMouseAction(
-          shortcutManagerModule.MouseAction.selectAdditionalRange,
-          event
-        )
-      ) {
-        setSelectedKeys(new Set([...selectedKeysRef.current, ...getNewlySelectedKeys()]))
-      } else if (
-        shortcutManager.matchesMouseAction(
-          shortcutManagerModule.MouseAction.selectAdditional,
-          event
-        )
-      ) {
-        const newSelectedKeys = new Set(selectedKeysRef.current)
-        if (selectedKeysRef.current.has(key)) {
-          newSelectedKeys.delete(key)
-        } else {
-          newSelectedKeys.add(key)
-        }
-        setSelectedKeys(newSelectedKeys)
-      } else {
-        setSelectedKeys(new Set([key]))
-      }
+      setSelectedKeys(calculateNewKeys(event, [key], getRange))
       setPreviouslySelectedKey(key)
     },
     [
       displayItems,
       previouslySelectedKey,
-      shortcutManager,
+      calculateNewKeys,
       /* should never change */ setSelectedKeys,
     ]
   )
@@ -1909,7 +1948,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   ) : (
     displayItems.map(item => {
       const key = AssetTreeNode.getKey(item)
-      const isSelected = selectedKeys.has(key)
+      const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
       const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
       return (
         <AssetRow
@@ -2152,7 +2191,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
-      <SelectionBrush onChange={onSelectionAreaChange} />
+      <SelectionBrush onChange={onDragSelectionChange} />
       <div className="flex flex-col w-min min-w-full h-full">
         {isCloud && (
           <div className="sticky top-0 h-0 flex flex-col">

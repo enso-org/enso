@@ -6,10 +6,14 @@ export interface Coordinate2D {
   readonly top: number
 }
 
-/** A rectangle. */
-export interface Rectangle {
+/** A rectangle, including all common measurements. */
+export interface DetailedRectangle {
   readonly left: number
   readonly top: number
+  readonly right: number
+  readonly bottom: number
   readonly width: number
   readonly height: number
+  readonly signedWidth: number
+  readonly signedHeight: number
 }
