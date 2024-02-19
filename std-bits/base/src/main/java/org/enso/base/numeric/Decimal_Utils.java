@@ -47,7 +47,6 @@ public class Decimal_Utils {
   }
 
   public static BigDecimal fromEnsoFloat(Double d) {
-    System.out.println("fEF " + d);
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
@@ -55,7 +54,6 @@ public class Decimal_Utils {
   }
 
   public static ConversionResult fromEnsoFloat(Double d, MathContext mc) {
-    System.out.println("fEF mc " + d);
     BigDecimal bd = new BigDecimal(d, mc);
     BigDecimal withoutMC = new BigDecimal(d);
     double backToDouble = bd.doubleValue();

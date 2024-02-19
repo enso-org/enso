@@ -10,7 +10,8 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Numbers import Integer, Float, Number_Parse_Error
+from project.Data.Numbers import Integer, Float, Number, Number_Parse_Error
+from project.Data.Ordering import Comparable, Ordering
 from project.Errors.Common import Loss_Of_Numeric_Precision
 
 polyglot java import java.lang.NumberFormatException
@@ -44,9 +45,6 @@ type Decimal
            if a `Math_Context` value is explicitly passed.
     new : Text | Integer | Float -> Math_Context -> Decimal | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
-        IO.println 'AAA new'
-        IO.println x
-        IO.println (Meta.get_simple_type_name x)
         case x of
             _ : Text -> Decimal.from_text x mc
             _ : Integer -> Decimal.from_integer x mc
@@ -73,7 +71,6 @@ type Decimal
            if a `Math_Context` value is explicitly passed.
     from_text : Text -> Math_Context -> Decimal | Number_Parse_Error
     from_text (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
-        IO.println "AAA ft"
         handle_number_format_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
@@ -126,11 +123,12 @@ type Decimal
     / : Decimal -> Decimal -> Decimal
     / self (that:Decimal) = self.divide that
 
-    == self that =
-        case that of
-            _ : Integer -> self.big_decimal.compareTo(Decimal.from_integer that . big_decimal) == 0
-            _ : Float -> self.big_decimal.compareTo(Decimal.from_float that . big_decimal) == 0
-            _ : Decimal -> self.big_decimal.compareTo(that.big_decimal) == 0
+    ##
+        == self that =
+            case that of
+                _ : Integer -> self.big_decimal.compareTo(Decimal.from_integer that . big_decimal) == 0
+                _ : Float -> self.big_decimal.compareTo(Decimal.from_float that . big_decimal) == 0
+                _ : Decimal -> self.big_decimal.compareTo(that.big_decimal) == 0
 
     add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
@@ -171,6 +169,12 @@ handle_precision_loss original_value conversion_result:Decimal_Utils.Conversion_
         new_value = conversion_result.newValue
         Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
 
+type Decimal_Comparator
+    compare x:Decimal y:Decimal = Ordering.from_sign (x.big_decimal.compareTo(y.big_decimal))
+    hash x:Decimal = x.big_decimal.hashCode
+
+Comparable.from (_:Decimal) = Decimal_Comparator
+Comparable.from (_:Number) = Decimal_Comparator
+
 Decimal.from (that:Text) = Decimal.from_text that
-Decimal.from (that:Integer) = Decimal.from_integer that
-Decimal.from (that:Float) = Decimal.from_float that
+Decimal.from (that:Number) = Decimal.new that
