@@ -4,9 +4,16 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.S3_Error
 import project.S3.S3
 
+## PRIVATE
+   An abstraction for S3 paths, holding the bucket name and the key.
+
+   This helper implements resolving paths in a folder-like structure as
+   described at https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
 type S3_Path
+    ## PRIVATE
     Value (bucket : Text) (key : Text)
 
+    ## PRIVATE
     parse (uri : Text) -> S3_Path ! Illegal_Argument =
         if uri.starts_with S3.uri_prefix . not then Error.throw (Illegal_Argument.Error "An S3 path must start with `"+S3.uri_prefix+"`.") else
             without_prefix = uri.drop S3.uri_prefix.length
@@ -15,14 +22,27 @@ type S3_Path
                 if first_slash_index.is_nothing then S3_Path.Value without_prefix "" else
                     Pair.new (without_prefix.take first_slash_index) (without_prefix.drop first_slash_index+1)
 
+    ## PRIVATE
     to_text self -> Text = S3.uri_prefix + self.bucket + S3_Path.delimiter + self.key
 
+    ## PRIVATE
     to_display_text self -> Text = self.to_text.to_display_text
 
+    ## PRIVATE
+       Checks if this path represents the root directory of a bucket.
     is_root self -> Boolean = self.key.is_empty
 
+    ## PRIVATE
+       Checks if this path represents a directory.
     is_directory self -> Boolean = self.is_root || (self.key.ends_with S3_Path.delimiter)
 
+    ## PRIVATE
+       Resolves a subdirectory entry.
+       This only makes logical sense for paths for which `path.is_directory == True`,
+       but it is not forbidden to call it on other types of paths.
+
+       Note that the newly returned path will be a directory or not depending on
+       if `subpath` ends with the delimiter.
     resolve self (subpath : Text) -> S3_Path =
         trimmed = if subpath.starts_with S3_Path.delimiter then subpath.drop (First 1) else subpath
         parts = trimmed.split S3_Path.delimiter
@@ -45,6 +65,9 @@ type S3_Path
         new_path = loop initial parts
         S3_Path.Value self.bucket new_path
 
+    ## PRIVATE
+       Returns the parent directory.
+       It will return `Nothing` for the root directory.
     parent self -> S3_Path | Nothing =
         if self.key == "" then Nothing else
             last_index = case self.is_directory of
@@ -57,12 +80,19 @@ type S3_Path
             new_key = if last_index == Nothing then "" else self.key.take last_index+1
             S3_Path.Value self.bucket new_key
 
+    ## PRIVATE
+       Returns the 'file name' of this path.
+       If the path is a regular file, it will be its name.
+       If the path is a directory, it will be the name of that directory,
+       without the trailing delimiter.
     file_name self -> Text =
         if self.is_root then S3_Path.delimiter else
             trimmed = if self.key.ends_with S3_Path.delimiter then self.key.drop (Last 1) else self.key
             last_index = trimmed.last_index_of S3_Path.delimiter
             if last_index == Nothing then trimmed else trimmed.drop (First last_index+1)
 
+    ## PRIVATE
+       Checks if the given other path is inside of this path.
     is_descendant_of self (other : S3_Path) -> Boolean =
         other.is_directory && self.to_text.starts_with other.to_text
 
