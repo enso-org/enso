@@ -77,10 +77,9 @@ export default function DriveBar(props: DriveBarProps) {
     <div className="flex h-8 py-0.5">
       <div className="flex gap-2.5">
         <button
-          disabled={!isHomeCategory}
           className="flex items-center bg-frame rounded-full h-8 px-2.5"
-          {...(!isHomeCategory ? { title: 'You can only create a new project in Home.' } : {})}
-          onClick={() => {
+          onClick={event => {
+            event.stopPropagation()
             setModal(
               <ConfirmDeleteModal
                 forever
@@ -90,13 +89,7 @@ export default function DriveBar(props: DriveBarProps) {
             )
           }}
         >
-          <span
-            className={`font-semibold whitespace-nowrap leading-5 h-6 py-px ${
-              !isHomeCategory ? 'opacity-50' : ''
-            }`}
-          >
-            Empty
-          </span>
+          <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">Clear Trash</span>
         </button>
       </div>
     </div>
