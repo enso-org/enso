@@ -92,7 +92,6 @@ jobs:
 
       - name: npm install
         run: npm install
-        working-directory: app/gui2
 
       - run: npm run clean-old-generated-directory
         working-directory: app/gui2
