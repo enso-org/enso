@@ -505,7 +505,7 @@ type DB_Table
     use_first_row_as_names : Problem_Behavior -> DB_Table
     use_first_row_as_names self (on_problems=Report_Warning) =
         _ = on_problems
-        Error.throw (Unsupported_Database_Operation.Error "Table.use_first_row_as_names is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.use_first_row_as_names is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## PRIVATE
 
@@ -875,7 +875,7 @@ type DB_Table
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Array` for `set` in the database.")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Range` for `set` in the database.")
             _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Date_Range` for `set` in the database.")
-            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
+            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `DB_Table.set`.")
 
         ## If `new_name` was specified, use that. Otherwise, if `column` is a
            `DB_Column`, use its name. In these two cases, do not make it unique.
@@ -1503,7 +1503,7 @@ type DB_Table
     replace : DB_Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:(DB_Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         _ = [lookup_table, column, from_column, to_column, allow_unmatched_rows, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.replace is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.replace is not implemented yet for the Database backends.")
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -1555,7 +1555,7 @@ type DB_Table
     zip : DB_Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> DB_Table
     zip self right keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =
         _ = [right, keep_unmatched, right_prefix, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.zip is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.zip is not implemented yet for the Database backends.")
 
     ## ALIAS append, concat
        GROUP Standard.Base.Calculations
@@ -2104,7 +2104,7 @@ type DB_Table
     format : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Text | Date_Time_Formatter | DB_Column -> Locale -> Boolean -> Problem_Behavior -> DB_Table ! Date_Time_Format_Parse_Error | Illegal_Argument
     format self columns format:(Text | Date_Time_Formatter | DB_Column)="" locale=Locale.default error_on_missing_columns=True on_problems=Report_Warning =
         _ = [columns, format, locale, error_on_missing_columns, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.format is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.format is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2128,7 +2128,7 @@ type DB_Table
     split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> DB_Table
     split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
         _ = [column, delimiter, column_count, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.split_to_columns is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.split_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2143,7 +2143,7 @@ type DB_Table
     split_to_rows : Text | Integer -> Text -> DB_Table
     split_to_rows self column delimiter="," =
         _ = [column, delimiter]
-        Error.throw (Unsupported_Database_Operation.Error "Table.split_to_rows is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.split_to_rows is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2171,7 +2171,7 @@ type DB_Table
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> DB_Table
     tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
         _ = [column, pattern, case_sensitivity, column_count, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_columns is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2193,7 +2193,7 @@ type DB_Table
     tokenize_to_rows : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> DB_Table
     tokenize_to_rows self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
         _ = [column, pattern, case_sensitivity, at_least_one_row]
-        Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_rows is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.tokenize_to_rows is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Conversions
        ICON split_text
@@ -2225,7 +2225,7 @@ type DB_Table
     parse_to_columns : Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> DB_Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         _ = [column, pattern, case_sensitivity, parse_values, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.parse_to_columns is not implemented yet for the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.parse_to_columns is not implemented yet for the Database backends.")
 
     ## GROUP Standard.Base.Calculations
        ICON split_text
@@ -2240,7 +2240,7 @@ type DB_Table
     expand_column : Text | Integer -> Vector | Nothing -> Text | DB_Table -> DB_Table ! Type_Error
     expand_column self column fields=Nothing prefix=Nothing =
             _ = [column, fields, prefix]
-            Error.throw (Unsupported_Database_Operation.Error "Table.expand_column is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+            Error.throw (Unsupported_Database_Operation.Error "DB_Table.expand_column is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## GROUP Standard.Base.Calculations
        ICON split_text
@@ -2278,7 +2278,7 @@ type DB_Table
     expand_to_rows : Text | Integer -> Boolean -> DB_Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_to_rows self column at_least_one_row=False =
         _ = [column, at_least_one_row]
-        Error.throw (Unsupported_Database_Operation.Error "Table.expand_to_rows is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.expand_to_rows is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2349,7 +2349,7 @@ type DB_Table
     auto_value_types : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Boolean -> Boolean -> Problem_Behavior -> DB_Table
     auto_value_types self columns=self.column_names shrink_types=False error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         _ = [columns, shrink_types, error_on_missing_columns, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.auto_value_types is not supported in the Database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.auto_value_types is not supported in the Database backends.")
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
@@ -2797,7 +2797,7 @@ Materialized_Table.from (that:DB_Table) =
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
 
 ## PRIVATE
-Table.from (that:Materialized_Table) =
+DB_Table.from (that:Materialized_Table) =
     _ = [that]
     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Either materialize the other table using `.read` or upload the table into the database using `.select_into_database_table`.")
 
