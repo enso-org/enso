@@ -1,13 +1,13 @@
 package org.enso.interpreter.test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.List;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -84,6 +84,22 @@ public class EqualsConversionsTest extends TestBase {
   }
 
   @Test
+  public void testDifferentComparators() {
+    var gen = new DefineComparableWrapper();
+    gen.intNumConversion = true;
+    gen.intComparator = true;
+    gen.numComparator = false;
+    gen.extraBlock = """
+    type Second_Comparator
+        compare a:Num b:Num = Num_Comparator.compare a b
+        hash a:Num = Num_Comparator.hash a
+
+    Comparable.from (_:Num) = Second_Comparator
+    """;
+    assertFalse("Num.Value not equal to Integer: ", gen.evaluate());
+  }
+
+  @Test
   public void testInconsistentHashFunction() {
     var gen = new DefineComparableWrapper();
     gen.intNumConversion = true;
@@ -106,6 +122,7 @@ public class EqualsConversionsTest extends TestBase {
     boolean numComparator;
     boolean intComparator;
     String hashFn = "Default_Comparator.hash x.n";
+    String extraBlock = "";
 
     boolean evaluate() {
       var block0 =
@@ -148,7 +165,7 @@ public class EqualsConversionsTest extends TestBase {
           r0 = 42 == num42
           r0
       """;
-      var res = TestBase.evalModule(context, block0 + block1 + block2 + block3 + mainBlock);
+      var res = TestBase.evalModule(context, block0 + block1 + block2 + block3 + mainBlock + extraBlock);
       return res.asBoolean();
     }
   }

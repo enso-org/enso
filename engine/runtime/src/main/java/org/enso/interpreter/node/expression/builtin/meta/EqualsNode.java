@@ -8,18 +8,20 @@ import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
@@ -138,7 +140,17 @@ public final class EqualsNode extends Node {
       }
     }
 
-    Convert findConversions(Type selfType, Type thatType) {
+    private static Object convertor(EnsoContext ctx, Function convFn, Object value) {
+      var argSchema = new CallArgumentInfo[] {new CallArgumentInfo(), new CallArgumentInfo()};
+      var node =
+          InvokeFunctionNode.build(
+              argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
+      var state = State.create(ctx);
+      return node.execute(
+          convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
+    }
+
+    Convert findConversions(Type selfType, Type thatType, Object self, Object that) {
       if (selfType == null || thatType == null) {
         return null;
       }
@@ -155,6 +167,7 @@ public final class EqualsNode extends Node {
 
       if (isDefinedIn(selfScope, fromSelfType)
           && isDefinedIn(selfScope, fromThatType)
+          && convertor(ctx, fromSelfType, self) == convertor(ctx, fromThatType, that)
           && betweenBoth != null) {
         return new Convert(fromSelfType, fromThatType, betweenBoth);
       } else {
@@ -175,12 +188,11 @@ public final class EqualsNode extends Node {
         Object self,
         Object that,
         @Shared("typeOf") @Cached TypeOfNode typeOfNode,
-        @CachedLibrary(limit = "3") TypesLibrary types,
         @Cached(value = "findType(typeOfNode, self)", uncached = "findTypeUncached(self)")
             Type selfType,
         @Cached(value = "findType(typeOfNode, that)", uncached = "findTypeUncached(that)")
             Type thatType,
-        @Cached("findConversions(selfType, thatType)") Convert convert,
+        @Cached("findConversions(selfType, thatType, self, that)") Convert convert,
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
         @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       if (convert == null) {
@@ -199,7 +211,7 @@ public final class EqualsNode extends Node {
         @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       var selfType = findType(typeOfNode, self);
       var thatType = findType(typeOfNode, that);
-      if (findConversions(selfType, thatType) != null) {
+      if (findConversions(selfType, thatType, self, that) != null) {
         var result = doDispatch(frame, self, that, selfType, convertNode, equalityNode);
         return result;
       }

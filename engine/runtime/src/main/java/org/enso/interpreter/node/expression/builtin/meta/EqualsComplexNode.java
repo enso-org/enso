@@ -20,7 +20,6 @@ import com.oracle.truffle.api.nodes.Node;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
@@ -291,7 +290,6 @@ public abstract class EqualsComplexNode extends Node {
       @CachedLibrary("selfArray") InteropLibrary selfInterop,
       @CachedLibrary("otherArray") InteropLibrary otherInterop,
       @Shared("equalsNode") @Cached EqualsNode equalsNode,
-      @Cached CustomComparatorNode hasCustomComparatorNode,
       @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode valueToEnsoNode) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
