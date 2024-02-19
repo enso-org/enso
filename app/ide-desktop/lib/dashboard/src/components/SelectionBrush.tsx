@@ -58,13 +58,21 @@ export default function SelectionBrush(props: SelectionBrushProps) {
 
   React.useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
-      isMouseDownRef.current = true
-      didMoveWhileDraggingRef.current = false
-      lastMouseEvent.current = event
-      const newAnchor = { left: event.pageX, top: event.pageY }
-      setAnchor(newAnchor)
-      setLastSetAnchor(newAnchor)
-      setPosition(newAnchor)
+      if (
+        !(event.target instanceof HTMLInputElement) &&
+        !(event.target instanceof HTMLTextAreaElement) &&
+        (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
+        !(event.target instanceof HTMLButtonElement) &&
+        !(event.target instanceof HTMLAnchorElement)
+      ) {
+        isMouseDownRef.current = true
+        didMoveWhileDraggingRef.current = false
+        lastMouseEvent.current = event
+        const newAnchor = { left: event.pageX, top: event.pageY }
+        setAnchor(newAnchor)
+        setLastSetAnchor(newAnchor)
+        setPosition(newAnchor)
+      }
     }
     const onMouseUp = (event: MouseEvent) => {
       if (didMoveWhileDraggingRef.current) {
