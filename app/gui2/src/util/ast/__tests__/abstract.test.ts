@@ -7,6 +7,14 @@ import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
 
+test('Raw block abstracts to Ast.BodyBlock', () => {
+  const code = 'value = 2 + 2'
+  const rawBlock = Ast.parseEnso(code)
+  const edit = MutableModule.Transient()
+  const abstracted = Ast.abstract(edit, rawBlock, code)
+  expect(abstracted.root).toBeInstanceOf(Ast.BodyBlock)
+})
+
 //const disabledCases = [
 //  ' a',
 //  'a ',

@@ -28,7 +28,6 @@ import {
 export interface Module {
   edit(): MutableModule
   root(): Ast | undefined
-  tryGet(id: AstId): Ast | undefined
   tryGet(id: AstId | undefined): Ast | undefined
 
   /////////////////////////////////
@@ -47,7 +46,6 @@ export interface ModuleUpdate {
   nodesDeleted: Set<AstId>
   nodesUpdated: Set<AstId>
   updateRoots: Set<AstId>
-  fieldsUpdated: { id: AstId; fields: (readonly [string, unknown])[] }[]
   metadataUpdated: { id: AstId; changes: Map<string, unknown> }[]
   origin: Origin | undefined
 }
@@ -183,7 +181,7 @@ export class MutableModule implements Module {
   getStateAsUpdate(): ModuleUpdate {
     const updateBuilder = new UpdateBuilder(this, this.nodes, undefined)
     for (const id of this.nodes.keys()) updateBuilder.addNode(id as AstId)
-    return updateBuilder
+    return updateBuilder.finish()
   }
 
   applyUpdate(update: Uint8Array, origin: Origin): ModuleUpdate | undefined {
@@ -240,7 +238,7 @@ export class MutableModule implements Module {
         updateBuilder.updateMetadata(id, changes)
       }
     }
-    return updateBuilder
+    return updateBuilder.finish()
   }
 
   clear() {
@@ -356,18 +354,15 @@ export function isAstId(value: string): value is AstId {
 }
 export const ROOT_ID = `Root` as AstId
 
-class UpdateBuilder implements ModuleUpdate {
+class UpdateBuilder {
   readonly nodesAdded = new Set<AstId>()
   readonly nodesDeleted = new Set<AstId>()
-  readonly fieldsUpdated: { id: AstId; fields: (readonly [string, unknown])[] }[] = []
+  readonly nodesUpdated = new Set<AstId>()
   readonly metadataUpdated: { id: AstId; changes: Map<string, unknown> }[] = []
   readonly origin: Origin | undefined
 
   private readonly module: Module
   private readonly nodes: YNodes
-
-  private nodesUpdatedCached: Set<AstId> | undefined
-  private updateRootsCached: Set<AstId> | undefined
 
   constructor(module: Module, nodes: YNodes, origin: Origin | undefined) {
     this.module = module
@@ -385,7 +380,7 @@ class UpdateBuilder implements ModuleUpdate {
   }
 
   updateFields(id: AstId, changes: Iterable<readonly [string, unknown]>) {
-    const fields = new Array<readonly [string, unknown]>()
+    let fieldsChanged = false
     let metadataChanges = undefined
     for (const entry of changes) {
       const [key, value] = entry
@@ -394,10 +389,10 @@ class UpdateBuilder implements ModuleUpdate {
         metadataChanges = new Map<string, unknown>(value.entries())
       } else {
         assert(!(value instanceof Y.AbstractType))
-        fields.push(entry)
+        fieldsChanged = true
       }
     }
-    if (fields.length !== 0) this.fieldsUpdated.push({ id, fields })
+    if (fieldsChanged) this.nodesUpdated.add(id)
     if (metadataChanges) this.metadataUpdated.push({ id, changes: metadataChanges })
   }
 
@@ -411,15 +406,8 @@ class UpdateBuilder implements ModuleUpdate {
     this.nodesDeleted.add(id)
   }
 
-  get nodesUpdated(): Set<AstId> {
-    if (!this.nodesUpdatedCached)
-      this.nodesUpdatedCached = new Set(this.fieldsUpdated.map(({ id }) => id))
-    return this.nodesUpdatedCached
-  }
-
-  get updateRoots(): Set<AstId> {
-    if (!this.updateRootsCached)
-      this.updateRootsCached = subtreeRoots(this.module, this.nodesUpdated)
-    return this.updateRootsCached
+  finish(): ModuleUpdate {
+    const updateRoots = subtreeRoots(this.module, new Set(this.nodesUpdated.keys()))
+    return { ...this, updateRoots }
   }
 }

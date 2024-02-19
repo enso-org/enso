@@ -423,7 +423,6 @@ export function printAst(
       code += token.code()
     } else {
       const childNode = ast.module.get(child.node)
-      assert(childNode != null)
       code += childNode.printSubtree(info, offset + code.length, parentIndent, verbatim)
       // Extra structural validation.
       assertEqual(childNode.id, child.node)
