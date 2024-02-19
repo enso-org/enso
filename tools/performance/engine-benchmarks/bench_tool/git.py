@@ -19,7 +19,7 @@ async def clone(repo: str, dest: Path) -> None:
     _logger.debug("Cloning %s to %s", repo, dest)
     dest_abs_path = str(dest.absolute())
     args = ["clone", f"git@github.com:{repo}.git", dest_abs_path]
-    proc = await asyncio.create_subprocess_exec("git", *args)
+    proc = await asyncio.create_subprocess_exec("git", *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = await proc.wait()
     if ret != 0:
         stdout, stderr = await proc.communicate()
