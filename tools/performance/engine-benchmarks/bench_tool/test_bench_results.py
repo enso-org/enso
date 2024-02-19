@@ -1,9 +1,7 @@
-import abc
-import logging
 import unittest
 from datetime import datetime
 
-from bench_tool import Source, ENGINE_BENCH_WORKFLOW_ID
+from bench_tool import ENGINE_BENCH_WORKFLOW_ID
 from .bench_results import get_bench_report, get_bench_runs
 from .remote_cache import ReadonlyRemoteCache
 from .utils import parse_commit_timestamp, WithTempDir
