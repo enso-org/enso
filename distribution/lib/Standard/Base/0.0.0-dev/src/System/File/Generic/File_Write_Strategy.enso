@@ -1,5 +1,4 @@
 import project.Error.Error
-import project.Errors.Common.Forbidden_Operation
 import project.Errors.File_Error.File_Error
 import project.Panic.Panic
 import project.Runtime.Context
@@ -79,7 +78,7 @@ default_raise_error file action =
 
 ## PRIVATE
 generic_remote_write_with_local_file (file : Writable_File) existing_file_behavior action =
-    if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Writing to remote file backends is not allowed in dry-run mode.") else
+    Context.Output.if_enabled disabled_message="Writing to remote file backends is not allowed in dry-run mode." panic=False <|
         temp_file = File.create_temporary_file prefix="remote-write-"
         Panic.with_finalizer temp_file.delete <|
             tmp_synchronized = case file.exists of

@@ -90,12 +90,12 @@ projectStore.lsRpcConnection.then(
     })
   },
   (err) => {
-    toast.error(`Connection to language server failed: ${err}`)
+    toast.error(`Connection to language server failed: ${JSON.stringify(err)}`)
   },
 )
 
 projectStore.executionContext.on('executionFailed', (err) => {
-  toast.error(`Execution Failed: ${err}`, {})
+  toast.error(`Execution Failed: ${JSON.stringify(err)}`, {})
 })
 
 onMounted(() => {
