@@ -92,6 +92,8 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
   display: flex;
   gap: 4px;
   padding-left: 4px;
+  align-items: center;
+  justify-content: center;
 }
 
 .last {
@@ -102,7 +104,6 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
   border-left: 1px solid var(--color-text);
   border-right: 1px solid var(--color-text);
   height: 17px;
-  margin-top: 2px;
   margin-left: 10px;
   margin-right: 10px;
   opacity: 0.3;
@@ -116,7 +117,6 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
 
 .showAllIcon {
   margin-right: 10px;
-  margin-top: 2px;
   cursor: pointer;
 }
 
