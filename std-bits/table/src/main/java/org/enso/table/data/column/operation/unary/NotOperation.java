@@ -9,10 +9,12 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 
 public class NotOperation extends AbstractUnaryBooleanOperation {
+  public static final String NAME = "not";
+
   public static final UnaryOperation INSTANCE = new NotOperation();
 
   private NotOperation() {
-    super(UnaryOperation.NOT, false);
+    super(NAME, false);
   }
 
   @Override

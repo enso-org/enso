@@ -6,8 +6,12 @@ import java.util.function.LongConsumer;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.unary.*;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
@@ -15,35 +19,17 @@ import org.graalvm.polyglot.Value;
 
 /** A UnaryOperation is an operation that can be applied to a single ColumnStorage. */
 public interface UnaryOperation {
-  String TRUNCATE = "truncate";
-  String FLOOR = "floor";
-  String CEIL = "ceil";
-  String TEXT_LENGTH = "text_length";
-  String IS_NAN = "is_nan";
-  String IS_EMPTY = "is_empty";
-  String IS_INFINITE = "is_infinite";
-  String IS_NOTHING = "is_nothing";
-  String NOT = "not";
-  String YEAR = "year";
-  String QUARTER = "quarter";
-  String MONTH = "month";
-  String WEEK = "week";
-  String DAY = "day";
-  String HOUR = "hour";
-  String MINUTE = "minute";
-  String SECOND = "second";
-  String MILLISECOND = "millisecond";
-  String MICROSECOND = "microsecond";
-  String NANOSECOND = "nanosecond";
-
-  /** Applies the operation to the given Column. If an unsupported by the operation returns null */
+  /** Applies the operation to the given Column. If an unsupported by the operation returns null
+   * @param column the column to apply the operation to.
+   * @param operation the operation to apply.
+   * @param newColumnName the name of the new column.
+   * @param problemAggregator the problem aggregator to report problems to.
+   * */
   static Column apply(
       Column column,
-      String operationName,
+      UnaryOperation operation,
       String newColumnName,
       MapOperationProblemAggregator problemAggregator) {
-    UnaryOperation operation = UnaryOperation.getInstance(operationName);
-
     ColumnStorage storage = column.getStorage();
 
     // If the storage has an inferred storage (e.g. a Mixed column) and the first level can't do get
@@ -61,6 +47,14 @@ public interface UnaryOperation {
     return new Column(newColumnName, (Storage<?>) result);
   }
 
+  /** Applies a function to every row in a column.
+   * @param column the column to apply the operation to.
+   * @param function the function to apply.
+   * @param nothingUnchanged whether to keep nothing values unchanged.
+   * @param expectedResultType the expected type of the result.
+   * @param newColumnName the name of the new column.
+   * @param problemAggregator the problem aggregator to report problems to.
+   * */
   static Column mapFunction(
       Column column,
       Function<Object, Value> function,
@@ -80,33 +74,6 @@ public interface UnaryOperation {
           storageBuilder.appendNoGrow(converted);
         });
     return new Column(newColumnName, storageBuilder.seal());
-  }
-
-  /** Gets the Operation with the given name. */
-  static UnaryOperation getInstance(String name) {
-    return switch (name) {
-      case IS_NOTHING -> IsNothingOperation.INSTANCE;
-      case NOT -> NotOperation.INSTANCE;
-      case IS_EMPTY -> IsEmptyOperation.INSTANCE;
-      case TEXT_LENGTH -> TextLengthOperation.INSTANCE;
-      case CEIL -> UnaryRoundOperation.CEIL_INSTANCE;
-      case FLOOR -> UnaryRoundOperation.FLOOR_INSTANCE;
-      case TRUNCATE -> UnaryRoundOperation.TRUNCATE_INSTANCE;
-      case IS_NAN -> IsNaNOperation.INSTANCE;
-      case IS_INFINITE -> IsInfiniteOperation.INSTANCE;
-      case YEAR -> DatePartOperation.YEAR_INSTANCE;
-      case QUARTER -> DatePartOperation.QUARTER_INSTANCE;
-      case MONTH -> DatePartOperation.MONTH_INSTANCE;
-      case WEEK -> DatePartOperation.WEEK_INSTANCE;
-      case DAY -> DatePartOperation.DAY_INSTANCE;
-      case HOUR -> DatePartOperation.HOUR_INSTANCE;
-      case MINUTE -> DatePartOperation.MINUTE_INSTANCE;
-      case SECOND -> DatePartOperation.SECOND_INSTANCE;
-      case MILLISECOND -> DatePartOperation.MILLISECOND_INSTANCE;
-      case MICROSECOND -> DatePartOperation.MICROSECOND_INSTANCE;
-      case NANOSECOND -> DatePartOperation.NANOSECOND_INSTANCE;
-      default -> throw new IllegalArgumentException("Unknown unary operation: " + name + ".");
-    };
   }
 
   /** Gets the name of the Operation. */

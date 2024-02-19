@@ -9,10 +9,12 @@ import org.enso.table.data.column.storage.type.TextType;
 /* An operation that checks if a column's row values are empty.
  * Only supported on Text values. */
 public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
+  public static String NAME = "is_empty";
+
   public static final UnaryOperation INSTANCE = new IsEmptyOperation();
 
   private IsEmptyOperation() {
-    super(UnaryOperation.IS_EMPTY, false);
+    super(NAME, false);
   }
 
   @Override

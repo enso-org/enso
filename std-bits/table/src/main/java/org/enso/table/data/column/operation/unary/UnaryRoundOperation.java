@@ -9,12 +9,17 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 
 public class UnaryRoundOperation extends AbstractUnaryLongOperation {
+  public static final String CEIL = "ceil";
   public static final UnaryOperation CEIL_INSTANCE =
-      new UnaryRoundOperation(UnaryOperation.CEIL, d -> (long) Math.ceil(d));
+      new UnaryRoundOperation(CEIL, d -> (long) Math.ceil(d));
+
+  public static final String FLOOR = "floor";
   public static final UnaryOperation FLOOR_INSTANCE =
-      new UnaryRoundOperation(UnaryOperation.FLOOR, d -> (long) Math.floor(d));
+      new UnaryRoundOperation(FLOOR, d -> (long) Math.floor(d));
+
+  public static String TRUNCATE = "truncate";
   public static final UnaryOperation TRUNCATE_INSTANCE =
-      new UnaryRoundOperation(UnaryOperation.TRUNCATE, d -> (long) d);
+      new UnaryRoundOperation(TRUNCATE, d -> (long) d);
 
   private final DoubleToLongFunction function;
 

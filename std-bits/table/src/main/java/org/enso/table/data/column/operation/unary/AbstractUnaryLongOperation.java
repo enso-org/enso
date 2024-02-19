@@ -8,19 +8,20 @@ import org.enso.table.data.column.storage.type.IntegerType;
 
 /** An abstract base class for unary operations returning a long column. */
 abstract class AbstractUnaryLongOperation extends AbstractUnaryOperation {
-  private final IntegerType valueType;
+  private final IntegerType returnType;
 
   /**
    * Creates a new AbstractUnaryOperation.
    *
    * @param name the name of the operation
    * @param nothingUnchanged whether the operation should return nothing if the input is nothing
+   * @param returnType the type of the column that will be returned
    */
   protected AbstractUnaryLongOperation(
-      String name, boolean nothingUnchanged, IntegerType valueType) {
+      String name, boolean nothingUnchanged, IntegerType returnType) {
 
     super(name, nothingUnchanged);
-    this.valueType = valueType;
+    this.returnType = returnType;
   }
 
   @Override
@@ -30,7 +31,7 @@ abstract class AbstractUnaryLongOperation extends AbstractUnaryOperation {
       throw new IllegalArgumentException(
           "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
     }
-    return LongBuilder.createLongBuilder((int) storage.getSize(), valueType, problemAggregator);
+    return LongBuilder.createLongBuilder((int) storage.getSize(), returnType, problemAggregator);
   }
 
   @Override

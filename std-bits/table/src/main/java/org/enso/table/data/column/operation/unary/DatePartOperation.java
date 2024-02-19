@@ -11,28 +11,49 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 
 public class DatePartOperation extends AbstractUnaryLongOperation {
+  public static final String YEAR = "year";
   public static final UnaryOperation YEAR_INSTANCE =
-      new DatePartOperation(UnaryOperation.YEAR, ChronoField.YEAR, false);
+      new DatePartOperation(YEAR, ChronoField.YEAR, false);
+
+  public static final String QUARTER = "quarter";
   public static final UnaryOperation QUARTER_INSTANCE =
-      new DatePartOperation(UnaryOperation.QUARTER, IsoFields.QUARTER_OF_YEAR, false);
+      new DatePartOperation(QUARTER, IsoFields.QUARTER_OF_YEAR, false);
+
+  public static final String MONTH = "month";
   public static final UnaryOperation MONTH_INSTANCE =
-      new DatePartOperation(UnaryOperation.MONTH, ChronoField.MONTH_OF_YEAR, false);
+      new DatePartOperation(MONTH, ChronoField.MONTH_OF_YEAR, false);
+
+  public static final String WEEK = "week";
   public static final UnaryOperation WEEK_INSTANCE =
-      new DatePartOperation(UnaryOperation.DAY, IsoFields.WEEK_OF_WEEK_BASED_YEAR, false);
+      new DatePartOperation(WEEK, IsoFields.WEEK_OF_WEEK_BASED_YEAR, false);
+
+  public static final String DAY = "day";
   public static final UnaryOperation DAY_INSTANCE =
-      new DatePartOperation(UnaryOperation.DAY, ChronoField.DAY_OF_MONTH, false);
+      new DatePartOperation(DAY, ChronoField.DAY_OF_MONTH, false);
+
+  public static final String HOUR = "hour";
   public static final UnaryOperation HOUR_INSTANCE =
-      new DatePartOperation(UnaryOperation.HOUR, ChronoField.HOUR_OF_DAY, true);
+      new DatePartOperation(HOUR, ChronoField.HOUR_OF_DAY, true);
+
+  public static final String MINUTE = "minute";
   public static final UnaryOperation MINUTE_INSTANCE =
-      new DatePartOperation(UnaryOperation.MINUTE, ChronoField.MINUTE_OF_HOUR, true);
+      new DatePartOperation(MINUTE, ChronoField.MINUTE_OF_HOUR, true);
+
+  public static final String SECOND = "second";
   public static final UnaryOperation SECOND_INSTANCE =
-      new DatePartOperation(UnaryOperation.SECOND, ChronoField.SECOND_OF_MINUTE, true);
+      new DatePartOperation(SECOND, ChronoField.SECOND_OF_MINUTE, true);
+
+  public static final String MILLISECOND = "millisecond";
   public static final UnaryOperation MILLISECOND_INSTANCE =
-      new DatePartOperation(UnaryOperation.MILLISECOND, ChronoField.MILLI_OF_SECOND, true);
+      new DatePartOperation(MILLISECOND, ChronoField.MILLI_OF_SECOND, true);
+
+  public static final String MICROSECOND = "microsecond";
   public static final UnaryOperation MICROSECOND_INSTANCE =
-      new DatePartOperation(UnaryOperation.MICROSECOND, ChronoField.MICRO_OF_SECOND, true);
+      new DatePartOperation(MICROSECOND, ChronoField.MICRO_OF_SECOND, true);
+
+  public static final String NANOSECOND = "nanosecond";
   public static final UnaryOperation NANOSECOND_INSTANCE =
-      new DatePartOperation(UnaryOperation.NANOSECOND, ChronoField.NANO_OF_SECOND, true);
+      new DatePartOperation(NANOSECOND, ChronoField.NANO_OF_SECOND, true);
 
   private final TemporalField field;
   private final boolean timeField;

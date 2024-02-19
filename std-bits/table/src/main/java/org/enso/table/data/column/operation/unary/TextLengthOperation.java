@@ -9,10 +9,11 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 
 public class TextLengthOperation extends AbstractUnaryLongOperation {
+  public static final String NAME = "text_length";
   public static final UnaryOperation INSTANCE = new TextLengthOperation();
 
   private TextLengthOperation() {
-    super(UnaryOperation.TEXT_LENGTH, true, IntegerType.INT_64);
+    super(NAME, true, IntegerType.INT_64);
   }
 
   @Override

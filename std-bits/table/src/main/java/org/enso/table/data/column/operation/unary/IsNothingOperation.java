@@ -9,10 +9,12 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 
 public class IsNothingOperation extends AbstractUnaryBooleanOperation {
+  public static final String NAME = "is_nothing";
+
   public static final UnaryOperation INSTANCE = new IsNothingOperation();
 
   private IsNothingOperation() {
-    super(UnaryOperation.IS_NOTHING, false);
+    super(NAME, false);
   }
 
   @Override
