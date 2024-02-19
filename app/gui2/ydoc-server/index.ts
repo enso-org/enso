@@ -12,6 +12,7 @@ import { Server } from 'http'
 import { IncomingMessage } from 'node:http'
 import { parse } from 'url'
 import { WebSocket, WebSocketServer } from 'ws'
+import { initializeFFI } from '../shared/ast/ffi'
 import { setupGatewayClient } from './ydoc'
 
 type ConnectionData = {
@@ -20,7 +21,8 @@ type ConnectionData = {
   user: string
 }
 
-export function createGatewayServer(httpServer: Server) {
+export async function createGatewayServer(httpServer: Server, rustFFIPath: string) {
+  await initializeFFI(rustFFIPath)
   const wss = new WebSocketServer({ noServer: true })
   wss.on('connection', (ws: WebSocket, _request: IncomingMessage, data: ConnectionData) => {
     ws.on('error', onWebSocketError)

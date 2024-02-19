@@ -7,22 +7,25 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as remoteBackend from '#/services/remoteBackend'
-import * as errorModule from '#/utilities/error'
-import * as localStorageModule from '#/utilities/localStorage'
-import * as object from '#/utilities/object'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
 
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
+
+import * as backendModule from '#/services/Backend'
+import * as remoteBackend from '#/services/RemoteBackend'
+
+import * as errorModule from '#/utilities/error'
+import * as object from '#/utilities/object'
 
 // =================
 // === Constants ===
@@ -36,7 +39,7 @@ const LOADING_MESSAGE =
   'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend. */
-const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
+const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
   [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
   [backendModule.ProjectState.closing]: spinner.SpinnerState.initial,
   [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
@@ -48,7 +51,7 @@ const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSt
 }
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
  * when using the local backend. */
-const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
+const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.SpinnerState>> = {
   [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
   [backendModule.ProjectState.closing]: spinner.SpinnerState.initial,
   [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
@@ -65,21 +68,21 @@ const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSta
 
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
-  keyProp: string
-  item: backendModule.ProjectAsset
-  setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
-  assetEvents: assetEvent.AssetEvent[]
+  readonly keyProp: string
+  readonly item: backendModule.ProjectAsset
+  readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
+  readonly assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
-  doOpenManually: (projectId: backendModule.ProjectId) => void
-  onClose: () => void
-  openIde: (switchPage: boolean) => void
+  readonly doOpenManually: (projectId: backendModule.ProjectId) => void
+  readonly onClose: () => void
+  readonly openIde: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
   const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -100,16 +103,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
           // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
           const { opened_by, ...newProjectState2 } = newProjectState
           newProjectState = newProjectState2
-        } else if (organization != null) {
+        } else if (user != null) {
           newProjectState = object.merge(newProjectState, {
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            opened_by: organization.email,
+            opened_by: user.email,
           })
         }
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [organization, /* should never change */ setItem]
+    [user, /* should never change */ setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -126,8 +129,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const [closeProjectAbortController, setCloseProjectAbortController] =
     React.useState<AbortController | null>(null)
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
-    item.projectState.opened_by !== organization?.email
+    backend.type !== backendModule.BackendType.local && item.projectState.opened_by !== user?.email
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
@@ -233,6 +235,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     switch (event.type) {
       case AssetEventType.newFolder:
       case AssetEventType.uploadFiles:
+      case AssetEventType.newDataLink:
       case AssetEventType.newSecret:
       case AssetEventType.copy:
       case AssetEventType.updateFiles:
@@ -315,7 +318,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const closeProject = async (triggerOnClose = true) => {
     if (triggerOnClose) {
       onClose()
-      localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
+      localStorage.delete('projectStartupInfo')
     }
     setToastId(null)
     setShouldOpenWhenReady(false)

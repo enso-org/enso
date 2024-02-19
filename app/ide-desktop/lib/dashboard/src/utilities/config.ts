@@ -1,6 +1,7 @@
 /** @file Configuration definition for the Dashboard. */
-import * as auth from '#/authentication/config'
 import * as newtype from '#/utilities/newtype'
+
+import * as auth from '#/authentication/config'
 
 // =============
 // === Types ===
@@ -89,11 +90,11 @@ export interface Config {
   /** URL of the OAuth redirect when running in the cloud app.
    *
    * The desktop app redirects to a static deep link, so it does not have to be configured. */
-  cloudRedirect: auth.OAuthRedirect
+  readonly cloudRedirect: auth.OAuthRedirect
   /** Base URL for requests to our Cloud API backend. */
-  apiUrl: ApiUrl
+  readonly apiUrl: ApiUrl
   /** URL to the websocket endpoint of the Help Chat. */
-  chatUrl: ChatUrl
+  readonly chatUrl: ChatUrl
 }
 
 // ===================

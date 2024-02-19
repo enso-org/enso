@@ -13,15 +13,20 @@ import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassManager
-import org.enso.compiler.test.CompilerTest
+import org.enso.compiler.test.CompilerTestSetup
 import org.enso.compiler.context.LocalScope
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.JavaEditorAdapter
 import org.enso.text.editing.model.{Position, Range, TextEdit}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 
-class ChangesetBuilderTest extends CompilerTest {
+class ChangesetBuilderTest
+    extends AnyWordSpecLike
+    with Matchers
+    with CompilerTestSetup {
 
   implicit val passManager: PassManager = new Passes(defaultConfig).passManager
 

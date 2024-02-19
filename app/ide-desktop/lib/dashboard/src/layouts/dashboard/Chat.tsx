@@ -8,18 +8,22 @@ import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 import * as chat from 'enso-chat/chat'
+import * as detect from 'enso-common/src/detect'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
-import * as animations from '#/utilities/animations'
+
+import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
+
+import SvgMask from '#/components/SvgMask'
+import Twemoji from '#/components/Twemoji'
+
 import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
-
-import Twemoji from '#/components/Twemoji'
 
 // ================
 // === Newtypes ===
@@ -38,8 +42,6 @@ const MessageId = newtype.newtypeConstructor<chat.MessageId>()
 // to switch projects, and undo history may be lost.
 
 export const HELP_CHAT_ID = 'enso-chat'
-export const ANIMATION_DURATION_MS = 200
-export const WIDTH_PX = 336
 /** The size (both width and height) of each reaction button. */
 const REACTION_BUTTON_SIZE = 20
 /** The size (both width and height) of each reaction on a message. */
@@ -65,19 +67,19 @@ const MAX_MESSAGE_HISTORY = 25
 
 /** Information needed to display a chat message. */
 interface ChatDisplayMessage {
-  id: chat.MessageId
+  readonly id: chat.MessageId
   /** If `true`, this is a message from the staff to the user.
    * If `false`, this is a message from the user to the staff. */
-  isStaffMessage: boolean
-  avatar: string | null
+  readonly isStaffMessage: boolean
+  readonly avatar: string | null
   /** Name of the author of the message. */
-  name: string
-  content: string
-  reactions: chat.ReactionSymbol[]
+  readonly name: string
+  readonly content: string
+  readonly reactions: chat.ReactionSymbol[]
   /** Given in milliseconds since the unix epoch. */
-  timestamp: number
+  readonly timestamp: number
   /** Given in milliseconds since the unix epoch. */
-  editedTimestamp: number | null
+  readonly editedTimestamp: number | null
 }
 
 // ==========================
@@ -98,10 +100,10 @@ function makeNewThreadTitle(threads: chat.ThreadData[]) {
 
 /** Props for a {@link ReactionBar}. */
 export interface ReactionBarProps {
-  selectedReactions: Set<chat.ReactionSymbol>
-  doReact: (reaction: chat.ReactionSymbol) => void
-  doRemoveReaction: (reaction: chat.ReactionSymbol) => void
-  className?: string
+  readonly selectedReactions: Set<chat.ReactionSymbol>
+  readonly doReact: (reaction: chat.ReactionSymbol) => void
+  readonly doRemoveReaction: (reaction: chat.ReactionSymbol) => void
+  readonly className?: string
 }
 
 /** A list of emoji reactions to choose from. */
@@ -120,7 +122,6 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          // FIXME: Grayscale has the wrong lightness
           className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
             selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale hover:grayscale-0'
           }`}
@@ -138,7 +139,7 @@ function ReactionBar(props: ReactionBarProps) {
 
 /** Props for a {@link Reactions}. */
 export interface ReactionsProps {
-  reactions: chat.ReactionSymbol[]
+  readonly reactions: chat.ReactionSymbol[]
 }
 
 /** A list of emoji reactions that have been on a message. */
@@ -164,11 +165,11 @@ function Reactions(props: ReactionsProps) {
 
 /** Props for a {@link ChatMessage}. */
 export interface ChatMessageProps {
-  message: ChatDisplayMessage
-  reactions: chat.ReactionSymbol[]
-  shouldShowReactionBar: boolean
-  doReact: (reaction: chat.ReactionSymbol) => void
-  doRemoveReaction: (reaction: chat.ReactionSymbol) => void
+  readonly message: ChatDisplayMessage
+  readonly reactions: chat.ReactionSymbol[]
+  readonly shouldShowReactionBar: boolean
+  readonly doReact: (reaction: chat.ReactionSymbol) => void
+  readonly doRemoveReaction: (reaction: chat.ReactionSymbol) => void
 }
 
 /** A chat message, including user info, sent date, and reactions (if any). */
@@ -229,14 +230,14 @@ function ChatMessage(props: ChatMessageProps) {
 
 /** Props for a {@Link ChatHeader}. */
 interface InternalChatHeaderProps {
-  threads: chat.ThreadData[]
-  setThreads: React.Dispatch<React.SetStateAction<chat.ThreadData[]>>
-  threadId: chat.ThreadId | null
-  threadTitle: string
-  setThreadTitle: (threadTitle: string) => void
-  switchThread: (threadId: chat.ThreadId) => void
-  sendMessage: (message: chat.ChatClientMessageData) => void
-  doClose: () => void
+  readonly threads: chat.ThreadData[]
+  readonly setThreads: React.Dispatch<React.SetStateAction<chat.ThreadData[]>>
+  readonly threadId: chat.ThreadId | null
+  readonly threadTitle: string
+  readonly setThreadTitle: (threadTitle: string) => void
+  readonly switchThread: (threadId: chat.ThreadId) => void
+  readonly sendMessage: (message: chat.ChatClientMessageData) => void
+  readonly doClose: () => void
 }
 
 /** The header bar for a {@link Chat}. Includes the title, close button, and threads list. */
@@ -274,8 +275,8 @@ function ChatHeader(props: InternalChatHeaderProps) {
     <>
       <div className="flex text-sm font-semibold mx-4 mt-2">
         <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
-          <img
-            className={`transition-transform duration-300 ${
+          <SvgMask
+            className={`transition-transform duration-300 shrink-0 ${
               isThreadListVisible ? '-rotate-180' : ''
             }`}
             src={TriangleDownIcon}
@@ -328,7 +329,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-ide-bg backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
+          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-frame backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
@@ -338,8 +339,8 @@ function ChatHeader(props: InternalChatHeaderProps) {
                 key={thread.id}
                 className={`flex p-1 ${
                   thread.id === threadId
-                    ? 'cursor-default bg-gray-350'
-                    : 'cursor-pointer hover:bg-gray-300'
+                    ? 'cursor-default bg-frame-selected'
+                    : 'cursor-pointer hover:bg-frame'
                 }`}
                 onClick={event => {
                   event.stopPropagation()
@@ -368,10 +369,10 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
 /** Props for a {@link Chat}. */
 export interface ChatProps {
-  page: pageSwitcher.Page
+  readonly page: pageSwitcher.Page
   /** This should only be false when the panel is closing. */
-  isOpen: boolean
-  doClose: () => void
+  readonly isOpen: boolean
+  readonly doClose: () => void
 }
 
 /** Chat sidebar. */
@@ -398,34 +399,38 @@ export default function Chat(props: ChatProps) {
   const [isAtBottom, setIsAtBottom] = React.useState(true)
   const [messagesHeightBeforeMessageHistory, setMessagesHeightBeforeMessageHistory] =
     React.useState<number | null>(null)
-  // TODO: proper URL
-  const [websocket] = React.useState(() => new WebSocket(config.ACTIVE_CONFIG.chatUrl))
-  const [right, setTargetRight] = animations.useInterpolateOverTime(
-    animations.interpolationFunctionEaseInOut,
-    ANIMATION_DURATION_MS,
-    -WIDTH_PX
-  )
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const messageInputRef = React.useRef<HTMLTextAreaElement>(null!)
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const messagesRef = React.useRef<HTMLDivElement>(null!)
+  const [webSocket, setWebsocket] = React.useState<WebSocket | null>(null)
+  const messageInputRef = React.useRef<HTMLTextAreaElement>(null)
+  const messagesRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     setIsPaidUser(false)
   }, [])
 
   React.useEffect(() => {
-    return () => {
-      websocket.close()
+    if (isOpen) {
+      const newWebSocket = new WebSocket(config.ACTIVE_CONFIG.chatUrl)
+      setWebsocket(newWebSocket)
+      return () => {
+        if (newWebSocket.readyState === WebSocket.OPEN) {
+          newWebSocket.close()
+        } else {
+          newWebSocket.addEventListener('open', () => {
+            newWebSocket.close()
+          })
+        }
+      }
+    } else {
+      return
     }
-  }, [websocket])
+  }, [isOpen])
 
   React.useLayoutEffect(() => {
     const element = messagesRef.current
-    if (isAtTop && messagesHeightBeforeMessageHistory != null) {
+    if (element != null && isAtTop && messagesHeightBeforeMessageHistory != null) {
       element.scrollTop = element.scrollHeight - messagesHeightBeforeMessageHistory
       setMessagesHeightBeforeMessageHistory(null)
-    } else if (isAtBottom) {
+    } else if (element != null && isAtBottom) {
       element.scrollTop = element.scrollHeight - element.clientHeight
     }
     // Auto-scroll MUST only happen when the message list changes.
@@ -434,9 +439,9 @@ export default function Chat(props: ChatProps) {
 
   const sendMessage = React.useCallback(
     (message: chat.ChatClientMessageData) => {
-      websocket.send(JSON.stringify(message))
+      webSocket?.send(JSON.stringify(message))
     },
-    [/* should never change */ websocket]
+    [webSocket]
   )
 
   React.useEffect(() => {
@@ -561,43 +566,15 @@ export default function Chat(props: ChatProps) {
         accessToken,
       })
     }
-    websocket.addEventListener('message', onMessage)
-    websocket.addEventListener('open', onOpen)
+    webSocket?.addEventListener('message', onMessage)
+    webSocket?.addEventListener('open', onOpen)
     return () => {
-      websocket.removeEventListener('message', onMessage)
-      websocket.removeEventListener('open', onOpen)
+      webSocket?.removeEventListener('message', onMessage)
+      webSocket?.removeEventListener('open', onOpen)
     }
-  }, [
-    websocket,
-    shouldIgnoreMessageLimit,
-    logger,
-    threads,
-    messages,
-    accessToken,
-    /* should never change */ sendMessage,
-  ])
+  }, [webSocket, shouldIgnoreMessageLimit, logger, threads, messages, accessToken, sendMessage])
 
   const container = document.getElementById(HELP_CHAT_ID)
-
-  React.useEffect(() => {
-    // The types come from a third-party API and cannot be changed.
-    // eslint-disable-next-line no-restricted-syntax
-    let handle: number | undefined
-    if (container != null) {
-      if (isOpen) {
-        container.style.display = ''
-        setTargetRight(0)
-      } else {
-        setTargetRight(-WIDTH_PX)
-        handle = window.setTimeout(() => {
-          container.style.display = 'none'
-        }, ANIMATION_DURATION_MS)
-      }
-    }
-    return () => {
-      clearTimeout(handle)
-    }
-  }, [isOpen, container, setTargetRight])
 
   const switchThread = React.useCallback(
     (newThreadId: chat.ThreadId) => {
@@ -620,43 +597,47 @@ export default function Chat(props: ChatProps) {
     (event: React.SyntheticEvent, createNewThread?: boolean) => {
       event.preventDefault()
       const element = messageInputRef.current
-      const content = element.value
-      if (NON_WHITESPACE_CHARACTER_REGEX.test(content)) {
-        setIsReplyEnabled(false)
-        element.value = ''
-        element.style.height = '0px'
-        element.style.height = `${element.scrollHeight}px`
-        const newMessage: ChatDisplayMessage = {
-          // This MUST be unique.
-          id: MessageId(String(Number(new Date()))),
-          isStaffMessage: false,
-          avatar: null,
-          name: 'Me',
-          content,
-          reactions: [],
-          timestamp: Number(new Date()),
-          editedTimestamp: null,
-        }
-        if (threadId == null || createNewThread === true) {
-          const newThreadTitle = threadId == null ? threadTitle : makeNewThreadTitle(threads)
-          sendMessage({
-            type: chat.ChatMessageDataType.newThread,
-            title: newThreadTitle,
+      if (element != null) {
+        const content = element.value
+        if (NON_WHITESPACE_CHARACTER_REGEX.test(content)) {
+          setIsReplyEnabled(false)
+          element.value = ''
+          element.style.height = '0px'
+          element.style.height = `${element.scrollHeight}px`
+          const newMessage: ChatDisplayMessage = {
+            // This MUST be unique.
+            id: MessageId(String(Number(new Date()))),
+            isStaffMessage: false,
+            avatar: null,
+            name: 'Me',
             content,
-          })
-          setThreadId(null)
-          setThreadTitle(newThreadTitle)
-          setMessages([newMessage])
-        } else {
-          sendMessage({
-            type: chat.ChatMessageDataType.message,
-            threadId,
-            content,
-          })
-          setMessages(oldMessages => {
-            const newMessages = [...oldMessages, newMessage]
-            return shouldIgnoreMessageLimit ? newMessages : newMessages.slice(-MAX_MESSAGE_HISTORY)
-          })
+            reactions: [],
+            timestamp: Number(new Date()),
+            editedTimestamp: null,
+          }
+          if (threadId == null || createNewThread === true) {
+            const newThreadTitle = threadId == null ? threadTitle : makeNewThreadTitle(threads)
+            sendMessage({
+              type: chat.ChatMessageDataType.newThread,
+              title: newThreadTitle,
+              content,
+            })
+            setThreadId(null)
+            setThreadTitle(newThreadTitle)
+            setMessages([newMessage])
+          } else {
+            sendMessage({
+              type: chat.ChatMessageDataType.message,
+              threadId,
+              content,
+            })
+            setMessages(oldMessages => {
+              const newMessages = [...oldMessages, newMessage]
+              return shouldIgnoreMessageLimit
+                ? newMessages
+                : newMessages.slice(-MAX_MESSAGE_HISTORY)
+            })
+          }
         }
       }
     },
@@ -682,10 +663,9 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        style={{ right }}
-        className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 ${
-          page === pageSwitcher.Page.editor ? 'bg-ide-bg' : 'bg-frame-selected'
-        }`}
+        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
+          detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
+        } ${isOpen ? '' : 'translate-x-full'}`}
       >
         <ChatHeader
           threads={threads}
@@ -764,14 +744,14 @@ export default function Chat(props: ChatProps) {
             />
           ))}
         </div>
-        <form className="rounded-2xl bg-white p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
+        <form className="rounded-2xl bg-frame p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
           <textarea
             ref={messageInputRef}
             rows={1}
             autoFocus
             required
             placeholder="Type your message ..."
-            className="w-full rounded-lg resize-none p-1"
+            className="w-full rounded-lg bg-transparent resize-none p-1"
             onKeyDown={event => {
               switch (event.key) {
                 case 'Enter': {
@@ -814,7 +794,7 @@ export default function Chat(props: ChatProps) {
             <button
               type="submit"
               disabled={!isReplyEnabled}
-              className={`text-white bg-blue-600 rounded-full px-1.5 py-1 ${
+              className={`text-white bg-blue-600/90 rounded-full px-1.5 py-1 ${
                 isReplyEnabled ? '' : 'opacity-50'
               }`}
             >
@@ -824,7 +804,7 @@ export default function Chat(props: ChatProps) {
         </form>
         {!isPaidUser && (
           <button
-            className="text-left leading-5 rounded-2xl bg-call-to-action text-white p-2 mx-2 my-1"
+            className="leading-5 rounded-2xl bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
             onClick={upgradeToPro}
           >
             Click here to upgrade to Enso Pro and get access to high-priority, live support!

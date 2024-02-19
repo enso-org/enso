@@ -14,9 +14,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'not-selected': 'rgba(0, 0, 0, 0.40)',
         'icon-selected': 'rgba(0, 0, 0, 0.50)',
         'icon-not-selected': 'rgba(0, 0, 0, 0.30)',
-        chat: '#484848',
         'ide-bg': '#ebeef1',
-        'ide-bg-dark': '#d0d3d6',
         selected: 'rgba(255, 255, 255, 0.40)',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
         label: '#f0f1f3',
@@ -100,11 +98,18 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         62: '15.5rem',
         70: '17.5rem',
         83.5: '20.875rem',
+        84: '21rem',
         112.5: '28.125rem',
         115.25: '28.8125rem',
         120: '30rem',
         140: '35rem',
         '10lh': '10lh',
+      },
+      minHeight: {
+        '5lh': '5lh',
+      },
+      width: {
+        container: '100cqw',
       },
       minWidth: {
         31.5: '7.875rem',

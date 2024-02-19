@@ -27,7 +27,6 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
@@ -257,13 +256,13 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
   }
 
   @Override
-  public Storage<Double> mask(BitSet mask, int cardinality) {
+  public Storage<Double> applyFilter(BitSet filterMask, int newLength) {
     BitSet newMissing = new BitSet();
-    long[] newData = new long[cardinality];
+    long[] newData = new long[newLength];
     int resIx = 0;
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         if (isMissing.get(i)) {
           newMissing.set(resIx++);
         } else {
@@ -273,7 +272,7 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
       context.safepoint();
     }
-    return new DoubleStorage(newData, cardinality, newMissing);
+    return new DoubleStorage(newData, newLength, newMissing);
   }
 
   @Override
@@ -283,7 +282,7 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Index.NOT_FOUND || isMissing.get(position)) {
+      if (position == Storage.NOT_FOUND_INDEX || isMissing.get(position)) {
         newMissing.set(i);
       } else {
         newData[i] = data[position];
@@ -292,27 +291,6 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
       context.safepoint();
     }
     return new DoubleStorage(newData, newData.length, newMissing);
-  }
-
-  @Override
-  public Storage<Double> countMask(int[] counts, int total) {
-    long[] newData = new long[total];
-    BitSet newMissing = new BitSet();
-    int pos = 0;
-    Context context = Context.getCurrent();
-    for (int i = 0; i < counts.length; i++) {
-      if (isMissing.get(i)) {
-        newMissing.set(pos, pos + counts[i]);
-        pos += counts[i];
-      } else {
-        for (int j = 0; j < counts[i]; j++) {
-          newData[pos++] = data[i];
-        }
-      }
-
-      context.safepoint();
-    }
-    return new DoubleStorage(newData, total, newMissing);
   }
 
   public BitSet getIsMissing() {

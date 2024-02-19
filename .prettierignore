@@ -2,6 +2,9 @@
 dist
 target
 
+# Release body template should not be auto-formatted, as the word wrap does not really looks good in the GitHub UI.
+build/build/release-body.md
+
 .github/PULL_REQUEST_TEMPLATE.md
 .github/ISSUE_TEMPLATE
 distribution/launcher/THIRD-PARTY
@@ -32,8 +35,10 @@ app/ide-desktop/lib/client/electron-builder-config.json
 app/ide-desktop/lib/content-config/src/config.json
 app/ide-desktop/lib/dashboard/playwright-report/
 app/ide-desktop/lib/dashboard/playwright/.cache/
+app/ide-desktop/lib/dashboard/dist/
 app/gui/view/documentation/assets/stylesheet.css
 app/gui2/rust-ffi/pkg
+app/gui2/rust-ffi/node-pkg
 app/gui2/src/assets/font-*.css
 Cargo.lock
 build.json

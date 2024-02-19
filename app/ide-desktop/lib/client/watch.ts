@@ -25,9 +25,9 @@ import * as paths from './paths'
 
 /** Set of esbuild watches for the client and content. */
 interface Watches {
-    client: esbuild.BuildResult
-    dashboard: esbuild.BuildResult
-    content: esbuild.BuildResult
+    readonly client: esbuild.BuildResult
+    readonly dashboard: esbuild.BuildResult
+    readonly content: esbuild.BuildResult
 }
 
 // =================

@@ -34,10 +34,10 @@ const DUMMY_LIKE_COUNT = 10
 
 /** Template metadata. */
 export interface Sample {
-  title: string
-  description: string
-  id: string
-  background?: string
+  readonly title: string
+  readonly description: string
+  readonly id: string
+  readonly background?: string
 }
 
 /** The full list of templates. */
@@ -83,7 +83,7 @@ export const SAMPLES: Sample[] = [
 
 /** Props for an {@link ProjectsEntry}. */
 interface InternalProjectsEntryProps {
-  createProject: (
+  readonly createProject: (
     templateId: null,
     templateName: null,
     onSpinnerStateChange: ((state: spinner.SpinnerState | null) => void) | null
@@ -137,8 +137,8 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
 
 /** Props for a {@link ProjectTile}. */
 interface InternalProjectTileProps {
-  sample: Sample
-  createProject: (
+  readonly sample: Sample
+  readonly createProject: (
     templateId: string,
     templateName: string,
     onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
@@ -215,7 +215,7 @@ function ProjectTile(props: InternalProjectTileProps) {
 
 /** Props for a {@link Samples}. */
 export interface SamplesProps {
-  createProject: (
+  readonly createProject: (
     templateId?: string | null,
     templateName?: string | null,
     onSpinnerStateChange?: ((state: spinner.SpinnerState | null) => void) | null
@@ -226,7 +226,7 @@ export interface SamplesProps {
 export default function Samples(props: SamplesProps) {
   const { createProject } = props
   return (
-    <div className="flex flex-col gap-4 px-4.75">
+    <div data-testid="samples" className="flex flex-col gap-4 px-4.75">
       <h2 className="text-xl leading-144.5 py-0.5">Sample and community projects</h2>
       <div className="grid gap-2 grid-cols-fill-60">
         <ProjectsEntry createProject={createProject} />

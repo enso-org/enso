@@ -151,10 +151,10 @@ export interface StringConfig {
 
 /** Configuration options for the authentication flow and dashboard. */
 interface AuthenticationConfig {
-    projectManagerUrl: string | null
-    isInAuthenticationFlow: boolean
-    shouldUseAuthentication: boolean
-    initialProjectName: string | null
+    readonly projectManagerUrl: string | null
+    readonly isInAuthenticationFlow: boolean
+    readonly shouldUseAuthentication: boolean
+    readonly initialProjectName: string | null
 }
 
 /** Contains the entrypoint into the IDE. */
@@ -300,7 +300,7 @@ class Main implements AppRunner {
         const ideElement = document.getElementById('root')
         if (ideElement) {
             ideElement.style.top = '-100vh'
-            ideElement.style.display = 'fixed'
+            ideElement.style.position = 'fixed'
         }
         const ide2Element = document.getElementById('app')
         if (ide2Element) {

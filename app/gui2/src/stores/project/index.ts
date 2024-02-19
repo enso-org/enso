@@ -499,6 +499,7 @@ export const useProjectStore = defineStore('project', () => {
     return tryQualifiedName(`${fullName.value}.${withDotSeparators}`)
   })
 
+  let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
     if (lsUrls.rpcUrl.startsWith('mock://')) {
       doc.load()
@@ -510,16 +511,14 @@ export const useProjectStore = defineStore('project', () => {
     const socketUrl = new URL(location.origin)
     socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
     socketUrl.pathname = '/project'
-    const provider = attachProvider(
+    yDocsProvider = attachProvider(
       socketUrl.href,
       'index',
       { ls: lsUrls.rpcUrl },
       doc,
       awareness.internal,
     )
-    onCleanup(() => {
-      provider.dispose()
-    })
+    onCleanup(disposeYDocsProvider)
   })
 
   const projectModel = new DistributedProject(doc)
@@ -675,6 +674,11 @@ export const useProjectStore = defineStore('project', () => {
 
   const { executionMode } = setupSettings(projectModel)
 
+  function disposeYDocsProvider() {
+    yDocsProvider?.dispose()
+    yDocsProvider = undefined
+  }
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -699,6 +703,7 @@ export const useProjectStore = defineStore('project', () => {
     executionMode,
     dataflowErrors,
     executeExpression,
+    disposeYDocsProvider,
   }
 })
 

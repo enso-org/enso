@@ -3,7 +3,7 @@ from Standard.Base import all
 # We need this import, to ensure that we depend on `Standard.Table`, so that the Java import of `org.enso.table` is valid.
 from Standard.Table import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 polyglot java import java.util.Comparator
 polyglot java import org.enso.table.data.table.join.between.SortedListIndex

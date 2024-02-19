@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.logging.Level;
 import org.enso.persist.Persistance.Input;
 import org.enso.persist.Persistance.Reference;
 
@@ -24,14 +23,13 @@ final class PerInputImpl implements Input {
     this.at = at;
   }
 
-  static <T> Reference<T> readObject(byte[] arr, Function<Object, Object> readResolve)
+  static <T> Reference<T> readObject(ByteBuffer buf, Function<Object, Object> readResolve)
       throws IOException {
     for (var i = 0; i < PerGenerator.HEADER.length; i++) {
-      if (arr[i] != PerGenerator.HEADER[i]) {
+      if (buf.get(i) != PerGenerator.HEADER[i]) {
         throw new IOException("Wrong header");
       }
     }
-    var buf = ByteBuffer.wrap(arr);
     var version = buf.getInt(4);
     var cache = new InputCache(buf, readResolve);
     if (version != cache.map().versionStamp) {
@@ -213,7 +211,7 @@ final class PerInputImpl implements Input {
       sb.append("\nare they equal: ").append(bothObjectsAreTheSame);
       var ex = new IOException(sb.toString());
       if (bothObjectsAreTheSame) {
-        PerUtils.LOG.log(Level.WARNING, sb.toString(), ex);
+        PerUtils.LOG.warn(sb.toString(), ex);
       } else {
         throw raise(RuntimeException.class, ex);
       }

@@ -26,7 +26,8 @@ object ProjectManagementApi {
       name: String,
       version: Option[EnsoVersion],
       projectTemplate: Option[String],
-      missingComponentAction: Option[MissingComponentAction]
+      missingComponentAction: Option[MissingComponentAction],
+      projectsDirectory: Option[String]
     )
 
     case class Result(projectId: UUID, projectName: String)
@@ -44,7 +45,7 @@ object ProjectManagementApi {
 
   case object ProjectDelete extends Method("project/delete") {
 
-    case class Params(projectId: UUID)
+    case class Params(projectId: UUID, projectsDirectory: Option[String])
 
     implicit val hasParams: HasParams.Aux[this.type, ProjectDelete.Params] =
       new HasParams[this.type] {
@@ -59,7 +60,11 @@ object ProjectManagementApi {
 
   case object ProjectRename extends Method("project/rename") {
 
-    case class Params(projectId: UUID, name: String)
+    case class Params(
+      projectId: UUID,
+      name: String,
+      projectsDirectory: Option[String]
+    )
 
     implicit val hasParams: HasParams.Aux[this.type, ProjectRename.Params] =
       new HasParams[this.type] {
@@ -76,6 +81,7 @@ object ProjectManagementApi {
 
     case class Params(
       projectId: UUID,
+      projectsDirectory: Option[String],
       missingComponentAction: Option[MissingComponentAction]
     )
 

@@ -4,7 +4,7 @@ from Standard.Table import Column
 from Standard.Table.Internal.Java_Exports import make_inferred_builder
 import Standard.Table.Internal.Java_Problems
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 type My
     Data x y

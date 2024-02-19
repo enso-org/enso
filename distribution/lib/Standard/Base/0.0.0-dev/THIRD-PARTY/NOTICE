@@ -1,6 +1,21 @@
 Enso
 Copyright 2020 - 2024 New Byte Order sp. z o. o.
 
+'jackson-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the Base.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.15.2`.
+
+
+'jackson-core', licensed under the The Apache Software License, Version 2.0, is distributed with the Base.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.15.2`.
+
+
+'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the Base.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.15.2`.
+
+
 'icu4j', licensed under the Unicode/ICU License, is distributed with the Base.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-73.1`.

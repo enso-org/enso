@@ -1,14 +1,13 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
 
-import * as toastify from 'react-toastify'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import type * as backend from '#/services/backend'
-import * as errorModule from '#/utilities/error'
 
 import Modal from '#/components/Modal'
+
+import type * as backend from '#/services/Backend'
 
 // =========================
 // === UpsertSecretModal ===
@@ -16,15 +15,15 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link UpsertSecretModal}. */
 export interface UpsertSecretModalProps {
-  id: backend.SecretId | null
-  name: string | null
-  doCreate: (name: string, value: string) => void
+  readonly id: backend.SecretId | null
+  readonly name: string | null
+  readonly doCreate: (name: string, value: string) => void
 }
 
 /** A modal for creating and editing a secret. */
 export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { id, name: nameRaw, doCreate } = props
-  const logger = loggerProvider.useLogger()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
 
   const [name, setName] = React.useState(nameRaw ?? '')
@@ -38,15 +37,14 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
     try {
       doCreate(name, value)
     } catch (error) {
-      const message = errorModule.getMessageOrToString(error)
-      toastify.toast.error(message)
-      logger.error(message)
+      toastAndLog(null, error)
     }
   }
 
   return (
     <Modal centered className="bg-dim">
       <form
+        data-testid="upsert-secret-modal"
         tabIndex={-1}
         className="relative flex flex-col gap-2 rounded-2xl w-96 p-4 pt-2 pointer-events-auto before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
         onKeyDown={event => {
@@ -59,15 +57,13 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         }}
         onSubmit={event => {
           event.preventDefault()
-          // Consider not calling `onSubmit()` here to make it harder to accidentally
-          // delete an important asset.
           onSubmit()
         }}
       >
         <h1 className="relative text-sm font-semibold">
           {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
         </h1>
-        <div className="relative flex">
+        <label className="relative flex">
           <div className="w-12 h-6 py-1">Name</div>
           <input
             autoFocus
@@ -79,8 +75,8 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
               setName(event.currentTarget.value)
             }}
           />
-        </div>
-        <div className="relative flex">
+        </label>
+        <label className="relative flex">
           <div className="w-12 h-6 py-1">Value</div>
           <input
             placeholder="Enter the value of the secret"
@@ -89,7 +85,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
               setValue(event.currentTarget.value)
             }}
           />
-        </div>
+        </label>
         <div className="relative flex gap-2">
           <button
             disabled={!canSubmit}

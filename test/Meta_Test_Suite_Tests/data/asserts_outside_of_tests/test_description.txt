@@ -1,1 +1,0 @@
-test assertions that are run outside of tests should still raise a panic with a meaningful message

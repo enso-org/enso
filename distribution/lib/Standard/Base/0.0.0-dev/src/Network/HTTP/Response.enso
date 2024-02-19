@@ -8,10 +8,11 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.File_Error.File_Error
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
-import project.Network.HTTP.Response_Body.Unsupported_Content_Type
+import project.Network.HTTP.Response_Body.Throw_Unsupported_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File_Format.Auto_Detect
@@ -117,16 +118,18 @@ type Response
 
     ## ALIAS parse
        GROUP Conversions
+       ICON data_input
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
        format.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
-    decode self format=Auto_Detect ~if_unsupported=(Error.throw (Unsupported_Content_Type.Error self.content_type)) =
+    decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =
         self.body.decode format if_unsupported
 
     ## ALIAS parse as text
        GROUP Conversions
+       ICON data_input
        Decodes the body to a Text value.
 
        Arguments:
@@ -134,12 +137,13 @@ type Response
          inferred from response headers. If that fails, UTF-8 is used as the
          fallback.
     @encoding Encoding.default_widget
-    decode_as_text : Encoding|Infer -> Text
+    decode_as_text : Encoding | Infer -> Text
     decode_as_text self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_text encoding
 
     ## ALIAS parse as json, parse json
        GROUP Conversions
+       ICON data_input
        Decodes the body as JSON.
 
        Arguments:
@@ -154,7 +158,7 @@ type Response
 
              example_to_text = Examples.get_geo_data.decode_as_json
     @encoding Encoding.default_widget
-    decode_as_json : Encoding|Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    decode_as_json : Encoding | Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
     decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_json encoding
 

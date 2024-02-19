@@ -2,55 +2,60 @@
  * are selected. */
 import * as React from 'react'
 
-import type * as assetEvent from '#/events/assetEvent'
-import AssetEventType from '#/events/AssetEventType'
-import type * as assetListEvent from '#/events/assetListEvent'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import type * as assetTreeNode from '#/utilities/assetTreeNode'
-import type * as pasteDataModule from '#/utilities/pasteData'
-import * as permissions from '#/utilities/permissions'
-import * as shortcuts from '#/utilities/shortcuts'
-import * as string from '#/utilities/string'
-import * as uniqueString from '#/utilities/uniqueString'
+
+import type * as assetEvent from '#/events/assetEvent'
+import AssetEventType from '#/events/AssetEventType'
+import type * as assetListEvent from '#/events/assetListEvent'
+
+import Category from '#/layouts/dashboard/CategorySwitcher/Category'
+import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
 import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
 import MenuEntry from '#/components/MenuEntry'
 
+import * as backendModule from '#/services/Backend'
+
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
+import type * as pasteDataModule from '#/utilities/pasteData'
+import * as permissions from '#/utilities/permissions'
+import * as shortcutManager from '#/utilities/ShortcutManager'
+import * as string from '#/utilities/string'
+import * as uniqueString from '#/utilities/uniqueString'
+
 // =================
 // === Constants ===
 // =================
 
-/** The user-facing name of this asset type. */
-const ASSET_TYPE_NAME = 'item'
-/** The user-facing plural name of this asset type. */
-const ASSET_TYPE_NAME_PLURAL = 'items'
 // This is a function, even though does not look like one.
 // eslint-disable-next-line no-restricted-syntax
-const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
+const pluralize = string.makePluralize('item', 'items')
+
+// ==============================
+// === AssetsTableContextMenu ===
+// ==============================
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
-  hidden?: boolean
-  category: Category
-  pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
-  selectedKeys: Set<backendModule.AssetId>
-  setSelectedKeys: (items: Set<backendModule.AssetId>) => void
-  nodeMapRef: React.MutableRefObject<
-    ReadonlyMap<backendModule.AssetId, assetTreeNode.AssetTreeNode>
-  >
-  event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
-  dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
-  doCopy: () => void
-  doCut: () => void
-  doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+  readonly hidden?: boolean
+  readonly category: Category
+  readonly pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
+  readonly selectedKeys: Set<backendModule.AssetId>
+  readonly setSelectedKeys: (items: Set<backendModule.AssetId>) => void
+  readonly nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
+  readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
+  readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
+  readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
+  readonly doCopy: () => void
+  readonly doCut: () => void
+  readonly doPaste: (
+    newParentKey: backendModule.AssetId,
+    newParentId: backendModule.DirectoryId
+  ) => void
 }
 
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
@@ -60,11 +65,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const { dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -72,12 +77,12 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   // This works because all items are mutated, ensuring their value stays
   // up to date.
   const ownsAllSelectedAssets =
-    isCloud ||
-    (organization != null &&
+    !isCloud ||
+    (user != null &&
       Array.from(selectedKeys, key => {
         const userPermissions = nodeMapRef.current.get(key)?.item.permissions
         const selfPermission = userPermissions?.find(
-          permission => permission.user.user_email === organization.email
+          permission => permission.user.user_email === user.email
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))
@@ -122,7 +127,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         <ContextMenu hidden={hidden}>
           <MenuEntry
             hidden={hidden}
-            action={shortcuts.KeyboardAction.restoreAllFromTrash}
+            action={shortcutManager.KeyboardAction.restoreAllFromTrash}
             doAction={doRestoreAll}
           />
         </ContextMenu>
@@ -132,8 +137,8 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     return null
   } else {
     const deleteAction = isCloud
-      ? shortcuts.KeyboardAction.moveAllToTrash
-      : shortcuts.KeyboardAction.deleteAll
+      ? shortcutManager.KeyboardAction.moveAllToTrash
+      : shortcutManager.KeyboardAction.deleteAll
     return (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         {selectedKeys.size !== 0 && (
@@ -144,21 +149,21 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             {isCloud && (
               <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.copyAll}
+                action={shortcutManager.KeyboardAction.copyAll}
                 doAction={doCopy}
               />
             )}
             {isCloud && ownsAllSelectedAssets && (
               <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.cutAll}
+                action={shortcutManager.KeyboardAction.cutAll}
                 doAction={doCut}
               />
             )}
             {pasteData != null && pasteData.data.size > 0 && (
               <MenuEntry
                 hidden={hidden}
-                action={shortcuts.KeyboardAction.pasteAll}
+                action={shortcutManager.KeyboardAction.pasteAll}
                 doAction={() => {
                   const [firstKey] = selectedKeys
                   const selectedNode =

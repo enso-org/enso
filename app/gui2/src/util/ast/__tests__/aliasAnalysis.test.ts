@@ -28,8 +28,11 @@
 import { assertDefined } from '@/util/assert'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
+import { initializeFFI } from 'shared/ast/ffi'
 import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
+
+await initializeFFI()
 
 /** The type of annotation. */
 enum AnnotationType {

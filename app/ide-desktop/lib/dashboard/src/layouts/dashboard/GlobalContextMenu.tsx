@@ -1,38 +1,46 @@
 /** @file A context menu available everywhere in the directory. */
 import * as React from 'react'
 
-import type * as assetListEventModule from '#/events/assetListEvent'
-import AssetListEventType from '#/events/AssetListEventType'
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as backendModule from '#/services/backend'
-import * as shortcuts from '#/utilities/shortcuts'
+
+import type * as assetListEventModule from '#/events/assetListEvent'
+import AssetListEventType from '#/events/AssetListEventType'
+
+import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import ContextMenu from '#/components/ContextMenu'
 import MenuEntry from '#/components/MenuEntry'
 
+import * as backendModule from '#/services/Backend'
+
+import * as shortcutManager from '#/utilities/ShortcutManager'
+
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
-  hidden?: boolean
-  hasCopyData: boolean
-  directoryKey: backendModule.DirectoryId | null
-  directoryId: backendModule.DirectoryId | null
-  dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-  doPaste: (newParentKey: backendModule.AssetId, newParentId: backendModule.DirectoryId) => void
+  readonly hidden?: boolean
+  readonly hasCopyData: boolean
+  readonly directoryKey: backendModule.DirectoryId | null
+  readonly directoryId: backendModule.DirectoryId | null
+  readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+  readonly doPaste: (
+    newParentKey: backendModule.AssetId,
+    newParentId: backendModule.DirectoryId
+  ) => void
 }
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const { hidden = false, hasCopyData, directoryKey, directoryId, dispatchAssetListEvent } = props
   const { doPaste } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
@@ -63,8 +71,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         hidden={hidden}
         action={
           backend.type === backendModule.BackendType.local
-            ? shortcuts.KeyboardAction.uploadProjects
-            : shortcuts.KeyboardAction.uploadFiles
+            ? shortcutManager.KeyboardAction.uploadProjects
+            : shortcutManager.KeyboardAction.uploadFiles
         }
         doAction={() => {
           if (filesInputRef.current?.isConnected === true) {
@@ -93,7 +101,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.newProject}
+          action={shortcutManager.KeyboardAction.newProject}
           doAction={() => {
             unsetModal()
             dispatchAssetListEvent({
@@ -110,7 +118,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.newFolder}
+          action={shortcutManager.KeyboardAction.newFolder}
           doAction={() => {
             unsetModal()
             dispatchAssetListEvent({
@@ -124,7 +132,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       {isCloud && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.newDataConnector}
+          action={shortcutManager.KeyboardAction.newSecret}
           doAction={() => {
             setModal(
               <UpsertSecretModal
@@ -144,10 +152,31 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           }}
         />
       )}
+      {isCloud && (
+        <MenuEntry
+          hidden={hidden}
+          action={shortcutManager.KeyboardAction.newDataLink}
+          doAction={() => {
+            setModal(
+              <UpsertDataLinkModal
+                doCreate={(name, value) => {
+                  dispatchAssetListEvent({
+                    type: AssetListEventType.newDataLink,
+                    parentKey: directoryKey ?? rootDirectoryId,
+                    parentId: directoryId ?? rootDirectoryId,
+                    name,
+                    value,
+                  })
+                }}
+              />
+            )
+          }}
+        />
+      )}
       {isCloud && directoryKey == null && hasCopyData && (
         <MenuEntry
           hidden={hidden}
-          action={shortcuts.KeyboardAction.paste}
+          action={shortcutManager.KeyboardAction.paste}
           doAction={() => {
             unsetModal()
             doPaste(rootDirectoryId, rootDirectoryId)

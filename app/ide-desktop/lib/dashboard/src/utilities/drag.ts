@@ -1,7 +1,8 @@
 /** @file Various types of drag event payloads. */
 import type * as React from 'react'
 
-import type * as backend from '#/services/backend'
+import type * as backend from '#/services/Backend'
+
 import * as uniqueString from '#/utilities/uniqueString'
 
 // ===========================
@@ -24,9 +25,9 @@ export function setDragImageToBlank(event: React.DragEvent) {
 
 /** Associates drag events with payload data. */
 class DragPayloadManager<Payload> {
-  regex: RegExp
-  map = new Map<string, Payload>()
-  reverseMap = new Map<Payload, string>()
+  readonly regex: RegExp
+  readonly map = new Map<string, Payload>()
+  readonly reverseMap = new Map<Payload, string>()
   /** Create a {@link DragPayloadManager}. */
   constructor(public mimetype: string) {
     this.regex = new RegExp('^' + mimetype + '; id=(.+)$')

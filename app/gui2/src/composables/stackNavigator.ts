@@ -35,15 +35,14 @@ export function useStackNavigator() {
 
   function handleBreadcrumbClick(index: number) {
     const activeStack = projectStore.executionContext.desiredStack
-    if (index < activeStack.length) {
-      const diff = activeStack.length - index - 1
-      for (let i = 0; i < diff; i++) {
+    // Number of items in desired stack should be index + 1
+    if (index + 1 < activeStack.length) {
+      for (let i = activeStack.length; i > index + 1; i--) {
         projectStore.executionContext.pop()
       }
-    } else if (index >= activeStack.length) {
-      const diff = index - activeStack.length + 1
-      for (let i = 0; i < diff; i++) {
-        const stackItem = breadcrumbs.value[index - i]
+    } else if (index + 1 > activeStack.length) {
+      for (let i = activeStack.length; i <= index; i++) {
+        const stackItem = breadcrumbs.value[i]
         if (stackItem?.type === 'LocalCall') {
           const exprId = stackItem.expressionId
           projectStore.executionContext.push(exprId)
@@ -56,8 +55,12 @@ export function useStackNavigator() {
   }
 
   function enterNode(id: AstId) {
-    const node = graphStore.astModule.get(id)!
-    const expressionInfo = graphStore.db.getExpressionInfo(id)
+    const externalId = graphStore.db.idToExternal(id)
+    if (externalId == null) {
+      console.debug("Cannot enter node that hasn't been committed yet.")
+      return
+    }
+    const expressionInfo = graphStore.db.getExpressionInfo(externalId)
     if (expressionInfo == null || expressionInfo.methodCall == null) {
       console.debug('Cannot enter node that has no method call.')
       return
@@ -72,7 +75,7 @@ export function useStackNavigator() {
       console.debug('Cannot enter node that is not defined on current module.')
       return
     }
-    projectStore.executionContext.push(node.externalId)
+    projectStore.executionContext.push(externalId)
     graphStore.updateState()
     breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
   }

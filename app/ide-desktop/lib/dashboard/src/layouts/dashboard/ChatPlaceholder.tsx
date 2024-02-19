@@ -4,20 +4,23 @@ import * as React from 'react'
 import * as reactDom from 'react-dom'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
+import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
+
 import * as navigateHooks from '#/hooks/navigateHooks'
+
+import * as loggerProvider from '#/providers/LoggerProvider'
+
 import * as chat from '#/layouts/dashboard/Chat'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import * as loggerProvider from '#/providers/LoggerProvider'
-import * as animations from '#/utilities/animations'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
-  page: pageSwitcher.Page
+  readonly page: pageSwitcher.Page
   /** This should only be false when the panel is closing. */
-  isOpen: boolean
-  doClose: () => void
+  readonly isOpen: boolean
+  readonly doClose: () => void
 }
 
 /** A placeholder component replacing `Chat` when a user is not logged in. */
@@ -25,33 +28,8 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { page, isOpen, doClose } = props
   const logger = loggerProvider.useLogger()
   const navigate = navigateHooks.useNavigate()
-  const [right, setTargetRight] = animations.useInterpolateOverTime(
-    animations.interpolationFunctionEaseInOut,
-    chat.ANIMATION_DURATION_MS,
-    -chat.WIDTH_PX
-  )
 
   const container = document.getElementById(chat.HELP_CHAT_ID)
-
-  React.useEffect(() => {
-    // The types come from a third-party API and cannot be changed.
-    // eslint-disable-next-line no-restricted-syntax
-    let handle: number | undefined
-    if (container != null) {
-      if (isOpen) {
-        container.style.display = ''
-        setTargetRight(0)
-      } else {
-        setTargetRight(-chat.WIDTH_PX)
-        handle = window.setTimeout(() => {
-          container.style.display = 'none'
-        }, chat.ANIMATION_DURATION_MS)
-      }
-    }
-    return () => {
-      clearTimeout(handle)
-    }
-  }, [isOpen, container, setTargetRight])
 
   if (container == null) {
     logger.error('Chat container not found.')
@@ -59,10 +37,9 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   } else {
     return reactDom.createPortal(
       <div
-        style={{ right }}
-        className={`text-xs text-chat flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen border-ide-bg-dark border-l-2 w-83.5 py-1 z-1 ${
-          page === pageSwitcher.Page.editor ? 'bg-ide-bg' : 'bg-frame-selected'
-        }`}
+        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
+          detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
+        } ${isOpen ? '' : 'translate-x-full'}`}
       >
         <div className="flex text-sm font-semibold mx-4 mt-2">
           <div className="grow" />

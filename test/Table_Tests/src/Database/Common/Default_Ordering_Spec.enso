@@ -8,8 +8,8 @@ from Standard.Table.Errors import all
 from Standard.Database import all
 from Standard.Database.Errors import all
 
-from Standard.Test_New import all
-import Standard.Test_New.Suite.Suite_Builder
+from Standard.Test import all
+import Standard.Test.Suite.Suite_Builder
 
 import project.Util
 import project.Database.Helpers.Name_Generator
@@ -68,7 +68,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
 
         group_builder.specify "will return Nothing for composite tables (join, aggregate)"
             data.db_table_with_key.join data.db_table_with_key . default_ordering . should_equal Nothing
-            data.db_table_with_key.aggregate [Aggregate_Column.Group_By "X"] . default_ordering . should_equal Nothing
+            data.db_table_with_key.aggregate ["X"] . default_ordering . should_equal Nothing
 
         group_builder.specify "will return the ordering determined by order_by" <|
             v1 = data.db_table_with_key.order_by ["Y", Sort_Column.Name "X" Sort_Direction.Descending] . default_ordering
