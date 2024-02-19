@@ -20,7 +20,7 @@ type S3_Path
             first_slash_index = without_prefix.index_of S3_Path.delimiter
             if first_slash_index == 0 then Error.throw (Illegal_Argument.Error "Invalid S3 path: empty bucket name.") else
                 if first_slash_index.is_nothing then S3_Path.Value without_prefix "" else
-                    Pair.new (without_prefix.take first_slash_index) (without_prefix.drop first_slash_index+1)
+                    S3_Path.Value (without_prefix.take first_slash_index) (without_prefix.drop first_slash_index+1)
 
     ## PRIVATE
     to_text self -> Text = S3.uri_prefix + self.bucket + S3_Path.delimiter + self.key
