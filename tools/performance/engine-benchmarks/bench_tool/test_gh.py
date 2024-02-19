@@ -4,7 +4,6 @@ from bench_tool import ENSO_REPO
 from . import gh
 
 
-# Create a unit test
 class TestGH(unittest.IsolatedAsyncioTestCase):
     async def test_ensure_gh_installed(self):
         self.assertIsNone(gh.ensure_gh_installed())
