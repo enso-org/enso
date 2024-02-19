@@ -21,10 +21,6 @@ import scala.annotation.unused
   * @param definedEntities the list of entities defined in the current module
   * @param currentModule the module holding these bindings
   */
-
-@SerialVersionUID(
-  9057L // Use BindingsMap
-)
 case class BindingsMap(
   definedEntities: List[DefinedEntity],
   currentModule: ModuleReference

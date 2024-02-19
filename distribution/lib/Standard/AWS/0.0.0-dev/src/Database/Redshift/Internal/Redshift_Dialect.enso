@@ -7,7 +7,6 @@ import Standard.Database.Data.DB_Column.DB_Column
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.SQL_Statement.SQL_Statement
 import Standard.Database.Data.SQL_Type.SQL_Type
-import Standard.Database.Data.Table.Table
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
 import Standard.Database.Internal.Column_Fetcher.Column_Fetcher

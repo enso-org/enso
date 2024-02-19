@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.StopIterationException;
@@ -29,16 +30,17 @@ public abstract class HashMapRemoveNode extends Node {
     return HashMapRemoveNodeGen.create();
   }
 
-  public abstract EnsoHashMap execute(Object self, Object key);
+  public abstract EnsoHashMap execute(VirtualFrame frame, Object self, Object key);
 
   @Specialization
   EnsoHashMap removeFromEnsoMap(
+      VirtualFrame frame,
       EnsoHashMap ensoMap,
       Object key,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
-    var mapBuilder = ensoMap.getMapBuilder(false, hashCodeNode, equalsNode);
-    if (mapBuilder.remove(key, hashCodeNode, equalsNode)) {
+    var mapBuilder = ensoMap.getMapBuilder(frame, false, hashCodeNode, equalsNode);
+    if (mapBuilder.remove(frame, key, hashCodeNode, equalsNode)) {
       return mapBuilder.build();
     } else {
       throw DataflowError.withoutTrace("No such key", null);
@@ -47,6 +49,7 @@ public abstract class HashMapRemoveNode extends Node {
 
   @Specialization(guards = "interop.hasHashEntries(map)")
   EnsoHashMap removeFromInteropMap(
+      VirtualFrame frame,
       Object map,
       Object keyToRemove,
       @CachedLibrary(limit = "5") InteropLibrary interop,
@@ -62,7 +65,7 @@ public abstract class HashMapRemoveNode extends Node {
       while (interop.hasIteratorNextElement(entriesIterator)) {
         Object keyValueArr = interop.getIteratorNextElement(entriesIterator);
         Object key = interop.readArrayElement(keyValueArr, 0);
-        if ((boolean) equalsNode.execute(keyToRemove, key)) {
+        if (equalsNode.execute(frame, keyToRemove, key)) {
           if (keyToRemoveFound) {
             CompilerDirectives.transferToInterpreter();
             var ctx = EnsoContext.get(this);
@@ -72,8 +75,9 @@ public abstract class HashMapRemoveNode extends Node {
           }
         } else {
           Object value = interop.readArrayElement(keyValueArr, 1);
-          mapBuilder = mapBuilder.asModifiable(mapBuilder.generation(), hashCodeNode, equalsNode);
-          mapBuilder.put(key, value, hashCodeNode, equalsNode);
+          mapBuilder =
+              mapBuilder.asModifiable(frame, mapBuilder.generation(), hashCodeNode, equalsNode);
+          mapBuilder.put(frame, key, value, hashCodeNode, equalsNode);
         }
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
