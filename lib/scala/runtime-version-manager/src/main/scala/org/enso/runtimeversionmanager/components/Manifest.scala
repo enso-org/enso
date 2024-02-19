@@ -4,9 +4,9 @@ import java.io.FileReader
 import java.nio.file.Path
 import cats.Show
 import io.circe.{yaml, Decoder}
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.cli.OS
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 import org.enso.runtimeversionmanager.components.Manifest.{
   JVMOption,
   RequiredInstallerVersions
@@ -53,7 +53,7 @@ case class Manifest(
   /** Returns the minimum required version of the installer that is required for
     * using this particular engine release.
     */
-  def minimumRequiredVersion(implicit installerKind: InstallerKind): Version =
+  def minimumRequiredVersion(implicit installerKind: InstallerKind): SemVer =
     installerKind match {
       case InstallerKind.Launcher =>
         requiredInstallerVersions.launcher
@@ -67,10 +67,7 @@ object Manifest {
   /** Stores minimum required versions of each installer kind described in the
     * [[Manifest]].
     */
-  case class RequiredInstallerVersions(
-    launcher: Version,
-    projectManager: Version
-  )
+  case class RequiredInstallerVersions(launcher: SemVer, projectManager: SemVer)
 
   /** Defines the name under which the manifest is included in the releases.
     */
@@ -201,8 +198,8 @@ object Manifest {
 
   implicit private val decoder: Decoder[Manifest] = { json =>
     for {
-      minimumLauncherVersion <- json.get[Version](Fields.minimumLauncherVersion)
-      minimumProjectManagerVersion <- json.get[Version](
+      minimumLauncherVersion <- json.get[SemVer](Fields.minimumLauncherVersion)
+      minimumProjectManagerVersion <- json.get[SemVer](
         Fields.minimumProjectManagerVersion
       )
       graalVMVersion <- json.get[String](Fields.graalVMVersion)

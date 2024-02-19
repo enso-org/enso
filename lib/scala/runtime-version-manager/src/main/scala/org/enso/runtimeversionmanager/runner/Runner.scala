@@ -1,7 +1,7 @@
 package org.enso.runtimeversionmanager.runner
 
 import com.typesafe.scalalogging.Logger
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
@@ -45,7 +45,7 @@ class Runner(
   def newProject(
     path: Path,
     name: String,
-    engineVersion: Version,
+    engineVersion: SemVer,
     normalizedName: Option[String],
     projectTemplate: Option[String],
     authorName: Option[String],
@@ -86,7 +86,7 @@ class Runner(
   def startLanguageServer(
     options: LanguageServerOptions,
     project: Project,
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
@@ -107,7 +107,7 @@ class Runner(
   def startLanguageServer(
     options: LanguageServerOptions,
     projectPath: String,
-    version: Version,
+    version: SemVer,
     logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
@@ -285,9 +285,9 @@ class Runner(
     * Otherwise, the default version is selected.
     */
   protected def resolveVersion(
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     project: Option[Project]
-  ): Version = versionOverride.getOrElse {
+  ): SemVer = versionOverride.getOrElse {
     project match {
       case Some(project) =>
         // TODO [RW] properly get the default edition, see #1864

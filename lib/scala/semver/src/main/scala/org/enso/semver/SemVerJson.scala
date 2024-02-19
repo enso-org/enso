@@ -1,16 +1,15 @@
-package org.enso.editions
+package org.enso.semver
 
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor}
 
-import scala.util.{Success, Try}
-import com.github.zafarkhaja.semver.Version
+import scala.util.Success
 
 object SemVerJson {
 
   /** [[Decoder]] instance allowing to parse semantic versioning strings.
     */
-  implicit val semverDecoder: Decoder[Version] = { json =>
+  implicit val semverDecoder: Decoder[SemVer] = { json =>
     for {
       string  <- json.as[String]
       version <- safeParse(string, json)
@@ -20,8 +19,8 @@ object SemVerJson {
   private def safeParse(
     version: String,
     json: HCursor
-  ): Either[DecodingFailure, Version] = {
-    Try(Version.parse(version)) match {
+  ): Either[DecodingFailure, SemVer] = {
+    SemVer.parse(version) match {
       case Success(parsed) => Right(parsed)
       case _ =>
         Left(
@@ -32,8 +31,9 @@ object SemVerJson {
         )
     }
   }
+  
 
   /** [[Encoder]] instance allowing to serialize semantic versioning strings.
     */
-  implicit val semverEncoder: Encoder[Version] = _.toString.asJson
+  implicit val semverEncoder: Encoder[SemVer] = _.toString.asJson
 }

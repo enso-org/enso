@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published
 
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.resolved.LibraryRoot
@@ -22,7 +22,7 @@ trait PublishedLibraryProvider {
     */
   def findLibrary(
     libraryName: LibraryName,
-    version: Version,
+    version: SemVer,
     recommendedRepository: Repository
   ): Try[LibraryRoot]
 }

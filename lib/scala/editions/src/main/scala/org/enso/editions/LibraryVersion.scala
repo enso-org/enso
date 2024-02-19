@@ -1,8 +1,7 @@
 package org.enso.editions
 
-//import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 
 /** A resolved version of the library. */
 sealed trait LibraryVersion
@@ -20,7 +19,7 @@ object LibraryVersion {
     * It also indicates the repository to download the library from if it is not
     * already cached.
     */
-  case class Published(version: Version, repository: Repository)
+  case class Published(version: SemVer, repository: Repository)
       extends LibraryVersion {
 
     /** @inheritdoc */

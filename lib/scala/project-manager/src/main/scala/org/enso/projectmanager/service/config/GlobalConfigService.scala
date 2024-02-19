@@ -1,7 +1,7 @@
 package org.enso.projectmanager.service.config
 
 import io.circe.Json
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.editions.{DefaultEnsoVersion, EnsoVersion, SemVerEnsoVersion}
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
@@ -47,7 +47,7 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     }.recoverAccessErrors
 
   /** @inheritdoc */
-  override def getDefaultEnsoVersion: F[GlobalConfigServiceFailure, Version] =
+  override def getDefaultEnsoVersion: F[GlobalConfigServiceFailure, SemVer] =
     Sync[F].blockingOp {
       configurationManager.defaultVersion
     }.recoverAccessErrors
@@ -55,7 +55,7 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   /** @inheritdoc */
   override def resolveEnsoVersion(
     ensoVersion: EnsoVersion
-  ): F[GlobalConfigServiceFailure, Version] = ensoVersion match {
+  ): F[GlobalConfigServiceFailure, SemVer] = ensoVersion match {
     case DefaultEnsoVersion         => getDefaultEnsoVersion
     case SemVerEnsoVersion(version) => CovariantFlatMap[F].pure(version)
   }

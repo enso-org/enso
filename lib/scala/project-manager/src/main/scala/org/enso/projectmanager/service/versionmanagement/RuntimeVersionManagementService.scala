@@ -1,7 +1,7 @@
 package org.enso.projectmanager.service.versionmanagement
 
 import akka.actor.ActorRef
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.EngineVersion
 import org.enso.projectmanager.service.ProjectServiceFailure
@@ -28,7 +28,7 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
   /** @inheritdoc */
   override def installEngine(
     progressTracker: ActorRef,
-    version: Version,
+    version: SemVer,
     forceInstallBroken: Boolean
   ): F[ProjectServiceFailure, Unit] = {
     Sync[F]
@@ -50,7 +50,7 @@ class RuntimeVersionManagementService[F[+_, +_]: Sync: ErrorChannel](
   /** @inheritdoc */
   override def uninstallEngine(
     progressTracker: ActorRef,
-    version: Version
+    version: SemVer
   ): F[ProjectServiceFailure, Unit] = Sync[F]
     .blockingOp {
       try {

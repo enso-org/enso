@@ -3,7 +3,7 @@ package org.enso.launcher
 import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.distribution.config.DefaultVersion
 import org.enso.editions.updater.EditionManager
 import org.enso.runtimeversionmanager.CurrentVersion
@@ -72,7 +72,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     normalizedName: Option[String],
     projectTemplate: Option[String],
     path: Option[Path],
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -156,7 +156,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *
     * Also installs the required runtime if it wasn't already installed.
     */
-  def installEngine(version: Version): Int = {
+  def installEngine(version: SemVer): Int = {
     val installingComponentManager =
       runtimeVersionManager(cliOptions, alwaysInstallMissing = true)
     val existing = installingComponentManager.findEngine(version)
@@ -182,7 +182,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *
     * If a runtime is not used by any engines anymore, it is also removed.
     */
-  def uninstallEngine(version: Version): Int = {
+  def uninstallEngine(version: SemVer): Int = {
     componentsManager.uninstallEngine(version)
     distributionManager.tryCleaningUnusedLockfiles()
     0
@@ -206,7 +206,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def runRepl(
     projectPath: Option[Path],
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
@@ -250,7 +250,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def runRun(
     path: Option[Path],
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
@@ -292,7 +292,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runLanguageServer(
     options: LanguageServerOptions,
     contentRoot: Path,
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
@@ -330,7 +330,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * @return exit code of the launched program
     */
   def runInstallDependencies(
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
@@ -559,14 +559,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * specified, the latest available version is chosen, unless it is older than
     * the current one.
     */
-  def upgrade(version: Option[Version]): Int = {
+  def upgrade(version: Option[SemVer]): Int = {
     val targetVersion       = version.getOrElse(upgrader.latestVersion().get)
     val isManuallyRequested = version.isDefined
     if (targetVersion == CurrentVersion.version) {
       InfoLogger.info("Already up-to-date.")
       0
     } else if (
-      targetVersion.isLowerThan(CurrentVersion.version) && !isManuallyRequested
+      targetVersion.isLessThan(CurrentVersion.version) && !isManuallyRequested
     ) {
       logger.warn(
         s"The latest available version is $targetVersion, but you are " +

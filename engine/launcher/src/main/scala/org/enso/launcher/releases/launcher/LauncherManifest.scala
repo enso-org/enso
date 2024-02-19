@@ -1,9 +1,9 @@
 package org.enso.launcher.releases.launcher
 
 import io.circe.{yaml, Decoder}
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.runtimeversionmanager.releases.ReleaseProviderException
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 
 import scala.util.{Failure, Try}
 
@@ -20,7 +20,7 @@ import scala.util.{Failure, Try}
   *                          updated in the data root
   */
 case class LauncherManifest(
-  minimumVersionForUpgrade: Version,
+  minimumVersionForUpgrade: SemVer,
   filesToCopy: Seq[String],
   directoriesToCopy: Seq[String]
 )
@@ -42,7 +42,7 @@ object LauncherManifest {
   implicit val decoder: Decoder[LauncherManifest] = { json =>
     for {
       minimumVersionToUpgrade <-
-        json.get[Version](Fields.minimumVersionForUpgrade)
+        json.get[SemVer](Fields.minimumVersionForUpgrade)
       files <- json.getOrElse[Seq[String]](Fields.filesToCopy)(Seq())
       directories <-
         json.getOrElse[Seq[String]](Fields.directoriesToCopy)(Seq())

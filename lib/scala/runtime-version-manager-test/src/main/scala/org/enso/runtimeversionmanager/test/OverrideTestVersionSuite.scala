@@ -1,16 +1,16 @@
 package org.enso.runtimeversionmanager.test
 
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.scalatest.{BeforeAndAfterAll, Suite}
 
 /** The suite that overrides the [[CurrentVersion]]. */
 trait OverrideTestVersionSuite extends Suite with BeforeAndAfterAll {
 
-  private val originalVersion: Version = CurrentVersion.version
+  private val originalVersion: SemVer = CurrentVersion.version
 
   /** The version that will be used in this suite. */
-  def testVersion: Version
+  def testVersion: SemVer
 
   override def beforeAll(): Unit = {
     CurrentVersion.internalOverrideVersion(testVersion)

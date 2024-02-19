@@ -3,7 +3,7 @@ package org.enso.languageserver.libraries.handler
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.jsonrpc._
@@ -48,7 +48,7 @@ class LibraryGetPackageHandler(
             libraryName
           )
         case LibraryEntry.PublishedLibraryVersion(version, repositoryUrl) =>
-          Try(Version.parse(version)) match {
+          SemVer.parse(version) match {
             case Success(semVerVersion) =>
               getOrFetchPublishedPackage(
                 libraryName,
@@ -115,7 +115,7 @@ class LibraryGetPackageHandler(
 
   private def getOrFetchPublishedPackage(
     libraryName: LibraryName,
-    version: Version,
+    version: SemVer,
     repositoryUrl: String
   ): Future[LocalLibraryManagerProtocol.GetPackageResponse] =
     getCachedPackage(libraryName, version) match {
@@ -127,7 +127,7 @@ class LibraryGetPackageHandler(
 
   private def getCachedPackage(
     libraryName: LibraryName,
-    version: Version
+    version: SemVer
   ): Option[Try[LocalLibraryManagerProtocol.GetPackageResponse]] =
     publishedLibraryCache
       .findCachedLibrary(libraryName, version)
@@ -146,7 +146,7 @@ class LibraryGetPackageHandler(
 
   private def fetchPublishedPackage(
     libraryName: LibraryName,
-    version: Version,
+    version: SemVer,
     repositoryUrl: String
   ): Future[LocalLibraryManagerProtocol.GetPackageResponse] = for {
     config <- Repository(repositoryUrl)

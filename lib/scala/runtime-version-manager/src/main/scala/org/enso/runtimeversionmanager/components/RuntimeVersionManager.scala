@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path, StandardOpenOption}
 import com.typesafe.scalalogging.Logger
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.{
   DistributionManager,
@@ -114,7 +114,7 @@ class RuntimeVersionManager(
     *
     * The engine will be installed if needed.
     */
-  def withEngine[R](engineVersion: Version)(
+  def withEngine[R](engineVersion: SemVer)(
     action: Engine => R
   ): R = {
     val engine = findOrInstallEngine(version = engineVersion)
@@ -147,7 +147,7 @@ class RuntimeVersionManager(
     *
     * The components will be installed if needed.
     */
-  def withEngineAndRuntime[R](engineVersion: Version)(
+  def withEngineAndRuntime[R](engineVersion: SemVer)(
     action: (Engine, GraalRuntime) => R
   ): R = {
     val engine  = findOrInstallEngine(version = engineVersion)
@@ -220,7 +220,7 @@ class RuntimeVersionManager(
 
   /** Finds an installed engine with the given `version` and reports any errors.
     */
-  private def getEngine(version: Version): Try[Engine] = {
+  private def getEngine(version: SemVer): Try[Engine] = {
     val name = engineNameForVersion(version)
     this.environment
       .getEnvPath("ENSO_ENGINE_PATH")
@@ -247,7 +247,7 @@ class RuntimeVersionManager(
     * Any other errors regarding loading the engine are thrown.
     * If the engine is marked as broken, a warning is reported.
     */
-  def findEngine(version: Version): Option[Engine] =
+  def findEngine(version: SemVer): Option[Engine] =
     getEngine(version)
       .map { engine =>
         if (engine.isMarkedBroken) {
@@ -282,7 +282,7 @@ class RuntimeVersionManager(
     *
     * @param version the requested engine version
     */
-  def findOrInstallEngine(version: Version): Engine =
+  def findOrInstallEngine(version: SemVer): Engine =
     findEngine(version) match {
       case Some(found) =>
         logger.info("The engine [{}] found.", version)
@@ -379,12 +379,12 @@ class RuntimeVersionManager(
   /** Finds the latest released version of the engine, by asking the
     * [[engineReleaseProvider]].
     */
-  def fetchLatestEngineVersion(): Version =
+  def fetchLatestEngineVersion(): SemVer =
     engineReleaseProvider.findLatestVersion().get
 
   /** Uninstalls the engine with the provided `version` (if it was installed).
     */
-  def uninstallEngine(version: Version): Unit =
+  def uninstallEngine(version: SemVer): Unit =
     resourceManager.withResources(
       userInterface,
       Resources.AddOrRemoveComponents -> LockType.Exclusive,
@@ -431,7 +431,7 @@ class RuntimeVersionManager(
     manifest: Manifest
   ): Boolean = {
     if (
-      CurrentVersion.version.isHigherThanOrEquivalentTo(
+      CurrentVersion.version.isGreaterThanOrEqual(
         manifest.minimumRequiredVersion
       )
     ) true
@@ -461,7 +461,7 @@ class RuntimeVersionManager(
     * and an exclusive lock on [[Resources.Engine]]. The function itself acquires
     * [[Resources.Runtime]], but it is released before it returns.
     */
-  private def installEngine(version: Version): Engine = {
+  private def installEngine(version: SemVer): Engine = {
     logger.info("Installing the engine [{}].", version)
     val engineRelease = engineReleaseProvider.fetchRelease(version).get
     val isCompatible = isEngineVersionCompatibleWithThisInstaller(
@@ -632,7 +632,7 @@ class RuntimeVersionManager(
 
   /** Returns name of the directory containing the engine of that version.
     */
-  private def engineNameForVersion(version: Version): String =
+  private def engineNameForVersion(version: SemVer): String =
     version.toString
 
   /** Returns name of the directory containing the runtime of that version.
@@ -714,15 +714,17 @@ class RuntimeVersionManager(
 
   /** Gets the engine version from its path.
     */
-  private def parseEngineVersion(path: Path): Try[Version] = {
+  private def parseEngineVersion(path: Path): Try[SemVer] = {
     val name = path.getFileName.toString
-    Try(Version.parse(name)).recoverWith(_ =>
-      Failure(
-        UnrecognizedComponentError(
-          s"Invalid engine component version `$name`."
+    SemVer
+      .parse(name)
+      .recoverWith(_ =>
+        Failure(
+          UnrecognizedComponentError(
+            s"Invalid engine component version `$name`."
+          )
         )
       )
-    )
   }
 
   /** Loads the engine manifest, checking if that release is compatible with the
@@ -872,7 +874,7 @@ class RuntimeVersionManager(
     }
   }
 
-  private def engineDirectoryNameForVersion(version: Version): Path =
+  private def engineDirectoryNameForVersion(version: SemVer): Path =
     Path.of(version.toString())
 
   private def graalDirectoryForVersion(version: GraalVMVersion): Path =

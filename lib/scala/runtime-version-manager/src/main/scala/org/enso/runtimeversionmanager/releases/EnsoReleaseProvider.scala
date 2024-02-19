@@ -1,5 +1,6 @@
 package org.enso.runtimeversionmanager.releases
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
+import org.enso.semver.SemVerOrdering._
 import org.enso.cli.OS
 
 import scala.util.{Failure, Success, Try}
@@ -18,7 +19,7 @@ abstract class EnsoReleaseProvider[ReleaseType](
   protected val tagPrefix = "enso-"
 
   /** @inheritdoc */
-  override def findLatestVersion(): Try[Version] =
+  override def findLatestVersion(): Try[SemVer] =
     fetchAllValidVersions().flatMap { versions =>
       versions.sorted.lastOption.map(Success(_)).getOrElse {
         Failure(
@@ -33,13 +34,13 @@ abstract class EnsoReleaseProvider[ReleaseType](
       for {
         release <- releases
         versionString = release.tag.stripPrefix(tagPrefix)
-        version <- Try(Version.parse(versionString)).toOption
+        version <- SemVer.parse(versionString).toOption
       } yield ReleaseProvider
         .Version(version = version, markedAsBroken = release.isMarkedBroken)
     }
 
   /** @inheritdoc */
-  override def fetchAllValidVersions(): Try[Seq[Version]] =
+  override def fetchAllValidVersions(): Try[Seq[SemVer]] =
     fetchAllVersions().map(_.filter(!_.markedAsBroken).map(_.version))
 }
 
@@ -52,7 +53,7 @@ object EnsoReleaseProvider {
     */
   def packageNameForComponent(
     componentName: String,
-    version: Version
+    version: SemVer
   ): String = {
     val os = OS.operatingSystem match {
       case OS.Linux   => "linux"

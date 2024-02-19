@@ -1,8 +1,6 @@
 package org.enso.runner
 
-import com.github.zafarkhaja.semver.Version
-
-import scala.util.Try
+import org.enso.semver.SemVer
 
 /** A helper object that allows to access current version of the runner.
   *
@@ -14,11 +12,11 @@ import scala.util.Try
 object CurrentVersion {
 
   /** The version that the application should report. */
-  lazy val version: Version = computeVersion()
+  lazy val version: SemVer = computeVersion()
 
-  private def computeVersion(): Version = {
+  private def computeVersion(): SemVer = {
     val buildVersion =
-      Try(Version.parse(buildinfo.Info.ensoVersion)).getOrElse {
+      SemVer.parse(buildinfo.Info.ensoVersion).getOrElse {
         throw new IllegalStateException(
           "Fatal error: Enso version included in buildinfo is not a valid " +
           "semver string, this should never happen."
@@ -28,7 +26,7 @@ object CurrentVersion {
     else
       sys.props
         .get("enso.version.override")
-        .flatMap(v => Try(Version.parse(v)).toOption)
+        .flatMap(v => SemVer.parse(v).toOption)
         .getOrElse(buildVersion)
   }
 }

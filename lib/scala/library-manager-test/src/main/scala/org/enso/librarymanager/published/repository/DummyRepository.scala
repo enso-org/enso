@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published.repository
 
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
 import org.enso.downloader.archive.TarGzWriter
@@ -30,7 +30,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
     */
   case class DummyLibrary(
     libraryName: LibraryName,
-    version: Version,
+    version: SemVer,
     mainContent: String,
     dependencies: Seq[LibraryName] = Seq.empty
   )

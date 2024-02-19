@@ -1,7 +1,7 @@
 package org.enso.projectmanager.protocol
 
 import io.circe.literal.JsonStringContext
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.BaseServerSpec
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
@@ -11,7 +11,7 @@ class ProjectCreateDefaultToLatestSpec
     with OverrideTestVersionSuite
     with ReportLogsOnFailure {
 
-  override val testVersion: Version = Version.of(0, 1, 0)
+  override val testVersion: SemVer = SemVer.of(0, 1, 0)
 
   "project/create" should {
 

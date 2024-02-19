@@ -4,7 +4,7 @@ import org.enso.distribution.config.GlobalConfigurationManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions
 import org.enso.editions.{EditionResolver, Editions}
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 
 import java.nio.file.Path
 import scala.util.Try
@@ -33,7 +33,7 @@ class EditionManager private (editionProvider: UpdatingEditionProvider) {
     *                engine version
     * @return the resolved engine version
     */
-  def resolveEngineVersion(edition: Editions.RawEdition): Try[Version] =
+  def resolveEngineVersion(edition: Editions.RawEdition): Try[SemVer] =
     engineVersionResolver.resolveEnsoVersion(edition).toTry
 
   /** Find all editions available in the [[searchPaths]], performing an update

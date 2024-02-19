@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published.cache
 
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.resolved.LibraryRoot
 
@@ -27,7 +27,7 @@ trait LibraryCache extends ReadOnlyLibraryCache {
     */
   override def findCachedLibrary(
     libraryName: LibraryName,
-    version: Version
+    version: SemVer
   ): Option[LibraryRoot]
 
   /** If the cache contains the library, it is returned immediately, otherwise,
@@ -46,7 +46,7 @@ trait LibraryCache extends ReadOnlyLibraryCache {
     */
   def findOrInstallLibrary(
     libraryName: LibraryName,
-    version: Version,
+    version: SemVer,
     recommendedRepository: Editions.Repository
   ): Try[LibraryRoot]
 
@@ -62,7 +62,7 @@ trait LibraryCache extends ReadOnlyLibraryCache {
     */
   def preinstallLibrary(
     libraryName: LibraryName,
-    version: Version,
+    version: SemVer,
     recommendedRepository: Editions.Repository,
     dependencyResolver: LibraryName => Option[LibraryVersion]
   ): Try[Unit]
@@ -79,11 +79,7 @@ object LibraryCache {
     * @return the path at which the specified library would be located in the
     *         repository
     */
-  def resolvePath(
-    root: Path,
-    libraryName: LibraryName,
-    version: Version
-  ): Path =
+  def resolvePath(root: Path, libraryName: LibraryName, version: SemVer): Path =
     root
       .resolve(libraryName.namespace)
       .resolve(libraryName.name)

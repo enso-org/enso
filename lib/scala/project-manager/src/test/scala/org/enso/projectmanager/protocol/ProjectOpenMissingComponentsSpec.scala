@@ -1,5 +1,5 @@
 package org.enso.projectmanager.protocol
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.runtimeversionmanager.test.OverrideTestVersionSuite
 
@@ -8,7 +8,7 @@ class ProjectOpenMissingComponentsSpec
     with OverrideTestVersionSuite
     with ReportLogsOnFailure {
 
-  override val testVersion: Version = defaultVersion
+  override val testVersion: SemVer = defaultVersion
 
   override def beforeAll(): Unit = {
     super.beforeAll()

@@ -2,7 +2,7 @@ package org.enso.editions
 
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.provider.EditionProvider
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 
 /** A helper class which resolves the engine version that is entailed by the
   * edition configuration.
@@ -20,7 +20,7 @@ case class EngineVersionResolver(editionProvider: EditionProvider) {
     */
   def resolveEnsoVersion(
     edition: RawEdition
-  ): Either[EditionResolutionError, Version] = {
+  ): Either[EditionResolutionError, SemVer] = {
     for {
       edition <- editionResolver.resolve(edition)
     } yield edition.getEngineVersion

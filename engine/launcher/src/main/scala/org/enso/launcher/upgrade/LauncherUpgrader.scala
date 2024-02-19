@@ -2,7 +2,8 @@ package org.enso.launcher.upgrade
 
 import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
+import org.enso.semver.SemVerOrdering._
 import org.enso.cli.{CLIOutput, OS}
 import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.distribution.locking.{
@@ -45,7 +46,7 @@ class LauncherUpgrader(
   /** Queries the release provider for the latest available valid launcher
     * version.
     */
-  def latestVersion(): Try[Version] = {
+  def latestVersion(): Try[SemVer] = {
     releaseProvider.findLatestVersion()
   }
 
@@ -57,7 +58,7 @@ class LauncherUpgrader(
     * If another upgrade is in progress, [[AnotherUpgradeInProgressError]] is
     * thrown.
     */
-  def upgrade(targetVersion: Version): Unit = {
+  def upgrade(targetVersion: SemVer): Unit = {
     val failIfAnotherUpgradeIsRunning = new LockUserInterface {
       override def startWaitingForResource(resource: Resource): Unit =
         throw AnotherUpgradeInProgressError()
@@ -137,7 +138,7 @@ class LauncherUpgrader(
     * Called by [[InternalOpts]] when the upgrade continuation is requested by
     * [[runNextUpgradeStep]].
     */
-  def internalContinueUpgrade(targetVersion: Version): Unit = {
+  def internalContinueUpgrade(targetVersion: SemVer): Unit = {
     val release = releaseProvider.fetchRelease(targetVersion).get
     if (release.canPerformUpgradeFromCurrentVersion)
       performUpgradeTo(release)
@@ -153,7 +154,7 @@ class LauncherUpgrader(
     */
   private def runNextUpgradeStep(
     temporaryExecutable: Path,
-    targetVersion: Version
+    targetVersion: SemVer
   ): Unit = {
     val exitCode = InternalOpts
       .runWithNewLauncher(temporaryExecutable)
@@ -217,11 +218,11 @@ class LauncherUpgrader(
   @scala.annotation.tailrec
   private def nextVersionToUpgradeTo(
     release: LauncherRelease,
-    availableVersions: Seq[Version]
+    availableVersions: Seq[SemVer]
   ): LauncherRelease = {
     val recentEnoughVersions =
       availableVersions.filter(
-        _.isHigherThanOrEquivalentTo(release.minimumVersionToPerformUpgrade)
+        _.isGreaterThanOrEqual(release.minimumVersionToPerformUpgrade)
       )
     val minimumValidVersion = recentEnoughVersions.sorted.headOption.getOrElse {
       throw UpgradeError(
@@ -340,7 +341,7 @@ class LauncherUpgrader(
       replaceLauncherExecutable(temporaryExecutable)
 
       val verb =
-        if (release.version.isHigherThanOrEquivalentTo(CurrentVersion.version))
+        if (release.version.isGreaterThanOrEqual(CurrentVersion.version))
           "upgraded"
         else "downgraded"
       InfoLogger.info(s"Successfully $verb the launcher to ${release.version}.")

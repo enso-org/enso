@@ -2,9 +2,7 @@ package org.enso.runtimeversionmanager
 
 import buildinfo.Info
 import com.typesafe.scalalogging.Logger
-import com.github.zafarkhaja.semver.Version
-
-import scala.util.Try
+import org.enso.semver.SemVer
 
 /** Helper object that allows to get the current application version.
   *
@@ -13,18 +11,18 @@ import scala.util.Try
   */
 object CurrentVersion {
 
-  private var currentVersion: Version =
-    Try(Version.parse(Info.ensoVersion)).getOrElse {
+  private var currentVersion: SemVer =
+    SemVer.parse(Info.ensoVersion).getOrElse {
       throw new IllegalStateException("Cannot parse the built-in version.")
     }
 
-  private val defaultDevEnsoVersion: Version =
-    Try(Version.parse(Info.defaultDevEnsoVersion)).getOrElse {
+  private val defaultDevEnsoVersion: SemVer =
+    SemVer.parse(Info.defaultDevEnsoVersion).getOrElse {
       throw new IllegalStateException("Cannot parse the built-in dev version.")
     }
 
   /** Version of the component. */
-  def version: Version = currentVersion
+  def version: SemVer = currentVersion
 
   /** Check if the current version is the development one. */
   def isDevVersion: Boolean =
@@ -36,7 +34,7 @@ object CurrentVersion {
     * Internal helper method used for testing. It should be called before any
     * calls to [[version]].
     */
-  def internalOverrideVersion(newVersion: Version): Unit =
+  def internalOverrideVersion(newVersion: SemVer): Unit =
     if (Info.isRelease)
       throw new IllegalStateException(
         "Internal testing function internalOverrideVersion used in a " +

@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path}
 
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.logger.masking.MaskedPath
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.Manifest.JVMOption
@@ -15,7 +15,7 @@ import scala.util.{Failure, Success, Try}
   * @param path path to the component
   * @param manifest manifest of the engine release
   */
-case class Engine(version: Version, path: Path, manifest: Manifest) {
+case class Engine(version: SemVer, path: Path, manifest: Manifest) {
 
   /** @inheritdoc
     */
@@ -104,6 +104,6 @@ object Engine {
     *
     * See `docs/distribution/nightly.md` for more information.
     */
-  def isNightly(version: Version): Boolean =
+  def isNightly(version: SemVer): Boolean =
     version.preReleaseVersion().map(_.contains(nightlyInfix)).orElse(false)
 }

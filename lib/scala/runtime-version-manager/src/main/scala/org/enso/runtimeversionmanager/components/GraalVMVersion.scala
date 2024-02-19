@@ -1,8 +1,6 @@
 package org.enso.runtimeversionmanager.components
 
-import com.github.zafarkhaja.semver.Version
-
-import scala.util.Try
+import org.enso.semver.SemVer
 
 /** Version information identifying the runtime that can be used with an engine
   * release.
@@ -48,7 +46,8 @@ object GraalVMVersion {
     version.toIntOption match {
       case Some(_) => true
       case None =>
-        Try(Version.parse(version))
+        SemVer
+          .parse(version)
           .fold(_ => version.matches("^(\\d+\\.){3}\\d+$"), _ => true)
     }
   }

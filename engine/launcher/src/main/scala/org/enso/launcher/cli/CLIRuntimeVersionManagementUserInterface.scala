@@ -1,7 +1,7 @@
 package org.enso.launcher.cli
 
 import com.typesafe.scalalogging.Logger
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.cli.CLIOutput
 import org.enso.distribution.locking.Resource
 import org.enso.launcher.InfoLogger
@@ -24,7 +24,7 @@ class CLIRuntimeVersionManagementUserInterface(
   private val logger = Logger[CLIRuntimeVersionManagementUserInterface]
 
   /** @inheritdoc */
-  override def shouldInstallBrokenEngine(version: Version): Boolean =
+  override def shouldInstallBrokenEngine(version: SemVer): Boolean =
     if (cliOptions.autoConfirm) {
       logger.warn(
         s"The engine release $version is marked as broken and it should " +
@@ -45,7 +45,7 @@ class CLIRuntimeVersionManagementUserInterface(
     }
 
   /** @inheritdoc */
-  override def shouldInstallMissingEngine(version: Version): Boolean = {
+  override def shouldInstallMissingEngine(version: SemVer): Boolean = {
     def complainAndAsk(): Boolean = {
       logger.warn(s"Engine $version is missing.")
       cliOptions.autoConfirm || CLIOutput.askConfirmation(

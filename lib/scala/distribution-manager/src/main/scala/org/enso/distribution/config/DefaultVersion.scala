@@ -2,11 +2,9 @@ package org.enso.distribution.config
 
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.cli.arguments.{Argument, OptsParseError}
-import org.enso.editions.SemVerJson._
-
-import scala.util.Try
+import org.enso.semver.SemVerJson._
 
 /** Default version that is used when launching Enso outside of projects and
   * when creating new projects.
@@ -26,7 +24,7 @@ object DefaultVersion {
 
   /** Defaults to a specified version.
     */
-  case class Exact(version: Version) extends DefaultVersion {
+  case class Exact(version: SemVer) extends DefaultVersion {
 
     /** @inheritdoc
       */
@@ -48,7 +46,7 @@ object DefaultVersion {
     if (json.value.isNull) Right(LatestInstalled)
     else
       for {
-        version <- json.as[Version]
+        version <- json.as[SemVer]
       } yield Exact(version)
   }
 
@@ -57,19 +55,21 @@ object DefaultVersion {
   implicit val argument: Argument[DefaultVersion] = { string =>
     if (string == LatestInstalled.toString) Right(LatestInstalled)
     else {
-      implicitly[Argument[Version]].read(string).map(Exact)
+      implicitly[Argument[SemVer]].read(string).map(Exact)
     }
   }
 
-  /** [[Argument]] instance that tries to parse the String as a [[Version]]
+  /** [[Argument]] instance that tries to parse the String as a [[SemVer]]
     * version string.
     */
-  implicit val semverArgument: Argument[Version] = (string: String) =>
-    Try(Version.parse(string)).fold(
-      _ =>
-        Left(
-          OptsParseError(s"`$string` is not a valid semantic version string.")
-        ),
-      v => Right(v)
-    )
+  implicit val semverArgument: Argument[SemVer] = (string: String) =>
+    SemVer
+      .parse(string)
+      .fold(
+        _ =>
+          Left(
+            OptsParseError(s"`$string` is not a valid semantic version string.")
+          ),
+        v => Right(v)
+      )
 }

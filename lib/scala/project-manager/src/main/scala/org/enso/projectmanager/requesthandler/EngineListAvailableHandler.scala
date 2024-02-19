@@ -1,7 +1,8 @@
 package org.enso.projectmanager.requesthandler
 
 import akka.actor.Props
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
+import org.enso.semver.SemVerOrdering._
 import org.enso.jsonrpc.Unused
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
@@ -35,7 +36,7 @@ class EngineListAvailableHandler[F[+_, +_]: Exec: CovariantFlatMap](
   override def handleRequest = { _ =>
     for {
       result <- service.listAvailableEngines()
-      sorted = result.sortBy(_.version)(Ordering[Version].reverse)
+      sorted = result.sortBy(_.version)(Ordering[SemVer].reverse)
     } yield EngineListAvailable.Result(sorted)
   }
 }

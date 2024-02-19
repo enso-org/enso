@@ -2450,7 +2450,36 @@ lazy val editions = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(
+        Def.task {
+          Editions.writeEditionConfig(
+            editionsRoot   = file("distribution") / "editions",
+            ensoVersion    = ensoVersion,
+            editionName    = currentEdition,
+            libraryVersion = stdLibVersion,
+            log            = streams.value.log
+          )
+        }
+      )
+      .value,
+    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
+  )
+  .dependsOn(semver)
+  .dependsOn(testkit % Test)
+
+lazy val semver = project
+  .in(file("lib/scala/semver"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "io.circe"                   %% "circe-yaml"    % circeYamlVersion,

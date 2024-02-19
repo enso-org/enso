@@ -1,7 +1,7 @@
 package org.enso.librarymanager.published.bundles
 
 import com.typesafe.scalalogging.Logger
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.published.cache.{
   LibraryCache,
@@ -31,7 +31,7 @@ class LocalReadOnlyRepository(root: Path) extends ReadOnlyLibraryCache {
   /** @inheritdoc */
   override def findCachedLibrary(
     libraryName: LibraryName,
-    version: Version
+    version: SemVer
   ): Option[LibraryRoot] = {
     val path = LibraryCache.resolvePath(root, libraryName, version)
     if (Files.exists(path)) {

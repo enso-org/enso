@@ -2,11 +2,11 @@ package org.enso.projectmanager.protocol
 
 import io.circe.Json
 import io.circe.literal.JsonStringContext
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.RetrySpec
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 
 abstract class ProjectCreateSpecBase
     extends BaseServerSpec
@@ -14,7 +14,7 @@ abstract class ProjectCreateSpecBase
     with ProjectManagementOps
     with MissingComponentBehavior {
   override def buildRequest(
-    version: Version,
+    version: SemVer,
     missingComponentAction: MissingComponentAction
   ): Json =
     json"""

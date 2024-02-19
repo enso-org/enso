@@ -1,7 +1,8 @@
 package org.enso.runtimeversionmanager.config
 
 import com.typesafe.scalalogging.Logger
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
+import org.enso.semver.SemVerOrdering._
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.config.{DefaultVersion, GlobalConfigurationManager}
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
@@ -23,7 +24,7 @@ class GlobalRunnerConfigurationManager(
     * set, the latest installed version is used. If no versions are installed,
     * the release provider is queried for the latest available version.
     */
-  def defaultVersion: Version =
+  def defaultVersion: SemVer =
     getConfig.defaultVersion match {
       case DefaultVersion.Exact(version) => version
       case DefaultVersion.LatestInstalled =>

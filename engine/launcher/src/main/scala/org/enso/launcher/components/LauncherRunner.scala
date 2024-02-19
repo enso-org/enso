@@ -1,6 +1,6 @@
 package org.enso.launcher.components
 
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.updater.EditionManager
 import org.enso.launcher.Constants
@@ -42,7 +42,7 @@ class LauncherRunner(
     */
   def repl(
     projectPath: Option[Path],
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
@@ -78,7 +78,7 @@ class LauncherRunner(
     */
   def run(
     path: Option[Path],
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
@@ -145,7 +145,7 @@ class LauncherRunner(
   def languageServer(
     options: LanguageServerOptions,
     contentRootPath: Path,
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     logLevel: Level,
     logMasking: Boolean,
     additionalArguments: Seq[String]
@@ -220,7 +220,7 @@ class LauncherRunner(
       }
 
       val version = resolveVersion(None, Some(project))
-      if (version.isLowerThan(Constants.uploadIntroducedVersion)) {
+      if (version.isLessThan(Constants.uploadIntroducedVersion)) {
         throw RunnerError(
           s"Library Upload feature is not available in Enso $version. " +
           s"Please upgrade your project to a newer version."
@@ -249,7 +249,7 @@ class LauncherRunner(
     * details.
     */
   def installDependencies(
-    versionOverride: Option[Version],
+    versionOverride: Option[SemVer],
     hideProgress: Boolean,
     logLevel: Level,
     logMasking: Boolean,
@@ -267,7 +267,7 @@ class LauncherRunner(
 
       val version = resolveVersion(versionOverride, Some(project))
       if (
-        version.isLowerThan(Constants.preinstallDependenciesIntroducedVersion)
+        version.isLessThan(Constants.preinstallDependenciesIntroducedVersion)
       ) {
         throw RunnerError(
           s"Project dependency installation feature is not available in Enso " +

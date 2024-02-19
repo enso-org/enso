@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.locking
 
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.distribution.locking.Resource
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 
@@ -28,7 +28,7 @@ object Resources {
     *
     * It is acquired exclusively when the engine is installed or uninstalled.
     */
-  case class Engine(version: Version) extends Resource {
+  case class Engine(version: SemVer) extends Resource {
     override def name: String = s"engine-$version"
     override def waitMessage: String =
       s"Another process is using engine $version, " +

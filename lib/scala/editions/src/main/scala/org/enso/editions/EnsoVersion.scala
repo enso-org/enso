@@ -2,9 +2,7 @@ package org.enso.editions
 
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder}
-import com.github.zafarkhaja.semver.Version
-
-import scala.util.Try
+import org.enso.semver.SemVer
 
 /** Represents the engine version that is associated with a project.
   */
@@ -25,7 +23,7 @@ case object DefaultEnsoVersion extends EnsoVersion {
 
 /** An exact semantic versioning string.
   */
-case class SemVerEnsoVersion(version: Version) extends EnsoVersion {
+case class SemVerEnsoVersion(version: SemVer) extends EnsoVersion {
 
   /** @inheritdoc
     */
@@ -41,7 +39,8 @@ object EnsoVersion {
       if (string == DefaultEnsoVersion.toString)
         Right(DefaultEnsoVersion)
       else
-        Try(Version.parse(string))
+        SemVer
+          .parse(string)
           .map(SemVerEnsoVersion)
           .fold(
             _ =>

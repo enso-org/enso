@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
 import scala.util.{Success, Try}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.jsonrpc._
@@ -53,7 +53,7 @@ class LibraryGetMetadataHandler(
             libraryName
           )
         case LibraryEntry.PublishedLibraryVersion(version, repositoryUrl) =>
-          Try(Version.parse(version)) match {
+          SemVer.parse(version) match {
             case Success(semVerVersion) =>
               getOrFetchPublishedMetadata(
                 libraryName,
@@ -110,7 +110,7 @@ class LibraryGetMetadataHandler(
 
   private def getOrFetchPublishedMetadata(
     libraryName: LibraryName,
-    version: Version,
+    version: SemVer,
     repositoryUrl: String
   ): Future[LocalLibraryManagerProtocol.GetMetadataResponse] =
     getCachedMetadata(libraryName, version) match {
@@ -122,7 +122,7 @@ class LibraryGetMetadataHandler(
 
   private def getCachedMetadata(
     libraryName: LibraryName,
-    version: Version
+    version: SemVer
   ): Option[Try[LocalLibraryManagerProtocol.GetMetadataResponse]] =
     publishedLibraryCache
       .findCachedLibrary(libraryName, version)
@@ -144,7 +144,7 @@ class LibraryGetMetadataHandler(
 
   private def fetchPublishedMetadata(
     libraryName: LibraryName,
-    version: Version,
+    version: SemVer,
     repositoryUrl: String
   ): Future[LocalLibraryManagerProtocol.GetMetadataResponse] = for {
     manifest <- Repository(repositoryUrl)

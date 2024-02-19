@@ -1,6 +1,6 @@
 package org.enso.projectmanager.service
 
-import com.github.zafarkhaja.semver.Version
+import org.enso.semver.SemVer
 import org.enso.projectmanager.requesthandler.{
   FailureMapper,
   ProjectServiceFailureMapper
@@ -92,8 +92,8 @@ object ProjectServiceFailure {
     * than what is currently running.
     */
   case class ProjectManagerUpgradeRequiredFailure(
-    currentVersion: Version,
-    minimumRequiredVersion: Version
+    currentVersion: SemVer,
+    minimumRequiredVersion: SemVer
   ) extends ProjectServiceFailure
 
   /** Signals that installation of a missing component has been attempted but it
