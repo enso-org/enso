@@ -80,6 +80,14 @@ LocalStorage.registerKey('extraColumns', {
 // === Constants ===
 // =================
 
+/** If the drag pointer is less than this distance away from the top or bottom of the
+ * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
+ * the top of the scroll container, or downwards if the cursor is near the bottom. */
+const AUTOSCROLL_THRESHOLD = 50
+/** The autoscroll speed is `AUTOSCROLL_THRESHOLD / (distance + AUTOSCROLL_DAMPENING)`. */
+const AUTOSCROLL_DAMPENING = 10
+/** The height of the header row. */
+const HEADER_HEIGHT = 34
 /** The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling. */
 const ROW_HEIGHT = 32
@@ -1840,7 +1848,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
   const onDragSelectionChange = React.useCallback(
     (rectangle: geometry.DetailedRectangle | null, event: MouseEvent) => {
-      const body = bodyRef.current
+      const scrollContainer = scrollContainerRef.current
       if (rectangle == null) {
         const range = dragSelectionRangeRef.current
         if (range != null) {
@@ -1848,34 +1856,63 @@ export default function AssetsTable(props: AssetsTableProps) {
           setSelectedKeys(calculateNewKeys(event, keys, () => []))
         }
         setVisuallySelectedKeysOverride(null)
-      } else if (body != null) {
-        const bodyRect = body.getBoundingClientRect()
-        const overlapsHorizontally =
-          bodyRect.right > rectangle.left && bodyRect.left < rectangle.right
-        const selectionTop = !overlapsHorizontally ? 0 : Math.max(0, rectangle.top - bodyRect.top)
+        dragSelectionRangeRef.current = null
+      } else if (scrollContainer != null) {
+        const rect = scrollContainer.getBoundingClientRect()
+        if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
+          const distanceToTop = Math.max(0, rectangle.top - rect.top)
+          if (distanceToTop < AUTOSCROLL_THRESHOLD) {
+            scrollContainer.scrollTop -= Math.floor(
+              AUTOSCROLL_THRESHOLD / (distanceToTop + AUTOSCROLL_DAMPENING)
+            )
+            requestAnimationFrame(() => {
+              onDragSelectionChange(rectangle, event)
+            })
+          }
+        }
+        if (
+          rectangle.signedHeight >= 0 &&
+          scrollContainer.scrollTop + rect.height < scrollContainer.scrollHeight
+        ) {
+          const distanceToBottom = Math.max(0, rect.bottom - rectangle.bottom)
+          if (distanceToBottom < AUTOSCROLL_THRESHOLD) {
+            scrollContainer.scrollTop += Math.floor(
+              AUTOSCROLL_THRESHOLD / (distanceToBottom + AUTOSCROLL_DAMPENING)
+            )
+            requestAnimationFrame(() => {
+              onDragSelectionChange(rectangle, event)
+            })
+          }
+        }
+        const overlapsHorizontally = rect.right > rectangle.left && rect.left < rectangle.right
+        const selectionTop = !overlapsHorizontally
+          ? 0
+          : Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT)
         const selectionBottom = !overlapsHorizontally
           ? 0
-          : Math.max(0, Math.min(bodyRect.height, rectangle.bottom - bodyRect.top))
+          : Math.max(0, Math.min(rect.height, rectangle.bottom - rect.top - HEADER_HEIGHT))
         const range = dragSelectionRangeRef.current
         if (range == null) {
-          const topIndex = Math.floor((selectionTop + body.scrollTop) / ROW_HEIGHT)
-          const bottomIndex = Math.ceil((selectionBottom + body.scrollTop) / ROW_HEIGHT)
+          const topIndex = Math.floor((selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT)
+          const bottomIndex = Math.ceil((selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT)
           dragSelectionRangeRef.current = {
-            initialScrollTop: body.scrollTop,
+            initialScrollTop: scrollContainer.scrollTop,
             start: topIndex,
             end: bottomIndex,
           }
         } else {
-          const scrollDelta = range.initialScrollTop - body.scrollTop
+          const scrollDelta = range.initialScrollTop - scrollContainer.scrollTop
           const shouldResetScrollTop =
-            (scrollDelta < 0 && rectangle.signedHeight > 0) ||
-            (scrollDelta > 0 && rectangle.signedHeight < 0)
-          const scrollTop = shouldResetScrollTop ? body.scrollTop : range.initialScrollTop
+            (scrollDelta > 0 && rectangle.signedHeight > 0) ||
+            (scrollDelta < 0 && rectangle.signedHeight < 0)
+          const scrollTop = shouldResetScrollTop
+            ? scrollContainer.scrollTop
+            : range.initialScrollTop
           const topIndex = Math.floor(
-            (selectionTop + Math.min(scrollTop, body.scrollTop)) / ROW_HEIGHT
+            (selectionTop + Math.min(scrollTop, scrollContainer.scrollTop)) / ROW_HEIGHT
           )
           const bottomIndex = Math.ceil(
-            (selectionBottom + Math.max(scrollTop, body.scrollTop)) / ROW_HEIGHT
+            (selectionBottom + Math.max(scrollTop, scrollContainer.scrollTop)) / ROW_HEIGHT
           )
           dragSelectionRangeRef.current = {
             initialScrollTop: scrollTop,

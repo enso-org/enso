@@ -19,7 +19,6 @@ export interface SelectionBrushProps {
 /** A selection brush to indicate the area being selected by the mouse drag action. */
 export default function SelectionBrush(props: SelectionBrushProps) {
   const { onChange } = props
-  const isMouseDownRef = React.useRef(false)
   const didMoveWhileDraggingRef = React.useRef(false)
   const onChangeRef = React.useRef(onChange)
   const lastMouseEvent = React.useRef<MouseEvent | null>(null)
@@ -46,7 +45,6 @@ export default function SelectionBrush(props: SelectionBrushProps) {
 
   React.useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
-      isMouseDownRef.current = true
       didMoveWhileDraggingRef.current = false
       lastMouseEvent.current = event
       const newAnchor = { left: event.pageX, top: event.pageY }
@@ -61,20 +59,20 @@ export default function SelectionBrush(props: SelectionBrushProps) {
       // The `setTimeout` is required, otherwise the values are changed before the `onClick` handler
       // is executed.
       window.setTimeout(() => {
-        isMouseDownRef.current = false
         didMoveWhileDraggingRef.current = false
       })
       setAnchor(null)
     }
     const onMouseMove = (event: MouseEvent) => {
-      if (isMouseDownRef.current) {
+      if (event.buttons & 1) {
+        // Left click is being held.
         didMoveWhileDraggingRef.current = true
         lastMouseEvent.current = event
         setPosition({ left: event.pageX, top: event.pageY })
       }
     }
     const onClick = (event: MouseEvent) => {
-      if (isMouseDownRef.current && didMoveWhileDraggingRef.current) {
+      if (didMoveWhileDraggingRef.current) {
         event.stopImmediatePropagation()
       }
     }
@@ -83,12 +81,14 @@ export default function SelectionBrush(props: SelectionBrushProps) {
     document.addEventListener('dragstart', onMouseUp, { capture: true })
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('click', onClick)
+    // window.addEventListener('blur', onBlur)
     return () => {
       document.removeEventListener('mousedown', onMouseDown)
       document.removeEventListener('mouseup', onMouseUp)
       document.removeEventListener('dragstart', onMouseUp, { capture: true })
       document.removeEventListener('mousemove', onMouseMove)
       document.removeEventListener('click', onClick)
+      // window.removeEventListener('blur', onBlur)
     }
   }, [])
 
