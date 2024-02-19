@@ -56,7 +56,7 @@ export function constantValueToSchema(value: unknown): object | null {
             result = null
             break
           }
-          properties[key] = schema
+          Object.defineProperty(properties, key, { value: schema, enumerable: true })
         }
       }
       break
@@ -144,7 +144,7 @@ function constantValueHelper(
             result = []
             break
           } else {
-            object[key] = value[0] ?? null
+            Object.defineProperty(object, key, { value: value[0] ?? null, enumerable: true })
           }
         }
         break
