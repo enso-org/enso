@@ -289,7 +289,7 @@ class RuntimeExecutionEnvironmentTest
         IF_ENABLED_METH_CALL,
         Api.ExpressionUpdate.Payload
           .Panic(
-            "Forbidden operation: The Input context is disabled..",
+            "Forbidden operation: The Input context is disabled.",
             Seq(idRes)
           ),
         false
@@ -348,6 +348,6 @@ object RuntimeExecutionEnvironmentTest {
         "Standard.Base.Runtime.Context",
         "if_enabled"
       ),
-      Vector(2)
+      Vector(2, 3, 4)
     )
 }

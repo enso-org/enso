@@ -20,7 +20,7 @@ type Context
             Input  -> "Input"
             Output -> "Output"
 
-    if_enabled : Function -> Text -> Any
+    if_enabled : Any -> Text -> Text -> Boolean -> Any ! Forbidden_Operation
     if_enabled self ~action environment="design" disabled_message="The "+self.name+" context is disabled." panic=True =
         if self.is_enabled environment then action else
             error = Forbidden_Operation.Error disabled_message
