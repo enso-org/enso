@@ -1,12 +1,25 @@
 import { parseEnso } from '@/util/ast'
+import { normalizeQualifiedName, qnFromSegments } from '@/util/qualifiedName'
 import { swapKeysAndValues } from '@/util/record'
-import type { AstId, MutableAst, NodeKey, Owned, TokenId, TokenKey } from 'shared/ast'
+import type {
+  AstId,
+  IdentifierOrOperatorIdentifier,
+  MutableAst,
+  NodeKey,
+  Owned,
+  QualifiedName,
+  TokenId,
+  TokenKey,
+} from 'shared/ast'
 import {
   Ast,
   BodyBlock,
   Function,
+  Ident,
   MutableBodyBlock,
   MutableModule,
+  OprApp,
+  PropertyAccess,
   Token,
   abstract,
   isTokenId,
@@ -124,6 +137,86 @@ export function deleteFromParentBlock(ast: MutableAst) {
   const parent = ast.mutableParent()
   if (parent instanceof MutableBodyBlock)
     parent.updateLines((lines) => lines.filter((line) => line.expression?.node.id !== ast.id))
+}
+
+/** If the input is a chain of applications of the given left-associative operator, and all the leaves of the
+ *  operator-application tree are identifier expressions, return the identifiers from left to right.
+ *  This is analogous to `ast.code().split(operator)`, but type-enforcing.
+ */
+export function unrollOprChain(
+  ast: Ast,
+  leftAssociativeOperator: string,
+): IdentifierOrOperatorIdentifier[] | null {
+  const idents: IdentifierOrOperatorIdentifier[] = []
+  let ast_: Ast | undefined = ast
+  while (
+    ast_ instanceof OprApp &&
+    ast_.operator.ok &&
+    ast_.operator.value.code() === leftAssociativeOperator
+  ) {
+    if (!(ast_.rhs instanceof Ident)) return null
+    idents.unshift(ast_.rhs.code())
+    ast_ = ast_.lhs
+  }
+  if (!(ast_ instanceof Ident)) return null
+  idents.unshift(ast_.code())
+  return idents
+}
+
+/** If the input is a chain of property accesses (uses of the `.` operator with a syntactic identifier on the RHS), and
+ *  the value at the beginning of the sequence is an identifier expression, return all the identifiers from left to
+ *  right. This is analogous to `ast.code().split('.')`, but type-enforcing.
+ */
+export function unrollPropertyAccess(ast: Ast): IdentifierOrOperatorIdentifier[] | null {
+  const idents: IdentifierOrOperatorIdentifier[] = []
+  let ast_: Ast | undefined = ast
+  while (ast_ instanceof PropertyAccess) {
+    idents.unshift(ast_.rhs.code())
+    ast_ = ast_.lhs
+  }
+  if (!(ast_ instanceof Ident)) return null
+  idents.unshift(ast_.code())
+  return idents
+}
+
+export function parseIdent(ast: Ast): IdentifierOrOperatorIdentifier | null {
+  if (ast instanceof Ident) {
+    return ast.code()
+  } else {
+    return null
+  }
+}
+
+export function parseIdents(ast: Ast): IdentifierOrOperatorIdentifier[] | null {
+  return unrollOprChain(ast, ',')
+}
+
+export function parseQualifiedName(ast: Ast): QualifiedName | null {
+  const idents = unrollPropertyAccess(ast)
+  return idents && normalizeQualifiedName(qnFromSegments(idents))
+}
+
+/* Substitute `name` inside `expression` with `to`. */
+export function substituteQualifiedName(
+  module: MutableModule,
+  expression: Ast,
+  name: QualifiedName | IdentifierOrOperatorIdentifier,
+  to: QualifiedName,
+) {
+  const expr = module.getVersion(expression) ?? expression
+  if (expr instanceof PropertyAccess || expr instanceof Ident) {
+    const qn = parseQualifiedName(expr)
+    if (qn === name) {
+      expr.updateValue(() => Ast.parse(to, module))
+    }
+  } else {
+    for (const child of expr.children()) {
+      if (child instanceof Token) {
+        continue
+      }
+      substituteQualifiedName(module, child, name, to)
+    }
+  }
 }
 
 declare const tokenKey: unique symbol

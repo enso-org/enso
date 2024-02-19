@@ -283,7 +283,8 @@ test.each([
     const input = useComponentBrowserInput(graphMock, new SuggestionDb())
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
-    input.applySuggestion(suggestion)
+    const dummyId = 0
+    input.applySuggestion(dummyId, suggestion)
     expect(input.code.value).toEqual(expected)
     expect(input.selection.value).toStrictEqual({
       start: expectedCursorPos,
@@ -308,9 +309,14 @@ test.each([
     expectedCode: 'Table.new ',
     expectedImports: [
       {
-        kind: 'Unqualified',
-        from: unwrap(tryQualifiedName('Standard.Base')),
-        import: unwrap(tryIdentifier('Table')),
+        id: 3,
+        imports: [
+          {
+            kind: 'Unqualified',
+            from: unwrap(tryQualifiedName('Standard.Base')),
+            import: unwrap(tryIdentifier('Table')),
+          },
+        ],
       },
     ],
   },
@@ -319,14 +325,24 @@ test.each([
     suggestionId: 3,
     initialCode: 'Base.',
     expectedCode: 'Base.Table.new ',
-    expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
+    expectedImports: [
+      {
+        id: 1,
+        imports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
+      },
+    ],
   },
   {
     description: 'Importing the head of partially edited qualified name (2)',
     suggestionId: 3,
     initialCode: 'Base.Table.',
     expectedCode: 'Base.Table.new ',
-    expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
+    expectedImports: [
+      {
+        id: 1,
+        imports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
+      },
+    ],
   },
   {
     description: 'Do not import if user changes input manually after applying suggestion',
@@ -348,7 +364,7 @@ test.each([
     input.code.value = initialCode
     input.selection.value = { start: initialCode.length, end: initialCode.length }
     const suggestion = db.get(suggestionId)!
-    input.applySuggestion(suggestion)
+    input.applySuggestion(suggestionId, suggestion)
     if (manuallyEditedCode != null) {
       input.code.value = manuallyEditedCode
     }

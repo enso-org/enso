@@ -25,7 +25,7 @@ const value = computed({
       )
       props.onUpdate({ edit })
     } else {
-      graph.addMissingImports(edit, [
+      graph.addMissingImportsDisregardConflicts(edit, [
         {
           kind: 'Unqualified',
           from: 'Standard.Base.Data.Boolean' as QualifiedName,

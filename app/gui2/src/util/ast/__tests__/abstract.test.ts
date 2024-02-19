@@ -1,8 +1,16 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { tryQualifiedName } from '@/util/qualifiedName'
 import { initializeFFI } from 'shared/ast/ffi'
+import { unwrap } from 'shared/util/data/result'
 import { expect, test } from 'vitest'
-import { MutableModule, escape, unescape, type Identifier } from '../abstract'
+import {
+  MutableModule,
+  escape,
+  substituteQualifiedName,
+  unescape,
+  type Identifier,
+} from '../abstract'
 
 await initializeFFI()
 
@@ -564,4 +572,37 @@ test('Resync', () => {
   expect(repairedRoot.externalId).toBe(rootExternalIdBeforeRepair)
   // The resync operation loses metadata within the non-canonical subtree.
   expect(repairedFunc.body?.externalId).not.toBe(funcExternalIdBeforeRepair)
+})
+
+test.each([
+  {
+    original: 'Vector.new',
+    pattern: 'Vector.new',
+    substitution: 'Standard.Base.Vector.new',
+    expected: 'Standard.Base.Vector.new',
+  },
+  {
+    original: 'x = Table.from_vec (Vector.new 1 2 3)',
+    pattern: 'Vector.new',
+    substitution: 'NotReallyVector.create',
+    expected: 'x = Table.from_vec (NotReallyVector.create 1 2 3)',
+  },
+  {
+    original: 'x',
+    pattern: 'x',
+    substitution: 'y',
+    expected: 'y',
+  },
+  {
+    original: 'x + y',
+    pattern: 'x',
+    substitution: 'z',
+    expected: 'z + y',
+  },
+])('Substitute $pattern insde $original', ({ original, pattern, substitution, expected }) => {
+  const expression = Ast.parse(original)
+  expression.module.replaceRoot(expression)
+  const edit = expression.module.edit()
+  substituteQualifiedName(edit, expression, pattern, unwrap(tryQualifiedName(substitution)))
+  expect(edit.root()?.code()).toEqual(expected)
 })

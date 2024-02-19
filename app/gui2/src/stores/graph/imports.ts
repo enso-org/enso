@@ -1,19 +1,20 @@
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
+  entryQn,
   makeCon,
   makeMethod,
   makeModule,
   makeStaticMethod,
   makeType,
   type SuggestionEntry,
+  type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { MutableModule } from '@/util/ast/abstract'
+import { MutableModule, parseIdent, parseIdents, parseQualifiedName } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import {
-  normalizeQualifiedName,
-  qnFromSegments,
+  qnLastSegment,
   qnSegments,
   qnSplit,
   tryIdentifier,
@@ -25,63 +26,6 @@ import {
 // ========================
 // === Imports analysis ===
 // ========================
-
-/** If the input is a chain of applications of the given left-associative operator, and all the leaves of the
- *  operator-application tree are identifier expressions, return the identifiers from left to right.
- *  This is analogous to `ast.code().split(operator)`, but type-enforcing.
- */
-function unrollOprChain(
-  ast: Ast.Ast,
-  leftAssociativeOperator: string,
-): IdentifierOrOperatorIdentifier[] | null {
-  const idents: IdentifierOrOperatorIdentifier[] = []
-  let ast_: Ast.Ast | undefined = ast
-  while (
-    ast_ instanceof Ast.OprApp &&
-    ast_.operator.ok &&
-    ast_.operator.value.code() === leftAssociativeOperator
-  ) {
-    if (!(ast_.rhs instanceof Ast.Ident)) return null
-    idents.unshift(ast_.rhs.code())
-    ast_ = ast_.lhs
-  }
-  if (!(ast_ instanceof Ast.Ident)) return null
-  idents.unshift(ast_.code())
-  return idents
-}
-
-/** If the input is a chain of property accesses (uses of the `.` operator with a syntactic identifier on the RHS), and
- *  the value at the beginning of the sequence is an identifier expression, return all the identifiers from left to
- *  right. This is analogous to `ast.code().split('.')`, but type-enforcing.
- */
-function unrollPropertyAccess(ast: Ast.Ast): IdentifierOrOperatorIdentifier[] | null {
-  const idents: IdentifierOrOperatorIdentifier[] = []
-  let ast_: Ast.Ast | undefined = ast
-  while (ast_ instanceof Ast.PropertyAccess) {
-    idents.unshift(ast_.rhs.code())
-    ast_ = ast_.lhs
-  }
-  if (!(ast_ instanceof Ast.Ident)) return null
-  idents.unshift(ast_.code())
-  return idents
-}
-
-function parseIdent(ast: Ast.Ast): IdentifierOrOperatorIdentifier | null {
-  if (ast instanceof Ast.Ident) {
-    return ast.code()
-  } else {
-    return null
-  }
-}
-
-function parseIdents(ast: Ast.Ast): IdentifierOrOperatorIdentifier[] | null {
-  return unrollOprChain(ast, ',')
-}
-
-function parseQualifiedName(ast: Ast.Ast): QualifiedName | null {
-  const idents = unrollPropertyAccess(ast)
-  return idents && normalizeQualifiedName(qnFromSegments(idents))
-}
 
 /** Parse import statement. */
 export function recognizeImport(ast: Ast.Import): Import | null {
@@ -327,6 +271,55 @@ export function filterOutRedundantImports(
   return required.filter((info) => !existing.some((existing) => covers(existing, info)))
 }
 
+/* Imports required for specific entry. */
+export interface ImportsForEntry {
+  id: SuggestionId
+  imports: RequiredImport[]
+}
+
+/* Information about detected conflict import, and advisory on resolution. */
+export interface DetectedConflict {
+  /* Always true, for more expressive API usage. */
+  detected: boolean
+  /* Advisory to replace the following name (qualified name or single ident)… */
+  name: QualifiedName | IdentifierOrOperatorIdentifier
+  /* … with this fully qualified name. */
+  fullyQualified: QualifiedName
+}
+
+export type ConflictInfo = DetectedConflict | undefined
+
+/* Detect possible name clash when adding `importsForEntry` with `existingImports` present. */
+export function detectImportConflicts(
+  suggestionDb: SuggestionDb,
+  existingImports: Import[],
+  importsForEntry: ImportsForEntry,
+): ConflictInfo {
+  const entry = suggestionDb.get(importsForEntry.id)
+  if (!entry) return
+  const conflictingIds = suggestionDb.conflictingNames.lookup(entry.name)
+  // Obviously, the entry doesn’t conflict with itself.
+  conflictingIds.delete(importsForEntry.id)
+
+  for (const id of conflictingIds) {
+    const e = suggestionDb.get(id)
+    const required = e ? requiredImports(suggestionDb, e) : []
+    for (const req of required) {
+      if (existingImports.some((existing) => covers(existing, req))) {
+        const usedAs =
+          entry.memberOf != null
+            ? (`${qnLastSegment(entry.memberOf)}.${entry.name}` as QualifiedName)
+            : entry.name
+        return {
+          detected: true,
+          name: usedAs,
+          fullyQualified: entryQn(entry),
+        }
+      }
+    }
+  }
+}
+
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
   const { initializeFFI } = await import('shared/ast/ffi')
@@ -454,9 +447,43 @@ if (import.meta.vitest) {
     db.set(7, makeMethod('Standard.Base.Type.method'))
     db.set(8, makeType('Standard.Network.URI'))
     db.set(9, extensionMethod)
+    db.set(10, makeType('Standard.Base.Vector'))
+    db.set(11, makeStaticMethod('Standard.Base.Vector.new'))
+    db.set(12, makeModule('Project.Foo'))
+    db.set(13, makeType('Project.Foo.Vector'))
+    db.set(14, makeStaticMethod('Project.Foo.Vector.new'))
 
     return db
   }
+
+  test.each([
+    {
+      description: 'Conflicting methods',
+      importing: 14,
+      alreadyImported: 11,
+      expected: { name: 'Vector.new', fullyQualified: 'Project.Foo.Vector.new' },
+    },
+    {
+      description: 'Conflicting types',
+      importing: 13,
+      alreadyImported: 10,
+      expected: { name: 'Vector', fullyQualified: 'Project.Foo.Vector' },
+    },
+  ])('Conflicting imports: $description', ({ importing, alreadyImported, expected }) => {
+    const db = mockDb()
+
+    const existingEntry = db.get(alreadyImported)!
+    const existingImports = requiredImports(db, existingEntry).map(
+      (import_) => recognizeImport(requiredImportToAst(import_))!,
+    )
+    const imports = requiredImports(db, db.get(importing)!)
+    const conflicts = detectImportConflicts(db, existingImports, { id: importing, imports })
+    expect(conflicts).toEqual({
+      detected: true,
+      name: expected.name,
+      fullyQualified: expected.fullyQualified,
+    } as ConflictInfo)
+  })
 
   test.each([
     {

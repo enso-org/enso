@@ -8,9 +8,9 @@ import {
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
-import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
+import { requiredImports, type ImportsForEntry } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry.ts'
+import { type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry.ts'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
@@ -30,7 +30,7 @@ interface Tag {
   /** If not set, the label is same as expression */
   label?: string
   expression: string
-  requiredImports?: RequiredImport[]
+  requiredImports?: ImportsForEntry
   parameters?: ArgumentWidgetConfiguration[]
 }
 
@@ -41,15 +41,16 @@ function identToLabel(name: IdentifierOrOperatorIdentifier): string {
 function tagFromExpression(expression: string): Tag {
   const qn = tryQualifiedName(expression)
   if (!qn.ok) return { expression }
-  const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
-  if (entry) return tagFromEntry(entry)
+  const [entryId] = suggestions.entries.nameToId.lookup(qn.value)
+  const entry = entryId != null ? suggestions.entries.get(entryId) : null
+  if (entry) return tagFromEntry(entryId!, entry)
   return {
     label: identToLabel(qnLastSegment(qn.value)),
     expression: qn.value,
   }
 }
 
-function tagFromEntry(entry: SuggestionEntry): Tag {
+function tagFromEntry(id: SuggestionId, entry: SuggestionEntry): Tag {
   return {
     label: identToLabel(entry.name),
     expression:
@@ -58,7 +59,7 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
         : entry.memberOf
         ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
         : entry.name,
-    requiredImports: requiredImports(suggestions.entries, entry),
+    requiredImports: { id, imports: requiredImports(suggestions.entries, entry) },
   }
 }
 
@@ -120,14 +121,20 @@ function toggleDropdownWidget() {
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
   let edit: Ast.MutableModule | undefined
+  // Unless import conflict resolution is needed, we use the selected expression as is.
+  let value = selectedExpression.value
   if (selectedTag.value?.requiredImports) {
     edit = graph.startEdit()
-    graph.addMissingImports(edit, selectedTag.value.requiredImports)
+    const conflicts = graph.addMissingImports(edit, [selectedTag.value.requiredImports])
+    if (conflicts != null && conflicts.length > 0) {
+      // Is there is a conflict, it would be a single one, because we only ask about a single entry.
+      value = conflicts[0]?.fullyQualified
+    }
   }
   props.onUpdate({
     edit,
     portUpdate: {
-      value: selectedExpression.value,
+      value,
       origin: asNot<TokenId>(props.input.portId),
     },
   })

@@ -12,7 +12,7 @@ import { useApproach } from '@/composables/animation'
 import { useEvent, useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
 import { useGraphStore } from '@/stores/graph'
-import type { RequiredImport } from '@/stores/graph/imports'
+import type { ImportsForEntry } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -42,8 +42,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [searcherExpression: string, requiredImports: RequiredImport[]]
+  accepted: [searcherExpression: string, requiredImports: ImportsForEntry[]]
+  closed: [searcherExpression: string, requiredImports: ImportsForEntry[]]
   canceled: []
 }>()
 
@@ -307,8 +307,9 @@ function applySuggestion(component: Opt<Component> = null): SuggestionEntry | nu
   const providedSuggestion =
     component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
   const suggestion = providedSuggestion ?? selectedSuggestion.value
-  if (suggestion == null) return null
-  input.applySuggestion(suggestion)
+  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
+  if (suggestion == null || suggestionId == null) return null
+  input.applySuggestion(suggestionId, suggestion)
   return suggestion
 }
 
