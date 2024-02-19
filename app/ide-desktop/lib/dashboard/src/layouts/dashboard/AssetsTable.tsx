@@ -266,7 +266,7 @@ const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | 
 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
-  readonly numberOfSelectedItems: number
+  readonly selectedKeys: React.MutableRefObject<ReadonlySet<backendModule.AssetId>>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   readonly category: Category
   readonly labels: Map<backendModule.LabelName, backendModule.Label>
@@ -368,12 +368,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [extraColumns, setExtraColumns] = React.useState(() => new Set<columnUtils.ExtraColumn>())
   const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
   const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
-  const [savedSelectedKeys, setSavedSelectedKeys] = React.useState(
-    () => new Set<backendModule.AssetId>()
+  const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
+    () => new Set()
   )
+  const selectedKeysRef = React.useRef(selectedKeys)
   const [dragSelectionRange, setDragSelectionRange] = React.useState<DragSelectionInfo | null>(null)
   const [pasteData, setPasteData] = React.useState<pasteDataModule.PasteData<
-    Set<backendModule.AssetId>
+    ReadonlySet<backendModule.AssetId>
   > | null>(null)
   const [, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [, setNameOfProjectToImmediatelyOpen] = React.useState(initialProjectName)
@@ -400,9 +401,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
-  const pasteDataRef = React.useRef<pasteDataModule.PasteData<Set<backendModule.AssetId>> | null>(
-    null
-  )
+  const pasteDataRef = React.useRef<pasteDataModule.PasteData<
+    ReadonlySet<backendModule.AssetId>
+  > | null>(null)
   const nodeMapRef = React.useRef<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>(
     new Map<backendModule.AssetId, AssetTreeNode>()
   )
@@ -594,17 +595,17 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (category === Category.trash) {
       setCanDownloadFiles(false)
     } else if (!isCloud) {
-      setCanDownloadFiles(savedSelectedKeys.size !== 0)
+      setCanDownloadFiles(selectedKeysRef.current.size !== 0)
     } else {
       setCanDownloadFiles(
-        savedSelectedKeys.size !== 0 &&
-          Array.from(savedSelectedKeys).every(key => {
+        selectedKeysRef.current.size !== 0 &&
+          Array.from(selectedKeysRef.current).every(key => {
             const node = nodeMapRef.current.get(key)
             return node?.item.type === backendModule.AssetType.file
           })
       )
     }
-  }, [category, savedSelectedKeys, isCloud, /* should never change */ setCanDownloadFiles])
+  }, [category, isCloud, /* should never change */ setCanDownloadFiles])
 
   React.useEffect(() => {
     const nodeToSuggestion = (
@@ -811,10 +812,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         if (pasteDataRef.current == null) {
           return false
         } else {
-          dispatchAssetEvent({
-            type: AssetEventType.cancelCut,
-            ids: pasteDataRef.current.data,
-          })
+          dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
           setPasteData(null)
           return
         }
@@ -851,6 +849,18 @@ export default function AssetsTable(props: AssetsTableProps) {
     // This effect MUST only run when `initialProjectName` is changed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProjectName])
+
+  const setSelectedKeys = React.useCallback(
+    (newSelectedKeys: ReadonlySet<backendModule.AssetId>) => {
+      selectedKeysRef.current = newSelectedKeys
+      setSelectedKeysRaw(newSelectedKeys)
+    },
+    []
+  )
+
+  const clearSelectedKeys = React.useCallback(() => {
+    setSelectedKeys(new Set())
+  }, [/* should never change */ setSelectedKeys])
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
@@ -1076,10 +1086,10 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [extraColumns, initialized, /* should never change */ localStorage])
 
   React.useEffect(() => {
-    if (savedSelectedKeys.size !== 1) {
+    if (selectedKeysRef.current.size !== 1) {
       setAssetPanelProps(null)
     }
-  }, [savedSelectedKeys.size, /* should never change */ setAssetPanelProps])
+  }, [selectedKeysRef.current.size, /* should never change */ setAssetPanelProps])
 
   const directoryListAbortControllersRef = React.useRef(
     new Map<backendModule.DirectoryId, AbortController>()
@@ -1493,12 +1503,10 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.willDelete: {
-        if (savedSelectedKeys.has(event.key)) {
-          setSavedSelectedKeys(keys => {
-            const newSelectedKeys = new Set(keys)
-            newSelectedKeys.delete(event.key)
-            return newSelectedKeys
-          })
+        if (selectedKeysRef.current.has(event.key)) {
+          const newSelectedKeys = new Set(selectedKeysRef.current)
+          newSelectedKeys.delete(event.key)
+          setSelectedKeys(newSelectedKeys)
         }
         break
       }
@@ -1567,28 +1575,20 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const doCopy = React.useCallback(() => {
     unsetModal()
-    setSavedSelectedKeys(keys => {
-      queueMicrotask(() => {
-        setPasteData({ type: PasteType.copy, data: keys })
-      })
-      return keys
-    })
+    setPasteData({ type: PasteType.copy, data: selectedKeysRef.current })
   }, [/* should never change */ unsetModal])
 
   const doCut = React.useCallback(() => {
     unsetModal()
-    setSavedSelectedKeys(keys => {
-      queueMicrotask(() => {
-        if (pasteData != null) {
-          dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
-        }
-        setPasteData({ type: PasteType.move, data: keys })
-        dispatchAssetEvent({ type: AssetEventType.cut, ids: keys })
-      })
-      return new Set()
-    })
+    if (pasteData != null) {
+      dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteData.data })
+    }
+    setPasteData({ type: PasteType.move, data: selectedKeysRef.current })
+    dispatchAssetEvent({ type: AssetEventType.cut, ids: selectedKeysRef.current })
+    setSelectedKeys(new Set())
   }, [
     pasteData,
+    /* should never change */ setSelectedKeys,
     /* should never change */ unsetModal,
     /* should never change */ dispatchAssetEvent,
   ])
@@ -1638,10 +1638,10 @@ export default function AssetsTable(props: AssetsTableProps) {
         hidden
         category={category}
         pasteData={pasteData}
-        selectedKeys={savedSelectedKeys}
+        selectedKeys={selectedKeys}
+        clearSelectedKeys={clearSelectedKeys}
         nodeMapRef={nodeMapRef}
         event={{ pageX: 0, pageY: 0 }}
-        setSelectedKeys={setSavedSelectedKeys}
         dispatchAssetEvent={dispatchAssetEvent}
         dispatchAssetListEvent={dispatchAssetListEvent}
         doCopy={doCopy}
@@ -1651,11 +1651,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     ),
     [
       category,
+      selectedKeys,
       pasteData,
-      savedSelectedKeys,
       doCopy,
       doCut,
       doPaste,
+      /* should never change */ clearSelectedKeys,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ dispatchAssetListEvent,
     ]
@@ -1673,7 +1674,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     // The type MUST be here to trigger excess property errors at typecheck time.
     (): AssetsTableState => ({
       visibilities,
-      numberOfSelectedItems: savedSelectedKeys.size,
+      selectedKeys: selectedKeysRef,
       category,
       labels: allLabels,
       deletedLabelNames,
@@ -1701,7 +1702,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }),
     [
       visibilities,
-      savedSelectedKeys.size,
       category,
       allLabels,
       deletedLabelNames,
@@ -1768,16 +1768,16 @@ export default function AssetsTable(props: AssetsTableProps) {
           shortcutManagerModule.MouseAction.selectAdditionalRange,
           event
         ) &&
-        savedSelectedKeys.size !== 0
+        selectedKeysRef.current.size !== 0
       ) {
-        setSavedSelectedKeys(new Set())
+        setSelectedKeys(new Set())
       }
     }
     document.addEventListener('click', onDocumentClick)
     return () => {
       document.removeEventListener('click', onDocumentClick)
     }
-  }, [savedSelectedKeys, /* should never change */ setSavedSelectedKeys, shortcutManager])
+  }, [shortcutManager, /* should never change */ setSelectedKeys])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -1844,33 +1844,29 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (
         shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.selectRange, event)
       ) {
-        setSavedSelectedKeys(new Set(getNewlySelectedKeys()))
+        setSelectedKeys(new Set(getNewlySelectedKeys()))
       } else if (
         shortcutManager.matchesMouseAction(
           shortcutManagerModule.MouseAction.selectAdditionalRange,
           event
         )
       ) {
-        setSavedSelectedKeys(
-          oldSelectedItems => new Set([...oldSelectedItems, ...getNewlySelectedKeys()])
-        )
+        setSelectedKeys(new Set([...selectedKeysRef.current, ...getNewlySelectedKeys()]))
       } else if (
         shortcutManager.matchesMouseAction(
           shortcutManagerModule.MouseAction.selectAdditional,
           event
         )
       ) {
-        setSavedSelectedKeys(oldSelectedItems => {
-          const newItems = new Set(oldSelectedItems)
-          if (oldSelectedItems.has(key)) {
-            newItems.delete(key)
-          } else {
-            newItems.add(key)
-          }
-          return newItems
-        })
+        const newSelectedKeys = new Set(selectedKeysRef.current)
+        if (selectedKeysRef.current.has(key)) {
+          newSelectedKeys.delete(key)
+        } else {
+          newSelectedKeys.add(key)
+        }
+        setSelectedKeys(newSelectedKeys)
       } else {
-        setSavedSelectedKeys(new Set([key]))
+        setSelectedKeys(new Set([key]))
       }
       setPreviouslySelectedKey(key)
     },
@@ -1878,7 +1874,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       displayItems,
       previouslySelectedKey,
       shortcutManager,
-      /* should never change */ setSavedSelectedKeys,
+      /* should never change */ setSelectedKeys,
     ]
   )
 
@@ -1913,8 +1909,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   ) : (
     displayItems.map(item => {
       const key = AssetTreeNode.getKey(item)
-      const isSelected = savedSelectedKeys.has(key)
-      const isSoleSelectedItem = savedSelectedKeys.size === 1 && isSelected
+      const isSelected = selectedKeys.has(key)
+      const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
       return (
         <AssetRow
           key={key}
@@ -1924,118 +1920,70 @@ export default function AssetsTable(props: AssetsTableProps) {
           hidden={visibilities.get(item.key) === Visibility.hidden}
           selected={isSelected}
           setSelected={selected => {
-            setSavedSelectedKeys(keys => set.withPresence(keys, key, selected))
+            setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
           }}
           isSoleSelectedItem={isSoleSelectedItem}
-          allowContextMenu={savedSelectedKeys.size === 0 || !isSelected || isSoleSelectedItem}
+          allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelectedItem}
           onClick={onRowClick}
           onContextMenu={(_innerProps, event) => {
             if (!isSelected) {
               event.preventDefault()
               event.stopPropagation()
               setPreviouslySelectedKey(key)
-              setSavedSelectedKeys(new Set([key]))
+              setSelectedKeys(new Set([key]))
             }
           }}
           onDragStart={event => {
-            if (!savedSelectedKeys.has(key)) {
+            let newSelectedKeys = selectedKeysRef.current
+            if (!selectedKeysRef.current.has(key)) {
               setPreviouslySelectedKey(key)
-              setSavedSelectedKeys(new Set([key]))
+              newSelectedKeys = new Set([key])
+              setSelectedKeys(newSelectedKeys)
             }
-            setSavedSelectedKeys(keys => {
-              const nodes = assetTree.preorderTraversal().filter(node => keys.has(node.key))
-              const payload: drag.AssetRowsDragPayload = nodes.map(node => ({
-                key: node.key,
-                asset: node.item,
-              }))
-              drag.setDragImageToBlank(event)
-              drag.ASSET_ROWS.bind(event, payload)
-              queueMicrotask(() => {
-                setModal(
-                  <DragModal
-                    event={event}
-                    className="flex flex-col rounded-2xl bg-frame-selected backdrop-blur-3xl"
-                    doCleanup={() => {
-                      drag.ASSET_ROWS.unbind(payload)
-                    }}
-                  >
-                    {nodes.map(node => (
-                      <NameColumn
-                        key={node.key}
-                        keyProp={node.key}
-                        item={node.with({ depth: 0 })}
-                        state={state}
-                        // Default states.
-                        isSoleSelectedItem={false}
-                        selected={false}
-                        rowState={assetRowUtils.INITIAL_ROW_STATE}
-                        // The drag placeholder cannot be interacted with.
-                        setSelected={() => {}}
-                        setItem={() => {}}
-                        setRowState={() => {}}
-                      />
-                    ))}
-                  </DragModal>
-                )
-              })
-              return keys
-            })
+            const nodes = assetTree
+              .preorderTraversal()
+              .filter(node => newSelectedKeys.has(node.key))
+            const payload: drag.AssetRowsDragPayload = nodes.map(node => ({
+              key: node.key,
+              asset: node.item,
+            }))
+            drag.setDragImageToBlank(event)
+            drag.ASSET_ROWS.bind(event, payload)
+            setModal(
+              <DragModal
+                event={event}
+                className="flex flex-col rounded-2xl bg-frame-selected backdrop-blur-3xl"
+                doCleanup={() => {
+                  drag.ASSET_ROWS.unbind(payload)
+                }}
+              >
+                {nodes.map(node => (
+                  <NameColumn
+                    key={node.key}
+                    keyProp={node.key}
+                    item={node.with({ depth: 0 })}
+                    state={state}
+                    // Default states.
+                    isSoleSelectedItem={false}
+                    selected={false}
+                    rowState={assetRowUtils.INITIAL_ROW_STATE}
+                    // The drag placeholder cannot be interacted with.
+                    setSelected={() => {}}
+                    setItem={() => {}}
+                    setRowState={() => {}}
+                  />
+                ))}
+              </DragModal>
+            )
           }}
           onDragOver={event => {
-            setSavedSelectedKeys(keys => {
-              const payload = drag.LABELS.lookup(event)
-              if (payload != null) {
-                event.preventDefault()
-                event.stopPropagation()
-                const ids = keys.has(key) ? keys : new Set([key])
-                // Expand ids to include ids of children as well.
-                for (const node of assetTree.preorderTraversal()) {
-                  if (ids.has(node.key) && node.children != null) {
-                    for (const child of node.children) {
-                      ids.add(child.key)
-                    }
-                  }
-                }
-                let labelsPresent = 0
-                for (const selectedKey of ids) {
-                  const labels = nodeMapRef.current.get(selectedKey)?.item.labels
-                  if (labels != null) {
-                    for (const label of labels) {
-                      if (payload.has(label)) {
-                        labelsPresent += 1
-                      }
-                    }
-                  }
-                }
-                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                window.setTimeout(() => {
-                  dispatchAssetEvent({
-                    type: shouldAdd
-                      ? AssetEventType.temporarilyAddLabels
-                      : AssetEventType.temporarilyRemoveLabels,
-                    ids,
-                    labelNames: payload,
-                  })
-                })
-              }
-              return keys
-            })
-          }}
-          onDragEnd={() => {
-            setSavedSelectedKeys(keys => {
-              window.setTimeout(() => {
-                dispatchAssetEvent({
-                  type: AssetEventType.temporarilyAddLabels,
-                  ids: keys,
-                  labelNames: set.EMPTY,
-                })
-              })
-              return keys
-            })
-          }}
-          onDrop={event => {
-            setSavedSelectedKeys(keys => {
-              const ids = keys.has(key) ? new Set(keys) : new Set([key])
+            const payload = drag.LABELS.lookup(event)
+            if (payload != null) {
+              event.preventDefault()
+              event.stopPropagation()
+              const ids = new Set(
+                selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key]
+              )
               // Expand ids to include ids of children as well.
               for (const node of assetTree.preorderTraversal()) {
                 if (ids.has(node.key) && node.children != null) {
@@ -2044,40 +1992,74 @@ export default function AssetsTable(props: AssetsTableProps) {
                   }
                 }
               }
-              const payload = drag.LABELS.lookup(event)
-              if (payload != null) {
-                event.preventDefault()
-                event.stopPropagation()
-                let labelsPresent = 0
-                for (const selectedKey of ids) {
-                  const labels = nodeMapRef.current.get(selectedKey)?.item.labels
-                  if (labels != null) {
-                    for (const label of labels) {
-                      if (payload.has(label)) {
-                        labelsPresent += 1
-                      }
+              let labelsPresent = 0
+              for (const selectedKey of ids) {
+                const labels = nodeMapRef.current.get(selectedKey)?.item.labels
+                if (labels != null) {
+                  for (const label of labels) {
+                    if (payload.has(label)) {
+                      labelsPresent += 1
                     }
                   }
                 }
-                const shouldAdd = labelsPresent * 2 < ids.size * payload.size
-                window.setTimeout(() => {
-                  dispatchAssetEvent({
-                    type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
-                    ids,
-                    labelNames: payload,
-                  })
-                })
-              } else {
-                window.setTimeout(() => {
-                  dispatchAssetEvent({
-                    type: AssetEventType.temporarilyAddLabels,
-                    ids,
-                    labelNames: set.EMPTY,
-                  })
-                })
               }
-              return keys
+              const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+              window.setTimeout(() => {
+                dispatchAssetEvent({
+                  type: shouldAdd
+                    ? AssetEventType.temporarilyAddLabels
+                    : AssetEventType.temporarilyRemoveLabels,
+                  ids,
+                  labelNames: payload,
+                })
+              })
+            }
+          }}
+          onDragEnd={() => {
+            dispatchAssetEvent({
+              type: AssetEventType.temporarilyAddLabels,
+              ids: selectedKeysRef.current,
+              labelNames: set.EMPTY,
             })
+          }}
+          onDrop={event => {
+            const ids = new Set(selectedKeysRef.current.has(key) ? selectedKeysRef.current : [key])
+            // Expand ids to include ids of descendants as well.
+            for (const node of assetTree.preorderTraversal()) {
+              if (ids.has(node.key) && node.children != null) {
+                for (const child of node.children) {
+                  ids.add(child.key)
+                }
+              }
+            }
+            const payload = drag.LABELS.lookup(event)
+            if (payload != null) {
+              event.preventDefault()
+              event.stopPropagation()
+              let labelsPresent = 0
+              for (const selectedKey of ids) {
+                const labels = nodeMapRef.current.get(selectedKey)?.item.labels
+                if (labels != null) {
+                  for (const label of labels) {
+                    if (payload.has(label)) {
+                      labelsPresent += 1
+                    }
+                  }
+                }
+              }
+              const shouldAdd = labelsPresent * 2 < ids.size * payload.size
+              dispatchAssetEvent({
+                type: shouldAdd ? AssetEventType.addLabels : AssetEventType.removeLabels,
+                ids,
+                labelNames: payload,
+              })
+            } else {
+              dispatchAssetEvent({
+                type: AssetEventType.temporarilyAddLabels,
+                ids,
+                labelNames: set.EMPTY,
+              })
+            }
           }}
         />
       )
@@ -2094,8 +2076,8 @@ export default function AssetsTable(props: AssetsTableProps) {
           <AssetsTableContextMenu
             category={category}
             pasteData={pasteData}
-            selectedKeys={savedSelectedKeys}
-            setSelectedKeys={setSavedSelectedKeys}
+            selectedKeys={selectedKeys}
+            clearSelectedKeys={clearSelectedKeys}
             nodeMapRef={nodeMapRef}
             event={event}
             dispatchAssetEvent={dispatchAssetEvent}
@@ -2113,15 +2095,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           event.relatedTarget instanceof Node &&
           !event.currentTarget.contains(event.relatedTarget)
         ) {
-          setSavedSelectedKeys(keys => {
-            window.setTimeout(() => {
-              dispatchAssetEvent({
-                type: AssetEventType.temporarilyAddLabels,
-                ids: keys,
-                labelNames: set.EMPTY,
-              })
-            })
-            return keys
+          dispatchAssetEvent({
+            type: AssetEventType.temporarilyAddLabels,
+            ids: selectedKeysRef.current,
+            labelNames: set.EMPTY,
           })
         }
       }}
@@ -2140,6 +2117,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
       <div
         className="grow"
+        onClick={() => {
+          setSelectedKeys(new Set())
+        }}
         onDragEnter={onDragOver}
         onDragOver={onDragOver}
         onDrop={event => {
