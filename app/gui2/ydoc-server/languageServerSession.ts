@@ -5,6 +5,7 @@ import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import * as Ast from '../shared/ast'
+import { astCount } from '../shared/ast'
 import { EnsoFileParts, combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, TextEdit, response } from '../shared/languageServerTypes'
@@ -524,13 +525,15 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
         const idMap = deserializeIdMap(idMapJson)
         const spans = parsedSpans ?? Ast.print(astRoot).info
-        const newExternalIds = Ast.setExternalIds(syncModule, spans, idMap)
-        if (newExternalIds !== 0) {
+        const idsAssigned = Ast.setExternalIds(syncModule, spans, idMap)
+        const numberOfAsts = astCount(astRoot)
+        const idsNotSetByMap = numberOfAsts - idsAssigned
+        if (idsNotSetByMap > 0) {
           if (code !== this.syncedCode) {
             unsyncedIdMap = Ast.spanMapToIdMap(spans)
           } else {
             console.warn(
-              `The LS sent an IdMap-only edit that is missing ${newExternalIds} of our expected ASTs.`,
+              `The LS sent an IdMap-only edit that is missing ${idsNotSetByMap} of our expected ASTs.`,
             )
           }
         }

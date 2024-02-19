@@ -6,8 +6,8 @@ import { isResult, mapOk } from '@/util/data/result'
 import * as map from 'lib0/map'
 import * as RawAst from 'shared/ast/generated/ast'
 import { LazyObject, LazySequence } from 'shared/ast/parserSupport'
-import type { SourceRange } from 'shared/yjsModel'
 import { tryGetSoleValue } from 'shared/util/data/iterable'
+import type { SourceRange } from 'shared/yjsModel'
 
 export { Ast, RawAst, RawAstExtended, parseEnso }
 

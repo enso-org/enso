@@ -510,25 +510,25 @@ export function parseBlockWithSpans(
   return abstract(module, tree, code)
 }
 
-/** Parse the input, and apply the given `IdMap`. Return the parsed tree, the updated `IdMap`, and some additional
- *  information used by code relying on outdated APIs.
+/** Parse the input, and apply the given `IdMap`. Return the parsed tree, the updated `IdMap`, the span map, and a
+ *  mapping to the `RawAst` representation.
  */
 export function parseExtended(code: string, idMap?: IdMap | undefined, inModule?: MutableModule) {
   const rawRoot = parseEnso(code)
   const module = inModule ?? MutableModule.Transient()
-  const { root, spans, toRaw, idMapUpdates } = module.transact(() => {
+  const { root, spans, toRaw } = module.transact(() => {
     const { root, spans, toRaw } = abstract(module, rawRoot, code)
     root.module.replaceRoot(root)
-    const idMapUpdates = idMap ? setExternalIds(root.module, spans, idMap) : 0
-    return { root, spans, toRaw, idMapUpdates }
+    if (idMap) setExternalIds(root.module, spans, idMap)
+    return { root, spans, toRaw }
   })
   const getSpan = spanMapToSpanGetter(spans)
   const idMapOut = spanMapToIdMap(spans)
-  return { root, idMap: idMapOut, getSpan, toRaw, idMapUpdates }
+  return { root, idMap: idMapOut, getSpan, toRaw }
 }
 
 /** Return the number of `Ast`s in the tree, including the provided root. */
-function astCount(ast: Ast): number {
+export function astCount(ast: Ast): number {
   let count = 0
   ast.visitRecursiveAst((_subtree) => {
     count += 1
@@ -536,12 +536,11 @@ function astCount(ast: Ast): number {
   return count
 }
 
-/** Apply an `IdMap` to a module, using the given `SpanMap`. Returns the number of IDs in the tree that were not
- *  assigned by the span map. */
+/** Apply an `IdMap` to a module, using the given `SpanMap`.
+ *  @returns The number of IDs that were assigned from the map.
+ */
 export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap): number {
   let astsMatched = 0
-  const root = edit.root()
-  const astsTotal = root ? astCount(root) : 0
   for (const [key, externalId] of ids.entries()) {
     const asts = spans.nodes.get(key as NodeKey)
     if (asts) {
@@ -552,7 +551,7 @@ export function setExternalIds(edit: MutableModule, spans: SpanMap, ids: IdMap):
       }
     }
   }
-  return root ? astsTotal - astsMatched : 0
+  return astsMatched
 }
 
 /** Try to find all the spans in `expected` in `encountered`. If any are missing, use the provided `code` to determine

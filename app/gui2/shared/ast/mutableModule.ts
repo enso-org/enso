@@ -254,8 +254,6 @@ export class MutableModule implements Module {
     return ast
   }
 
-  tryGet(id: AstId): Mutable | undefined
-  tryGet(id: AstId | undefined): Mutable | undefined
   tryGet(id: AstId | undefined): Mutable | undefined {
     if (!id) return undefined
     const nodeData = this.nodes.get(id)

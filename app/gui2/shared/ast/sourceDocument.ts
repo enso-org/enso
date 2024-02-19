@@ -78,11 +78,7 @@ export class SourceDocument {
   }
 
   unobserve(observer: SourceDocumentObserver) {
-    let index: number | undefined
-    this.observers.find((o, i) => {
-      if (o === observer) index = i
-      return o === observer
-    })
+    const index = this.observers.indexOf(observer)
     if (index !== undefined) this.observers.splice(index, 1)
   }
 

@@ -19,10 +19,7 @@ function checkCorrespondenceForward(before: string[], after: string[]) {
     input.length,
   ]
   const spacesAndHyphens = ([spaces, length]: readonly [number, number]) => {
-    let s = ''
-    for (let i = 0; i < spaces; i++) s += ' '
-    for (let i = spaces; i < length; i++) s += '-'
-    return s
+    return ' '.repeat(spaces) + '-'.repeat(length - spaces)
   }
   const edits = textChangeToEdits(before[0]!, after[0]!)
   const spansAfter = applyTextEditsToSpans(edits, before.slice(1).map(leadingSpacesAndLength)).map(
