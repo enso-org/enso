@@ -56,6 +56,7 @@ export interface ModuleUpdate {
   fieldsUpdated: { id: AstId; fields: (readonly [string, unknown])[] }[]
   metadataUpdated: { id: AstId; changes: Map<string, unknown> }[]
   origin: LocalOrigin | undefined
+  debugLog(): void
 }
 
 type YNode = FixedMap<AstFields>
@@ -376,6 +377,14 @@ class UpdateBuilder implements ModuleUpdate {
 
   private nodesUpdatedCached: Set<AstId> | undefined
   private updateRootsCached: Set<AstId> | undefined
+
+  debugLog() {
+    console.info(`ModuleUpdate`, this.origin)
+    if (this.nodesAdded.size) console.info(`- added`, this.nodesAdded)
+    if (this.nodesDeleted.size) console.info(`- deleted`, this.nodesDeleted)
+    if (this.fieldsUpdated.length) console.info(`- fieldsUpdated`, this.fieldsUpdated)
+    if (this.metadataUpdated.length) console.info(`- metadataUpdated`, this.metadataUpdated)
+  }
 
   constructor(module: Module, nodes: YNodes, origin: LocalOrigin | undefined) {
     this.module = module

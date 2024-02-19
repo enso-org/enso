@@ -798,6 +798,20 @@ function calculateCorrespondence(
   return toSync
 }
 
+function allNodes(ast: Ast): Set<AstId> {
+  const nodes = new Set<AstId>()
+  ast.visitRecursiveAst((node) => {
+    nodes.add(node.id)
+  })
+  return nodes
+}
+
+function setDiff<T>(a: Iterable<T>, b: Iterable<T>): Set<T> {
+  const result = new Set(a)
+  for (const value of b) result.delete(value)
+  return result
+}
+
 /** Update `ast` according to changes to its corresponding source code. */
 export function applyTextEditsToAst(
   ast: MutableAst,
@@ -818,7 +832,23 @@ export function applyTextEditsToAst(
     textEdits,
     code,
   )
-  syncTree(ast, parsed.root, toSync, ast.module, metadataSource)
+  const nodesBefore = allNodes(ast)
+  const syncedAst = syncTree(ast, parsed.root, toSync, ast.module, metadataSource)
+  const nodesAfter = allNodes(syncedAst)
+  const nodesLost = setDiff(nodesBefore, nodesAfter)
+  const nodesFound = setDiff(nodesAfter, nodesBefore)
+  console.info(`applyTextEditsToAst`, nodesLost, nodesFound)
+  const codeAfter = syncedAst.code()
+  if (codeAfter !== code) {
+    const diffFromResultToExpected = textChangeToEdits(codeAfter, code)
+    console.error(
+      `applyTextEditsToAst failed to synchronize`,
+      printed.code,
+      textEdits,
+      diffFromResultToExpected,
+    )
+    assert(codeAfter === code, `applyTextEditsToAst synchronized with code`)
+  }
 }
 
 /** Replace `target` with `newContent`, reusing nodes according to the correspondence in `toSync`. */
