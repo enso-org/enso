@@ -508,7 +508,7 @@ if (import.meta.vitest) {
         {
           kind: 'Unqualified',
           from: unwrap(tryQualifiedName('Standard.Base')),
-          import: unwrap(tryIdentifier('Table')),
+          import: unwrap(tryIdentifier('DB_Table')),
         },
       ],
     },
