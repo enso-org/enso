@@ -214,15 +214,12 @@ export const useGraphStore = defineStore('graph', () => {
     metadata: NodeMetadataFields = {},
     withImports: ImportsForEntry[] | undefined = undefined,
   ): Opt<NodeId> {
-    const mod = proj.module
-    if (!mod) return
-    const ident = generateUniqueIdent()
-    const currentFunc = 'main'
-    const method = Ast.findModuleMethod(topLevel.value!, currentFunc)
+    const method = syncModule.value ? methodAstInModule(syncModule.value) : undefined
     if (!method) {
       console.error(`BUG: Cannot add node: No current function.`)
       return
     }
+    const ident = generateUniqueIdent()
     metadata.position = { x: position.x, y: position.y }
     return edit((edit) => {
       const conflicts = withImports ? addMissingImports(edit, withImports) ?? [] : []

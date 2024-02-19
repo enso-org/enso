@@ -21,6 +21,9 @@ import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> {
+  /** A constant representing the index of a missing value in a column. */
+  public static final int NOT_FOUND_INDEX = -1;
+
   /**
    * @return the number of elements in this column (including NAs)
    */
@@ -472,11 +475,11 @@ public abstract class Storage<T> {
   /**
    * Return a new storage, containing only the items marked true in the mask.
    *
-   * @param mask the mask to use
-   * @param cardinality the number of true values in mask
-   * @return a new storage, masked with the given mask
+   * @param filterMask the mask to use
+   * @param newLength the number of true values in mask
+   * @return a new storage, filtered with the given mask
    */
-  public abstract Storage<T> mask(BitSet mask, int cardinality);
+  public abstract Storage<T> applyFilter(BitSet filterMask, int newLength);
 
   /**
    * Returns a new storage, ordered according to the rules specified in a mask.
@@ -484,19 +487,6 @@ public abstract class Storage<T> {
    * @param mask@return a storage resulting from applying the reordering rules
    */
   public abstract Storage<T> applyMask(OrderMask mask);
-
-  /**
-   * Returns a new storage, resulting from applying the rules specified in a mask. The resulting
-   * storage should contain the elements of the original storage, in the same order. However, the
-   * number of consecutive copies of the i-th element of the original storage should be {@code
-   * counts[i]}.
-   *
-   * @param counts the mask specifying elements duplication
-   * @param total the sum of all elements in the mask, also interpreted as the length of the
-   *     resulting storage
-   * @return the storage masked according to the specified rules
-   */
-  public abstract Storage<T> countMask(int[] counts, int total);
 
   /**
    * @return a copy of the storage containing a slice of the original data

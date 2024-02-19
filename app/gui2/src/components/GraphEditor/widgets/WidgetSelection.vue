@@ -4,16 +4,21 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
-  functionCallConfiguration,
+  singleChoiceConfiguration,
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type ImportsForEntry } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry.ts'
+import {
+  type SuggestionId,
+  type SuggestionEntry,
+  type SuggestionEntryArgument,
+} from '@/stores/suggestionDatabase/entry.ts'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
+import { arrayEquals } from '@/util/data/array'
 import { asNot } from '@/util/data/types.ts'
 import {
   qnLastSegment,
@@ -85,6 +90,11 @@ const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expres
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
 const selectedIndex = ref<number>()
+// When the input changes, we need to reset the selected index.
+watch(
+  () => props.input.value,
+  () => (selectedIndex.value = undefined),
+)
 const selectedTag = computed(() => {
   if (selectedIndex.value != null) {
     return tags.value[selectedIndex.value]
@@ -101,16 +111,14 @@ const selectedTag = computed(() => {
   }
 })
 
-const selectedExpression = computed(() => {
-  if (selectedTag.value == null) return WidgetInput.valueRepr(props.input)
-  return selectedTag.value.expression
+const selectedLabel = computed(() => {
+  return selectedTag.value?.label
 })
 const innerWidgetInput = computed(() => {
-  if (selectedTag.value == null) return props.input
-  const parameters = selectedTag.value.parameters
-  if (!parameters) return props.input
-  const config = functionCallConfiguration(parameters)
-  return { ...props.input, dynamicConfig: config }
+  if (props.input.dynamicConfig == null) return props.input
+  const config = props.input.dynamicConfig
+  if (config.kind !== 'Single_Choice') return props.input
+  return { ...props.input, dynamicConfig: singleChoiceConfiguration(config) }
 })
 const showDropdownWidget = ref(false)
 
@@ -118,11 +126,16 @@ function toggleDropdownWidget() {
   showDropdownWidget.value = !showDropdownWidget.value
 }
 
+function onClick(index: number) {
+  selectedIndex.value = index
+  showDropdownWidget.value = false
+}
+
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
   let edit: Ast.MutableModule | undefined
   // Unless import conflict resolution is needed, we use the selected expression as is.
-  let value = selectedExpression.value
+  let value = selectedTag.value?.expression
   if (selectedTag.value?.requiredImports) {
     edit = graph.startEdit()
     const conflicts = graph.addMissingImports(edit, [selectedTag.value.requiredImports])
@@ -138,16 +151,28 @@ watch(selectedIndex, (_index) => {
       origin: asNot<TokenId>(props.input.portId),
     },
   })
-  showDropdownWidget.value = false
 })
 </script>
 
 <script lang="ts">
+function hasBooleanTagValues(parameter: SuggestionEntryArgument): boolean {
+  if (parameter.tagValues == null) return false
+  return arrayEquals(Array.from(parameter.tagValues).sort(), [
+    'Standard.Base.Data.Boolean.Boolean.False',
+    'Standard.Base.Data.Boolean.Boolean.True',
+  ])
+}
+
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 50,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
-    if (props.input[ArgumentInfoKey]?.info?.tagValues != null) return Score.Perfect
+    // Boolean arguments also have tag values, but the checkbox widget should handle them.
+    if (
+      props.input[ArgumentInfoKey]?.info?.tagValues != null &&
+      !hasBooleanTagValues(props.input[ArgumentInfoKey].info)
+    )
+      return Score.Perfect
     return Score.Mismatch
   },
 })
@@ -162,9 +187,9 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       class="dropdownContainer"
       :color="'var(--node-color-primary)'"
       :values="tagLabels"
-      :selectedValue="selectedExpression"
+      :selectedValue="selectedLabel"
       @pointerdown.stop
-      @click="selectedIndex = $event"
+      @click="onClick($event)"
     />
   </div>
 </template>

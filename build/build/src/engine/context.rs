@@ -394,15 +394,23 @@ impl RunContext {
 
         // === Unit tests and Enso tests ===
         debug!("Running unit tests and Enso tests.");
-        if self.config.test_scala {
+        // We store Scala test result but not immediately fail on it, as we want to run all the
+        // tests (including standard library ones) even if Scala tests fail.
+        let scala_test_result = if self.config.test_scala {
             // Make sure that `sbt buildEngineDistributionNoIndex` is run before
             // `project-manager/test`. Note that we do not have to run
             // `buildEngineDistribution` (with indexing), because it is unnecessary.
             sbt.call_arg("buildEngineDistributionNoIndex").await?;
 
             // Run unit tests
-            sbt.call_arg("set Global / parallelExecution := false; test").await?;
-        }
+            sbt.call_arg("set Global / parallelExecution := false; test").await.inspect_err(|e| {
+                ide_ci::actions::workflow::error(format!("Scala Tests failed: {e:?}"))
+            })
+        } else {
+            // No tests - no fail.
+            Ok(())
+        };
+
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
         }
@@ -440,7 +448,7 @@ impl RunContext {
         } else {
             if self.config.build_benchmarks {
                 // Check Runtime Benchmark Compilation
-                sbt.call_arg("runtime/Benchmark/compile").await?;
+                sbt.call_arg("runtime-benchmarks/compile").await?;
 
                 // Check Language Server Benchmark Compilation
                 sbt.call_arg("language-server/Benchmark/compile").await?;
@@ -470,8 +478,12 @@ impl RunContext {
             for bench in &self.config.execute_benchmarks {
                 match bench {
                     Benchmarks::Runtime => {
-                        let runtime_bench_report =
-                            &self.paths.repo_root.engine.runtime.bench_report_xml;
+                        let runtime_bench_report = &self
+                            .paths
+                            .repo_root
+                            .engine
+                            .join("runtime-benchmarks")
+                            .join("bench-report.xml");
                         if runtime_bench_report.exists() {
                             ide_ci::actions::artifacts::upload_single_file(
                                 runtime_bench_report,
@@ -509,20 +521,6 @@ impl RunContext {
 
         // === Build Distribution ===
         debug!("Building distribution");
-        if self.config.build_engine_package() {
-            let std_libs =
-                &self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.standard;
-            // let std_libs = self.paths.engine.dir.join("lib").join("Standard");
-            // Compile the Standard Libraries (Unix)
-            debug!("Compiling standard libraries under {}", std_libs.display());
-            for entry in ide_ci::fs::read_dir(std_libs)? {
-                let entry = entry?;
-                let target = entry.path().join(self.paths.version().to_string());
-                enso.compile_lib(target)?.run_ok().await?;
-            }
-        }
-
-
         if self.config.build_native_runner {
             debug!("Building and testing native engine runners");
             runner_sanity_test(&self.repo_root, None).await?;
@@ -540,13 +538,6 @@ impl RunContext {
         // Verify License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
-            /*  refversion=${{ env.ENSO_VERSION }}
-                binversion=${{ env.DIST_VERSION }}
-                engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso --version --json | jq -r '.version')
-                test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
-                test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
-            */
-
             for package in ret.packages() {
                 package.verify_package_sbt(&sbt).await?;
             }
@@ -587,6 +578,8 @@ impl RunContext {
         for bundle in ret.bundles() {
             bundle.create(&self.repo_root, &graal_version).await?;
         }
+
+        scala_test_result?;
 
         Ok(ret)
     }

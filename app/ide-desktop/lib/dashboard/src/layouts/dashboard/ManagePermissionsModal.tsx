@@ -54,7 +54,7 @@ export default function ManagePermissionsModal<
   Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
   const { item, setItem, self, doRemoveSelf, eventTarget } = props
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user: user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -86,9 +86,9 @@ export default function ManagePermissionsModal<
       permissions.every(
         permission =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          permission.user.user_email === organization?.email
+          permission.user.user_email === user?.email
       ),
-    [organization?.email, permissions, self.permission]
+    [user?.email, permissions, self.permission]
   )
 
   React.useEffect(() => {
@@ -97,7 +97,7 @@ export default function ManagePermissionsModal<
     setItem(object.merger({ permissions } as Partial<Asset>))
   }, [permissions, /* should never change */ setItem])
 
-  if (backend.type === backendModule.BackendType.local || organization == null) {
+  if (backend.type === backendModule.BackendType.local || user == null) {
     // This should never happen - the local backend does not have the "shared with" column,
     // and `organization` is absent only when offline - in which case the user should only
     // be able to access the local backend.
@@ -139,7 +139,7 @@ export default function ManagePermissionsModal<
           setEmail('')
           if (email != null) {
             await backend.inviteUser({
-              organizationId: organization.id,
+              organizationId: user.id,
               userEmail: backendModule.EmailAddress(email),
             })
             toast.toast.success(`You've invited '${email}' to join Enso!`)
@@ -154,7 +154,7 @@ export default function ManagePermissionsModal<
             // The names come from a third-party API and cannot be
             // changed.
             /* eslint-disable @typescript-eslint/naming-convention */
-            organization_id: organization.id,
+            organization_id: user.id,
             pk: newUser.id,
             user_email: newUser.email,
             user_name: newUser.name,
@@ -195,7 +195,7 @@ export default function ManagePermissionsModal<
       }
     }
 
-    const doDelete = async (userToDelete: backendModule.User) => {
+    const doDelete = async (userToDelete: backendModule.UserInfo) => {
       if (userToDelete.pk === self.user.pk) {
         doRemoveSelf()
       } else {
@@ -287,14 +287,12 @@ export default function ManagePermissionsModal<
                   values={users}
                   setValues={setUsers}
                   items={allUsers}
-                  itemToKey={user => user.id}
-                  itemToString={user => `${user.name} (${user.email})`}
-                  matches={(user, text) =>
-                    user.email.toLowerCase().includes(text.toLowerCase()) ||
-                    user.name.toLowerCase().includes(text.toLowerCase())
+                  itemToKey={otherUser => otherUser.id}
+                  itemToString={otherUser => `${otherUser.name} (${otherUser.email})`}
+                  matches={(otherUser, text) =>
+                    otherUser.email.toLowerCase().includes(text.toLowerCase()) ||
+                    otherUser.name.toLowerCase().includes(text.toLowerCase())
                   }
-                  className="grow"
-                  inputClassName="bg-transparent leading-170 h-6 py-px"
                   text={email}
                   setText={setEmail}
                 />

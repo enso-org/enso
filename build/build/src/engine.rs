@@ -105,7 +105,7 @@ impl Benchmarks {
     pub fn sbt_task(self) -> Option<&'static str> {
         match self {
             Benchmarks::All => Some("bench"),
-            Benchmarks::Runtime => Some("runtime/bench"),
+            Benchmarks::Runtime => Some("runtime-benchmarks/bench"),
             Benchmarks::Enso => None,
             Benchmarks::EnsoJMH => Some("std-benchmarks/bench"),
         }
