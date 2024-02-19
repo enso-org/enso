@@ -149,7 +149,13 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         }
       }
       if (event.key === 'Escape') {
-        searchRef.current?.blur()
+        if (querySource.current === QuerySource.tabbing) {
+          querySource.current = QuerySource.external
+          setQuery(baseQuery.current)
+          setAreSuggestionsVisible(false)
+        } else {
+          searchRef.current?.blur()
+        }
       }
       // Allow `alt` key to be pressed in case it is being used to enter special characters.
       if (
@@ -178,7 +184,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       document.removeEventListener('keydown', onKeyDown)
       document.removeEventListener('keyup', onKeyUp)
     }
-  }, [])
+  }, [setQuery])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {
