@@ -93,8 +93,8 @@ type DB_Column
 
        The table behaves like `Table.info` - it lists the column name, the count
        of non-null items and the value type.
-    info : DB_Table
-    info self = self.to_table.info
+    info : Table
+    info self -> Table = self.to_table.info
 
     ## GROUP Standard.Base.Input
        ICON data_input
