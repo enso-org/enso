@@ -40,10 +40,11 @@ import Visibility, * as visibilityModule from '#/utilities/visibility'
 // === Constants ===
 // =================
 
+/** The height of the header row. */
+const HEADER_HEIGHT_PX = 34
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
-
 /** Placeholder row for directories that are empty. */
 const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
 
@@ -85,6 +86,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { scrollContainerRef } = state
 
   const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -149,10 +151,7 @@ export default function AssetRow(props: AssetRowProps) {
       } catch (error) {
         toastAndLog(`Could not copy '${asset.title}'`, error)
         // Delete the new component representing the asset that failed to insert.
-        dispatchAssetListEvent({
-          type: AssetListEventType.delete,
-          key: item.key,
-        })
+        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       }
     },
     [
@@ -184,10 +183,7 @@ export default function AssetRow(props: AssetRowProps) {
           item: asset,
         })
         setItem(oldItem =>
-          oldItem.with({
-            directoryKey: nonNullNewParentKey,
-            directoryId: nonNullNewParentId,
-          })
+          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
         )
         setAsset(object.merger({ parentId: nonNullNewParentId }))
         await backend.updateAsset(
@@ -242,10 +238,7 @@ export default function AssetRow(props: AssetRowProps) {
       })
     }
     try {
-      dispatchAssetListEvent({
-        type: AssetListEventType.willDelete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
       if (
         asset.type === backendModule.AssetType.project &&
         backend.type === backendModule.BackendType.local
@@ -263,10 +256,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
       }
       await backend.deleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(
@@ -287,10 +277,7 @@ export default function AssetRow(props: AssetRowProps) {
     setInsertionVisibility(Visibility.hidden)
     try {
       await backend.undoDeleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
@@ -559,6 +546,20 @@ export default function AssetRow(props: AssetRowProps) {
             <tr
               draggable
               tabIndex={-1}
+              ref={element => {
+                if (isSoleSelectedItem && element != null && scrollContainerRef.current != null) {
+                  const rect = element.getBoundingClientRect()
+                  const scrollRect = scrollContainerRef.current.getBoundingClientRect()
+                  const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
+                  const scrollDown = rect.bottom - scrollRect.bottom
+                  if (scrollUp < 0 || scrollDown > 0) {
+                    scrollContainerRef.current.scrollBy({
+                      top: scrollUp < 0 ? scrollUp : scrollDown,
+                      behavior: 'smooth',
+                    })
+                  }
+                }
+              }}
               className={`h-8 transition duration-300 ease-in-out ${
                 visibilityModule.CLASS_NAME[visibility]
               } ${isDraggedOver || selected ? 'selected' : ''}`}

@@ -83,16 +83,16 @@ LocalStorage.registerKey('extraColumns', {
 /** If the drag pointer is less than this distance away from the top or bottom of the
  * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
  * the top of the scroll container, or downwards if the cursor is near the bottom. */
-const AUTOSCROLL_THRESHOLD = 50
+const AUTOSCROLL_THRESHOLD_PX = 50
 /** The autoscroll speed is `AUTOSCROLL_THRESHOLD / (distance + AUTOSCROLL_DAMPENING)`. */
 const AUTOSCROLL_DAMPENING = 10
 /** The height of the header row. */
-const HEADER_HEIGHT = 34
+const HEADER_HEIGHT_PX = 34
 /** The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling. */
-const ROW_HEIGHT = 32
+const ROW_HEIGHT_PX = 32
 /** The size of the loading spinner. */
-const LOADING_SPINNER_SIZE = 36
+const LOADING_SPINNER_SIZE_PX = 36
 /** The number of pixels the header bar should shrink when the extra column selector is visible. */
 const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
 /** The default placeholder row. */
@@ -275,6 +275,7 @@ const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
   readonly selectedKeys: React.MutableRefObject<ReadonlySet<backendModule.AssetId>>
+  readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   readonly category: Category
   readonly labels: Map<backendModule.LabelName, backendModule.Label>
@@ -868,6 +869,33 @@ export default function AssetsTable(props: AssetsTableProps) {
   const clearSelectedKeys = React.useCallback(() => {
     setSelectedKeys(new Set())
   }, [/* should never change */ setSelectedKeys])
+
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const [firstSelectedKey] = selectedKeysRef.current
+      if (selectedKeysRef.current.size === 1 && firstSelectedKey != null) {
+        if (event.key === 'ArrowUp') {
+          event.preventDefault()
+          const oldIndex = displayItems.findIndex(item => item.key === firstSelectedKey)
+          const newItem = displayItems[oldIndex - 1]
+          if (newItem != null) {
+            setSelectedKeys(new Set([newItem.key]))
+          }
+        } else if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          const oldIndex = displayItems.findIndex(item => item.key === firstSelectedKey)
+          const newItem = displayItems[oldIndex + 1]
+          if (newItem != null) {
+            setSelectedKeys(new Set([newItem.key]))
+          }
+        }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [displayItems, /* should never change */ setSelectedKeys])
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
@@ -1682,6 +1710,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     (): AssetsTableState => ({
       visibilities,
       selectedKeys: selectedKeysRef,
+      scrollContainerRef,
       category,
       labels: allLabels,
       deletedLabelNames,
@@ -1855,9 +1884,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         const rect = scrollContainer.getBoundingClientRect()
         if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
           const distanceToTop = Math.max(0, rectangle.top - rect.top)
-          if (distanceToTop < AUTOSCROLL_THRESHOLD) {
+          if (distanceToTop < AUTOSCROLL_THRESHOLD_PX) {
             scrollContainer.scrollTop -= Math.floor(
-              AUTOSCROLL_THRESHOLD / (distanceToTop + AUTOSCROLL_DAMPENING)
+              AUTOSCROLL_THRESHOLD_PX / (distanceToTop + AUTOSCROLL_DAMPENING)
             )
             dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
               onSelectionDrag(rectangle, event)
@@ -1869,9 +1898,9 @@ export default function AssetsTable(props: AssetsTableProps) {
           scrollContainer.scrollTop + rect.height < scrollContainer.scrollHeight
         ) {
           const distanceToBottom = Math.max(0, rect.bottom - rectangle.bottom)
-          if (distanceToBottom < AUTOSCROLL_THRESHOLD) {
+          if (distanceToBottom < AUTOSCROLL_THRESHOLD_PX) {
             scrollContainer.scrollTop += Math.floor(
-              AUTOSCROLL_THRESHOLD / (distanceToBottom + AUTOSCROLL_DAMPENING)
+              AUTOSCROLL_THRESHOLD_PX / (distanceToBottom + AUTOSCROLL_DAMPENING)
             )
             dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
               onSelectionDrag(rectangle, event)
@@ -1879,25 +1908,25 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
         }
         const overlapsHorizontally = rect.right > rectangle.left && rect.left < rectangle.right
-        const selectionTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT)
+        const selectionTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
         const selectionBottom = Math.max(
           0,
-          Math.min(rect.height, rectangle.bottom - rect.top - HEADER_HEIGHT)
+          Math.min(rect.height, rectangle.bottom - rect.top - HEADER_HEIGHT_PX)
         )
         const range = dragSelectionRangeRef.current
         if (!overlapsHorizontally) {
           dragSelectionRangeRef.current = null
         } else if (range == null) {
-          const topIndex = (selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT
-          const bottomIndex = (selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT
+          const topIndex = (selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT_PX
+          const bottomIndex = (selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT_PX
           dragSelectionRangeRef.current = {
             initialIndex: topIndex,
             start: Math.floor(topIndex),
             end: Math.ceil(bottomIndex),
           }
         } else {
-          const topIndex = (selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT
-          const bottomIndex = (selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT
+          const topIndex = (selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT_PX
+          const bottomIndex = (selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT_PX
           const endIndex = rectangle.signedHeight < 0 ? topIndex : bottomIndex
           dragSelectionRangeRef.current = {
             initialIndex: range.initialIndex,
@@ -1990,7 +2019,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     <tr className="h-8">
       <td colSpan={columns.length} className="bg-transparent">
         <div className="grid justify-around w-container">
-          <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
+          <Spinner size={LOADING_SPINNER_SIZE_PX} state={spinnerState} />
         </div>
       </td>
     </tr>
