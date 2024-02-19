@@ -45,8 +45,7 @@ import org.enso.interpreter.runtime.state.State;
 public final class EqualsNode extends Node {
   @Child private EqualsSimpleNode node;
   @Child private TypeOfNode types;
-  @Child private WithConversionNode convert1;
-  @Child private WithConversionNode convert2;
+  @Child private WithConversionNode convert;
 
   private static final EqualsNode UNCACHED =
       new EqualsNode(EqualsSimpleNodeGen.getUncached(), TypeOfNode.getUncached(), true);
@@ -55,8 +54,7 @@ public final class EqualsNode extends Node {
     this.node = node;
     this.types = types;
     if (uncached) {
-      convert1 = EqualsNodeFactory.WithConversionNodeGen.getUncached();
-      convert2 = convert1;
+      convert = EqualsNodeFactory.WithConversionNodeGen.getUncached();
     }
   }
 
@@ -91,13 +89,11 @@ public final class EqualsNode extends Node {
       var selfType = types.execute(self);
       var otherType = types.execute(other);
       if (selfType != otherType) {
-        if (convert1 == null) {
+        if (convert == null) {
           CompilerDirectives.transferToInterpreter();
-          convert1 = insert(WithConversionNode.create());
-          convert2 = insert(WithConversionNode.create());
+          convert = insert(WithConversionNode.create());
         }
-        return convert1.executeWithConversion(frame, other, self)
-            || convert2.executeWithConversion(frame, self, other);
+        return convert.executeWithConversion(frame, other, self);
       }
     }
     return areEqual;
@@ -130,7 +126,7 @@ public final class EqualsNode extends Node {
       return findType(TypeOfNode.getUncached(), obj);
     }
 
-    record Convert(Function f1, Function f2, Function f3) {}
+    record Convert(boolean flip, Function f1, Function f2, Function f3) {}
 
     private static boolean isDefinedIn(ModuleScope scope, Function fn) {
       if (fn.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRoot) {
@@ -155,9 +151,20 @@ public final class EqualsNode extends Node {
         return null;
       }
       var ctx = EnsoContext.get(this);
-      var comparableType = ctx.getBuiltins().comparable().getType();
 
+      var c1 = findConversionImpl(ctx, false, selfType, thatType, self, that);
+      if (c1 != null) {
+        return c1;
+      } else {
+        var c2 = findConversionImpl(ctx, true, thatType, selfType, that, self);
+        return c2;
+      }
+    }
+
+    private static Convert findConversionImpl(
+        EnsoContext ctx, boolean flip, Type selfType, Type thatType, Object self, Object that) {
       var selfScope = selfType.getDefinitionScope();
+      var comparableType = ctx.getBuiltins().comparable().getType();
 
       var fromSelfType =
           UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, selfType);
@@ -169,7 +176,7 @@ public final class EqualsNode extends Node {
           && isDefinedIn(selfScope, fromThatType)
           && convertor(ctx, fromSelfType, self) == convertor(ctx, fromThatType, that)
           && betweenBoth != null) {
-        return new Convert(fromSelfType, fromThatType, betweenBoth);
+        return new Convert(flip, fromSelfType, fromThatType, betweenBoth);
       } else {
         return null;
       }
@@ -198,7 +205,11 @@ public final class EqualsNode extends Node {
       if (convert == null) {
         return false;
       }
-      return doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+      if (convert.flip) {
+        return doDispatch(frame, that, self, thatType, convertNode, equalityNode);
+      } else {
+        return doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+      }
     }
 
     @Specialization(replaces = "doConversionCached")
@@ -211,8 +222,12 @@ public final class EqualsNode extends Node {
         @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       var selfType = findType(typeOfNode, self);
       var thatType = findType(typeOfNode, that);
-      if (findConversions(selfType, thatType, self, that) != null) {
-        var result = doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+      var conv = findConversions(selfType, thatType, self, that);
+      if (conv != null) {
+        var result =
+            conv.flip
+                ? doDispatch(frame, that, self, thatType, convertNode, equalityNode)
+                : doDispatch(frame, self, that, selfType, convertNode, equalityNode);
         return result;
       }
       return false;
