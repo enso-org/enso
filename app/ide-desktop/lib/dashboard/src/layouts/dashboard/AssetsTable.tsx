@@ -2001,7 +2001,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           const topIndex = (selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT_PX
           const bottomIndex = (selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT_PX
           dragSelectionRangeRef.current = {
-            initialIndex: topIndex,
+            initialIndex: rectangle.signedHeight < 0 ? bottomIndex : topIndex,
             start: Math.floor(topIndex),
             end: Math.ceil(bottomIndex),
           }
