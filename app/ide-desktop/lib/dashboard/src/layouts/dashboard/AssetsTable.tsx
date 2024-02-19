@@ -149,9 +149,14 @@ const SUGGESTIONS_FOR_TYPE: assetSearchBar.Suggestion[] = [
     deleteFromQuery: query => query.deleteFromLastTerm({ types: ['file'] }),
   },
   {
-    render: () => 'type:connector',
-    addToQuery: query => query.addToLastTerm({ types: ['connector'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['connector'] }),
+    render: () => 'type:secret',
+    addToQuery: query => query.addToLastTerm({ types: ['secret'] }),
+    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['secret'] }),
+  },
+  {
+    render: () => 'type:datalink',
+    addToQuery: query => query.addToLastTerm({ types: ['datalink'] }),
+    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['datalink'] }),
   },
 ]
 const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
@@ -433,8 +438,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         const assetType =
           node.item.type === backendModule.AssetType.directory
             ? 'folder'
-            : node.item.type === backendModule.AssetType.secret
-            ? 'connector'
+            : node.item.type === backendModule.AssetType.dataLink
+            ? 'datalink'
             : String(node.item.type)
         const assetExtension =
           node.item.type !== backendModule.AssetType.file
