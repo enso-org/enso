@@ -73,5 +73,3 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
     }
   }
 }
-
-
