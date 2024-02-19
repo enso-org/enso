@@ -141,11 +141,11 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
 }
 
 .zoomButton {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   border-radius: var(--radius-full);
   position: relative;
-  margin: 4px;
+  margin: 0px;
   display: inline-block;
   vertical-align: middle;
   cursor: pointer;
@@ -160,21 +160,20 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
 .zoomButton.plus:after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   background: var(--color-text);
 }
 
 .zoomButton.plus:before {
   width: 2px;
-  margin: 2px auto;
+  height: 12px;
 }
 
 .zoomButton.plus:after {
-  margin: auto 2px;
   height: 2px;
+  width: 12px;
 }
 
 .zoomButton.minus:before {
