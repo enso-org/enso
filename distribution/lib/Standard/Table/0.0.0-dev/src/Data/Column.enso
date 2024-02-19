@@ -42,6 +42,7 @@ polyglot java import org.enso.table.data.column.operation.unary.IsNaNOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
+polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.mask.OrderMask
@@ -1556,8 +1557,8 @@ type Column
                 DatePartOperation.MINUTE -> DatePartOperation.MINUTE_INSTANCE
                 DatePartOperation.SECOND -> DatePartOperation.SECOND_INSTANCE
                 DatePartOperation.MILLISECOND -> DatePartOperation.MILLISECOND_INSTANCE
-                DatePartOperation.MICROSECOND -> DatePartOperation.MICROSECOND_INSTANCE
-                DatePartOperation.NANOSECOND -> DatePartOperation.NANOSECOND_INSTANCE
+                TruncatedTimePartOperation.MICROSECOND -> TruncatedTimePartOperation.MICROSECOND_INSTANCE
+                TruncatedTimePartOperation.NANOSECOND -> TruncatedTimePartOperation.NANOSECOND_INSTANCE
             apply_unary_operation col operation
         Date_Time_Helpers.make_date_part_function self period date_part_operation naming_helper
 
@@ -1669,7 +1670,7 @@ type Column
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
                 set = Set.from_vector as_vector error_on_duplicates=False
-                apply_unary_map self result_name set.contains_relational Value_Type.Boolean
+                apply_unary_map self result_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
 
     ## GROUP Standard.Base.Conversions
        ICON convert

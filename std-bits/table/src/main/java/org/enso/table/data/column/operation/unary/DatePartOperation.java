@@ -47,18 +47,10 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
   public static final UnaryOperation MILLISECOND_INSTANCE =
       new DatePartOperation(MILLISECOND, ChronoField.MILLI_OF_SECOND, true);
 
-  public static final String MICROSECOND = "microsecond";
-  public static final UnaryOperation MICROSECOND_INSTANCE =
-      new DatePartOperation(MICROSECOND, ChronoField.MICRO_OF_SECOND, true);
+  protected final TemporalField field;
+  protected final boolean timeField;
 
-  public static final String NANOSECOND = "nanosecond";
-  public static final UnaryOperation NANOSECOND_INSTANCE =
-      new DatePartOperation(NANOSECOND, ChronoField.NANO_OF_SECOND, true);
-
-  private final TemporalField field;
-  private final boolean timeField;
-
-  private DatePartOperation(String name, TemporalField field, boolean timeField) {
+  protected DatePartOperation(String name, TemporalField field, boolean timeField) {
     super(name, true, IntegerType.INT_64);
     this.field = field;
     this.timeField = timeField;
@@ -74,9 +66,6 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
       Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator) {
     if (value instanceof Temporal s) {
       var longValue = s.getLong(field);
-      if (timeField) {
-        longValue = longValue % 1000;
-      }
       builder.appendLong(longValue);
     } else {
       throw new IllegalArgumentException(
@@ -84,3 +73,5 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
     }
   }
 }
+
+
