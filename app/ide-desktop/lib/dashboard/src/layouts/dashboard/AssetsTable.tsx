@@ -1847,19 +1847,11 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const dragSelectionChangeLoopHandle = React.useRef(0)
   const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
-  const onDragSelectionChange = React.useCallback(
-    (rectangle: geometry.DetailedRectangle | null, event: MouseEvent) => {
+  const onSelectionDrag = React.useCallback(
+    (rectangle: geometry.DetailedRectangle, event: MouseEvent) => {
       cancelAnimationFrame(dragSelectionChangeLoopHandle.current)
       const scrollContainer = scrollContainerRef.current
-      if (rectangle == null) {
-        const range = dragSelectionRangeRef.current
-        if (range != null) {
-          const keys = displayItems.slice(range.start, range.end).map(node => node.key)
-          setSelectedKeys(calculateNewKeys(event, keys, () => []))
-        }
-        setVisuallySelectedKeysOverride(null)
-        dragSelectionRangeRef.current = null
-      } else if (scrollContainer != null) {
+      if (scrollContainer != null) {
         const rect = scrollContainer.getBoundingClientRect()
         if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
           const distanceToTop = Math.max(0, rectangle.top - rect.top)
@@ -1868,7 +1860,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               AUTOSCROLL_THRESHOLD / (distanceToTop + AUTOSCROLL_DAMPENING)
             )
             dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
-              onDragSelectionChange(rectangle, event)
+              onSelectionDrag(rectangle, event)
             })
           }
         }
@@ -1882,7 +1874,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               AUTOSCROLL_THRESHOLD / (distanceToBottom + AUTOSCROLL_DAMPENING)
             )
             dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
-              onDragSelectionChange(rectangle, event)
+              onSelectionDrag(rectangle, event)
             })
           }
         }
@@ -1921,8 +1913,26 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
+    [displayItems, calculateNewKeys]
+  )
+
+  const onSelectionDragEnd = React.useCallback(
+    (event: MouseEvent) => {
+      const range = dragSelectionRangeRef.current
+      if (range != null) {
+        const keys = displayItems.slice(range.start, range.end).map(node => node.key)
+        setSelectedKeys(calculateNewKeys(event, keys, () => []))
+      }
+      setVisuallySelectedKeysOverride(null)
+      dragSelectionRangeRef.current = null
+    },
     [displayItems, calculateNewKeys, /* should never change */ setSelectedKeys]
   )
+
+  const onSelectionDragCancel = React.useCallback(() => {
+    setVisuallySelectedKeysOverride(null)
+    dragSelectionRangeRef.current = null
+  }, [])
 
   const onRowClick = React.useCallback(
     (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
@@ -2230,7 +2240,11 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
-      <SelectionBrush onChange={onDragSelectionChange} />
+      <SelectionBrush
+        onDrag={onSelectionDrag}
+        onDragEnd={onSelectionDragEnd}
+        onDragCancel={onSelectionDragCancel}
+      />
       <div className="flex flex-col w-min min-w-full h-full">
         {isCloud && (
           <div className="sticky top-0 h-0 flex flex-col">
