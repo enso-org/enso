@@ -90,12 +90,12 @@ projectStore.lsRpcConnection.then(
     })
   },
   (err) => {
-    toast.error(`Connection to language server failed: ${err}`)
+    toast.error(`Connection to language server failed: ${JSON.stringify(err)}`)
   },
 )
 
 projectStore.executionContext.on('executionFailed', (err) => {
-  toast.error(`Execution Failed: ${err}`, {})
+  toast.error(`Execution Failed: ${JSON.stringify(err)}`, {})
 })
 
 onMounted(() => {
@@ -641,9 +641,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
-    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
-      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
-    </svg>
+    <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
 
     <ComponentBrowser
       v-if="componentBrowserVisible"
@@ -684,13 +682,6 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   overflow: clip;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
-}
-
-.svgBackdropLayer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: -1;
 }
 
 .htmlLayer {
