@@ -111,6 +111,9 @@ class SyncRemoteCache(RemoteCache):
         self._repo_root_dir = Path(tempfile.mkdtemp(prefix="bench_tool_remote_cache"))
         self._cache_dir = self._repo_root_dir.joinpath(CACHE_REMOTE_DIR)
 
+    def repo_root_dir(self) -> Path:
+        return self._repo_root_dir
+
     async def initialize(self) -> None:
         # Checkout the repo
         await git.clone(BENCH_REPO, self._repo_root_dir)

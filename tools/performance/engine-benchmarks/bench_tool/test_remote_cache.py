@@ -60,5 +60,9 @@ class TestSyncRemoteCache(unittest.IsolatedAsyncioTestCase):
     async def test_init_sync_remote_cache(self):
         remote_cache = SyncRemoteCache()
         await remote_cache.initialize()
-        # No exception should be thrown
-        self.assertTrue(True)
+        root_dir = remote_cache.repo_root_dir()
+        self.assertTrue(root_dir.exists())
+        self.assertTrue(root_dir.is_dir())
+        cache_dir = root_dir.joinpath("cache")
+        self.assertTrue(cache_dir.exists())
+        self.assertTrue(cache_dir.is_dir())
