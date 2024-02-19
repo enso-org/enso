@@ -1072,8 +1072,7 @@ type Column
         fallback x = case x of
             _ : Float   -> x.is_nan
             _           -> False
-        apply_unary_operation self IsNaNOperation.INSTANCE new_name . if_nothing <|
-            apply_unary_map self new_name fallback Value_Type.Boolean
+        apply_unary_operation self IsNaNOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -1085,10 +1084,8 @@ type Column
         new_name = naming_helper.function_name "is_infinite" [self]
         fallback x = case x of
             _ : Float   -> x.is_infinite
-            Nothing     -> Nothing
             _           -> False
-        apply_unary_operation self IsInfiniteOperation.INSTANCE new_name . if_nothing <|
-            apply_unary_map self new_name fallback Value_Type.Boolean
+        apply_unary_operation self IsInfiniteOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -1105,8 +1102,7 @@ type Column
             _ : Text -> x == ""
             Nothing  -> True
             _        -> False
-        apply_unary_operation self IsEmptyOperation.INSTANCE new_name . if_nothing <|
-            apply_unary_map self new_name fallback Value_Type.Boolean nothing_unchanged=False
+        apply_unary_operation self IsEmptyOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean nothing_unchanged=False)
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -2703,11 +2699,12 @@ Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from
    - column: The column to apply the operation to.
    - operation: The UnaryOperation to apply.
    - new_name: The name of the column created as the result of this operation.
-apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing =
+   - if_unsupported: The result if the operation is not supported for the column.
+apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called. This is a bug in the Table library.")) =
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator
-        if java_column.is_nothing.not then Column.Value java_column else Nothing
+        if java_column.is_nothing then if_unsupported else Column.Value java_column
 
 ## PRIVATE
    Applies a function to every row in the column.

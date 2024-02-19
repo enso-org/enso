@@ -38,7 +38,10 @@ public interface UnaryOperation {
     // an inferred storage.
     if (!operation.canApply(storage)
         && storage instanceof ColumnStorageWithInferredStorage withInferredStorage) {
-      storage = withInferredStorage.getInferredStorage();
+      var inferredStorage = withInferredStorage.getInferredStorage();
+      if (inferredStorage != null && operation.canApply(inferredStorage)) {
+        storage = inferredStorage;
+      }
     }
 
     if (!operation.canApply(storage)) {
