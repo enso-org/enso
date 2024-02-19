@@ -35,3 +35,17 @@ def gather_all_bench_labels(job_reports: List[JobReport]) -> Set[str]:
 def parse_commit_timestamp(commit: Commit) -> datetime:
     """ Parses the timestamp from the commit based on the GH's formatting. """
     return datetime.strptime(commit.timestamp, GH_DATE_FORMAT)
+
+
+def sort_job_reports(
+        job_reports: List[JobReport]
+) -> None:
+    """
+    Sorts the job reports in place by the commit date.
+    :param job_reports:
+    :return:
+    """
+    def _get_timestamp(job_report: JobReport) -> datetime:
+        return parse_commit_timestamp(job_report.bench_run.head_commit)
+
+    job_reports.sort(key=lambda report: _get_timestamp(report))

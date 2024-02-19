@@ -47,9 +47,9 @@ Dependencies for the script:
 
 import sys
 
-from bench_tool.bench_results import get_bench_runs, get_bench_report
+from bench_tool.bench_results import get_bench_runs, fetch_job_reports
 from bench_tool.remote_cache import ReadonlyRemoteCache
-from bench_tool.utils import gather_all_bench_labels
+from bench_tool.utils import gather_all_bench_labels, sort_job_reports
 
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     print("ERROR: python version lower than 3.7")
@@ -67,7 +67,7 @@ from datetime import datetime, timedelta
 from os import path
 from typing import List, Dict, Optional, Set
 
-from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_DATE_FORMAT, GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, \
+from bench_tool import DATE_FORMAT, GENERATED_SITE_DIR, GH_ARTIFACT_RETENTION_PERIOD, TEMPLATES_DIR, \
     JINJA_TEMPLATE, JobRun, JobReport, \
     TemplateBenchData, JinjaData, Source
 from bench_tool.gh import ensure_gh_installed
@@ -232,18 +232,7 @@ async def main():
                 f" until {until} for branch {branch}")
             exit(1)
 
-        job_reports: List[JobReport] = []
-
-        async def _process_report(_bench_run: JobRun):
-            _job_report = await get_bench_report(_bench_run, temp_dir, remote_cache)
-            if _job_report:
-                job_reports.append(_job_report)
-
-        tasks = []
-        for bench_run in bench_runs:
-            tasks.append(_process_report(bench_run))
-        await asyncio.gather(*tasks)
-
+        job_reports = await fetch_job_reports(bench_runs, remote_cache)
         logging.debug(f"Got {len(job_reports)} job reports for branch {branch}")
         if len(job_reports) == 0:
             print(f"There were 0 job_reports in the specified time interval, "
@@ -252,14 +241,7 @@ async def main():
             exit(1)
 
         logging.debug("Sorting job_reports by commit date")
-
-        def _get_timestamp(job_report: JobReport) -> datetime:
-            return datetime.strptime(
-                job_report.bench_run.head_commit.timestamp,
-                GH_DATE_FORMAT
-            )
-
-        job_reports.sort(key=lambda report: _get_timestamp(report))
+        sort_job_reports(job_reports)
 
         if create_csv:
             write_bench_reports_to_csv(job_reports, csv_output)

@@ -12,6 +12,7 @@ from xml.etree import ElementTree as ET
 from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport, Commit, Author
 from bench_tool.gh import invoke_gh_api
 from bench_tool.remote_cache import RemoteCache
+from bench_tool.utils import WithTempDir
 
 ARTIFACT_ID = "Runtime Benchmark Report"
 
@@ -64,6 +65,34 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow
     await asyncio.gather(*tasks)
 
     return parsed_bench_runs
+
+
+async def fetch_job_reports(
+        bench_runs: List[JobRun],
+        remote_cache: RemoteCache
+) -> List[JobReport]:
+    """
+    Fetches all benchmark reports for the given benchmark runs. Benchmark runs are basically
+    just IDs of artifacts, and the reports are the actual benchmark results. These results are
+    either on the GH as artifacts, or are fetched from the cache if the artifact is expired.
+    All the runs are fetched in parallel.
+    :param bench_runs:
+    :param remote_cache:
+    :return:
+    """
+    job_reports: List[JobReport] = []
+
+    async def _process_report(_bench_run: JobRun):
+        with WithTempDir("bench_download") as temp_dir:
+            _job_report = await get_bench_report(_bench_run, temp_dir, remote_cache)
+        if _job_report:
+            job_reports.append(_job_report)
+
+    tasks = []
+    for bench_run in bench_runs:
+        tasks.append(_process_report(bench_run))
+    await asyncio.gather(*tasks)
+    return job_reports
 
 
 async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: RemoteCache) -> Optional[JobReport]:
