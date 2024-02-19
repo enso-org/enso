@@ -225,6 +225,23 @@ type S3_File
 
        Arguments:
        - subpath: The path to join to the path of `self`.
+
+       ! S3 Directory Handling
+
+         Note that regular S3 buckets do not have a 'native' notion of
+         directories, instead they are emulated using prefixes and a delimiter
+         (in Enso, the delimiter is set to "/").
+
+         The trailing slash determines if the given path is treated as a
+         directory or as a regular file.
+
+         Because of that, `root / "foo" / "bar"` will fail, as the entry denoted
+         by "foo" will be treated as a regular file which cannot have children.
+         Instead, you'd have to ensure that "foo" remains a directory by
+         remembering about the slash: `root / "foo/" / "bar"`. This can be
+         written shorter using just one operation: `root / "foo/bar"`.
+
+         See: https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
     / : Text -> S3_File
     / self subpath = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else
         S3_File.Value (self.s3_path.resolve subpath) self.credentials
