@@ -104,5 +104,12 @@ jobs:
         working-directory: app/gui2
       - run: npm run generate-metadata
         working-directory: app/gui2
+      # Logs are output to things like `/Users/runner/.npm/_logs/2024-02-19T18_31_51_663Z-debug-0.log`.
+      # We want to upload the directory as an artifact, even if the build fails.
+      - name: Upload logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: logs
+          path: ~/.npm/_logs
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
