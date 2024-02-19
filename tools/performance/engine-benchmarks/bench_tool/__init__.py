@@ -13,6 +13,7 @@ def pkg_dir() -> Path:
 
 ENSO_REPO = "enso-org/enso"
 BENCH_REPO = "enso-org/engine-benchmark-results"
+BRANCH_DEVELOP = "develop"
 DATE_FORMAT = "%Y-%m-%d"
 GH_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 ENGINE_BENCH_WORKFLOW_ID = 29450898
@@ -56,6 +57,7 @@ class Source(Enum):
             return [STDLIBS_BENCH_WORKFLOW_ID]
         else:
             raise ValueError(f"Unknown source {self}")
+
 
 @dataclass
 class Author:

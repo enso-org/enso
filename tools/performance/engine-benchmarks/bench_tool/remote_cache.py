@@ -40,14 +40,6 @@ class RemoteCache(abc.ABC):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
-    async def sync(self) -> None:
-        """
-        Synchronizes the remote cache with the local state.
-        :return:
-        """
-        raise NotImplementedError
-
 
 class ReadonlyRemoteCache(RemoteCache):
     """
@@ -82,10 +74,6 @@ class ReadonlyRemoteCache(RemoteCache):
         assert bench_id not in self._fetched_items
         self._fetched_items[bench_id] = job_report
 
-    async def sync(self) -> None:
-        # Nop
-        pass
-
     def _get_remote_path(self, bench_id: str) -> str:
         assert _is_benchrun_id(bench_id)
         return os.path.join(CACHE_REMOTE_DIR, bench_id + ".json")
@@ -96,16 +84,32 @@ class SyncRemoteCache(RemoteCache):
     Fetches and pushes the artifacts to the remote cache. Needs a write permissions to the repo.
     """
 
-    def __init__(self):
-        self._repo_root_dir = Path(tempfile.mkdtemp(prefix="bench_tool_remote_cache"))
+    def __init__(self, local_root_dir: Optional[Path] = None):
+        if local_root_dir is not None:
+            assert local_root_dir.exists()
+            assert local_root_dir.is_dir()
+            assert local_root_dir.joinpath(".git").exists()
+            self._repo_root_dir = local_root_dir
+            self._should_clone = False
+        else:
+            self._repo_root_dir = Path(tempfile.mkdtemp(prefix="bench_tool_remote_cache"))
+            self._should_clone = True
+        assert self._repo_root_dir.exists()
+        assert self._repo_root_dir.is_dir()
         self._cache_dir = self._repo_root_dir.joinpath(CACHE_REMOTE_DIR)
 
     def repo_root_dir(self) -> Path:
         return self._repo_root_dir
 
     async def initialize(self) -> None:
-        # Checkout the repo
-        await git.clone(BENCH_REPO, self._repo_root_dir)
+        """
+        Make sure the repo is up-to-date
+        :return:
+        """
+        if self._should_clone:
+            await git.clone(BENCH_REPO, self._repo_root_dir)
+        else:
+            await git.pull(self._repo_root_dir)
         assert self._repo_root_dir.exists()
         assert self._cache_dir.exists()
 
@@ -125,15 +129,23 @@ class SyncRemoteCache(RemoteCache):
             json.dump(job_report, f)
 
     async def sync(self) -> None:
+        """
+        Synchronizes the local repo state with upstream. That means, pushes if some untracked or
+        modified files are in the local directory.
+        :return:
+        """
         status = await git.status(self._repo_root_dir)
-        assert len(status.modified) == 0, "The RemoteCache should not modify any files, only add new ones"
-        assert len(status.added) == 0, f"Only untracked files expected in {self._repo_root_dir}"
-        if len(status.untracked) > 0:
-            _logger.info("Untracked files found in the remote cache: %s", status.untracked)
-            await git.add(self._repo_root_dir, status.untracked)
+        is_repo_dirty = len(status.modified) > 0 or len(status.added) > 0
+        if is_repo_dirty:
+            _logger.info("Untracked or modified files found in the repo: %s", self._repo_root_dir)
+            if len(status.modified) > 0:
+                _logger.debug("Modified files: %s", status.modified)
+                await git.add(self._repo_root_dir, status.modified)
+            if len(status.untracked) > 0:
+                _logger.debug("Untracked files: %s", status.untracked)
+                await git.add(self._repo_root_dir, status.untracked)
             await git.commit(self._repo_root_dir, f"Add {len(status.untracked)} new reports")
             await git.push(self._repo_root_dir)
-        shutil.rmtree(self._repo_root_dir, ignore_errors=True)
 
 
 def _is_benchrun_id(name: str) -> bool:
