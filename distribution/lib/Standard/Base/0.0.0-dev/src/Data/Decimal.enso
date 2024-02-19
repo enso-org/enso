@@ -170,7 +170,7 @@ handle_precision_loss original_value conversion_result:Decimal_Utils.Conversion_
         Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
 
 type Decimal_Comparator
-    compare x:Decimal y:Decimal = Ordering.from_sign (x.big_decimal.compareTo(y.big_decimal))
+    compare x:Decimal y:Decimal = Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
     hash x:Decimal = x.big_decimal.hashCode
 
 Comparable.from (_:Decimal) = Decimal_Comparator
