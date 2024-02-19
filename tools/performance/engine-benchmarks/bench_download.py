@@ -215,7 +215,6 @@ async def main():
                         f"and the older artifacts will be fetched from the cache.")
 
     remote_cache = ReadonlyRemoteCache()
-    await remote_cache.initialize()
 
     bench_labels: Optional[Set[str]] = None
     """ Set of all gathered benchmark labels from all the job reports """

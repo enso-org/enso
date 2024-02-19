@@ -20,13 +20,6 @@ CACHE_REMOTE_DIR = "cache"
 
 
 class RemoteCache(abc.ABC):
-    @abc.abstractmethod
-    async def initialize(self) -> None:
-        """
-        Initializes the remote cache.
-        :return:
-        """
-        raise NotImplementedError
 
     @abc.abstractmethod
     async def fetch(self, bench_id: str) -> Optional[JobReport]:
@@ -63,10 +56,6 @@ class ReadonlyRemoteCache(RemoteCache):
 
     def __init__(self):
         self._fetched_items: Dict[str, JobReport] = {}
-
-    async def initialize(self) -> None:
-        # Nop
-        pass
 
     async def fetch(self, bench_id: str) -> Optional[JobReport]:
         """ Fetches a job report for the given bench ID from the remote cache """
