@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Database.Data.DB_Table.DB_Table as Database_Table
-import Standard.Database.Data.DB_Column.DB_Column
+import Standard.Database.Data.DB_Column.DB_Column as Database_Column
 import Standard.Table.Data.Table.Table as In_Memory_Table
 import Standard.Table.Data.Column.Column
 

@@ -24,6 +24,7 @@ import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.DB_Table.DB_Table
+import project.Data.DB_Table.DB_Table
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -92,8 +93,8 @@ type DB_Column
 
        The table behaves like `Table.info` - it lists the column name, the count
        of non-null items and the value type.
-    info : Table
-    info self -> Table = self.to_table.info
+    info : DB_Table
+    info self = self.to_table.info
 
     ## GROUP Standard.Base.Input
        ICON data_input
