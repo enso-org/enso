@@ -40,7 +40,7 @@ export function parentId(ast: Ast): AstId | undefined {
 export function subtrees(module: Module, ids: Iterable<AstId>) {
   const subtrees = new Set<AstId>()
   for (const id of ids) {
-    let ast = module.get(id)
+    let ast = module.tryGet(id)
     while (ast != null && !subtrees.has(ast.id)) {
       subtrees.add(ast.id)
       ast = ast.parent()
@@ -50,10 +50,10 @@ export function subtrees(module: Module, ids: Iterable<AstId>) {
 }
 
 /** Returns the IDs of the ASTs that are not descendants of any others in the given set. */
-export function subtreeRoots(module: Module, ids: Set<AstId>) {
-  const roots = new Array<AstId>()
+export function subtreeRoots(module: Module, ids: Set<AstId>): Set<AstId> {
+  const roots = new Set<AstId>()
   for (const id of ids) {
-    const astInModule = module.get(id)
+    const astInModule = module.tryGet(id)
     if (!astInModule) continue
     let ast = astInModule.parent()
     let hasParentInSet
@@ -64,7 +64,7 @@ export function subtreeRoots(module: Module, ids: Set<AstId>) {
       }
       ast = ast.parent()
     }
-    if (!hasParentInSet) roots.push(id)
+    if (!hasParentInSet) roots.add(id)
   }
   return roots
 }
