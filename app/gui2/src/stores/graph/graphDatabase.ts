@@ -140,13 +140,13 @@ export class GraphDb {
 
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
-    if (entry.pattern) entry.pattern.visitRecursiveAst((ast) => exprs.push(ast.id))
+    if (entry.pattern) entry.pattern.visitRecursiveAst((ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
   private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
-    entry.rootSpan.visitRecursiveAst((ast) => exprs.push(ast.id))
+    entry.rootSpan.visitRecursiveAst((ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })
 

@@ -1,4 +1,4 @@
-import { assert } from '@/util/assert'
+import { assert, assertDefined } from '@/util/assert'
 import {
   childrenAstNodesOrTokens,
   parseEnso,
@@ -14,6 +14,7 @@ import * as sha256 from 'lib0/hash/sha256'
 import * as map from 'lib0/map'
 import * as Ast from 'shared/ast/generated/ast'
 import { Token, Tree } from 'shared/ast/generated/ast'
+import { tryGetSoleValue } from 'shared/util/data/iterable'
 import type { ExternalId, IdMap, SourceRange } from 'shared/yjsModel'
 import { markRaw } from 'vue'
 
@@ -61,12 +62,9 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
     const block = AstExtended.parse(code)
     assert(block.isTree(Tree.Type.BodyBlock))
     return block.map((block) => {
-      const statements = block.statements[Symbol.iterator]()
-      const firstLine = statements.next()
-      assert(!firstLine.done)
-      assert(!!statements.next().done)
-      assert(firstLine.value.expression != null)
-      return firstLine.value.expression
+      const soleStatement = tryGetSoleValue(block.statements)
+      assertDefined(soleStatement?.expression)
+      return soleStatement.expression
     })
   }
 
