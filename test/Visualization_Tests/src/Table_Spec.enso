@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table, Aggregate_Column, Value_Type
 
 from Standard.Database import all
-import Standard.Database.Data.DB_Table.DB_Table as Database_Table
+import Standard.Database.Data.DB_Table.DB_Table
 
 import Standard.Visualization.Table.Visualization
 
@@ -52,7 +52,7 @@ add_specs suite_builder =
 
         group_builder.specify "should forward internal errors" <|
             bad_table_test =
-                bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
+                bad_table = DB_Table.Value Nothing Nothing Nothing Nothing
                 result = Panic.catch Any (Visualization.prepare_visualization bad_table 2) caught_panic->
                     caught_panic.payload
                 message = "Method `set_limit` of type Nothing could not be found."

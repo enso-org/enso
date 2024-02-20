@@ -1,16 +1,25 @@
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
-import type { AstId, Owned, SyncTokenId } from '.'
-import { Token, asOwned, isTokenId, newExternalId } from '.'
-import { assert } from '../util/assert'
-import type { ExternalId } from '../yjsModel'
+import {
+  Token,
+  asOwned,
+  isTokenId,
+  newExternalId,
+  subtreeRoots,
+  type AstId,
+  type Owned,
+  type SyncTokenId,
+} from '.'
+import { assert, assertDefined } from '../util/assert'
+import type { SourceRangeEdit } from '../util/data/text'
+import { defaultLocalOrigin, tryAsOrigin, type ExternalId, type Origin } from '../yjsModel'
 import type { AstFields, FixedMap, Mutable } from './tree'
 import {
   Ast,
-  Invalid,
   MutableAst,
   MutableInvalid,
   Wildcard,
+  composeFieldData,
   invalidFields,
   materializeMutable,
   setAll,
@@ -19,13 +28,13 @@ import {
 export interface Module {
   edit(): MutableModule
   root(): Ast | undefined
-  get(id: AstId): Ast | undefined
-  get(id: AstId | undefined): Ast | undefined
+  tryGet(id: AstId | undefined): Ast | undefined
 
   /////////////////////////////////
 
-  checkedGet(id: AstId): Ast
-  checkedGet(id: AstId | undefined): Ast | undefined
+  /** Return the specified AST. Throws an exception if no AST with the provided ID was found. */
+  get(id: AstId): Ast
+  get(id: AstId | undefined): Ast | undefined
   getToken(token: SyncTokenId): Token
   getToken(token: SyncTokenId | undefined): Token | undefined
   getAny(node: AstId | SyncTokenId): Ast | Token
@@ -33,10 +42,12 @@ export interface Module {
 }
 
 export interface ModuleUpdate {
-  nodesAdded: AstId[]
-  nodesDeleted: AstId[]
-  fieldsUpdated: { id: AstId; fields: (readonly [string, unknown])[] }[]
+  nodesAdded: Set<AstId>
+  nodesDeleted: Set<AstId>
+  nodesUpdated: Set<AstId>
+  updateRoots: Set<AstId>
   metadataUpdated: { id: AstId; changes: Map<string, unknown> }[]
+  origin: Origin | undefined
 }
 
 type YNode = FixedMap<AstFields>
@@ -45,7 +56,7 @@ type YNodes = Y.Map<YNode>
 export class MutableModule implements Module {
   private readonly nodes: YNodes
 
-  get ydoc() {
+  private get ydoc() {
     const ydoc = this.nodes.doc
     assert(ydoc != null)
     return ydoc
@@ -53,7 +64,7 @@ export class MutableModule implements Module {
 
   /** Return this module's copy of `ast`, if this module was created by cloning `ast`'s module. */
   getVersion<T extends Ast>(ast: T): Mutable<T> {
-    const instance = this.checkedGet(ast.id)
+    const instance = this.get(ast.id)
     return instance as Mutable<T>
   }
 
@@ -61,6 +72,14 @@ export class MutableModule implements Module {
     const doc = new Y.Doc()
     Y.applyUpdateV2(doc, Y.encodeStateAsUpdateV2(this.ydoc))
     return new MutableModule(doc)
+  }
+
+  applyEdit(edit: MutableModule, origin: Origin = defaultLocalOrigin) {
+    Y.applyUpdateV2(this.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), origin)
+  }
+
+  transact<T>(f: () => T, origin: Origin = defaultLocalOrigin): T {
+    return this.ydoc.transact(f, origin)
   }
 
   root(): MutableAst | undefined {
@@ -91,6 +110,22 @@ export class MutableModule implements Module {
   syncRoot(root: Owned) {
     this.replaceRoot(root)
     this.gc()
+  }
+
+  syncToCode(code: string) {
+    const root = this.root()
+    if (root) {
+      root.syncToCode(code)
+    } else {
+      this.replaceRoot(Ast.parse(code, this))
+    }
+  }
+
+  /** Update the module according to changes to its corresponding source code. */
+  applyTextEdits(textEdits: SourceRangeEdit[], metadataSource?: Module) {
+    const root = this.root()
+    assertDefined(root)
+    root.applyTextEdits(textEdits, metadataSource)
   }
 
   private gc() {
@@ -129,7 +164,9 @@ export class MutableModule implements Module {
   }
 
   observe(observer: (update: ModuleUpdate) => void) {
-    const handle = (events: Y.YEvent<any>[]) => observer(this.observeEvents(events))
+    const handle = (events: Y.YEvent<any>[], transaction: Y.Transaction) => {
+      observer(this.observeEvents(events, tryAsOrigin(transaction.origin)))
+    }
     // Attach the observer first, so that if an update hook causes changes in reaction to the initial state update, we
     // won't miss them.
     this.nodes.observeDeep(handle)
@@ -142,15 +179,15 @@ export class MutableModule implements Module {
   }
 
   getStateAsUpdate(): ModuleUpdate {
-    const updateBuilder = new UpdateBuilder(this.nodes)
+    const updateBuilder = new UpdateBuilder(this, this.nodes, undefined)
     for (const id of this.nodes.keys()) updateBuilder.addNode(id as AstId)
-    return updateBuilder
+    return updateBuilder.finish()
   }
 
-  applyUpdate(update: Uint8Array, origin?: string): ModuleUpdate | undefined {
+  applyUpdate(update: Uint8Array, origin: Origin): ModuleUpdate | undefined {
     let summary: ModuleUpdate | undefined
     const observer = (events: Y.YEvent<any>[]) => {
-      summary = this.observeEvents(events)
+      summary = this.observeEvents(events, origin)
     }
     this.nodes.observeDeep(observer)
     Y.applyUpdate(this.ydoc, update, origin)
@@ -158,8 +195,8 @@ export class MutableModule implements Module {
     return summary
   }
 
-  private observeEvents(events: Y.YEvent<any>[]): ModuleUpdate {
-    const updateBuilder = new UpdateBuilder(this.nodes)
+  private observeEvents(events: Y.YEvent<any>[], origin: Origin | undefined): ModuleUpdate {
+    const updateBuilder = new UpdateBuilder(this, this.nodes, origin)
     for (const event of events) {
       if (event.target === this.nodes) {
         // Updates to the node map.
@@ -201,25 +238,23 @@ export class MutableModule implements Module {
         updateBuilder.updateMetadata(id, changes)
       }
     }
-    return updateBuilder
+    return updateBuilder.finish()
   }
 
   clear() {
     this.nodes.clear()
   }
 
-  checkedGet(id: AstId): Mutable
-  checkedGet(id: AstId | undefined): Mutable | undefined
-  checkedGet(id: AstId | undefined): Mutable | undefined {
+  get(id: AstId): Mutable
+  get(id: AstId | undefined): Mutable | undefined
+  get(id: AstId | undefined): Mutable | undefined {
     if (!id) return undefined
-    const ast = this.get(id)
+    const ast = this.tryGet(id)
     assert(ast !== undefined, 'id in module')
     return ast
   }
 
-  get(id: AstId): Mutable | undefined
-  get(id: AstId | undefined): Mutable | undefined
-  get(id: AstId | undefined): Mutable | undefined {
+  tryGet(id: AstId | undefined): Mutable | undefined {
     if (!id) return undefined
     const nodeData = this.nodes.get(id)
     if (!nodeData) return undefined
@@ -228,19 +263,19 @@ export class MutableModule implements Module {
   }
 
   replace(id: AstId, value: Owned): Owned | undefined {
-    return this.get(id)?.replace(value)
+    return this.tryGet(id)?.replace(value)
   }
 
   replaceValue(id: AstId, value: Owned): Owned | undefined {
-    return this.get(id)?.replaceValue(value)
+    return this.tryGet(id)?.replaceValue(value)
   }
 
   take(id: AstId): Owned {
-    return this.replace(id, Wildcard.new(this)) || asOwned(this.checkedGet(id))
+    return this.replace(id, Wildcard.new(this)) || asOwned(this.get(id))
   }
 
   updateValue<T extends MutableAst>(id: AstId, f: (x: Owned) => Owned<T>): T | undefined {
-    return this.get(id)?.updateValue(f)
+    return this.tryGet(id)?.updateValue(f)
   }
 
   /////////////////////////////////////////////
@@ -250,7 +285,7 @@ export class MutableModule implements Module {
   }
 
   private rootPointer(): MutableRootPointer | undefined {
-    const rootPointer = this.get(ROOT_ID)
+    const rootPointer = this.tryGet(ROOT_ID)
     if (rootPointer) return rootPointer as MutableRootPointer
   }
 
@@ -269,8 +304,9 @@ export class MutableModule implements Module {
       parent: undefined,
       metadata: metadataFields,
     })
-    this.nodes.set(id, fields)
-    return fields
+    const fieldObject = composeFieldData(fields, {})
+    this.nodes.set(id, fieldObject)
+    return fieldObject
   }
 
   /** @internal */
@@ -283,7 +319,7 @@ export class MutableModule implements Module {
   }
 
   getAny(node: AstId | SyncTokenId): MutableAst | Token {
-    return isTokenId(node) ? this.getToken(node) : this.checkedGet(node)
+    return isTokenId(node) ? this.getToken(node) : this.get(node)
   }
 
   /** @internal Copy a node into the module, if it is bound to a different module. */
@@ -306,8 +342,6 @@ export class MutableModule implements Module {
 }
 
 type MutableRootPointer = MutableInvalid & { get expression(): MutableAst | undefined }
-/** @internal */
-export interface RootPointer extends Invalid {}
 
 function newAstId(type: string): AstId {
   return `ast:${type}#${random.uint53()}` as AstId
@@ -318,20 +352,24 @@ export function isAstId(value: string): value is AstId {
 }
 export const ROOT_ID = `Root` as AstId
 
-class UpdateBuilder implements ModuleUpdate {
-  readonly nodesAdded: AstId[] = []
-  readonly nodesDeleted: AstId[] = []
-  readonly fieldsUpdated: { id: AstId; fields: (readonly [string, unknown])[] }[] = []
+class UpdateBuilder {
+  readonly nodesAdded = new Set<AstId>()
+  readonly nodesDeleted = new Set<AstId>()
+  readonly nodesUpdated = new Set<AstId>()
   readonly metadataUpdated: { id: AstId; changes: Map<string, unknown> }[] = []
+  readonly origin: Origin | undefined
 
+  private readonly module: Module
   private readonly nodes: YNodes
 
-  constructor(nodes: YNodes) {
+  constructor(module: Module, nodes: YNodes, origin: Origin | undefined) {
+    this.module = module
     this.nodes = nodes
+    this.origin = origin
   }
 
   addNode(id: AstId) {
-    this.nodesAdded.push(id)
+    this.nodesAdded.add(id)
     this.updateAllFields(id)
   }
 
@@ -340,7 +378,7 @@ class UpdateBuilder implements ModuleUpdate {
   }
 
   updateFields(id: AstId, changes: Iterable<readonly [string, unknown]>) {
-    const fields = new Array<readonly [string, unknown]>()
+    let fieldsChanged = false
     let metadataChanges = undefined
     for (const entry of changes) {
       const [key, value] = entry
@@ -349,10 +387,10 @@ class UpdateBuilder implements ModuleUpdate {
         metadataChanges = new Map<string, unknown>(value.entries())
       } else {
         assert(!(value instanceof Y.AbstractType))
-        fields.push(entry)
+        fieldsChanged = true
       }
     }
-    if (fields.length !== 0) this.fieldsUpdated.push({ id, fields })
+    if (fieldsChanged) this.nodesUpdated.add(id)
     if (metadataChanges) this.metadataUpdated.push({ id, changes: metadataChanges })
   }
 
@@ -363,6 +401,11 @@ class UpdateBuilder implements ModuleUpdate {
   }
 
   deleteNode(id: AstId) {
-    this.nodesDeleted.push(id)
+    this.nodesDeleted.add(id)
+  }
+
+  finish(): ModuleUpdate {
+    const updateRoots = subtreeRoots(this.module, new Set(this.nodesUpdated.keys()))
+    return { ...this, updateRoots }
   }
 }
