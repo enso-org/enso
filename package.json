@@ -17,9 +17,7 @@
     "ci-check": "run-p test prettier lint typecheck"
   },
   "workspaces": [
-    "app/ide-desktop",
-    "app/ide-desktop/lib/*",
-    "lib/rust/ensogl/pack/js"
+    "app/gui2"
   ],
   "overrides": {
     "tslib": "$tslib"

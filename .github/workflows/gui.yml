@@ -90,6 +90,12 @@ jobs:
           submodules: recursive
       # "npm run clean-old-generated-directory && npm run build-rust-ffi && npm run generate-ast-schema && npm run generate-ast-types && npm run generate-metadata",
 
+      - run: npm --version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18.13.0
+      - run: npm --version
+
       - name: npm install
         run: npm install
       - name: Upload logs
