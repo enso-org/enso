@@ -172,6 +172,13 @@ add_specs suite_builder =
                 (x0 != x1) . should_be_false
                 (x1 != x0) . should_be_false
 
+    suite_builder.group "arithmetic" group_builder->
+        group_builder.specify "should add Decimals correctly" <|
+            d0 = Decimal.new "12.345"
+            d1 = Decimal.new "-40"
+            q = (d0 + d1) == -27.655
+            #(d0 + d1) . should_equal -27.655
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder

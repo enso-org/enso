@@ -43,6 +43,11 @@ type Decimal
          - If the construction of the Decimal results in a loss of precision, a
            `Loss_Of_Numeric_Precision` warning is attached. This can only happen
            if a `Math_Context` value is explicitly passed.
+
+        ^ Example
+          Create a `Decimal` from a string.
+
+              c = Decimal.new "12.345"
     new : Text | Integer | Float -> Math_Context -> Decimal | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         case x of
@@ -50,7 +55,8 @@ type Decimal
             _ : Integer -> Decimal.from_integer x mc
             _ : Float -> Decimal.from_float x mc
 
-    ## Construct a `Decimal` from a `Text`.
+    ## GROUP conversions
+       Construct a `Decimal` from a `Text`.
 
        Arguments:
        - s: The `Text` to construct a `Decimal` from.
@@ -69,6 +75,11 @@ type Decimal
          - If the construction of the Decimal results in a loss of precision, a
            `Loss_Of_Numeric_Precision` warning is attached. This can only happen
            if a `Math_Context` value is explicitly passed.
+
+        ^ Example
+          Create a `Decimal` from a string.
+
+              d = Decimal.from_text "12.345"
     from_text : Text -> Math_Context -> Decimal | Number_Parse_Error
     from_text (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         handle_number_format_exception <|
@@ -76,7 +87,8 @@ type Decimal
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
                 _ : Nothing -> Decimal.Value (Decimal_Utils.fromString s)
 
-    ## Construct a `Decimal` from an `Integer`.
+    ## GROUP conversions
+       Construct a `Decimal` from an `Integer`.
 
        Arguments:
        - i: The `Integer` to construct a `Decimal` from.
@@ -89,13 +101,19 @@ type Decimal
          - If the construction of the Decimal results in a loss of precision, a
            `Loss_Of_Numeric_Precision` warning is attached. This can only happen
            if a `Math_Context` value is explicitly passed.
+
+        ^ Example
+          Create a `Decimal` from an integer.
+
+              d = Decimal.from_integer 12
     from_integer : Integer -> Math_Context -> Decimal ! Loss_Of_Numeric_Precision
     from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision =
         case mc of
             _ : Math_Context -> Decimal.Value <| handle_precision_loss i <| Decimal_Utils.fromEnsoInteger i mc.math_context
             _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoInteger i)
 
-    ## Construct a `Decimal` from a `Float`.
+    ## GROUP conversions
+       Construct a `Decimal` from a `Float`.
 
        Arguments:
        - f: The `Float` to construct a `Decimal` from.
@@ -109,6 +127,11 @@ type Decimal
            `Loss_Of_Numeric_Precision` warning is attached. This can only happen
            if a `Math_Context` value is explicitly passed.
          - If `f` is NaN or +/-Inf, an Illegal_Argument error is thrown.
+
+        ^ Example
+          Create a `Decimal` from a float.
+
+              d = Decimal.from_integer 12.345
     from_float : Float -> Math_Context -> Decimal ! Loss_Of_Numeric_Precision ! Illegal_Argument
     from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision ! Illegal_Argument =
         is_exceptional = f.is_nan || f.is_infinite
@@ -117,11 +140,66 @@ type Decimal
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromEnsoFloat f mc.math_context
                 _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
 
+    ## ALIAS plus
+       GROUP Operators
+       ICON math
+       Adds a `Decimal` to another `Decimal` or other kind of number. A
+       `Math_Context` value can be specified to set the precision and
+       `Rounding_Mode`.
+
+       Arguments:
+       - that: The number to add to this.
+       - math_context: Used to optionally specify precision and `Rounding_Mode`.
+
+       Addition in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Adding 10.1 and 20.2.
+
+             a = Decimal.new "10.1"
+             b = Decimal.new "20.2"
+             c = a.add b
+             # => 30.3
+
+       > Example
+         Adding 10.22 and 20.33, rounding to 3 digits of precision (1 decimal
+         place), and rounding half-down.
+
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
+             a.add b (Math_Context.new 3 Rounding_Mode.half_down)
+             # => 30.5
+    add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
+    add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
+        case math_context of
+            Nothing -> Decimal.Value (self.big_decimal.add that.big_decimal)
+            _ -> Decimal.Value (self.big_decimal.add that.big_decimal math_context.math_context)
+
+    ## ALIAS plus
+       GROUP Operators
+       ICON math
+       Adds a `Decimal` to another `Decimal` or other kind of number.
+
+       Arguments:
+       - that: The number to add to this.
+
+       Addition in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Adding 10.1 and 20.2.
+
+             a = Decimal.new "10.1"
+             b = Decimal.new "20.2"
+             a + b
+             # => 30.3
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
 
-    / : Decimal -> Decimal -> Decimal
-    / self (that:Decimal) = self.divide that
+    ##
+        / : Decimal -> Decimal -> Decimal
+        / self (that:Decimal) = self.divide that
 
     ##
         == self that =
@@ -129,12 +207,6 @@ type Decimal
                 _ : Integer -> self.big_decimal.compareTo(Decimal.from_integer that . big_decimal) == 0
                 _ : Float -> self.big_decimal.compareTo(Decimal.from_float that . big_decimal) == 0
                 _ : Decimal -> self.big_decimal.compareTo(that.big_decimal) == 0
-
-    add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
-    add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
-        case math_context of
-            Nothing -> Decimal.Value (self.big_decimal.add that.big_decimal)
-            _ -> Decimal.Value (self.big_decimal.add that.big_decimal math_context.math_context)
 
     divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     divide self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
