@@ -126,6 +126,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       if (areSuggestionsVisibleRef.current) {
         if (event.key === 'Tab' || event.key === 'ArrowUp' || event.key === 'ArrowDown') {
           event.preventDefault()
+          event.stopImmediatePropagation()
           querySource.current = QuerySource.tabbing
           const reverse = (event.key === 'Tab' && event.shiftKey) || event.key === 'ArrowUp'
           setSelectedIndex(oldIndex => {

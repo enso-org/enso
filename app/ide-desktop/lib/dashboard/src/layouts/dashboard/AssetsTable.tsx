@@ -606,6 +606,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     processNode(assetTree)
     return map
   }, [assetTree, filter])
+  const visibleItems = React.useMemo(
+    () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
+    [displayItems, visibilities]
+  )
 
   React.useEffect(() => {
     if (category === Category.trash) {
@@ -1238,7 +1242,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     // eslint-disable-next-line no-restricted-syntax
     const onKeyDown = (event: KeyboardEvent) => {
       const prevIndex = mostRecentlySelectedIndexRef.current
-      const item = prevIndex == null ? null : displayItems[prevIndex]
+      const item = prevIndex == null ? null : visibleItems[prevIndex]
       if (selectedKeysRef.current.size === 1 && item != null) {
         switch (event.key) {
           case 'Enter':
@@ -1341,7 +1345,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               ? 0
               : event.key === 'ArrowUp'
               ? Math.max(0, prevIndex - 1)
-              : Math.min(displayItems.length - 1, prevIndex + 1)
+              : Math.min(visibleItems.length - 1, prevIndex + 1)
           setMostRecentlySelectedIndex(index, true)
           if (event.shiftKey) {
             // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
@@ -1350,12 +1354,12 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
             const startIndex = Math.min(index, selectionStartIndexRef.current)
             const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
-            const selection = displayItems.slice(startIndex, endIndex)
+            const selection = visibleItems.slice(startIndex, endIndex)
             setSelectedKeys(new Set(selection.map(newItem => newItem.key)))
           } else if (event.ctrlKey) {
             selectionStartIndexRef.current = null
           } else {
-            const newItem = displayItems[index]
+            const newItem = visibleItems[index]
             if (newItem != null) {
               setSelectedKeys(new Set([newItem.key]))
             }
@@ -1370,7 +1374,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       document.removeEventListener('keydown', onKeyDown)
     }
   }, [
-    displayItems,
+    visibleItems,
     backend,
     doToggleDirectoryExpansion,
     /* should never change */ toastAndLog,
@@ -2030,6 +2034,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
   const onSelectionDrag = React.useCallback(
     (rectangle: geometry.DetailedRectangle, event: MouseEvent) => {
+      if (mostRecentlySelectedIndexRef.current != null) {
+        setKeyboardSelectedIndexRaw(null)
+      }
       cancelAnimationFrame(dragSelectionChangeLoopHandle.current)
       const scrollContainer = scrollContainerRef.current
       if (scrollContainer != null) {
@@ -2119,7 +2126,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
       const { key } = innerRowProps
       event.stopPropagation()
-      const newIndex = displayItems.findIndex(innerItem => AssetTreeNode.getKey(innerItem) === key)
+      const newIndex = visibleItems.findIndex(innerItem => AssetTreeNode.getKey(innerItem) === key)
       const getRange = () => {
         if (mostRecentlySelectedIndexRef.current == null) {
           return [key]
@@ -2128,7 +2135,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           const index2 = newIndex
           const startIndex = Math.min(index1, index2)
           const endIndex = Math.max(index1, index2) + 1
-          return displayItems.slice(startIndex, endIndex).map(AssetTreeNode.getKey)
+          return visibleItems.slice(startIndex, endIndex).map(AssetTreeNode.getKey)
         }
       }
       setSelectedKeys(calculateNewKeys(event, [key], getRange))
@@ -2138,7 +2145,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
     },
     [
-      displayItems,
+      visibleItems,
       calculateNewKeys,
       /* should never change */ setSelectedKeys,
       /* should never change */ setMostRecentlySelectedIndex,
@@ -2174,7 +2181,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       </td>
     </tr>
   ) : (
-    displayItems.map((item, i) => {
+    displayItems.map(item => {
       const key = AssetTreeNode.getKey(item)
       const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
       const isSoleSelected = selectedKeys.size === 1 && isSelected
@@ -2190,14 +2197,16 @@ export default function AssetsTable(props: AssetsTableProps) {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
           }}
           isSoleSelected={isSoleSelected}
-          isKeyboardSelected={i === keyboardSelectedIndex}
+          isKeyboardSelected={
+            keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
+          }
           allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelected}
           onClick={onRowClick}
           onContextMenu={(_innerProps, event) => {
             if (!isSelected) {
               event.preventDefault()
               event.stopPropagation()
-              setMostRecentlySelectedIndex(i)
+              setMostRecentlySelectedIndex(visibleItems.indexOf(item))
               selectionStartIndexRef.current = null
               setSelectedKeys(new Set([key]))
             }
@@ -2205,7 +2214,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragStart={event => {
             let newSelectedKeys = selectedKeysRef.current
             if (!newSelectedKeys.has(key)) {
-              setMostRecentlySelectedIndex(i)
+              setMostRecentlySelectedIndex(visibleItems.indexOf(item))
               selectionStartIndexRef.current = null
               newSelectedKeys = new Set([key])
               setSelectedKeys(newSelectedKeys)
