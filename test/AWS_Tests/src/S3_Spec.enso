@@ -83,13 +83,19 @@ add_specs suite_builder =
             hello_txt.is_descendant_of root . should_be_true
             root.is_descendant_of hello_txt . should_be_false
 
+            # A file or directory is not a descendant of itself:
             hello_txt.is_descendant_of hello_txt . should_be_false
-            hello_txt.is_descendant_of hello_txt.parent . should_be_true
+            root.is_descendant_of root . should_be_false
+            hello_txt.parent.is_descendant_of hello_txt.parent . should_be_false
 
+            hello_txt.is_descendant_of hello_txt.parent . should_be_true
             (root / "foo").is_descendant_of root . should_be_true
             (root / "foo/bar").is_descendant_of (root / "foo/") . should_be_true
             (root / "foo/bar").is_descendant_of (root / "fo/") . should_be_false
             (root / "foo/bar").is_descendant_of (root / "fo") . should_be_false
+
+            # Correct path but different bucket will yield false:
+            (S3_File.new "s3://bucketA/foo/bar").is_descendant_of (S3_File.new "s3://bucketB/foo/") . should_be_false
 
     suite_builder.group "S3.list_buckets" pending=api_pending group_builder->
         group_builder.specify "should be able to list buckets" <|
