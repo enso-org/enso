@@ -297,9 +297,8 @@ export interface AssetsTableState {
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  readonly setAssetPanelProps: React.Dispatch<
-    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
-  >
+  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
+  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly nodeMap: Readonly<
     React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
   >
@@ -352,9 +351,8 @@ export interface AssetsTableProps {
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  readonly setAssetPanelProps: React.Dispatch<
-    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
-  >
+  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
+  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly doOpenIde: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
@@ -371,6 +369,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
+  const { setIsAssetPanelTemporarilyVisible } = props
 
   const { user, userInfo, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -1104,8 +1103,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   React.useEffect(() => {
     if (selectedKeysRef.current.size !== 1) {
       setAssetPanelProps(null)
+      setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [selectedKeysRef.current.size, /* should never change */ setAssetPanelProps])
+  }, [
+    selectedKeysRef.current.size,
+    /* should never change */ setAssetPanelProps,
+    /* should never change */ setIsAssetPanelTemporarilyVisible,
+  ])
 
   const directoryListAbortControllersRef = React.useRef(
     new Map<backendModule.DirectoryId, AbortController>()
@@ -1261,7 +1265,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 case backendModule.AssetType.dataLink: {
                   event.preventDefault()
                   event.stopPropagation()
-                  // TODO:
+                  setIsAssetPanelTemporarilyVisible(true)
                   break
                 }
                 case backendModule.AssetType.secret: {
@@ -1370,6 +1374,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     /* should never change */ setModal,
     /* should never change */ setMostRecentlySelectedIndex,
     /* should never change */ setSelectedKeys,
+    /* should never change */ setIsAssetPanelTemporarilyVisible,
     /* should never change */ dispatchAssetEvent,
   ])
 
@@ -1868,6 +1873,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       dispatchAssetEvent,
       dispatchAssetListEvent,
       setAssetPanelProps,
+      setIsAssetPanelTemporarilyVisible,
       nodeMap: nodeMapRef,
       doToggleDirectoryExpansion,
       doOpenManually,
@@ -1897,6 +1903,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCut,
       doPaste,
       /* should never change */ setAssetPanelProps,
+      /* should never change */ setIsAssetPanelTemporarilyVisible,
       /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ dispatchAssetListEvent,

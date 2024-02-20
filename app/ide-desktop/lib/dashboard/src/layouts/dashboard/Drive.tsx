@@ -92,9 +92,8 @@ export interface DriveProps {
   readonly setLabels: React.Dispatch<React.SetStateAction<backendModule.Label[]>>
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
   readonly projectStartupInfo: backendModule.ProjectStartupInfo | null
-  readonly setAssetPanelProps: React.Dispatch<
-    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
-  >
+  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
+  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly doCreateProject: (templateId: string | null) => void
   readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
@@ -110,6 +109,7 @@ export default function Drive(props: DriveProps) {
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
+  const { setIsAssetPanelTemporarilyVisible } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -405,6 +405,7 @@ export default function Drive(props: DriveProps) {
               assetListEvents={assetListEvents}
               dispatchAssetListEvent={dispatchAssetListEvent}
               setAssetPanelProps={setAssetPanelProps}
+              setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
               doOpenIde={doOpenEditor}
               doCloseIde={doCloseEditor}
               doCreateLabel={doCreateLabel}

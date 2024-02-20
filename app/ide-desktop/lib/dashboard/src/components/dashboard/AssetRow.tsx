@@ -87,7 +87,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
-  const { scrollContainerRef } = state
+  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef } = state
 
   const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -224,8 +224,14 @@ export default function AssetRow(props: AssetRowProps) {
   React.useEffect(() => {
     if (isSoleSelected) {
       setAssetPanelProps({ item, setItem })
+      setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [item, isSoleSelected, /* should never change */ setAssetPanelProps])
+  }, [
+    item,
+    isSoleSelected,
+    /* should never change */ setAssetPanelProps,
+    /* should never change */ setIsAssetPanelTemporarilyVisible,
+  ])
 
   const doDelete = React.useCallback(async () => {
     setInsertionVisibility(Visibility.hidden)
