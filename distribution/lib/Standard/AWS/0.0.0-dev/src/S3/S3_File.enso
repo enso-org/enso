@@ -39,7 +39,7 @@ type S3_File
     ## GROUP Standard.Base.Metadata
        Gets the URI of this file
     uri : Text
-    uri self = self.s3_path.to_text
+    uri self -> Text = self.s3_path.to_text
 
     ## GROUP Standard.Base.Metadata
        Checks if the folder or file exists
@@ -143,7 +143,7 @@ type S3_File
                 response = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
                 response.decode Auto_Detect
             _ ->
-                metadata = File_Format_Metadata.Value path=self.s3_path name=self.name
+                metadata = File_Format_Metadata.Value path=self.path name=self.name
                 self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
@@ -195,7 +195,8 @@ type S3_File
                     # Special shortcut for more efficient handling of S3 file copying (no need to move the data to our machine)
                     s3_destination : S3_File ->
                         if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
-                            translate_file_errors self <| S3.copy_object self.s3_path.bucket self.s3_path.key s3_destination.bucket s3_destination.prefix self.credentials . if_not_error <| s3_destination
+                            destination_path = s3_destination.s3_path
+                            translate_file_errors self <| S3.copy_object self.s3_path.bucket self.s3_path.key destination_path.bucket destination_path.key self.credentials . if_not_error <| s3_destination
                     _ -> generic_copy self destination.file replace_existing
 
     ## Moves the file to the specified destination.
@@ -275,7 +276,7 @@ type S3_File
     ## GROUP Standard.Base.Metadata
        Returns the name of this file.
     name : Text
-    name self = self.s3_path.name
+    name self = self.s3_path.file_name
 
     ## GROUP Standard.Base.Metadata
        Returns the extension of the file.
@@ -322,8 +323,11 @@ type S3_File
         check_directory <| check_recursion <| check_name_filter <|
             if self.s3_path.bucket == "" then translate_file_errors self <| S3.list_buckets self.credentials . map bucket-> S3_File.Value bucket "" self.credentials else
                 pair = translate_file_errors self <| S3.read_bucket self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
-                sub_folders = pair.first . map key-> S3_File.Value self.s3_path.bucket key self.credentials
-                files = pair.second . map key-> S3_File.Value self.s3_path.bucket key self.credentials
+                bucket = self.s3_path.bucket
+                sub_folders = pair.first . map key->
+                    S3_File.Value (S3_Path.Value bucket key) self.credentials
+                files = pair.second . map key->
+                    S3_File.Value (S3_Path.Value bucket key) self.credentials
                 sub_folders + files
 
 ## PRIVATE
@@ -340,5 +344,6 @@ Writable_File.from (that : S3_File) =
    A helper that translates lower level S3 errors to file-system errors.
 translate_file_errors related_file result =
     result.catch S3_Key_Not_Found error->
-        s3_file = S3_File.Value error.bucket error.key related_file.credentials
+        s3_path = S3_Path.Value error.bucket error.key
+        s3_file = S3_File.Value s3_path related_file.credentials
         Error.throw (File_Error.Not_Found s3_file)

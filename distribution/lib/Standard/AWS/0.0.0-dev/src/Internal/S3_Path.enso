@@ -23,7 +23,8 @@ type S3_Path
                     S3_Path.Value (without_prefix.take first_slash_index) (without_prefix.drop first_slash_index+1)
 
     ## PRIVATE
-    to_text self -> Text = S3.uri_prefix + self.bucket + S3_Path.delimiter + self.key
+    to_text self -> Text =
+        S3.uri_prefix + self.bucket + S3_Path.delimiter + self.key
 
     ## PRIVATE
     to_display_text self -> Text = self.to_text.to_display_text
@@ -56,7 +57,7 @@ type S3_Path
             new_current = case remaining.first of
                 ".." ->
                     last_index = current.last_index_of S3_Path.delimiter
-                    if last_index == Nothing then Error.throw (S3_Error.Error "Cannot move above root folder.") else current.take last_index
+                    if last_index == Nothing then Error.throw (S3_Error.Error "Cannot move above root folder." self.to_text) else current.take last_index
                 "." -> current
                 x -> extend current x
             @Tail_Call loop new_current (remaining.drop 1)
