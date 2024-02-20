@@ -226,7 +226,7 @@ add_specs suite_builder =
             hello_txt.creation_time . should_fail_with S3_Error
 
     writable_root = S3_File.new "s3://"+writable_bucket_name+"/"
-    my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV")+"/"
+    my_writable_dir = writable_root / "test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
     delete_on_panic file ~action =
         handler caught_panic =
             file.delete
