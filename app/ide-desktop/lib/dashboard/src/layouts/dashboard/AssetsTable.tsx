@@ -1316,6 +1316,12 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
           break
         }
+        case 'Escape': {
+          setSelectedKeys(new Set())
+          setMostRecentlySelectedIndex(null)
+          selectionStartIndexRef.current = null
+          break
+        }
         case 'ArrowUp':
         case 'ArrowDown': {
           event.preventDefault()
