@@ -1,6 +1,25 @@
 use crate::prelude::*;
 
+use crate::define_env_var;
+use crate::program::command::Manipulator;
 
+
+
+define_env_var! {
+    /// Force the SBT server to start, avoiding `ServerAlreadyBootingException`.
+    /// See: https://github.com/sbt/sbt/issues/6777#issuecomment-1613316167
+    SBT_SERVER_FORCESTART, bool;
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ServerAutostart(pub bool);
+impl Manipulator for ServerAutostart {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        let arg = "sbt.server.autostart";
+        let arg = format!("-D{arg}={}", self.0);
+        command.arg(arg);
+    }
+}
 
 macro_rules! strong_string {
     ($name:ident($inner_ty:ty)) => {

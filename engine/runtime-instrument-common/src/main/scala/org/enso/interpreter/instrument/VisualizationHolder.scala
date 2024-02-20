@@ -9,6 +9,8 @@ import scala.collection.mutable
   */
 class VisualizationHolder {
 
+  private var oneshotExpression: OneshotExpression = _
+
   private val visualizationMap: mutable.Map[ExpressionId, List[Visualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
 
@@ -52,9 +54,9 @@ class VisualizationHolder {
     */
   def findByModule(
     module: QualifiedName
-  ): Iterable[Visualization.AttachedVisualization] =
+  ): Iterable[Visualization] =
     visualizationMap.values.flatten.collect {
-      case visualization: Visualization.AttachedVisualization
+      case visualization: Visualization
           if visualization.module.getName == module =>
         visualization
     }
@@ -70,6 +72,24 @@ class VisualizationHolder {
   /** @return all available visualizations. */
   def getAll: Iterable[Visualization] =
     visualizationMap.values.flatten
+
+  /** @return the oneshot expression attached to the `expressionId`. */
+  def getOneshotExpression(
+    expressionId: ExpressionId
+  ): OneshotExpression = {
+    if (
+      oneshotExpression != null && oneshotExpression.expressionId == expressionId
+    ) {
+      return oneshotExpression
+    }
+
+    null
+  }
+
+  /** Set oneshot expression for execution. */
+  def setOneshotExpression(oneshotExpression: OneshotExpression): Unit = {
+    this.oneshotExpression = oneshotExpression
+  }
 }
 
 object VisualizationHolder {

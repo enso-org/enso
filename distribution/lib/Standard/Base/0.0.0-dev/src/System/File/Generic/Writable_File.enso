@@ -55,6 +55,13 @@ type Writable_File
         self.write_strategy.write_with_local_file self.file existing_file_behavior action
 
     ## PRIVATE
+       Writes a local file to this `Writable_File` destination.
+       This is used by `File.copy_to` and `File.move_to` to possibly implement
+       the upload more efficiently (avoiding duplicated temporary files).
+    copy_from_local self (source : File) (replace_existing : Boolean) =
+        self.write_strategy.copy_from_local source self.file replace_existing
+
+    ## PRIVATE
     with_output_stream self (open_options : Vector) action =
         self.file.with_output_stream open_options action
 
@@ -69,10 +76,7 @@ type Writable_File
     to_display_text self -> Text = self.file.to_display_text
 
 ## PRIVATE
-Writable_File.from (that : Text) =
-    ## Currently this only works for local filesystem paths
-       TODO We should extend it to also support custom paths like S3, through a ServiceProvider solution
-    Writable_File.from (File.new that)
+Writable_File.from (that : Text) = Writable_File.from (File.new that)
 
 ## PRIVATE
    If a conversion to `File_Format_Metadata` is needed, we delegate to the underlying file.

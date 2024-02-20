@@ -35,7 +35,7 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { DistributedProject, type ExternalId, type Uuid } from 'shared/yjsModel'
+import { DistributedProject, localOrigins, type ExternalId, type Uuid } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -544,7 +544,7 @@ export const useProjectStore = defineStore('project', () => {
     const moduleName = projectModel.findModuleByDocId(guid)
     if (moduleName == null) return null
     const mod = await projectModel.openModule(moduleName)
-    mod?.undoManager.addTrackedOrigin('local')
+    for (const origin of localOrigins) mod?.undoManager.addTrackedOrigin(origin)
     return mod
   })
 
@@ -573,7 +573,7 @@ export const useProjectStore = defineStore('project', () => {
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
 
-  const diagnostics = ref<Diagnostic[]>([])
+  const diagnostics = shallowRef<Diagnostic[]>([])
   executionContext.on('executionStatus', (newDiagnostics) => {
     diagnostics.value = newDiagnostics
   })
