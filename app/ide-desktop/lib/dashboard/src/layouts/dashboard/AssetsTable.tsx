@@ -878,6 +878,8 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
+      previouslySelectedIndexRef.current = null
+      selectionStartIndexRef.current = null
       // This is required, otherwise we are using an outdated
       // `nameOfProjectToImmediatelyOpen`.
       setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
@@ -1210,91 +1212,135 @@ export default function AssetsTable(props: AssetsTableProps) {
     [category, backend]
   )
 
+  const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
+  const previouslySelectedIndexRef = React.useRef<number | null>(null)
+  const selectionStartIndexRef = React.useRef<number | null>(null)
+  const bodyRef = React.useRef<HTMLTableSectionElement>(null)
+
   React.useEffect(() => {
     // This is not a React component, even though it contains JSX.
     // eslint-disable-next-line no-restricted-syntax
     const onKeyDown = (event: KeyboardEvent) => {
-      const [firstSelectedKey] = selectedKeysRef.current
-      if (selectedKeysRef.current.size === 1 && firstSelectedKey != null) {
-        if (event.key === 'Enter') {
-          const item = displayItems.find(displayItem => displayItem.key === firstSelectedKey)
-          switch (item?.item.type) {
-            case backendModule.AssetType.directory: {
-              event.preventDefault()
-              event.stopPropagation()
-              doToggleDirectoryExpansion(item.item.id, item.key)
-              break
+      const prevIndex = previouslySelectedIndexRef.current
+      const item = prevIndex == null ? null : displayItems[prevIndex]
+      if (selectedKeysRef.current.size === 1 && item != null) {
+        switch (event.key) {
+          case 'Enter':
+          case ' ': {
+            if (event.key === ' ' && event.ctrlKey) {
+              const keys = selectedKeysRef.current
+              setSelectedKeys(set.withPresence(keys, item.key, !keys.has(item.key)))
+            } else {
+              switch (item.item.type) {
+                case backendModule.AssetType.directory: {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  doToggleDirectoryExpansion(item.item.id, item.key)
+                  break
+                }
+                case backendModule.AssetType.project: {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  dispatchAssetEvent({
+                    type: AssetEventType.openProject,
+                    id: item.item.id,
+                    runInBackground: false,
+                    shouldAutomaticallySwitchPage: true,
+                  })
+                  break
+                }
+                case backendModule.AssetType.dataLink: {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  // TODO:
+                  break
+                }
+                case backendModule.AssetType.secret: {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  const id = item.item.id
+                  setModal(
+                    <UpsertSecretModal
+                      id={item.item.id}
+                      name={item.item.title}
+                      doCreate={async (_name, value) => {
+                        try {
+                          await backend.updateSecret(id, { value }, item.item.title)
+                        } catch (error) {
+                          toastAndLog(null, error)
+                        }
+                      }}
+                    />
+                  )
+                  break
+                }
+                default: {
+                  break
+                }
+              }
             }
-            case backendModule.AssetType.project: {
-              event.preventDefault()
-              event.stopPropagation()
-              dispatchAssetEvent({
-                type: AssetEventType.openProject,
-                id: item.item.id,
-                runInBackground: false,
-                shouldAutomaticallySwitchPage: true,
-              })
-              break
-            }
-            case backendModule.AssetType.dataLink: {
-              event.preventDefault()
-              event.stopPropagation()
-              // TODO:
-              break
-            }
-            case backendModule.AssetType.secret: {
-              event.preventDefault()
-              event.stopPropagation()
-              const id = item.item.id
-              setModal(
-                <UpsertSecretModal
-                  id={item.item.id}
-                  name={item.item.title}
-                  doCreate={async (_name, value) => {
-                    try {
-                      await backend.updateSecret(id, { value }, item.item.title)
-                    } catch (error) {
-                      toastAndLog(null, error)
-                    }
-                  }}
-                />
-              )
-              break
-            }
-            default: {
-              break
-            }
+            break
           }
-        } else if (event.key === 'ArrowUp') {
+          case 'ArrowLeft': {
+            if (item.item.type === backendModule.AssetType.directory && item.children != null) {
+              event.preventDefault()
+              event.stopPropagation()
+              doToggleDirectoryExpansion(item.item.id, item.key, null, false)
+            }
+            break
+          }
+          case 'ArrowRight': {
+            if (item.item.type === backendModule.AssetType.directory && item.children == null) {
+              event.preventDefault()
+              event.stopPropagation()
+              doToggleDirectoryExpansion(item.item.id, item.key, null, true)
+            }
+            break
+          }
+        }
+      }
+      switch (event.key) {
+        case ' ': {
+          if (event.ctrlKey && item != null) {
+            const keys = selectedKeysRef.current
+            setSelectedKeys(set.withPresence(keys, item.key, !keys.has(item.key)))
+          }
+          break
+        }
+        // TODO: Show focus ring for `previouslySelectedIndexRef.current`.
+        case 'ArrowUp':
+        case 'ArrowDown': {
           event.preventDefault()
           event.stopPropagation()
-          const oldIndex = displayItems.findIndex(item => item.key === firstSelectedKey)
-          const newItem = displayItems[oldIndex - 1]
-          if (newItem != null) {
-            setSelectedKeys(new Set([newItem.key]))
+          if (!event.shiftKey) {
+            selectionStartIndexRef.current = null
           }
-        } else if (event.key === 'ArrowDown') {
-          event.preventDefault()
-          event.stopPropagation()
-          const oldIndex = displayItems.findIndex(item => item.key === firstSelectedKey)
-          const newItem = displayItems[oldIndex + 1]
-          if (newItem != null) {
-            setSelectedKeys(new Set([newItem.key]))
+          const index =
+            prevIndex == null
+              ? 0
+              : event.key === 'ArrowUp'
+              ? Math.max(0, prevIndex - 1)
+              : Math.min(displayItems.length - 1, prevIndex + 1)
+          previouslySelectedIndexRef.current = index
+          if (event.shiftKey) {
+            // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
+            if (selectionStartIndexRef.current == null) {
+              selectionStartIndexRef.current = prevIndex ?? 0
+            }
+            const startIndex = Math.min(index, selectionStartIndexRef.current)
+            const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
+            const selection = displayItems.slice(startIndex, endIndex)
+            setSelectedKeys(new Set(selection.map(newItem => newItem.key)))
+          } else if (event.ctrlKey) {
+            selectionStartIndexRef.current = null
+          } else {
+            const newItem = displayItems[index]
+            if (newItem != null) {
+              setSelectedKeys(new Set([newItem.key]))
+            }
+            selectionStartIndexRef.current = null
           }
-        } else if (event.key === 'ArrowLeft') {
-          const item = displayItems.find(displayItem => displayItem.key === firstSelectedKey)
-          if (item?.item.type === backendModule.AssetType.directory && item.children != null) {
-            event.preventDefault()
-            event.stopPropagation()
-            doToggleDirectoryExpansion(item.item.id, item.key, null, false)
-          }
-        } else if (event.key === 'ArrowRight') {
-          const item = displayItems.find(displayItem => displayItem.key === firstSelectedKey)
-          if (item?.item.type === backendModule.AssetType.directory && item.children == null) {
-            event.preventDefault()
-            event.stopPropagation()
-            doToggleDirectoryExpansion(item.item.id, item.key, null, true)
-          }
+          break
         }
       }
     }
@@ -1842,11 +1888,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     ]
   )
 
-  const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
-  const [previouslySelectedKey, setPreviouslySelectedKey] =
-    React.useState<backendModule.AssetId | null>(null)
-  const bodyRef = React.useRef<HTMLTableSectionElement>(null)
-
   // This is required to prevent the table body from overlapping the table header, because
   // the table header is transparent.
   React.useEffect(() => {
@@ -2048,32 +2089,25 @@ export default function AssetsTable(props: AssetsTableProps) {
     (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
       const { key } = innerRowProps
       event.stopPropagation()
+      const newIndex = displayItems.findIndex(innerItem => AssetTreeNode.getKey(innerItem) === key)
       const getRange = () => {
-        if (previouslySelectedKey == null) {
+        if (previouslySelectedIndexRef.current == null) {
           return [key]
         } else {
-          const index1 = displayItems.findIndex(
-            innerItem => AssetTreeNode.getKey(innerItem) === previouslySelectedKey
-          )
-          const index2 = displayItems.findIndex(
-            innerItem => AssetTreeNode.getKey(innerItem) === key
-          )
-          const selectedItems =
-            index1 <= index2
-              ? displayItems.slice(index1, index2 + 1)
-              : displayItems.slice(index2, index1 + 1)
-          return selectedItems.map(AssetTreeNode.getKey)
+          const index1 = previouslySelectedIndexRef.current
+          const index2 = newIndex
+          const startIndex = Math.min(index1, index2)
+          const endIndex = Math.max(index1, index2) + 1
+          return displayItems.slice(startIndex, endIndex).map(AssetTreeNode.getKey)
         }
       }
       setSelectedKeys(calculateNewKeys(event, [key], getRange))
-      setPreviouslySelectedKey(key)
+      previouslySelectedIndexRef.current = newIndex
+      if (!event.shiftKey) {
+        selectionStartIndexRef.current = null
+      }
     },
-    [
-      displayItems,
-      previouslySelectedKey,
-      calculateNewKeys,
-      /* should never change */ setSelectedKeys,
-    ]
+    [displayItems, calculateNewKeys, /* should never change */ setSelectedKeys]
   )
 
   const columns = columnUtils.getColumnList(backend.type, extraColumns)
@@ -2105,7 +2139,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       </td>
     </tr>
   ) : (
-    displayItems.map(item => {
+    displayItems.map((item, i) => {
       const key = AssetTreeNode.getKey(item)
       const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
       const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
@@ -2127,14 +2161,16 @@ export default function AssetsTable(props: AssetsTableProps) {
             if (!isSelected) {
               event.preventDefault()
               event.stopPropagation()
-              setPreviouslySelectedKey(key)
+              previouslySelectedIndexRef.current = i
+              selectionStartIndexRef.current = null
               setSelectedKeys(new Set([key]))
             }
           }}
           onDragStart={event => {
             let newSelectedKeys = selectedKeysRef.current
             if (!newSelectedKeys.has(key)) {
-              setPreviouslySelectedKey(key)
+              previouslySelectedIndexRef.current = i
+              selectionStartIndexRef.current = null
               newSelectedKeys = new Set([key])
               setSelectedKeys(newSelectedKeys)
             }

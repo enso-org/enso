@@ -163,7 +163,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         !(event.target instanceof HTMLTextAreaElement) &&
         (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
-        shortcutManager.isTextInputEvent(event)
+        shortcutManager.isTextInputEvent(event) &&
+        event.key !== ' '
       ) {
         searchRef.current?.focus()
       }
