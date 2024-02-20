@@ -86,7 +86,7 @@ make_column_name_vector_selector table display=Display.Always =
 make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
 make_column_ref_by_name_selector table display:Display=Display.Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False =
     text = if add_text then [Option "<Text Value>" "''"] else []
-    regex = if add_regex then [Option "<Regular Expression>" "('').to_regex"] else []
+    regex = if add_regex then [Option "<Regular Expression>" "(re '')"] else []
     number = if add_number then [Option "<Number Value>" "0"] else []
     boolean = if add_boolean then [Option "<True/False>" "True"] else []
     expression = if table.is_nothing then [] else [Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"]
@@ -168,7 +168,7 @@ make_order_by_selector table display=Display.Always =
 make_rename_name_vector_selector : Table -> Display -> Widget
 make_rename_name_vector_selector table display=Display.Always =
     col_names = table.column_names
-    names = [Option "<Regular Expression>" "'^.*$'.to_regex"] + (col_names.map n-> Option n n.pretty)
+    names = [Option "<Regular Expression>" "(regex '^.*$')"] + (col_names.map n-> Option n n.pretty)
     fqn = Meta.get_qualified_type_name Pair
     name = Option "Name" fqn+".Value" [["first", Single_Choice values=names display=Display.Always]]
     item_editor = Single_Choice display=Display.Always values=[name]
