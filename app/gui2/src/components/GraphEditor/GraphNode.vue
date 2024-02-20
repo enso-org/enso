@@ -112,7 +112,7 @@ const warning = computed(() => {
   if (!externalId) return
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
-  if (!warning) return undefined
+  if (!warning) return
   return '⚠ Warning: ' + warning!
 })
 
