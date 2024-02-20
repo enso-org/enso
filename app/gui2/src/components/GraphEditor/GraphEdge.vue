@@ -431,7 +431,14 @@ const backwardEdgeArrowTransform = computed<string | undefined>(() => {
   return svgTranslate(source.center().add(points[1]))
 })
 
-const targetIsSelfArgument = computed(() => false)
+const targetIsSelfArgument = computed(() => {
+  if (!targetExpr.value) return
+  const nodeId = graph.getPortNodeId(targetExpr.value)
+  if (!nodeId) return
+  const selfArgumentId = graph.db.nodeIdToNode.get(nodeId)?.selfArgumentId
+  if (!selfArgumentId) return
+  return targetExpr.value === selfArgumentId
+})
 
 const selfArgumentArrowHeight = 9
 const selfArgumentArrowYOffset = 0

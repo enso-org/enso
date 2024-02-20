@@ -39,9 +39,7 @@ const selection = injectGraphSelection(true)
 
 const isHovered = computed(() => selection?.hoveredPort === props.input.portId)
 
-const hasConnection = computed(
-  () => graph.db.connections.reverseLookup(portId.value as AstId).size > 0,
-)
+const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
 const isCurrentEdgeHoverTarget = computed(
   () => isHovered.value && graph.unconnectedEdge != null && selection?.hoveredPort === portId.value,
 )
@@ -50,7 +48,17 @@ const isCurrentDisconectedEdgeTarget = computed(
     graph.unconnectedEdge?.disconnectedEdgeTarget === portId.value &&
     graph.unconnectedEdge?.target !== portId.value,
 )
-const connected = computed(() => hasConnection.value || isCurrentEdgeHoverTarget.value)
+const isSelfArgument = computed(
+  () =>
+    props.input.value instanceof Ast.Ast && props.input.value.id === tree.connectedSelfArgumentId,
+)
+const isPotentialSelfArgument = computed(
+  () =>
+    props.input.value instanceof Ast.Ast && props.input.value.id === tree.potentialSelfArgumentId,
+)
+const connected = computed(
+  () => (!isSelfArgument.value && hasConnection.value) || isCurrentEdgeHoverTarget.value,
+)
 const isTarget = computed(
   () =>
     (hasConnection.value && !isCurrentDisconectedEdgeTarget.value) ||
@@ -156,6 +164,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     :class="{
       connected,
       isTarget,
+      isSelfArgument,
+      isPotentialSelfArgument,
       'r-24': connected,
       newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
@@ -225,7 +235,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   }
 }
 
-.WidgetPort.isTarget:after {
+.WidgetPort.isTarget:not(.isPotentialSelfArgument):after {
   content: '';
   position: absolute;
   top: -4px;
@@ -235,5 +245,9 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   transform: translate(-50%, 0);
   background-color: var(--node-color-port);
   z-index: -1;
+}
+
+.isSelfArgument {
+  margin-right: 2px;
 }
 </style>

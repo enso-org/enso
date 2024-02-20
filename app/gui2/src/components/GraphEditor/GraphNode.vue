@@ -4,7 +4,6 @@ import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
@@ -26,8 +25,6 @@ import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
-/** The width in pixels that is not the widget tree. This includes the icon, and padding. */
-const NODE_EXTRA_WIDTH_PX = 30
 
 const prefixes = Prefixes.FromLines({
   enableOutputContext:
@@ -73,15 +70,19 @@ const outputPortsSet = computed(() => {
 const widthOverridePx = ref<number>()
 const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
 const externalId = computed(() => props.node.rootSpan.externalId)
+const potentialSelfArgumentId = computed(() => props.node.selfArgumentId)
+const connectedSelfArgumentId = computed(() =>
+  props.node.selfArgumentId && graph.isConnectedTarget(props.node.selfArgumentId)
+    ? props.node.selfArgumentId
+    : undefined,
+)
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const baseNodeSize = computed(
-  () => new Vec2((contentNode.value?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX, nodeSize.value.y),
-)
+const baseNodeSize = computed(() => new Vec2(contentNode.value?.scrollWidth ?? 0, nodeSize.value.y))
 
 /// Menu can be full, partial or off
 enum MenuState {
@@ -367,7 +368,7 @@ function openFullMenu() {
       transform,
       width:
         widthOverridePx != null && isVisualizationVisible
-          ? `${Math.max(widthOverridePx, (contentNode?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX)}px`
+          ? `${Math.max(widthOverridePx, contentNode?.scrollWidth ?? 0)}px`
           : undefined,
       '--node-group-color': color,
     }"
@@ -412,15 +413,15 @@ function openFullMenu() {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
-      <SvgIcon
-        class="icon grab-handle"
-        :name="icon"
-        @pointerdown.right.stop="openFullMenu"
-      ></SvgIcon>
-      <div ref="contentNode" class="widget-tree">
-        <NodeWidgetTree :ast="displayedExpression" :nodeId="nodeId" />
-      </div>
+    <div ref="contentNode" class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
+      <NodeWidgetTree
+        :ast="displayedExpression"
+        :nodeId="nodeId"
+        :icon="icon"
+        :connectedSelfArgumentId="connectedSelfArgumentId"
+        :potentialSelfArgumentId="potentialSelfArgumentId"
+        @openFullMenu="openFullMenu"
+      />
     </div>
     <GraphNodeError v-if="error" class="message" :message="error" type="error" />
     <GraphNodeError
@@ -636,11 +637,6 @@ function openFullMenu() {
   position: relative;
   display: flex;
   gap: 4px;
-}
-
-.grab-handle {
-  color: white;
-  margin: 0 4px;
 }
 
 .CircularMenu {
