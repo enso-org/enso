@@ -421,7 +421,7 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
     if (graphStore.editedNodeInfo) {
       // We finish editing a node.
       graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
-    } else {
+    } else if (content != '') {
       // We finish creating a new node.
       const metadata = undefined
       const createdNode = graphStore.createNode(
