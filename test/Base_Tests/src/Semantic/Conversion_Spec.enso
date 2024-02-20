@@ -235,6 +235,8 @@ add_specs suite_builder =
             # no conversions needed when calling `exchange` methods
             nine . should_equal one
 
+    suite_builder.group "MultiValue Conversions" group_builder->
+
         group_builder.specify "Requesting Text & Foo" <|
             check a (n : Text & Foo) = case a of
                 0 -> n.foo
