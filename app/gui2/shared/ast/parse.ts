@@ -848,6 +848,7 @@ function syncTree(
   if (!syncRoot) {
     parent.replaceChild(target.id, newContent)
     newContent.fields.set('metadata', target.fields.get('metadata').clone())
+    target.fields.get('metadata').set('externalId', newExternalId())
   }
   const newRoot = syncRoot ? target : newContent
   newRoot.visitRecursiveAst((ast) => {
