@@ -492,14 +492,11 @@ type Regex_Syntax_Error
 
 ## Shorthand to creates a regular expression from a Text value.
 
+   If an empty regex is used, throws an Illegal_Argument error.
+
    Arguments
    - expression: The text representing the regular expression that you want to
      compile. Must be non-empty.
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
-
-   If an empty regex is used, `compile` throws an Illegal_Argument error.
-regex : Text -> Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
-regex expression:Text case_insensitive:Boolean=False = Regex.compile expression case_insensitive
+regex : Text -> Regex ! Regex_Syntax_Error | Illegal_Argument
+regex expression:Text = Regex.compile expression
 
