@@ -26,8 +26,9 @@ object CurrentVersion {
 
   /** Check if the current version is the development one. */
   def isDevVersion: Boolean =
-    currentVersion.preReleaseVersion() == defaultDevEnsoVersion
-      .preReleaseVersion()
+    !currentVersion.preReleaseVersion().isEmpty() && (currentVersion
+      .preReleaseVersion() == defaultDevEnsoVersion
+      .preReleaseVersion())
 
   /** Override launcher version with the provided one.
     *

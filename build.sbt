@@ -2483,9 +2483,10 @@ lazy val semver = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
-      "com.github.zafarkhaja"      % "java-semver"    % "0.10.2",
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
-    )
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test,
+      "junit" % "junit" % junitVersion % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+)
   )
   .settings(
     (Compile / compile) := (Compile / compile)
