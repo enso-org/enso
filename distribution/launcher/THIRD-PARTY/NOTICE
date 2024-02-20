@@ -171,11 +171,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.scala-lang.modules.scala-java8-compat_2.13-1.0.0`.
 
 
-'scala-parser-combinators_2.13', licensed under the Apache-2.0, is distributed with the launcher.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.modules.scala-parser-combinators_2.13-1.1.2`.
-
-
 'scala-library', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-library-2.13.11`.
