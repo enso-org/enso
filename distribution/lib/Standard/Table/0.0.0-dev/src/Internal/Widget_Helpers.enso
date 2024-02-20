@@ -86,10 +86,10 @@ make_column_name_vector_selector table display=Display.Always =
 make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
 make_column_ref_by_name_selector table display:Display=Display.Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False =
     text = if add_text then [Option "<Text Value>" "''"] else []
-    regex = if add_regex then [Option "<Regular Expression>" "(re '')"] else []
+    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
     number = if add_number then [Option "<Number Value>" "0"] else []
     boolean = if add_boolean then [Option "<True/False>" "True"] else []
-    expression = if table.is_nothing then [] else [Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"]
+    expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
     col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
     values = text + regex + number + boolean + expression + col_names
     Single_Choice values=values display=display

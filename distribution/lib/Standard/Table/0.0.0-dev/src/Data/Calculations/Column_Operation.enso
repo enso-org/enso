@@ -5,6 +5,7 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
 import project.Data.Column_Ref.Column_Ref
+import project.Data.Expression.Expression
 import project.Extensions.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
 from project.Internal.Filter_Condition_Helpers import make_filter_column
@@ -13,69 +14,69 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
    column.
 type Column_Operation
     ## Add two values/columns.
-    Add (input : Column_Ref|Number|Text) (rhs : Column_Ref|Number|Text)
+    Add (input : Column_Ref|Expression|Number|Text) (rhs : Column_Ref|Expression|Number|Text)
 
     ## Subtract two values/columns.
-    Subtract (input : Column_Ref|Number) (rhs : Column_Ref|Number)
+    Subtract (input : Column_Ref|Expression|Number) (rhs : Column_Ref|Expression|Number)
 
     ## Multiply two values/columns.
-    Multiply (input : Column_Ref|Number) (rhs : Column_Ref|Number)
+    Multiply (input : Column_Ref|Expression|Number) (rhs : Column_Ref|Expression|Number)
 
     ## Divide a fixed value or column by another value or column.
-    Divide (input : Column_Ref|Number) (rhs : Column_Ref|Number)
+    Divide (input : Column_Ref|Expression|Number) (rhs : Column_Ref|Expression|Number)
 
     ## Compute the remainder of a fixed value or column divided by another
        value or column.
-    Mod (input : Column_Ref|Number) (rhs : Column_Ref|Number)
+    Mod (input : Column_Ref|Expression|Number) (rhs : Column_Ref|Expression|Number)
 
     ## Raise a fixed value or column to the power of another value or column.
-    Power (input : Column_Ref|Number) (rhs : Column_Ref|Number)
+    Power (input : Column_Ref|Expression|Number) (rhs : Column_Ref|Expression|Number)
 
     ## Rounds values in the column to the specified precision.
-    Round (input : Column_Ref|Number) (precision:Integer = 0) (use_bankers:Boolean = False)
+    Round (input : Column_Ref|Expression|Number) (precision:Integer = 0) (use_bankers:Boolean = False)
 
     ## Rounds values in the column up to the nearest integer.
-    Ceil (input : Column_Ref|Number)
+    Ceil (input : Column_Ref|Expression|Number)
 
     ## Rounds values in the column down to the nearest integer.
-    Floor (input : Column_Ref|Number)
+    Floor (input : Column_Ref|Expression|Number)
 
     ## Truncates the fractional part of values in the column.
        If a Date_Time, returns the Date.
-    Truncate (input : Column_Ref|Number|Date_Time)
+    Truncate (input : Column_Ref|Expression|Number|Date_Time)
 
     ## Returns the minimum value of two columns.
-    Min (input : Column_Ref|Any) (rhs : Column_Ref|Any)
+    Min (input : Column_Ref|Expression|Any) (rhs : Column_Ref|Expression|Any)
 
     ## Returns the maximum value of two columns.
-    Max (input : Column_Ref|Any) (rhs : Column_Ref|Any)
+    Max (input : Column_Ref|Expression|Any) (rhs : Column_Ref|Expression|Any)
 
     ## Adds a period to a date/time column.
-    Date_Add (input : Column_Ref|Date_Time|Date|Time_Of_Day) (length : Column_Ref|Integer) (period : Date_Period|Time_Period = Date_Period.Day)
+    Date_Add (input : Column_Ref|Expression|Date_Time|Date|Time_Of_Day) (length : Column_Ref|Expression|Integer) (period : Date_Period|Time_Period = Date_Period.Day)
 
     ## Returns part of a date/time column.
-    Date_Part (input : Column_Ref|Date_Time|Date|Time_Of_Day) (period : Date_Period|Time_Period)
+    Date_Part (input : Column_Ref|Expression|Date_Time|Date|Time_Of_Day) (period : Date_Period|Time_Period)
 
     ## Returns the difference between two date/time columns.
-    Date_Diff (input : Column_Ref|Date_Time|Date|Time_Of_Day) (end : Column_Ref|Date_Time|Date|Time_Of_Day) (period:Date_Period|Time_Period = Date_Period.Day)
+    Date_Diff (input : Column_Ref|Expression|Date_Time|Date|Time_Of_Day) (end : Column_Ref|Expression|Date_Time|Date|Time_Of_Day) (period:Date_Period|Time_Period = Date_Period.Day)
 
     ## Negate a boolean column.
-    Not (input : Column_Ref|Boolean)
+    Not (input : Column_Ref|Expression|Boolean)
 
     ## Boolean AND on two boolean columns.
-    And (input : Column_Ref|Boolean) (rhs : Column_Ref|Boolean)
+    And (input : Column_Ref|Expression|Boolean) (rhs : Column_Ref|Expression|Boolean)
 
     ## Boolean OR on two boolean columns.
-    Or (input : Column_Ref|Boolean) (rhs : Column_Ref|Boolean)
+    Or (input : Column_Ref|Expression|Boolean) (rhs : Column_Ref|Expression|Boolean)
 
     ## If input meets a condition return true value, otherwise false value.
 
        The `true_value` and `false_value` can be either a constant or a column.
-    If (input : Column_Ref|Any) (condition:Filter_Condition) (true_value:Column_Ref|Any = True) (false_value:Column_Ref|Any = False)
+    If (input : Column_Ref|Expression|Any) (condition:Filter_Condition) (true_value:Column_Ref|Expression|Any = True) (false_value:Column_Ref|Expression|Any = False)
 
     ## Removes the specified characters, by default any whitespace, from the
        start, the end, or both ends of the input.
-    Trim (input : Column_Ref|Text) (where:Location = Location.Both) (what:Text|Column_Ref = "")
+    Trim (input : Column_Ref|Expression|Text) (where:Location = Location.Both) (what:Text|Column_Ref = "")
 
     ## PRIVATE
        Interprets the `Column_Operation` as operation on columns of a provided

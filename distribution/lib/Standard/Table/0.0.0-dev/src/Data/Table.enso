@@ -1618,14 +1618,15 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @column Column_Operation.default_widget
-    set : Text | Column | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column:(Text | Column | Constant_Column | Column_Operation) (new_name : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
+    set : Text | Expression | Column | Constant_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column:(Text | Expression | Column | Constant_Column | Column_Operation) (new_name : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names
 
         resolved = case column of
-            _ : Text -> self.evaluate_expression column on_problems
+            _ : Text -> self.make_constant_column column
+            _ : Expression -> self.evaluate_expression column on_problems
             _ : Column -> column
             _ : Constant_Column -> self.make_constant_column column.value
             _ : Column_Operation -> column.evaluate self (set_mode==Set_Mode.Update && new_name=="") on_problems
@@ -1675,12 +1676,12 @@ type Table
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
-    evaluate_expression : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    evaluate_expression self expression on_problems=Report_Warning =
+    evaluate_expression : Expression -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression self expression:Expression on_problems=Report_Warning =
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename (self.column_naming_helper.sanitize_name expression)
+        result = new_column.rename (self.column_naming_helper.sanitize_name expression.expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
@@ -2721,7 +2722,7 @@ type Table
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns Widget_Helpers.make_column_name_vector_selector
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True add_number=True add_boolean=True)
-    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
+    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Expression | Previous_Value | Any -> Table
     fill_nothing self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
         transformer col = col.fill_nothing resolved_default
@@ -2749,7 +2750,7 @@ type Table
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns Widget_Helpers.make_column_name_vector_selector
     @default (self -> Widget_Helpers.make_fill_default_value_selector column_source=self add_text=True)
-    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Previous_Value | Any -> Table
+    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Column_Ref | Expression | Previous_Value | Any -> Table
     fill_empty self (columns : Vector | Text | Integer | Regex) default =
         resolved_default = (self:Table_Ref).resolve default
         transformer col = col.fill_empty resolved_default
@@ -2790,8 +2791,8 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Regex -> Text | Column | Column_Ref -> Case_Sensitivity -> Boolean -> Column
-    text_replace self columns (term : Text | Column | Column_Ref | Regex = "") (new_text : Text | Column | Column_Ref = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    text_replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Column_Ref | Expression | Regex -> Text | Column | Column_Ref | Expression -> Case_Sensitivity -> Boolean -> Column
+    text_replace self columns (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         table_ref = Table_Ref.from self
         resolved_term = table_ref.resolve term
         resolved_new_text = table_ref.resolve new_text
