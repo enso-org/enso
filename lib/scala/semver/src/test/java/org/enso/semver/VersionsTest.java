@@ -43,5 +43,16 @@ public class VersionsTest {
 
         assertEquals(v2.compareTo(v3), 1);
         assertEquals(v3.compareTo(v2), -1);
+        assertTrue(v3.isLessThan(v2));
+        assertTrue(v3.isLessThanOrEqual(v2));
+        assertTrue(v2.isGreaterThan(v3));
+        
+        assertTrue(SemVer.of(1, 2, 3).isLessThan(SemVer.of(4, 0, 0)));
+        assertTrue(SemVer.of(4, 0, 0).isGreaterThan(SemVer.of(1, 0, 0)));
+        assertTrue(SemVer.of(2, 9, 9).isLessThan(SemVer.of(3, 1, 1)));
+        assertTrue(SemVer.of(2, 2, 1).isGreaterThan(SemVer.of(2, 2, 0)));
+        assertTrue(SemVer.of(2, 3, 0).isGreaterThan(SemVer.of(2, 1, 9)));
+        assertTrue(SemVer.of(100, 0, 0).isGreaterThan(SemVer.of(1, 0, 0)));
+        assertTrue(SemVer.of(21, 0, 0).isGreaterThan(SemVer.of(9, 0, 0)));
     }
 }

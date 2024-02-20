@@ -78,29 +78,33 @@ public class SemVer {
     }
 
     public boolean isGreaterThanOrEqual(SemVer v) {
-        return major > v.major || major == v.major && (
-                minor > v.minor || minor == v.minor && patch >= v.patch);
+        return compareTo(v) >= 0;
     }
 
     public boolean isGreaterThan(SemVer v) {
-        return major > v.major || major == v.major && (
-                minor > v.minor || minor == v.minor && patch > v.patch);
+        return compareTo(v) > 0;
     }
 
     public boolean isLessThanOrEqual(SemVer v) {
-        return major < v.major || major == v.major && (
-                minor < v.minor || minor == v.minor && patch <= v.patch);
+        return compareTo(v) <= 0;
     }
 
     public boolean isLessThan(SemVer v) {
-        return major < v.major || major == v.major && (
-                minor < v.minor || minor == v.minor && patch < v.patch);
+        return compareTo(v) < 0;
     }
 
     public Optional<String> preReleaseVersion() {
         return preRelease;
     }
 
+
+    /**
+     * Compares two versions.
+     * Comparison ignores an optional prefix.
+     *
+     * @param v version to compare to
+     * @return -1 if this version is less than `v`, 1 if it is bigger than `v`, and 0 if they are the same
+     */
     public int compareTo(SemVer v) {
         if (major < v.major) return -1;
         else if (major > v.major) return 1;
