@@ -5,6 +5,8 @@ import * as reactDom from 'react-dom'
 
 import * as animationHooks from '#/hooks/animationHooks'
 
+import * as modalProvider from '#/providers/ModalProvider'
+
 import type * as geometry from '#/utilities/geometry'
 
 // ======================
@@ -21,6 +23,7 @@ export interface SelectionBrushProps {
 /** A selection brush to indicate the area being selected by the mouse drag action. */
 export default function SelectionBrush(props: SelectionBrushProps) {
   const { onDrag, onDragEnd, onDragCancel } = props
+  const { modalRef } = modalProvider.useModalRef()
   const isMouseDownRef = React.useRef(false)
   const didMoveWhileDraggingRef = React.useRef(false)
   const onDragRef = React.useRef(onDrag)
@@ -59,6 +62,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
   React.useEffect(() => {
     const onMouseDown = (event: MouseEvent) => {
       if (
+        modalRef.current == null &&
         !(event.target instanceof HTMLInputElement) &&
         !(event.target instanceof HTMLTextAreaElement) &&
         (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
