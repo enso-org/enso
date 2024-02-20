@@ -70,6 +70,9 @@ add_specs suite_builder =
             hello_txt.parent . should_equal (root / "examples/" / "folder 2/")
             hello_txt.parent.is_directory . should_be_true
 
+            # Leading slash will mean starting back from bucket root:
+            hello_txt / "/foo/bar" . should_equal (root / "foo/bar")
+
         group_builder.specify "should support path traversal using `join`" <|
             root.join ["foo", "bar"] . path . should_equal "s3://"+bucket_name+"/foo/bar"
             root.join ["a/b/", "c/d", "e"] . path . should_equal "s3://"+bucket_name+"/a/b/c/d/e"
