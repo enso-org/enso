@@ -748,6 +748,7 @@ export default function Chat(props: ChatProps) {
           <textarea
             ref={messageInputRef}
             rows={1}
+            autoFocus
             required
             placeholder="Type your message ..."
             className="w-full rounded-lg bg-transparent resize-none p-1"

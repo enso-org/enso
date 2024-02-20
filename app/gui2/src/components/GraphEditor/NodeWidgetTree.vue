@@ -36,12 +36,12 @@ function handleWidgetUpdates(update: WidgetUpdate) {
     const { value, origin } = update.portUpdate
     if (Ast.isAstId(origin)) {
       const ast =
-        value instanceof Ast.Ast ? value : value == null ? Ast.Wildcard.new(edit) : undefined
-      if (ast) {
-        edit.replaceValue(origin as Ast.AstId, ast)
-      } else if (typeof value === 'string') {
-        edit.tryGet(origin)?.syncToCode(value)
-      }
+        value instanceof Ast.Ast
+          ? value
+          : value == null
+          ? Ast.Wildcard.new(edit)
+          : Ast.parse(value, edit)
+      edit.replaceValue(origin as Ast.AstId, ast)
     } else {
       console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
     }

@@ -29,14 +29,15 @@ import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
-import type {
-  LocalOrigin,
-  SourceRangeKey,
-  VisualizationIdentifier,
-  VisualizationMetadata,
+import {
+  sourceRangeKey,
+  visMetadataEquals,
+  type SourceRangeKey,
+  type VisualizationIdentifier,
+  type VisualizationMetadata,
 } from 'shared/yjsModel'
-import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch, type ShallowRef } from 'vue'
+import * as Y from 'yjs'
 
 export { type Node, type NodeId } from '@/stores/graph/graphDatabase'
 
@@ -111,7 +112,7 @@ export const useGraphStore = defineStore('graph', () => {
       id: AstId
       changes: NodeMetadata
     }[]
-    const dirtyNodeSet = new Set(update.nodesUpdated)
+    const dirtyNodeSet = new Set(update.fieldsUpdated.map(({ id }) => id))
     if (moduleChanged || dirtyNodeSet.size !== 0) {
       db.updateExternalIds(root)
       toRaw = new Map()
@@ -257,7 +258,7 @@ export const useGraphStore = defineStore('graph', () => {
         for (const id of ids) {
           const node = db.nodeIdToNode.get(id)
           if (!node) continue
-          const outerExpr = edit.tryGet(node.outerExprId)
+          const outerExpr = edit.get(node.outerExprId)
           if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
           nodeRects.delete(id)
         }
@@ -271,12 +272,12 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
-      edit.getVersion(node.rootSpan).syncToCode(content)
+      edit.getVersion(node.rootSpan).replaceValue(Ast.parse(content, edit))
     })
   }
 
   function transact(fn: () => void) {
-    syncModule.value!.transact(fn)
+    return proj.module?.transact(fn)
   }
 
   function stopCapturingUndo() {
@@ -284,7 +285,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
+    const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
     const oldPos = nodeAst.nodeMetadata.get('position')
     if (oldPos?.x !== position.x || oldPos?.y !== position.y) {
@@ -304,7 +305,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
+    const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
     editNodeMetadata(nodeAst, (metadata) =>
       metadata.set(
@@ -315,7 +316,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
+    const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
     editNodeMetadata(nodeAst, (metadata) =>
       metadata.set(
@@ -326,7 +327,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
+    const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
     if (rect.pos.equals(Vec2.Zero) && !nodeAst.nodeMetadata.get('position')) {
       const { position } = nonDictatedPlacement(rect.size, {
@@ -418,18 +419,16 @@ export const useGraphStore = defineStore('graph', () => {
    *  @param skipTreeRepair - If the edit is known not to require any parenthesis insertion, this may be set to `true`
    *  for better performance.
    */
-  function commitEdit(
-    edit: MutableModule,
-    skipTreeRepair?: boolean,
-    origin: LocalOrigin = defaultLocalOrigin,
-  ) {
+  function commitEdit(edit: MutableModule, skipTreeRepair?: boolean) {
     const root = edit.root()
     if (!(root instanceof Ast.BodyBlock)) {
       console.error(`BUG: Cannot commit edit: No module root block.`)
       return
     }
+    const module_ = proj.module
+    if (!module_) return
     if (!skipTreeRepair) Ast.repair(root, edit)
-    syncModule.value!.applyEdit(edit, origin)
+    Y.applyUpdateV2(syncModule.value!.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), 'local')
   }
 
   /** Edit the AST module.
@@ -445,24 +444,21 @@ export const useGraphStore = defineStore('graph', () => {
     const edit = direct ? syncModule.value : syncModule.value?.edit()
     assert(edit != null)
     let result
-    edit.transact(() => {
+    edit.ydoc.transact(() => {
       result = f(edit)
       if (!skipTreeRepair) {
         const root = edit.root()
         assert(root instanceof Ast.BodyBlock)
         Ast.repair(root, edit)
       }
-      if (!direct) syncModule.value!.applyEdit(edit)
-    })
+    }, 'local')
+    if (!direct)
+      Y.applyUpdateV2(syncModule.value!.ydoc, Y.encodeStateAsUpdateV2(edit.ydoc), 'local')
     return result!
   }
 
   function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {
     edit((edit) => f(edit.getVersion(ast).mutableNodeMetadata()), true, true)
-  }
-
-  function viewModule(): Module {
-    return syncModule.value!
   }
 
   function mockExpressionUpdate(
@@ -591,7 +587,6 @@ export const useGraphStore = defineStore('graph', () => {
     startEdit,
     commitEdit,
     edit,
-    viewModule,
     addMissingImports,
   }
 })

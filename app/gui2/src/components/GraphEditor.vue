@@ -163,8 +163,7 @@ function sourcePortForSelection() {
 }
 
 useEvent(window, 'keydown', (event) => {
-  ;(!keyboardBusy() && (interactionBindingsHandler(event) || graphBindingsHandler(event))) ||
-    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
+  interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
@@ -282,7 +281,7 @@ const graphBindingsHandler = graphBindings.handler({
         // For collapsed function, only selected nodes would affect placement of the output node.
         collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
         edit
-          .get(refactoredNodeId)
+          .checkedGet(refactoredNodeId)
           .mutableNodeMetadata()
           .set('position', { x: position.x, y: position.y })
         if (outputNodeId != null) {
@@ -291,7 +290,7 @@ const graphBindingsHandler = graphBindings.handler({
             collapsedFunctionEnv,
           )
           edit
-            .get(outputNodeId)
+            .checkedGet(outputNodeId)
             .mutableNodeMetadata()
             .set('position', { x: position.x, y: position.y })
         }
@@ -326,6 +325,7 @@ const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
   toggle() {
+    if (keyboardBusyExceptIn(codeEditorArea.value)) return false
     showCodeEditor.value = !showCodeEditor.value
   },
 })

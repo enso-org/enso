@@ -4,8 +4,14 @@ import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
-import * as Ast from '../shared/ast'
-import { astCount } from '../shared/ast'
+import {
+  Ast,
+  MutableModule,
+  parseBlockWithSpans,
+  setExternalIds,
+  spanMapToIdMap,
+} from '../shared/ast'
+import { print } from '../shared/ast/parse'
 import { EnsoFileParts, combineFileParts, splitFileContents } from '../shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from '../shared/languageServer'
 import { Checksum, FileEdit, Path, TextEdit, response } from '../shared/languageServerTypes'
@@ -410,7 +416,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     const update = this.updateToApply
     this.updateToApply = null
 
-    const syncModule = new Ast.MutableModule(this.doc.ydoc)
+    const syncModule = new MutableModule(this.doc.ydoc)
     const moduleUpdate = syncModule.applyUpdate(update, 'remote')
     if (moduleUpdate && this.syncedContent) {
       const synced = splitFileContents(this.syncedContent)
@@ -505,35 +511,24 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       const nodeMeta = Object.entries(metadata.ide.node)
 
       let parsedSpans
-      const syncModule = new Ast.MutableModule(this.doc.ydoc)
+      const syncModule = new MutableModule(this.doc.ydoc)
       if (code !== this.syncedCode) {
-        const syncRoot = syncModule.root()
-        if (syncRoot) {
-          const edit = syncModule.edit()
-          edit.getVersion(syncRoot).syncToCode(code)
-          const editedRoot = edit.root()
-          if (editedRoot instanceof Ast.BodyBlock) Ast.repair(editedRoot, edit)
-          syncModule.applyEdit(edit)
-        } else {
-          const { root, spans } = Ast.parseBlockWithSpans(code, syncModule)
-          syncModule.syncRoot(root)
-          parsedSpans = spans
-        }
+        const { root, spans } = parseBlockWithSpans(code, syncModule)
+        syncModule.syncRoot(root)
+        parsedSpans = spans
       }
       const astRoot = syncModule.root()
       if (!astRoot) return
       if ((code !== this.syncedCode || idMapJson !== this.syncedIdMap) && idMapJson) {
         const idMap = deserializeIdMap(idMapJson)
-        const spans = parsedSpans ?? Ast.print(astRoot).info
-        const idsAssigned = Ast.setExternalIds(syncModule, spans, idMap)
-        const numberOfAsts = astCount(astRoot)
-        const idsNotSetByMap = numberOfAsts - idsAssigned
-        if (idsNotSetByMap > 0) {
+        const spans = parsedSpans ?? print(astRoot).info
+        const newExternalIds = setExternalIds(syncModule, spans, idMap)
+        if (newExternalIds !== 0) {
           if (code !== this.syncedCode) {
-            unsyncedIdMap = Ast.spanMapToIdMap(spans)
+            unsyncedIdMap = spanMapToIdMap(spans)
           } else {
             console.warn(
-              `The LS sent an IdMap-only edit that is missing ${idsNotSetByMap} of our expected ASTs.`,
+              `The LS sent an IdMap-only edit that is missing ${newExternalIds} of our expected ASTs.`,
             )
           }
         }
@@ -544,7 +539,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           metadataJson !== this.syncedMetaJson) &&
         nodeMeta.length !== 0
       ) {
-        const externalIdToAst = new Map<ExternalId, Ast.Ast>()
+        const externalIdToAst = new Map<ExternalId, Ast>()
         astRoot.visitRecursiveAst((ast) => {
           if (!externalIdToAst.has(ast.externalId)) externalIdToAst.set(ast.externalId, ast)
         })

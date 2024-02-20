@@ -71,7 +71,7 @@ export function tokenTree(root: Ast): TokenTree {
     if (isTokenId(child.node)) {
       return module.getToken(child.node).code()
     } else {
-      const node = module.tryGet(child.node)
+      const node = module.get(child.node)
       return node ? tokenTree(node) : '<missing>'
     }
   })
@@ -85,7 +85,7 @@ export function tokenTreeWithIds(root: Ast): TokenTree {
       if (isTokenId(child.node)) {
         return module.getToken(child.node).code()
       } else {
-        const node = module.tryGet(child.node)
+        const node = module.get(child.node)
         return node ? tokenTreeWithIds(node) : ['<missing>']
       }
     }),
