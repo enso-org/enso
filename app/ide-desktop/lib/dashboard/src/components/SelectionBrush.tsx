@@ -125,7 +125,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
       document.removeEventListener('mousemove', onMouseMove)
       document.removeEventListener('click', onClick)
     }
-  }, [])
+  }, [/* should never change */ modalRef])
 
   const rectangle = React.useMemo(() => {
     if (position != null && lastSetAnchor != null) {
