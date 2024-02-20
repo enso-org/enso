@@ -85,7 +85,9 @@ LocalStorage.registerKey('extraColumns', {
  * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
  * the top of the scroll container, or downwards if the cursor is near the bottom. */
 const AUTOSCROLL_THRESHOLD_PX = 50
-/** The autoscroll speed is `AUTOSCROLL_THRESHOLD / (distance + AUTOSCROLL_DAMPENING)`. */
+/** An arbitrary constant that controls the speed of autoscroll. */
+const AUTOSCROLL_SPEED = 100
+/** The autoscroll speed is `AUTOSCROLL_SPEED / (distance + AUTOSCROLL_DAMPENING)`. */
 const AUTOSCROLL_DAMPENING = 10
 /** The height of the header row. */
 const HEADER_HEIGHT_PX = 34
@@ -2033,10 +2035,10 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (scrollContainer != null) {
         const rect = scrollContainer.getBoundingClientRect()
         if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
-          const distanceToTop = Math.max(0, rectangle.top - rect.top)
+          const distanceToTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
           if (distanceToTop < AUTOSCROLL_THRESHOLD_PX) {
             scrollContainer.scrollTop -= Math.floor(
-              AUTOSCROLL_THRESHOLD_PX / (distanceToTop + AUTOSCROLL_DAMPENING)
+              AUTOSCROLL_SPEED / (distanceToTop + AUTOSCROLL_DAMPENING)
             )
             dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
               onSelectionDrag(rectangle, event)
@@ -2050,7 +2052,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           const distanceToBottom = Math.max(0, rect.bottom - rectangle.bottom)
           if (distanceToBottom < AUTOSCROLL_THRESHOLD_PX) {
             scrollContainer.scrollTop += Math.floor(
-              AUTOSCROLL_THRESHOLD_PX / (distanceToBottom + AUTOSCROLL_DAMPENING)
+              AUTOSCROLL_SPEED / (distanceToBottom + AUTOSCROLL_DAMPENING)
             )
             dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
               onSelectionDrag(rectangle, event)
