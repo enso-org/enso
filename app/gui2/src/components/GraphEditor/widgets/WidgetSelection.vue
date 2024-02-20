@@ -171,7 +171,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <div class="WidgetSelection" @pointerdown.stop="toggleDropdownWidget">
+  <div class="WidgetSelection" @click.stop="toggleDropdownWidget">
     <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
     <SvgIcon name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
@@ -180,7 +180,6 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       :color="'var(--node-color-primary)'"
       :values="tagLabels"
       :selectedValue="selectedLabel"
-      @pointerdown.stop
       @click="onClick($event)"
     />
   </div>

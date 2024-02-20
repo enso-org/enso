@@ -317,15 +317,17 @@ const graphBindingsHandler = graphBindings.handler({
   },
 })
 
-const handleClick = useDoubleClick(
+const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
+    console.log('111')
     graphBindingsHandler(e)
   },
   () => {
+    console.log('222')
     if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
-).handleClick
+)
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
@@ -673,7 +675,11 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @zoomIn="graphNavigator.scale *= 1.1"
       @zoomOut="graphNavigator.scale *= 0.9"
     />
-    <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
+    <PlusButton
+      @click.stop="interaction.setCurrent(creatingNodeFromButton)"
+      @pointerdown.stop
+      @pointerup.stop
+    />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" />

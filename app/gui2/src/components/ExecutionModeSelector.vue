@@ -25,7 +25,7 @@ useEvent(document, 'pointerdown', onDocumentClick)
 <template>
   <div ref="executionModeSelectorNode" class="ExecutionModeSelector">
     <div class="execution-mode-button">
-      <div class="execution-mode button" @pointerdown.stop="isDropdownOpen = !isDropdownOpen">
+      <div class="execution-mode button" @click="isDropdownOpen = !isDropdownOpen">
         <span v-text="props.modelValue"></span>
       </div>
       <div class="divider"></div>
@@ -33,7 +33,7 @@ useEvent(document, 'pointerdown', onDocumentClick)
         name="workflow_play"
         class="play button"
         draggable="false"
-        @pointerdown="
+        @click="
           () => {
             isDropdownOpen = false
             emit('execute')
@@ -47,7 +47,7 @@ useEvent(document, 'pointerdown', onDocumentClick)
           <span
             v-if="modelValue !== otherMode"
             class="button"
-            @pointerdown="emit('update:modelValue', otherMode), (isDropdownOpen = false)"
+            @click="emit('update:modelValue', otherMode), (isDropdownOpen = false)"
             v-text="otherMode"
           ></span>
         </template>

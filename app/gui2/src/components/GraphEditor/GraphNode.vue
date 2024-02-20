@@ -412,12 +412,15 @@ function openFullMenu() {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
-      <SvgIcon
-        class="icon grab-handle"
-        :name="icon"
-        @pointerdown.right.stop="openFullMenu"
-      ></SvgIcon>
+    <div
+      class="node"
+      @click="handleNodeClick"
+      v-on="dragPointer.events"
+      @pointerdown.stop
+      @pointerup.stop
+      @click.stop
+    >
+      <SvgIcon class="icon grab-handle" :name="icon" @click.right.stop="openFullMenu"></SvgIcon>
       <div ref="contentNode" class="widget-tree">
         <NodeWidgetTree :ast="displayedExpression" :nodeId="nodeId" />
       </div>

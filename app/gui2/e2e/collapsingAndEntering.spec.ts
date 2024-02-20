@@ -27,18 +27,22 @@ test('Leaving entered nodes', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
 
-  await locate.graphEditor(page).dblclick()
+  await page.waitForTimeout(600)
+
+  await page.mouse.dblclick(100, 100)
   await expectInsideFunc1(page)
 
-  await locate.graphEditor(page).dblclick()
+  await page.mouse.dblclick(100, 100)
   await expectInsideMain(page)
 })
 
 test('Using breadcrumbs to navigate', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
-  await locate.graphEditor(page).dblclick()
-  await locate.graphEditor(page).dblclick()
+  await page.mouse.dblclick(100, 100)
+  await expectInsideFunc1(page)
+  await page.mouse.dblclick(100, 100)
+  await expectInsideMain(page)
   // Breadcrumbs still have all the crumbs, but the last two are dimmed.
   await expect(locate.navBreadcrumb(page)).toHaveText(['main', 'func1', 'func2'])
   await expect(locate.navBreadcrumb(page, (f) => f.class('inactive'))).toHaveText([
@@ -118,6 +122,8 @@ async function expectInsideFunc2(page: Page) {
 async function enterToFunc2(page: Page) {
   await mockCollapsedFunctionInfo(page, 'final', 'func1')
   await locate.graphNodeByBinding(page, 'final').dblclick()
+  await expectInsideFunc1(page)
   await mockCollapsedFunctionInfo(page, 'f2', 'func2')
   await locate.graphNodeByBinding(page, 'f2').dblclick()
+  await expectInsideFunc2(page)
 }

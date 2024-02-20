@@ -35,13 +35,16 @@ export function useStackNavigator() {
 
   function handleBreadcrumbClick(index: number) {
     const activeStack = projectStore.executionContext.desiredStack
+    console.log('DEBŁUG:', activeStack.length, index)
     // Number of items in desired stack should be index + 1
     if (index + 1 < activeStack.length) {
       for (let i = activeStack.length; i > index + 1; i--) {
+        console.log('POP', i)
         projectStore.executionContext.pop()
       }
     } else if (index + 1 > activeStack.length) {
       for (let i = activeStack.length; i <= index; i++) {
+        console.log('PUSH', i)
         const stackItem = breadcrumbs.value[i]
         if (stackItem?.type === 'LocalCall') {
           const exprId = stackItem.expressionId
@@ -81,6 +84,7 @@ export function useStackNavigator() {
   }
 
   function exitNode() {
+    console.log('Exiting node')
     projectStore.executionContext.pop()
     graphStore.updateState()
   }

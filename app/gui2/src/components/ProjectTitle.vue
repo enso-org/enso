@@ -6,7 +6,7 @@ const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
 </script>
 
 <template>
-  <div class="ProjectTitle">
+  <div class="ProjectTitle" @pointerdown.stop @pointerup.stop @click.stop>
     <span class="title" v-text="props.title"></span>
     <ExecutionModeSelector
       :modes="props.modes"
