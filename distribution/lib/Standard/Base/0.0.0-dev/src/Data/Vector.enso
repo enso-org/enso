@@ -1343,4 +1343,19 @@ type Map_Error
 type No_Wrap
 
 ## PRIVATE
+   Check that all vectors have the same length and return an informative message
+   if they don't.
+
+   Compares all vectors to the first one and reports the first one that differs.
+check_same_length : Vector (Vector Any) -> Any -> Any ! Illegal_Argument
+check_same_length vecs ~action =
+    if vecs.is_empty then action else
+        num_vecs = vecs.length
+        len = vecs.at 0 . length
+        go i = if i >= num_vecs then action else
+            if vecs.at i . length == len then @Tail_Call go (i+1) else
+                Error.throw (Illegal_Argument.Error "Transpose requires that all vectors be the same length, but rows 0 and "+i.to_text+" had different lengths ("+len.to_text+" and "+(vecs.at i . length).to_text+")")
+        go 0
+
+## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
