@@ -335,6 +335,7 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
+  readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setCanDownloadFiles: (canDownloadFiles: boolean) => void
@@ -364,8 +365,8 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { query, setQuery, setCanDownloadFiles, category, allLabels, setSuggestions } = props
-  const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
+  const { hidden, query, setQuery, setCanDownloadFiles, category, allLabels } = props
+  const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
@@ -2419,11 +2420,13 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
-      <SelectionBrush
-        onDrag={onSelectionDrag}
-        onDragEnd={onSelectionDragEnd}
-        onDragCancel={onSelectionDragCancel}
-      />
+      {!hidden && (
+        <SelectionBrush
+          onDrag={onSelectionDrag}
+          onDragEnd={onSelectionDragEnd}
+          onDragCancel={onSelectionDragCancel}
+        />
+      )}
       <div className="flex flex-col w-min min-w-full h-full">
         {isCloud && (
           <div className="sticky top-0 h-0 flex flex-col">

@@ -390,6 +390,7 @@ export default function Drive(props: DriveProps) {
               </div>
             )}
             <AssetsTable
+              hidden={hidden}
               query={query}
               setQuery={setQuery}
               setCanDownloadFiles={setCanDownloadFiles}
