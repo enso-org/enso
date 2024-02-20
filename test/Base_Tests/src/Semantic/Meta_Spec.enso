@@ -431,6 +431,21 @@ add_specs suite_builder =
             case atom.bar of
                 n : Number -> Test.fail "Not changed to number: "+n
                 _ -> Nothing
+
+        group_builder.specify "should not leak index value to different atoms" <|
+            at1 = Meta.atom_with_hole (e -> My_Type.Value 1 e e)
+            at1.fill 2
+            at1.value.foo.to_text . should_equal "1"
+            at1.value.bar.to_text . should_equal "2"
+            at1.value.baz.to_text . should_equal "Meta.atom_with_hole"
+
+            at2 = Meta.atom_with_hole (e -> My_Type.Value e e 3)
+            at2.fill 1
+            at2.value.foo.to_text . should_equal "1"
+            at2.value.bar.to_text . should_equal "Meta.atom_with_hole"
+            at2.value.baz.to_text . should_equal "3"
+
+
     suite_builder.group "Unresolved symbol" group_builder->
         group_builder.specify "should be treated as a Function" <|
             (_.is_nothing) . is_a Function . should_equal True
