@@ -234,15 +234,14 @@ type S3_File
          The trailing slash determines if the given path is treated as a
          directory or as a regular file.
 
-         Because of that, `root / "foo" / "bar"` will fail, as the entry denoted
-         by "foo" will be treated as a regular file which cannot have children.
-         Instead, you'd have to ensure that "foo" remains a directory by
-         remembering about the slash: `root / "foo/" / "bar"`. This can be
-         written shorter using just one operation: `root / "foo/bar"`.
+         However, for ease-of-use, if a path without a trailing slash is used
+         with the `/` operator it will be accepted and the sub paths will be
+         resolved, even though such a path would not be treated as a directory
+         by any other operations.
 
          See: https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
     / : Text -> S3_File
-    / self subpath = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else
+    / self subpath =
         S3_File.Value (self.s3_path.resolve subpath) self.credentials
 
     ## GROUP Standard.Base.Calculations
@@ -250,6 +249,8 @@ type S3_File
 
        Arguments:
        - subpaths: The path segment or segments to join to the path of `self`.
+
+       See `/` for more information about S3 directory handling.
     join : (Vector | Text) -> S3_File
     join self (subpaths : Vector | Text) =
         vec = Vector.unify_vector_or_element subpaths
@@ -318,7 +319,7 @@ type S3_File
     list self name_filter:Text="" recursive:Boolean=False =
         check_name_filter action = if name_filter != "" then Unimplemented.throw "S3 listing with name filter is not currently implemented." else action
         check_recursion action = if recursive then Unimplemented.throw "S3 listing with recursion is not currently implemented." else action
-        check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can have children." self.uri) else action
+        check_directory action = if self.is_directory.not then Error.throw (S3_Error.Error "Only folders can be listed." self.uri) else action
 
         check_directory <| check_recursion <| check_name_filter <|
             if self.s3_path.bucket == "" then translate_file_errors self <| S3.list_buckets self.credentials . map bucket-> S3_File.Value bucket "" self.credentials else
