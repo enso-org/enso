@@ -878,7 +878,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
-      previouslySelectedIndexRef.current = null
+      mostRecentlySelectedIndexRef.current = null
       selectionStartIndexRef.current = null
       // This is required, otherwise we are using an outdated
       // `nameOfProjectToImmediatelyOpen`.
@@ -1213,15 +1213,24 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
-  const previouslySelectedIndexRef = React.useRef<number | null>(null)
+  const [keyboardSelectedIndex, setKeyboardSelectedIndexRaw] = React.useState<number | null>(null)
+  const mostRecentlySelectedIndexRef = React.useRef<number | null>(null)
   const selectionStartIndexRef = React.useRef<number | null>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
+
+  const setMostRecentlySelectedIndex = React.useCallback(
+    (index: number | null, isKeyboard = false) => {
+      mostRecentlySelectedIndexRef.current = index
+      setKeyboardSelectedIndexRaw(isKeyboard ? index : null)
+    },
+    []
+  )
 
   React.useEffect(() => {
     // This is not a React component, even though it contains JSX.
     // eslint-disable-next-line no-restricted-syntax
     const onKeyDown = (event: KeyboardEvent) => {
-      const prevIndex = previouslySelectedIndexRef.current
+      const prevIndex = mostRecentlySelectedIndexRef.current
       const item = prevIndex == null ? null : displayItems[prevIndex]
       if (selectedKeysRef.current.size === 1 && item != null) {
         switch (event.key) {
@@ -1307,7 +1316,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           }
           break
         }
-        // TODO: Show focus ring for `previouslySelectedIndexRef.current`.
         case 'ArrowUp':
         case 'ArrowDown': {
           event.preventDefault()
@@ -1321,7 +1329,7 @@ export default function AssetsTable(props: AssetsTableProps) {
               : event.key === 'ArrowUp'
               ? Math.max(0, prevIndex - 1)
               : Math.min(displayItems.length - 1, prevIndex + 1)
-          previouslySelectedIndexRef.current = index
+          setMostRecentlySelectedIndex(index, true)
           if (event.shiftKey) {
             // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
             if (selectionStartIndexRef.current == null) {
@@ -1354,6 +1362,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     doToggleDirectoryExpansion,
     /* should never change */ toastAndLog,
     /* should never change */ setModal,
+    /* should never change */ setMostRecentlySelectedIndex,
     /* should never change */ setSelectedKeys,
     /* should never change */ dispatchAssetEvent,
   ])
@@ -1929,13 +1938,18 @@ export default function AssetsTable(props: AssetsTableProps) {
         selectedKeysRef.current.size !== 0
       ) {
         setSelectedKeys(new Set())
+        setMostRecentlySelectedIndex(null)
       }
     }
     document.addEventListener('click', onDocumentClick)
     return () => {
       document.removeEventListener('click', onDocumentClick)
     }
-  }, [shortcutManager, /* should never change */ setSelectedKeys])
+  }, [
+    shortcutManager,
+    /* should never change */ setSelectedKeys,
+    /* should never change */ setMostRecentlySelectedIndex,
+  ])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -2091,10 +2105,10 @@ export default function AssetsTable(props: AssetsTableProps) {
       event.stopPropagation()
       const newIndex = displayItems.findIndex(innerItem => AssetTreeNode.getKey(innerItem) === key)
       const getRange = () => {
-        if (previouslySelectedIndexRef.current == null) {
+        if (mostRecentlySelectedIndexRef.current == null) {
           return [key]
         } else {
-          const index1 = previouslySelectedIndexRef.current
+          const index1 = mostRecentlySelectedIndexRef.current
           const index2 = newIndex
           const startIndex = Math.min(index1, index2)
           const endIndex = Math.max(index1, index2) + 1
@@ -2102,12 +2116,17 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
       setSelectedKeys(calculateNewKeys(event, [key], getRange))
-      previouslySelectedIndexRef.current = newIndex
+      setMostRecentlySelectedIndex(newIndex)
       if (!event.shiftKey) {
         selectionStartIndexRef.current = null
       }
     },
-    [displayItems, calculateNewKeys, /* should never change */ setSelectedKeys]
+    [
+      displayItems,
+      calculateNewKeys,
+      /* should never change */ setSelectedKeys,
+      /* should never change */ setMostRecentlySelectedIndex,
+    ]
   )
 
   const columns = columnUtils.getColumnList(backend.type, extraColumns)
@@ -2142,7 +2161,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     displayItems.map((item, i) => {
       const key = AssetTreeNode.getKey(item)
       const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
-      const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
+      const isSoleSelected = selectedKeys.size === 1 && isSelected
       return (
         <AssetRow
           key={key}
@@ -2154,14 +2173,15 @@ export default function AssetsTable(props: AssetsTableProps) {
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
           }}
-          isSoleSelectedItem={isSoleSelectedItem}
-          allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelectedItem}
+          isSoleSelected={isSoleSelected}
+          isKeyboardSelected={i === keyboardSelectedIndex}
+          allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelected}
           onClick={onRowClick}
           onContextMenu={(_innerProps, event) => {
             if (!isSelected) {
               event.preventDefault()
               event.stopPropagation()
-              previouslySelectedIndexRef.current = i
+              setMostRecentlySelectedIndex(i)
               selectionStartIndexRef.current = null
               setSelectedKeys(new Set([key]))
             }
@@ -2169,7 +2189,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragStart={event => {
             let newSelectedKeys = selectedKeysRef.current
             if (!newSelectedKeys.has(key)) {
-              previouslySelectedIndexRef.current = i
+              setMostRecentlySelectedIndex(i)
               selectionStartIndexRef.current = null
               newSelectedKeys = new Set([key])
               setSelectedKeys(newSelectedKeys)
@@ -2198,7 +2218,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     item={node.with({ depth: 0 })}
                     state={state}
                     // Default states.
-                    isSoleSelectedItem={false}
+                    isSoleSelected={false}
                     selected={false}
                     rowState={assetRowUtils.INITIAL_ROW_STATE}
                     // The drag placeholder cannot be interacted with.

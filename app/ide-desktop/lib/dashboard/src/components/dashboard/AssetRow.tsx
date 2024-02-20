@@ -71,7 +71,8 @@ export interface AssetRowProps
   readonly columns: columnUtils.Column[]
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelectedItem: boolean
+  readonly isSoleSelected: boolean
+  readonly isKeyboardSelected: boolean
   readonly allowContextMenu: boolean
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly onContextMenu?: (
@@ -82,8 +83,8 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelectedItem, setSelected } = props
-  const { allowContextMenu, onContextMenu, state, columns, onClick } = props
+  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
+  const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { scrollContainerRef } = state
@@ -221,10 +222,10 @@ export default function AssetRow(props: AssetRowProps) {
   )
 
   React.useEffect(() => {
-    if (isSoleSelectedItem) {
+    if (isSoleSelected) {
       setAssetPanelProps({ item, setItem })
     }
-  }, [item, isSoleSelectedItem, /* should never change */ setAssetPanelProps])
+  }, [item, isSoleSelected, /* should never change */ setAssetPanelProps])
 
   const doDelete = React.useCallback(async () => {
     setInsertionVisibility(Visibility.hidden)
@@ -547,7 +548,7 @@ export default function AssetRow(props: AssetRowProps) {
               draggable
               tabIndex={-1}
               ref={element => {
-                if (isSoleSelectedItem && element != null && scrollContainerRef.current != null) {
+                if (isSoleSelected && element != null && scrollContainerRef.current != null) {
                   const rect = element.getBoundingClientRect()
                   const scrollRect = scrollContainerRef.current.getBoundingClientRect()
                   const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
@@ -560,9 +561,11 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }
               }}
-              className={`h-8 transition duration-300 ease-in-out ${
+              className={`h-8 transition duration-300 ease-in-out rounded-full outline-2 -outline-offset-2 outline-prmary ${
                 visibilityModule.CLASS_NAME[visibility]
-              } ${isDraggedOver || selected ? 'selected' : ''}`}
+              } ${isKeyboardSelected ? 'outline' : ''} ${
+                isDraggedOver || selected ? 'selected' : ''
+              }`}
               onClick={event => {
                 unsetModal()
                 onClick(innerProps, event)
@@ -692,7 +695,7 @@ export default function AssetRow(props: AssetRowProps) {
                       setItem={setItem}
                       selected={selected}
                       setSelected={setSelected}
-                      isSoleSelectedItem={isSoleSelectedItem}
+                      isSoleSelected={isSoleSelected}
                       state={state}
                       rowState={rowState}
                       setRowState={setRowState}
