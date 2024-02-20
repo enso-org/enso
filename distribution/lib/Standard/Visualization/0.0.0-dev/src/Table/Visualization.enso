@@ -3,10 +3,10 @@ import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Data.Column.Column
 import Standard.Table.Data.Row.Row
-import Standard.Table.Data.Table.Table as Dataframe_Table
+import Standard.Table.Data.Table.Table
 
 import Standard.Database.Data.DB_Column.DB_Column
-import Standard.Database.Data.Table.Table as Database_Table
+import Standard.Database.Data.DB_Table.DB_Table
 
 import project.Helpers
 
@@ -32,13 +32,13 @@ prepare_visualization y max_rows=1000 =
         _ : JS_Object -> make_json_for_js_object x max_rows
         _ : Row -> make_json_for_map x.to_map max_rows "column"
         _ : Column -> prepare_visualization x.to_table max_rows
-        _ : Dataframe_Table ->
+        _ : Table ->
             dataframe = x.take max_rows
             all_rows_count = x.row_count
             index = Column.from_vector "#" (Vector.new dataframe.row_count i->i)
             make_json_for_table dataframe [index] all_rows_count
         _ : DB_Column -> prepare_visualization x.to_table max_rows
-        _ : Database_Table ->
+        _ : DB_Table ->
             dataframe = x.read max_rows warn_if_more_rows=False
             all_rows_count = x.row_count
             make_json_for_table dataframe [] all_rows_count
@@ -149,7 +149,7 @@ make_json_for_js_object js_object max_items =
      `dataframe`.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Dataframe_Table -> Vector Column -> Integer -> JS_Object
+make_json_for_table : Table -> Vector Column -> Integer -> JS_Object
 make_json_for_table dataframe indices all_rows_count =
     get_vector c = Warning.set (c.to_vector.map v-> make_json_for_value v) []
     columns     = dataframe.columns
@@ -186,12 +186,12 @@ make_json_for_value val level=0 = case val of
             "{" + (prepared.join ", ") + "}"
     _ : Column -> make_json_for_value val.to_table level
     _ : DB_Column -> make_json_for_value val.to_table level
-    _ : Dataframe_Table ->
+    _ : Table ->
         if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
             truncated = val.columns.take 5 . map _.name
             prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated
             "Table{" + val.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
-    _ : Database_Table ->
+    _ : DB_Table ->
         if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
             truncated = val.columns.take 5 . map _.name
             prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated

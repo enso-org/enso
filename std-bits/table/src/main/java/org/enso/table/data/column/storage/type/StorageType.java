@@ -50,4 +50,19 @@ public sealed interface StorageType
       default -> AnyObjectType.INSTANCE;
     };
   }
+
+  /**
+   * @return true if the storage type is numeric.
+   */
+  boolean isNumeric();
+
+  /**
+   * @return true if the storage type has a date part.
+   */
+  boolean hasDate();
+
+  /**
+   * @return true if the storage type has a time part.
+   */
+  boolean hasTime();
 }

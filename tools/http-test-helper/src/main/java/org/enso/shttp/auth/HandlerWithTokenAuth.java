@@ -31,7 +31,7 @@ public abstract class HandlerWithTokenAuth extends SimpleHttpHandler {
     String providedToken = authHeader.substring(prefix.length());
     boolean authorized = providedToken.equals(getSecretToken());
     if (!authorized) {
-      sendResponse(403, "Invalid token.", exchange);
+      sendResponse(401, "Invalid token.", exchange);
       return;
     }
 

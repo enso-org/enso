@@ -75,6 +75,21 @@ public class EqualsBenchmarks {
         new StringBuilder(
             """
         import Standard.Base.Data.Range.Extensions
+        import Standard.Base.Data.Numbers.Number
+        import Standard.Base.Data.Ordering.Ordering
+        import Standard.Base.Data.Ordering.Comparable
+        import Standard.Base.Data.Ordering.Default_Comparator
+
+        type Num
+            Value n
+
+        Num.from (that:Number) = Num.Value that
+        Comparable.from (_:Number) = Num_Comparator
+        Comparable.from (_:Num) = Num_Comparator
+
+        type Num_Comparator
+            compare x:Num y:Num = Ordering.compare x.n y.n
+            hash x:Num = Default_Comparator.hash x.n
 
         type Node
             C1 f1
@@ -87,7 +102,9 @@ public class EqualsBenchmarks {
 
         eq_vec vec1 vec2 =
             (0.up_to vec1.length).map idx->
-                (vec1.at idx) == (vec2.at idx)
+                v1 = vec1.at idx
+                v2 = vec2.at idx
+                v1 == v2
 
         eq x y = x == y
         """);
@@ -108,10 +125,37 @@ public class EqualsBenchmarks {
                 primitiveVectorSize / 64);
         codeBuilder
             .append(
-                generateVectorOfPrimitives(primitiveVectorSize, "vec1", 42, trueExpectedAt, random))
+                generateVectorOfPrimitives(
+                    primitiveVectorSize, "vec1", 42, trueExpectedAt, random, "%d", "%f"))
             .append("\n")
             .append(
-                generateVectorOfPrimitives(primitiveVectorSize, "vec2", 42, trueExpectedAt, random))
+                generateVectorOfPrimitives(
+                    primitiveVectorSize, "vec2", 42, trueExpectedAt, random, "%d", "%f"))
+            .append("\n");
+      }
+      case "equalsWithConversion" -> {
+        trueExpectedAt =
+            Set.of(
+                primitiveVectorSize / 2,
+                primitiveVectorSize / 4,
+                primitiveVectorSize / 8,
+                primitiveVectorSize / 16,
+                primitiveVectorSize / 32,
+                primitiveVectorSize / 64);
+        codeBuilder
+            .append(
+                generateVectorOfPrimitives(
+                    primitiveVectorSize, "vec1", 42, trueExpectedAt, random, "%d", "%f"))
+            .append("\n")
+            .append(
+                generateVectorOfPrimitives(
+                    primitiveVectorSize,
+                    "vec2",
+                    42,
+                    trueExpectedAt,
+                    random,
+                    "Num.Value %d",
+                    "Num.Value %f"))
             .append("\n");
       }
       case "equalsStrings" -> {
@@ -141,7 +185,7 @@ public class EqualsBenchmarks {
     }
 
     codeBuilder.append("""
-        bench x = eq_vec vec1 vec2
+        bench _ = eq_vec vec1 vec2
         """);
 
     module = ctx.eval(SrcUtil.source(benchmarkName, codeBuilder.toString()));
@@ -168,6 +212,11 @@ public class EqualsBenchmarks {
    */
   @Benchmark
   public void equalsPrimitives(Blackhole blackHole) {
+    performBenchmark(blackHole);
+  }
+
+  @Benchmark
+  public void equalsWithConversion(Blackhole blackHole) {
     performBenchmark(blackHole);
   }
 
@@ -207,7 +256,9 @@ public class EqualsBenchmarks {
       String vecName,
       Object identityElem,
       Collection<Integer> constantIdxs,
-      Random random) {
+      Random random,
+      String intFormat,
+      String doubleFormat) {
     var partSize = totalSize / 2;
     List<Object> primitiveValues = new ArrayList<>();
     random.ints(partSize).forEach(primitiveValues::add);
@@ -221,9 +272,9 @@ public class EqualsBenchmarks {
     sb.append(vecName).append(" = [");
     for (Object primitiveValue : primitiveValues) {
       if (primitiveValue instanceof Double dbl) {
-        sb.append(String.format("%f", dbl)).append(",");
+        sb.append(String.format(doubleFormat, dbl)).append(",");
       } else {
-        sb.append(primitiveValue).append(",");
+        sb.append(String.format(intFormat, primitiveValue)).append(",");
       }
     }
     // Replace last comma

@@ -5,4 +5,4 @@ from Standard.AWS import all
 import Standard.Visualization
 
 main =
-    operator1 = "Press ENTER key to create a new node"
+    operator1 = "Press ENTER key to create a new component"

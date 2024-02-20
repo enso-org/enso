@@ -57,17 +57,6 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return underlyingStorage.isUnaryOpVectorized(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    return underlyingStorage.runVectorizedUnaryMap(name, problemAggregator);
-  }
-
-  @Override
   public boolean isBinaryOpVectorized(String name) {
     return underlyingStorage.isBinaryOpVectorized(name);
   }

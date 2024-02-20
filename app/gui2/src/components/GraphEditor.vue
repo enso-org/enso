@@ -163,7 +163,8 @@ function sourcePortForSelection() {
 }
 
 useEvent(window, 'keydown', (event) => {
-  interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
+  ;(!keyboardBusy() && (interactionBindingsHandler(event) || graphBindingsHandler(event))) ||
+    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
@@ -281,7 +282,7 @@ const graphBindingsHandler = graphBindings.handler({
         // For collapsed function, only selected nodes would affect placement of the output node.
         collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
         edit
-          .checkedGet(refactoredNodeId)
+          .get(refactoredNodeId)
           .mutableNodeMetadata()
           .set('position', { x: position.x, y: position.y })
         if (outputNodeId != null) {
@@ -290,7 +291,7 @@ const graphBindingsHandler = graphBindings.handler({
             collapsedFunctionEnv,
           )
           edit
-            .checkedGet(outputNodeId)
+            .get(outputNodeId)
             .mutableNodeMetadata()
             .set('position', { x: position.x, y: position.y })
         }
@@ -325,7 +326,6 @@ const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
   toggle() {
-    if (keyboardBusyExceptIn(codeEditorArea.value)) return false
     showCodeEditor.value = !showCodeEditor.value
   },
 })
@@ -641,9 +641,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
-    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
-      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
-    </svg>
+    <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
 
     <ComponentBrowser
       v-if="componentBrowserVisible"
@@ -684,13 +682,6 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   overflow: clip;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
-}
-
-.svgBackdropLayer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: -1;
 }
 
 .htmlLayer {
