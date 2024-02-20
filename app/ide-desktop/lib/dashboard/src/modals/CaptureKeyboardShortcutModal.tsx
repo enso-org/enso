@@ -1,6 +1,8 @@
 /** @file A modal for capturing an arbitrary keyboard shortcut. */
 import * as React from 'react'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as modalProvider from '#/providers/ModalProvider'
 
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
@@ -13,6 +15,7 @@ import * as inputBindings from '#/utilities/inputBindings'
 // ==============================
 
 const DISALLOWED_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])
+const DELETE_KEY = detect.isOnMacOS() ? 'Backspace' : 'Delete'
 
 /** Extracts a partial keyboard shortcut from a {@link KeyboardEvent}. */
 function eventToPartialShortcut(event: KeyboardEvent | React.KeyboardEvent) {
@@ -24,6 +27,10 @@ function eventToPartialShortcut(event: KeyboardEvent | React.KeyboardEvent) {
     DISALLOWED_KEYS.has(event.key) ||
     (!event.ctrlKey && !event.altKey && !event.metaKey && event.key === 'Tab')
       ? null
+      : event.key === ' '
+      ? 'Space'
+      : event.key === DELETE_KEY
+      ? 'OsDelete'
       : event.key
   return { key, modifiers }
 }

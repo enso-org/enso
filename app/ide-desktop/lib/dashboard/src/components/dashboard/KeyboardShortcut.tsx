@@ -94,7 +94,9 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
               </span>
             )
         )}
-        <span className="leading-170 h-6 py-px">{shortcut.key}</span>
+        <span className="leading-170 h-6 py-px">
+          {shortcut.key === ' ' ? 'Space' : shortcut.key}
+        </span>
       </div>
     )
   }
