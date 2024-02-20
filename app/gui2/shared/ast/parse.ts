@@ -4,6 +4,7 @@ import {
   Token,
   asOwned,
   isTokenId,
+  newExternalId,
   parentId,
   rewriteRefs,
   subtreeRoots,
