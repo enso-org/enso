@@ -27,6 +27,7 @@ type S3_File
        Arguments:
        - uri: The URI of the file.
          The URI must be in the form `s3://bucket/path/to/file`.
+         If the path contains `.` or `..` segments, they will be normalized.
        - credentials: The credentials to use when accessing the file.
          If not specified, the default credentials are used.
     new : Text -> AWS_Credential | Nothing -> S3_File ! Illegal_Argument
@@ -254,7 +255,8 @@ type S3_File
     join : (Vector | Text) -> S3_File
     join self (subpaths : Vector | Text) =
         vec = Vector.unify_vector_or_element subpaths
-        vec.fold self (/)
+        vec_as_texts = vec.map subpath-> (subpath : Text)
+        S3_File.Value (self.s3_path.join vec_as_texts) self.credentials
 
     ## GROUP Standard.Base.Metadata
        Resolves the parent of this file.

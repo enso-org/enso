@@ -72,12 +72,17 @@ add_specs suite_builder =
 
             # Leading slash will mean starting back from bucket root:
             hello_txt / "/foo/bar" . should_equal (root / "foo/bar")
+            hello_txt / "/" . should_equal root
+            hello_txt / "////" . should_equal root
 
         group_builder.specify "should support path traversal using `join`" <|
             root.join ["foo", "bar"] . path . should_equal "s3://"+bucket_name+"/foo/bar"
             root.join ["a/b/", "c/d", "e"] . path . should_equal "s3://"+bucket_name+"/a/b/c/d/e"
             hello_txt.join ["../..", ".."] . should_equal root
-            hello_txt.join ["..", "a", ".."] . should_equal hello_txt
+            hello_txt.join ["..", "a", ".."] . should_equal hello_txt.parent
+
+        group_builder.specify "will normalize paths upon parsing" <|
+            S3_File.new "s3://bucketA/a/b/c/../././d/../e" . path . should_equal "s3://bucketA/a/b/e"
 
         group_builder.specify "should allow to check if one path is inside of another" <|
             hello_txt.is_descendant_of root . should_be_true
@@ -88,6 +93,8 @@ add_specs suite_builder =
             root.is_descendant_of root . should_be_false
             hello_txt.parent.is_descendant_of hello_txt.parent . should_be_false
 
+            IO.println hello_txt
+            IO.println hello_txt.parent
             hello_txt.is_descendant_of hello_txt.parent . should_be_true
             (root / "foo").is_descendant_of root . should_be_true
             (root / "foo/bar").is_descendant_of (root / "foo/") . should_be_true
