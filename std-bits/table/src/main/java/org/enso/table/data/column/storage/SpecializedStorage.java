@@ -81,17 +81,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return ops.isSupportedUnary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    return ops.runUnaryMap(name, this, problemAggregator);
-  }
-
-  @Override
   public boolean isBinaryOpVectorized(String name) {
     return ops.isSupportedBinary(name);
   }
