@@ -53,7 +53,7 @@ add_specs suite_builder =
             (root / "foo") . path . should_equal "s3://"+bucket_name+"/foo"
             (root / "foo") . name . should_equal "foo"
 
-            (root / "foo").is_directory . should_be_true
+            (root / "foo/").is_directory . should_be_true
             (root / "foo/" / "bar") . path . should_equal "s3://"+bucket_name+"/foo/bar"
             # It also works if the trailing slash is missing:
             (root / "foo" / "bar") . path . should_equal "s3://"+bucket_name+"/foo/bar"
@@ -81,7 +81,7 @@ add_specs suite_builder =
             root.is_descendant_of hello_txt . should_be_false
 
             hello_txt.is_descendant_of hello_txt . should_be_false
-            hello_txt.is_descendant_of hello_txt.parent . should_be_false
+            hello_txt.is_descendant_of hello_txt.parent . should_be_true
 
             (root / "foo").is_descendant_of root . should_be_true
             (root / "foo/bar").is_descendant_of (root / "foo/") . should_be_true

@@ -267,7 +267,7 @@ type S3_File
     ## GROUP Standard.Base.Metadata
        Checks if `self` is a descendant of `other`.
     is_descendant_of : S3_File -> Boolean
-    is_descendant_of self other = self.s3_path.is_descendant_of other.path
+    is_descendant_of self other = self.s3_path.is_descendant_of other.s3_path
 
     ## GROUP Standard.Base.Metadata
        Returns the path of this file.
