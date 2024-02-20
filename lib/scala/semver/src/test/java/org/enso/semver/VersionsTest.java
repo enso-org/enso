@@ -46,7 +46,7 @@ public class VersionsTest {
         assertTrue(v3.isLessThan(v2));
         assertTrue(v3.isLessThanOrEqual(v2));
         assertTrue(v2.isGreaterThan(v3));
-        
+
         assertTrue(SemVer.of(1, 2, 3).isLessThan(SemVer.of(4, 0, 0)));
         assertTrue(SemVer.of(4, 0, 0).isGreaterThan(SemVer.of(1, 0, 0)));
         assertTrue(SemVer.of(2, 9, 9).isLessThan(SemVer.of(3, 1, 1)));
@@ -54,5 +54,11 @@ public class VersionsTest {
         assertTrue(SemVer.of(2, 3, 0).isGreaterThan(SemVer.of(2, 1, 9)));
         assertTrue(SemVer.of(100, 0, 0).isGreaterThan(SemVer.of(1, 0, 0)));
         assertTrue(SemVer.of(21, 0, 0).isGreaterThan(SemVer.of(9, 0, 0)));
+    }
+
+    @Test
+    public void testInvalidVersion() throws Exception {
+        var v1 = SemVer.parse("1.001.0");
+        assertTrue(v1.isFailure());
     }
 }

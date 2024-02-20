@@ -18,7 +18,7 @@ public class SemVer {
     private Optional<String> preRelease;
     private Optional<String> prefix;
 
-    private static final Pattern regex = Pattern.compile("([a-z]+-)?(\\d+)\\.(\\d+)\\.(\\d+)(-[a-z]+)?");
+    private static final Pattern regex = Pattern.compile("([a-z]+-)?(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)(-[a-z]+)?");
 
     private SemVer(long major, long minor, long patch, Optional<String> preRelease, Optional<String> prefix) {
         this.major = major;
