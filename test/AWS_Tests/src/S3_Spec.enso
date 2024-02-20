@@ -174,7 +174,6 @@ add_specs suite_builder =
             root.name . should_equal "/"
             (root / "foo") . path . should_equal "s3://"+bucket_name+"/foo"
             (root / "foo") . name . should_equal "foo"
-            (root / "foo/" / "bar") . prefix . should_equal "foo/bar"
             (root / "foo/" / "bar") . path . should_equal "s3://"+bucket_name+"/foo/bar"
 
             # If `foo` lacks a `/` it is _not_ treated as a directory and cannot have children.
@@ -192,8 +191,7 @@ add_specs suite_builder =
 
         group_builder.specify "returns a valid name for files and 'directories'" <|
             hello_txt.name . should_equal "hello.txt"
-            # For the root, the name is the bucket name:
-            root.name . should_equal "enso-data-samples"
+            root.name . should_equal "/"
 
             (root / "foo/" / "bar") . name . should_equal "bar"
 
