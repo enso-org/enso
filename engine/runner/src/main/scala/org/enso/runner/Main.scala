@@ -1056,9 +1056,13 @@ object Main {
         exitFail()
     }
 
-  /** Default log level to use if the LOG_LEVEL option is not provided.
+  /** Default log level to use when starting a language server if the
+    * `LOG_LEVEL` option is not provided.
     */
-  private val defaultLogLevel: Level = Level.WARN
+  private val defaultServerLogLevel: Level = Level.WARN
+
+  /** Default log level to use if the `LOG_LEVEL` option is not provided. */
+  private val defaultLogLevel: Level = Level.ERROR
 
   /** Main entry point for the CLI program.
     *
@@ -1074,15 +1078,14 @@ object Main {
           exitFail()
         }
 
-    val logLevel = Option(line.getOptionValue(LOG_LEVEL))
-      .map(parseLogLevel)
-      .getOrElse(defaultLogLevel)
-    val connectionUri =
+    val logLevelOpt = Option(line.getOptionValue(LOG_LEVEL)).map(parseLogLevel)
+    val connectionUriOpt =
       Option(line.getOptionValue(LOGGER_CONNECT)).map(parseUri)
     val logMasking = !line.hasOption(NO_LOG_MASKING)
-    RunnerLogging.setup(connectionUri, logLevel, logMasking)
 
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
+      val logLevel = logLevelOpt.getOrElse(defaultServerLogLevel)
+      RunnerLogging.setup(connectionUriOpt, logLevel, logMasking)
       runLanguageServer(line, logLevel)
     }
 
@@ -1091,7 +1094,13 @@ object Main {
         System.err.println(error)
         exitFail()
       },
-      withProfiling(_)(runMain(options, line, logLevel, logMasking))
+      profilingConfig => {
+        val logLevel = logLevelOpt.getOrElse(defaultLogLevel)
+        RunnerLogging.setup(connectionUriOpt, logLevel, logMasking)
+        withProfiling(profilingConfig)(
+          runMain(options, line, logLevel, logMasking)
+        )
+      }
     )
   }
 
