@@ -23,7 +23,7 @@ export function setPresence<T>(set: Set<T>, value: T, presence: boolean) {
  *
  * This is an immutable version of {@link setPresence}, so it returns a new set if the old set
  * would have been mutated, and returns the original set if it would not have been mutated. */
-export function withPresence<T>(set: Set<T>, value: T, presence: boolean) {
+export function withPresence<T>(set: ReadonlySet<T>, value: T, presence: boolean) {
   if (presence === set.has(value)) {
     return set
   } else {

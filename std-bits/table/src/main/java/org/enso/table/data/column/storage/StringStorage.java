@@ -5,8 +5,6 @@ import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.UnaryMapOperation;
-import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
@@ -92,24 +90,6 @@ public final class StringStorage extends SpecializedStorage<String> {
           }
         });
     t.add(
-        new UnaryMapOperation<>(Maps.IS_EMPTY) {
-          @Override
-          protected BoolStorage runUnaryMap(
-              SpecializedStorage<String> storage, MapOperationProblemAggregator problemAggregator) {
-            BitSet r = new BitSet();
-            Context context = Context.getCurrent();
-            for (int i = 0; i < storage.size; i++) {
-              String s = storage.data[i];
-              if (s == null || s.isEmpty()) {
-                r.set(i);
-              }
-
-              context.safepoint();
-            }
-            return new BoolStorage(r, new BitSet(), storage.size, false);
-          }
-        });
-    t.add(
         new StringBooleanOp(Maps.STARTS_WITH) {
           @Override
           protected boolean doString(String a, String b) {
@@ -121,13 +101,6 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected boolean doString(String a, String b) {
             return Text_Utils.ends_with(a, b);
-          }
-        });
-    t.add(
-        new UnaryIntegerOp<>(Maps.TEXT_LENGTH) {
-          @Override
-          protected long doOperation(String a) {
-            return Text_Utils.grapheme_length(a);
           }
         });
     t.add(

@@ -47,7 +47,6 @@ class LibraryUploadTest
           override def findDependencies(pkg: Package[File]): Set[LibraryName] =
             Set(LibraryName("Standard", "Base"))
         }
-        import scala.concurrent.ExecutionContext.Implicits.global
         LibraryUploader(dependencyExtractor)
           .uploadLibrary(
             projectRoot,

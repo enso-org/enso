@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
@@ -98,7 +97,7 @@ type Image
              image.write path image [Write_Flag.JPEG_Quality 40, Write_Flag.JPEG_Progressive]
     write : Writable_File  -> (Write_Flag | Vector) -> Nothing ! File_Error
     write self location:Writable_File flags=[] =
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Writing the image to a file is forbidden as the Output context is disabled.") else
+        Context.Output.if_enabled disabled_message="Writing the image to a file is forbidden as the Output context is disabled." panic=False <|
             write_flags = case flags of
                 _ : Vector -> flags
                 _ -> [flags]
