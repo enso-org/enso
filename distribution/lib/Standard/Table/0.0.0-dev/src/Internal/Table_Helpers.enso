@@ -178,7 +178,7 @@ type Table_Column_Helper
 
        It may allow selection of columns by index, name or computing a derived
        expression.
-    resolve_column_or_expression : (Integer | Text) -> Problem_Builder -> Any | Nothing
+    resolve_column_or_expression : (Integer | Text | Expression) -> Problem_Builder -> Any | Nothing
     resolve_column_or_expression self selector problem_builder = case selector of
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)

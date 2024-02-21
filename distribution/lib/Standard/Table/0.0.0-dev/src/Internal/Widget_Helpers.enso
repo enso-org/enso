@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Numeric_Input, Single_Choice, Vector_Editor
+from Standard.Base.Metadata.Widget import Numeric_Input, Single_Choice, Text_Input, Vector_Editor
 from Standard.Base.System.File_Format import format_types
 from Standard.Base.Widget_Helpers import make_format_chooser
 
@@ -144,9 +144,9 @@ make_join_condition_selector table display=Display.Always =
     col_names_selector = make_column_name_selector table display=Display.Always
 
     fqn = Meta.get_qualified_type_name Join_Condition
-    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector]]
-    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector]]
-    between = Option "Between" fqn+".Between" [["left", col_names_selector]]
+    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector], ["right", Text_Input]]
+    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector], ["right", Text_Input]]
+    between = Option "Between" fqn+".Between" [["left", col_names_selector], ["right_lower", Text_Input], ["right_upper", Text_Input]]
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names

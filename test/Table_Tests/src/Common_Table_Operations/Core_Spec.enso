@@ -172,7 +172,7 @@ add_specs suite_builder setup =
             t3.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "bar2", "bar3"]
 
         group_builder.specify "should not allow illegal column names" <|
-            data.table.set (data.table.get "bar") new_name='a\0b' . should_fail_with Invalid_Column_Names
+            data.table.set (data.table.get "bar") as='a\0b' . should_fail_with Invalid_Column_Names
 
         group_builder.specify "should allow replacing a column" <|
             foo = data.table.get "bar" . rename "foo"
@@ -192,9 +192,9 @@ add_specs suite_builder setup =
 
         group_builder.specify "should not affect existing columns that depended on the old column being replaced" <|
             t1 = table_builder [["X", [1,2,3]]]
-            t2 = t1.set (t1.at "X" * 100) new_name="Y"
-            t3 = t2.set "[X] + 10" new_name="Z"
-            t4 = t3.set "[X] + 1000" new_name="X"
+            t2 = t1.set (t1.at "X" * 100) as="Y"
+            t3 = t2.set "[X] + 10" as="Z"
+            t4 = t3.set "[X] + 1000" as="X"
 
             t4.at "X" . to_vector . should_equal [1001, 1002, 1003]
             t4.at "Y" . to_vector . should_equal [100, 200, 300]
@@ -202,7 +202,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should gracefully handle expression failures" <|
             t1 = table_builder [["X", [1,2,3]]]
-            t1.set "[unknown] + 10" new_name="Z" . should_fail_with No_Such_Column
+            t1.set "[unknown] + 10" as="Z" . should_fail_with No_Such_Column
             t1.set "[[[[" . should_fail_with Expression_Error
             t1.set "[[[[" . catch . should_be_a Expression_Error.Syntax_Error
 
@@ -222,7 +222,7 @@ add_specs suite_builder setup =
 
             # These errors currently only work in in-memory.
             if setup.is_database.not then
-                action2 = t1.set "3 / [X]" new_name="Z" on_problems=_
+                action2 = t1.set "3 / [X]" as="Z" on_problems=_
                 tester2 table =
                     table.at "Z" . to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
                 problems2 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]

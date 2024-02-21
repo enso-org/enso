@@ -413,7 +413,7 @@ add_specs suite_builder setup =
             c1 = Warning.attach (Illegal_State.Error "FOO") (t1.evaluate_expression "3.0 + [X]")
             Problems.expect_warning Illegal_State c1
 
-            t2 = t1.set c1 new_name="Y"
+            t2 = t1.set c1 as="Y"
             Problems.expect_warning Illegal_State t2
 
             r1 = t2.filter "Y" (Filter_Condition.Equal 5)

@@ -281,6 +281,6 @@ add_specs suite_builder setup =
 
         group_builder.specify "Should not disambiguate if the new name is explicitly set" <|
             t = table_builder [["X", [1, 2, 3]]]
-            t2 = t.set (Column_Operation.Add (Column_Ref.Name "X") 1) new_name="X"
+            t2 = t.set (Column_Operation.Add (Column_Ref.Name "X") 1) as="X"
             t2.column_names . should_equal ["X"]
             t2.at "X" . to_vector . should_equal [2, 3, 4]
