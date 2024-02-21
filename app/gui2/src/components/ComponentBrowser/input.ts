@@ -460,8 +460,12 @@ export function useComponentBrowserInput(
   function setSourceNode(sourcePort: AstId, operator: string = '.') {
     const sourceNodeName = graphDb.getOutputPortIdentifier(sourcePort)
     code.value = sourceNodeName ? `${sourceNodeName}${operator}` : ''
+    console.log(code.value)
+    console.log(code.value.length)
     selection.value = { start: code.value.length, end: code.value.length }
   }
+
+  watch(selection, console.log, { flush: 'sync' })
 
   return {
     /** The current input's text (code). */
