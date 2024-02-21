@@ -21,7 +21,8 @@ object DependencyFilter {
 
   def shouldIgnore(moduleInfo: DepModuleInfo): Boolean = {
     val isEnsoModule = moduleInfo.organization == "org.enso"
-    val isGuavaEmptyPlaceholder = moduleInfo.version == "9999.0-empty-to-avoid-conflict-with-guava"
+    val isGuavaEmptyPlaceholder =
+      moduleInfo.version == "9999.0-empty-to-avoid-conflict-with-guava"
     isEnsoModule || isGuavaEmptyPlaceholder
   }
 }
