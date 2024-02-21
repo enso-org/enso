@@ -900,7 +900,7 @@ export default class RemoteBackend extends Backend {
 
   /** Send a binary HTTP PUT request to the given path. */
   private putBinary<T = void>(path: string, payload: Blob) {
-    return this.client.putBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    return this.client.putBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send an HTTP DELETE request to the given path. */
