@@ -93,8 +93,6 @@ add_specs suite_builder =
             root.is_descendant_of root . should_be_false
             hello_txt.parent.is_descendant_of hello_txt.parent . should_be_false
 
-            IO.println hello_txt
-            IO.println hello_txt.parent
             hello_txt.is_descendant_of hello_txt.parent . should_be_true
             (root / "foo").is_descendant_of root . should_be_true
             (root / "foo/bar").is_descendant_of (root / "foo/") . should_be_true
