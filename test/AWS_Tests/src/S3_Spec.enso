@@ -66,14 +66,14 @@ add_specs suite_builder =
             err.catch.to_display_text . should_contain "Cannot move above root"
 
             hello_txt.parent.parent.parent . should_equal root
-            hello_txt / "../../.." . should_equal root
+            (hello_txt / "../../..") . should_equal root
             hello_txt.parent . should_equal (root / "examples/" / "folder 2/")
             hello_txt.parent.is_directory . should_be_true
 
             # Leading slash will mean starting back from bucket root:
-            hello_txt / "/foo/bar" . should_equal (root / "foo/bar")
-            hello_txt / "/" . should_equal root
-            hello_txt / "////" . should_equal root
+            (hello_txt / "/foo/bar") . should_equal (root / "foo/bar")
+            (hello_txt / "/") . should_equal root
+            (hello_txt / "////") . should_equal root
 
         group_builder.specify "should support path traversal using `join`" <|
             root.join ["foo", "bar"] . path . should_equal "s3://"+bucket_name+"/foo/bar"
