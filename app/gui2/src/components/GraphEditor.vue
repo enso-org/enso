@@ -418,6 +418,18 @@ function hideComponentBrowser() {
   componentBrowserVisible.value = false
 }
 
+function onComponentBrowserClose(
+  content: string,
+  requiredImports: RequiredImport[],
+  anyUserInputChange: boolean,
+) {
+  if (anyUserInputChange) {
+    onComponentBrowserCommit(content, requiredImports)
+  } else {
+    onComponentBrowserCancel()
+  }
+}
+
 function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
   if (content != null) {
     if (graphStore.editedNodeInfo) {
@@ -656,7 +668,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       :nodePosition="componentBrowserNodePosition"
       :usage="componentBrowserUsage"
       @accepted="onComponentBrowserCommit"
-      @closed="onComponentBrowserCommit"
+      @closed="onComponentBrowserClose"
       @canceled="onComponentBrowserCancel"
     />
     <TopBar

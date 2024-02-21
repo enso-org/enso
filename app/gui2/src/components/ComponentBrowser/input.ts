@@ -10,7 +10,7 @@ import {
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import { RawAst, RawAstExtended, astContainingChar } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract.ts'
+import { isOperator, type AstId } from '@/util/ast/abstract.ts'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
 import { MappedSet } from '@/util/containers'
@@ -23,7 +23,7 @@ import {
 } from '@/util/qualifiedName'
 import { equalFlat } from 'lib0/array'
 import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
-import { computed, ref, type ComputedRef } from 'vue'
+import { computed, ref, watch, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
@@ -70,9 +70,35 @@ export function useComponentBrowserInput(
   suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
 ) {
   const code = ref('')
+  // Contains the Usage structure after reset until any change, then false.
+  const rightAfterReset = ref<Usage | false>(false)
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => RawAstExtended.parse(code.value))
   const imports = ref<RequiredImport[]>([])
+
+  watch(
+    code,
+    (newCode, oldCode) => {
+      if (newCode != oldCode) {
+        const rightAfterResetBefore = rightAfterReset.value
+        rightAfterReset.value = false
+        // When user, right after opening CB with source node types operator, we should
+        // re-initialize input with it instead of dot at the end.
+        const startedTyping = rightAfterResetBefore && newCode.startsWith(oldCode)
+        if (
+          startedTyping &&
+          rightAfterResetBefore.type === 'newNode' &&
+          rightAfterResetBefore.sourcePort
+        ) {
+          const typed = newCode.substring(oldCode.length)
+          if (isOperator(typed)) {
+            setSourceNode(rightAfterResetBefore.sourcePort, ` ${typed} `)
+          }
+        }
+      }
+    },
+    { flush: 'sync' },
+  )
 
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
@@ -164,6 +190,8 @@ export function useComponentBrowserInput(
     if (ctx.type === 'insert' && ctx.oprApp?.lastOpr()?.repr() === '.') return true
     return false
   })
+
+  const anyChange = computed(() => !rightAfterReset.value)
 
   function readOprApp(
     leafParent: IteratorResult<RawAstExtended<RawAst.Tree, false>>,
@@ -414,10 +442,7 @@ export function useComponentBrowserInput(
     switch (usage.type) {
       case 'newNode':
         if (usage.sourcePort) {
-          const sourceNodeName = graphDb.getOutputPortIdentifier(usage.sourcePort)
-          code.value = sourceNodeName ? sourceNodeName + '.' : ''
-          const caretPosition = code.value.length
-          selection.value = { start: caretPosition, end: caretPosition }
+          setSourceNode(usage.sourcePort)
         } else {
           code.value = ''
           selection.value = { start: 0, end: 0 }
@@ -429,11 +454,20 @@ export function useComponentBrowserInput(
         break
     }
     imports.value = []
+    rightAfterReset.value = usage
+  }
+
+  function setSourceNode(sourcePort: AstId, operator: string = '.') {
+    const sourceNodeName = graphDb.getOutputPortIdentifier(sourcePort)
+    code.value = sourceNodeName ? `${sourceNodeName}${operator}` : ''
+    selection.value = { start: code.value.length, end: code.value.length }
   }
 
   return {
     /** The current input's text (code). */
     code,
+    /** A flag indicating that input was changed after last reset. */
+    anyChange,
     /** The current selection (or cursor position if start is equal to end). */
     selection,
     /** The editing context deduced from code and selection */

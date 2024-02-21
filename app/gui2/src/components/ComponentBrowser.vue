@@ -43,7 +43,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [searcherExpression: string, requiredImports: RequiredImport[]]
+  closed: [
+    searcherExpression: string,
+    requiredImports: RequiredImport[],
+    anyUserInputChange: boolean,
+  ]
   canceled: []
 }>()
 
@@ -135,6 +139,13 @@ watch(
 )
 
 function handleDefocus(e: FocusEvent) {
+  console.log(
+    'focusout',
+    e.relatedTarget,
+    cbRoot.value != null,
+    e.relatedTarget instanceof Node,
+    cbRoot.value?.contains(e.relatedTarget),
+  )
   const stillInside =
     cbRoot.value != null &&
     e.relatedTarget instanceof Node &&
@@ -146,6 +157,13 @@ function handleDefocus(e: FocusEvent) {
   }
 }
 
+function preventNonInputDefault(e: Event) {
+  console.log('check', e, inputField.value, e.target !== inputField.value)
+  if (inputField.value != null && e.target !== inputField.value) {
+    e.preventDefault()
+  }
+}
+
 useEvent(
   window,
   'pointerdown',
@@ -153,7 +171,7 @@ useEvent(
     if (event.button !== 0) return
     if (!(event.target instanceof Element)) return
     if (!cbRoot.value?.contains(event.target)) {
-      emit('closed', input.code.value, input.importsToAdd())
+      emit('closed', input.code.value, input.importsToAdd(), input.anyChange.value)
     }
   },
   { capture: true },
@@ -363,7 +381,9 @@ const handler = componentBrowserBindings.handler({
     tabindex="-1"
     @focusout="handleDefocus"
     @keydown="handler"
-    @pointerdown.stop
+    @pointerdown.stop="preventNonInputDefault"
+    @pointerup.stop="preventNonInputDefault"
+    @click.stop="preventNonInputDefault"
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop
