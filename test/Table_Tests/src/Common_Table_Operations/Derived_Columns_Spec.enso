@@ -68,7 +68,7 @@ add_specs suite_builder setup =
             t.set (Simple_Expression.From 2 (Simple_Calculation.Power (Column_Ref.Name "A"))) "C" . at "C" . to_vector . should_equal [2, 4]
             t.set (Simple_Expression.From 3 (Simple_Calculation.Power 4)) "C" . at "C" . to_vector . should_equal [81, 81]
 
-            t.set (Simple_Expression.From "x" (Simple_Calculation.Subtract "y")) . should_fail_with Invalid_Value_Type 
+            Test.expect_panic Type_Error <| t.set (Simple_Expression.From "x" (Simple_Calculation.Subtract "y"))
             t.set (Simple_Expression.From 42 (Simple_Calculation.Add "y")) . should_fail_with Illegal_Argument
 
         group_builder.specify "rounding" <|
@@ -114,7 +114,7 @@ add_specs suite_builder setup =
             t2.set (Simple_Expression.From (Column_Ref.Name "C") (Simple_Calculation.Date_Part Time_Period.Second)) . should_fail_with Illegal_Argument
             t2.set (Simple_Expression.From (Column_Ref.Name "D") (Simple_Calculation.Date_Add 5 Date_Period.Year)) . should_fail_with Illegal_Argument
             t.set (Simple_Expression.From (Column_Ref.Name "x") (Simple_Calculation.Date_Part Date_Period.Year)) . should_fail_with Invalid_Value_Type
-            t2.set (Simple_Expression.From 42 (Simple_Calculation.Date_Diff "x" Date_Period.Year)) . should_fail_with Invalid_Value_Type
+            Test.expect_panic Type_Error <| t2.set (Simple_Expression.From 42 (Simple_Calculation.Date_Diff "x" Date_Period.Year))
 
         group_builder.specify "boolean" <|
             t = table_builder [["A", [True, False]], ["T", [True, True]]]
@@ -131,7 +131,7 @@ add_specs suite_builder setup =
             t.set (Simple_Expression.From False Simple_Calculation.Not) "Z" . at "Z" . to_vector . should_equal [True, True]
 
             t.set (Simple_Expression.From 42 (Simple_Calculation.And True)) . should_fail_with Invalid_Value_Type
-            t.set (Simple_Expression.From (Column_Ref.Name "A") (Simple_Calculation.Or "x")) . should_fail_with Invalid_Value_Type
+            Test.expect_panic Type_Error <| t.set (Simple_Expression.From (Column_Ref.Name "A") (Simple_Calculation.Or "x"))
 
         group_builder.specify "if" <|
             t = table_builder [["A", [1, 100]], ["B", [10, 40]], ["C", [23, 55]]]
