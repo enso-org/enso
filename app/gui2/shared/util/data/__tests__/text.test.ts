@@ -16,6 +16,20 @@ test.prop({
   expect(applyTextEdits(beforeString, edits)).toBe(afterString)
 })
 
+/** Test that `textChangeToEdits` and `applyTextEdits` work when inputs contain any special characters representable by
+ *  a `string`, including newlines and even incomplete surrogate pairs (invalid Unicode).
+ */
+test.prop({
+  before: fc.array(fc.string16bits(), { maxLength: 8 }),
+})('textChangeToEdits / applyTextEdits round-trip: Special characters', ({ before }) => {
+  const beforeString = before.join('\n')
+  // Produce the after-string by rearranging the lines of the before-string, so that the edit-relationship between them
+  // is non-trivial.
+  const afterString = before.sort().join('\n')
+  const edits = textChangeToEdits(beforeString, afterString)
+  expect(applyTextEdits(beforeString, edits)).toBe(afterString)
+})
+
 /** Tests that:
  *  - When the code in `a[0]` is edited to become the code in `b[0]`,
  *    `applyTextEditsToSpans` followed by `trimEnd` transforms the spans in `a.slice(1)` into the spans in `b.slice(1)`.
