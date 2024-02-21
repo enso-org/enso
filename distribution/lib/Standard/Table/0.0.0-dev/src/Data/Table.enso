@@ -1467,7 +1467,7 @@ type Table
     filter_by_expression self expression on_problems=Report_Warning =
         column = self.evaluate_expression expression on_problems
         result = self.filter column Filter_Condition.Is_True
-        Warning.attach (Deprecated.Warning "Standard.Table.Data.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
+        Warning.attach (Deprecated.Warning "Standard.Table.Data.Table.Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
     ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections

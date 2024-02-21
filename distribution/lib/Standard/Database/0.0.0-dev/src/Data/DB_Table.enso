@@ -704,7 +704,7 @@ type DB_Table
     ## PRIVATE
        Filter out all rows.
     remove_all_rows : DB_Table
-    remove_all_rows self = self.filter_by_expression "0==1"
+    remove_all_rows self = self.filter (Expression.Value "0==1")
 
     ## ALIAS add index column, rank, record id
        GROUP Standard.Base.Values

@@ -490,7 +490,7 @@ type Regex_Syntax_Error
     to_display_text : Text
     to_display_text self = "Regex Syntax Error:" + self.message
 
-## Shorthand to creates a regular expression from a Text value.
+## Shorthand to create a regular expression from a Text value.
 
    If an empty regex is used, throws an Illegal_Argument error.
 
