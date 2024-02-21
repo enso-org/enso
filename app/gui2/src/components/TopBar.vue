@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import ExecutionModeSelector from '@/components/ExecutionModeSelector.vue'
 import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBar from '@/components/NavBar.vue'
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
+import RecordControl from '@/components/RecordControl.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { computed } from 'vue'
 
@@ -39,10 +39,9 @@ const barStyle = computed(() => {
 
 <template>
   <div class="TopBar" :style="barStyle">
-    <ExecutionModeSelector
-      :modes="props.modes"
-      :modelValue="props.mode"
-      @update:modelValue="emit('update:mode', $event)"
+    <RecordControl
+      :mode="props.mode"
+      @update:mode="emit('update:mode', $event)"
       @execute="emit('execute')"
     />
     <NavBar
