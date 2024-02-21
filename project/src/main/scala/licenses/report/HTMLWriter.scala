@@ -114,9 +114,12 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
     * @param elements sequence of functions that will be called to write each of
     *                 the list's elements; everything written inside of each
     *                 function will be part of its list element
+    * @param addBullets specifies if the list should include bullet points for each entry
     */
-  def writeList(elements: Seq[() => Unit]): Unit = {
-    writer.println("<ul>")
+  def writeList(elements: Seq[() => Unit], addBullets: Boolean = true): Unit = {
+    val opening =
+      if (addBullets) "<ul>" else "<ul style=\"list-style-type: none;\">"
+    writer.println(opening)
     for (elem <- elements) {
       writer.println("<li>")
       elem()

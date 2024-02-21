@@ -210,24 +210,28 @@ object Report {
             rowWriter.addColumn {
               if (files.isEmpty) writer.writeText("No attached files.")
               else
-                writer.writeList(files.map { case (file, status) =>
-                  () =>
-                    val injection = writer.makeInjectionHandler(
-                      "file-ui",
-                      "package"  -> dep.information.packageName,
-                      "filename" -> file.path.toString,
-                      "status"   -> status.toString
-                    )
-                    val origin = file.origin
-                      .map(origin => s" (Found at $origin)")
-                      .getOrElse("")
-                    writer.writeCollapsible(
-                      s"${file.fileName} (${renderStatus(status)})$origin " +
-                      s"${renderSimilarity(defaultLicense, file, status)}",
-                      injection +
-                      writer.escape(file.content)
-                    )
-                })
+                writer.writeList(
+                  files.map { case (file, status) =>
+                    () =>
+                      val injection = writer.makeInjectionHandler(
+                        "file-ui",
+                        "package"  -> dep.information.packageName,
+                        "filename" -> file.path.toString,
+                        "status"   -> status.toString
+                      )
+                      val origin = file.origin
+                        .map(origin => s" (Found at $origin)")
+                        .getOrElse("")
+                      writer.writeCollapsible(
+                        s"${file.fileName} (${renderStatus(status)})$origin " +
+                        s"${renderSimilarity(defaultLicense, file, status)}",
+                        injection +
+                        writer.escape(file.content)
+                      )
+                  },
+                  // Bullets are not needed because jQuery CSS will handle this better
+                  addBullets = false
+                )
             }
             rowWriter.addColumn {
               if (copyrights.isEmpty) {
@@ -242,39 +246,42 @@ object Report {
                   writer.writeText("No copyright information found.")
                 }
               } else
-                writer.writeList(copyrights.sortBy(_._1.content).map {
-                  case (mention, status) =>
-                    () =>
-                      val foundAt = mention.origins match {
-                        case Seq()    => ""
-                        case Seq(one) => s"Found at $one"
-                        case Seq(first, rest @ _*) =>
-                          s"Found at $first and ${rest.size} other files."
-                      }
+                writer.writeList(
+                  copyrights.sortBy(_._1.content).map {
+                    case (mention, status) =>
+                      () =>
+                        val foundAt = mention.origins match {
+                          case Seq()    => ""
+                          case Seq(one) => s"Found at $one"
+                          case Seq(first, rest @ _*) =>
+                            s"Found at $first and ${rest.size} other files."
+                        }
 
-                      val contexts = if (mention.contexts.nonEmpty) {
-                        mention.contexts
-                          .map(c => "\n" + writer.escape(c) + "\n")
-                          .mkString("<hr>")
-                      } else ""
+                        val contexts = if (mention.contexts.nonEmpty) {
+                          mention.contexts
+                            .map(c => "\n" + writer.escape(c) + "\n")
+                            .mkString("<hr>")
+                        } else ""
 
-                      val injection = writer.makeInjectionHandler(
-                        "copyright-ui",
-                        "package" -> dep.information.packageName,
-                        "content" -> Base64.getEncoder.encodeToString(
-                          mention.content.getBytes(StandardCharsets.UTF_8)
-                        ),
-                        "contexts" -> mention.contexts.length.toString,
-                        "status"   -> status.toString
-                      )
+                        val injection = writer.makeInjectionHandler(
+                          "copyright-ui",
+                          "package" -> dep.information.packageName,
+                          "content" -> Base64.getEncoder.encodeToString(
+                            mention.content.getBytes(StandardCharsets.UTF_8)
+                          ),
+                          "contexts" -> mention.contexts.length.toString,
+                          "status"   -> status.toString
+                        )
 
-                      val content  = writer.escape(mention.content)
-                      val moreInfo = injection + foundAt + contexts
-                      writer.writeCollapsible(
-                        s"$content (${renderStatus(status)})",
-                        moreInfo
-                      )
-                })
+                        val content  = writer.escape(mention.content)
+                        val moreInfo = injection + foundAt + contexts
+                        writer.writeCollapsible(
+                          s"$content (${renderStatus(status)})",
+                          moreInfo
+                        )
+                  }, // Bullets are not needed because jQuery CSS will handle this better
+                  addBullets = false
+                )
             }
       }
     )
