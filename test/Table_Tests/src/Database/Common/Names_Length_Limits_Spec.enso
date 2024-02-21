@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Join_Kind, Aggregate_Column, Value_Type
+from Standard.Table import Table, Join_Kind, Aggregate_Column, Value_Type, expr
 from Standard.Table.Errors import No_Such_Column, Name_Too_Long, Truncated_Column_Names, Duplicate_Output_Column_Names
 
 from Standard.Database import all

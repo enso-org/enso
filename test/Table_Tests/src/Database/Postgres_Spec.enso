@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Data.Type.Value_Type.Bits
-from Standard.Table import Table, Value_Type, Aggregate_Column
+from Standard.Table import Table, Value_Type, Aggregate_Column, expr
 from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 import Standard.Database.Data.DB_Column.DB_Column

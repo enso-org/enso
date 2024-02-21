@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert
 
-from Standard.Table import Table, Sort_Column, Aggregate_Column
+from Standard.Table import Table, Sort_Column, Aggregate_Column, expr
 from Standard.Table.Errors import all
 
 from Standard.Database import all
