@@ -107,26 +107,28 @@ fn else_block() {
 #[test]
 fn if_then_else_chained_block() {
     #[rustfmt::skip]
-    test("if True then True else False\n .to_text", block![
-        (ArgumentBlockApplication
+    test("if True then True else False\n    . to_text", block![
+        (OperatorBlockApplication
             (MultiSegmentApp #(((Ident if) (Ident True))
                 ((Ident then) (Ident True))
                 ((Ident else) (Ident False)
             )))
-            #((OprSectionBoundary 1 (OprApp () (Ok ".") (Ident to_text))))
+            #(((Ok ".") (Ident to_text)))
+            #()
         )]);
 }
 
 #[test]
 fn if_then_else_chained_block_with_group() {
     #[rustfmt::skip]
-    test("(if True then True else False)\n .to_text", block![
-        (ArgumentBlockApplication
+    test("(if True then True else False)\n    . to_text", block![
+        (OperatorBlockApplication
             (Group (MultiSegmentApp #(((Ident if) (Ident True))
                 ((Ident then) (Ident True))
                 ((Ident else) (Ident False)
             ))))
-            #((OprSectionBoundary 1 (OprApp () (Ok ".") (Ident to_text))))
+            #(((Ok ".") (Ident to_text)))
+            #()
         )]);
 }
 
