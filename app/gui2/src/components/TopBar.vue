@@ -1,13 +1,12 @@
 <script setup lang="ts">
+import ExecutionModeSelector from '@/components/ExecutionModeSelector.vue'
 import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBar from '@/components/NavBar.vue'
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
-import ProjectTitle from '@/components/ProjectTitle.vue'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { computed } from 'vue'
 
 const props = defineProps<{
-  title: string
   breadcrumbs: BreadcrumbItem[]
   modes: string[]
   mode: string
@@ -40,11 +39,10 @@ const barStyle = computed(() => {
 
 <template>
   <div class="TopBar" :style="barStyle">
-    <ProjectTitle
-      :title="props.title"
+    <ExecutionModeSelector
       :modes="props.modes"
-      :mode="props.mode"
-      @update:mode="emit('update:mode', $event)"
+      :modelValue="props.mode"
+      @update:modelValue="emit('update:mode', $event)"
       @execute="emit('execute')"
     />
     <NavBar

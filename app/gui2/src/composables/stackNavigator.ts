@@ -30,7 +30,10 @@ export function useStackNavigator() {
   })
 
   function stackItemToLabel(item: StackItem): string {
-    return graphStore.db.stackItemToMethodName(item) ?? 'unknown'
+    const methodName = graphStore.db.stackItemToMethodName(item)
+    if (!methodName) return 'unknown'
+    if (methodName === 'main') return projectStore.displayName
+    return methodName
   }
 
   function handleBreadcrumbClick(index: number) {
