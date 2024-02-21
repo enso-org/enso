@@ -123,17 +123,18 @@ impl<'a> SegmentMap<'a> {
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
 pub struct Resolver<'s> {
-    blocks:     Vec<Block>,
+    blocks:        Vec<Block>,
     /// The lines of all currently-open blocks. This is partitioned by `blocks`.
-    lines:      Vec<syntax::item::Line<'s>>,
+    lines:         Vec<syntax::item::Line<'s>>,
     /// All currently-open macros. These are partitioned into scopes by `blocks`.
-    macros:     Vec<PartiallyMatchedMacro<'s>>,
+    macros:        Vec<PartiallyMatchedMacro<'s>>,
     /// Segments of all currently-open macros. These are partitioned by `macros`.
-    segments:   Vec<MatchedSegment<'s>>,
+    segments:      Vec<MatchedSegment<'s>>,
     /// Items of all segments of all currently-open macros. These are partitioned by `segments`.
-    items:      Vec<syntax::Item<'s>>,
-    context:    Context,
-    precedence: syntax::operator::Precedence<'s>,
+    items:         Vec<syntax::Item<'s>>,
+    context:       Context,
+    precedence:    syntax::operator::Precedence<'s>,
+    start_segment: bool,
 }
 
 
@@ -143,13 +144,14 @@ impl<'s> Resolver<'s> {
     /// Create a new resolver, in statement context.
     pub fn new_statement() -> Self {
         Self {
-            context:    Context::Statement,
-            precedence: syntax::operator::Precedence::new(),
-            blocks:     default(),
-            lines:      default(),
-            macros:     default(),
-            segments:   default(),
-            items:      default(),
+            context:       Context::Statement,
+            precedence:    syntax::operator::Precedence::new(),
+            blocks:        default(),
+            lines:         default(),
+            macros:        default(),
+            segments:      default(),
+            items:         default(),
+            start_segment: false,
         }
     }
 
@@ -227,6 +229,8 @@ impl<'s> Resolver<'s> {
 
     /// Append a token to the state.
     fn push(&mut self, root_macro_map: &MacroMap, token: Token<'s>) {
+        let was_start_segment = self.start_segment;
+        self.start_segment = false;
         match token.variant {
             token::Variant::Newline(newline) => {
                 if !self.lines.is_empty() {
@@ -237,7 +241,10 @@ impl<'s> Resolver<'s> {
                 self.context = Context::Statement;
             }
             token::Variant::BlockStart(_) => {
-                self.finish_current_line();
+                if !was_start_segment {
+                    trace!("Finishing line!!!! {:?}", token);
+                    self.finish_current_line();
+                }
                 let macros_start = self.macros.len();
                 let outputs_start = self.lines.len();
                 let items = self.items.len();
@@ -267,6 +274,7 @@ impl<'s> Resolver<'s> {
                             let items_start = self.items.len();
                             self.segments.push(MatchedSegment { header, items_start });
                             self.context = Context::Expression;
+                            self.start_segment = true;
                             break;
                         }
                         Step::NormalToken(item) => {
