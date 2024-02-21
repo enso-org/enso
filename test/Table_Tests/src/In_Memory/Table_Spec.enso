@@ -877,7 +877,7 @@ add_specs suite_builder =
                             Test.with_clue "("+column_vector.to_text+" Is_In "+in_vector.to_text+"): " <|
                                 t.filter "X" (Filter_Condition.Is_In in_vector) . at "X" . to_vector . should_equal expected_vector
                                 t.filter "X" (Filter_Condition.Is_In in_column) . at "X" . to_vector . should_equal expected_vector
-                                t2 = t.set (t.at "X" . not) new_name="Y"
+                                t2 = t.set (t.at "X" . not) as="Y"
                                 t2.filter "Y" (Filter_Condition.Is_In in_vector) . at "Y" . to_vector . should_equal expected_neg_vector
                                 t2.filter "Y" (Filter_Condition.Is_In in_column) . at "Y" . to_vector . should_equal expected_neg_vector
 

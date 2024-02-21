@@ -72,7 +72,7 @@ add_specs suite_builder =
             foo = data.t1.at "A" . rename "FOO"
             foo.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "FOO" FROM "T1" AS "T1"', []]
 
-            t3 = t2.set foo new_name="bar"
+            t3 = t2.set foo as="bar"
             t3.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B", "T1"."A" AS "bar" FROM "T1" AS "T1"', []]
 
         group_builder.specify "should fail if at is called for a non-existent column" <|
