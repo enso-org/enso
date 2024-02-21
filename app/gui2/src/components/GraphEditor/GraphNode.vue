@@ -426,8 +426,9 @@ function openFullMenu() {
     </div>
     <GraphNodeError v-if="error" class="message" :message="error" type="error" />
     <GraphNodeError
-      v-if="warning && nodeHovered && isSelected"
+      v-if="warning && (nodeHovered || isSelected)"
       class="message warning"
+      :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
       :message="warning"
       type="warning"
     />
@@ -658,8 +659,11 @@ function openFullMenu() {
   margin-top: 4px;
 }
 
-.warning {
+.messageWithMenu {
   left: 40px;
+}
+
+.warning {
   top: 35px;
 }
 </style>
