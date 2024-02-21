@@ -464,6 +464,8 @@ const handler = componentBrowserBindings.handler({
         :nodePosition="nodePosition"
         :scale="1"
         :isCircularMenuVisible="false"
+        :isFullscreen="false"
+        :width="null"
         :dataSource="previewDataSource"
       />
       <div ref="inputElement" class="CBInput">

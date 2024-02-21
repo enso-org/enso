@@ -74,7 +74,7 @@ import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type { ColumnResizedEvent } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
-import { computed, onMounted, reactive, ref, watchEffect, type Ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
 const { Grid, LicenseManager } = await import('ag-grid-enterprise')
 
 const props = defineProps<{ data: Data }>()
@@ -375,8 +375,11 @@ onMounted(() => {
   } else {
     console.warn('The AG_GRID_LICENSE_KEY is not defined.')
   }
-  new Grid(tableNode.value!, agGridOptions.value)
   updateColumnWidths()
+})
+
+onUnmounted(() => {
+  agGridOptions.value.api?.destroy()
 })
 </script>
 

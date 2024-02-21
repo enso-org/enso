@@ -286,32 +286,94 @@ export const useGraphStore = defineStore('graph', () => {
   function normalizeVisMetadata(
     id: Opt<VisualizationIdentifier>,
     visible: boolean | undefined,
+    fullscreen: boolean | undefined,
+    width: Opt<number>,
   ): VisualizationMetadata | undefined {
-    const vis: VisualizationMetadata = { identifier: id ?? null, visible: visible ?? false }
-    if (visMetadataEquals(vis, { identifier: null, visible: false })) return undefined
+    const vis: VisualizationMetadata = { identifier: id ?? null, visible: visible ?? false, fullscreen: fullscreen ?? false, width: width ?? null }
+    if (visMetadataEquals(vis, { identifier: null, visible: false, fullscreen: false, width: null })) return undefined
     else return vis
+  }
+
+  function normalizeVisMetadata2(
+    partial: Partial<VisualizationMetadata>
+  ): VisualizationMetadata | undefined {
+    const empty: VisualizationMetadata = {
+      identifier: null,
+      visible: false,
+      fullscreen: false,
+      width: null,
+    }
+    const vis: VisualizationMetadata = { ...empty, ...partial }
+    if (visMetadataEquals(vis, empty)) return undefined
+    else return vis
+  }
+
+  function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
+    const nodeAst = syncModule.value?.get(nodeId)
+    if (!nodeAst) return
+    editNodeMetadata(nodeAst, (metadata) => {
+      const data: Partial<VisualizationMetadata> = {
+        identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
+        visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
+        fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
+        width: vis.width ?? metadata.get('visualization')?.width ?? null,
+      }
+      metadata.set('visualization', normalizeVisMetadata2(data))
+    })
   }
 
   function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
     const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
-    editNodeMetadata(nodeAst, (metadata) =>
+    editNodeMetadata(nodeAst, (metadata) => {
+      const visible = metadata.get('visualization')?.visible
+      const fullscreen = metadata.get('visualization')?.fullscreen
+      const width = metadata.get('visualization')?.width
       metadata.set(
         'visualization',
-        normalizeVisMetadata(vis, metadata.get('visualization')?.visible),
-      ),
-    )
+        normalizeVisMetadata(vis, visible, fullscreen, width),
+      )
+    })
   }
 
-  function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
+  function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean, fullscreen?: boolean | undefined) {
     const nodeAst = syncModule.value?.get(nodeId)
     if (!nodeAst) return
-    editNodeMetadata(nodeAst, (metadata) =>
+    editNodeMetadata(nodeAst, (metadata) => {
+      const fullscreen_ = fullscreen ?? metadata.get('visualization')?.fullscreen
+      const width = metadata.get('visualization')?.width
       metadata.set(
         'visualization',
-        normalizeVisMetadata(metadata.get('visualization')?.identifier, visible),
-      ),
-    )
+        normalizeVisMetadata(metadata.get('visualization')?.identifier, visible, fullscreen_, width),
+      )
+    })
+  }
+
+  function setNodeVisualizationFullscreen(nodeId: NodeId, fullscreen: boolean) {
+    const nodeAst = syncModule.value?.get(nodeId)
+    if (!nodeAst) return
+    editNodeMetadata(nodeAst, (metadata) => {
+      const visible = metadata.get('visualization')?.visible
+      const width = metadata.get('visualization')?.width
+      metadata.set(
+        'visualization',
+        normalizeVisMetadata(metadata.get('visualization')?.identifier, visible, fullscreen, width),
+      )
+    })
+  }
+
+  function setNodeVisualizationWidth(nodeId: NodeId, width: number) {
+    const nodeAst = syncModule.value?.get(nodeId)
+    if (!nodeAst) return
+    console.log('set visualization width:', nodeId, width)
+    editNodeMetadata(nodeAst, (metadata) => {
+      const visible = metadata.get('visualization')?.visible
+      const fullscreen = metadata.get('visualization')?.fullscreen
+      metadata.set(
+        'visualization',
+        normalizeVisMetadata(metadata.get('visualization')?.identifier, visible, fullscreen, width),
+      )
+    })
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
@@ -558,8 +620,11 @@ export const useGraphStore = defineStore('graph', () => {
     ensureCorrectNodeOrder,
     setNodeContent,
     setNodePosition,
+    setNodeVisualization,
     setNodeVisualizationId,
     setNodeVisualizationVisible,
+    setNodeVisualizationFullscreen,
+    setNodeVisualizationWidth,
     stopCapturingUndo,
     topLevel,
     updateNodeRect,

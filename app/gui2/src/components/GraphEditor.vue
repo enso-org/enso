@@ -241,8 +241,16 @@ const graphBindingsHandler = graphBindings.handler({
         .every((id) => !(graphStore.db.nodeIdToNode.get(id)?.vis?.visible !== true))
 
       for (const nodeId of nodeSelection.selected) {
-        graphStore.setNodeVisualizationVisible(nodeId, !allVisible)
+        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
+    })
+  },
+  toggleVisualizationFullscreen() {
+    if (keyboardBusy()) return false
+    graphStore.transact(() => {
+      const selected = set.first(nodeSelection.selected)
+      const isFullscreen = graphStore.db.nodeIdToNode.get(selected)?.vis?.fullscreen
+      graphStore.setNodeVisualization(selected, { visible: true, fullscreen: !isFullscreen })
     })
   },
   copyNode() {

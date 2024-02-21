@@ -20,6 +20,7 @@ import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
 import { computedAsync } from '@vueuse/core'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
+import { visualizationBindings } from '@/bindings'
 import {
   computed,
   onErrorCaptured,
@@ -30,6 +31,8 @@ import {
   watchEffect,
   type ShallowRef,
 } from 'vue'
+import { useEvent } from '@/composables/events'
+import { debouncedGetter } from '@/util/reactivity'
 
 const TOP_WITHOUT_TOOLBAR_PX = 36
 const TOP_WITH_TOOLBAR_PX = 72
@@ -39,7 +42,9 @@ const props = defineProps<{
   isCircularMenuVisible: boolean
   nodePosition: Vec2
   nodeSize: Vec2
+  width: Opt<number>
   scale: number
+  isFullscreen: boolean
   typename?: string | undefined
   dataSource?: VisualizationDataSource | undefined
   data?: any | undefined
@@ -48,6 +53,8 @@ const emit = defineEmits<{
   'update:rect': [rect: Rect | undefined]
   'update:id': [id: VisualizationIdentifier]
   'update:visible': [visible: boolean]
+  'update:fullscreen': [fullscreen: boolean]
+  'update:width': [width: number]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -200,7 +207,9 @@ watchEffect(async () => {
 })
 
 const isBelowToolbar = ref(false)
-let width = ref<number | null>(null)
+let width = ref<Opt<number>>(props.width)
+const debouncedWidth = debouncedGetter(() => width.value, 300)
+watch(debouncedWidth, (value) => value != null && emit('update:width', value))
 let height = ref(150)
 
 watchEffect(() =>
@@ -218,13 +227,31 @@ watchEffect(() =>
 
 onUnmounted(() => emit('update:rect', undefined))
 
+const keydownHandler = visualizationBindings.handler({
+  nextType: () => {
+    const allTypes = Array.from(visualizationStore.types(props.typename))
+    const currentIndex = allTypes.findIndex((type) => type.name === currentType.value?.name)
+    const nextIndex = (currentIndex + 1) % allTypes.length
+    emit('update:id', allTypes[nextIndex]!)
+  }
+})
+
+useEvent(window, 'keydown', (event) => {
+  keydownHandler(event)
+})
+
 provideVisualizationConfig({
-  fullscreen: false,
+  get fullscreen() {
+    return props.isFullscreen
+  },
+  set fullscreen(value) {
+    emit('update:fullscreen', value)
+  },
   get scale() {
     return props.scale
   },
   get width() {
-    return width.value
+    return width.value ?? null
   },
   set width(value) {
     width.value = value
