@@ -170,6 +170,29 @@ useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
 onMounted(() => viewportNode.value?.focus())
 
+function zoomToSelected() {
+  if (!viewportNode.value) return
+  let left = Infinity
+  let top = Infinity
+  let right = -Infinity
+  let bottom = -Infinity
+  const nodesToCenter =
+    nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
+  for (const id of nodesToCenter) {
+    const rect = graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id)
+    if (!rect) continue
+    left = Math.min(left, rect.left)
+    right = Math.max(right, rect.right)
+    top = Math.min(top, rect.top)
+    bottom = Math.max(bottom, rect.bottom)
+  }
+  graphNavigator.panAndZoomTo(
+    Rect.FromBounds(left, top, right, bottom),
+    0.1,
+    Math.max(1, graphNavigator.scale),
+  )
+}
+
 const graphBindingsHandler = graphBindings.handler({
   undo() {
     projectStore.module?.undoManager.undo()
@@ -202,26 +225,7 @@ const graphBindingsHandler = graphBindings.handler({
     })
   },
   zoomToSelected() {
-    if (!viewportNode.value) return
-    let left = Infinity
-    let top = Infinity
-    let right = -Infinity
-    let bottom = -Infinity
-    const nodesToCenter =
-      nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
-    for (const id of nodesToCenter) {
-      const rect = graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id)
-      if (!rect) continue
-      left = Math.min(left, rect.left)
-      right = Math.max(right, rect.right)
-      top = Math.min(top, rect.top)
-      bottom = Math.max(bottom, rect.bottom)
-    }
-    graphNavigator.panAndZoomTo(
-      Rect.FromBounds(left, top, right, bottom),
-      0.1,
-      Math.max(1, graphNavigator.scale),
-    )
+    zoomToSelected()
   },
   selectAll() {
     if (keyboardBusy()) return
@@ -417,7 +421,7 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
     if (graphStore.editedNodeInfo) {
       // We finish editing a node.
       graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
-    } else {
+    } else if (content != '') {
       // We finish creating a new node.
       const metadata = undefined
       const createdNode = graphStore.createNode(
@@ -660,10 +664,14 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
+      :zoomLevel="100.0 * graphNavigator.scale"
       @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
       @back="stackNavigator.exitNode"
       @forward="stackNavigator.enterNextNodeFromHistory"
       @execute="onPlayButtonPress()"
+      @fitToAllClicked="zoomToSelected"
+      @zoomIn="graphNavigator.scale *= 1.1"
+      @zoomOut="graphNavigator.scale *= 0.9"
     />
     <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
     <Transition>

@@ -589,7 +589,9 @@ export const useProjectStore = defineStore('project', () => {
         executionContext.setVisualization(id, config)
         onCleanup(() => executionContext.setVisualization(id, null))
       },
-      { immediate: true },
+      // Make sure to flush this watch in 'post', otherwise it might cause operations on stale
+      // ASTs just before the widget tree renders and cleans up the associated widget instances.
+      { immediate: true, flush: 'post' },
     )
 
     return shallowRef(
