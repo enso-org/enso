@@ -68,11 +68,12 @@ make_aggregate_column_vector_selector table display=Display.Always =
 
 ## PRIVATE
    Make a column name selector.
-make_column_name_selector : Table -> Display -> Widget
-make_column_name_selector table display=Display.Always =
+make_column_name_selector : Table -> Boolean -> Display -> Widget
+make_column_name_selector table add_expression:Boolean=False display=Display.Always =
     col_names = table.column_names
     names = col_names.map n-> Option n n.pretty
-    Single_Choice display=display values=names
+    expression = if add_expression then [Option "<Expression>" "(expr '["+table.column_names.first+"]')"] else []
+    Single_Choice display=display values=(expression+names)
 
 ## PRIVATE
    Make a multiple column name selector.
@@ -150,7 +151,7 @@ make_join_condition_selector table display=Display.Always =
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
-    Vector_Editor item_editor=item_editor item_default="(Join_Condition.Equal "+table.column_names.first.pretty+")" display=display
+    Vector_Editor item_editor=item_editor item_default="(Join_Condition.Equals "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE
    Make a column name selector.
