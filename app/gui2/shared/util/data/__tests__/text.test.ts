@@ -1,5 +1,20 @@
-import { expect, test } from 'vitest'
-import { applyTextEditsToSpans, textChangeToEdits, trimEnd } from '../text'
+import { fc, test } from '@fast-check/vitest'
+import { expect } from 'vitest'
+import { applyTextEdits, applyTextEditsToSpans, textChangeToEdits, trimEnd } from '../text'
+
+test.prop({
+  before: fc.array(fc.boolean(), { minLength: 32, maxLength: 64 }),
+  after: fc.array(fc.boolean(), { minLength: 32, maxLength: 64 }),
+})('textChangeToEdits / applyTextEdits round-trip', ({ before, after }) => {
+  // Generate strings composed of a mix of only two characters so that `textChangeToEdits` will find a variety of
+  // similarities between the inputs.
+  const stringFromBools = (bools: Array<boolean>) =>
+    bools.map((bool) => (bool ? 't' : 'f')).join('')
+  const beforeString = stringFromBools(before)
+  const afterString = stringFromBools(after)
+  const edits = textChangeToEdits(beforeString, afterString)
+  expect(applyTextEdits(beforeString, edits)).toBe(afterString)
+})
 
 /** Tests that:
  *  - When the code in `a[0]` is edited to become the code in `b[0]`,
