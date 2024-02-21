@@ -148,7 +148,7 @@ type Decomposed_S3_Path
         new_stack = self.parts.fold List.Nil stack-> part-> case part.name of
             "." -> stack
             ".." -> case stack of
-                List.Nil -> Error.throw (S3_Error.Error "Cannot move above root folder.")
+                List.Nil -> Error.throw (S3_Error.Error "Cannot move above root folder." Nothing)
                 List.Cons _ tail -> tail
             _ -> List.Cons part stack
         new_parts = new_stack.to_vector.reverse
