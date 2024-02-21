@@ -27,8 +27,6 @@ test('Leaving entered nodes', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
 
-  await page.waitForTimeout(600)
-
   await page.mouse.dblclick(100, 100)
   await expectInsideFunc1(page)
 

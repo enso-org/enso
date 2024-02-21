@@ -43,11 +43,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [
-    searcherExpression: string,
-    requiredImports: RequiredImport[],
-    anyUserInputChange: boolean,
-  ]
+  closed: [searcherExpression: string, requiredImports: RequiredImport[], anyInputChange: boolean]
   canceled: []
 }>()
 
@@ -141,13 +137,6 @@ watch(
 )
 
 function handleDefocus(e: FocusEvent) {
-  console.log(
-    'focusout',
-    e.relatedTarget,
-    cbRoot.value != null,
-    e.relatedTarget instanceof Node,
-    cbRoot.value?.contains(e.relatedTarget),
-  )
   const stillInside =
     cbRoot.value != null &&
     e.relatedTarget instanceof Node &&
@@ -159,8 +148,12 @@ function handleDefocus(e: FocusEvent) {
   }
 }
 
+/** Prevent default on an event if input is not its target.
+ *
+ * The mouse events emitted on other elements may make input selection disappear, what we want to
+ * avoid.
+ */
 function preventNonInputDefault(e: Event) {
-  console.log('check', e, inputField.value, e.target !== inputField.value)
   if (inputField.value != null && e.target !== inputField.value) {
     e.preventDefault()
   }

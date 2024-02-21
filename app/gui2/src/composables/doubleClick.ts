@@ -13,7 +13,6 @@ export function useDoubleClick<Args extends any[]>(
   let singleClickTimer: ReturnType<typeof setTimeout>
 
   const handleClick = (...args: Args) => {
-    console.log('clickCount', clickCount)
     clickCount++
     if (clickCount === 1) {
       onClick(...args)

@@ -319,11 +319,9 @@ const graphBindingsHandler = graphBindings.handler({
 
 const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
-    console.log('111')
     graphBindingsHandler(e)
   },
   () => {
-    console.log('222')
     if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
@@ -421,9 +419,9 @@ function hideComponentBrowser() {
 function onComponentBrowserClose(
   content: string,
   requiredImports: RequiredImport[],
-  anyUserInputChange: boolean,
+  anyInputChange: boolean,
 ) {
-  if (anyUserInputChange) {
+  if (anyInputChange) {
     onComponentBrowserCommit(content, requiredImports)
   } else {
     onComponentBrowserCancel()

@@ -70,28 +70,38 @@ export function useComponentBrowserInput(
   suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
 ) {
   const code = ref('')
-  // Contains the Usage structure after reset until any change.
-  const rightAfterReset = ref<Usage>()
+  const cbUsage = ref<Usage>()
+  const anyChange = ref(false)
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => RawAstExtended.parse(code.value))
   const imports = ref<RequiredImport[]>([])
 
-  const inputModel = computed({
+  // Code Model to being edited externally (by user).
+  //
+  // Some user actions (like typing operator right after input) may handled differently than
+  // internal changes (like applying suggestion).
+  const codeModel = computed({
     get: () => code.value,
     set: (newValue) => {
       if (newValue != code.value) {
         // When user, right after opening CB with source node types operator, we should
         // re-initialize input with it instead of dot at the end.
-        const blah = rightAfterReset.value
-        const startedTyping = blah && newValue.startsWith(code.value)
+        const startedTyping = !anyChange.value && newValue.startsWith(code.value)
         const typed = newValue.substring(code.value.length)
         code.value = newValue
+        anyChange.value = true
 
-        if (startedTyping && blah.type === 'newNode' && blah.sourcePort && isOperator(typed)) {
-          const sourcePort = blah.sourcePort
+        if (
+          startedTyping &&
+          cbUsage.value?.type === 'newNode' &&
+          cbUsage.value?.sourcePort &&
+          isOperator(typed)
+        ) {
+          const sourcePort = cbUsage.value.sourcePort
+          // We do any code updates in next tick, as in the current we may yet expect selection
+          // changes we would like to override.
           nextTick(() => setSourceNode(sourcePort, ` ${typed}`))
         }
-        rightAfterReset.value = undefined
       }
     },
   })
@@ -186,8 +196,6 @@ export function useComponentBrowserInput(
     if (ctx.type === 'insert' && ctx.oprApp?.lastOpr()?.repr() === '.') return true
     return false
   })
-
-  const anyChange = computed(() => !rightAfterReset.value)
 
   function readOprApp(
     leafParent: IteratorResult<RawAstExtended<RawAst.Tree, false>>,
@@ -450,7 +458,8 @@ export function useComponentBrowserInput(
         break
     }
     imports.value = []
-    rightAfterReset.value = usage
+    cbUsage.value = usage
+    anyChange.value = false
   }
 
   function setSourceNode(sourcePort: AstId, operator: string = '.') {
@@ -461,15 +470,9 @@ export function useComponentBrowserInput(
     selection.value = { start: code.value.length, end: code.value.length }
   }
 
-  watch(
-    selection,
-    (newVal, oldVal) => console.error(JSON.stringify(newVal), JSON.stringify(oldVal)),
-    { flush: 'sync', deep: true, immediate: true, onTrigger: () => console.trace() },
-  )
-
   return {
     /** The current input's text (code). */
-    code: inputModel,
+    code: codeModel,
     /** A flag indicating that input was changed after last reset. */
     anyChange,
     /** The current selection (or cursor position if start is equal to end). */

@@ -414,11 +414,10 @@ function openFullMenu() {
     />
     <div
       class="node"
-      @click="handleNodeClick"
+      @click.stop="handleNodeClick"
       v-on="dragPointer.events"
       @pointerdown.stop
       @pointerup.stop
-      @click.stop
     >
       <SvgIcon class="icon grab-handle" :name="icon" @click.right.stop="openFullMenu"></SvgIcon>
       <div ref="contentNode" class="widget-tree">

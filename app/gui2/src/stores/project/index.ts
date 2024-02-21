@@ -310,7 +310,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   }
 
   pop() {
-    console.trace('POPPING', this.desiredStack.length)
     if (this.desiredStack.length === 1) {
       console.debug('Cannot pop last item from execution context stack')
       return
@@ -318,7 +317,6 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     this.desiredStack.pop()
     this.queue.pushTask(async (state) => {
       if (!state.created) return state
-      console.log('POPPING2', state.stack.length)
       if (state.stack.length === 1) {
         console.debug('Cannot pop last item from execution context stack')
         return state
