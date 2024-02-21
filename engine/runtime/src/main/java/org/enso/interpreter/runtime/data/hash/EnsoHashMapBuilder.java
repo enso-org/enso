@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.hash;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import java.util.Arrays;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
@@ -87,10 +88,10 @@ final class EnsoHashMapBuilder {
    * Otherwise it may return new builder suitable for additions.
    */
   public EnsoHashMapBuilder asModifiable(
-      int atGeneration, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+      VirtualFrame frame, int atGeneration, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     if (atGeneration != generation || generation * 4 > byHash.length * 3) {
       var newSize = Math.max(actualSize * 2, byHash.length);
-      return rehash(newSize, atGeneration, hashCodeNode, equalsNode);
+      return rehash(frame, newSize, atGeneration, hashCodeNode, equalsNode);
     } else {
       return this;
     }
@@ -102,7 +103,12 @@ final class EnsoHashMapBuilder {
    * equal key, it marks it as removed, if it hasn't been removed yet. Once it finds an empty slot,
    * it puts there a new entry with the next generation.
    */
-  public void put(Object key, Object value, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+  public void put(
+      VirtualFrame frame,
+      Object key,
+      Object value,
+      HashCodeNode hashCodeNode,
+      EqualsNode equalsNode) {
     var at = findWhereToStart(key, hashCodeNode);
     var nextGeneration = ++generation;
     var replacingExistingKey = false;
@@ -114,7 +120,7 @@ final class EnsoHashMapBuilder {
         byHash[at] = new StorageEntry(key, value, nextGeneration);
         return;
       }
-      if (compare(equalsNode, byHash[at].key(), key)) {
+      if (compare(frame, equalsNode, byHash[at].key(), key)) {
         var invalidatedEntry = byHash[at].markRemoved(nextGeneration);
         if (invalidatedEntry != byHash[at]) {
           byHash[at] = invalidatedEntry;
@@ -133,14 +139,18 @@ final class EnsoHashMapBuilder {
    * given {@code generation}.
    */
   public StorageEntry get(
-      Object key, int generation, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+      VirtualFrame frame,
+      Object key,
+      int generation,
+      HashCodeNode hashCodeNode,
+      EqualsNode equalsNode) {
     var at = findWhereToStart(key, hashCodeNode);
     for (var i = 0; i < byHash.length; i++) {
       if (byHash[at] == null) {
         return null;
       }
       if (byHash[at].isVisible(generation)) {
-        if (compare(equalsNode, key, byHash[at].key())) {
+        if (compare(frame, equalsNode, key, byHash[at].key())) {
           return byHash[at];
         }
       }
@@ -164,14 +174,15 @@ final class EnsoHashMapBuilder {
    *
    * @return true if the removal was successful false otherwise.
    */
-  public boolean remove(Object key, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+  public boolean remove(
+      VirtualFrame frame, Object key, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     var at = findWhereToStart(key, hashCodeNode);
     var nextGeneration = ++generation;
     for (var i = 0; i < byHash.length; i++) {
       if (byHash[at] == null) {
         return false;
       }
-      if (compare(equalsNode, key, byHash[at].key())) {
+      if (compare(frame, equalsNode, key, byHash[at].key())) {
         var invalidatedEntry = byHash[at].markRemoved(nextGeneration);
         if (invalidatedEntry != byHash[at]) {
           byHash[at] = invalidatedEntry;
@@ -191,12 +202,16 @@ final class EnsoHashMapBuilder {
    * atGeneration}.
    */
   private EnsoHashMapBuilder rehash(
-      int size, int atGeneration, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+      VirtualFrame frame,
+      int size,
+      int atGeneration,
+      HashCodeNode hashCodeNode,
+      EqualsNode equalsNode) {
     var newBuilder = new EnsoHashMapBuilder(size);
     for (var i = 0; i < byHash.length; i++) {
       var entry = byHash[i];
       if (entry != null && entry.isVisible(atGeneration)) {
-        newBuilder.put(entry.key(), entry.value(), hashCodeNode, equalsNode);
+        newBuilder.put(frame, entry.key(), entry.value(), hashCodeNode, equalsNode);
       }
     }
     return newBuilder;
@@ -224,11 +239,11 @@ final class EnsoHashMapBuilder {
         + "}";
   }
 
-  private static boolean compare(EqualsNode equalsNode, Object a, Object b) {
+  private static boolean compare(VirtualFrame frame, EqualsNode equalsNode, Object a, Object b) {
     if (a instanceof Double aDbl && b instanceof Double bDbl && aDbl.isNaN() && bDbl.isNaN()) {
       return true;
     } else {
-      return equalsNode.execute(a, b);
+      return equalsNode.execute(frame, a, b);
     }
   }
 

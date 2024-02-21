@@ -39,7 +39,7 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
-  const { numberOfSelectedItems, assetEvents, dispatchAssetListEvent, nodeMap } = state
+  const { selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
@@ -138,7 +138,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       onClick={event => {
         if (
           eventModule.isSingleClick(event) &&
-          ((selected && numberOfSelectedItems === 1) ||
+          ((selected && selectedKeys.current.size === 1) ||
             shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
         ) {
           event.stopPropagation()

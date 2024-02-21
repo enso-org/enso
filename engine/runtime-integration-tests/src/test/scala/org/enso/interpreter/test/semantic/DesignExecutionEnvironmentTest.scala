@@ -24,7 +24,9 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |
           |main = Panic.catch Any (input_action 2) p-> p.payload.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Forbidden_Operation.Error 'Input')"
+      eval(
+        code
+      ) shouldEqual "(Forbidden_Operation.Error 'The Input context is disabled.')"
     }
 
     "error on invalid context actions" in {
@@ -37,7 +39,9 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |
           |main = Panic.catch Any (Runtime.with_enabled_context Output (input_action 2)) p-> p.payload.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Forbidden_Operation.Error 'Input')"
+      eval(
+        code
+      ) shouldEqual "(Forbidden_Operation.Error 'The Input context is disabled.')"
     }
 
     "error on invalid environment actions" in {
@@ -78,7 +82,9 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |
           |main = Panic.catch Any (output_action 2) p-> p.payload.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Forbidden_Operation.Error 'Output')"
+      eval(
+        code
+      ) shouldEqual "(Forbidden_Operation.Error 'The Output context is disabled.')"
     }
 
     "scope of context is limited" in {
@@ -93,7 +99,9 @@ class DesignExecutionEnvironmentTest extends InterpreterTest {
           |    res = Runtime.with_enabled_context Input action=(input_action 2)
           |    Panic.catch Any (input_action 2) p-> res.to_text+" and "+p.payload.to_text
           |""".stripMargin
-      eval(code) shouldEqual "2 and (Forbidden_Operation.Error 'Input')"
+      eval(
+        code
+      ) shouldEqual "2 and (Forbidden_Operation.Error 'The Input context is disabled.')"
     }
 
     "allow locally running IO" in {

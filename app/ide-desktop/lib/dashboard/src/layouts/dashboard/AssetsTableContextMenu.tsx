@@ -43,9 +43,9 @@ const pluralize = string.makePluralize('item', 'items')
 export interface AssetsTableContextMenuProps {
   readonly hidden?: boolean
   readonly category: Category
-  readonly pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
-  readonly selectedKeys: Set<backendModule.AssetId>
-  readonly setSelectedKeys: (items: Set<backendModule.AssetId>) => void
+  readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
+  readonly selectedKeys: ReadonlySet<backendModule.AssetId>
+  readonly clearSelectedKeys: () => void
   readonly nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
   readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
@@ -61,7 +61,7 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { category, pasteData, selectedKeys, setSelectedKeys, nodeMapRef, event } = props
+  const { category, pasteData, selectedKeys, clearSelectedKeys, nodeMapRef, event } = props
   const { dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
   const { backend } = backendProvider.useBackend()
@@ -98,7 +98,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         <ConfirmDeleteModal
           description={`${selectedKeys.size} selected ${pluralized}`}
           doDelete={() => {
-            setSelectedKeys(new Set())
+            clearSelectedKeys()
             dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
           }}
         />
@@ -130,7 +130,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
                     forever
                     description={`${selectedKeys.size} selected ${pluralized}`}
                     doDelete={() => {
-                      setSelectedKeys(new Set())
+                      clearSelectedKeys()
                       dispatchAssetEvent({ type: AssetEventType.deleteForever, ids: selectedKeys })
                     }}
                   />
