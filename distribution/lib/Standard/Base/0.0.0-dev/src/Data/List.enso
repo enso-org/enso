@@ -555,7 +555,7 @@ type List
 
              example_first = Examples.list.find (> 2)
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=(Error.throw Not_Found) =
+    find self condition (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         predicate = unify_condition_or_predicate condition
         case start.signum of
             -1 ->
@@ -583,7 +583,7 @@ type List
 
              [1, 2, 3, 4, 5].find (> 3)
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 = case start.signum of
+    index_of self condition (start : Integer = 0) = case start.signum of
         -1 ->
             node_and_index = find_node_from_end self start
             found = node_and_index.first.index_of condition 0
@@ -611,7 +611,7 @@ type List
 
              [1, 2, 3, 4, 5].find (> 3)
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 = case self of
+    last_index_of self condition (start : Integer = -1) = case self of
         Nil -> if start == -1 || start == 0 then Nothing else Error.throw (Index_Out_Of_Bounds.Error start 0)
         Cons _ _ ->
             length = self.length

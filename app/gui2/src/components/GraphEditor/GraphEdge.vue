@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { useGraphStore, type Edge } from '@/stores/graph'
+import { isConnected, useGraphStore, type Edge } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -15,6 +15,7 @@ const graph = useGraphStore()
 
 const props = defineProps<{
   edge: Edge
+  maskSource?: boolean
 }>()
 
 const base = ref<SVGPathElement>()
@@ -61,14 +62,33 @@ const targetRect = computed<Rect | undefined>(() => {
     return undefined
   }
 })
+
+const sourceNodeRect = computed<Rect | undefined>(() => {
+  return sourceNode.value && graph.nodeRects.get(sourceNode.value)
+})
+
 const sourceRect = computed<Rect | undefined>(() => {
-  if (sourceNode.value != null) {
-    return graph.nodeRects.get(sourceNode.value)
+  if (sourceNodeRect.value) {
+    return sourceNodeRect.value
   } else if (navigator?.sceneMousePos != null) {
     return new Rect(navigator.sceneMousePos, Vec2.Zero)
   } else {
     return undefined
   }
+})
+
+type NodeMask = {
+  id: string
+  rect: Rect
+  radius: number
+}
+const sourceMask = computed<NodeMask | undefined>(() => {
+  if (!props.maskSource) return
+  const rect = sourceNodeRect.value
+  if (!rect) return
+  const radius = 16
+  const id = `mask_for_edge_to-${props.edge.target ?? 'unconnected'}`
+  return { id, rect, radius }
 })
 
 const edgeColor = computed(
@@ -95,7 +115,6 @@ interface Inputs {
 interface JunctionPoints {
   points: Vec2[]
   maxRadius: number
-  targetAttachment: { target: Vec2; length: number } | undefined
 }
 
 function circleIntersection(x: number, r1: number, r2: number): number {
@@ -140,8 +159,8 @@ function circleIntersection(x: number, r1: number, r2: number): number {
  */
 
 /** Calculate the start and end positions of each 1-corner section composing an edge to the
- *  given offset. Return the points, the maximum radius that should be used to draw the corners
- *  connecting them, and the length of the target attachment bit.
+ *  given offset. Return the points and the maximum radius that should be used to draw the corners
+ *  connecting them.
  */
 function junctionPoints(inputs: Inputs): JunctionPoints | null {
   let halfSourceSize = inputs.sourceSize?.scale(0.5) ?? Vec2.Zero
@@ -210,7 +229,6 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     return {
       points: [source, targetAttachment],
       maxRadius,
-      targetAttachment: attachment,
     }
   } else {
     const radiusMax = theme.edge.three_corner.radius_max
@@ -262,7 +280,6 @@ function junctionPoints(inputs: Inputs): JunctionPoints | null {
     return {
       points: [source, j0, j1, attachmentTarget],
       maxRadius: radiusMax,
-      targetAttachment: attachment,
     }
   }
 }
@@ -432,44 +449,75 @@ const arrowTransform = computed(() => {
   if (pos != null) return `translate(${pos.x},${pos.y})`
   else return undefined
 })
+
+const connected = computed(() => isConnected(props.edge))
 </script>
 
 <template>
   <template v-if="basePath">
-    <path
-      v-if="activePath"
-      :d="basePath"
-      class="edge visible dimmed"
-      :style="baseStyle"
-      :data-source-node-id="sourceNode"
-      :data-target-node-id="targetNode"
-    />
-    <path
-      :d="basePath"
-      class="edge io"
-      :data-source-node-id="sourceNode"
-      :data-target-node-id="targetNode"
-      @pointerdown="click"
-      @pointerenter="hovered = true"
-      @pointerleave="hovered = false"
-    />
-    <path
-      ref="base"
-      :d="activePath ?? basePath"
-      class="edge visible"
-      :style="activePath ? activeStyle : baseStyle"
-      :data-source-node-id="sourceNode"
-      :data-target-node-id="targetNode"
-    />
-    <polygon
-      v-if="arrowTransform"
-      :transform="arrowTransform"
-      points="0,-9.375 -9.375,9.375 9.375,9.375"
-      class="arrow visible"
-      :style="baseStyle"
-      :data-source-node-id="sourceNode"
-      :data-target-node-id="targetNode"
-    />
+    <mask
+      v-if="sourceMask && navigator"
+      :id="sourceMask.id"
+      :x="navigator.viewport.left"
+      :y="navigator.viewport.top"
+      width="100%"
+      height="100%"
+      maskUnits="userSpaceOnUse"
+    >
+      <rect
+        :x="navigator.viewport.left"
+        :y="navigator.viewport.top"
+        width="100%"
+        height="100%"
+        fill="white"
+      />
+      <rect
+        :x="sourceMask.rect.left"
+        :y="sourceMask.rect.top"
+        :width="sourceMask.rect.width"
+        :height="sourceMask.rect.height"
+        :rx="sourceMask.radius"
+        :ry="sourceMask.radius"
+        fill="black"
+      />
+    </mask>
+    <g v-bind="sourceMask && { mask: `url('#${sourceMask.id}')` }">
+      <path
+        v-if="activePath"
+        :d="basePath"
+        class="edge visible dimmed"
+        :style="baseStyle"
+        :data-source-node-id="sourceNode"
+        :data-target-node-id="targetNode"
+      />
+      <path
+        v-if="connected"
+        :d="basePath"
+        class="edge io"
+        :data-source-node-id="sourceNode"
+        :data-target-node-id="targetNode"
+        @pointerdown="click"
+        @pointerenter="hovered = true"
+        @pointerleave="hovered = false"
+      />
+      <path
+        ref="base"
+        :d="activePath ?? basePath"
+        class="edge visible"
+        :style="activePath ? activeStyle : baseStyle"
+        :data-source-node-id="sourceNode"
+        :data-target-node-id="targetNode"
+      />
+      <polygon
+        v-if="arrowTransform"
+        :transform="arrowTransform"
+        points="0,-9.375 -9.375,9.375 9.375,9.375"
+        class="arrow visible"
+        :style="baseStyle"
+        :data-source-node-id="sourceNode"
+        :data-target-node-id="targetNode"
+      />
+    </g>
   </template>
 </template>
 

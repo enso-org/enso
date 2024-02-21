@@ -54,7 +54,7 @@ type SanityCheck<
 
 /** A signal to update files with new versions. */
 export interface AssetUpdateFilesEvent extends AssetBaseEvent<AssetEventType.updateFiles> {
-  readonly files: Map<backendModule.AssetId, File>
+  readonly files: ReadonlyMap<backendModule.AssetId, File>
 }
 
 /** A signal to open the specified project. */
@@ -76,41 +76,41 @@ export interface AssetCancelOpeningAllProjectsEvent
 /** A signal that multiple assets should be copied. `ids` are the `Id`s of the newly created
  * placeholder items. */
 export interface AssetCopyEvent extends AssetBaseEvent<AssetEventType.copy> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
   readonly newParentKey: backendModule.AssetId
   readonly newParent: backendModule.SmartDirectory
 }
 
 /** A signal to cut multiple assets. */
 export interface AssetCutEvent extends AssetBaseEvent<AssetEventType.cut> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
 }
 
 /** A signal that a cut operation has been cancelled. */
 export interface AssetCancelCutEvent extends AssetBaseEvent<AssetEventType.cancelCut> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
 }
 
 /** A signal to move multiple assets. */
 export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
   readonly newParentKey: backendModule.AssetId
   readonly newParent: backendModule.SmartDirectory
 }
 
 /** A signal to delete assets. */
 export interface AssetDeleteEvent extends AssetBaseEvent<AssetEventType.delete> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
 }
 
 /** A signal to restore assets from trash. */
 export interface AssetRestoreEvent extends AssetBaseEvent<AssetEventType.restore> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
 }
 
 /** A signal to download assets. */
 export interface AssetDownloadEvent extends AssetBaseEvent<AssetEventType.download> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
 }
 
 /** A signal to download the currently selected assets. */
@@ -125,26 +125,26 @@ export interface AssetRemoveSelfEvent extends AssetBaseEvent<AssetEventType.remo
 /** A signal to temporarily add labels to the selected assetss. */
 export interface AssetTemporarilyAddLabelsEvent
   extends AssetBaseEvent<AssetEventType.temporarilyAddLabels> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
   readonly labelNames: ReadonlySet<backendModule.LabelName>
 }
 
 /** A signal to temporarily remove labels from the selected assetss. */
 export interface AssetTemporarilyRemoveLabelsEvent
   extends AssetBaseEvent<AssetEventType.temporarilyRemoveLabels> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
   readonly labelNames: ReadonlySet<backendModule.LabelName>
 }
 
 /** A signal to add labels to the selected assetss. */
 export interface AssetAddLabelsEvent extends AssetBaseEvent<AssetEventType.addLabels> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
   readonly labelNames: ReadonlySet<backendModule.LabelName>
 }
 
 /** A signal to remove labels from the selected assetss. */
 export interface AssetRemoveLabelsEvent extends AssetBaseEvent<AssetEventType.removeLabels> {
-  readonly ids: Set<backendModule.AssetId>
+  readonly ids: ReadonlySet<backendModule.AssetId>
   readonly labelNames: ReadonlySet<backendModule.LabelName>
 }
 

@@ -7,9 +7,9 @@ import NameColumn from '#/components/dashboard/column/NameColumn'
 
 import * as backendModule from '#/services/Backend'
 
-// ==================
-// === NameColumn ===
-// ==================
+// ================================
+// === UninteractableNameColumn ===
+// ================================
 
 /** Props for a {@link NameColumn}. */
 export interface UninteractableNameColumnProps

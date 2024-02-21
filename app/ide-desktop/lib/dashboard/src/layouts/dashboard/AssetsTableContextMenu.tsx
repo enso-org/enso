@@ -43,8 +43,8 @@ export interface AssetsTableContextMenuProps {
   readonly isCloud: boolean
   readonly category: Category
   readonly hasPasteData: boolean
-  readonly selectedKeys: Set<backendModule.AssetId>
-  readonly setSelectedKeys: (items: Set<backendModule.AssetId>) => void
+  readonly selectedKeys: ReadonlySet<backendModule.AssetId>
+  readonly clearSelectedKeys: () => void
   readonly nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
   readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
@@ -57,7 +57,7 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { isCloud, category, hasPasteData, selectedKeys, setSelectedKeys, nodeMapRef } = props
+  const { category, isCloud, hasPasteData, selectedKeys, clearSelectedKeys, nodeMapRef } = props
   const { event, dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
   const { user } = authProvider.useNonPartialUserSession()
@@ -82,16 +82,13 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const doDeleteAll = () => {
     if (isCloud) {
       unsetModal()
-      dispatchAssetEvent({
-        type: AssetEventType.delete,
-        ids: selectedKeys,
-      })
+      dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
     } else {
       setModal(
         <ConfirmDeleteModal
           description={`${selectedKeys.size} selected ${pluralized}`}
           doDelete={() => {
-            setSelectedKeys(new Set())
+            clearSelectedKeys()
             dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
           }}
         />

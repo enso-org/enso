@@ -39,8 +39,8 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
-  const { isCloud, numberOfSelectedItems, assetEvents, nodeMap, dispatchAssetEvent } = state
-  const { doOpenManually, doOpenEditor, doCloseEditor } = state
+  const { isCloud, selectedKeys, assetEvents, dispatchAssetEvent, nodeMap, doOpenManually } = state
+  const { doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
   const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
@@ -205,7 +205,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         } else if (
           !isRunning &&
           eventModule.isSingleClick(event) &&
-          ((selected && numberOfSelectedItems === 1) ||
+          ((selected && selectedKeys.current.size === 1) ||
             shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
         ) {
           setRowState(object.merger({ isEditingName: true }))

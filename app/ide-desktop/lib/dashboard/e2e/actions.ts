@@ -632,6 +632,13 @@ export async function expectBackgroundFrame(locator: test.Locator) {
   })
 }
 
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectClassSelected(locator: test.Locator) {
+  await test.test.step('Expect `selected`', async () => {
+    await test.expect(locator).toHaveClass(/(?:^| )selected(?: |$)/)
+  })
+}
+
 // ============================
 // === expectPlaceholderRow ===
 // ============================

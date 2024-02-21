@@ -91,7 +91,7 @@ test.each([
     `'${target}' has CST ${extracted != null ? '' : 'not '}matching '${pattern}'`,
   ).toBe(extracted != null)
   expect(
-    patternAst.match(targetAst)?.map((match) => module.get(match)?.code()),
+    patternAst.match(targetAst)?.map((match) => module.tryGet(match)?.code()),
     extracted != null
       ? `'${target}' matches '${pattern}' with '__'s corresponding to ${JSON.stringify(extracted)
           .slice(1, -1)
