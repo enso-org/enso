@@ -77,7 +77,7 @@ abstract class ProjectOpenSpecBase
   ): Json = {
     val prerelease = version.preReleaseVersion()
     val projectId =
-      if (prerelease.map(_.contains("broken")).orElse(false)) brokenProject
+      if (prerelease != null && prerelease.contains("broken")) brokenProject
       else ordinaryProject
 
     json"""

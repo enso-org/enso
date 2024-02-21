@@ -303,6 +303,7 @@ lazy val enso = (project in file("."))
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
+    semver,
     `distribution-manager`,
     `edition-updater`,
     `edition-uploader`,

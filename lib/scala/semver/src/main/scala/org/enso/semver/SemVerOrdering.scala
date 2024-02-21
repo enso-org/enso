@@ -1,7 +1,6 @@
 package org.enso.semver
 
-/**
-  * Implicits that should be imported when attempting to order Enso's versions.
+/** Implicits that should be imported when attempting to order Enso's versions.
   */
 object SemVerOrdering {
   implicit object VersionOrdering extends Ordering[SemVer] {

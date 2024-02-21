@@ -105,5 +105,7 @@ object Engine {
     * See `docs/distribution/nightly.md` for more information.
     */
   def isNightly(version: SemVer): Boolean =
-    version.preReleaseVersion().map(_.contains(nightlyInfix)).orElse(false)
+    version.preReleaseVersion() != null && version
+      .preReleaseVersion()
+      .contains(nightlyInfix)
 }

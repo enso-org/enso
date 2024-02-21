@@ -26,7 +26,7 @@ object CurrentVersion {
 
   /** Check if the current version is the development one. */
   def isDevVersion: Boolean =
-    !currentVersion.preReleaseVersion().isEmpty() && (currentVersion
+    currentVersion.preReleaseVersion() != null && (currentVersion
       .preReleaseVersion() == defaultDevEnsoVersion
       .preReleaseVersion())
 

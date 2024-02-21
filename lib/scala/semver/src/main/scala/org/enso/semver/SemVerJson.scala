@@ -31,7 +31,6 @@ object SemVerJson {
         )
     }
   }
-  
 
   /** [[Encoder]] instance allowing to serialize semantic versioning strings.
     */
