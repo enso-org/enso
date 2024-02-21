@@ -143,7 +143,7 @@ make_join_condition_selector : Table -> Display -> Widget
 make_join_condition_selector table display=Display.Always =
     col_names_selector = make_column_name_selector table display=Display.Always
 
-    fqn = "Join_Condition"
+    fqn = Meta.get_qualified_type_name Join_Condition
     equals = Option "Equals" fqn+".Equals" [["left", col_names_selector]]
     equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector]]
     between = Option "Between" fqn+".Between" [["left", col_names_selector]]
