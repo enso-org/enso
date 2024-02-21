@@ -41,7 +41,7 @@ type Table_Ref
     resolve self value = case value of
         Column_Ref.Name name -> self.at name
         Column_Ref.Index index -> self.at index
-        Expression.Value expression -> self.evaluate_expression expression
+        Expression.Value _ -> self.evaluate_expression value
         _ -> value
 
     ## PRIVATE
@@ -51,7 +51,7 @@ type Table_Ref
     resolve_as_column self value = case value of
         Column_Ref.Name name -> self.at name
         Column_Ref.Index index -> self.at index
-        Expression.Value expression -> self.evaluate_expression expression
+        Expression.Value _ -> self.evaluate_expression value
         _ -> self.underlying.make_constant_column value
 
     ## PRIVATE
