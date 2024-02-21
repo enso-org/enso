@@ -37,7 +37,10 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
          |$$( function() {
          |  $$( ".accordion" ).accordion({
          |    active: false,
-         |    collapsible: true
+         |    collapsible: true,
+         |    animate: {
+         |        duration: 100
+         |    }
          |  });
          |});
          |</script>

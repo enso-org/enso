@@ -1,16 +1,12 @@
 from Standard.Base import all
-from Standard.Base.Data.Filter_Condition import Filter_Condition
-from Standard.Base.Data.Map import Map
-from Standard.Base.Data.Time.Date import Date
 from Standard.Table import all
 from Standard.Database import all
-from Standard.Table.Data.Aggregate_Column import Aggregate_Column
 import Standard.Visualization
 
 main =
     operator4 = [Aggregate_Column.Maximum "commit_timestamp"]
     operator11 = [Aggregate_Column.Minimum "commit_timestamp"]
-    operator13 = [Aggregate_Column.Group_By "label"]
+    operator13 = ["label"]
     number1 = 26
     text1 = "benchs.csv"
     operator5 = enso_project.data / text1
@@ -18,8 +14,8 @@ main =
     operator7 = operator6.row_count
     operator1 = operator6.column_names
     operator9 = operator6.at 'commit_timestamp'
-    operator3 = operator6.aggregate operator4
-    operator8 = operator6.aggregate operator11
+    operator3 = operator6.aggregate [] operator4
+    operator8 = operator6.aggregate [] operator11
     operator12 = operator6.aggregate operator13
     operator17 = operator12.at 'label'
     operator18 = operator17.to_vector

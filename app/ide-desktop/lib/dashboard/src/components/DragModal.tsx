@@ -55,11 +55,15 @@ export default function DragModal(props: DragModalProps) {
       doCleanup()
       unsetModal()
     }
-    document.addEventListener('drag', onDrag)
-    document.addEventListener('dragend', onDragEnd)
+    // Update position (non-FF)
+    document.addEventListener('drag', onDrag, { capture: true })
+    // Update position (FF)
+    document.addEventListener('dragover', onDrag, { capture: true })
+    document.addEventListener('dragend', onDragEnd, { capture: true })
     return () => {
-      document.removeEventListener('drag', onDrag)
-      document.removeEventListener('dragend', onDragEnd)
+      document.removeEventListener('drag', onDrag, { capture: true })
+      document.removeEventListener('dragover', onDrag, { capture: true })
+      document.removeEventListener('dragend', onDragEnd, { capture: true })
     }
     // `doCleanup` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps

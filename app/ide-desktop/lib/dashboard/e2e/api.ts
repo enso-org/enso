@@ -47,9 +47,9 @@ export async function mockApi({ page }: MockParams) {
   // eslint-disable-next-line no-restricted-syntax
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
-  const defaultOrganizationId = backend.UserOrOrganizationId('organization-placeholder id')
+  const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
   const defaultDirectoryId = backend.DirectoryId('directory-placeholder id')
-  const defaultUser: backend.UserOrOrganization = {
+  const defaultUser: backend.User = {
     email: defaultEmail,
     name: defaultUsername,
     id: defaultOrganizationId,
@@ -57,7 +57,7 @@ export async function mockApi({ page }: MockParams) {
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
   }
-  let currentUser: backend.UserOrOrganization | null = defaultUser
+  let currentUser: backend.User | null = defaultUser
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []
@@ -692,7 +692,7 @@ export async function mockApi({ page }: MockParams) {
     get currentUser() {
       return currentUser
     },
-    setCurrentUser: (user: backend.UserOrOrganization | null) => {
+    setCurrentUser: (user: backend.User | null) => {
       currentUser = user
     },
     addAsset,

@@ -82,7 +82,7 @@ export interface ProjectIconProps {
 export default function ProjectIcon(props: ProjectIconProps) {
   const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -103,16 +103,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
           // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
           const { opened_by, ...newProjectState2 } = newProjectState
           newProjectState = newProjectState2
-        } else if (organization != null) {
+        } else if (user != null) {
           newProjectState = object.merge(newProjectState, {
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            opened_by: organization.email,
+            opened_by: user.email,
           })
         }
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [organization, /* should never change */ setItem]
+    [user, /* should never change */ setItem]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -129,8 +129,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const [closeProjectAbortController, setCloseProjectAbortController] =
     React.useState<AbortController | null>(null)
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
-    item.projectState.opened_by !== organization?.email
+    backend.type !== backendModule.BackendType.local && item.projectState.opened_by !== user?.email
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
