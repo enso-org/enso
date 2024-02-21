@@ -4,7 +4,7 @@ import sbt.IO
 import src.main.scala.licenses.report.{
   LicenseReview,
   PackageNotices,
-  WithWarnings
+  WithDiagnostics
 }
 
 /** Contains a sequence of dependencies and any attachments found.
@@ -122,7 +122,7 @@ object ReviewedSummary {
 
   /** Returns a list of warnings that indicate missing reviews or other issues.
     */
-  def warnAboutMissingReviews(summary: ReviewedSummary): WithWarnings[Unit] = {
+  def warnAboutMissingReviews(summary: ReviewedSummary): WithDiagnostics[Unit] = {
     val warnings = summary.dependencies.flatMap { dep =>
       val warnings = collection.mutable.Buffer[String]()
       val name     = dep.information.moduleInfo.toString
@@ -186,6 +186,6 @@ object ReviewedSummary {
 
       warnings
     }
-    WithWarnings.justWarnings(warnings)
+    WithDiagnostics.justDiagnostics(warnings)
   }
 }

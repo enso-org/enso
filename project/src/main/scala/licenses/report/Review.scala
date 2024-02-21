@@ -71,7 +71,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   /** Runs the review process, returning a [[ReviewedDependency]] which includes
     * information from the [[DependencySummary]] enriched with review statuses.
     */
-  def run(): WithWarnings[ReviewedSummary] =
+  def run(): WithDiagnostics[ReviewedSummary] =
     for {
       reviews <- dependencySummary.dependencies.map {
         case (information, attachments) =>
@@ -94,7 +94,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     */
   private def warnAboutMissingDependencies(
     existingPackageNames: Seq[String]
-  ): WithWarnings[Unit] = {
+  ): WithDiagnostics[Unit] = {
     val foundConfigurations = listFiles(root).filter(_.isDirectory)
     val expectedFileNames =
       existingPackageNames ++ Seq(Paths.filesAdd, Paths.reviewedLicenses)
@@ -104,7 +104,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       s"Found legal review configuration for package ${p.getName}, " +
       s"but no such dependency has been found. Perhaps it has been removed?"
     )
-    WithWarnings.justWarnings(warnings)
+    WithDiagnostics.justDiagnostics(warnings)
   }
 
   /** Finds a header defined in the settings or
@@ -157,7 +157,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   private def reviewDependency(
     info: DependencyInformation,
     attachments: Seq[Attachment]
-  ): WithWarnings[ReviewedDependency] = {
+  ): WithDiagnostics[ReviewedDependency] = {
     val packageRoot         = root / info.packageName
     val (files, copyrights) = splitAttachments(attachments)
     val copyrightsDeduplicated =
@@ -182,7 +182,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   private def reviewFiles(
     packageRoot: File,
     files: Seq[AttachedFile]
-  ): WithWarnings[Seq[(AttachedFile, AttachmentStatus)]] = {
+  ): WithDiagnostics[Seq[(AttachedFile, AttachmentStatus)]] = {
     def keyForFile(file: AttachedFile): String = file.path.toString
     val keys                                   = files.map(keyForFile)
     for {
@@ -214,7 +214,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   private def reviewCopyrights(
     packageRoot: File,
     copyrights: Seq[CopyrightMention]
-  ): WithWarnings[Seq[(CopyrightMention, AttachmentStatus)]] = {
+  ): WithDiagnostics[Seq[(CopyrightMention, AttachmentStatus)]] = {
     def keyForMention(copyrightMention: CopyrightMention): String =
       copyrightMention.content.strip
     val keys = copyrights.map(keyForMention)
@@ -260,11 +260,11 @@ case class Review(root: File, dependencySummary: DependencySummary) {
   private def reviewLicense(
     packageRoot: File,
     info: DependencyInformation
-  ): WithWarnings[LicenseReview] =
+  ): WithDiagnostics[LicenseReview] =
     readFile(packageRoot / Paths.customLicense) match {
       case Some(content) =>
         val customFilename = content.strip()
-        WithWarnings(LicenseReview.Custom(customFilename))
+        WithDiagnostics(LicenseReview.Custom(customFilename))
       case None =>
         val directory   = root / Paths.reviewedLicenses
         val fileName    = Review.normalizeName(info.license.name)
@@ -274,7 +274,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
             readFile(settingPath)
               .map { content =>
                 if (content.isBlank) {
-                  WithWarnings(
+                  WithDiagnostics(
                     LicenseReview.NotReviewed,
                     Seq(s"License review file $settingPath is empty.")
                   )
@@ -283,7 +283,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
                     val path = Path.of(content.strip())
                     val bothDefaultAndCustom =
                       (packageRoot / Paths.defaultAndCustomLicense).exists()
-                    WithWarnings(
+                    WithDiagnostics(
                       LicenseReview.Default(
                         path,
                         allowAdditionalCustomLicenses = bothDefaultAndCustom
@@ -291,7 +291,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
                     )
                   } catch {
                     case e: InvalidPathException =>
-                      WithWarnings(
+                      WithDiagnostics(
                         LicenseReview.NotReviewed,
                         Seq(
                           s"License review file $settingPath is malformed: $e"
@@ -299,14 +299,14 @@ case class Review(root: File, dependencySummary: DependencySummary) {
                       )
                   }
               }
-              .getOrElse(WithWarnings(LicenseReview.NotReviewed))
+              .getOrElse(WithDiagnostics(LicenseReview.NotReviewed))
           case Array(_, _*) =>
-            WithWarnings(
+            WithDiagnostics(
               LicenseReview.NotReviewed,
               Seq(s"Multiple copies of file $settingPath with differing case.")
             )
           case Array() =>
-            WithWarnings(
+            WithDiagnostics(
               LicenseReview.NotReviewed,
               Seq(s"License review file $settingPath is missing.")
             )
@@ -328,7 +328,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     fileName: String,
     expectedLines: Seq[String],
     packageRoot: File
-  ): WithWarnings[Seq[String]] = {
+  ): WithDiagnostics[Seq[String]] = {
     val lines           = readLines(packageRoot / fileName)
     val unexpectedLines = lines.filter(l => !expectedLines.contains(l))
     val warnings = unexpectedLines.map(l =>
@@ -337,7 +337,7 @@ case class Review(root: File, dependencySummary: DependencySummary) {
       s"update? Please remove it from the file and make sure that the report " +
       s"contains all necessary elements after this change."
     )
-    WithWarnings(lines, warnings)
+    WithDiagnostics(lines, warnings)
   }
 
   /** Reads the file as a [[String]].

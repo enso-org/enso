@@ -67,7 +67,7 @@ object GatherLicenses {
 
       val summary          = DependencySummary(processed)
       val distributionRoot = configRoot / distribution.artifactName
-      val WithWarnings(processedSummary, summaryWarnings) =
+      val WithDiagnostics(processedSummary, summaryWarnings) =
         Review(distributionRoot, summary).run()
       val allWarnings = sbtWarnings ++ summaryWarnings
       val reportDestination =
