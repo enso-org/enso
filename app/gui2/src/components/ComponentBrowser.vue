@@ -111,8 +111,10 @@ function readInputFieldSelection() {
     inputField.value.selectionStart != null &&
     inputField.value.selectionEnd != null
   ) {
-    input.selection.value.start = inputField.value.selectionStart
-    input.selection.value.end = inputField.value.selectionEnd
+    input.selection.value = {
+      start: inputField.value.selectionStart,
+      end: inputField.value.selectionEnd,
+    }
   }
 }
 // HTMLInputElement's same event is not supported in chrome yet. We just react for any

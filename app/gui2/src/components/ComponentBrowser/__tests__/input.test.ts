@@ -20,6 +20,7 @@ import { tryIdentifier, tryQualifiedName } from '@/util/qualifiedName'
 import { initializeFFI } from 'shared/ast/ffi'
 import type { ExternalId, Uuid } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
+import { nextTick } from 'vue'
 
 await initializeFFI()
 
@@ -363,14 +364,13 @@ test.each([
     expect(input.importsToAdd()).toEqual(expectedImports)
   },
 )
-
 test.each`
   typed    | finalCodeWithSourceNode
   ${'foo'} | ${'operator1.foo'}
   ${' '}   | ${'operator1. '}
-  ${'+'}   | ${'operator1 + '}
-  ${'>='}  | ${'operator1 >= '}
-`('Initialize input for new node and type $typed', ({ typed, finalCodeWithSourceNode }) => {
+  ${'+'}   | ${'operator1 +'}
+  ${'>='}  | ${'operator1 >='}
+`('Initialize input for new node and type $typed', async ({ typed, finalCodeWithSourceNode }) => {
   const mockDb = mockGraphDb()
   const sourceNode = operator1Id
   const sourcePort = mockDb.getNodeFirstOutputPort(asNodeId(sourceNode))
@@ -383,6 +383,7 @@ test.each`
   expect(input.anyChange.value).toBeFalsy()
   input.code.value = typed
   input.selection.value.start = input.selection.value.end = typed.length
+  await nextTick()
   expect(input.code.value).toBe(typed)
   expect(input.selection.value).toEqual({ start: typed.length, end: typed.length })
   expect(input.anyChange.value).toBeTruthy()
@@ -394,6 +395,7 @@ test.each`
   expect(input.anyChange.value).toBeFalsy()
   input.code.value = `operator1.${typed}`
   input.selection.value.start = input.selection.value.end = typed.length + 10
+  await nextTick()
   expect(input.code.value).toBe(finalCodeWithSourceNode)
   expect(input.selection.value).toEqual({
     start: finalCodeWithSourceNode.length,
@@ -402,7 +404,7 @@ test.each`
   expect(input.anyChange.value).toBeTruthy()
 })
 
-test('Initialize input for edited node', () => {
+test('Initialize input for edited node', async () => {
   const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb())
   input.reset({ type: 'editNode', node: asNodeId(operator1Id), cursorPos: 4 })
   expect(input.code.value).toBe('Data.read')
@@ -411,6 +413,7 @@ test('Initialize input for edited node', () => {
   // Typing anything should not affected existing code (in contrary to new node creation)
   input.code.value = `Data.+.read`
   input.selection.value.start = input.selection.value.end = 5
+  await nextTick()
   expect(input.code.value).toEqual('Data.+.read')
   expect(input.selection.value).toEqual({ start: 5, end: 5 })
   expect(input.anyChange.value).toBeTruthy()

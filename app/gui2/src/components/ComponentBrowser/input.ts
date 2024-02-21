@@ -23,7 +23,7 @@ import {
 } from '@/util/qualifiedName'
 import { equalFlat } from 'lib0/array'
 import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
-import { computed, ref, watch, type ComputedRef } from 'vue'
+import { computed, nextTick, ref, watch, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
@@ -70,35 +70,31 @@ export function useComponentBrowserInput(
   suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
 ) {
   const code = ref('')
-  // Contains the Usage structure after reset until any change, then false.
-  const rightAfterReset = ref<Usage | false>(false)
+  // Contains the Usage structure after reset until any change.
+  const rightAfterReset = ref<Usage>()
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => RawAstExtended.parse(code.value))
   const imports = ref<RequiredImport[]>([])
 
-  watch(
-    code,
-    (newCode, oldCode) => {
-      if (newCode != oldCode) {
-        const rightAfterResetBefore = rightAfterReset.value
-        rightAfterReset.value = false
+  const inputModel = computed({
+    get: () => code.value,
+    set: (newValue) => {
+      if (newValue != code.value) {
         // When user, right after opening CB with source node types operator, we should
         // re-initialize input with it instead of dot at the end.
-        const startedTyping = rightAfterResetBefore && newCode.startsWith(oldCode)
-        if (
-          startedTyping &&
-          rightAfterResetBefore.type === 'newNode' &&
-          rightAfterResetBefore.sourcePort
-        ) {
-          const typed = newCode.substring(oldCode.length)
-          if (isOperator(typed)) {
-            setSourceNode(rightAfterResetBefore.sourcePort, ` ${typed} `)
-          }
+        const blah = rightAfterReset.value
+        const startedTyping = blah && newValue.startsWith(code.value)
+        const typed = newValue.substring(code.value.length)
+        code.value = newValue
+
+        if (startedTyping && blah.type === 'newNode' && blah.sourcePort && isOperator(typed)) {
+          const sourcePort = blah.sourcePort
+          nextTick(() => setSourceNode(sourcePort, ` ${typed}`))
         }
+        rightAfterReset.value = undefined
       }
     },
-    { flush: 'sync' },
-  )
+  })
 
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
@@ -460,16 +456,20 @@ export function useComponentBrowserInput(
   function setSourceNode(sourcePort: AstId, operator: string = '.') {
     const sourceNodeName = graphDb.getOutputPortIdentifier(sourcePort)
     code.value = sourceNodeName ? `${sourceNodeName}${operator}` : ''
-    console.log(code.value)
-    console.log(code.value.length)
+    console.error(JSON.stringify(code.value))
+    console.error(code.value.length)
     selection.value = { start: code.value.length, end: code.value.length }
   }
 
-  watch(selection, console.log, { flush: 'sync' })
+  watch(
+    selection,
+    (newVal, oldVal) => console.error(JSON.stringify(newVal), JSON.stringify(oldVal)),
+    { flush: 'sync', deep: true, immediate: true, onTrigger: () => console.trace() },
+  )
 
   return {
     /** The current input's text (code). */
-    code,
+    code: inputModel,
     /** A flag indicating that input was changed after last reset. */
     anyChange,
     /** The current selection (or cursor position if start is equal to end). */
