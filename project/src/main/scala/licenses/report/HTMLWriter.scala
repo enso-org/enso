@@ -227,7 +227,6 @@ object Style {
     override def toString: String = "color:red"
   }
 
-
   /** Makes the text gray.
     */
   case object Gray extends Style {

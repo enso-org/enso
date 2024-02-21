@@ -1,7 +1,7 @@
 package src.main.scala.licenses.report
 
 sealed trait Diagnostic {
-    def message: String
+  def message: String
 }
 
 object Diagnostic {
@@ -13,7 +13,7 @@ object Diagnostic {
   case class Problem(message: String) extends Diagnostic
 
   def partition(diagnostics: Seq[Diagnostic]): (Seq[Notice], Seq[Problem]) = {
-    val notices = diagnostics.collect { case n: Notice => n }
+    val notices  = diagnostics.collect { case n: Notice => n }
     val problems = diagnostics.collect { case p: Problem => p }
     (notices, problems)
   }

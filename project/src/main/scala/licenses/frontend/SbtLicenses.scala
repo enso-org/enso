@@ -8,7 +8,11 @@ import sbt.internal.util.ManagedLogger
 import sbt.io.IO
 import sbt.librarymanagement.ConfigRef
 import src.main.scala.licenses.report.Diagnostic
-import src.main.scala.licenses.{DependencyInformation, SBTDistributionComponent, SourceAccess}
+import src.main.scala.licenses.{
+  DependencyInformation,
+  SBTDistributionComponent,
+  SourceAccess
+}
 
 import scala.collection.JavaConverters.*
 
@@ -71,7 +75,11 @@ object SbtLicenses {
 
         val diagnostics =
           if (component.licenseReport.licenses.isEmpty)
-            Seq(Diagnostic.Problem(s"License report for component ${component.name} is empty."))
+            Seq(
+              Diagnostic.Problem(
+                s"License report for component ${component.name} is empty."
+              )
+            )
           else Seq()
 
         (deps, sourceArtifacts, diagnostics)
@@ -98,8 +106,10 @@ object SbtLicenses {
     val unexpectedWarnings = for {
       source <- distinctSources
       if !distinctDependencies.exists(_.sourcesJARPaths.contains(source))
-    } yield Diagnostic.Notice(s"Found a source $source that does not belong to any known " +
-    s"dependencies, perhaps the algorithm needs updating?")
+    } yield Diagnostic.Notice(
+      s"Found a source $source that does not belong to any known " +
+      s"dependencies, perhaps the algorithm needs updating?"
+    )
     val reportsWarnings = results.flatMap(_._3)
 
     (relevantDeps, missingWarnings ++ unexpectedWarnings ++ reportsWarnings)

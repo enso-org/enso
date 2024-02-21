@@ -101,8 +101,10 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     val unexpectedConfigurations =
       foundConfigurations.filter(p => !expectedFileNames.contains(p.getName))
     val diagnostics = unexpectedConfigurations.map(p =>
-      Diagnostic.Problem(s"Found legal review configuration for package ${p.getName}, " +
-      s"but no such dependency has been found. Perhaps it has been removed or renamed (version change)?")
+      Diagnostic.Problem(
+        s"Found legal review configuration for package ${p.getName}, " +
+        s"but no such dependency has been found. Perhaps it has been removed or renamed (version change)?"
+      )
     )
     WithDiagnostics.justDiagnostics(diagnostics)
   }
@@ -276,7 +278,11 @@ case class Review(root: File, dependencySummary: DependencySummary) {
                 if (content.isBlank) {
                   WithDiagnostics(
                     LicenseReview.NotReviewed,
-                    Seq(Diagnostic.Problem(s"License review file $settingPath is empty, but it should contain a path to a license text inside of `license-texts`."))
+                    Seq(
+                      Diagnostic.Problem(
+                        s"License review file $settingPath is empty, but it should contain a path to a license text inside of `license-texts`."
+                      )
+                    )
                   )
                 } else
                   try {
@@ -294,7 +300,9 @@ case class Review(root: File, dependencySummary: DependencySummary) {
                       WithDiagnostics(
                         LicenseReview.NotReviewed,
                         Seq(
-                          Diagnostic.Problem(s"License review file $settingPath is malformed: $e")
+                          Diagnostic.Problem(
+                            s"License review file $settingPath is malformed: $e"
+                          )
                         )
                       )
                   }
@@ -303,12 +311,20 @@ case class Review(root: File, dependencySummary: DependencySummary) {
           case Array(_, _*) =>
             WithDiagnostics(
               LicenseReview.NotReviewed,
-              Seq(Diagnostic.Problem(s"Multiple copies of file $settingPath with differing case (the license names are matched case insensitively)."))
+              Seq(
+                Diagnostic.Problem(
+                  s"Multiple copies of file $settingPath with differing case (the license names are matched case insensitively)."
+                )
+              )
             )
           case Array() =>
             WithDiagnostics(
               LicenseReview.NotReviewed,
-              Seq(Diagnostic.Problem(s"License review file $settingPath is missing. Either review the default license or set a `custom-license` for packages that used it."))
+              Seq(
+                Diagnostic.Problem(
+                  s"License review file $settingPath is missing. Either review the default license or set a `custom-license` for packages that used it."
+                )
+              )
             )
         }
     }
@@ -332,10 +348,12 @@ case class Review(root: File, dependencySummary: DependencySummary) {
     val lines           = readLines(packageRoot / fileName)
     val unexpectedLines = lines.filter(l => !expectedLines.contains(l))
     val warnings = unexpectedLines.map(l =>
-      Diagnostic.Problem(s"File $fileName in ${packageRoot.getName} contains entry `$l`, but no " +
-      s"such entry has been detected. Perhaps it has disappeared after an " +
-      s"update? Please remove it from the file and make sure that the report " +
-      s"contains all necessary elements after this change.")
+      Diagnostic.Problem(
+        s"File $fileName in ${packageRoot.getName} contains entry `$l`, but no " +
+        s"such entry has been detected. Perhaps it has disappeared after an " +
+        s"update? Please remove it from the file and make sure that the report " +
+        s"contains all necessary elements after this change."
+      )
     )
     WithDiagnostics(lines, warnings)
   }

@@ -6,7 +6,8 @@ case class WithDiagnostics[+A](value: A, diagnostics: Seq[Diagnostic] = Seq()) {
 
   /** Returns a result with a mapped value and the same diagnostics.
     */
-  def map[B](f: A => B): WithDiagnostics[B] = WithDiagnostics(f(value), diagnostics)
+  def map[B](f: A => B): WithDiagnostics[B] =
+    WithDiagnostics(f(value), diagnostics)
 
   /** Combines two computations returning diagnostics, preserving diagnostics from
     * both of them.

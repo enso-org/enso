@@ -23,10 +23,10 @@ object Report {
     * @param destination location of the generated HTML file
     */
   def writeHTML(
-                 description: DistributionDescription,
-                 summary: ReviewedSummary,
-                 diagnostics: Seq[Diagnostic],
-                 destination: File
+    description: DistributionDescription,
+    summary: ReviewedSummary,
+    diagnostics: Seq[Diagnostic],
+    destination: File
   ): Unit = {
     IO.createDirectory(destination.getParentFile)
     val writer = HTMLWriter.toFile(destination)
@@ -50,14 +50,16 @@ object Report {
         })
       }
 
-        if (problems.nonEmpty) {
-            writer.writeSubHeading(f"There are ${problems.size} problems found in the review.")
-            writer.writeList(problems.map { problem => () =>
-              writer.writeText(problem.message, Style.Red)
-            })
-        } else {
-            writer.writeParagraph("No problems found in the review.", Style.Green)
-        }
+      if (problems.nonEmpty) {
+        writer.writeSubHeading(
+          f"There are ${problems.size} problems found in the review."
+        )
+        writer.writeList(problems.map { problem => () =>
+          writer.writeText(problem.message, Style.Red)
+        })
+      } else {
+        writer.writeParagraph("No problems found in the review.", Style.Green)
+      }
 
       writeDependencySummary(writer, summary)
 
