@@ -319,7 +319,7 @@ function acceptSuggestion(index: Opt<Component> = null) {
 }
 
 function acceptInput() {
-  emit('accepted', input.code.value, input.importsToAdd())
+  emit('accepted', input.code.value.trim(), input.importsToAdd())
 }
 
 // === Key Events Handler ===
