@@ -295,17 +295,6 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function normalizeVisMetadata(
-    id: Opt<VisualizationIdentifier>,
-    visible: boolean | undefined,
-    fullscreen: boolean | undefined,
-    width: Opt<number>,
-  ): VisualizationMetadata | undefined {
-    const vis: VisualizationMetadata = { identifier: id ?? null, visible: visible ?? false, fullscreen: fullscreen ?? false, width: width ?? null }
-    if (visMetadataEquals(vis, { identifier: null, visible: false, fullscreen: false, width: null })) return undefined
-    else return vis
-  }
-
-  function normalizeVisMetadata2(
     partial: Partial<VisualizationMetadata>
   ): VisualizationMetadata | undefined {
     const empty: VisualizationMetadata = {
@@ -329,61 +318,7 @@ export const useGraphStore = defineStore('graph', () => {
         fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
         width: vis.width ?? metadata.get('visualization')?.width ?? null,
       }
-      metadata.set('visualization', normalizeVisMetadata2(data))
-    })
-  }
-
-  function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
-    if (!nodeAst) return
-    editNodeMetadata(nodeAst, (metadata) => {
-      const visible = metadata.get('visualization')?.visible
-      const fullscreen = metadata.get('visualization')?.fullscreen
-      const width = metadata.get('visualization')?.width
-      metadata.set(
-        'visualization',
-        normalizeVisMetadata(vis, visible, fullscreen, width),
-      )
-    })
-  }
-
-  function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean, fullscreen?: boolean | undefined) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
-    if (!nodeAst) return
-    editNodeMetadata(nodeAst, (metadata) => {
-      const fullscreen_ = fullscreen ?? metadata.get('visualization')?.fullscreen
-      const width = metadata.get('visualization')?.width
-      metadata.set(
-        'visualization',
-        normalizeVisMetadata(metadata.get('visualization')?.identifier, visible, fullscreen_, width),
-      )
-    })
-  }
-
-  function setNodeVisualizationFullscreen(nodeId: NodeId, fullscreen: boolean) {
-    const nodeAst = syncModule.value?.get(nodeId)
-    if (!nodeAst) return
-    editNodeMetadata(nodeAst, (metadata) => {
-      const visible = metadata.get('visualization')?.visible
-      const width = metadata.get('visualization')?.width
-      metadata.set(
-        'visualization',
-        normalizeVisMetadata(metadata.get('visualization')?.identifier, visible, fullscreen, width),
-      )
-    })
-  }
-
-  function setNodeVisualizationWidth(nodeId: NodeId, width: number) {
-    const nodeAst = syncModule.value?.get(nodeId)
-    if (!nodeAst) return
-    console.log('set visualization width:', nodeId, width)
-    editNodeMetadata(nodeAst, (metadata) => {
-      const visible = metadata.get('visualization')?.visible
-      const fullscreen = metadata.get('visualization')?.fullscreen
-      metadata.set(
-        'visualization',
-        normalizeVisMetadata(metadata.get('visualization')?.identifier, visible, fullscreen, width),
-      )
+      metadata.set('visualization', normalizeVisMetadata(data))
     })
   }
 
@@ -642,10 +577,6 @@ export const useGraphStore = defineStore('graph', () => {
     setNodeContent,
     setNodePosition,
     setNodeVisualization,
-    setNodeVisualizationId,
-    setNodeVisualizationVisible,
-    setNodeVisualizationFullscreen,
-    setNodeVisualizationWidth,
     stopCapturingUndo,
     topLevel,
     updateNodeRect,
