@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
-import { computed } from 'vue'
 
-const props = defineProps<{ mode: string }>()
-const emit = defineEmits<{ execute: []; 'update:mode': [mode: string] }>()
-
-const recordMode = computed(() => props.mode === 'live')
+const props = defineProps<{ recordMode: boolean }>()
+const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolean] }>()
 </script>
 
 <template>
@@ -14,9 +11,9 @@ const recordMode = computed(() => props.mode === 'live')
     <div class="control left-end">
       <ToggleIcon
         icon="record"
-        :alt="`${recordMode ? 'Enable' : 'Disable'} record mode`"
-        :modelValue="recordMode"
-        @update:modelValue="emit('update:mode', $event ? 'live' : 'design')"
+        :alt="`${props.recordMode ? 'Enable' : 'Disable'} record mode`"
+        :modelValue="props.recordMode"
+        @update:modelValue="emit('update:recordMode', $event)"
       />
     </div>
     <div class="control right-end">
@@ -26,7 +23,7 @@ const recordMode = computed(() => props.mode === 'live')
         name="record_once"
         draggable="false"
         :width="24"
-        @pointerdown="() => emit('execute')"
+        @pointerdown="() => emit('recordOnce')"
       />
     </div>
   </div>

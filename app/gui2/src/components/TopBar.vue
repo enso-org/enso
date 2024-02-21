@@ -8,18 +8,17 @@ import { computed } from 'vue'
 
 const props = defineProps<{
   breadcrumbs: BreadcrumbItem[]
-  modes: string[]
-  mode: string
+  recordMode: boolean
   allowNavigationLeft: boolean
   allowNavigationRight: boolean
   zoomLevel: number
 }>()
 const emit = defineEmits<{
-  execute: []
+  recordOnce: []
   back: []
   forward: []
   breadcrumbClick: [index: number]
-  'update:mode': [mode: string]
+  'update:recordMode': [enabled: boolean]
   fitToAllClicked: []
   zoomIn: []
   zoomOut: []
@@ -40,9 +39,9 @@ const barStyle = computed(() => {
 <template>
   <div class="TopBar" :style="barStyle">
     <RecordControl
-      :mode="props.mode"
-      @update:mode="emit('update:mode', $event)"
-      @execute="emit('execute')"
+      :recordMode="props.recordMode"
+      @update:recordMode="emit('update:recordMode', $event)"
+      @recordOnce="emit('recordOnce')"
     />
     <NavBar
       :breadcrumbs="props.breadcrumbs"

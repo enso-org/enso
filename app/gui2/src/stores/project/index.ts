@@ -681,6 +681,15 @@ export const useProjectStore = defineStore('project', () => {
     yDocsProvider = undefined
   }
 
+  const recordMode = computed({
+    get() {
+      return executionMode.value === 'live'
+    },
+    set(value) {
+      executionMode.value = value ? 'live' : 'design'
+    },
+  })
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -703,6 +712,7 @@ export const useProjectStore = defineStore('project', () => {
     isOutputContextEnabled,
     stopCapturingUndo,
     executionMode,
+    recordMode,
     dataflowErrors,
     executeExpression,
     disposeYDocsProvider,
