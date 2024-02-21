@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBar from '@/components/NavBar.vue'
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
 import ProjectTitle from '@/components/ProjectTitle.vue'
@@ -12,6 +13,7 @@ const props = defineProps<{
   mode: string
   allowNavigationLeft: boolean
   allowNavigationRight: boolean
+  zoomLevel: number
 }>()
 const emit = defineEmits<{
   execute: []
@@ -19,6 +21,9 @@ const emit = defineEmits<{
   forward: []
   breadcrumbClick: [index: number]
   'update:mode': [mode: string]
+  fitToAllClicked: []
+  zoomIn: []
+  zoomOut: []
 }>()
 
 const LEFT_PADDING_PX = 11
@@ -50,6 +55,12 @@ const barStyle = computed(() => {
       @forward="emit('forward')"
       @breadcrumbClick="emit('breadcrumbClick', $event)"
     />
+    <ExtendedMenu
+      :zoomLevel="props.zoomLevel"
+      @fitToAllClicked="emit('fitToAllClicked')"
+      @zoomIn="emit('zoomIn')"
+      @zoomOut="emit('zoomOut')"
+    />
   </div>
 </template>
 
@@ -61,5 +72,6 @@ const barStyle = computed(() => {
   top: 9px;
   /* FIXME[sb]: Get correct offset from dashboard. */
   left: 9px;
+  width: 100%;
 }
 </style>
