@@ -289,7 +289,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         setShouldOpenWhenReady(false)
       }
     }
-    // `openIde` is a callback, not a dependency.
+    // `doOpenEditor` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, state])
 

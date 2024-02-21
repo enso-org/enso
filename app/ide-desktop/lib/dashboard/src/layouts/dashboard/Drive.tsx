@@ -406,8 +406,8 @@ export default function Drive(props: DriveProps) {
               assetListEvents={assetListEvents}
               dispatchAssetListEvent={dispatchAssetListEvent}
               setAssetPanelProps={setAssetPanelProps}
-              doOpenIde={doOpenEditor}
-              doCloseIde={doCloseEditor}
+              doOpenEditor={doOpenEditor}
+              doCloseEditor={doCloseEditor}
               doCreateLabel={doCreateLabel}
             />
           </div>

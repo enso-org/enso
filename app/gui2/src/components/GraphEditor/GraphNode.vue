@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
-import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
+import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -107,6 +107,15 @@ const error = computed(() => {
   }
 })
 
+const warning = computed(() => {
+  const externalId = graph.db.idToExternal(nodeId.value)
+  if (!externalId) return
+  const info = projectStore.computedValueRegistry.db.get(externalId)
+  const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
+  if (!warning) return
+  return '⚠ Warning: ' + warning!
+})
+
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
 watch(isSelected, (selected) => {
   if (!selected) {
@@ -170,9 +179,7 @@ const dragPointer = usePointer((pos, event, type) => {
 })
 
 const matches = computed(() => prefixes.extractMatches(props.node.rootSpan))
-const displayedExpression = computed(() =>
-  props.node.rootSpan.module.checkedGet(matches.value.innerExpr),
-)
+const displayedExpression = computed(() => props.node.rootSpan.module.get(matches.value.innerExpr))
 
 const isOutputContextOverridden = computed({
   get() {
@@ -333,6 +340,8 @@ watchEffect(() => {
   }
 })
 
+const nodeHovered = ref(false)
+
 function portGroupStyle(port: PortData) {
   const [start, end] = port.clipRange
   return {
@@ -370,6 +379,8 @@ function openFullMenu() {
       ['executionState-' + executionState]: true,
     }"
     :data-node-id="nodeId"
+    @pointerenter="nodeHovered = true"
+    @pointerleave="nodeHovered = false"
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
@@ -411,7 +422,14 @@ function openFullMenu() {
         <NodeWidgetTree :ast="displayedExpression" :nodeId="nodeId" />
       </div>
     </div>
-    <GraphNodeError v-if="error" class="error" :error="error" />
+    <GraphNodeError v-if="error" class="message" :message="error" type="error" />
+    <GraphNodeError
+      v-if="warning && (nodeHovered || isSelected)"
+      class="message warning"
+      :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
+      :message="warning"
+      type="warning"
+    />
     <svg class="bgPaths" :style="bgStyleVariables">
       <rect class="bgFill" />
       <template v-for="port of outputPorts" :key="port.portId">
@@ -633,9 +651,17 @@ function openFullMenu() {
   z-index: 1;
 }
 
-.error {
+.message {
   position: absolute;
   top: 100%;
   margin-top: 4px;
+}
+
+.messageWithMenu {
+  left: 40px;
+}
+
+.warning {
+  top: 35px;
 }
 </style>
