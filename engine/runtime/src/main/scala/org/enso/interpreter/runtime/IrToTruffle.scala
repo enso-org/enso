@@ -382,31 +382,39 @@ class IrToTruffle(
       val declaredConsOpt =
         methodDef.methodReference.typePointer match {
           case None =>
-            Some(moduleScope.getAssociatedType)
+            Some(IrToTruffleUtils.wrap(moduleScope.getAssociatedType))
           case Some(tpePointer) =>
             tpePointer
               .getMetadata(MethodDefinitions)
-              .map { res =>
+              .flatMap { res =>
                 res.target match {
                   case BindingsMap.ResolvedType(module, tp) =>
-                    asScope(
-                      module
-                        .unsafeAsModule()
-                    ).getTypes
-                      .get(tp.name)
+                    Option(
+                      IrToTruffleUtils.wrap(
+                        asScope(
+                          module
+                            .unsafeAsModule()
+                        ).getTypes
+                          .get(tp.name)
+                      )
+                    )
                   case BindingsMap.ResolvedModule(module) =>
-                    asScope(
-                      module
-                        .unsafeAsModule()
-                    ).getAssociatedType
+                    Option(
+                      IrToTruffleUtils.wrap(
+                        asScope(
+                          module
+                            .unsafeAsModule()
+                        ).getAssociatedType
+                      )
+                    )
                   case BindingsMap.ResolvedConstructor(_, _) =>
                     throw new CompilerError(
                       "Impossible, should be caught by MethodDefinitions pass"
                     )
-                  case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-                    throw new CompilerError(
-                      "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
-                    )
+                  case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
+                    val scope = asScope(module.unsafeAsModule())
+                    val s     = scope.getPolyglotSymbol(symbol.name)
+                    Option(IrToTruffleUtils.wrapPolyglot(scope, s))
                   case BindingsMap.ResolvedPolyglotField(_, _) =>
                     throw new CompilerError(
                       "Impossible polyglot field, should be caught by MethodDefinitions pass."
@@ -435,8 +443,8 @@ class IrToTruffle(
           dataflowInfo
         )
 
-        moduleScope.registerMethod(
-          cons,
+        cons.registerMethod(
+          moduleScope,
           methodDef.methodName.name,
           () => {
             val function = methodDef.body match {
@@ -481,9 +489,10 @@ class IrToTruffle(
                   .flatMap { l =>
                     // Builtin Types Number and Integer have methods only for documentation purposes
                     val number = context.getBuiltins.number()
+                    val typ    = cons.forType
                     val ok =
-                      staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
-                      !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
+                      staticWrapper && (typ == number.getNumber.getEigentype || typ == number.getInteger.getEigentype) ||
+                      !staticWrapper && (typ == number.getNumber             || typ == number.getInteger)
                     if (ok) Right(None)
                     else Left(l)
                   }
@@ -558,7 +567,7 @@ class IrToTruffle(
                       () => bodyBuilder.argsExpr._1(1),
                       () => bodyBuilder.argsExpr._2,
                       makeSection(moduleScope, methodDef.location),
-                      cons,
+                      cons.forType,
                       methodDef.methodName.name
                     )
                   } else {
@@ -568,7 +577,7 @@ class IrToTruffle(
                       moduleScope,
                       () => bodyBuilder.bodyNode(),
                       makeSection(moduleScope, methodDef.location),
-                      cons,
+                      cons.forType,
                       methodDef.methodName.name
                     )
                   }

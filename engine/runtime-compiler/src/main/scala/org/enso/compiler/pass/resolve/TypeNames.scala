@@ -105,6 +105,8 @@ case object TypeNames extends IRPass {
                   SelfTypeInfo(Some(typ), params)
                 case _: BindingsMap.ResolvedModule =>
                   SelfTypeInfo.empty
+                case _: BindingsMap.ResolvedPolyglotSymbol =>
+                  SelfTypeInfo.empty
                 case other =>
                   throw new CompilerError(
                     s"Method target not resolved as ResolvedType, but $other."
