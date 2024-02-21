@@ -67,6 +67,3 @@ type Expression_Error
 ## PRIVATE
 handle_java_error java_type enso_constructor =
     Panic.catch java_type handler=(cause-> Error.throw (enso_constructor cause.payload.getMessage))
-
-## PRIVATE
-Expression.from (that:Text) = Expression.Value that

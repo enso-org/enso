@@ -594,6 +594,7 @@ type DB_Table
                   missing arguments and then another error is more appropriate.
                _ : Function -> Filter_Condition_Module.handle_constructor_missing_arguments filter <|
                    Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
+       _ : Expression -> self.filter (self.evaluate_expression column on_problems) filter on_problems
        _ ->
            table_at = self.at column
            self.filter table_at filter on_problems
@@ -632,8 +633,8 @@ type DB_Table
 
              people.filter_by_expression "[age] % 10 == 0"
     filter_by_expression : Text -> Problem_Behavior -> DB_Table ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    filter_by_expression self expression on_problems=Report_Warning =
-        column = self.evaluate_expression expression on_problems
+    filter_by_expression self expression:Text on_problems=Report_Warning =
+        column = self.evaluate_expression (Expression.Value expression) on_problems
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Database.Data.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
@@ -925,8 +926,8 @@ type DB_Table
              an `Arithmetic_Error`.
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
-    evaluate_expression : Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    evaluate_expression self expression:Expression on_problems=Report_Warning =
+    evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression self (expression:Text|Expression) on_problems=Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.Data.DB_Column" "DB_Column" DB_Column.var_args_functions
         problems = Warning.get_all new_column . map .value

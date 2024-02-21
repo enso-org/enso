@@ -170,7 +170,7 @@ add_specs suite_builder setup =
             err1.catch.name . should_equal "[MISSING]*10"
             err1.catch.expression_error . should_equal (No_Such_Column.Error "MISSING")
 
-            err2 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Sum "[[["]
+            err2 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Sum (expr "[[[")]
             err2.should_fail_with Invalid_Aggregate_Column
             err2.catch.name . should_equal "[[["
             err2.catch.expression_error . should_be_a Expression_Error.Syntax_Error
