@@ -15,6 +15,7 @@ const children = computed(() => {
     tree.connectedSelfArgumentId &&
     props.input.value.lhs?.id === tree.connectedSelfArgumentId
   ) {
+    // When a self argument is rendered as an icon, omit the property access operator.
     return [props.input.value.lhs, props.input.value.rhs]
   } else {
     return [...props.input.value.children()]
