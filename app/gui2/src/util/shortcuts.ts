@@ -333,7 +333,11 @@ export function defineKeybinds<
       const keybinds =
         event instanceof KeyboardEvent
           ? keyboardShortcuts[event.key.toLowerCase() as Key_]?.[eventModifierFlags]
-          : mouseShortcuts[event.buttons as PointerButtonFlags]?.[eventModifierFlags]
+          : mouseShortcuts[
+              (event.type === 'click' // `click` events don't have 'buttons' field initialized.
+                ? POINTER_BUTTON_FLAG.PointerMain
+                : event.buttons) as PointerButtonFlags
+            ]?.[eventModifierFlags]
       let handle = handlers[DefaultHandler]
       if (keybinds != null) {
         for (const bindingName in handlers) {

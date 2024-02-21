@@ -465,8 +465,6 @@ export function useComponentBrowserInput(
   function setSourceNode(sourcePort: AstId, operator: string = '.') {
     const sourceNodeName = graphDb.getOutputPortIdentifier(sourcePort)
     code.value = sourceNodeName ? `${sourceNodeName}${operator}` : ''
-    console.error(JSON.stringify(code.value))
-    console.error(code.value.length)
     selection.value = { start: code.value.length, end: code.value.length }
   }
 

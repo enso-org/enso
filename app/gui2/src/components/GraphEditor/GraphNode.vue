@@ -419,7 +419,11 @@ function openFullMenu() {
       @pointerdown.stop
       @pointerup.stop
     >
-      <SvgIcon class="icon grab-handle" :name="icon" @click.right.stop="openFullMenu"></SvgIcon>
+      <SvgIcon
+        class="icon grab-handle"
+        :name="icon"
+        @click.right.stop.prevent="openFullMenu"
+      ></SvgIcon>
       <div ref="contentNode" class="widget-tree">
         <NodeWidgetTree :ast="displayedExpression" :nodeId="nodeId" />
       </div>

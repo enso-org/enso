@@ -20,9 +20,9 @@ const emit = defineEmits<{
 <template>
   <div
     :class="`${props.isFullMenuVisible ? 'CircularMenu full' : 'CircularMenu partial'}`"
-    pointerdown.stop
-    pointerup.stop
-    click.stop
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop
   >
     <ToggleIcon
       icon="eye"
