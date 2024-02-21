@@ -15,9 +15,11 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import org.enso.interpreter.node.callable.resolver.HostMethodCallNode.PolyglotCallType;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
 
 /** Discovers and performs method calls on foreign values. */
@@ -93,7 +95,9 @@ public abstract class HostMethodCallNode extends Node {
      */
     CONVERT_TO_HASH_MAP,
     /** The method call should be handled by dispatching through the {@code Any} type. */
-    NOT_SUPPORTED;
+    NOT_SUPPORTED,
+    /** extension method for Polyglot object */
+    EXTENSION_METHOD;
 
     /**
      * Directly use {@link InteropLibrary}, or not. Types that return false are either {@link
@@ -113,7 +117,8 @@ public abstract class HostMethodCallNode extends Node {
           && this != CONVERT_TO_ZONED_DATE_TIME
           && this != CONVERT_TO_TIME_OF_DAY
           && this != CONVERT_TO_TIME_ZONE
-          && this != CONVERT_TO_HASH_MAP;
+          && this != CONVERT_TO_HASH_MAP
+          && this != EXTENSION_METHOD;
     }
   }
 
@@ -150,6 +155,9 @@ public abstract class HostMethodCallNode extends Node {
       UnresolvedSymbol symbol,
       InteropLibrary library,
       MethodResolverNode methodResolverNode) {
+    if (symbol.getScope().getMethodForPolyglot(self, symbol.getName()) instanceof Function fn) {
+      return PolyglotCallType.EXTENSION_METHOD;
+    }
     if (library.isDate(self)) {
       if (library.isTime(self)) {
         if (library.isTimeZone(self)) {

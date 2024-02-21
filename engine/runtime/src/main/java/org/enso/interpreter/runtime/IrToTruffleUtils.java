@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.function.Supplier;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
@@ -50,8 +51,34 @@ final class IrToTruffleUtils {
     };
   }
 
-  static MethodRegistrar wrapPolyglot(ModuleScope scope, Object metaObject) {
-    // TBD
-    return null;
+  static MethodRegistrar wrapPolyglot(EnsoContext ctx, Object metaObject) {
+    var iop = InteropLibrary.getUncached(metaObject);
+    assert iop.isMetaObject(metaObject);
+    return new MethodRegistrar() {
+      @Override
+      public Type forType() {
+        return ctx.getBuiltins().any();
+      }
+
+      @Override
+      public MethodRegistrar getEigentype() {
+        return wrap(forType().getEigentype());
+      }
+
+      @Override
+      public String getName() {
+        return forType().getName();
+      }
+
+      @Override
+      public QualifiedName getQualifiedName() {
+        return forType().getQualifiedName();
+      }
+
+      @Override
+      public void registerMethod(ModuleScope scope, String name, Supplier<Function> fn) {
+        scope.registerPolyglotMethod(metaObject, name, fn);
+      }
+    };
   }
 }

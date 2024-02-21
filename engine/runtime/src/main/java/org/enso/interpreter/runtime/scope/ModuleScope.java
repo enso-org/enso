@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -101,7 +103,7 @@ public final class ModuleScope implements EnsoObject {
   /**
    * Returns a map of methods defined in this module for a given constructor.
    *
-   * @param type the type for which method map is requested
+   * @param type the type for which metaKey map is requested
    * @return a map containing all the defined methods by name
    */
   private Map<String, Supplier<Function>> ensureMethodMapFor(Type type) {
@@ -119,10 +121,10 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Registers a method defined for a given type.
+   * Registers a metaKey defined for a given type.
    *
-   * @param type the type the method was defined for
-   * @param method method name
+   * @param type the type the metaKey was defined for
+   * @param method metaKey name
    * @param function the {@link Function} associated with this definition
    */
   public void registerMethod(Type type, String method, Function function) {
@@ -138,10 +140,10 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Registers a lazily constructed method defined for a given type.
+   * Registers a lazily constructed metaKey defined for a given type.
    *
-   * @param type the type the method was defined for
-   * @param method method name
+   * @param type the type the metaKey was defined for
+   * @param method metaKey name
    * @param supply provider of the {@link Function} associated with this definition
    */
   public void registerMethod(Type type, String method, Supplier<Function> supply) {
@@ -159,7 +161,7 @@ public final class ModuleScope implements EnsoObject {
   /**
    * Returns a list of the conversion methods defined in this module for a given constructor.
    *
-   * @param type the type for which method map is requested
+   * @param type the type for which metaKey map is requested
    * @return a list containing all the defined conversions in definition order
    */
   private Map<Type, Function> ensureConversionsFor(Type type) {
@@ -175,7 +177,7 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Registers a conversion method for a given type
+   * Registers a conversion metaKey for a given type
    *
    * @param toType type the conversion was defined to
    * @param fromType type the conversion was defined from
@@ -200,16 +202,48 @@ public final class ModuleScope implements EnsoObject {
     polyglotSymbols.put(name, sym);
   }
 
+  private final Map<String, Map<String, Supplier<Function>>> polyMethods = new HashMap<>();
+
+  public void registerPolyglotMethod(Object metaObject, String name, Supplier<Function> fn) {
+    String meta = metaKey(metaObject);
+    var m = polyMethods.get(meta);
+    if (m == null) {
+      m = new HashMap<>();
+      polyMethods.put(meta, m);
+    }
+    m.put(name, new CachingSupplier<>(fn));
+  }
+
+  private static String metaKey(Object metaObject) {
+    try {
+      return InteropLibrary.getUncached()
+          .asString(InteropLibrary.getUncached(metaObject).getMetaQualifiedName(metaObject));
+    } catch (UnsupportedMessageException ex) {
+      return null;
+    }
+  }
+
+  public Function getMethodForPolyglot(Object obj, String name) {
+    try {
+      var metaObject = InteropLibrary.getUncached(obj).getMetaObject(obj);
+      var m = polyMethods.get(metaKey(metaObject));
+      var f = m == null ? null : m.get(name);
+      return f == null ? null : f.get();
+    } catch (UnsupportedMessageException ex) {
+      return null;
+    }
+  }
+
   /**
    * Looks up the definition for a given type and method name.
    *
    * <p>The resolution algorithm is first looking for methods defined at the constructor definition
    * site (i.e. non-overloads), then looks for methods defined in this scope and finally tries to
-   * resolve the method in all dependencies of this module.
+   * resolve the metaKey in all dependencies of this module.
    *
-   * @param type type to lookup the method for.
-   * @param name the method name.
-   * @return the matching method definition or null if not found.
+   * @param type type to lookup the metaKey for.
+   * @param name the metaKey name.
+   * @return the matching metaKey definition or null if not found.
    */
   @TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
@@ -308,7 +342,7 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * @return a method for the given type
+   * @return a metaKey for the given type
    */
   public Function getMethodForType(Type tpe, String name) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;

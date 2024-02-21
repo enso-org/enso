@@ -829,6 +829,32 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!warnings.hasWarnings(self)",
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == EXTENSION_METHOD"
+      })
+  Object doExtensionMethod(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode resolverNode) {
+    var ctx = EnsoContext.get(this);
+    if (symbol.getScope().getMethodForPolyglot(self, symbol.getName())
+        instanceof Function function) {
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } else {
+      throw ctx.raiseAssertionPanic(this, "Error", null);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!warnings.hasWarnings(self)",
+        "!methods.hasType(self)",
+        "!methods.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
       })
   Object doFallback(

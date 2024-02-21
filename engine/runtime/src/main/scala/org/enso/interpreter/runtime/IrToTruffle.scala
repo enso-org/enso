@@ -414,7 +414,7 @@ class IrToTruffle(
                   case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
                     val scope = asScope(module.unsafeAsModule())
                     val s     = scope.getPolyglotSymbol(symbol.name)
-                    Option(IrToTruffleUtils.wrapPolyglot(scope, s))
+                    Option(IrToTruffleUtils.wrapPolyglot(context, s))
                   case BindingsMap.ResolvedPolyglotField(_, _) =>
                     throw new CompilerError(
                       "Impossible polyglot field, should be caught by MethodDefinitions pass."
