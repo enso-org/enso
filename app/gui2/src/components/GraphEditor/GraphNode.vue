@@ -70,10 +70,10 @@ const outputPortsSet = computed(() => {
 const widthOverridePx = ref<number>()
 const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
 const externalId = computed(() => props.node.rootSpan.externalId)
-const potentialSelfArgumentId = computed(() => props.node.selfArgumentId)
+const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
-  props.node.selfArgumentId && graph.isConnectedTarget(props.node.selfArgumentId)
-    ? props.node.selfArgumentId
+  props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject)
+    ? props.node.primarySubject
     : undefined,
 )
 

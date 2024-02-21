@@ -6,7 +6,7 @@ import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { findSelfArgument, nodeFromAst } from '@/util/ast/node'
+import { nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
@@ -360,8 +360,8 @@ export class GraphDb {
         if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
         if (differentOrDirty(node.rootSpan, newNode.rootSpan)) {
           node.rootSpan = newNode.rootSpan
-          const selfArgumentId = findSelfArgument(newNode.rootSpan)
-          if (node.selfArgumentId !== selfArgumentId) node.selfArgumentId = selfArgumentId
+          const primarySubject = primaryApplicationSubject(newNode.rootSpan)
+          if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
         }
       }
     }
@@ -455,13 +455,13 @@ export interface Node {
   position: Vec2
   vis: Opt<VisualizationMetadata>
   /** A child AST in a syntactic position to be a self-argument input to the node. */
-  selfArgumentId: Ast.AstId | undefined
+  primarySubject: Ast.AstId | undefined
 }
 
 const baseMockNode = {
   position: Vec2.Zero,
   vis: undefined,
-  selfArgumentId: undefined,
+  primarySubject: undefined,
 }
 
 /** This should only be used for supplying as initial props when testing.

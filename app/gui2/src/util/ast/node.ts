@@ -13,12 +13,14 @@ export function nodeFromAst(ast: Ast.Ast): Node | undefined {
     rootSpan,
     position: Vec2.Zero,
     vis: undefined,
-    selfArgumentId: findSelfArgument(rootSpan),
+    primarySubject: primaryApplicationSubject(rootSpan),
   }
 }
 
-/** Given a node root, find a child AST in a syntactic position to be a self-argument for the node. */
-export function findSelfArgument(ast: Ast.Ast): Ast.AstId | undefined {
+/** Given a node root, find a child AST that is the root of the access chain that is the subject of the primary
+ *  application.
+ */
+export function primaryApplicationSubject(ast: Ast.Ast): Ast.AstId | undefined {
   // Descend into LHS of any sequence of applications.
   while (ast instanceof Ast.App) ast = ast.function
   // Require a sequence of at least one property access; descend into LHS.

@@ -435,9 +435,9 @@ const targetIsSelfArgument = computed(() => {
   if (!targetExpr.value) return
   const nodeId = graph.getPortNodeId(targetExpr.value)
   if (!nodeId) return
-  const selfArgumentId = graph.db.nodeIdToNode.get(nodeId)?.selfArgumentId
-  if (!selfArgumentId) return
-  return targetExpr.value === selfArgumentId
+  const primarySubject = graph.db.nodeIdToNode.get(nodeId)?.primarySubject
+  if (!primarySubject) return
+  return targetExpr.value === primarySubject
 })
 
 const selfArgumentArrowHeight = 9
