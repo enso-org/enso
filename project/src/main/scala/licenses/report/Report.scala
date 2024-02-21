@@ -19,14 +19,14 @@ object Report {
     *
     * @param description description of the distribution
     * @param summary reviewed summary of findings
-    * @param warnings sequence of warnings
+    * @param diagnostics sequence of diagnostics
     * @param destination location of the generated HTML file
     */
   def writeHTML(
-    description: DistributionDescription,
-    summary: ReviewedSummary,
-    warnings: Seq[String],
-    destination: File
+                 description: DistributionDescription,
+                 summary: ReviewedSummary,
+                 diagnostics: Seq[Diagnostic],
+                 destination: File
   ): Unit = {
     IO.createDirectory(destination.getParentFile)
     val writer = HTMLWriter.toFile(destination)
@@ -40,21 +40,26 @@ object Report {
         s"${description.rootComponentsNames.mkString(", ")}."
       )
 
-      if (warnings.isEmpty) {
-        writer.writeParagraph("There are no warnings.", Style.Green)
-      } else {
-        writer.writeParagraph(
-          s"There are ${warnings.size} warnings!",
-          Style.Bold,
-          Style.Red
-        )
+      val (notices: Seq[Diagnostic.Notice], problems: Seq[Diagnostic.Problem]) =
+        Diagnostic.partition(diagnostics)
+
+      if (notices.nonEmpty) {
+        writer.writeSubHeading("Notices")
+        writer.writeList(notices.map { notice => () =>
+          writer.writeText(notice.message)
+        })
       }
 
-      writeDependencySummary(writer, summary)
+        if (problems.nonEmpty) {
+            writer.writeSubHeading(f"There are ${problems.size} problems found in the review.")
+            writer.writeList(problems.map { problem => () =>
+              writer.writeText(problem.message, Style.Red)
+            })
+        } else {
+            writer.writeParagraph("No problems found in the review.", Style.Green)
+        }
 
-      writer.writeList(warnings.map { warning => () =>
-        writer.writeText(writer.escape(warning))
-      })
+      writeDependencySummary(writer, summary)
 
       writer.writeCollapsible("NOTICE header", summary.noticeHeader)
       if (summary.additionalFiles.nonEmpty) {

@@ -44,9 +44,8 @@ object GatherLicenses {
         s"It consists of the following sbt project roots:" +
         s" ${projectNames.mkString(", ")}"
       )
-      val (sbtInfo, sbtWarnings) =
+      val (sbtInfo, sbtDiagnostics) =
         SbtLicenses.analyze(distribution.sbtComponents, log)
-      sbtWarnings.foreach(log.warn(_))
 
       val allInfo = sbtInfo // TODO [RW] add Rust frontend result here (#1187)
 
@@ -67,24 +66,28 @@ object GatherLicenses {
 
       val summary          = DependencySummary(processed)
       val distributionRoot = configRoot / distribution.artifactName
-      val WithDiagnostics(processedSummary, summaryWarnings) =
+      val WithDiagnostics(processedSummary, summaryDiagnostics) =
         Review(distributionRoot, summary).run()
-      val allWarnings = sbtWarnings ++ summaryWarnings
+      val allDiagnostics = sbtDiagnostics ++ summaryDiagnostics
       val reportDestination =
         targetRoot / s"${distribution.artifactName}-report.html"
 
-      sbtWarnings.foreach(log.warn(_))
-      if (summaryWarnings.size > 10)
-        log.warn(
-          s"There are too many warnings (${summaryWarnings.size}) to " +
-          s"display. Please inspect the generated report."
-        )
-      else allWarnings.foreach(log.warn(_))
+      val (notices: Seq[Diagnostic.Notice], problems: Seq[Diagnostic.Problem]) =
+        Diagnostic.partition(allDiagnostics)
+
+      notices.foreach(notice => log.warn(notice.message))
+
+      if (problems.isEmpty) {
+        log.info("No problems found in the report.")
+      } else {
+        log.error(s"Found ${problems.size} in the report:")
+        problems.foreach(problem => log.error(problem.message))
+      }
 
       Report.writeHTML(
         distribution,
         processedSummary,
-        allWarnings,
+        allDiagnostics,
         reportDestination
       )
       log.info(
@@ -96,10 +99,10 @@ object GatherLicenses {
       ReportState.write(
         distributionRoot / stateFileName,
         distribution,
-        summaryWarnings.length
+        problems.size
       )
       log.info(s"Re-generated distribution notices at `$packagePath`.")
-      if (summaryWarnings.nonEmpty) {
+      if (problems.nonEmpty) {
         log.warn(
           "The distribution notices were regenerated, but there are " +
           "not-reviewed issues within the report. The notices are probably " +

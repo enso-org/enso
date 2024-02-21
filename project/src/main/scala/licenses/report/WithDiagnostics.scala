@@ -2,7 +2,7 @@ package src.main.scala.licenses.report
 
 /** A simple monad for storing diagnostics related to a result.
   */
-case class WithDiagnostics[+A](value: A, diagnostics: Seq[String] = Seq()) {
+case class WithDiagnostics[+A](value: A, diagnostics: Seq[Diagnostic] = Seq()) {
 
   /** Returns a result with a mapped value and the same diagnostics.
     */
@@ -51,6 +51,6 @@ object WithDiagnostics {
   /** Creates a [[WithDiagnostics]] containing Unit and a provided sequence of
     * diagnostics.
     */
-  def justDiagnostics(diagnostics: Seq[String]): WithDiagnostics[Unit] =
+  def justDiagnostics(diagnostics: Seq[Diagnostic]): WithDiagnostics[Unit] =
     WithDiagnostics((), diagnostics)
 }
