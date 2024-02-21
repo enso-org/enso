@@ -150,7 +150,7 @@ make_join_condition_selector table display=Display.Always =
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
-    Vector_Editor item_editor=item_editor item_default="("+item_editor.values.first.value+")" display=display
+    Vector_Editor item_editor=item_editor item_default="(Join_Condition.Equal "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE
    Make a column name selector.

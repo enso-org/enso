@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
@@ -9,6 +10,156 @@ import project.Data.Expression.Expression
 import project.Extensions.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
 from project.Internal.Filter_Condition_Helpers import make_filter_column
+
+## Defines a derived column.
+type Derived_Column
+    From (input : Column_Ref|Expression|Number|Text|Boolean) (operation : Derived_Operation)
+
+    ## PRIVATE
+       Interprets the `Derived_Column` as operation on columns of a provided
+       table, resolving the column references.
+       It creates a new column instance which can be added to the table.
+    evaluate : Table_Ref -> Boolean -> Problem_Behavior -> Any
+    evaluate self table:Table_Ref use_input_name:Boolean on_problems:Problem_Behavior =
+        input_column = table.resolve_as_column self.input
+        derived = case self.operation of
+            Derived_Operation.Add rhs -> input_column + (table.resolve rhs)
+            Derived_Operation.Subtract rhs -> input_column - (table.resolve rhs)
+            Derived_Operation.Multiply rhs -> input_column * (table.resolve rhs)
+            Derived_Operation.Divide rhs -> input_column / (table.resolve rhs)
+            Derived_Operation.Mod rhs -> input_column % (table.resolve rhs)
+            Derived_Operation.Power rhs -> input_column ^ (table.resolve rhs)
+            Derived_Operation.Round precision use_bankers -> input_column.round precision use_bankers
+            Derived_Operation.Ceil -> input_column.ceil
+            Derived_Operation.Floor -> input_column.floor
+            Derived_Operation.Truncate -> input_column.truncate
+            Derived_Operation.Min rhs -> input_column.min (table.resolve rhs)
+            Derived_Operation.Max rhs -> input_column.max (table.resolve rhs)
+            Derived_Operation.Date_Add length period -> input_column.date_add (table.resolve length) period
+            Derived_Operation.Date_Part period -> input_column.date_part period
+            Derived_Operation.Date_Diff end period -> input_column.date_diff (table.resolve end) period
+            Derived_Operation.Not -> input_column.not
+            Derived_Operation.And rhs -> input_column && (table.resolve rhs)
+            Derived_Operation.Or rhs -> input_column || (table.resolve rhs)
+            Derived_Operation.Trim where what -> input_column.trim where (table.resolve what)
+            Derived_Operation.If condition true_value false_value ->
+                condition_column =  make_filter_column input_column (table.resolve_condition condition) on_problems
+                condition_column.iif (table.resolve true_value) (table.resolve false_value)
+        if use_input_name then derived.rename input_column.name else derived
+
+    ## PRIVATE
+       Create a widget for operation
+    default_widget : Table_Ref -> Display -> Widget
+    default_widget table:Table_Ref display=Display.Always =
+        ## Constants
+        text = Option "<Text Value>" "''"
+        number = Option "<Number Value>" "0"
+        boolean = Option "<True/False>" "True"
+        expression = Option "<Expression>" "(expr '["+table.column_names.first+"]')"
+
+        col_names = Widget_Helpers.make_column_ref_by_name_selector table
+        with_all_types = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True
+        with_number_text = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True
+        with_number = Widget_Helpers.make_column_ref_by_name_selector table add_number=True
+        with_boolean = Widget_Helpers.make_column_ref_by_name_selector table add_boolean=True
+        with_text = Widget_Helpers.make_column_ref_by_name_selector table add_text=True
+
+        filter_cond = Widget_Helpers.make_filter_condition_selector table
+
+        builder = Vector.new_builder
+        fqn = Meta.get_qualified_type_name Derived_Operation
+        builder.append (Option "add" fqn+".Add" [["rhs", with_number_text]])
+        builder.append (Option "subtract" fqn+".Subtract" [["rhs", with_number]])
+        builder.append (Option "multiply" fqn+".Multiply" [["rhs", with_number]])
+        builder.append (Option "divide" fqn+".Divide" [["rhs", with_number]])
+        builder.append (Option "mod" fqn+".Mod" [["rhs", with_number]])
+        builder.append (Option "power" fqn+".Power" [["rhs", with_number]])
+        builder.append (Option "round" fqn+".Round")
+        builder.append (Option "ceil" fqn+".Ceil")
+        builder.append (Option "floor" fqn+".Floor")
+        builder.append (Option "truncate" fqn+".Truncate")
+        builder.append (Option "min" fqn+".Min" [["rhs", with_number_text]])
+        builder.append (Option "max" fqn+".Max" [["rhs", with_number_text]])
+        builder.append (Option "date add" fqn+".Date_Add" [["length", col_names]])
+        builder.append (Option "date part" fqn+".Date_Part")
+        builder.append (Option "date diff" fqn+".Date_Diff" [["end", col_names]])
+        builder.append (Option "not" fqn+".Not")
+        builder.append (Option "and" fqn+".And" [["rhs", with_boolean]])
+        builder.append (Option "or" fqn+".Or" [["rhs", with_boolean]])
+        builder.append (Option "if" fqn+".If" [["condition", filter_cond], ["true_value", with_all_types], ["false_value", with_all_types]])
+        builder.append (Option "trim" fqn+".Trim" [["what", with_text]])
+
+        fqn_column = Meta.get_qualified_type_name Derived_Column
+        derived = Option "Derived Operation" fqn_column+".From" [["input", col_names], ["operation", Single_Choice builder.to_vector]]
+
+        Single_Choice [text, number, boolean, expression, derived] display=display
+
+## Defines the operation on a derived column.
+type Derived_Operation
+    ## Add two values/columns.
+    Add (rhs : Column_Ref|Expression|Number|Text)
+
+    ## Subtract two values/columns.
+    Subtract (rhs : Column_Ref|Expression|Number)
+
+    ## Multiply two values/columns.
+    Multiply (rhs : Column_Ref|Expression|Number)
+
+    ## Divide a fixed value or column by another value or column.
+    Divide (rhs : Column_Ref|Expression|Number)
+
+    ## Compute the remainder of a fixed value or column divided by another
+       value or column.
+    Mod (rhs : Column_Ref|Expression|Number)
+
+    ## Raise a fixed value or column to the power of another value or column.
+    Power (rhs : Column_Ref|Expression|Number)
+
+    ## Rounds values in the column to the specified precision.
+    Round (precision:Integer = 0) (use_bankers:Boolean = False)
+
+    ## Rounds values in the column up to the nearest integer.
+    Ceil
+
+    ## Rounds values in the column down to the nearest integer.
+    Floor
+
+    ## Truncates the fractional part of values in the column.
+       If a Date_Time, returns the Date.
+    Truncate
+
+    ## Returns the minimum value of two columns.
+    Min (rhs : Column_Ref|Expression|Any)
+
+    ## Returns the maximum value of two columns.
+    Max (rhs : Column_Ref|Expression|Any)
+
+    ## Adds a period to a date/time column.
+    Date_Add (length : Column_Ref|Expression|Integer) (period : Date_Period|Time_Period = Date_Period.Day)
+
+    ## Returns part of a date/time column.
+    Date_Part (period : Date_Period|Time_Period)
+
+    ## Returns the difference between two date/time columns.
+    Date_Diff (end : Column_Ref|Expression|Date_Time|Date|Time_Of_Day) (period:Date_Period|Time_Period = Date_Period.Day)
+
+    ## Negate a boolean column.
+    Not
+
+    ## Boolean AND on two boolean columns.
+    And (rhs : Column_Ref|Expression|Boolean)
+
+    ## Boolean OR on two boolean columns.
+    Or (rhs : Column_Ref|Expression|Boolean)
+
+    ## If input meets a condition return true value, otherwise false value.
+
+       The `true_value` and `false_value` can be either a constant or a column.
+    If (condition:Filter_Condition) (true_value:Column_Ref|Expression|Any = True) (false_value:Column_Ref|Expression|Any = False)
+
+    ## Removes the specified characters, by default any whitespace, from the
+       start, the end, or both ends of the input.
+    Trim (where:Location = Location.Both) (what:Column_Ref|Expression|Text = "")
 
 ## Defines a column operation generally acting on each row producing a new
    column.
@@ -78,75 +229,27 @@ type Column_Operation
        start, the end, or both ends of the input.
     Trim (input : Column_Ref|Expression|Text) (where:Location = Location.Both) (what:Text|Column_Ref = "")
 
-    ## PRIVATE
-       Interprets the `Column_Operation` as operation on columns of a provided
-       table, resolving the column references.
-       It creates a new column instance which can be added to the table.
-    evaluate : Table_Ref -> Boolean -> Problem_Behavior -> Any
-    evaluate self table:Table_Ref use_input_name:Boolean on_problems:Problem_Behavior =
-        input_column = table.resolve_as_column self.input
-        derived = case self of
-            Column_Operation.Add _ rhs      -> input_column + (table.resolve rhs)
-            Column_Operation.Subtract _ rhs -> input_column - (table.resolve rhs)
-            Column_Operation.Multiply _ rhs -> input_column * (table.resolve rhs)
-            Column_Operation.Divide _ rhs   -> input_column / (table.resolve rhs)
-            Column_Operation.Mod _ rhs      -> input_column % (table.resolve rhs)
-            Column_Operation.Power _ rhs    -> input_column ^ (table.resolve rhs)
-
-            Column_Operation.Round _ precision use_bankers ->
-                input_column.round precision use_bankers
-            Column_Operation.Ceil _     -> input_column.ceil
-            Column_Operation.Floor _    -> input_column.floor
-            Column_Operation.Truncate _ -> input_column.truncate
-
-            Column_Operation.Min _ rhs -> input_column.min (table.resolve rhs)
-            Column_Operation.Max _ rhs -> input_column.max (table.resolve rhs)
-
-            Column_Operation.Date_Add _ length period ->
-                input_column.date_add (table.resolve length) period
-            Column_Operation.Date_Part _ period ->
-                input_column.date_part period
-            Column_Operation.Date_Diff _ end period ->
-                input_column.date_diff (table.resolve end) period
-
-            Column_Operation.Not _     -> input_column.not
-            Column_Operation.And _ rhs -> input_column && (table.resolve rhs)
-            Column_Operation.Or _ rhs  -> input_column || (table.resolve rhs)
-
-            Column_Operation.If _ condition true_value false_value ->
-                condition_column =  make_filter_column input_column (table.resolve_condition condition) on_problems
-                condition_column.iif (table.resolve true_value) (table.resolve false_value)
-
-            Column_Operation.Trim _ where what ->
-                input_column.trim where (table.resolve what)
-        if use_input_name then derived.rename input_column.name else derived
-
-    ## PRIVATE
-       Create a widget for operation
-    default_widget : Table_Ref -> Display -> Widget
-    default_widget table:Table_Ref display=Display.Always =
-        col_refs = Widget_Helpers.make_column_ref_by_name_selector table
-        filter_cond = Widget_Helpers.make_filter_condition_selector table
-        builder = Vector.new_builder
-        fqn = Meta.get_qualified_type_name Column_Operation
-        builder.append (Option "add" fqn+".Add" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "subtract" fqn+".Subtract" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "multiply" fqn+".Multiply" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "divide" fqn+".Divide" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "mod" fqn+".Mod" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "power" fqn+".Power" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "round" fqn+".Round" [["input", col_refs]])
-        builder.append (Option "ceil" fqn+".Ceil" [["input", col_refs]])
-        builder.append (Option "floor" fqn+".Floor" [["input", col_refs]])
-        builder.append (Option "truncate" fqn+".Truncate" [["input", col_refs]])
-        builder.append (Option "min" fqn+".Min" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "max" fqn+".Max" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "date add" fqn+".Date_Add" [["input", col_refs], ["length", col_refs]])
-        builder.append (Option "date part" fqn+".Date_Part" [["input", col_refs]])
-        builder.append (Option "date diff" fqn+".Date_Diff" [["input", col_refs], ["end", col_refs]])
-        builder.append (Option "not" fqn+".Not" [["input", col_refs]])
-        builder.append (Option "and" fqn+".And" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "or" fqn+".Or" [["input", col_refs], ["rhs", col_refs]])
-        builder.append (Option "if" fqn+".If" [["input", col_refs], ["condition", filter_cond], ["true_value", col_refs], ["false_value", col_refs]])
-        builder.append (Option "trim" fqn+".Trim" [["input", col_refs], ["what", col_refs]])
-        Single_Choice builder.to_vector display=display
+## PRIVATE
+Derived_Column.from (that:Column_Operation) =
+    derived = case that of
+        Column_Operation.Add input rhs -> Derived_Column.From input (Derived_Operation.Add rhs)
+        Column_Operation.Subtract input rhs -> Derived_Column.From input (Derived_Operation.Subtract rhs)
+        Column_Operation.Multiply input rhs -> Derived_Column.From input (Derived_Operation.Multiply rhs)
+        Column_Operation.Divide input rhs -> Derived_Column.From input (Derived_Operation.Divide rhs)
+        Column_Operation.Mod input rhs -> Derived_Column.From input (Derived_Operation.Mod rhs)
+        Column_Operation.Power input rhs -> Derived_Column.From input (Derived_Operation.Power rhs)
+        Column_Operation.Round input precision use_bankers -> Derived_Column.From input (Derived_Operation.Round precision use_bankers)
+        Column_Operation.Ceil input -> Derived_Column.From input Derived_Operation.Ceil
+        Column_Operation.Floor input -> Derived_Column.From input Derived_Operation.Floor
+        Column_Operation.Truncate input -> Derived_Column.From input Derived_Operation.Truncate
+        Column_Operation.Min input rhs -> Derived_Column.From input (Derived_Operation.Min rhs)
+        Column_Operation.Max input rhs -> Derived_Column.From input (Derived_Operation.Max rhs)
+        Column_Operation.Date_Add input length period -> Derived_Column.From input (Derived_Operation.Date_Add length period)
+        Column_Operation.Date_Part input period -> Derived_Column.From input (Derived_Operation.Date_Part period)
+        Column_Operation.Date_Diff input end period -> Derived_Column.From input (Derived_Operation.Date_Diff end period)
+        Column_Operation.Not input -> Derived_Column.From input Derived_Operation.Not
+        Column_Operation.And input rhs -> Derived_Column.From input (Derived_Operation.And rhs)
+        Column_Operation.Or input rhs -> Derived_Column.From input (Derived_Operation.Or rhs)
+        Column_Operation.If input condition true_value false_value -> Derived_Column.From input (Derived_Operation.If condition true_value false_value)
+        Column_Operation.Trim input where what -> Derived_Column.From input (Derived_Operation.Trim where what)
+    Warning.attach (Deprecated.Warning "Standard.Table.Data.Column_Operation.Column_Operation" "" "Deprecated: `Column_Operation` has been replaced by `Derived_Column`.") derived
