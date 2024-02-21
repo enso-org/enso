@@ -68,21 +68,21 @@ add_specs suite_builder setup =
             t.set (Simple_Expression.From 2 (Simple_Calculation.Power (Column_Ref.Name "A"))) "C" . at "C" . to_vector . should_equal [2, 4]
             t.set (Simple_Expression.From 3 (Simple_Calculation.Power 4)) "C" . at "C" . to_vector . should_equal [81, 81]
 
-            Test.expect_panic Type_Error <| t.set (Simple_Expression.From "x" (Simple_Calculation.Subtract "y"))
+            t.set (Simple_Expression.From "x" (Simple_Calculation.Subtract "y")) . should_fail_with Invalid_Value_Type 
             t.set (Simple_Expression.From 42 (Simple_Calculation.Add "y")) . should_fail_with Illegal_Argument
 
         group_builder.specify "rounding" <|
             t = table_builder [["A", [1.13333, 122.74463, 32.52424, -12.7]]]
-            t.set (Simple_Expression.From (Column_Ref.Name (Simple_Calculation.Round "A"))) "Z" . at "Z" . to_vector . should_equal [1, 123, 33, -13]
+            t.set (Simple_Expression.From (Column_Ref.Name "A") Simple_Calculation.Round) "Z" . at "Z" . to_vector . should_equal [1, 123, 33, -13]
             t.set (Simple_Expression.From (Column_Ref.Name "A") (Simple_Calculation.Round precision=1)) "Z" . at "Z" . to_vector . should_equal [1.1, 122.7, 32.5, -12.7]
             t.set (Simple_Expression.From (Column_Ref.Name "A") (Simple_Calculation.Round precision=-1)) "Z" . at "Z" . to_vector . should_equal [0, 120, 30, -10]
 
-            t.set (Simple_Expression.From (Column_Ref.Name (Simple_Calculation.Ceil "A"))) "Z" . at "Z" . to_vector . should_equal [2, 123, 33, -12]
-            t.set (Simple_Expression.From (Column_Ref.Name (Simple_Calculation.Floor "A"))) "Z" . at "Z" . to_vector . should_equal [1, 122, 32, -13]
-            t.set (Simple_Expression.From (Column_Ref.Name (Simple_Calculation.Truncate "A"))) "Z" . at "Z" . to_vector . should_equal [1, 122, 32, -12]
+            t.set (Simple_Expression.From (Column_Ref.Name "A") Simple_Calculation.Ceil) "Z" . at "Z" . to_vector . should_equal [2, 123, 33, -12]
+            t.set (Simple_Expression.From (Column_Ref.Name "A") Simple_Calculation.Floor) "Z" . at "Z" . to_vector . should_equal [1, 122, 32, -13]
+            t.set (Simple_Expression.From (Column_Ref.Name "A") Simple_Calculation.Truncate) "Z" . at "Z" . to_vector . should_equal [1, 122, 32, -12]
 
-            Test.expect_panic Type_Error <| t.set (Simple_Expression.From "1.23" Simple_Calculation.Round)
-            Test.expect_panic Type_Error <| t.set (Simple_Expression.From "1.23" Simple_Calculation.Truncate)
+            t.set (Simple_Expression.From "1.23" Simple_Calculation.Round) . should_fail_with Invalid_Value_Type
+            t.set (Simple_Expression.From "1.23" Simple_Calculation.Truncate) . should_fail_with Invalid_Value_Type
 
         group_builder.specify "date/time" pending=pending_datetime <|
             t = table_builder [["A", [Date_Time.new 2023 1 12 12 45, Date_Time.new 2020 5 12 1 45]], ["B", [Date_Time.new 2023 1 15 18 45, Date_Time.new 2020 6 12 22 20]], ["x", [1, 3]]]
@@ -114,7 +114,7 @@ add_specs suite_builder setup =
             t2.set (Simple_Expression.From (Column_Ref.Name "C") (Simple_Calculation.Date_Part Time_Period.Second)) . should_fail_with Illegal_Argument
             t2.set (Simple_Expression.From (Column_Ref.Name "D") (Simple_Calculation.Date_Add 5 Date_Period.Year)) . should_fail_with Illegal_Argument
             t.set (Simple_Expression.From (Column_Ref.Name "x") (Simple_Calculation.Date_Part Date_Period.Year)) . should_fail_with Invalid_Value_Type
-            Test.expect_panic Type_Error <| t2.set (Simple_Calculation.From 42 (Simple_Calculation.Date_Diff "x" Date_Period.Year))
+            t2.set (Simple_Expression.From 42 (Simple_Calculation.Date_Diff "x" Date_Period.Year)) . should_fail_with Invalid_Value_Type
 
         group_builder.specify "boolean" <|
             t = table_builder [["A", [True, False]], ["T", [True, True]]]
@@ -130,8 +130,8 @@ add_specs suite_builder setup =
             t.set (Simple_Expression.From (Column_Ref.Name "A") Simple_Calculation.Not) "Z" . at "Z" . to_vector . should_equal [False, True]
             t.set (Simple_Expression.From False Simple_Calculation.Not) "Z" . at "Z" . to_vector . should_equal [True, True]
 
-            Test.expect_panic_with (t.set (Simple_Expression.From 42 (Simple_Calculation.And True))) Type_Error
-            Test.expect_panic_with (t.set (Simple_Expression.From (Column_Ref.Name "A") (Simple_Calculation.Or "x"))) Type_Error
+            t.set (Simple_Expression.From 42 (Simple_Calculation.And True)) . should_fail_with Invalid_Value_Type
+            t.set (Simple_Expression.From (Column_Ref.Name "A") (Simple_Calculation.Or "x")) . should_fail_with Invalid_Value_Type
 
         group_builder.specify "if" <|
             t = table_builder [["A", [1, 100]], ["B", [10, 40]], ["C", [23, 55]]]
@@ -243,7 +243,7 @@ add_specs suite_builder setup =
         group_builder.specify "Should disambiguate two derived columns that would otherwise have had the same name, within the same expression" <|
             t = table_builder [["X", [1, 2, 3]]]
             expression = "2 + (2 * 2) + (2 ^ [X])"
-            t2 = t.set expression
+            t2 = t.set (expr expression)
             t2.column_names . should_equal ["X", expression]
             t2.at "X" . to_vector . should_equal [1, 2, 3]
             t2.at expression . to_vector . should_equal [8, 10, 14]
@@ -251,7 +251,7 @@ add_specs suite_builder setup =
         group_builder.specify "Should use .pretty to distinguish string constants from regular column names" <|
             t = table_builder [["X", ["a", "b", "c"]]]
             expression = '"foo" + [X] + "bar"'
-            t2 = t.set expression
+            t2 = t.set (expr expression)
             t2.column_names . should_equal ["X", expression]
             t2.at "X" . to_vector . should_equal ["a", "b", "c"]
             t2.at expression . to_vector . should_equal ["fooabar", "foobbar", "foocbar"]

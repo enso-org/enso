@@ -222,7 +222,7 @@ add_specs suite_builder setup =
 
             # These errors currently only work in in-memory.
             if setup.is_database.not then
-                action2 = t1.set (Simple_Expression.From 3 (Simple_Calculation.Divide (Column_Ref.Name "X"))) as="Z" on_problems=_
+                action2 = t1.set (expr "3 / [X]") as="Z" on_problems=_
                 tester2 table =
                     table.at "Z" . to_vector . should_equal [2.0, 1.5, Number.positive_infinity]
                 problems2 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]

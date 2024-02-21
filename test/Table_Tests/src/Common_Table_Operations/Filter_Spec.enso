@@ -489,7 +489,7 @@ add_specs suite_builder setup =
             t.filter (expr "Starts_With([b])") . should_fail_with Expression_Error
             t.filter (expr "Starts_With([b])") . catch . should_be_a Expression_Error.Argument_Mismatch
             t.filter (expr "[missing]") . should_fail_with No_Such_Column
-            t.filter (expr "[ix]") . should_fail_with Invalid_Value_Type
+            t.filter (expr "[ix]") Filter_Condition.Is_True . should_fail_with Invalid_Value_Type
 
             ## This used to raise Expression_Error.Argument_Mismatch, but now we
                cannot detect that.
