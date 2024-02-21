@@ -15,7 +15,8 @@ public final class SemVer {
   private final String prefix;
 
   private static final Pattern regex =
-      Pattern.compile("([a-z]+-)?(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)(-[a-zA-Z]+)?");
+      Pattern.compile(
+          "^([a-z]+-)?(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)(-[0-9A-Za-z-\\.]+)?$");
 
   private SemVer(long major, long minor, long patch, String preRelease, String prefix) {
     this.major = major;

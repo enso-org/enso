@@ -56,6 +56,18 @@ public class VersionsTest {
     assertTrue(SemVer.of(2, 3, 0).isGreaterThan(SemVer.of(2, 1, 9)));
     assertTrue(SemVer.of(100, 0, 0).isGreaterThan(SemVer.of(1, 0, 0)));
     assertTrue(SemVer.of(21, 0, 0).isGreaterThan(SemVer.of(9, 0, 0)));
+    assertEquals(
+        SemVer.parse("0.2.17-SNAPSHOT.2021-07-23").get().preReleaseVersion(),
+        "SNAPSHOT.2021-07-23");
+
+    assertTrue(
+        SemVer.parse("0.2.17-SNAPSHOT.2021-07-23")
+            .get()
+            .isGreaterThanOrEqual(SemVer.of(0, 2, 17, "SNAPSHOT")));
+
+    var v5 = SemVer.parse("0.2.17-SNAPSHOT.2021-07-23").get();
+    var v6 = SemVer.parse("0.2.17-SNAPSHOT").get();
+    assertTrue(v5.isGreaterThanOrEqual(v6));
   }
 
   @Test
