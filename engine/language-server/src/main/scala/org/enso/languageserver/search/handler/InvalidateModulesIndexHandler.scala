@@ -17,13 +17,11 @@ import scala.concurrent.duration.FiniteDuration
   * @param runtimeFailureMapper mapper for runtime failures
   * @param timeout request timeout
   * @param runtime reference to the runtime connector
-  * @param suggestionsHandler reference to the suggestions handler
   */
 final class InvalidateModulesIndexHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
-  runtime: ActorRef,
-  suggestionsHandler: ActorRef
+  runtime: ActorRef
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
@@ -52,7 +50,6 @@ final class InvalidateModulesIndexHandler(
       context.stop(self)
 
     case Api.Response(_, Api.InvalidateModulesIndexResponse()) =>
-      suggestionsHandler ! SearchProtocol.CleanSuggestionsDatabase
       replyTo ! SearchProtocol.InvalidateSuggestionsDatabaseResult
       cancellable.cancel()
       context.stop(self)
@@ -70,21 +67,14 @@ object InvalidateModulesIndexHandler {
     *
     * @param runtimeFailureMapper mapper for runtime failures
     * @param timeout request timeout
-    * @param runtime reference to the runtime connector
-    * @param suggestionsHandler reference to the suggestions handler
+    * @param runtime reference to the runtime conector
     */
   def props(
     runtimeFailureMapper: RuntimeFailureMapper,
     timeout: FiniteDuration,
-    runtime: ActorRef,
-    suggestionsHandler: ActorRef
+    runtime: ActorRef
   ): Props =
     Props(
-      new InvalidateModulesIndexHandler(
-        runtimeFailureMapper,
-        timeout,
-        runtime,
-        suggestionsHandler
-      )
+      new InvalidateModulesIndexHandler(runtimeFailureMapper, timeout, runtime)
     )
 }

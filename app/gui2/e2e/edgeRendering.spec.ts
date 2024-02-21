@@ -63,9 +63,9 @@ test('Hover behaviour of edges', async ({ page }) => {
   await expect(hoveredEdgeElements).toHaveCount(SPLIT_EDGE_PARTS)
 
   // Expect the top edge part to be dimmed
-  const topEdge = page.locator('path:nth-child(3)')
+  const topEdge = page.locator('svg.behindNodes g:nth-child(2) path:nth-child(1)')
   await expect(topEdge).toHaveClass('edge visible dimmed')
   // Expect the bottom edge part not to be dimmed
-  const bottomEdge = page.locator('path:nth-child(5)')
+  const bottomEdge = page.locator('svg.behindNodes g:nth-child(2) path:nth-child(3)')
   await expect(bottomEdge).toHaveClass('edge visible')
 })
