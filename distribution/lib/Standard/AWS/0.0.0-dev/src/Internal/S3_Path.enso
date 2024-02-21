@@ -99,6 +99,11 @@ type Path_Entry
     ## PRIVATE
     File (name : Text)
 
+    ## PRIVATE
+    is_directory self -> Boolean = case self of
+        Path_Entry.Directory _ -> True
+        Path_Entry.File _      -> False
+
 ## PRIVATE
 type Decomposed_S3_Path
     ## PRIVATE
@@ -107,7 +112,7 @@ type Decomposed_S3_Path
     ## PRIVATE
        Reconstructs the original path.
     key self -> Text =
-        add_directory_suffix = self.parts.not_empty && self.parts.last.is_a Path_Entry.Directory
+        add_directory_suffix = self.parts.not_empty && self.parts.last.is_directory
         suffix = if add_directory_suffix then S3_Path.delimiter else ""
         self.parts.map .name . join separator=S3_Path.delimiter suffix=suffix
 
