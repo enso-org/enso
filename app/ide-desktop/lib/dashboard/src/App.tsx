@@ -86,21 +86,21 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
-  logger: loggerProvider.Logger
+  readonly logger: loggerProvider.Logger
   /** Whether the application may have the local backend running. */
-  supportsLocalBackend: boolean
+  readonly supportsLocalBackend: boolean
   /** If true, the app can only be used in offline mode. */
-  isAuthenticationDisabled: boolean
+  readonly isAuthenticationDisabled: boolean
   /** Whether the application supports deep links. This is only true when using
    * the installed app on macOS and Windows. */
-  supportsDeepLinks: boolean
+  readonly supportsDeepLinks: boolean
   /** Whether the dashboard should be rendered. */
-  shouldShowDashboard: boolean
+  readonly shouldShowDashboard: boolean
   /** The name of the project to open on startup, if any. */
-  initialProjectName: string | null
-  onAuthenticated: (accessToken: string | null) => void
-  projectManagerUrl: string | null
-  appRunner: AppRunner
+  readonly initialProjectName: string | null
+  readonly onAuthenticated: (accessToken: string | null) => void
+  readonly projectManagerUrl: string | null
+  readonly appRunner: AppRunner
 }
 
 /** Component called by the parent module, returning the root React component for this
@@ -191,7 +191,8 @@ function AppRouter(props: AppProps) {
       if (
         isClick &&
         !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLTextAreaElement)
+        !(event.target instanceof HTMLTextAreaElement) &&
+        !(event.target instanceof HTMLElement && event.target.isContentEditable)
       ) {
         document.getSelection()?.removeAllRanges()
       }

@@ -4,7 +4,7 @@ from Standard.Table import Table, Delimited, Column, Data_Formatter
 import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Extensions.Table_Conversions import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 

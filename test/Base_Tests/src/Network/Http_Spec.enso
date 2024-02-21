@@ -12,8 +12,8 @@ import Standard.Base.Network.Proxy.Proxy
 import Standard.Base.Runtime.Context
 from Standard.Base.Network.HTTP import resolve_headers
 
-from Standard.Test_New import all
-from Standard.Test_New.Execution_Context_Helpers import run_with_and_without_output
+from Standard.Test import all
+from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 type Test_Type
     Aaa (s:Text)
@@ -624,7 +624,7 @@ add_specs suite_builder =
             # Invalid token
             r3 = Data.fetch url headers=[Header.authorization_bearer "invalid-token"]
             r3.should_fail_with HTTP_Error
-            r3.catch.status_code.code . should_equal 403
+            r3.catch.status_code.code . should_equal 401
 
 main =
     suite = Test.build suite_builder->

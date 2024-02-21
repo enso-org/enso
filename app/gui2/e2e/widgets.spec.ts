@@ -9,23 +9,40 @@ class DropDownLocator {
 
   constructor(page: Page) {
     this.dropDown = page.locator('.dropdownContainer')
-    this.items = this.dropDown.locator('.selectable-item')
+    this.items = this.dropDown.locator('.selectable-item, .selected-item')
   }
 
   async expectVisibleWithOptions(page: Page, options: string[]): Promise<void> {
     await expect(this.dropDown).toBeVisible()
-    await expect(this.items).toHaveCount(options.length)
     for (const option of options) {
       await expect(
         this.items.filter({ has: page.getByText(option, { exact: true }) }),
       ).toBeVisible()
     }
+    await expect(this.items).toHaveCount(options.length)
   }
 
   async clickOption(page: Page, option: string): Promise<void> {
     await this.items.filter({ has: page.getByText(option) }).click()
   }
 }
+
+test('Widget in plain AST', async ({ page }) => {
+  await actions.goToGraph(page)
+  const numberNode = locate.graphNodeByBinding(page, 'five')
+  const numberWidget = numberNode.locator('.WidgetNumber')
+  await expect(numberWidget).toBeVisible()
+  await expect(numberWidget.locator('.value')).toHaveValue('5')
+
+  const listNode = locate.graphNodeByBinding(page, 'list')
+  const listWidget = listNode.locator('.WidgetVector')
+  await expect(listWidget).toBeVisible()
+
+  const textNode = locate.graphNodeByBinding(page, 'text')
+  const textWidget = textNode.locator('.WidgetText')
+  await expect(textWidget).toBeVisible()
+  await expect(textWidget.locator('.value')).toHaveValue("'test'")
+})
 
 test('Selection widgets in Data.read node', async ({ page }) => {
   await actions.goToGraph(page)
@@ -170,7 +187,7 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     '.',
     'Count_Distinct',
   ])
-  await expect(columnsArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"column 1"')
+  await expect(columnsArg.locator('.EnsoTextInputWidget > input').first()).toHaveValue('"column 1"')
 
   // Add another aggregate
   await columnsArg.locator('.add-item').click()
@@ -205,7 +222,7 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
   await dropDown.clickOption(page, 'column 2')
   await expect(secondItem.locator('.WidgetToken')).toHaveText(['Aggregate_Column', '.', 'Group_By'])
-  await expect(secondItem.locator('.EnsoTextInputWidget > input')).toHaveValue('"column 2"')
+  await expect(secondItem.locator('.EnsoTextInputWidget > input').first()).toHaveValue('"column 2"')
 
   // Switch aggregates
   //TODO[ao] I have no idea how to emulate drag. Simple dragTo does not work (some element seem to capture event).

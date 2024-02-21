@@ -155,6 +155,9 @@ export function* operandsOfLeftAssocOprChain<HasIdMap extends boolean = true>(
 
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
+  const { initializeFFI } = await import('shared/ast/ffi')
+
+  await initializeFFI()
 
   test.each([
     { code: '2 + 3', result: ['2', '+', '3'] },

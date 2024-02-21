@@ -1,15 +1,15 @@
 /** @file The mock API. */
 import * as test from '@playwright/test'
 
+import * as backend from '#/services/Backend'
+import type * as remoteBackend from '#/services/RemoteBackend'
+import * as remoteBackendPaths from '#/services/remoteBackendPaths'
+
+import * as config from '#/utilities/config'
+import * as dateTime from '#/utilities/dateTime'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-
-import * as backend from '../src/services/Backend'
-import type * as remoteBackend from '../src/services/RemoteBackend'
-import * as remoteBackendPaths from '../src/services/remoteBackendPaths'
-import * as config from '../src/utilities/config'
-import * as dateTime from '../src/utilities/dateTime'
-import * as uniqueString from '../src/utilities/uniqueString'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // =================
 // === Constants ===
@@ -38,7 +38,7 @@ const BASE_URL = config.ACTIVE_CONFIG.apiUrl + '/'
 
 /** Parameters for {@link mockApi}. */
 interface MockParams {
-  page: test.Page
+  readonly page: test.Page
 }
 
 /** Add route handlers for the mock API to a page. */
@@ -48,9 +48,9 @@ export async function mockApi({ page }: MockParams) {
   // eslint-disable-next-line no-restricted-syntax
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
-  const defaultOrganizationId = backend.UserOrOrganizationId('organization-placeholder id')
+  const defaultOrganizationId = backend.OrganizationId('organization-placeholder id')
   const defaultDirectoryId = backend.DirectoryId('directory-placeholder id')
-  const defaultUser: backend.UserOrOrganization = {
+  const defaultUser: backend.User = {
     email: defaultEmail,
     name: defaultUsername,
     id: defaultOrganizationId,
@@ -58,7 +58,7 @@ export async function mockApi({ page }: MockParams) {
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
   }
-  let currentUser: backend.UserOrOrganization | null = defaultUser
+  let currentUser: backend.User | null = defaultUser
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []
@@ -197,7 +197,7 @@ export async function mockApi({ page }: MockParams) {
     for (const innerId of ids) {
       const asset = assetMap.get(innerId)
       if (asset != null) {
-        asset.labels = newLabels
+        object.unsafeMutable(asset).labels = newLabels
       }
     }
   }
@@ -234,10 +234,10 @@ export async function mockApi({ page }: MockParams) {
         /** The type for the search query for this endpoint. */
         interface Query {
           /* eslint-disable @typescript-eslint/naming-convention */
-          parent_id?: string
-          filter_by?: backend.FilterBy
-          labels?: backend.LabelName[]
-          recent_projects?: boolean
+          readonly parent_id?: string
+          readonly filter_by?: backend.FilterBy
+          readonly labels?: backend.LabelName[]
+          readonly recent_projects?: boolean
           /* eslint-enable @typescript-eslint/naming-convention */
         }
         // The type of the body sent by this app is statically known.
@@ -373,7 +373,7 @@ export async function mockApi({ page }: MockParams) {
       async (route, request) => {
         /** The type for the JSON request payload for this endpoint. */
         interface Body {
-          parentDirectoryId: backend.DirectoryId
+          readonly parentDirectoryId: backend.DirectoryId
         }
         const assetId = request.url().match(/[/]assets[/](.+?)[/]copy/)?.[1]
         // eslint-disable-next-line no-restricted-syntax
@@ -453,7 +453,7 @@ export async function mockApi({ page }: MockParams) {
           const asset = assetMap.get(backend.DirectoryId(assetId))
           if (asset != null) {
             if (body.description != null) {
-              asset.description = body.description
+              object.unsafeMutable(asset).description = body.description
             }
           }
         } else {
@@ -468,11 +468,11 @@ export async function mockApi({ page }: MockParams) {
           const assetId = request.url().match(/[/]assets[/]([^/?]+)/)?.[1] ?? ''
           /** The type for the JSON request payload for this endpoint. */
           interface Body {
-            labels: backend.LabelName[]
+            readonly labels: backend.LabelName[]
           }
           /** The type for the JSON response payload for this endpoint. */
           interface Response {
-            tags: backend.Label[]
+            readonly tags: backend.Label[]
           }
           // The type of the body sent by this app is statically known.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -504,7 +504,7 @@ export async function mockApi({ page }: MockParams) {
           if (asset == null) {
             await route.abort()
           } else {
-            asset.title = body.title
+            object.unsafeMutable(asset).title = body.title
             await route.fulfill({
               json: {
                 id: backend.DirectoryId(directoryId),
@@ -538,7 +538,7 @@ export async function mockApi({ page }: MockParams) {
         if (request.method() === 'PATCH') {
           /** The type for the JSON request payload for this endpoint. */
           interface Body {
-            assetId: backend.AssetId
+            readonly assetId: backend.AssetId
           }
           // The type of the body sent by this app is statically known.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -693,7 +693,7 @@ export async function mockApi({ page }: MockParams) {
     get currentUser() {
       return currentUser
     },
-    setCurrentUser: (user: backend.UserOrOrganization | null) => {
+    setCurrentUser: (user: backend.User | null) => {
       currentUser = user
     },
     addAsset,

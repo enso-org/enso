@@ -19,28 +19,28 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 
 /** Props for an arbitrary variant of {@link backendModule.AnyAsset}. */
 export interface AssetColumnProps {
-  keyProp: backendModule.AssetId
-  item: AssetTreeNode
-  setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
-  selected: boolean
-  setSelected: (selected: boolean) => void
-  isSoleSelectedItem: boolean
-  state: assetsTable.AssetsTableState
-  rowState: assetsTable.AssetRowState
-  setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
+  readonly keyProp: backendModule.AssetId
+  readonly item: AssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly selected: boolean
+  readonly setSelected: (selected: boolean) => void
+  readonly isSoleSelectedItem: boolean
+  readonly state: assetsTable.AssetsTableState
+  readonly rowState: assetsTable.AssetRowState
+  readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
 }
 
 /** Props for a {@link AssetColumn}. */
 export interface AssetColumnHeadingProps {
-  state: assetsTable.AssetsTableState
+  readonly state: assetsTable.AssetsTableState
 }
 
 /** Metadata describing how to render a column of the table. */
 export interface AssetColumn {
-  id: string
-  className?: string
-  heading: (props: AssetColumnHeadingProps) => JSX.Element
-  render: (props: AssetColumnProps) => JSX.Element
+  readonly id: string
+  readonly className?: string
+  readonly heading: (props: AssetColumnHeadingProps) => JSX.Element
+  readonly render: (props: AssetColumnProps) => JSX.Element
 }
 
 // =======================
@@ -48,13 +48,14 @@ export interface AssetColumn {
 // =======================
 
 /** React components for every column. */
-export const COLUMN_RENDERER: Record<columnUtils.Column, (props: AssetColumnProps) => JSX.Element> =
-  {
-    [columnUtils.Column.name]: NameColumn,
-    [columnUtils.Column.modified]: LastModifiedColumn,
-    [columnUtils.Column.sharedWith]: SharedWithColumn,
-    [columnUtils.Column.labels]: LabelsColumn,
-    [columnUtils.Column.accessedByProjects]: PlaceholderColumn,
-    [columnUtils.Column.accessedData]: PlaceholderColumn,
-    [columnUtils.Column.docs]: DocsColumn,
-  }
+export const COLUMN_RENDERER: Readonly<
+  Record<columnUtils.Column, (props: AssetColumnProps) => JSX.Element>
+> = {
+  [columnUtils.Column.name]: NameColumn,
+  [columnUtils.Column.modified]: LastModifiedColumn,
+  [columnUtils.Column.sharedWith]: SharedWithColumn,
+  [columnUtils.Column.labels]: LabelsColumn,
+  [columnUtils.Column.accessedByProjects]: PlaceholderColumn,
+  [columnUtils.Column.accessedData]: PlaceholderColumn,
+  [columnUtils.Column.docs]: DocsColumn,
+}

@@ -17,12 +17,14 @@ const DEFAULT_OFFSET_PX = 16
 // =================
 
 /** Props for a {@link DragModal}. */
-export interface DragModalProps extends React.PropsWithChildren<JSX.IntrinsicElements['div']> {
-  event: React.DragEvent
-  doCleanup: () => void
-  offsetPx?: number
-  offsetXPx?: number
-  offsetYPx?: number
+export interface DragModalProps
+  extends Readonly<React.PropsWithChildren>,
+    Readonly<JSX.IntrinsicElements['div']> {
+  readonly event: React.DragEvent
+  readonly doCleanup: () => void
+  readonly offsetPx?: number
+  readonly offsetXPx?: number
+  readonly offsetYPx?: number
 }
 
 /** A modal for confirming the deletion of an asset. */
@@ -53,11 +55,15 @@ export default function DragModal(props: DragModalProps) {
       doCleanup()
       unsetModal()
     }
-    document.addEventListener('drag', onDrag)
-    document.addEventListener('dragend', onDragEnd)
+    // Update position (non-FF)
+    document.addEventListener('drag', onDrag, { capture: true })
+    // Update position (FF)
+    document.addEventListener('dragover', onDrag, { capture: true })
+    document.addEventListener('dragend', onDragEnd, { capture: true })
     return () => {
-      document.removeEventListener('drag', onDrag)
-      document.removeEventListener('dragend', onDragEnd)
+      document.removeEventListener('drag', onDrag, { capture: true })
+      document.removeEventListener('dragover', onDrag, { capture: true })
+      document.removeEventListener('dragend', onDragEnd, { capture: true })
     }
     // `doCleanup` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps

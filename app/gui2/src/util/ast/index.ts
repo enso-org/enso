@@ -1,35 +1,28 @@
-import * as RawAst from '@/generated/ast'
-import { assert } from '@/util/assert'
+import { assert, assertDefined } from '@/util/assert'
 import * as Ast from '@/util/ast/abstract'
+import { parseEnso } from '@/util/ast/abstract'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import { isResult, mapOk } from '@/util/data/result'
-import { parse } from '@/util/ffi'
-import { LazyObject, LazySequence } from '@/util/parserSupport'
 import * as map from 'lib0/map'
+import * as RawAst from 'shared/ast/generated/ast'
+import { LazyObject, LazySequence } from 'shared/ast/parserSupport'
+import { tryGetSoleValue } from 'shared/util/data/iterable'
 import type { SourceRange } from 'shared/yjsModel'
 
-export { Ast, RawAst, RawAstExtended }
+export { Ast, RawAst, RawAstExtended, parseEnso }
 
 export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
-
-export function parseEnso(code: string): RawAst.Tree {
-  const blob = parse(code)
-  return RawAst.Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
-}
 
 /** Read a single line of code
  *
  * Is meant to be a helper for tests. If the code is multiline, an exception is raised.
  */
 export function parseEnsoLine(code: string): RawAst.Tree {
-  const block = parseEnso(code)
+  const block = Ast.parseEnso(code)
   assert(block.type === RawAst.Tree.Type.BodyBlock)
-  const statements = block.statements[Symbol.iterator]()
-  const firstLine = statements.next()
-  assert(!firstLine.done)
-  assert(!!statements.next().done)
-  assert(firstLine.value.expression != null)
-  return firstLine.value.expression
+  const soleExpression = tryGetSoleValue(block.statements)?.expression
+  assertDefined(soleExpression)
+  return soleExpression
 }
 
 /**

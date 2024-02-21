@@ -8,12 +8,12 @@ from Standard.Table import Aggregate_Column, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
-import project.Data.Column.Column
+import project.Data.DB_Column.DB_Column
 import project.Data.Dialect
-import project.Data.SQL.Builder
+import project.Data.SQL.SQL_Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table
+import project.Data.DB_Table.DB_Table
 import project.Internal.Base_Generator
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Column_Fetcher.Column_Fetcher
@@ -105,7 +105,7 @@ type SQLite_Dialect
 
     ## PRIVATE
        Prepares a distinct operation.
-    prepare_distinct : Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
@@ -254,7 +254,7 @@ type SQLite_Dialect
     fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name =
         wrapped_name = self.internal_generator_dialect.wrap_identifier table_name
-        query = Builder.code "pragma table_info(" ++ wrapped_name ++ ")"
+        query = SQL_Builder.code "pragma table_info(" ++ wrapped_name ++ ")"
         info_table = connection.read_statement query.build
         ## The `pk` field is non-zero if the columns is part of the primary key.
            The column value indicates the position in the key.
@@ -277,7 +277,7 @@ type SQLite_Dialect
         if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported "SQLite"
 
     ## PRIVATE
-    value_type_for_upload_of_existing_column : Column -> Value_Type
+    value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column = column.value_type
 
 ## PRIVATE
@@ -298,31 +298,31 @@ unsupported name =
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    Builder.code "COALESCE(SUM(" ++ arg.paren ++ " IS NULL), 0)"
+    SQL_Builder.code "COALESCE(SUM(" ++ arg.paren ++ " IS NULL), 0)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    Builder.code "COALESCE(SUM((" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " == '')), 0)"
+    SQL_Builder.code "COALESCE(SUM((" ++ arg.paren ++ " IS NULL) OR (" ++ arg.paren ++ " == '')), 0)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    Builder.code "COALESCE(SUM((" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '')), 0)"
+    SQL_Builder.code "COALESCE(SUM((" ++ arg.paren ++ " IS NOT NULL) AND (" ++ arg.paren ++ " != '')), 0)"
 
 ## PRIVATE
 agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
-    sum_of_squares = Builder.code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
-    square_of_sums = Builder.code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
-    n = Builder.code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
-    var = Builder.code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / " ++ n
-    Builder.code "SQRT(" ++ var ++ ")"
+    sum_of_squares = SQL_Builder.code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
+    square_of_sums = SQL_Builder.code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
+    n = SQL_Builder.code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
+    var = SQL_Builder.code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / " ++ n
+    SQL_Builder.code "SQRT(" ++ var ++ ")"
 
 ## PRIVATE
 agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
-    sum_of_squares = Builder.code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
-    square_of_sums = Builder.code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
-    n = Builder.code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
-    var = Builder.code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / (" ++ n ++ " - 1)"
-    Builder.code "SQRT(" ++ var ++ ")"
+    sum_of_squares = SQL_Builder.code "SUM(" ++ arg.paren ++ "*" ++ arg.paren ++ ")"
+    square_of_sums = SQL_Builder.code "SUM(" ++ arg ++ ") * SUM(" ++ arg ++ ")"
+    n = SQL_Builder.code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
+    var = SQL_Builder.code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / (" ++ n ++ " - 1)"
+    SQL_Builder.code "SQRT(" ++ var ++ ")"
 
 ## PRIVATE
    This is a prototype that doesn't work correctly. Left for reference for
@@ -342,15 +342,15 @@ window_aggregate window_type ignore_null args =
         result_expr = args.first
         order_exprs = args.drop 1
 
-        filter_clause = if ignore_null.not then Builder.code "" else
-            Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
+        filter_clause = if ignore_null.not then SQL_Builder.code "" else
+            SQL_Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
 
-        Builder.code window_type+"(" ++ result_expr ++ ")" ++ filter_clause ++ " OVER (ORDER BY " ++ Builder.join "," order_exprs ++ ")"
+        SQL_Builder.code window_type+"(" ++ result_expr ++ ")" ++ filter_clause ++ " OVER (ORDER BY " ++ SQL_Builder.join "," order_exprs ++ ")"
 
 ## PRIVATE
 concat_ops =
     make_raw_concat_expr expr separator =
-        Builder.code "group_concat(" ++ expr ++ ", " ++ separator ++ ")"
+        SQL_Builder.code "group_concat(" ++ expr ++ ", " ++ separator ++ ")"
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
@@ -358,15 +358,15 @@ concat_ops =
 trim_ops =
     whitespace = "' ' || CHAR(9) || CHAR(10) || CHAR(13)"
     make_fn fn_name = Base_Generator.lift_binary_op fn_name input-> chars-> case chars of
-            Nothing -> Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")"
+            Nothing -> SQL_Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")"
             _ ->
                 case chars.is_constant of
                     True ->
                         const = chars.fragments.vec.first.object
-                        if const.is_nothing || const.is_empty then Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")" else
-                            Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
+                        if const.is_nothing || const.is_empty then SQL_Builder.code fn_name+"(" ++ input ++ ", " ++ whitespace ++ ")" else
+                            SQL_Builder.code fn_name+"(" ++ input ++ ", " ++ chars ++ ")"
                     False ->
-                        Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " == '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
+                        SQL_Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " == '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
     [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
 
@@ -376,15 +376,15 @@ is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
 
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
-    True -> Builder.code "COUNT(DISTINCT (" ++ args.first ++ "))"
+    True -> SQL_Builder.code "COUNT(DISTINCT (" ++ args.first ++ "))"
     False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 agg_count_distinct_include_null args = case args.length == 1 of
     True ->
         arg = args.first
-        count = Builder.code "COUNT(DISTINCT " ++ arg ++ ")"
-        all_nulls_case = Builder.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+        count = SQL_Builder.code "COUNT(DISTINCT " ++ arg ++ ")"
+        all_nulls_case = SQL_Builder.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
         count ++ " + " ++ all_nulls_case
     False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
@@ -400,30 +400,30 @@ ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
-    Builder.code "((" ++ arg ++ ") COLLATE BINARY)"
+    SQL_Builder.code "((" ++ arg ++ ") COLLATE BINARY)"
 
 ## PRIVATE
 make_contains_expr expr substring =
-    Builder.code "instr(" ++ expr ++ ", " ++ substring ++ ") > 0"
+    SQL_Builder.code "instr(" ++ expr ++ ", " ++ substring ++ ") > 0"
 
 ## PRIVATE
 contains = Base_Generator.lift_binary_op "contains" make_contains_expr
 
 ## PRIVATE
 left = Base_Generator.lift_binary_op "LEFT" str-> n->
-    Builder.code "substr(" ++ str ++ ", 0, " ++ n ++ " + 1)"
+    SQL_Builder.code "substr(" ++ str ++ ", 0, " ++ n ++ " + 1)"
 
 ## PRIVATE
 right = Base_Generator.lift_binary_op "RIGHT" str-> n->
-    Builder.code "substr(" ++ str ++ ", -" ++ n ++ ", " ++ n ++ ")"
+    SQL_Builder.code "substr(" ++ str ++ ", -" ++ n ++ ", " ++ n ++ ")"
 
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
-    Builder.code "max(" ++ arg ++ ")"
+    SQL_Builder.code "max(" ++ arg ++ ")"
 
 ## PRIVATE
 floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
-    Builder.code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
+    SQL_Builder.code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
 
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
@@ -436,7 +436,7 @@ supported_replace_params =
     Set.from_vector e
 
 ## PRIVATE
-replace : Vector Builder -> Any -> Builder
+replace : Vector SQL_Builder -> Any -> SQL_Builder
 replace args metadata =
     input = args.at 0
     pattern = args.at 1
@@ -444,14 +444,14 @@ replace args metadata =
 
     replace_params = metadata.at 1
 
-    expression = case replace_params.input_type == Text || replace_params.input_type == Column of
+    expression = case replace_params.input_type == Text || replace_params.input_type == DB_Column of
         True ->
             ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
             case replace_params.only_first of
                 False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ -> Nothing
                     _ ->
-                        Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                        SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
                         replace_only_first False input pattern replacement
@@ -465,12 +465,12 @@ replace args metadata =
 ## PRIVATE
 replace_only_first case_sensitive t p r =
     search_string = if case_sensitive then t else
-        Builder.code "LOWER(" ++ t ++ ")"
-    instr = Builder.code "INSTR(" ++ search_string ++ ", " ++ p ++ ")"
-    prefix = Builder.code "SUBSTR(" ++ t ++ ", 1," ++ instr ++ "-1)"
-    suffix = Builder.code "SUBSTR(" ++ t ++ "," ++ instr ++ "+LENGTH(" ++ p ++ "))"
+        SQL_Builder.code "LOWER(" ++ t ++ ")"
+    instr = SQL_Builder.code "INSTR(" ++ search_string ++ ", " ++ p ++ ")"
+    prefix = SQL_Builder.code "SUBSTR(" ++ t ++ ", 1," ++ instr ++ "-1)"
+    suffix = SQL_Builder.code "SUBSTR(" ++ t ++ "," ++ instr ++ "+LENGTH(" ++ p ++ "))"
     concatenation = prefix ++ " || " ++ r ++ " || " ++ suffix
-    Builder.code "CASE WHEN " ++ instr ++ "= 0 THEN " ++ t ++ " ELSE " ++ concatenation ++ "END"
+    SQL_Builder.code "CASE WHEN " ++ instr ++ "= 0 THEN " ++ t ++ " ELSE " ++ concatenation ++ "END"
 
 ## PRIVATE
    It will return `Nothing` if the type does not require custom logic.
@@ -507,4 +507,4 @@ make_runtime_error_op arguments =
     error_message = arguments.at 0
     variable_to_defer = arguments.at 1
     # We have to ensure that the implementation of SQLite that we use does not have a MATCH function defined which would make the code below succeed.
-    Builder.code "match('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] ', " ++ variable_to_defer ++ ")"
+    SQL_Builder.code "match('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] ', " ++ variable_to_defer ++ ")"

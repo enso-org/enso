@@ -28,13 +28,12 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { bail } from '@/util/assert'
-import type { AstId } from '@/util/ast/abstract.ts'
+import type { AstId, NodeMetadataFields } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
 import { toast } from 'react-toastify'
-import type { NodeMetadata } from 'shared/yjsModel'
 import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
@@ -91,12 +90,12 @@ projectStore.lsRpcConnection.then(
     })
   },
   (err) => {
-    toast.error(`Connection to language server failed: ${err}`)
+    toast.error(`Connection to language server failed: ${JSON.stringify(err)}`)
   },
 )
 
 projectStore.executionContext.on('executionFailed', (err) => {
-  toast.error(`Execution Failed: ${err}`, {})
+  toast.error(`Execution Failed: ${JSON.stringify(err)}`, {})
 })
 
 onMounted(() => {
@@ -119,9 +118,9 @@ const interactionBindingsHandler = interactionBindings.handler({
 // used as the source of the placement. This means, for example, the selected nodes when creating from a selection
 // or the node that is being edited when creating from a port double click.
 function environmentForNodes(nodeIds: IterableIterator<NodeId>): Environment {
-  const nodeRects = [...graphStore.nodeRects.values()]
+  const nodeRects = graphStore.visibleNodeAreas
   const selectedNodeRects = [...nodeIds]
-    .map((id) => graphStore.nodeRects.get(id))
+    .map((id) => graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id))
     .filter((item): item is Rect => item !== undefined)
   const screenBounds = graphNavigator.viewport
   const mousePosition = graphNavigator.sceneMousePos
@@ -164,11 +163,35 @@ function sourcePortForSelection() {
 }
 
 useEvent(window, 'keydown', (event) => {
-  interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
+  ;(!keyboardBusy() && (interactionBindingsHandler(event) || graphBindingsHandler(event))) ||
+    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
 onMounted(() => viewportNode.value?.focus())
+
+function zoomToSelected() {
+  if (!viewportNode.value) return
+  let left = Infinity
+  let top = Infinity
+  let right = -Infinity
+  let bottom = -Infinity
+  const nodesToCenter =
+    nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
+  for (const id of nodesToCenter) {
+    const rect = graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id)
+    if (!rect) continue
+    left = Math.min(left, rect.left)
+    right = Math.max(right, rect.right)
+    top = Math.min(top, rect.top)
+    bottom = Math.max(bottom, rect.bottom)
+  }
+  graphNavigator.panAndZoomTo(
+    Rect.FromBounds(left, top, right, bottom),
+    0.1,
+    Math.max(1, graphNavigator.scale),
+  )
+}
 
 const graphBindingsHandler = graphBindings.handler({
   undo() {
@@ -202,26 +225,7 @@ const graphBindingsHandler = graphBindings.handler({
     })
   },
   zoomToSelected() {
-    if (!viewportNode.value) return
-    let left = Infinity
-    let top = Infinity
-    let right = -Infinity
-    let bottom = -Infinity
-    const nodesToCenter =
-      nodeSelection.selected.size === 0 ? graphStore.currentNodeIds : nodeSelection.selected
-    for (const id of nodesToCenter) {
-      const rect = graphStore.nodeRects.get(id)
-      if (!rect) continue
-      left = Math.min(left, rect.left)
-      right = Math.max(right, rect.right)
-      top = Math.min(top, rect.top)
-      bottom = Math.max(bottom, rect.bottom)
-    }
-    graphNavigator.panAndZoomTo(
-      Rect.FromBounds(left, top, right, bottom),
-      0.1,
-      Math.max(1, graphNavigator.scale),
-    )
+    zoomToSelected()
   },
   selectAll() {
     if (keyboardBusy()) return
@@ -266,29 +270,36 @@ const graphBindingsHandler = graphBindings.handler({
         bail(`Cannot get the method name for the current execution stack item. ${currentMethod}`)
       }
       const currentFunctionEnv = environmentForNodes(selected.values())
-      const module = graphStore.astModule
       const topLevel = graphStore.topLevel
       if (!topLevel) {
         bail('BUG: no top level, collapsing not possible.')
       }
-      const edit = module.edit()
-      const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
-        info,
-        edit.getVersion(topLevel),
-        graphStore.db,
-        currentMethodName,
-      )
-      const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
-      // For collapsed function, only selected nodes would affect placement of the output node.
-      collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
-      const meta = new Map<AstId, Partial<NodeMetadata>>()
       const { position } = collapsedNodePlacement(DEFAULT_NODE_SIZE, currentFunctionEnv)
-      meta.set(refactoredNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
-      if (outputNodeId != null) {
-        const { position } = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, collapsedFunctionEnv)
-        meta.set(outputNodeId, { x: Math.round(position.x), y: -Math.round(position.y) })
-      }
-      graphStore.commitEdit(edit, meta)
+      graphStore.edit((edit) => {
+        const { refactoredNodeId, collapsedNodeIds, outputNodeId } = performCollapse(
+          info,
+          edit.getVersion(topLevel),
+          graphStore.db,
+          currentMethodName,
+        )
+        const collapsedFunctionEnv = environmentForNodes(collapsedNodeIds.values())
+        // For collapsed function, only selected nodes would affect placement of the output node.
+        collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
+        edit
+          .get(refactoredNodeId)
+          .mutableNodeMetadata()
+          .set('position', { x: position.x, y: position.y })
+        if (outputNodeId != null) {
+          const { position } = previousNodeDictatedPlacement(
+            DEFAULT_NODE_SIZE,
+            collapsedFunctionEnv,
+          )
+          edit
+            .get(outputNodeId)
+            .mutableNodeMetadata()
+            .set('position', { x: position.x, y: position.y })
+        }
+      })
     } catch (err) {
       console.log('Error while collapsing, this is not normal.', err)
     }
@@ -319,7 +330,6 @@ const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
   toggle() {
-    if (keyboardBusyExceptIn(codeEditorArea.value)) return false
     showCodeEditor.value = !showCodeEditor.value
   },
 })
@@ -411,10 +421,16 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
     if (graphStore.editedNodeInfo) {
       // We finish editing a node.
       graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
-    } else {
+    } else if (content != '') {
       // We finish creating a new node.
       const metadata = undefined
-      graphStore.createNode(componentBrowserNodePosition.value, content, metadata, requiredImports)
+      const createdNode = graphStore.createNode(
+        componentBrowserNodePosition.value,
+        content,
+        metadata,
+        requiredImports,
+      )
+      if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
     }
   }
   // Finish interaction. This should also hide component browser.
@@ -489,7 +505,7 @@ interface ClipboardData {
 /** Node data that is copied to the clipboard. Used for serializing and deserializing the node information. */
 interface CopiedNode {
   expression: string
-  metadata: NodeMetadata | undefined
+  metadata: NodeMetadataFields | undefined
 }
 
 /** Copy the content of the selected node to the clipboard. */
@@ -498,7 +514,11 @@ function copyNodeContent() {
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
   const content = node.rootSpan.code()
-  const metadata = projectStore.module?.getNodeMetadata(id) ?? undefined
+  const nodeMetadata = node.rootSpan.nodeMetadata
+  const metadata = {
+    position: nodeMetadata.get('position'),
+    visualization: nodeMetadata.get('visualization'),
+  }
   const copiedNode: CopiedNode = { expression: content, metadata }
   const clipboardData: ClipboardData = { nodes: [copiedNode] }
   const jsonItem = new Blob([JSON.stringify(clipboardData)], { type: ENSO_MIME_TYPE })
@@ -625,9 +645,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
-    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
-      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
-    </svg>
+    <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
 
     <ComponentBrowser
       v-if="componentBrowserVisible"
@@ -646,10 +664,14 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
+      :zoomLevel="100.0 * graphNavigator.scale"
       @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
       @back="stackNavigator.exitNode"
       @forward="stackNavigator.enterNextNodeFromHistory"
       @execute="onPlayButtonPress()"
+      @fitToAllClicked="zoomToSelected"
+      @zoomIn="graphNavigator.scale *= 1.1"
+      @zoomOut="graphNavigator.scale *= 0.9"
     />
     <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
     <Transition>
@@ -668,13 +690,6 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   overflow: clip;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
-}
-
-.svgBackdropLayer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: -1;
 }
 
 .htmlLayer {

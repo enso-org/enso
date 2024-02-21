@@ -5,8 +5,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.No_Such_Key.No_Such_Key
 from Standard.Base.Data.Json import Invalid_JSON
 
-from Standard.Test_New import all
-import Standard.Test_New.Spec_Result.Spec_Result
+from Standard.Test import all
+import Standard.Test.Spec_Result.Spec_Result
 
 
 
@@ -77,9 +77,9 @@ add_specs suite_builder =
             Json.parse '{"start": 15, "end": 20, "step": 3}' . into Range . should_equal (Range.Between 15 20 3)
 
         group_builder.specify "should be able to deserialize using into for multiple constructors" <|
-            Json.parse '{"than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
-            Json.parse '{"constructor": "Less", "than": 2}' . into Filter_Condition . should_equal (Filter_Condition.Less 2)
-            Json.parse '{"constructor": "NotARealOne", "than": 2}' . into Filter_Condition . should_fail_with Illegal_Argument
+            Json.parse '{"than": 2}' . into Statistic . should_fail_with Illegal_Argument
+            Json.parse '{"constructor": "Skew", "population": true}' . into Statistic . should_equal (Statistic.Skew True)
+            Json.parse '{"constructor": "NotARealOne", "population": true}' . into Statistic . should_fail_with Illegal_Argument
 
         group_builder.specify "should be able to convert a JS_Object into a Map using into" <|
             Json.parse '{"a": 15, "b": 20, "c": "X", "d": null}' . into Map . should_equal (Map.from_vector [["a", 15], ["b", 20], ["c", "X"], ["d", Nothing]])

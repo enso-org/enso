@@ -42,11 +42,11 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
-  const { numberOfSelectedItems, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, doOpenManually, doOpenIde, doCloseIde } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.project) {
@@ -55,8 +55,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   }
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
-    asset.permissions?.find(permission => permission.user.user_email === organization?.email) ??
-    null
+    asset.permissions?.find(permission => permission.user.user_email === user?.email) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -70,7 +69,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const isOtherUserUsingProject =
     backend.type !== backendModule.BackendType.local &&
     projectState.opened_by != null &&
-    projectState.opened_by !== organization?.email
+    projectState.opened_by !== user?.email
 
   const doRename = async (newName: string) => {
     try {
@@ -93,6 +92,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
       case AssetEventType.newFolder:
+      case AssetEventType.newDataLink:
       case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
@@ -275,7 +275,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         } else if (
           !isRunning &&
           eventModule.isSingleClick(event) &&
-          ((selected && numberOfSelectedItems === 1) ||
+          ((selected && selectedKeys.current.size === 1) ||
             shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
         ) {
           setRowState(object.merger({ isEditingName: true }))

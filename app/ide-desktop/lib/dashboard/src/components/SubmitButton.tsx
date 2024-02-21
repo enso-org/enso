@@ -9,9 +9,9 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link SubmitButton}. */
 export interface SubmitButtonProps {
-  disabled?: boolean
-  text: string
-  icon: string
+  readonly disabled?: boolean
+  readonly text: string
+  readonly icon: string
 }
 
 /** A styled submit button. */

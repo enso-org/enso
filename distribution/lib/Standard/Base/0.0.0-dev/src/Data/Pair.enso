@@ -85,6 +85,7 @@ type Pair
             _ -> if_missing
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for at least one element of this pair.
 
        Arguments:
@@ -100,6 +101,7 @@ type Pair
     any self predicate = predicate self.first || predicate self.second
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a predicate holds for all elements in this pair.
 
        Arguments:
@@ -115,6 +117,7 @@ type Pair
     all self predicate = predicate self.first && predicate self.second
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this pair contains a given value as an element.
 
        Arguments:
@@ -144,7 +147,7 @@ type Pair
 
              Pair.new 1 6 .find (> 3)
     find : (Any -> Boolean) -> Integer -> Any -> Any
-    find self predicate start=0 ~if_missing=(Error.throw Not_Found) =
+    find self predicate (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         check_start_valid start used_start->
             if used_start<1 && predicate self.first then self.first else
                 if used_start<2 && predicate self.second then self.second else
@@ -166,7 +169,7 @@ type Pair
              Pair.new 1 2 . index_of 2 == 1
              Pair.new 2 2 . index_of 2 == 0
     index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self element start=0 = check_start_valid start used_start->
+    index_of self element (start : Integer = 0) = check_start_valid start used_start->
         predicate = case element of
             _ : Function -> element
             _ -> (==element)
@@ -189,7 +192,7 @@ type Pair
 
              Pair.new 2 2 . last_index_of 2 == 1
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=-1 = check_start_valid start max=2 used_start->
+    last_index_of self element (start : Integer = -1) = check_start_valid start max=2 used_start->
         predicate = case element of
             _ : Function -> element
             _ -> (==element)

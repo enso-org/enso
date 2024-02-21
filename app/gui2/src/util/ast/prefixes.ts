@@ -29,7 +29,7 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
       Object.entries<Pattern>(this.prefixes).map(([name, pattern]) => {
         const matches = pattern.match(expression)
         const lastMatch = matches != null ? matches[matches.length - 1] : undefined
-        if (lastMatch) expression = expression.module.checkedGet(lastMatch)
+        if (lastMatch) expression = expression.module.get(lastMatch)
         return [name, matches]
       }),
     ) as Matches<T>

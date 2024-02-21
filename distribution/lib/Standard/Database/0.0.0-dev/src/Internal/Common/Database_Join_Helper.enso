@@ -8,7 +8,7 @@ from Standard.Table.Errors import Floating_Point_Equality
 
 import project.Connection.Connection.Connection
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table
+import project.Data.DB_Table.DB_Table
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -77,7 +77,7 @@ type Join_Subquery_Setup
                 [old.name, new]
 
 ## PRIVATE
-prepare_subqueries : Connection -> Table -> Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
+prepare_subqueries : Connection -> DB_Table -> DB_Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
 prepare_subqueries connection left right needs_left_indicator needs_right_indicator =
     table_naming_helper = connection.base_connection.table_naming_helper
     column_naming_helper = connection.base_connection.column_naming_helper

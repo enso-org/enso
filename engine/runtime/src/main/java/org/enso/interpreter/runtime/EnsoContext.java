@@ -485,6 +485,26 @@ public final class EnsoContext {
   }
 
   /**
+   * Returns true if the output is a terminal that supports ANSI colors. {@see
+   * https://github.com/termstandard/colors/} {@see https://no-color.org/}
+   */
+  public boolean isColorTerminalOutput() {
+    var envVars = environment.getEnvironment();
+    if (envVars.get("NO_COLOR") != null) {
+      return false;
+    }
+    if (envVars.get("COLORTERM") != null) {
+      return true;
+    }
+    if (envVars.get("TERM") != null) {
+      var termEnv = envVars.get("TERM").toLowerCase();
+      return Arrays.stream(termEnv.split("-"))
+          .anyMatch(str -> str.equals("color") || str.equals("256color"));
+    }
+    return false;
+  }
+
+  /**
    * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
    * This method also tries to lookup inner classes. More specifically, if the provided name
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class

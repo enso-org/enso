@@ -589,6 +589,17 @@ export function getAssetRowLeftPx(locator: test.Locator) {
   return locator.evaluate(el => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
 }
 
+// ===================================
+// === expect functions for themes ===
+// ===================================
+
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectClassSelected(locator: test.Locator) {
+  await test.test.step('Expect `selected`', async () => {
+    await test.expect(locator).toHaveClass(/(?:^| )selected(?: |$)/)
+  })
+}
+
 // ============================
 // === expectPlaceholderRow ===
 // ============================
@@ -673,7 +684,7 @@ const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 
 /** Parameters for {@link mockDate}. */
 interface MockParams {
-  page: test.Page
+  readonly page: test.Page
 }
 
 /** Replace `Date` with a version that returns a fixed time. */

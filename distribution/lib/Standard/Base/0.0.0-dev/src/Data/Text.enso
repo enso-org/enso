@@ -38,6 +38,7 @@ type Text
 
     ## ALIAS concatenate
        GROUP Operators
+       ICON text
        Concatenates the text that to the right side of this.
 
        Arguments:
@@ -51,6 +52,7 @@ type Text
     + self that = @Builtin_Method "Text.+"
 
     ## GROUP Logical
+       ICON operators
        Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
        Arguments:
@@ -106,6 +108,7 @@ type Text
             Ordering.from_sign comparison_result
 
     ## GROUP Logical
+       ICON metadata
        Check if `self` is empty.
 
        ! What is Empty?
@@ -119,6 +122,7 @@ type Text
     is_empty self = self == ""
 
     ## GROUP Logical
+       ICON metadata
        Check if `self` is not empty.
 
        ! What is Not Empty?

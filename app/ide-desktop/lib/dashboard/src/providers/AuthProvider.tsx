@@ -28,7 +28,6 @@ import RemoteBackend from '#/services/RemoteBackend'
 
 import * as errorModule from '#/utilities/error'
 import HttpClient, * as httpClient from '#/utilities/HttpClient'
-import * as localStorageModule from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
 import * as cognitoModule from '#/authentication/cognito'
@@ -55,28 +54,28 @@ export enum UserSessionType {
 /** Properties common to all {@link UserSession}s. */
 interface BaseUserSession<Type extends UserSessionType> {
   /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
-  type: Type
+  readonly type: Type
   /** User's JSON Web Token (JWT), used for authenticating and authorizing requests to the API. */
-  accessToken: string
+  readonly accessToken: string
   /** User's email address. */
-  email: string
+  readonly email: string
 }
 
 // Extends `BaseUserSession` in order to inherit the documentation.
 /** Empty object of an offline user session.
  * Contains some fields from {@link FullUserSession} to allow destructuring. */
 export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
-  accessToken: null
-  organization: null
-  user: null
+  readonly accessToken: null
+  readonly user: null
+  readonly userInfo: null
 }
 
 /** The singleton instance of {@link OfflineUserSession}. Minimizes React re-renders. */
 const OFFLINE_USER_SESSION: Readonly<OfflineUserSession> = {
   type: UserSessionType.offline,
   accessToken: null,
-  organization: null,
   user: null,
+  userInfo: null,
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -90,8 +89,8 @@ export interface PartialUserSession extends BaseUserSession<UserSessionType.part
 /** Object containing the currently signed-in user's session data. */
 export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
   /** User's organization information. */
-  organization: backendModule.UserOrOrganization
-  user: backendModule.SimpleUser | null
+  readonly user: backendModule.User
+  readonly userInfo: backendModule.SimpleUser | null
 }
 
 /** A user session for a user that may be either fully registered,
@@ -110,22 +109,26 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  *
  * See `Cognito` for details on each of the authentication functions. */
 interface AuthContextType {
-  goOffline: (shouldShowToast?: boolean) => Promise<boolean>
-  signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
-  confirmSignUp: (email: string, code: string) => Promise<boolean>
-  setUsername: (backend: Backend, username: string, email: string) => Promise<boolean>
-  signInWithGoogle: () => Promise<boolean>
-  signInWithGitHub: () => Promise<boolean>
-  signInWithPassword: (email: string, password: string) => Promise<boolean>
-  forgotPassword: (email: string) => Promise<boolean>
-  changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
-  resetPassword: (email: string, code: string, password: string) => Promise<boolean>
-  signOut: () => Promise<boolean>
+  readonly goOffline: (shouldShowToast?: boolean) => Promise<boolean>
+  readonly signUp: (
+    email: string,
+    password: string,
+    organizationId: string | null
+  ) => Promise<boolean>
+  readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
+  readonly setUsername: (backend: Backend, username: string, email: string) => Promise<boolean>
+  readonly signInWithGoogle: () => Promise<boolean>
+  readonly signInWithGitHub: () => Promise<boolean>
+  readonly signInWithPassword: (email: string, password: string) => Promise<boolean>
+  readonly forgotPassword: (email: string) => Promise<boolean>
+  readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
+  readonly resetPassword: (email: string, code: string, password: string) => Promise<boolean>
+  readonly signOut: () => Promise<boolean>
   /** Session containing the currently authenticated user's authentication information.
    *
    * If the user has not signed in, the session will be `null`. */
-  session: UserSession | null
-  setOrganization: React.Dispatch<React.SetStateAction<backendModule.UserOrOrganization>>
+  readonly session: UserSession | null
+  readonly setUser: React.Dispatch<React.SetStateAction<backendModule.User>>
 }
 
 // Eslint doesn't like headings.
@@ -161,13 +164,13 @@ const AuthContext = React.createContext<AuthContextType>({} as AuthContextType)
 
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
-  shouldStartInOfflineMode: boolean
-  supportsLocalBackend: boolean
-  authService: authServiceModule.AuthService
+  readonly shouldStartInOfflineMode: boolean
+  readonly supportsLocalBackend: boolean
+  readonly authService: authServiceModule.AuthService
   /** Callback to execute once the user has authenticated successfully. */
-  onAuthenticated: (accessToken: string | null) => void
-  children: React.ReactNode
-  projectManagerUrl: string | null
+  readonly onAuthenticated: (accessToken: string | null) => void
+  readonly children: React.ReactNode
+  readonly projectManagerUrl: string | null
 }
 
 /** A React provider for the Cognito API. */
@@ -188,27 +191,20 @@ export default function AuthProvider(props: AuthProviderProps) {
   const [userSession, setUserSession] = React.useState<UserSession | null>(null)
   const toastId = React.useId()
 
-  const setOrganization = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.UserOrOrganization>) => {
-      setUserSession(oldUserSession => {
-        if (
-          oldUserSession == null ||
-          !('organization' in oldUserSession) ||
-          oldUserSession.organization == null
-        ) {
-          return oldUserSession
-        } else {
-          return object.merge(oldUserSession, {
-            organization:
-              typeof valueOrUpdater !== 'function'
-                ? valueOrUpdater
-                : valueOrUpdater(oldUserSession.organization),
-          })
-        }
-      })
-    },
-    []
-  )
+  const setUser = React.useCallback((valueOrUpdater: React.SetStateAction<backendModule.User>) => {
+    setUserSession(oldUserSession => {
+      if (oldUserSession == null || !('user' in oldUserSession) || oldUserSession.user == null) {
+        return oldUserSession
+      } else {
+        return object.merge(oldUserSession, {
+          user:
+            typeof valueOrUpdater !== 'function'
+              ? valueOrUpdater
+              : valueOrUpdater(oldUserSession.user),
+        })
+      }
+    })
+  }, [])
 
   const goOfflineInternal = React.useCallback(() => {
     setInitialized(true)
@@ -308,20 +304,20 @@ export default function AuthProvider(props: AuthProviderProps) {
           setBackendWithoutSavingType(backend)
         }
         gtagEvent('cloud_open')
-        let organization: backendModule.UserOrOrganization | null
-        let user: backendModule.SimpleUser | null
+        let user: backendModule.User | null
+        let userInfo: backendModule.SimpleUser | null
         while (true) {
           try {
-            organization = await backend.usersMe()
+            user = await backend.usersMe()
             try {
-              user =
-                organization?.isEnabled === true
+              userInfo =
+                user?.isEnabled === true
                   ? (await backend.listUsers()).find(
-                      listedUser => listedUser.email === organization?.email
+                      listedUser => listedUser.email === user?.email
                     ) ?? null
                   : null
             } catch {
-              user = null
+              userInfo = null
             }
             break
           } catch (error) {
@@ -346,7 +342,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           history.replaceState(null, '', url.toString())
         }
         let newUserSession: UserSession
-        if (organization == null) {
+        if (user == null) {
           sentry.setUser({ email: session.email })
           newUserSession = {
             type: UserSessionType.partial,
@@ -354,17 +350,17 @@ export default function AuthProvider(props: AuthProviderProps) {
           }
         } else {
           sentry.setUser({
-            id: organization.id,
-            email: organization.email,
-            username: organization.name,
+            id: user.id,
+            email: user.email,
+            username: user.name,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ip_address: '{{auto}}',
           })
           newUserSession = {
             type: UserSessionType.full,
             ...session,
-            organization,
             user,
+            userInfo,
           }
 
           // 34560000 is the recommended max cookie age.
@@ -504,7 +500,7 @@ export default function AuthProvider(props: AuthProviderProps) {
             userName: username,
             userEmail: backendModule.EmailAddress(email),
             organizationId:
-              organizationId != null ? backendModule.UserOrOrganizationId(organizationId) : null,
+              organizationId != null ? backendModule.OrganizationId(organizationId) : null,
           }),
           {
             success: 'Your username has been set!',
@@ -512,9 +508,9 @@ export default function AuthProvider(props: AuthProviderProps) {
             pending: 'Setting username...',
           }
         )
-        const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+        const redirectTo = localStorage.get('loginRedirect')
         if (redirectTo != null) {
-          localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+          localStorage.delete('loginRedirect')
           location.href = redirectTo
         } else {
           navigate(appUtils.DASHBOARD_PATH)
@@ -603,7 +599,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     changePassword: withLoadingToast(changePassword),
     signOut,
     session: userSession,
-    setOrganization,
+    setUser,
   }
 
   return (
@@ -620,7 +616,7 @@ export default function AuthProvider(props: AuthProviderProps) {
  * displayed to the user. */
 interface UserFacingError {
   /** The user-facing error message. */
-  message: string
+  readonly message: string
 }
 
 /** Return `true` if the value is a {@link UserFacingError}. */
@@ -680,9 +676,9 @@ export function SemiProtectedLayout() {
   const shouldPreventNavigation = getShouldPreventNavigation()
 
   if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-    const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+    const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
-      localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+      localStorage.delete('loginRedirect')
       location.href = redirectTo
       return
     } else {
@@ -707,9 +703,9 @@ export function GuestLayout() {
   if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
     return <router.Navigate to={appUtils.SET_USERNAME_PATH} />
   } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
-    const redirectTo = localStorage.get(localStorageModule.LocalStorageKey.loginRedirect)
+    const redirectTo = localStorage.get('loginRedirect')
     if (redirectTo != null) {
-      localStorage.delete(localStorageModule.LocalStorageKey.loginRedirect)
+      localStorage.delete('loginRedirect')
       location.href = redirectTo
       return
     } else {

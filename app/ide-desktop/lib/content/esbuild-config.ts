@@ -37,22 +37,22 @@ const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import
  * environment variables. */
 export interface PassthroughArguments {
     /** `true` if in development mode (live-reload), `false` if in production mode. */
-    devMode: boolean
+    readonly devMode: boolean
     /** Whether the application may have the local backend running. */
-    supportsLocalBackend: boolean
+    readonly supportsLocalBackend: boolean
     /** Whether the application supports deep links. This is only true when using
      * the installed app on macOS and Windows. */
-    supportsDeepLinks: boolean
+    readonly supportsDeepLinks: boolean
 }
 
 /** Mandatory build options. */
 export interface Arguments extends PassthroughArguments {
     /** List of files to be copied from WASM artifacts. */
-    wasmArtifacts: string
+    readonly wasmArtifacts: string
     /** Directory with assets. Its contents are to be copied. */
-    assetsPath: string
+    readonly assetsPath: string
     /** Path where bundled files are output. */
-    outputPath: string
+    readonly outputPath: string
 }
 
 /** Get arguments from the environment. */

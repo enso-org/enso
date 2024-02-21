@@ -2,6 +2,8 @@
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import { requiredImportsByFQN } from '@/stores/graph/imports'
+import { SuggestionDb, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
@@ -11,31 +13,42 @@ import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
+const suggestionDb = useSuggestionDbStore()
 
+const trueImport = computed(() =>
+  requiredImportsByFQN(
+    suggestionDb.entries,
+    'Standard.Base.Data.Boolean.Boolean.True' as QualifiedName,
+    true,
+  ),
+)
+const falseImport = computed(() =>
+  requiredImportsByFQN(
+    suggestionDb.entries,
+    'Standard.Base.Data.Boolean.Boolean.False' as QualifiedName,
+    true,
+  ),
+)
 const value = computed({
   get() {
     return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
-    const edit = graph.astModule.edit()
+    const edit = graph.startEdit()
+    const theImport = value ? trueImport.value : falseImport.value
     if (props.input.value instanceof Ast.Ast) {
-      setBoolNode(
+      const { requiresImport } = setBoolNode(
         edit.getVersion(props.input.value),
         value ? ('True' as Identifier) : ('False' as Identifier),
       )
+      if (requiresImport) graph.addMissingImports(edit, theImport)
       props.onUpdate({ edit })
     } else {
-      graph.addMissingImports(edit, [
-        {
-          kind: 'Unqualified',
-          from: 'Standard.Base.Data.Boolean' as QualifiedName,
-          import: 'Boolean' as Identifier,
-        },
-      ])
+      graph.addMissingImports(edit, theImport)
       props.onUpdate({
         edit,
         portUpdate: {
-          value: value ? 'Boolean.True' : 'Boolean.False',
+          value: value ? 'True' : 'False',
           origin: asNot<TokenId>(props.input.portId),
         },
       })
@@ -54,12 +67,14 @@ function isBoolNode(ast: Ast.Ast) {
       : undefined
   return candidate && ['True', 'False'].includes(candidate.code())
 }
-function setBoolNode(ast: Ast.Mutable, value: Identifier) {
+function setBoolNode(ast: Ast.Mutable, value: Identifier): { requiresImport: boolean } {
   if (ast instanceof Ast.MutablePropertyAccess) {
     ast.setRhs(value)
+    return { requiresImport: false }
   } else {
     assert(ast instanceof Ast.MutableIdent)
     ast.setToken(value)
+    return { requiresImport: true }
   }
 }
 

@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import all
 from Standard.Table.Errors import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import all
@@ -136,6 +136,7 @@ add_specs suite_builder setup =
         group_builder.specify "if" <|
             t = table_builder [["A", [1, 100]], ["B", [10, 40]], ["C", [23, 55]]]
             t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B"))) "Z" . at "Z" . to_vector . should_equal [False, True]
+            t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=(Column_Ref.Name "B") Filter_Action.Remove)) "Z" . at "Z" . to_vector . should_equal [True, False]
             t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Greater than=20) "T" "F") "Z" . at "Z" . to_vector . should_equal ["F", "T"]
             t.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Less than=20) (Column_Ref.Name "B") (Column_Ref.Name "C")) "Z" . at "Z" . to_vector . should_equal [10, 55]
 
@@ -148,19 +149,15 @@ add_specs suite_builder setup =
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Equal_Ignore_Case "C") "==" "!=") "Z" . at "Z" . to_vector . should_equal ["!=", "=="]
 
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In ["x", "a", "dd"]) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["TT", "FF"]
-            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In ["x", "a", "dd"]) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["FF", "TT"]
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In []) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["FF", "FF"]
-            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In []) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["TT", "TT"]
 
             # Passing a column does not work row-by-row, but looks at whole column contents.
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In (t2.at "B")) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["FF", "TT"]
             t3 = table_builder [["x", ["e", "e", "a"]]]
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In (t3.at "x")) "TT" "FF") "Z" . at "Z" . to_vector . should_equal ["TT", "FF"]
 
-            # Thus, passing a Column_Ref into Is_In/Not_In is not allowed as it would be confusing.
+            # Thus, passing a Column_Ref into Is_In is not allowed as it would be confusing.
             t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Is_In (Column_Ref.Name "B")) "TT" "FF") . should_fail_with Illegal_Argument
-            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In (Column_Ref.Name "B")) "TT" "FF") . should_fail_with Illegal_Argument
-            t2.set (Column_Operation.If (Column_Ref.Name "A") (Filter_Condition.Not_In [Column_Ref.Name "B", "X"]) "TT" "FF") . should_fail_with Illegal_Argument
 
         group_builder.specify "text" <|
             t = table_builder [["A", ["  a ", "b"]], ["B", ["c", " d    "]]]

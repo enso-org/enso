@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import type * as column from '#/components/dashboard/column'
+import DataLinkNameColumn from '#/components/dashboard/DataLinkNameColumn'
 import DirectoryNameColumn from '#/components/dashboard/DirectoryNameColumn'
 import FileNameColumn from '#/components/dashboard/FileNameColumn'
 import ProjectNameColumn from '#/components/dashboard/ProjectNameColumn'
@@ -28,6 +29,9 @@ export default function AssetNameColumn(props: AssetNameColumnProps) {
     }
     case backendModule.AssetType.file: {
       return <FileNameColumn {...props} />
+    }
+    case backendModule.AssetType.dataLink: {
+      return <DataLinkNameColumn {...props} />
     }
     case backendModule.AssetType.secret: {
       return <SecretNameColumn {...props} />

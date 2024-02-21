@@ -116,15 +116,21 @@ body::before {
     }
 
     .dasharray-5 {
+      /* FF does not support `calc()` in `stroke-dasharray`. */
+      stroke-dasharray: 3.76992 75.3984;
       stroke-dasharray: calc(12 * 0.05 * 6.2832) calc(12 * 6.2832);
     }
 
     .dasharray-75 {
+      /* FF does not support `calc()` in `stroke-dasharray`. */
+      stroke-dasharray: 56.5488 75.3984;
       stroke-dasharray: calc(12 * 0.75 * 6.2832) calc(12 * 6.2832);
       transition-duration: 90s;
     }
 
     .dasharray-100 {
+      /* FF does not support `calc()` in `stroke-dasharray`. */
+      stroke-dasharray: 75.3984 0;
       stroke-dasharray: calc(12 * 6.2832) 0;
     }
 
