@@ -424,7 +424,9 @@ function openFullMenu() {
         :name="icon"
         @click.right.stop.prevent="openFullMenu"
       ></SvgIcon>
-      <div ref="contentNode" class="widget-tree">
+      <!-- We stop pointerdown and pointerup, because the dragPointer handlers are supressing 
+        "click" event on widgets-->
+      <div ref="contentNode" class="widget-tree" @pointerdown.stop @pointerup.stop>
         <NodeWidgetTree :ast="displayedExpression" :nodeId="nodeId" />
       </div>
     </div>
