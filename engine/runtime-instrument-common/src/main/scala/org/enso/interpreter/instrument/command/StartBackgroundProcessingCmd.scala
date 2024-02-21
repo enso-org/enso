@@ -19,7 +19,8 @@ final class StartBackgroundProcessingCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    Future(StartBackgroundProcessingJob.startBackgroundJobs())
+    StartBackgroundProcessingJob.startBackgroundJobs()
+    Future.successful(())
   }
 
 }

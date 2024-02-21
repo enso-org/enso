@@ -38,7 +38,7 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
-  const { numberOfSelectedItems, assetEvents, dispatchAssetListEvent, nodeMap } = state
+  const { selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
   const { doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
@@ -142,7 +142,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       onClick={event => {
         if (handleClick(event)) {
           // Already handled.
-        } else if (eventModule.isSingleClick(event) && selected && numberOfSelectedItems === 1) {
+        } else if (
+          eventModule.isSingleClick(event) &&
+          selected &&
+          selectedKeys.current.size === 1
+        ) {
           event.stopPropagation()
           setRowState(object.merger({ isEditingName: true }))
         }

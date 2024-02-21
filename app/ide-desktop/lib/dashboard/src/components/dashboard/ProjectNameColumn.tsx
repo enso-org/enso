@@ -41,7 +41,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
-  const { numberOfSelectedItems, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { nodeMap, doOpenManually, doOpenIde, doCloseIde } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
@@ -282,7 +282,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           !isRunning &&
           eventModule.isSingleClick(event) &&
           selected &&
-          numberOfSelectedItems === 1
+          selectedKeys.current.size === 1
         ) {
           setRowState(object.merger({ isEditingName: true }))
         }
