@@ -208,9 +208,10 @@ watchEffect(async () => {
 
 const isBelowToolbar = ref(false)
 let width = ref<Opt<number>>(props.width)
+let height = ref(150)
+// We want to debounce width changes, because they are saved to the metadata.
 const debouncedWidth = debouncedGetter(() => width.value, 300)
 watch(debouncedWidth, (value) => value != null && emit('update:width', value))
-let height = ref(150)
 
 watchEffect(() =>
   emit(
@@ -236,9 +237,7 @@ const keydownHandler = visualizationBindings.handler({
   },
 })
 
-useEvent(window, 'keydown', (event) => {
-  keydownHandler(event)
-})
+useEvent(window, 'keydown', (event) => keydownHandler(event))
 
 provideVisualizationConfig({
   get fullscreen() {

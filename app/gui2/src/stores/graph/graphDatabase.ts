@@ -351,7 +351,6 @@ export class GraphDb {
           const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
           newNode.position = new Vec2(pos.x, pos.y)
           newNode.vis = nodeMeta.get('visualization')
-          console.log('initial metadata: ', newNode.vis)
         }
         this.nodeIdToNode.set(nodeId, newNode)
       } else {
@@ -398,7 +397,6 @@ export class GraphDb {
     if (newPosVec && !newPosVec.equals(node.position)) node.position = newPosVec
     if (changes.has('visualization')) {
       const newVis = changes.get('visualization')
-      console.log('metadata changed:', id, newVis)
       if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
     }
   }
