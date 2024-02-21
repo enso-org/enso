@@ -21,9 +21,10 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
       s"""<html>
          |<head>
          |<meta charset="utf-8">
+         |<title>$title</title>
          |<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
          |<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-         |<title>$title</title>
+         |<link rel="stylesheet" href="https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css">
          |<style>
          |table, th, td {
          | border: solid 1px;
