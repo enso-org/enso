@@ -4,7 +4,7 @@
     "prettier": "^3.0.0"
   },
   "dependencies": {
-    "chromedriver": "^106.0.1",
+    "chromedriver": "^121.0.2",
     "tslib": "^2.6.2"
   },
   "name": "root",
