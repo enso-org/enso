@@ -13,7 +13,7 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 ## Defines a simple expression based off an input column and an operation to perform.
 type Simple_Expression
-    From (input : Column_Ref|Expression|Any) (operation : Simple_Calculation)
+    From (input : Column_Ref|Expression|Any = Column_Ref.Index) (operation : Simple_Calculation)
 
     ## PRIVATE
        Interprets the `Simple_Expression` as operation on columns of a provided
@@ -100,20 +100,20 @@ type Simple_Calculation
     Add (rhs : Column_Ref|Expression|Number|Text)
 
     ## Subtract two values/columns.
-    Subtract (rhs : Column_Ref|Expression|Number)
+    Subtract (rhs : Column_Ref|Expression|Number = 0)
 
     ## Multiply two values/columns.
-    Multiply (rhs : Column_Ref|Expression|Number)
+    Multiply (rhs : Column_Ref|Expression|Number = 1)
 
     ## Divide a fixed value or column by another value or column.
-    Divide (rhs : Column_Ref|Expression|Number)
+    Divide (rhs : Column_Ref|Expression|Number = 1)
 
     ## Compute the remainder of a fixed value or column divided by another
        value or column.
-    Mod (rhs : Column_Ref|Expression|Number)
+    Mod (rhs : Column_Ref|Expression|Number = 1)
 
     ## Raise a fixed value or column to the power of another value or column.
-    Power (rhs : Column_Ref|Expression|Number)
+    Power (rhs : Column_Ref|Expression|Number = 1)
 
     ## Rounds values in the column to the specified precision.
     Round (precision:Integer = 0) (use_bankers:Boolean = False)
@@ -147,15 +147,15 @@ type Simple_Calculation
     Not
 
     ## Boolean AND on two boolean columns.
-    And (rhs : Column_Ref|Expression|Boolean)
+    And (rhs : Column_Ref|Expression|Boolean = True)
 
     ## Boolean OR on two boolean columns.
-    Or (rhs : Column_Ref|Expression|Boolean)
+    Or (rhs : Column_Ref|Expression|Boolean =  False)
 
     ## If input meets a condition return true value, otherwise false value.
 
        The `true_value` and `false_value` can be either a constant or a column.
-    If (condition:Filter_Condition) (true_value:Column_Ref|Expression|Any = True) (false_value:Column_Ref|Expression|Any = False)
+    If (condition:Filter_Condition=(Filter_Condition.Equal True)) (true_value:Column_Ref|Expression|Any = True) (false_value:Column_Ref|Expression|Any = False)
 
     ## Removes the specified characters, by default any whitespace, from the
        start, the end, or both ends of the input.
