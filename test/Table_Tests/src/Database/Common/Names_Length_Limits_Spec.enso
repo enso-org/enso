@@ -273,8 +273,8 @@ add_specs suite_builder prefix create_connection_func =
                 name_b = "x" * (max_column_name_length + 1) + "B"
                 db_table.rename_columns [["X", name_a], ["Y", name_b]] . should_fail_with Name_Too_Long
 
-                Problems.assume_no_problems <| db_table.set "[X] + [Y] * 10" "Z"
-                db_table.set "[X] + [Y] * 10" long_name . should_fail_with Name_Too_Long
+                Problems.assume_no_problems <| db_table.set (expr "[X] + [Y] * 10") "Z"
+                db_table.set (expr "[X] + [Y] * 10") long_name . should_fail_with Name_Too_Long
 
             group_builder.specify "should prevent upload if column names are too long" <|
                 name_a = "a" * (max_column_name_length + 1)

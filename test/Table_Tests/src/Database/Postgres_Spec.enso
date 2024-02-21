@@ -393,7 +393,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             v1x.should_equal [10, x]
             v1x.each e-> Test.with_clue "("+e.to_text+"): " <| e.should_be_a Integer
 
-            t2 = t1.set "[X] + 10" "Y"
+            t2 = t1.set (expr "[X] + 10") "Y"
             t2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
             t2.at "Y" . value_type . should_be_a (Value_Type.Decimal ...)
             # Unfortunately, performing operations on a Decimal column in postgres can lose information about it being an integer column.

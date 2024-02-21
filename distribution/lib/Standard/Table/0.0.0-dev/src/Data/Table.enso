@@ -1618,7 +1618,7 @@ type Table
                  table = Examples.inventory_table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory as="total_stock"
-                 table.set "2 * [total_stock]" as="total_stock_expr"
+                 table.set (expr "2 * [total_stock]") as="total_stock_expr"
     @column Simple_Expression.default_widget
     set : Text | Expression | Column | Constant_Column | Simple_Expression -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column:(Text | Expression | Column | Constant_Column | Simple_Expression) (as : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =

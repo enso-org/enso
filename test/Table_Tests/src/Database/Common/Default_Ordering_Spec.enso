@@ -61,7 +61,7 @@ add_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connection_fn 
             v1.first.expression.name . should_equal "X"
             v1.first.direction . should_equal Sort_Direction.Ascending
 
-            t2 = data.db_table_with_key.set "10 - [X]" "X"
+            t2 = data.db_table_with_key.set (expr "10 - [X]") "X"
             v2 = t2.default_ordering
             v2.length . should_equal 1
             v2.first.expression.name . should_equal "X"
