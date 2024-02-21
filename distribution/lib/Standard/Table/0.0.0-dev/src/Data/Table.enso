@@ -21,8 +21,6 @@ from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_ch
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Blank_Selector.Blank_Selector
-import project.Data.Calculations.Column_Operation.Column_Operation
-import Standard.Table.Data.Calculations.Column_Operation.Derived_Column
 import project.Data.Column as Column_Module
 import project.Data.Column.Column
 import project.Data.Column_Ref.Column_Ref
@@ -38,6 +36,7 @@ import project.Data.Position.Position
 import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
+import project.Data.Simple_Expression.Simple_Expression
 import project.Data.Sort_Column.Sort_Column
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Extensions.Prefix_Name.Prefix_Name
@@ -1620,9 +1619,9 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory as="total_stock"
                  table.set "2 * [total_stock]" as="total_stock_expr"
-    @column Derived_Column.default_widget
-    set : Text | Expression | Column | Constant_Column | Derived_Column -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column:(Text | Expression | Column | Constant_Column | Derived_Column) (as : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
+    @column Simple_Expression.default_widget
+    set : Text | Expression | Column | Constant_Column | Simple_Expression -> Text -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set self column:(Text | Expression | Column | Constant_Column | Simple_Expression) (as : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
         unique.mark_used self.column_names
@@ -1632,7 +1631,7 @@ type Table
             _ : Expression -> self.evaluate_expression column on_problems
             _ : Column -> column
             _ : Constant_Column -> self.make_constant_column column.value
-            _ : Derived_Column -> column.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
+            _ : Simple_Expression -> column.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
         ## If `as` was specified, use that. Otherwise, if `column` is a

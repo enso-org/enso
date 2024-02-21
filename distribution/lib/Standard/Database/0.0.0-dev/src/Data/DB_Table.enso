@@ -18,7 +18,6 @@ from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_ch
 
 import Standard.Table.Data.Blank_Selector.Blank_Selector
 import Standard.Table.Data.Calculations.Column_Operation.Column_Operation
-import Standard.Table.Data.Calculations.Column_Operation.Derived_Column
 import Standard.Table.Data.Column_Ref.Column_Ref
 import Standard.Table.Data.Constants.Previous_Value
 import Standard.Table.Data.Expression.Expression
@@ -29,6 +28,7 @@ import Standard.Table.Data.Join_Kind_Cross.Join_Kind_Cross
 import Standard.Table.Data.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
+import Standard.Table.Data.Simple_Expression.Simple_Expression
 import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Extensions.Table_Ref.Table_Ref
@@ -859,8 +859,8 @@ type DB_Table
                  double_inventory = table.at "total_stock" * 2
                  table.set double_inventory as="total_stock"
                  table.set "2 * [total_stock]" as="total_stock_expr"
-    @column Derived_Column.default_widget
-    set : DB_Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Derived_Column | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    @column Simple_Expression.default_widget
+    set : DB_Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression | Column_Operation -> Text -> Set_Mode -> Problem_Behavior -> DB_Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column (as : Text = "") (set_mode : Set_Mode = Set_Mode.Add_Or_Update) (on_problems : Problem_Behavior = Report_Warning) =
         problem_builder = Problem_Builder.new
         unique = self.column_naming_helper.create_unique_name_strategy
@@ -873,8 +873,8 @@ type DB_Table
                 if Helpers.check_integrity self column then column else
                     Error.throw (Integrity_Error.Error "Column "+column.name)
             _ : Constant_Column -> self.make_constant_column column
-            _ : Column_Operation -> (column:Derived_Column).evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
-            _ : Derived_Column -> column.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
+            _ : Column_Operation -> (column:Simple_Expression).evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
+            _ : Simple_Expression -> column.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
             _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Vector` for `set` in the database.")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Array` for `set` in the database.")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Range` for `set` in the database.")

@@ -3,8 +3,6 @@ from Standard.Base import all
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Blank_Selector.Blank_Selector
 import project.Data.Calculations.Column_Operation.Column_Operation
-import project.Data.Calculations.Column_Operation.Derived_Column
-import project.Data.Calculations.Column_Operation.Derived_Operation
 import project.Data.Column.Column
 import project.Data.Column_Ref.Column_Ref
 import project.Data.Column_Vector_Extensions
@@ -15,6 +13,8 @@ import project.Data.Match_Columns.Match_Columns
 import project.Data.Position.Position
 import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Set_Mode.Set_Mode
+import project.Data.Simple_Expression.Simple_Expression
+import project.Data.Simple_Expression.Simple_Calculation
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Auto
@@ -37,8 +37,6 @@ export project.Data.Aggregate_Column.Aggregate_Column
 
 export project.Data.Blank_Selector.Blank_Selector
 export project.Data.Calculations.Column_Operation.Column_Operation
-export project.Data.Calculations.Column_Operation.Derived_Column
-export project.Data.Calculations.Column_Operation.Derived_Operation
 export project.Data.Column.Column
 export project.Data.Column_Ref.Column_Ref
 export project.Data.Column_Vector_Extensions
@@ -49,6 +47,8 @@ export project.Data.Match_Columns.Match_Columns
 export project.Data.Position.Position
 export project.Data.Report_Unmatched.Report_Unmatched
 export project.Data.Set_Mode.Set_Mode
+export project.Data.Simple_Expression.Simple_Expression
+export project.Data.Simple_Expression.Simple_Calculation
 export project.Data.Sort_Column.Sort_Column
 export project.Data.Table.Table
 export project.Data.Type.Value_Type.Auto
