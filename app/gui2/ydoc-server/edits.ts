@@ -88,10 +88,12 @@ function translateVisualizationToFile(
     show: vis.visible,
     fullscreen: vis.fullscreen,
     width: vis.width ?? undefined,
-    ...(project == null || vis.identifier == null ? {} : {
-      project: project,
-      name: vis.identifier.name,
-    })
+    ...(project == null || vis.identifier == null
+      ? {}
+      : {
+          project: project,
+          name: vis.identifier.name,
+        }),
   }
 }
 

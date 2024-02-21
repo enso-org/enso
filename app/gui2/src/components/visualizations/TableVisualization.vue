@@ -75,7 +75,7 @@ import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type { ColumnResizedEvent } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
-const { Grid, LicenseManager } = await import('ag-grid-enterprise')
+const { LicenseManager } = await import('ag-grid-enterprise')
 
 const props = defineProps<{ data: Data }>()
 const emit = defineEmits<{

@@ -31,7 +31,12 @@ export function visMetadataEquals(
 ) {
   return (
     (!a && !b) ||
-    (a && b && a.visible === b.visible && a.fullscreen == b.fullscreen && a.width == b.width && visIdentifierEquals(a.identifier, b.identifier))
+    (a &&
+      b &&
+      a.visible === b.visible &&
+      a.fullscreen == b.fullscreen &&
+      a.width == b.width &&
+      visIdentifierEquals(a.identifier, b.identifier))
   )
 }
 

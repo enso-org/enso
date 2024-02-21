@@ -32,7 +32,6 @@ import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import type {
   LocalOrigin,
   SourceRangeKey,
-  VisualizationIdentifier,
   VisualizationMetadata,
 } from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
@@ -295,7 +294,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function normalizeVisMetadata(
-    partial: Partial<VisualizationMetadata>
+    partial: Partial<VisualizationMetadata>,
   ): VisualizationMetadata | undefined {
     const empty: VisualizationMetadata = {
       identifier: null,

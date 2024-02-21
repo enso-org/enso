@@ -105,7 +105,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
       }"
-      @keydown.escape.stop="(config.fullscreen = false)"
+      @keydown.escape.stop="config.fullscreen = false"
     >
       <div class="resizer-right" v-on="resizeRight.stop.events"></div>
       <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>

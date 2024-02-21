@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { visualizationBindings } from '@/bindings'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
+import { useEvent } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
@@ -18,9 +20,9 @@ import type { Result } from '@/util/data/result'
 import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
+import { debouncedGetter } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { visualizationBindings } from '@/bindings'
 import {
   computed,
   onErrorCaptured,
@@ -31,8 +33,6 @@ import {
   watchEffect,
   type ShallowRef,
 } from 'vue'
-import { useEvent } from '@/composables/events'
-import { debouncedGetter } from '@/util/reactivity'
 
 const TOP_WITHOUT_TOOLBAR_PX = 36
 const TOP_WITH_TOOLBAR_PX = 72
@@ -233,7 +233,7 @@ const keydownHandler = visualizationBindings.handler({
     const currentIndex = allTypes.findIndex((type) => type.name === currentType.value?.name)
     const nextIndex = (currentIndex + 1) % allTypes.length
     emit('update:id', allTypes[nextIndex]!)
-  }
+  },
 })
 
 useEvent(window, 'keydown', (event) => {
