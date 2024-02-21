@@ -78,7 +78,10 @@ object GatherLicenses {
       val (notices: Seq[Diagnostic.Notice], problems: Seq[Diagnostic.Problem]) =
         Diagnostic.partition(allDiagnostics)
 
-      notices.foreach(notice => log.warn(notice.message))
+      if (notices.nonEmpty) {
+        log.warn(s"Found ${notices.size} non-fatal notices in the report:")
+        notices.foreach(notice => log.warn(notice.message))
+      }
 
       if (problems.isEmpty) {
         log.info("No problems found in the report.")
