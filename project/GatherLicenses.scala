@@ -58,17 +58,20 @@ object GatherLicenses {
           s"${dependency.url}"
         )
         val defaultAttachments = defaultBackend.run(dependency.sources)
-        val attachments =
-          if (defaultAttachments.nonEmpty) defaultAttachments
+        val WithDiagnostics(attachments, attachmentDiagnostics) =
+          if (defaultAttachments.nonEmpty) WithDiagnostics(defaultAttachments)
           else GithubHeuristic(dependency, log).run()
-        (dependency, attachments)
+        (dependency, attachments, attachmentDiagnostics)
       }
 
-      val summary          = DependencySummary(processed)
-      val distributionRoot = configRoot / distribution.artifactName
+      val forSummary            = processed.map(t => (t._1, t._2))
+      val processingDiagnostics = processed.flatMap(_._3)
+      val summary               = DependencySummary(forSummary)
+      val distributionRoot      = configRoot / distribution.artifactName
       val WithDiagnostics(processedSummary, summaryDiagnostics) =
         Review(distributionRoot, summary).run()
-      val allDiagnostics = sbtDiagnostics ++ summaryDiagnostics
+      val allDiagnostics =
+        sbtDiagnostics ++ processingDiagnostics ++ summaryDiagnostics
       val reportDestination =
         targetRoot / s"${distribution.artifactName}-report.html"
 
@@ -179,7 +182,7 @@ object GatherLicenses {
       .getOrElse(
         throw LegalReviewException(
           s"Report at $distributionConfig is not available. " +
-          s"Make sure to run `enso/gatherLicenses`."
+          s"Make sure to run `enso/gatherLicenses` or `openLegalReviewReport`."
         )
       )
 
