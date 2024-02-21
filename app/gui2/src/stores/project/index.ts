@@ -35,7 +35,7 @@ import type {
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { DistributedProject, type ExprId, type Uuid } from 'shared/yjsModel'
+import { DistributedProject, localOrigins, type ExternalId, type Uuid } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -107,7 +107,7 @@ export type NodeVisualizationConfiguration = Omit<
   VisualizationConfiguration,
   'executionContextId'
 > & {
-  expressionId: ExprId
+  expressionId: ExternalId
 }
 
 interface ExecutionContextState {
@@ -399,7 +399,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     })
   }
 
-  recompute(expressionIds: 'all' | ExprId[] = 'all', executionEnvironment?: ExecutionEnvironment) {
+  recompute(
+    expressionIds: 'all' | ExternalId[] = 'all',
+    executionEnvironment?: ExecutionEnvironment,
+  ) {
     this.queue.pushTask(async (state) => {
       if (!state.created) return state
       await state.lsRpc.recomputeExecutionContext(this.id, expressionIds, executionEnvironment)
@@ -496,6 +499,7 @@ export const useProjectStore = defineStore('project', () => {
     return tryQualifiedName(`${fullName.value}.${withDotSeparators}`)
   })
 
+  let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
     if (lsUrls.rpcUrl.startsWith('mock://')) {
       doc.load()
@@ -507,16 +511,14 @@ export const useProjectStore = defineStore('project', () => {
     const socketUrl = new URL(location.origin)
     socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
     socketUrl.pathname = '/project'
-    const provider = attachProvider(
+    yDocsProvider = attachProvider(
       socketUrl.href,
       'index',
       { ls: lsUrls.rpcUrl },
       doc,
       awareness.internal,
     )
-    onCleanup(() => {
-      provider.dispose()
-    })
+    onCleanup(disposeYDocsProvider)
   })
 
   const projectModel = new DistributedProject(doc)
@@ -542,7 +544,7 @@ export const useProjectStore = defineStore('project', () => {
     const moduleName = projectModel.findModuleByDocId(guid)
     if (moduleName == null) return null
     const mod = await projectModel.openModule(moduleName)
-    mod?.undoManager.addTrackedOrigin('local')
+    for (const origin of localOrigins) mod?.undoManager.addTrackedOrigin(origin)
     return mod
   })
 
@@ -571,7 +573,7 @@ export const useProjectStore = defineStore('project', () => {
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
 
-  const diagnostics = ref<Diagnostic[]>([])
+  const diagnostics = shallowRef<Diagnostic[]>([])
   executionContext.on('executionStatus', (newDiagnostics) => {
     diagnostics.value = newDiagnostics
   })
@@ -587,7 +589,9 @@ export const useProjectStore = defineStore('project', () => {
         executionContext.setVisualization(id, config)
         onCleanup(() => executionContext.setVisualization(id, null))
       },
-      { immediate: true },
+      // Make sure to flush this watch in 'post', otherwise it might cause operations on stale
+      // ASTs just before the widget tree renders and cleans up the associated widget instances.
+      { immediate: true, flush: 'post' },
     )
 
     return shallowRef(
@@ -637,7 +641,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function executeExpression(
-    expressionId: ExprId,
+    expressionId: ExternalId,
     expression: string,
   ): Promise<Result<string> | null> {
     return new Promise((resolve) => {
@@ -672,6 +676,11 @@ export const useProjectStore = defineStore('project', () => {
 
   const { executionMode } = setupSettings(projectModel)
 
+  function disposeYDocsProvider() {
+    yDocsProvider?.dispose()
+    yDocsProvider = undefined
+  }
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -696,6 +705,7 @@ export const useProjectStore = defineStore('project', () => {
     executionMode,
     dataflowErrors,
     executeExpression,
+    disposeYDocsProvider,
   }
 })
 

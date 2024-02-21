@@ -8,9 +8,9 @@ open module org.enso.runtime {
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires static org.slf4j;
-  requires org.bouncycastle.provider;
 
   uses org.slf4j.spi.SLF4JServiceProvider;
+  uses org.enso.interpreter.instrument.HandlerFactory;
 
   provides com.oracle.truffle.api.provider.TruffleLanguageProvider with
       org.enso.interpreter.EnsoLanguageProvider,

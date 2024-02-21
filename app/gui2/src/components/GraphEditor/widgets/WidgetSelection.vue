@@ -1,82 +1,122 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
-  functionCallConfiguration,
+  singleChoiceConfiguration,
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
-import { ArgumentAst, ArgumentPlaceholder } from '@/util/callTree'
-import { qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
+import { useGraphStore } from '@/stores/graph'
+import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import {
+  type SuggestionEntry,
+  type SuggestionEntryArgument,
+} from '@/stores/suggestionDatabase/entry.ts'
+import { Ast } from '@/util/ast'
+import type { TokenId } from '@/util/ast/abstract.ts'
+import { ArgumentInfoKey } from '@/util/callTree'
+import { arrayEquals } from '@/util/data/array'
+import { asNot } from '@/util/data/types.ts'
+import {
+  qnLastSegment,
+  tryQualifiedName,
+  type IdentifierOrOperatorIdentifier,
+} from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const suggestions = useSuggestionDbStore()
+const graph = useGraphStore()
 
 interface Tag {
-  label: string
-  /** If not set, the value is same as label */
-  value?: string
+  /** If not set, the label is same as expression */
+  label?: string
+  expression: string
+  requiredImports?: RequiredImport[]
   parameters?: ArgumentWidgetConfiguration[]
 }
 
+function identToLabel(name: IdentifierOrOperatorIdentifier): string {
+  return name.replaceAll('_', ' ')
+}
+
+function tagFromExpression(expression: string): Tag {
+  const qn = tryQualifiedName(expression)
+  if (!qn.ok) return { expression }
+  const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
+  if (entry) return tagFromEntry(entry)
+  return {
+    label: identToLabel(qnLastSegment(qn.value)),
+    expression: qn.value,
+  }
+}
+
+function tagFromEntry(entry: SuggestionEntry): Tag {
+  return {
+    label: identToLabel(entry.name),
+    expression:
+      entry.selfType != null
+        ? `_.${entry.name}`
+        : entry.memberOf
+        ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+        : entry.name,
+    requiredImports: requiredImports(suggestions.entries, entry),
+  }
+}
+
 const staticTags = computed<Tag[]>(() => {
-  const tags = props.input.argInfo?.tagValues
+  const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
-  return tags.map((tag) => {
-    const qualifiedName = tryQualifiedName(tag)
-    if (!qualifiedName.ok) return { kind: 'Static', label: tag }
-    const segments = qnSegments(qualifiedName.value).slice(-2)
-    if (segments[0] == undefined) return { kind: 'Static', label: tag }
-    if (segments[1] == undefined) return { kind: 'Static', label: segments[0] }
-    return { label: qnJoin(segments[0], segments[1]) }
-  })
+  return tags.map(tagFromExpression)
 })
 
 const dynamicTags = computed<Tag[]>(() => {
   const config = props.input.dynamicConfig
   if (config?.kind !== 'Single_Choice') return []
   return config.values.map((value) => ({
-    label: value.label || value.value,
-    value: value.value,
+    ...tagFromExpression(value.value),
+    ...(value.label ? { label: value.label } : {}),
     parameters: value.parameters,
   }))
 })
 
 const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
-const tagLabels = computed(() => tags.value.map((tag) => tag.label))
+const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
+
+const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
 const selectedIndex = ref<number>()
-const selectedTag = computed(() =>
-  selectedIndex.value != null ? tags.value[selectedIndex.value] : undefined,
+// When the input changes, we need to reset the selected index.
+watch(
+  () => props.input.value,
+  () => (selectedIndex.value = undefined),
 )
-const selectedValue = computed(() => {
-  if (selectedTag.value == null) return props.input.argInfo?.defaultValue ?? ''
-  return selectedTag.value.value ?? selectedTag.value.label
+const selectedTag = computed(() => {
+  if (selectedIndex.value != null) {
+    return tags.value[selectedIndex.value]
+  } else {
+    const currentExpression = removeSurroundingParens(WidgetInput.valueRepr(props.input))
+    if (!currentExpression) return undefined
+    // We need to find the tag that matches the (beginning of) current expression.
+    // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
+    const sortedTags = tags.value
+      .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
+      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
+    return index != null ? tags.value[index] : undefined
+  }
+})
+
+const selectedLabel = computed(() => {
+  return selectedTag.value?.label
 })
 const innerWidgetInput = computed(() => {
-  if (selectedTag.value == null) return props.input
-  const parameters = selectedTag.value.parameters
-  if (!parameters) return props.input
-  const config = functionCallConfiguration(parameters)
-  if (props.input instanceof AnyWidget)
-    return new AnyWidget(props.input.portId, props.input.ast, config, props.input.argInfo)
-  else if (props.input instanceof ArgumentAst)
-    return new ArgumentAst(
-      props.input.ast,
-      props.input.index,
-      props.input.argInfo,
-      props.input.kind,
-      config,
-    )
-  else
-    return new ArgumentPlaceholder(
-      props.input.callId,
-      props.input.index,
-      props.input.argInfo,
-      props.input.kind,
-      props.input.insertAsNamed,
-      config,
-    )
+  if (props.input.dynamicConfig == null) return props.input
+  const config = props.input.dynamicConfig
+  if (config.kind !== 'Single_Choice') return props.input
+  return { ...props.input, dynamicConfig: singleChoiceConfiguration(config) }
 })
 const showDropdownWidget = ref(false)
 
@@ -84,35 +124,64 @@ function toggleDropdownWidget() {
   showDropdownWidget.value = !showDropdownWidget.value
 }
 
+function onClick(index: number) {
+  selectedIndex.value = index
+  showDropdownWidget.value = false
+}
+
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  props.onUpdate(selectedValue.value, props.input.portId)
-  showDropdownWidget.value = false
+  let edit: Ast.MutableModule | undefined
+  if (selectedTag.value?.requiredImports) {
+    edit = graph.startEdit()
+    graph.addMissingImports(edit, selectedTag.value.requiredImports)
+  }
+  props.onUpdate({
+    edit,
+    portUpdate: {
+      value: selectedTag.value?.expression,
+      origin: asNot<TokenId>(props.input.portId),
+    },
+  })
 })
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget([AnyWidget, ArgumentAst, ArgumentPlaceholder], {
-  priority: 999,
+function hasBooleanTagValues(parameter: SuggestionEntryArgument): boolean {
+  if (parameter.tagValues == null) return false
+  return arrayEquals(Array.from(parameter.tagValues).sort(), [
+    'Standard.Base.Data.Boolean.Boolean.False',
+    'Standard.Base.Data.Boolean.Boolean.True',
+  ])
+}
+
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 50,
   score: (props) => {
     if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
-    if (props.input.argInfo?.tagValues != null) return Score.Perfect
+    // Boolean arguments also have tag values, but the checkbox widget should handle them.
+    if (
+      props.input[ArgumentInfoKey]?.info?.tagValues != null &&
+      !hasBooleanTagValues(props.input[ArgumentInfoKey].info)
+    )
+      return Score.Perfect
     return Score.Mismatch
   },
 })
 </script>
 
 <template>
-  <div class="WidgetSelection" @pointerdown="toggleDropdownWidget">
-    <NodeWidget :input="innerWidgetInput" />
+  <div class="WidgetSelection" @pointerdown.stop="toggleDropdownWidget">
+    <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
+    <SvgIcon name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
       v-if="showDropdownWidget"
       class="dropdownContainer"
       :color="'var(--node-color-primary)'"
       :values="tagLabels"
-      :selectedValue="selectedValue"
+      :selectedValue="selectedLabel"
       @pointerdown.stop
-      @click="selectedIndex = $event"
+      @click="onClick($event)"
     />
   </div>
 </template>
@@ -121,5 +190,12 @@ export const widgetDefinition = defineWidget([AnyWidget, ArgumentAst, ArgumentPl
 .WidgetSelection {
   display: flex;
   flex-direction: row;
+}
+
+.arrow {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(90deg);
 }
 </style>

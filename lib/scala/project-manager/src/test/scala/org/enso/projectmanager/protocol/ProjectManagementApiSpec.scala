@@ -4,6 +4,7 @@ import akka.testkit.TestDuration
 import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.CurrentVersion
@@ -14,7 +15,6 @@ import org.scalactic.source.Position
 import java.io.File
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-
 import scala.concurrent.duration._
 import scala.io.Source
 
@@ -22,7 +22,8 @@ class ProjectManagementApiSpec
     extends BaseServerSpec
     with FlakySpec
     with OverrideTestVersionSuite
-    with ProjectManagementOps {
+    with ProjectManagementOps
+    with ReportLogsOnFailure {
 
   override val testVersion: SemVer = SemVer(0, 0, 1)
 
@@ -342,6 +343,33 @@ class ProjectManagementApiSpec
       FileUtils.deleteQuietly(projectDirWithSuffix2)
     }
 
+    "create project in a custom directory" in {
+      val projectName       = "Foo"
+      val customProjectsDir = Files.createTempDirectory("enso-projects-custom")
+
+      implicit val client: WsTestClient = new WsTestClient(address)
+
+      val projectId = createProject(
+        projectName,
+        projectsDirectory = Some(customProjectsDir.toFile)
+      )
+
+      val projectDir  = new File(customProjectsDir.toFile, projectName)
+      val packageFile = new File(projectDir, "package.yaml")
+      val mainEnso    = Paths.get(projectDir.toString, "src", "Main.enso").toFile
+      val meta        = Paths.get(projectDir.toString, ".enso", "project.json").toFile
+
+      packageFile shouldBe Symbol("file")
+      mainEnso shouldBe Symbol("file")
+      meta shouldBe Symbol("file")
+
+      //teardown
+      deleteProject(
+        projectId,
+        projectsDirectory = Some(customProjectsDir.toFile)
+      )
+    }
+
   }
 
   "project/delete" must {
@@ -431,6 +459,40 @@ class ProjectManagementApiSpec
       projectDir.exists() shouldBe false
     }
 
+    "remove project structure in custom directory" in {
+      val customProjectDir              = Files.createTempDirectory("enso-projects-custom")
+      implicit val client: WsTestClient = new WsTestClient(address)
+      //given
+      val projectName = "To_Remove"
+      val projectId = createProject(
+        projectName,
+        projectsDirectory = Some(customProjectDir.toFile)
+      )
+      val projectDir = new File(customProjectDir.toFile, projectName)
+      projectDir shouldBe Symbol("directory")
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/delete",
+              "id": 1,
+              "params": {
+                "projectId": $projectId,
+                "projectsDirectory": ${customProjectDir.toString}
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":1,
+            "result": null
+          }
+          """)
+
+      projectDir.exists() shouldBe false
+    }
+
   }
 
   "project/open" must {
@@ -456,6 +518,37 @@ class ProjectManagementApiSpec
       // teardown
       closeProject(projectId)
       deleteProject(projectId)
+    }
+
+    "open a project in a custom directory" taggedAs Flaky in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+
+      val customProjectDir = Files.createTempDirectory("enso-projects-custom")
+      val projectName      = "Test_Project"
+      val projectId = createProject(
+        projectName,
+        projectsDirectory = Some(customProjectDir.toFile)
+      )
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/open",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "projectsDirectory": ${customProjectDir.toString}
+              }
+            }
+          """)
+      val result = openProjectData
+      result.projectName shouldEqual projectName
+      result.engineVersion shouldEqual CurrentVersion.version
+
+      // teardown
+      closeProject(projectId)
+      deleteProject(
+        projectId,
+        projectsDirectory = Some(customProjectDir.toFile)
+      )
     }
 
     "fail when project doesn't exist" in {
@@ -743,6 +836,41 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
+    "close project opened from a custom projects directory" taggedAs Flaky in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+      //given
+      val customProjectDir = Files.createTempDirectory("enso-projects-custom")
+      val projectId =
+        createProject("Foo", projectsDirectory = Some(customProjectDir.toFile))
+      val socket = openProject(
+        projectId,
+        projectsDirectory = Some(customProjectDir.toFile)
+      )
+      val languageServerClient =
+        new WsTestClient(s"ws://${socket.host}:${socket.port}")
+      languageServerClient.send("test")
+      languageServerClient.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : null,
+            "error" : {
+              "code" : -32700,
+              "message" : "Parse error"
+            }
+          }
+            """)
+
+      //when
+      closeProject(projectId)
+      languageServerClient.send("test")
+      //then
+      languageServerClient.expectNoMessage()
+      //teardown
+      deleteProject(
+        projectId,
+        projectsDirectory = Some(customProjectDir.toFile)
+      )
+    }
   }
 
   "project/list" must {
@@ -1019,6 +1147,46 @@ class ProjectManagementApiSpec
       buffer.close()
       //teardown
       deleteProject(projectId)
+    }
+
+    "rename a project in a custom projects directory" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+      //given
+      val customProjectDir = Files.createTempDirectory("enso-projects-custom")
+      val newProjectName   = "Bar"
+      val projectId =
+        createProject("Foo", projectsDirectory = Some(customProjectDir.toFile))
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": $newProjectName,
+                "projectsDirectory": ${customProjectDir.toString}
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": null
+          }
+          """)
+      val projectDir  = new File(customProjectDir.toFile, newProjectName)
+      val packageFile = new File(projectDir, "package.yaml")
+      val buffer      = Source.fromFile(packageFile)
+      val lines       = buffer.getLines()
+      lines.contains("name: Bar") shouldBe true
+      buffer.close()
+      //teardown
+      deleteProject(
+        projectId,
+        projectsDirectory = Some(customProjectDir.toFile)
+      )
     }
 
     "create a project dir with a suffix if a directory is taken" taggedAs Flaky in {

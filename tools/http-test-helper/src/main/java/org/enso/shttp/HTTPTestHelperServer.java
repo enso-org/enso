@@ -1,14 +1,13 @@
 package org.enso.shttp;
 
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.SimpleFileServer;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
@@ -18,90 +17,60 @@ import sun.misc.SignalHandler;
 
 public class HTTPTestHelperServer {
 
-  private final HttpServer server;
-  private final State state;
-
-  public HTTPTestHelperServer(String hostname, int port) throws IOException {
-    InetSocketAddress address = new InetSocketAddress(hostname, port);
-    server = HttpServer.create(address, 0);
-    server.setExecutor(null);
-    state = new State();
-  }
-
-  public void start() {
-    server.start();
-    state.start();
-
-    try {
-      while (state.isRunning()) {
-        Thread.sleep(1000);
-      }
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } finally {
-      System.out.println("Finalizing server...");
-      server.stop(3);
-      System.out.println("Server stopped.");
-    }
-  }
-
-  public void stop() {
-    state.stop();
-  }
-
-  public void addHandler(String path, HttpHandler handler) {
-    server.createContext(path, handler);
-  }
-
   public static void main(String[] args) {
     if (args.length != 2) {
       System.err.println("Usage: http-test-helper <host> <port>");
       System.exit(1);
     }
-
     String host = args[0];
-    HTTPTestHelperServer server = null;
+    int port = Integer.parseInt(args[1]);
+    Semaphore stopNotification = new Semaphore(0, false);
+    HybridHTTPServer server = null;
     try {
-      int port = Integer.valueOf(args[1]);
-      server = new HTTPTestHelperServer(host, port);
-      setupEndpoints(server);
-
-      final HTTPTestHelperServer server1 = server;
+      server = createServer(host, port, null, true);
+      final HybridHTTPServer server1 = server;
       SignalHandler stopServerHandler =
           (Signal sig) -> {
-            System.out.println("Stopping server... (interrupt)");
+            System.out.println("Stopping server... (SIG" + sig.getName() + ")");
             server1.stop();
           };
       for (String signalName : List.of("TERM", "INT")) {
         Signal.handle(new Signal(signalName), stopServerHandler);
       }
       server.start();
-    } catch (IOException | URISyntaxException e) {
+      // Make sure the execution is blocked until the process is interrupted.
+      stopNotification.acquire();
+    } catch (URISyntaxException | IOException e) {
       e.printStackTrace();
+    } catch (InterruptedException e) {
+      System.out.println("Server interrupted");
     } finally {
+      stopNotification.release();
       if (server != null) {
         server.stop();
       }
     }
   }
 
-  private class State {
-    private boolean running = false;
-
-    void stop() {
-      running = false;
-    }
-
-    void start() {
-      running = true;
-    }
-
-    boolean isRunning() {
-      return running;
-    }
+  /**
+   * Creates the server.
+   *
+   * @param executor An {@link Executor} for both HTTP and HTTPS servers. If {@code null}, the
+   *     default executor is set, which runs the server on the thread that created the server.
+   * @param withSSLServer Whether HTTPS server should be also be started along with HTTP server.
+   * @return The created server
+   */
+  public static HybridHTTPServer createServer(
+      String host, int port, Executor executor, boolean withSSLServer)
+      throws URISyntaxException, IOException {
+    Path projectRoot = findProjectRoot();
+    Path keyStorePath = projectRoot.resolve("tools/http-test-helper/target/keystore.jks");
+    var server = new HybridHTTPServer(host, port, port + 1, keyStorePath, executor, withSSLServer);
+    setupEndpoints(server, projectRoot);
+    return server;
   }
 
-  private static void setupEndpoints(HTTPTestHelperServer server) throws URISyntaxException {
+  private static void setupEndpoints(HybridHTTPServer server, Path projectRoot) {
     for (HttpMethod method : HttpMethod.values()) {
       String path = "/" + method.toString().toLowerCase();
       server.addHandler(path, new TestHandler(method));
@@ -113,19 +82,10 @@ public class HTTPTestHelperServer {
     server.addHandler("/crash", new CrashingTestHandler());
     CloudRoot cloudRoot = new CloudRoot();
     server.addHandler(cloudRoot.prefix, cloudRoot);
-    setupFileServer(server);
+    setupFileServer(server, projectRoot);
   }
 
-  private static void setupFileServer(HTTPTestHelperServer server) throws URISyntaxException {
-    Path myRuntimeJar =
-        Path.of(
-                HTTPTestHelperServer.class
-                    .getProtectionDomain()
-                    .getCodeSource()
-                    .getLocation()
-                    .toURI())
-            .toAbsolutePath();
-    Path projectRoot = findProjectRoot(myRuntimeJar);
+  private static void setupFileServer(HybridHTTPServer server, Path projectRoot) {
     Path testFilesRoot = projectRoot.resolve(pathToWWW);
     System.out.println("Serving files from directory " + testFilesRoot);
     server.addHandler("/testfiles", SimpleFileServer.createFileHandler(testFilesRoot));
@@ -142,6 +102,18 @@ public class HTTPTestHelperServer {
 
       return findProjectRoot(parent);
     }
+  }
+
+  private static Path findProjectRoot() throws URISyntaxException {
+    Path myRuntimeJar =
+        Path.of(
+                HTTPTestHelperServer.class
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI())
+            .toAbsolutePath();
+    return findProjectRoot(myRuntimeJar);
   }
 
   private static final String pathToWWW = "tools/http-test-helper/www-files";

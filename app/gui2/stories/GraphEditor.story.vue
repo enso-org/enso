@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 
 import GraphEditor from '@/components/GraphEditor.vue'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+import { createReactWrapper } from 'vue-react-wrapper'
 import MockProjectStoreWrapper from './MockProjectStoreWrapper.vue'
 import HstCode from './histoire/HstCode.vue'
 
@@ -32,6 +35,22 @@ main =
     result = run_main benches
     third_node = 2 + 2
 `)
+
+/**
+ * Note: These props should be synced with the props in
+ * `app/ide-desktop/lib/dashboard/src/authentication/src/components/app.tsx`.
+ * We need this here, as the react component is not part of the dashboard and not usually available in the demo scenes.
+ * Using this wrapper enables us to see toasts in the absence of the dashboard/React.
+ */
+const toastProps = reactive({
+  position: 'top-center',
+  theme: 'light',
+  closeOnClick: false,
+  draggable: false,
+  toastClassName: 'text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl',
+  limit: 3,
+})
+const WrappedToastContainer = createReactWrapper(ToastContainer, toastProps)
 </script>
 
 <template>
@@ -47,6 +66,7 @@ main =
     responsiveDisabled
     autoPropsDisabled
   >
+    <WrappedToastContainer />t
     <MockProjectStoreWrapper v-model="text">
       <Suspense><GraphEditor /></Suspense>
     </MockProjectStoreWrapper>

@@ -7,6 +7,8 @@ import java.util.Map;
 import org.openide.util.lookup.Lookups;
 
 final class PerMap {
+
+  private static final int serialVersionUID = 8689; // Use PR number
   private static final Collection<? extends Persistance> ALL;
 
   static {
@@ -20,7 +22,7 @@ final class PerMap {
   final int versionStamp;
 
   private PerMap() {
-    int hash = 0;
+    int hash = serialVersionUID;
     for (var orig : ALL) {
       var p = orig.newClone();
       var prevId = ids.put(p.id, p);

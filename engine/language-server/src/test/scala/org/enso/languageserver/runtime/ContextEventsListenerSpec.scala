@@ -19,6 +19,7 @@ import org.enso.languageserver.session.SessionRouter.{
   DeliverToBinaryController,
   DeliverToJsonController
 }
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterAll
@@ -35,10 +36,12 @@ class ContextEventsListenerSpec
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
-    with RetrySpec {
+    with RetrySpec
+    with ReportLogsOnFailure {
 
   override def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system, verifySystemShutdown = true)
+    super.afterAll()
   }
 
   "ContextEventsListener" should {

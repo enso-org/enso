@@ -5,7 +5,9 @@ import { provideGuiConfig } from '@/providers/guiConfig'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { configValue, type ApplicationConfig, type ApplicationConfigValue } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
-import { computed, onMounted } from 'vue'
+import { isDevMode } from 'shared/util/detect'
+import { computed, onMounted, onUnmounted, toRaw } from 'vue'
+import { useProjectStore } from './stores/project'
 
 const props = defineProps<{
   config: ApplicationConfig
@@ -19,7 +21,15 @@ const classSet = provideAppClassSet()
 provideGuiConfig(computed((): ApplicationConfigValue => configValue(props.config)))
 
 // Initialize suggestion db immediately, so it will be ready when user needs it.
-onMounted(() => useSuggestionDbStore())
+onMounted(() => {
+  const suggestionDb = useSuggestionDbStore()
+  if (isDevMode) {
+    ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
+  }
+})
+onUnmounted(() => {
+  useProjectStore().disposeYDocsProvider()
+})
 </script>
 
 <template>

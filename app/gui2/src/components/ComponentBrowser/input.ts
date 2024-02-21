@@ -1,5 +1,5 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
@@ -10,6 +10,7 @@ import {
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import { RawAst, RawAstExtended, astContainingChar } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract.ts'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
 import { MappedSet } from '@/util/containers'
@@ -21,13 +22,13 @@ import {
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { equalFlat } from 'lib0/array'
-import { IdMap, type ExprId, type SourceRange } from 'shared/yjsModel'
+import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 import { computed, ref, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
-  | { type: 'newNode'; sourcePort?: ExprId | undefined }
-  | { type: 'editNode'; node: ExprId; cursorPos: number }
+  | { type: 'newNode'; sourcePort?: AstId | undefined }
+  | { type: 'editNode'; node: NodeId; cursorPos: number }
 
 /** Input's editing context.
  *
@@ -116,7 +117,7 @@ export function useComponentBrowserInput(
         yield* usages
       }
     }
-    return new MappedSet(IdMap.keyForRange, internalUsages())
+    return new MappedSet(sourceRangeKey, internalUsages())
   })
 
   // Filter deduced from the access (`.` operator) chain written by user.

@@ -167,6 +167,14 @@ recommended when making a change:
 That way the same version of Enso will recognize its `.ir` files. Different
 versions of Enso will realize that the files aren't in suitable form.
 
+Every `Persistance` class has a unique identifier. In order to keep definitions
+consistent one should not attempt to use smaller `id`s than previously assigned.
+One should also not delete any `Persistance` classes.
+
+Additionally, `PerMap.serialVersionUID` version provides a seed to the version
+stamp calculated from all `Persistance` classes. Increasing the
+`serialVersionUID` will invalidate all caches.
+
 ## Loading the IR
 
 Loading the IR is a multi-stage process that involves performing integrity

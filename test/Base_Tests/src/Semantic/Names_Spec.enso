@@ -1,0 +1,59 @@
+from Standard.Base import all
+
+from project.Semantic.Definitions.Names import another_method, another_constant, method_with_local_vars, Bar
+import project.Semantic.Definitions.Names
+
+from Standard.Test import all
+
+## This test is important as it also ensures that we can define extension
+   methods on modules that are not directly imported, but accessed through
+   a (not-fully) qualified name.
+Names.Foo.my_method self = case self of
+    Names.Foo.Value x y z -> x * y * z
+
+get_foo module = module.Foo
+
+constant = 1
+
+add_one (x = 0) = x + 1
+
+add_specs suite_builder =
+    suite_builder.group "Qualified Names" group_builder->
+        group_builder.specify "should allow to call constructors in a qualified manner" <|
+            Names.Foo.Value 1 2 3 . sum . should_equal 6
+        group_builder.specify "should allow pattern matching in a qualified manner" <|
+            v = Names.Foo.Value 1 2 3
+            res = case v of
+                Names.Foo.Value a b c -> a + b + c
+            res.should_equal 6
+        group_builder.specify "should allow defining methods on qualified names" <|
+            v = Names.Foo.Value 2 3 5
+            v.my_method.should_equal 30
+    suite_builder.group "Lowercase Methods" group_builder->
+        group_builder.specify "should allow calling methods without a target" <|
+            v = constant
+            v.should_equal 1
+        group_builder.specify "should allow calling this module's methods" <|
+            add_one.should_equal 1
+            add_one 100 . should_equal 101
+        group_builder.specify "should allow calling methods imported from another module without name mangling" <|
+            another_method 10 . should_equal 10
+            another_constant . should_equal 10
+        group_builder.specify "should allow calling methods with fully qualified module name" <|
+            (Names.another_method 10).should_equal 10
+            v = Names.another_method
+            v 10 . should_equal 10
+        group_builder.specify "should be resolved correctly in the presence of variables with the same name" <|
+            method_with_local_vars 1 . should_equal 13
+    suite_builder.group "Methods" group_builder->
+        group_builder.specify "should be correctly resolved on instances" <|
+            b = Bar.Value 1
+            b.meh 2 . should_equal 3
+        group_builder.specify "should be allowed to be called statically" pending="Needs changes to method dispatch logic" <|
+            b = Bar.Value 1
+            Bar.meh b 2 . should_equal 3
+    suite_builder.group "Fully Qualified Names" group_builder->
+        group_builder.specify "should be correctly resolved" <|
+            a = Standard.Base.Data.Vector.Vector.new 10 _->Nothing
+            a.length . should_equal 10
+            Standard.Base.Errors.Problem_Behavior.Problem_Behavior.Report_Error.to_text . should_equal "Report_Error"

@@ -1,4 +1,4 @@
-<script lang="ts">
+<script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeError.vue'
@@ -11,16 +11,18 @@ import { usePointer, useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { useGraphStore, type Node } from '@/stores/graph'
+import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
 import { Prefixes } from '@/util/ast/prefixes'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
 import { setIfUndefined } from 'lib0/map'
-import type { ExprId, VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, ref, watch, watchEffect } from 'vue'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
@@ -36,9 +38,7 @@ const prefixes = Prefixes.FromLines({
   skip: 'SKIP __',
   freeze: 'FREEZE __',
 })
-</script>
 
-<script setup lang="ts">
 const props = defineProps<{
   node: Node
   edited: boolean
@@ -49,8 +49,8 @@ const emit = defineEmits<{
   draggingCommited: []
   delete: []
   replaceSelection: []
-  outputPortClick: [portId: ExprId]
-  outputPortDoubleClick: [portId: ExprId]
+  outputPortClick: [portId: AstId]
+  outputPortDoubleClick: [portId: AstId]
   doubleClick: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
@@ -71,7 +71,10 @@ const outputPortsSet = computed(() => {
 })
 
 const widthOverridePx = ref<number>()
-const nodeId = computed(() => props.node.rootSpan.exprId)
+const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
+const externalId = computed(() => props.node.rootSpan.externalId)
+
+onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
@@ -79,16 +82,25 @@ const nodeSize = useResizeObserver(rootNode)
 const baseNodeSize = computed(
   () => new Vec2((contentNode.value?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX, nodeSize.value.y),
 )
-const menuVisible = ref(false)
+
+/// Menu can be full, partial or off
+enum MenuState {
+  Full,
+  Partial,
+  Off,
+}
+const menuVisible = ref(MenuState.Off)
 
 const error = computed(() => {
-  const info = projectStore.computedValueRegistry.db.get(nodeId.value)
+  const externalId = graph.db.idToExternal(nodeId.value)
+  if (!externalId) return
+  const info = projectStore.computedValueRegistry.db.get(externalId)
   switch (info?.payload.type) {
     case 'Panic': {
       return info.payload.message
     }
     case 'DataflowError': {
-      return projectStore.dataflowErrors.lookup(nodeId.value)?.value?.message.split(' (at')[0]
+      return projectStore.dataflowErrors.lookup(externalId)?.value?.message.split(' (at')[0]
     }
     default:
       return undefined
@@ -97,7 +109,9 @@ const error = computed(() => {
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
 watch(isSelected, (selected) => {
-  menuVisible.value = menuVisible.value && selected
+  if (!selected) {
+    menuVisible.value = MenuState.Off
+  }
 })
 
 const isDocsVisible = ref(false)
@@ -146,7 +160,7 @@ const dragPointer = usePointer((pos, event, type) => {
         pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
         nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
-        menuVisible.value = true
+        menuVisible.value = MenuState.Partial
       }
       startEvent = null
       startEpochMs.value = 0
@@ -156,7 +170,7 @@ const dragPointer = usePointer((pos, event, type) => {
 })
 
 const matches = computed(() => prefixes.extractMatches(props.node.rootSpan))
-const displayedExpression = computed(() => matches.value.innerExpr)
+const displayedExpression = computed(() => props.node.rootSpan.module.get(matches.value.innerExpr))
 
 const isOutputContextOverridden = computed({
   get() {
@@ -170,43 +184,44 @@ const isOutputContextOverridden = computed({
     else if (overrideEnabled === projectStore.isOutputContextEnabled) return false
     // - and that it applies to the current execution context.
     else {
-      const contextWithoutQuotes = override[0]?.code().replace(/^['"]|['"]$/g, '')
+      const module = props.node.rootSpan.module
+      const contextWithoutQuotes = module
+        .get(override[0])
+        ?.code()
+        .replace(/^['"]|['"]$/g, '')
       return contextWithoutQuotes === projectStore.executionMode
     }
   },
   set(shouldOverride) {
     const module = projectStore.module
     if (!module) return
-    const replacements = shouldOverride
-      ? [Ast.TextLiteral.new(projectStore.executionMode)]
-      : undefined
     const edit = props.node.rootSpan.module.edit()
-    const newAst = prefixes.modify(
-      edit,
-      props.node.rootSpan,
-      projectStore.isOutputContextEnabled
-        ? {
-            enableOutputContext: undefined,
-            disableOutputContext: replacements,
-          }
-        : {
-            enableOutputContext: replacements,
-            disableOutputContext: undefined,
-          },
-    )
-    graph.setNodeContent(props.node.rootSpan.exprId, newAst.code())
+    const replacementText = shouldOverride
+      ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
+      : undefined
+    const replacements = projectStore.isOutputContextEnabled
+      ? {
+          enableOutputContext: undefined,
+          disableOutputContext: replacementText,
+        }
+      : {
+          enableOutputContext: replacementText,
+          disableOutputContext: undefined,
+        }
+    prefixes.modify(edit.getVersion(props.node.rootSpan), replacements)
+    graph.commitEdit(edit)
   },
 })
 
 // FIXME [sb]: https://github.com/enso-org/enso/issues/8442
 // This does not take into account `displayedExpression`.
-const expressionInfo = computed(() => graph.db.getExpressionInfo(nodeId.value))
+const expressionInfo = computed(() => graph.db.getExpressionInfo(externalId.value))
 const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
-  const expressionInfo = graph.db.getExpressionInfo(nodeId.value)
+  const expressionInfo = graph.db.getExpressionInfo(externalId.value)
   return displayedIconOf(
     suggestionEntry.value,
     expressionInfo?.methodCall?.methodPointer,
@@ -270,8 +285,8 @@ function getRelatedSpanOffset(domNode: globalThis.Node, domOffset: number): numb
 }
 
 const handlePortClick = useDoubleClick(
-  (portId: ExprId) => emit('outputPortClick', portId),
-  (portId: ExprId) => emit('outputPortDoubleClick', portId),
+  (portId: AstId) => emit('outputPortClick', portId),
+  (portId: AstId) => emit('outputPortDoubleClick', portId),
 ).handleClick
 
 const handleNodeClick = useDoubleClick(
@@ -282,7 +297,7 @@ const handleNodeClick = useDoubleClick(
 interface PortData {
   clipRange: [number, number]
   label: string
-  portId: ExprId
+  portId: AstId
 }
 
 const outputPorts = computed((): PortData[] => {
@@ -300,8 +315,8 @@ const outputPorts = computed((): PortData[] => {
   })
 })
 
-const outputHovered = ref<ExprId>()
-const hoverAnimations = new Map<ExprId, ReturnType<typeof useApproach>>()
+const outputHovered = ref<AstId>()
+const hoverAnimations = new Map<AstId, ReturnType<typeof useApproach>>()
 watchEffect(() => {
   const ports = outputPortsSet.value
   for (const key of hoverAnimations.keys()) if (!ports.has(key)) hoverAnimations.delete(key)
@@ -324,6 +339,13 @@ function portGroupStyle(port: PortData) {
     '--port-clip-end': end,
   }
 }
+
+function openFullMenu() {
+  if (!nodeSelection?.isSelected(nodeId.value)) {
+    nodeSelection?.setSelection(new Set([nodeId.value]))
+  }
+  menuVisible.value = MenuState.Full
+}
 </script>
 
 <template>
@@ -345,27 +367,30 @@ function portGroupStyle(port: PortData) {
       visualizationVisible: isVisualizationVisible,
       ['executionState-' + executionState]: true,
     }"
+    :data-node-id="nodeId"
   >
     <div class="selection" v-on="dragPointer.events"></div>
     <div class="binding" @pointerdown.stop>
       {{ node.pattern?.code() ?? '' }}
     </div>
     <CircularMenu
-      v-if="menuVisible"
+      v-if="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       v-model:isOutputContextOverridden="isOutputContextOverridden"
       v-model:isDocsVisible="isDocsVisible"
       :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
       :isVisualizationVisible="isVisualizationVisible"
+      :isFullMenuVisible="menuVisible === MenuState.Full"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
+      @startEditing="startEditingNode"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
       :nodeSize="baseNodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
-      :isCircularMenuVisible="menuVisible"
+      :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       :currentType="node.vis?.identifier"
-      :dataSource="{ type: 'node', nodeId }"
+      :dataSource="{ type: 'node', nodeId: externalId }"
       :typename="expressionInfo?.typename"
       @update:rect="
         emit('update:visualizationRect', $event),
@@ -375,9 +400,13 @@ function portGroupStyle(port: PortData) {
       @update:visible="emit('update:visualizationVisible', $event)"
     />
     <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
-      <SvgIcon class="icon grab-handle" :name="icon"></SvgIcon>
+      <SvgIcon
+        class="icon grab-handle"
+        :name="icon"
+        @pointerdown.right.stop="openFullMenu"
+      ></SvgIcon>
       <div ref="contentNode" class="widget-tree">
-        <NodeWidgetTree :ast="displayedExpression" />
+        <NodeWidgetTree :ast="displayedExpression" :nodeId="nodeId" />
       </div>
     </div>
     <GraphNodeError v-if="error" class="error" :error="error" />
@@ -595,6 +624,10 @@ function portGroupStyle(port: PortData) {
 }
 
 .CircularMenu {
+  z-index: 25;
+}
+
+.CircularMenu.partial {
   z-index: 1;
 }
 

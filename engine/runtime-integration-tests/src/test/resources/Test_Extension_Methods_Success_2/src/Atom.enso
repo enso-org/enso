@@ -1,0 +1,8 @@
+from Standard.Base.Data.Numbers import Integer
+import Standard.Base.Data.Numbers
+
+type Foo
+    A
+    B
+
+Integer.foo self a = 1 + a

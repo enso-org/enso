@@ -13,6 +13,7 @@ import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
+import org.enso.interpreter.runtime.data.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
@@ -344,12 +345,12 @@ object ProgramExecutionSupport {
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
-    val expressionId  = value.getExpressionId
-    val methodPointer = toMethodCall(value)
+    val expressionId = value.getExpressionId
+    val methodCall   = toMethodCall(value)
     if (
       !syncState.isExpressionSync(expressionId) ||
       (
-        methodPointer.isDefined && !syncState.isMethodPointerSync(
+        methodCall.isDefined && !syncState.isMethodPointerSync(
           expressionId
         )
       ) ||
@@ -387,7 +388,11 @@ object ProgramExecutionSupport {
               )
             ) {
               val warnings =
-                WarningsLibrary.getUncached.getWarnings(value.getValue, null)
+                WarningsLibrary.getUncached.getWarnings(
+                  value.getValue,
+                  null,
+                  false
+                )
               val warningsCount = warnings.length
               val warning =
                 if (warningsCount == 1) {
@@ -409,13 +414,23 @@ object ProgramExecutionSupport {
           val schema = value.getValue match {
             case function: Function =>
               val functionInfo = FunctionPointer.fromFunction(function)
-              toMethodPointer(functionInfo).map { methodPointer =>
-                Api.FunctionSchema(
-                  methodPointer,
-                  FunctionPointer.collectNotAppliedArguments(function).toVector
+              val notAppliedArguments = FunctionPointer
+                .collectNotAppliedArguments(function)
+                .toVector
+              toMethodPointer(functionInfo).map(methodPointer =>
+                Api.FunctionSchema(methodPointer, notAppliedArguments)
+              )
+            case atomConstructor: AtomConstructor =>
+              val functionInfo =
+                FunctionPointer.fromAtomConstructor(atomConstructor)
+              val notAppliedArguments = FunctionPointer
+                .collectNotAppliedArguments(
+                  atomConstructor.getConstructorFunction
                 )
-              }
-
+                .toVector
+              toMethodPointer(functionInfo).map(methodPointer =>
+                Api.FunctionSchema(methodPointer, notAppliedArguments)
+              )
             case _ =>
               None
           }
@@ -430,7 +445,7 @@ object ProgramExecutionSupport {
               Api.ExpressionUpdate(
                 value.getExpressionId,
                 Option(value.getType),
-                methodPointer,
+                methodCall,
                 value.getProfilingInfo.map { case e: ExecutionTime =>
                   Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
                 }.toVector,
@@ -444,7 +459,7 @@ object ProgramExecutionSupport {
       )
 
       syncState.setExpressionSync(expressionId)
-      if (methodPointer.isDefined) {
+      if (methodCall.isDefined) {
         syncState.setMethodPointerSync(expressionId)
       }
     }
@@ -468,22 +483,21 @@ object ProgramExecutionSupport {
           contextId,
           value.getExpressionId
         )
-      visualizations.collect {
-        case visualization: Visualization.AttachedVisualization =>
-          executeAndSendVisualizationUpdate(
-            contextId,
-            syncState,
-            visualization,
-            value.getExpressionId,
-            value.getValue
-          )
+      visualizations.foreach { visualization =>
+        executeAndSendVisualizationUpdate(
+          contextId,
+          syncState,
+          visualization,
+          value.getExpressionId,
+          value.getValue
+        )
       }
     }
   }
 
   private def executeVisualization(
     contextId: ContextId,
-    visualization: Visualization.AttachedVisualization,
+    visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Either[Throwable, AnyRef] =
@@ -599,25 +613,23 @@ object ProgramExecutionSupport {
     visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
-  )(implicit ctx: RuntimeContext): Unit =
-    visualization match {
-      case visualization: Visualization.AttachedVisualization =>
-        val visualizationResult = executeVisualization(
-          contextId,
-          visualization,
-          expressionId,
-          expressionValue
-        )
-        sendVisualizationUpdate(
-          visualizationResult,
-          contextId,
-          syncState,
-          visualization.id,
-          expressionId,
-          expressionValue
-        )
-      case _: Visualization.OneshotExpression =>
-    }
+  )(implicit ctx: RuntimeContext): Unit = {
+    val visualizationResult =
+      executeVisualization(
+        contextId,
+        visualization,
+        expressionId,
+        expressionValue
+      )
+    sendVisualizationUpdate(
+      visualizationResult,
+      contextId,
+      syncState,
+      visualization.id,
+      expressionId,
+      expressionValue
+    )
+  }
 
   /** Convert the result of Enso visualization function to a byte array.
     *

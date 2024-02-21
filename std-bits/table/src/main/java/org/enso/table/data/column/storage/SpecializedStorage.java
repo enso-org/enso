@@ -6,7 +6,6 @@ import java.util.List;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.graalvm.polyglot.Context;
@@ -82,17 +81,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return ops.isSupportedUnary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    return ops.runUnaryMap(name, this, problemAggregator);
-  }
-
-  @Override
   public boolean isBinaryOpVectorized(String name) {
     return ops.isSupportedBinary(name);
   }
@@ -110,49 +98,30 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public SpecializedStorage<T> mask(BitSet mask, int cardinality) {
+  public SpecializedStorage<T> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
-    T[] newData = newUnderlyingArray(cardinality);
+    T[] newData = newUnderlyingArray(newLength);
     int resIx = 0;
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         newData[resIx++] = data[i];
       }
 
       context.safepoint();
     }
-    return newInstance(newData, cardinality);
+    return newInstance(newData, newLength);
   }
 
   @Override
   public SpecializedStorage<T> applyMask(OrderMask mask) {
     Context context = Context.getCurrent();
-    int[] positions = mask.getPositions();
-    T[] newData = newUnderlyingArray(positions.length);
-    for (int i = 0; i < positions.length; i++) {
-      if (positions[i] == Index.NOT_FOUND) {
-        newData[i] = null;
-      } else {
-        newData[i] = data[positions[i]];
-      }
-
+    T[] newData = newUnderlyingArray(mask.length());
+    for (int i = 0; i < mask.length(); i++) {
+      int position = mask.get(i);
+      newData[i] = position == Storage.NOT_FOUND_INDEX ? null : data[position];
       context.safepoint();
     }
-    return newInstance(newData, positions.length);
-  }
-
-  @Override
-  public SpecializedStorage<T> countMask(int[] counts, int total) {
-    Context context = Context.getCurrent();
-    T[] newData = newUnderlyingArray(total);
-    int pos = 0;
-    for (int i = 0; i < counts.length; i++) {
-      for (int j = 0; j < counts[i]; j++) {
-        newData[pos++] = data[i];
-        context.safepoint();
-      }
-    }
-    return newInstance(newData, total);
+    return newInstance(newData, newData.length);
   }
 
   public T[] getData() {

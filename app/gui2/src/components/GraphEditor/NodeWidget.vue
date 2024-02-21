@@ -1,18 +1,23 @@
 <script setup lang="ts">
-import type { PortId } from '@/providers/portInfo'
-import { injectWidgetRegistry, type WidgetInput } from '@/providers/widgetRegistry'
+import {
+  injectWidgetRegistry,
+  type WidgetInput,
+  type WidgetUpdate,
+} from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
+import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { computed, proxyRefs } from 'vue'
 
 const props = defineProps<{
   input: WidgetInput
   nest?: boolean
+  allowEmpty?: boolean
   /**
    * A function that intercepts and handles a value update emitted by this widget. When it returns
    * `false`, the update continues to be propagated to the parent widget. When it returns `true`,
@@ -24,8 +29,9 @@ defineOptions({
   inheritAttrs: false,
 })
 
-type UpdateHandler = (value: unknown, origin: PortId) => boolean
+type UpdateHandler = (update: WidgetUpdate) => boolean
 
+const graph = useGraphStore()
 const registry = injectWidgetRegistry()
 const tree = injectWidgetTree()
 const parentUsageInfo = injectWidgetUsageInfo(true)
@@ -52,9 +58,9 @@ const updateHandler = computed(() => {
     parentUsageInfo?.updateHandler ?? (() => console.log('Missing update handler'))
   if (props.onUpdate != null) {
     const localHandler = props.onUpdate
-    return (value: unknown, origin: PortId) => {
-      const handled = localHandler(value, origin)
-      if (!handled) nextHandler(value, origin)
+    return (payload: WidgetUpdate) => {
+      const handled = localHandler(payload)
+      if (!handled) nextHandler(payload)
     }
   }
   return nextHandler
@@ -81,8 +87,9 @@ provideWidgetUsageInfo(
 
 const spanStart = computed(() => {
   if (!(props.input instanceof Ast.Ast)) return undefined
-  if (props.input.span == null) return undefined
-  return props.input.span[0] - tree.nodeSpanStart
+  const span = graph.moduleSource.getSpan(props.input.id)
+  if (span == null) return undefined
+  return span[0] - tree.nodeSpanStart
 })
 </script>
 
@@ -94,10 +101,11 @@ const spanStart = computed(() => {
     :input="props.input"
     :nesting="nesting"
     :data-span-start="spanStart"
+    :data-port="props.input.portId"
     @update="updateHandler"
   />
   <span
-    v-else
+    v-else-if="!props.allowEmpty"
     :title="`No matching widget for input: ${
       Object.getPrototypeOf(props.input)?.constructor?.name ?? JSON.stringify(props.input)
     }`"

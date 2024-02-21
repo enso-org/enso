@@ -8,7 +8,7 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type_Helpers
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import project.Data.Column.Column
+import project.Data.DB_Column.DB_Column
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -142,7 +142,7 @@ name_based_workarounds = Map.from_vector <|
 operations_map : Map Text (Vector -> SQL_Type)
 operations_map =
     find_type arg = case arg of
-        column : Column -> column.value_type
+        column : DB_Column -> column.value_type
         internal_column : Internal_Column ->
             SQLite_Type_Mapping.sql_type_to_value_type internal_column.sql_type_reference.get
         enso_value -> Enso_Types.most_specific_value_type enso_value use_smallest=True
@@ -184,7 +184,7 @@ operations_map =
 
     always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_EMPTY", "LIKE", "IS_IN", "IS_IN_COLUMN", "starts_with", "ends_with", "contains", "BOOL_OR", "IS_INF"]
     always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP", "ROUND"]
-    always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM", "REPLACE"]
+    always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM", "REPLACE", "LEFT", "RIGHT"]
     always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS", "ROW_NUMBER", "ROW_NUMBER_IN_GROUP", "LENGTH"]
     same_as_first = ["TRUNCATE", "CEIL", "FLOOR"]
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]

@@ -1,42 +1,90 @@
 <script setup lang="ts">
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
+import { requiredImportsByFQN } from '@/stores/graph/imports'
+import { SuggestionDb, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import type { TokenId } from '@/util/ast/abstract.ts'
+import { asNot } from '@/util/data/types.ts'
+import { type Identifier, type QualifiedName } from '@/util/qualifiedName.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const graph = useGraphStore()
+const suggestionDb = useSuggestionDbStore()
 
+const trueImport = computed(() =>
+  requiredImportsByFQN(
+    suggestionDb.entries,
+    'Standard.Base.Data.Boolean.Boolean.True' as QualifiedName,
+    true,
+  ),
+)
+const falseImport = computed(() =>
+  requiredImportsByFQN(
+    suggestionDb.entries,
+    'Standard.Base.Data.Boolean.Boolean.False' as QualifiedName,
+    true,
+  ),
+)
 const value = computed({
   get() {
-    return props.input.ast?.code().endsWith('True') ?? false
+    return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
-    if (props.input.ast == null) return // TODO[ao] set value on placeholder here.
-    const node = getRawBoolNode(props.input.ast)
-    if (node != null) {
-      props.onUpdate(value ? 'True' : 'False', node.exprId)
+    const edit = graph.startEdit()
+    const theImport = value ? trueImport.value : falseImport.value
+    if (props.input.value instanceof Ast.Ast) {
+      const { requiresImport } = setBoolNode(
+        edit.getVersion(props.input.value),
+        value ? ('True' as Identifier) : ('False' as Identifier),
+      )
+      if (requiresImport) graph.addMissingImports(edit, theImport)
+      props.onUpdate({ edit })
+    } else {
+      graph.addMissingImports(edit, theImport)
+      props.onUpdate({
+        edit,
+        portUpdate: {
+          value: value ? 'True' : 'False',
+          origin: asNot<TokenId>(props.input.portId),
+        },
+      })
     }
   },
 })
 </script>
 
 <script lang="ts">
-function getRawBoolNode(ast: Ast.Ast) {
+function isBoolNode(ast: Ast.Ast) {
   const candidate =
-    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean' ? ast.rhs : ast
-  if (candidate instanceof Ast.Ident && ['True', 'False'].includes(candidate.code())) {
-    return candidate
+    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean'
+      ? ast.rhs
+      : ast instanceof Ast.Ident
+      ? ast.token
+      : undefined
+  return candidate && ['True', 'False'].includes(candidate.code())
+}
+function setBoolNode(ast: Ast.Mutable, value: Identifier): { requiresImport: boolean } {
+  if (ast instanceof Ast.MutablePropertyAccess) {
+    ast.setRhs(value)
+    return { requiresImport: false }
+  } else {
+    assert(ast instanceof Ast.MutableIdent)
+    ast.setToken(value)
+    return { requiresImport: true }
   }
-  return null
 }
 
-export const widgetDefinition = defineWidget(AnyWidget, {
-  priority: 10,
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 500,
   score: (props) => {
-    if (props.input.ast == null)
-      return props.input.argInfo?.reprType === 'Standard.Base.Bool' ? Score.Good : Score.Mismatch
-    if (getRawBoolNode(props.input.ast) != null) return Score.Perfect
-    return Score.Mismatch
+    if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value)) return Score.Perfect
+    return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean'
+      ? Score.Good
+      : Score.Mismatch
   },
 })
 </script>

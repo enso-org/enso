@@ -1,6 +1,8 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code. */
+/// <reference types="vite/client" />
+
 // This file is being imported for its types.
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import * as buildJson from './../../build.json' assert { type: 'json' }
@@ -16,7 +18,7 @@ interface StringConfig {
 
 /** The public interface exposed to `window` by the IDE. */
 interface Enso {
-    main: (inputConfig?: StringConfig) => Promise<void>
+    readonly main: (inputConfig?: StringConfig) => Promise<void>
 }
 
 // ===================
@@ -27,7 +29,7 @@ interface Enso {
  * Electron context. It contains non-authentication-related functionality. */
 interface BackendApi {
     /** Return the ID of the new project. */
-    importProjectFromPath: (openedPath: string) => Promise<string>
+    readonly importProjectFromPath: (openedPath: string) => Promise<string>
 }
 
 // ==========================
@@ -45,12 +47,12 @@ interface BackendApi {
  * TypeScript checks for this interface when we use it. */
 interface AuthenticationApi {
     /** Open a URL in the system browser. */
-    openUrlInSystemBrowser: (url: string) => void
+    readonly openUrlInSystemBrowser: (url: string) => void
     /** Set the callback to be called when the system browser redirects back to a URL in the app,
      * via a deep link. See `setDeepLinkHandler` for details. */
-    setDeepLinkHandler: (callback: (url: string) => void) => void
+    readonly setDeepLinkHandler: (callback: (url: string) => void) => void
     /** Saves the access token to a file. */
-    saveAccessToken: (accessToken: string | null) => void
+    readonly saveAccessToken: (accessToken: string | null) => void
 }
 
 // =====================================
@@ -62,16 +64,9 @@ declare global {
     // Documentation is already inherited.
     /** */
     interface Window {
-        enso?: AppRunner & Enso
-        backendApi?: BackendApi
-        authenticationApi: AuthenticationApi
-    }
-
-    // Documentation is already inherited.
-    /** */
-    interface Object {
-        /** Log self and return self. Only available in development mode. */
-        $d$: <T>(this: T, message?: string) => T
+        readonly enso?: AppRunner & Enso
+        readonly backendApi?: BackendApi
+        readonly authenticationApi: AuthenticationApi
     }
 
     namespace NodeJS {
@@ -79,9 +74,9 @@ declare global {
         interface ProcessEnv {
             // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
-            APPLEID?: string
-            APPLEIDPASS?: string
-            APPLETEAMID?: string
+            readonly APPLEID?: string
+            readonly APPLEIDPASS?: string
+            readonly APPLETEAMID?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }

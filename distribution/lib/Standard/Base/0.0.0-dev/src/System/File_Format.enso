@@ -15,6 +15,7 @@ import project.Metadata.Widget
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
@@ -139,7 +140,7 @@ type Plain_Text_Format
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-    for_file_write : File -> Plain_Text_Format | Nothing
+    for_file_write : Writable_File -> Plain_Text_Format | Nothing
     for_file_write file = Plain_Text_Format.for_read file
 
     ## PRIVATE
@@ -174,7 +175,7 @@ type Bytes
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-    for_file_write : File -> Bytes | Nothing
+    for_file_write : Writable_File -> Bytes | Nothing
     for_file_write file = Bytes.for_read file
 
     ## PRIVATE
@@ -209,7 +210,7 @@ type JSON_Format
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-    for_file_write : File -> JSON_Format | Nothing
+    for_file_write : Writable_File -> JSON_Format | Nothing
     for_file_write file = JSON_Format.for_read file
 
     ## PRIVATE

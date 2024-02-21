@@ -5,6 +5,7 @@ import project.Data.Boolean
 import project.Data.Enso_Cloud.Enso_File.Enso_File
 import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Data.Enso_Cloud.Enso_User.Enso_User
+import project.Data.Filter_Condition.Filter_Action
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
@@ -49,7 +50,6 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
-import project.Data.Vector.Map_Error
 import project.Data.Vector.Vector
 import project.Data.XML.XML_Document
 import project.Data.XML.XML_Element
@@ -103,6 +103,7 @@ export project.Data.Array.Array
 export project.Data.Enso_Cloud.Enso_File.Enso_File
 export project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
 export project.Data.Enso_Cloud.Enso_User.Enso_User
+export project.Data.Filter_Condition.Filter_Action
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
@@ -145,7 +146,6 @@ export project.Data.Time.Period.Period
 export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
-export project.Data.Vector.Map_Error
 export project.Data.Vector.Vector
 export project.Data.XML.XML_Document
 export project.Data.XML.XML_Element

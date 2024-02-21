@@ -3,8 +3,10 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
-declare const brandExprId: unique symbol
-export type ExprId = Uuid & { [brandExprId]: never }
+
+declare const brandExternalId: unique symbol
+/** Identifies an AST node or token. Used in module serialization and communication with the language server. */
+export type ExternalId = Uuid & { [brandExternalId]: never }
 
 export type VisualizationModule =
   | { kind: 'Builtin' }
@@ -94,39 +96,12 @@ export class DistributedProject {
   }
 }
 
-export interface NodeMetadata {
-  x: number
-  y: number
-  vis: VisualizationMetadata | null
-}
-
 export class ModuleDoc {
   ydoc: Y.Doc
-  metadata: Y.Map<NodeMetadata>
-  data: Y.Map<any>
+  nodes: Y.Map<any>
   constructor(ydoc: Y.Doc) {
     this.ydoc = ydoc
-    this.metadata = ydoc.getMap('metadata')
-    this.data = ydoc.getMap('data')
-  }
-
-  setIdMap(map: IdMap) {
-    const oldMap = new IdMap(this.data.get('idmap') ?? [])
-    if (oldMap.isEqual(map)) return
-    this.data.set('idmap', map.entries())
-  }
-
-  getIdMap(): IdMap {
-    const map = this.data.get('idmap')
-    return new IdMap(map ?? [])
-  }
-
-  setCode(code: string) {
-    this.data.set('code', code)
-  }
-
-  getCode(): string {
-    return this.data.get('code') ?? ''
+    this.nodes = ydoc.getMap('nodes')
   }
 }
 
@@ -142,24 +117,7 @@ export class DistributedModule {
 
   constructor(ydoc: Y.Doc) {
     this.doc = new ModuleDoc(ydoc)
-    this.undoManager = new Y.UndoManager([this.doc.data, this.doc.metadata])
-  }
-
-  transact<T>(fn: () => T): T {
-    return this.doc.ydoc.transact(fn, 'local')
-  }
-
-  updateNodeMetadata(id: ExprId, meta: Partial<NodeMetadata>): void {
-    const existing = this.doc.metadata.get(id) ?? { x: 0, y: 0, vis: null }
-    this.transact(() => this.doc.metadata.set(id, { ...existing, ...meta }))
-  }
-
-  getNodeMetadata(id: ExprId): NodeMetadata | null {
-    return this.doc.metadata.get(id) ?? null
-  }
-
-  getIdMap(): IdMap {
-    return new IdMap(this.doc.data.get('idmap') ?? [])
+    this.undoManager = new Y.UndoManager([this.doc.nodes])
   }
 
   dispose(): void {
@@ -167,12 +125,35 @@ export class DistributedModule {
   }
 }
 
+export const localOrigins = ['local', 'local:CodeEditor'] as const
+export type LocalOrigin = (typeof localOrigins)[number]
+export type Origin = LocalOrigin | 'remote'
+/** Locally-originated changes not otherwise specified. */
+export const defaultLocalOrigin: LocalOrigin = 'local'
+export function isLocalOrigin(origin: string): origin is LocalOrigin {
+  const localOriginNames: readonly string[] = localOrigins
+  return localOriginNames.includes(origin)
+}
+export function tryAsOrigin(origin: string): Origin | undefined {
+  if (isLocalOrigin(origin)) return origin
+  if (origin === 'remote') return origin
+}
+
 export type SourceRange = readonly [start: number, end: number]
+declare const brandSourceRangeKey: unique symbol
+export type SourceRangeKey = string & { [brandSourceRangeKey]: never }
+
+export function sourceRangeKey(range: SourceRange): SourceRangeKey {
+  return `${range[0].toString(16)}:${range[1].toString(16)}` as SourceRangeKey
+}
+export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
+  return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
+}
 
 export class IdMap {
-  private readonly rangeToExpr: Map<string, ExprId>
+  private readonly rangeToExpr: Map<string, ExternalId>
 
-  constructor(entries?: [string, ExprId][]) {
+  constructor(entries?: [string, ExternalId][]) {
     this.rangeToExpr = new Map(entries ?? [])
   }
 
@@ -180,38 +161,30 @@ export class IdMap {
     return new IdMap([])
   }
 
-  public static keyForRange(range: SourceRange): string {
-    return `${range[0].toString(16)}:${range[1].toString(16)}`
-  }
-
-  public static rangeForKey(key: string): SourceRange {
-    return key.split(':').map((x) => parseInt(x, 16)) as [number, number]
-  }
-
-  insertKnownId(range: SourceRange, id: ExprId) {
-    const key = IdMap.keyForRange(range)
+  insertKnownId(range: SourceRange, id: ExternalId) {
+    const key = sourceRangeKey(range)
     this.rangeToExpr.set(key, id)
   }
 
-  getIfExist(range: SourceRange): ExprId | undefined {
-    const key = IdMap.keyForRange(range)
+  getIfExist(range: SourceRange): ExternalId | undefined {
+    const key = sourceRangeKey(range)
     return this.rangeToExpr.get(key)
   }
 
-  getOrInsertUniqueId(range: SourceRange): ExprId {
-    const key = IdMap.keyForRange(range)
+  getOrInsertUniqueId(range: SourceRange): ExternalId {
+    const key = sourceRangeKey(range)
     const val = this.rangeToExpr.get(key)
     if (val !== undefined) {
       return val
     } else {
-      const newId = random.uuidv4() as ExprId
+      const newId = random.uuidv4() as ExternalId
       this.rangeToExpr.set(key, newId)
       return newId
     }
   }
 
-  entries(): [string, ExprId][] {
-    return [...this.rangeToExpr]
+  entries(): [SourceRangeKey, ExternalId][] {
+    return [...this.rangeToExpr] as [SourceRangeKey, ExternalId][]
   }
 
   get size(): number {
@@ -265,6 +238,14 @@ export function isUuid(x: unknown): x is Uuid {
 
 export function rangeEquals(a: SourceRange, b: SourceRange): boolean {
   return a[0] == b[0] && a[1] == b[1]
+}
+
+export function rangeIncludes(a: SourceRange, b: number): boolean {
+  return a[0] <= b && a[1] >= b
+}
+
+export function rangeLength(a: SourceRange): number {
+  return a[1] - a[0]
 }
 
 export function rangeEncloses(a: SourceRange, b: SourceRange): boolean {

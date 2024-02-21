@@ -18,6 +18,8 @@ use crate::enso::IrCaches;
 use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
+use crate::paths::ENSO_DATA_DIRECTORY;
+use crate::paths::ENSO_JAVA;
 use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
@@ -225,7 +227,11 @@ impl RunContext {
 
             // Remove the benchmark reports. They are not meant currently to be incrementally
             // updated.
-            ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.bench_report_xml)?;
+
+            // We remove all "bench-report.xml" files across the repo, as they confuse the
+            // benchmark reporter. See the request: https://github.com/enso-org/enso/pull/8707#issuecomment-1882512361
+            let bench_report_xml = "**/bench-report.xml";
+            ide_ci::fs::remove_glob(bench_report_xml)?;
         }
 
 
@@ -300,23 +306,17 @@ impl RunContext {
         // If we have much memory, we can try building everything in a single batch. Reducing number
         // of SBT invocations significantly helps build time. However, it is more memory heavy, so
         // we don't want to call this in environments like GH-hosted runners.
-        let github_hosted_macos_memory = 15_032_385;
-        let big_memory_machine = system.total_memory() > github_hosted_macos_memory;
-        // Windows native runner is not yet supported.
-        let build_native_runner =
-            self.config.build_engine_package() && big_memory_machine && TARGET_OS != OS::Windows;
-
 
         // === Build project-manager distribution and native image ===
         debug!("Bulding project-manager distribution and Native Image");
-        if big_memory_machine {
+        if crate::ci::big_memory_machine() {
             let mut tasks = vec![];
 
             if self.config.build_engine_package() {
                 tasks.push("buildEngineDistribution");
                 tasks.push("engine-runner/assembly");
             }
-            if build_native_runner {
+            if self.config.build_native_runner {
                 tasks.push("engine-runner/buildNativeImage");
             }
 
@@ -394,15 +394,23 @@ impl RunContext {
 
         // === Unit tests and Enso tests ===
         debug!("Running unit tests and Enso tests.");
-        if self.config.test_scala {
+        // We store Scala test result but not immediately fail on it, as we want to run all the
+        // tests (including standard library ones) even if Scala tests fail.
+        let scala_test_result = if self.config.test_scala {
             // Make sure that `sbt buildEngineDistributionNoIndex` is run before
             // `project-manager/test`. Note that we do not have to run
             // `buildEngineDistribution` (with indexing), because it is unnecessary.
             sbt.call_arg("buildEngineDistributionNoIndex").await?;
 
             // Run unit tests
-            sbt.call_arg("set Global / parallelExecution := false; test").await?;
-        }
+            sbt.call_arg("set Global / parallelExecution := false; test").await.inspect_err(|e| {
+                ide_ci::actions::workflow::error(format!("Scala Tests failed: {e:?}"))
+            })
+        } else {
+            // No tests - no fail.
+            Ok(())
+        };
+
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
         }
@@ -411,7 +419,7 @@ impl RunContext {
 
         // === Run benchmarks ===
         debug!("Running benchmarks.");
-        if big_memory_machine {
+        if crate::ci::big_memory_machine() {
             let mut tasks = vec![];
             // This just compiles benchmarks, not run them. At least we'll know that they can be
             // run. Actually running them, as part of this routine, would be too heavy.
@@ -440,7 +448,7 @@ impl RunContext {
         } else {
             if self.config.build_benchmarks {
                 // Check Runtime Benchmark Compilation
-                sbt.call_arg("runtime/Benchmark/compile").await?;
+                sbt.call_arg("runtime-benchmarks/compile").await?;
 
                 // Check Language Server Benchmark Compilation
                 sbt.call_arg("language-server/Benchmark/compile").await?;
@@ -470,8 +478,12 @@ impl RunContext {
             for bench in &self.config.execute_benchmarks {
                 match bench {
                     Benchmarks::Runtime => {
-                        let runtime_bench_report =
-                            &self.paths.repo_root.engine.runtime.bench_report_xml;
+                        let runtime_bench_report = &self
+                            .paths
+                            .repo_root
+                            .engine
+                            .join("runtime-benchmarks")
+                            .join("bench-report.xml");
                         if runtime_bench_report.exists() {
                             ide_ci::actions::artifacts::upload_single_file(
                                 runtime_bench_report,
@@ -509,50 +521,23 @@ impl RunContext {
 
         // === Build Distribution ===
         debug!("Building distribution");
-        if self.config.build_engine_package() {
-            let std_libs =
-                &self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.standard;
-            // let std_libs = self.paths.engine.dir.join("lib").join("Standard");
-            // Compile the Standard Libraries (Unix)
-            debug!("Compiling standard libraries under {}", std_libs.display());
-            for entry in ide_ci::fs::read_dir(std_libs)? {
-                let entry = entry?;
-                let target = entry.path().join(self.paths.version().to_string());
-                enso.compile_lib(target)?.run_ok().await?;
-            }
+        if self.config.build_native_runner {
+            debug!("Building and testing native engine runners");
+            runner_sanity_test(&self.repo_root, None).await?;
+            ide_ci::fs::remove_file_if_exists(&self.repo_root.runner)?;
+            let enso_java = "espresso";
+            sbt.command()?
+                .env(ENSO_JAVA, enso_java)
+                .arg("engine-runner/buildNativeImage")
+                .run_ok()
+                .await?;
+            runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
         }
-
-
-        // if build_native_runner {
-        //     let factorial_input = "6";
-        //     let factorial_expected_output = "720";
-        //     let output = Command::new(&self.repo_root.runner)
-        //         .args([
-        //             "--run",
-        //
-        // self.repo_root.engine.runner_native.src.test.resources.factorial_enso.as_str(),
-        //             factorial_input,
-        //         ])
-        //         .env(ENSO_DATA_DIRECTORY.name(), &self.paths.engine.dir)
-        //         .run_stdout()
-        //         .await?;
-        //     ensure!(
-        //         output.contains(factorial_expected_output),
-        //         "Native runner output does not contain expected result."
-        //     );
-        // }
 
 
         // Verify License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
-            /*  refversion=${{ env.ENSO_VERSION }}
-                binversion=${{ env.DIST_VERSION }}
-                engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso --version --json | jq -r '.version')
-                test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
-                test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
-            */
-
             for package in ret.packages() {
                 package.verify_package_sbt(&sbt).await?;
             }
@@ -593,6 +578,8 @@ impl RunContext {
         for bundle in ret.bundles() {
             bundle.create(&self.repo_root, &graal_version).await?;
         }
+
+        scala_test_result?;
 
         Ok(ret)
     }
@@ -670,4 +657,31 @@ pub async fn upload_test_results(test_results_dir: PathBuf) -> Result {
         );
     }
     upload_result
+}
+
+/// Run the native runner and check if it produces the expected output on a simple test.
+pub async fn runner_sanity_test(
+    repo_root: &crate::paths::generated::RepoRoot,
+    enso_java: Option<&str>,
+) -> Result {
+    let factorial_input = "6";
+    let factorial_expected_output = "720";
+    let output = Command::new(&repo_root.runner)
+        .args([
+            "--run",
+            repo_root.engine.runner.src.test.resources.factorial_enso.as_str(),
+            factorial_input,
+        ])
+        .set_env_opt(ENSO_JAVA, enso_java)?
+        .set_env(
+            ENSO_DATA_DIRECTORY,
+            repo_root.built_distribution.enso_engine_triple.engine_package.as_path(),
+        )?
+        .run_stdout()
+        .await?;
+    ensure!(
+        output.contains(factorial_expected_output),
+        "Native runner output does not contain expected result '{factorial_expected_output}'. Output:\n{output}",
+    );
+    Ok(())
 }

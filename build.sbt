@@ -27,11 +27,11 @@ val scalacVersion = "2.13.11"
 // source version of the Java language
 val javaVersion = "21"
 // version of the GraalVM JDK
-val graalVersion = "21.0.1"
+val graalVersion = "21.0.2"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
-val graalMavenPackagesVersion = "23.1.0"
+val graalMavenPackagesVersion = "23.1.2"
 val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -231,7 +231,7 @@ ThisBuild / scalacOptions ++= Seq(
 )
 
 ThisBuild / Test / testOptions ++=
-  Seq(Tests.Argument("-oI")) ++
+  Seq(Tests.Argument(TestFrameworks.ScalaTest, "-oID")) ++
   sys.env
     .get("ENSO_TEST_JUNIT_DIR")
     .map { junitDir =>
@@ -290,9 +290,12 @@ lazy val enso = (project in file("."))
     searcher,
     launcher,
     downloader,
+    `runtime-integration-tests`,
+    `runtime-benchmarks`,
     `runtime-parser`,
     `runtime-compiler`,
     `runtime-language-epb`,
+    `runtime-language-arrow`,
     `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
     `runtime-instrument-repl-debugger`,
@@ -306,6 +309,7 @@ lazy val enso = (project in file("."))
     `library-manager`,
     `library-manager-test`,
     `connected-lock-manager`,
+    `connected-lock-manager-server`,
     syntax,
     testkit,
     `common-polyglot-core-utils`,
@@ -319,6 +323,7 @@ lazy val enso = (project in file("."))
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
     `benchmark-java-helpers`,
+    `benchmarks-common`,
     `bench-processor`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
@@ -496,6 +501,7 @@ val hamcrestVersion         = "1.3"
 val netbeansApiVersion      = "RELEASE180"
 val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
+val apacheArrowVersion      = "14.0.1"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -551,10 +557,9 @@ lazy val `text-buffer` = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.typelevel"   %% "cats-core"      % catsVersion,
-      "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
-      "org.scalatest"   %% "scalatest"      % scalatestVersion  % Test,
-      "org.scalacheck"  %% "scalacheck"     % scalacheckVersion % Test
+      "org.typelevel"  %% "cats-core"  % catsVersion,
+      "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
     )
   )
 
@@ -730,8 +735,7 @@ lazy val `logging-service` = project
     libraryDependencies ++= Seq(
       "org.slf4j"      % "slf4j-api" % slf4jVersion,
       "com.typesafe"   % "config"    % typesafeConfigVersion,
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-      akkaHttp
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     )
   )
   .dependsOn(`logging-utils`)
@@ -759,6 +763,7 @@ lazy val `logging-service-logback` = project
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "io.sentry"        % "sentry-logback"          % "6.28.0",
       "io.sentry"        % "sentry"                  % "6.28.0",
+      "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ) ++ logbackPkg
   )
@@ -1103,6 +1108,7 @@ lazy val `persistance` = (project in file("lib/java/persistance"))
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value),
     libraryDependencies ++= Seq(
+      "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion,
       "junit"            % "junit"                   % junitVersion   % Test,
       "com.github.sbt"   % "junit-interface"         % junitIfVersion % Test
@@ -1296,13 +1302,9 @@ lazy val `language-server` = (project in file("engine/language-server"))
     ),
     Test / modulePath := {
       val updateReport = (Test / update).value
-      // org.bouncycastle is a module required by `org.enso.runtime` module.
       val requiredModIds =
         GraalVM.modules ++ GraalVM.langsPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j"        % "slf4j-api"      % slf4jVersion,
-          "org.bouncycastle" % "bcutil-jdk18on" % "1.76",
-          "org.bouncycastle" % "bcpkix-jdk18on" % "1.76",
-          "org.bouncycastle" % "bcprov-jdk18on" % "1.76"
+          "org.slf4j" % "slf4j-api" % slf4jVersion
         )
       val requiredMods = JPMSUtils.filterModulesFromUpdate(
         updateReport,
@@ -1371,7 +1373,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   )
   .settings(
     Test / compile := (Test / compile)
-      .dependsOn(LocalProject("enso") / updateLibraryManifests)
+      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
       .value,
     Test / envVars ++= Map(
       "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
@@ -1381,7 +1383,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`json-rpc-server`)
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`library-manager`)
-  .dependsOn(`connected-lock-manager`)
+  .dependsOn(`connected-lock-manager-server`)
   .dependsOn(`edition-updater`)
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
@@ -1491,6 +1493,50 @@ lazy val `runtime-language-epb` =
       )
     )
 
+lazy val `runtime-language-arrow` =
+  (project in file("engine/runtime-language-arrow"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      crossPaths := false,
+      autoScalaLibrary := false,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings,
+      libraryDependencies ++= GraalVM.modules ++ Seq(
+        "junit"            % "junit"              % junitVersion       % Test,
+        "com.github.sbt"   % "junit-interface"    % junitIfVersion     % Test,
+        "org.slf4j"        % "slf4j-nop"          % slf4jVersion       % Test,
+        "org.slf4j"        % "slf4j-api"          % slf4jVersion       % Test,
+        "org.apache.arrow" % "arrow-vector"       % apacheArrowVersion % Test,
+        "org.apache.arrow" % "arrow-memory-netty" % apacheArrowVersion % Test
+      ),
+      javaModuleName := "org.enso.interpreter.arrow",
+      modulePath := {
+        val updateReport = (Test / update).value
+        JPMSUtils.filterModulesFromUpdate(
+          updateReport,
+          GraalVM.modules,
+          streams.value.log,
+          shouldContainAll = true
+        ) ++ Seq(
+          (LocalProject(
+            "runtime-language-arrow"
+          ) / Compile / productDirectories).value.head
+        )
+      },
+      Test / patchModules := {
+        val testClassesDir = (Test / productDirectories).value.head
+        Map(javaModuleName.value -> Seq(testClassesDir))
+      },
+      Test / addModules := Seq(javaModuleName.value),
+      Test / javaOptions ++= Seq(
+        s"--add-opens=java.base/java.nio=${javaModuleName.value}", // DirectByteBuffer in MemoryUtil init is in-accessible
+        "--add-opens=java.base/java.nio=ALL-UNNAMED" // Tests use Apache Arrow
+      ),
+      Test / addReads := {
+        Map(javaModuleName.value -> Seq("ALL-UNNAMED"))
+      }
+    )
+
 /** `runtime-test-instruments` project contains Truffle instruments that are used solely for testing.
   * It is compiled into an explicit Java module. Note that this project cannot have compile-time dependency on `runtime`
   * project, so if you need access to classes from `runtime`, you need to use reflection.
@@ -1507,7 +1553,11 @@ lazy val `runtime-test-instruments` =
         JPMSUtils.filterModulesFromUpdate(
           update.value,
           GraalVM.modules ++ Seq(
-            "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
+            "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
+            "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion
           ),
           streams.value.log,
           shouldContainAll = true
@@ -1515,12 +1565,15 @@ lazy val `runtime-test-instruments` =
       },
       libraryDependencies ++= GraalVM.modules,
       libraryDependencies ++= Seq(
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+        "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion,
+        "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
 
 lazy val runtime = (project in file("engine/runtime"))
-  .configs(Benchmark)
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
@@ -1533,54 +1586,23 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    // Explicitly provide javafmt task for the custom Benchmark configuration.
-    // Note that because of the custom Benchmark configuration, the `JavaFormatterPlugin`
-    // is not able to register this task on its own.
-    Benchmark / javafmt := {
-      val streamz = streams.value
-      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
-      val iF      = (Benchmark / javafmt / includeFilter).value
-      val eF      = (Benchmark / javafmt / excludeFilter).value
-      val cache   = streamz.cacheStoreFactory
-      val options = (Compile / javafmtOptions).value
-      JavaFormatter(sD, iF, eF, streamz, cache, options)
-    },
-    Benchmark / javafmtCheck := {
-      val streamz = streams.value
-      val baseDir = (ThisBuild / baseDirectory).value
-      val sD      = (Benchmark / javafmt / sourceDirectories).value.toList
-      val iF      = (Benchmark / javafmt / includeFilter).value
-      val eF      = (Benchmark / javafmt / excludeFilter).value
-      val cache   = (javafmt / streams).value.cacheStoreFactory
-      val options = (Compile / javafmtOptions).value
-      JavaFormatter.check(baseDir, sD, iF, eF, streamz, cache, options)
-    },
-    Test / parallelExecution := false,
-    Test / logBuffered := false,
-    Test / testOptions += Tests.Argument(
-      "-oD"
-    ), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ jaxb ++ circe ++ GraalVM.langsPkgs ++ Seq(
+    libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
+      "com.lihaoyi"         %% "fansi"                   % fansiVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
       "org.graalvm.sdk"      % "polyglot-tck"            % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % "provided",
       "org.graalvm.truffle"  % "truffle-dsl-processor"   % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"  % "truffle-tck"             % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"  % "truffle-tck-common"      % graalMavenPackagesVersion % "provided",
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.scalacheck"      %% "scalacheck"              % scalacheckVersion         % Test,
       "org.scalactic"       %% "scalactic"               % scalacticVersion          % Test,
       "org.scalatest"       %% "scalatest"               % scalatestVersion          % Test,
-      "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion % Benchmark,
-      "org.typelevel"       %% "cats-core"               % catsVersion,
       "junit"                % "junit"                   % junitVersion              % Test,
       "com.github.sbt"       % "junit-interface"         % junitIfVersion            % Test,
       "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
-      "org.slf4j"            % "slf4j-nop"               % slf4jVersion              % Benchmark,
       "org.slf4j"            % "slf4j-api"               % slf4jVersion              % Test
     ),
     // Add all GraalVM packages with Runtime scope - we don't need them for compilation,
@@ -1594,93 +1616,6 @@ lazy val runtime = (project in file("engine/runtime"))
         GraalVM.toolsPkgs.map(_.withConfigurations(Some(Runtime.name)))
       necessaryModules ++ langs ++ tools
     }
-  )
-  .settings(
-    Test / unmanagedClasspath := (LocalProject(
-      "runtime-fat-jar"
-    ) / Compile / exportedProducts).value,
-    Test / addModules := Seq(
-      (`runtime-test-instruments` / javaModuleName).value,
-      (`runtime-fat-jar` / javaModuleName).value
-    ),
-    Test / modulePath := {
-      val updateReport = (Test / update).value
-      val requiredModIds =
-        GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
-          "org.slf4j"        % "slf4j-api"               % slf4jVersion,
-          "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion
-        )
-      val requiredMods = JPMSUtils.filterModulesFromUpdate(
-        updateReport,
-        requiredModIds,
-        streams.value.log,
-        shouldContainAll = true
-      )
-      val runtimeTestInstrumentsMod =
-        (`runtime-test-instruments` / Compile / exportedProducts).value.head.data
-      val runtimeMod =
-        (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
-      requiredMods ++
-      Seq(runtimeTestInstrumentsMod) ++
-      Seq(runtimeMod)
-    },
-    Test / patchModules := {
-
-      /** All these modules will be in --patch-module cmdline option to java, which means that
-        * for the JVM, it will appear that all the classes contained in these sbt projects are contained
-        * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
-        * fat jar.
-        */
-      val modulesToPatchIntoRuntime: Seq[File] =
-        (LocalProject(
-          "runtime-instrument-common"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-id-execution"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-repl-debugger"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-runtime-server"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-language-epb"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-compiler"
-        ) / Compile / productDirectories).value ++
-        (LocalProject("refactoring-utils") / Compile / productDirectories).value
-      // Patch test-classes into the runtime module. This is standard way to deal with the
-      // split package problem in unit tests. For example, Maven's surefire plugin does this.
-      val testClassesDir = (Test / productDirectories).value.head
-      Map(
-        (`runtime-fat-jar` / javaModuleName).value -> (modulesToPatchIntoRuntime ++ Seq(
-          testClassesDir
-        ))
-      )
-    },
-    Test / addReads := {
-      val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
-      val testInstrumentsModName =
-        (`runtime-test-instruments` / javaModuleName).value
-      Map(
-        // We patched the test-classes into the runtime module. These classes access some stuff from
-        // unnamed module. Thus, let's add ALL-UNNAMED.
-        runtimeModName         -> Seq("ALL-UNNAMED", testInstrumentsModName),
-        testInstrumentsModName -> Seq(runtimeModName)
-      )
-    },
-    Test / javaOptions ++= testLogProviderOptions
-  )
-  .settings(
-    Test / fork := true,
-    Test / envVars ++= distributionEnvironmentOverrides ++ Map(
-      "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
-    ),
-    Test / compile := (Test / compile)
-      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
-      .value
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -1707,100 +1642,6 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-aws` / Compile / packageBin)
       .value
   )
-  /** Benchmark settings */
-  .settings(
-    inConfig(Benchmark)(Defaults.testSettings),
-    Benchmark / fork := true,
-    Benchmark / parallelExecution := false,
-    (Benchmark / modulePath) := {
-      val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
-        "org.slf4j" % "slf4j-api" % slf4jVersion,
-        "org.slf4j" % "slf4j-nop" % slf4jVersion
-      )
-      val requiredMods = JPMSUtils.filterModulesFromUpdate(
-        (Benchmark / update).value,
-        requiredModIds,
-        streams.value.log,
-        shouldContainAll = true
-      )
-      val runtimeMod =
-        (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
-      requiredMods ++ Seq(runtimeMod)
-    },
-    (Benchmark / addModules) := Seq(
-      (`runtime-fat-jar` / javaModuleName).value
-    ),
-    (Benchmark / addReads) := Map(
-      (`runtime-fat-jar` / javaModuleName).value -> Seq("ALL-UNNAMED")
-    ),
-    (Benchmark / patchModules) := {
-      val modulesToPatchIntoRuntime: Seq[File] =
-        (LocalProject(
-          "runtime-instrument-common"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-id-execution"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-repl-debugger"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-instrument-runtime-server"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-language-epb"
-        ) / Compile / productDirectories).value ++
-        (LocalProject(
-          "runtime-compiler"
-        ) / Compile / productDirectories).value
-      Map(
-        (`runtime-fat-jar` / javaModuleName).value -> modulesToPatchIntoRuntime
-      )
-    },
-    // Reset javacOptions and javaOptions - do not inherit them from the Test scope
-    (Benchmark / javacOptions) := (Compile / javacOptions).value,
-    (Benchmark / javaOptions) := (Compile / javaOptions).value,
-    (Benchmark / javacOptions) ++= {
-      JPMSPlugin.constructOptions(
-        streams.value.log,
-        modulePath = (Benchmark / modulePath).value,
-        addModules = (Benchmark / addModules).value
-      )
-    },
-    (Benchmark / javaOptions) ++= {
-      JPMSPlugin.constructOptions(
-        streams.value.log,
-        (Benchmark / modulePath).value,
-        (Benchmark / addModules).value,
-        (Benchmark / patchModules).value,
-        (Benchmark / addExports).value,
-        (Benchmark / addReads).value
-      )
-    },
-    (Benchmark / javaOptions) ++= benchOnlyOptions,
-    // Override test log provider and its resource
-    (Benchmark / javaOptions) ++= Seq(
-      "-Dslf4j.provider=org.enso.logger.TestLogProvider",
-      "-Dconfig.resource=application-bench.conf"
-    ),
-    (Benchmark / compile) := (Benchmark / compile)
-      .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
-      .value,
-    bench := (Benchmark / test)
-      .tag(Exclusive)
-      .dependsOn(Benchmark / compile)
-      .value,
-    benchOnly := Def.inputTaskDyn {
-      import complete.Parsers.spaceDelimited
-      val name = spaceDelimited("<name>").parsed match {
-        case List(name) => name
-        case _          => throw new IllegalArgumentException("Expected one argument.")
-      }
-      Def.task {
-        (Benchmark / testOnly).toTask(" -- -z " + name).value
-      }
-    }.evaluated
-  )
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
@@ -1812,8 +1653,239 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`runtime-compiler`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(testkit % Test)
-  .dependsOn(`logging-service-logback` % "test->test")
-  .dependsOn(`runtime-test-instruments` % "test->compile")
+
+/** A project holding all the runtime integration tests. These tests require, among other things,
+  * the `org.enso.runtime` JPMS module, so it is easier to keep them in a separate project.
+  * For standard unit tests, use `runtime/Test`.
+  */
+lazy val `runtime-integration-tests` =
+  (project in file("engine/runtime-integration-tests"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      Compile / logManager :=
+        sbt.internal.util.CustomLogManager.excludeMsg(
+          "Could not determine source for class ",
+          Level.Warn
+        ),
+      commands += WithDebugCommand.withDebug,
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
+        "org.graalvm.polyglot" % "polyglot"              % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk"      % "polyglot-tck"          % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-tck"           % graalMavenPackagesVersion % Test,
+        "org.graalvm.truffle"  % "truffle-tck-common"    % graalMavenPackagesVersion % Test,
+        "org.graalvm.truffle"  % "truffle-tck-tests"     % graalMavenPackagesVersion % Test,
+        "org.scalacheck"      %% "scalacheck"            % scalacheckVersion         % Test,
+        "org.scalactic"       %% "scalactic"             % scalacticVersion          % Test,
+        "org.scalatest"       %% "scalatest"             % scalatestVersion          % Test,
+        "junit"                % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
+        "org.hamcrest"         % "hamcrest-all"          % hamcrestVersion           % Test,
+        "org.slf4j"            % "slf4j-api"             % slf4jVersion              % Test
+      ),
+      Test / javacOptions ++= Seq(
+        "-s",
+        (Compile / sourceManaged).value.getAbsolutePath,
+        "-Xlint:unchecked"
+      ),
+      Test / compile := (Test / compile)
+        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+        .dependsOn(`runtime-fat-jar` / Compile / compileModuleInfo)
+        .value,
+      Test / fork := true,
+      Test / parallelExecution := false,
+      Test / logBuffered := false,
+      Test / envVars ++= distributionEnvironmentOverrides ++ Map(
+        "ENSO_TEST_DISABLE_IR_CACHE" -> "false",
+        "ENSO_EDITION_PATH"          -> file("distribution/editions").getCanonicalPath
+      ),
+      inConfig(Test)(truffleRunOptionsSettings),
+      Test / javaOptions ++= Seq(
+        "-Dtck.values=java-host,enso",
+        "-Dtck.language=enso",
+        "-Dtck.inlineVerifierInstrument=false",
+        "-Dpolyglot.engine.AllowExperimentalOptions=true"
+      ),
+      Test / javaOptions ++= testLogProviderOptions,
+      Test / addModules := Seq(
+        (`runtime-test-instruments` / javaModuleName).value,
+        (`runtime-fat-jar` / javaModuleName).value
+      ),
+      Test / modulePath := {
+        val updateReport = (Test / update).value
+        val requiredModIds =
+          GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ Seq(
+            "org.slf4j"           % "slf4j-api"               % slf4jVersion,
+            "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion,
+            "org.graalvm.sdk"     % "polyglot-tck"            % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck"             % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-common"      % graalMavenPackagesVersion,
+            "org.graalvm.truffle" % "truffle-tck-tests"       % graalMavenPackagesVersion
+          )
+        val requiredMods = JPMSUtils.filterModulesFromUpdate(
+          updateReport,
+          requiredModIds,
+          streams.value.log,
+          shouldContainAll = true
+        )
+        val runtimeTestInstrumentsMod =
+          (`runtime-test-instruments` / Compile / exportedProducts).value.head.data
+        val runtimeMod =
+          (`runtime-fat-jar` / Compile / exportedProducts).value.head.data
+        requiredMods ++
+        Seq(runtimeTestInstrumentsMod) ++
+        Seq(runtimeMod)
+      },
+      Test / patchModules := {
+
+        /** All these modules will be in --patch-module cmdline option to java, which means that
+          * for the JVM, it will appear that all the classes contained in these sbt projects are contained
+          * in the `org.enso.runtime` module. In this way, we do not have to assembly the `runtime.jar`
+          * fat jar.
+          */
+        val modulesToPatchIntoRuntime: Seq[File] =
+          (LocalProject(
+            "runtime-instrument-common"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-id-execution"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-repl-debugger"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-runtime-server"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-language-epb"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-compiler"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "refactoring-utils"
+          ) / Compile / productDirectories).value ++
+          (LocalProject(
+            "runtime-instrument-common"
+          ) / Test / productDirectories).value
+        // Patch test-classes into the runtime module. This is standard way to deal with the
+        // split package problem in unit tests. For example, Maven's surefire plugin does this.
+        val testClassesDir = (Test / productDirectories).value.head
+        Map(
+          (`runtime-fat-jar` / javaModuleName).value -> (modulesToPatchIntoRuntime ++ Seq(
+            testClassesDir
+          ))
+        )
+      },
+      Test / addReads := {
+        val runtimeModName = (`runtime-fat-jar` / javaModuleName).value
+        val testInstrumentsModName =
+          (`runtime-test-instruments` / javaModuleName).value
+        Map(
+          // We patched the test-classes into the runtime module. These classes access some stuff from
+          // unnamed module. Thus, let's add ALL-UNNAMED.
+          runtimeModName -> Seq(
+            "ALL-UNNAMED",
+            testInstrumentsModName,
+            "truffle.tck.tests",
+            "org.openide.util.lookup.RELEASE180"
+          ),
+          testInstrumentsModName -> Seq(runtimeModName)
+        )
+      }
+    )
+    .dependsOn(`runtime-fat-jar`)
+    .dependsOn(`runtime-test-instruments`)
+    .dependsOn(`logging-service-logback` % "test->test")
+    .dependsOn(testkit % Test)
+    .dependsOn(`connected-lock-manager-server`)
+
+/** A project that holds only benchmarks for `runtime`. Unlike `runtime-integration-tests`, its execution requires
+  * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
+  */
+lazy val `runtime-benchmarks` =
+  (project in file("engine/runtime-benchmarks"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      // Note that withDebug command only makes sense if you use `@Fork(0)` in your benchmarks.
+      commands += WithDebugCommand.withDebug,
+      libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.toolsPkgs ++ Seq(
+        "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion,
+        "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion,
+        "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
+        "com.sun.xml.bind"    % "jaxb-impl"                % jaxbVersion,
+        "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion,
+        "org.slf4j"           % "slf4j-api"                % slf4jVersion,
+        "org.slf4j"           % "slf4j-nop"                % slf4jVersion
+      ),
+      mainClass :=
+        Some("org.enso.interpreter.bench.benchmarks.RuntimeBenchmarksRunner"),
+      Compile / logManager :=
+        sbt.internal.util.CustomLogManager.excludeMsg(
+          "Could not determine source for class ",
+          Level.Warn
+        ),
+      javacOptions --= Seq(
+        "-source",
+        frgaalSourceLevel,
+        "--enable-preview"
+      ),
+      parallelExecution := false,
+      modulePath := {
+        val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+          "org.slf4j" % "slf4j-api" % slf4jVersion,
+          "org.slf4j" % "slf4j-nop" % slf4jVersion
+        )
+        val requiredMods = JPMSUtils.filterModulesFromUpdate(
+          (Compile / update).value,
+          requiredModIds,
+          streams.value.log,
+          shouldContainAll = true
+        )
+        val runtimeMod =
+          (`runtime-fat-jar` / assembly / assemblyOutputPath).value
+        requiredMods ++ Seq(runtimeMod)
+      },
+      addModules := {
+        val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
+        Seq(runtimeModuleName)
+      },
+      addExports := {
+        Map("org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j"))
+      },
+      javaOptions ++= {
+        Seq(
+          // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
+          "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
+        )
+      },
+      javaOptions ++= benchOnlyOptions,
+      run / fork := true,
+      run / connectInput := true,
+      bench := Def
+        .task {
+          (Compile / run).toTask("").tag(Exclusive).value
+        }
+        .dependsOn(
+          buildEngineDistribution
+        )
+        .value,
+      benchOnly := Def.inputTaskDyn {
+        import complete.Parsers.spaceDelimited
+        val name = spaceDelimited("<name>").parsed match {
+          case List(name) => name
+          case _          => throw new IllegalArgumentException("Expected one argument.")
+        }
+        Def.task {
+          (Compile / run).toTask(" " + name).value
+        }
+      }.evaluated
+    )
+    .dependsOn(`runtime-fat-jar`)
+    .dependsOn(`benchmarks-common`)
 
 lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
@@ -1851,8 +1923,7 @@ lazy val `runtime-compiler` =
         "junit"            % "junit"                   % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"         % junitIfVersion     % Test,
         "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
-        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-        "com.lihaoyi"     %% "fansi"                   % fansiVersion
+        "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
       )
     )
     .dependsOn(`runtime-parser`)
@@ -1875,17 +1946,22 @@ lazy val `runtime-instrument-common` =
       bench := (Benchmark / test).tag(Exclusive).value,
       Benchmark / parallelExecution := false,
       (Benchmark / javaOptions) :=
-        (LocalProject("std-benchmarks") / Benchmark / run / javaOptions).value,
+        (LocalProject("std-benchmarks") / Compile / javaOptions).value,
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      ),
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test
       )
     )
     .dependsOn(`refactoring-utils`)
     .dependsOn(
       LocalProject(
         "runtime"
-      ) % "compile->compile;test->test;runtime->runtime;bench->bench"
+      ) % "compile->compile;runtime->runtime;bench->bench"
     )
 
 lazy val `runtime-instrument-id-execution` =
@@ -1914,7 +1990,7 @@ lazy val `runtime-instrument-runtime-server` =
       instrumentationSettings
     )
     .dependsOn(LocalProject("runtime"))
-    .dependsOn(`runtime-instrument-common`)
+    .dependsOn(`runtime-instrument-common` % "test->test;compile->compile")
 
 /** A "meta" project that exists solely to provide logic for assembling the `runtime.jar` fat Jar.
   * We do not want to put this task into any other existing project, as it internally copies some
@@ -1976,14 +2052,7 @@ lazy val `runtime-fat-jar` =
       assembly / test := {},
       assembly / assemblyOutputPath := file("runtime.jar"),
       assembly / assemblyExcludedJars := {
-        // bouncycastle jdk5 needs to be excluded from the Uber jar, as otherwise its packages would
-        // clash with packages in org.bouncycastle.jdk18 modules
-        val bouncyCastleJdk5 = Seq(
-          "org.bouncycastle" % "bcutil-jdk15on" % bcpkixJdk15Version,
-          "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
-          "org.bouncycastle" % "bcprov-jdk15on" % bcpkixJdk15Version
-        )
-        val pkgsToExclude = JPMSUtils.componentModules ++ bouncyCastleJdk5
+        val pkgsToExclude = JPMSUtils.componentModules
         val ourFullCp     = (Runtime / fullClasspath).value
         JPMSUtils.filterModulesFromClasspath(
           ourFullCp,
@@ -2000,8 +2069,10 @@ lazy val `runtime-fat-jar` =
           MergeStrategy.discard
         case PathList("META-INF", "services", xs @ _*) =>
           MergeStrategy.concat
-        case PathList(xs @ _*) if xs.last.contains("module-info") =>
-          JPMSUtils.removeAllModuleInfoExcept("runtime")
+        case PathList("module-info.class") =>
+          MergeStrategy.preferProject
+        case PathList(xs @ _*) if xs.last.contains("module-info.class") =>
+          MergeStrategy.discard
         case _ => MergeStrategy.first
       }
     )
@@ -2074,12 +2145,14 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % Provided,
-      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % Provided,
-      "commons-cli"         % "commons-cli"  % commonsCliVersion,
-      "com.monovore"       %% "decline"      % declineVersion,
-      "org.jline"           % "jline"        % jlineVersion,
-      "org.typelevel"      %% "cats-core"    % catsVersion
+      "org.graalvm.sdk"     % "polyglot-tck"    % graalMavenPackagesVersion % Provided,
+      "org.graalvm.truffle" % "truffle-api"     % graalMavenPackagesVersion % Provided,
+      "commons-cli"         % "commons-cli"     % commonsCliVersion,
+      "com.monovore"       %% "decline"         % declineVersion,
+      "org.jline"           % "jline"           % jlineVersion,
+      "org.typelevel"      %% "cats-core"       % catsVersion,
+      "junit"               % "junit"           % junitVersion              % Test,
+      "com.github.sbt"      % "junit-interface" % junitIfVersion            % Test
     ),
     run / connectInput := true
   )
@@ -2119,7 +2192,8 @@ lazy val `engine-runner` = project
             "com.sun.imageio",
             "com.sun.jna.internal.Cleaner",
             "com.sun.jna.Structure$FFIType",
-            "akka.http"
+            "akka.http",
+            "org.enso.interpreter.arrow.util.MemoryUtil"
           )
         )
         .dependsOn(assembly)
@@ -2235,6 +2309,19 @@ lazy val `distribution-manager` = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
+lazy val `benchmarks-common` =
+  (project in file("lib/java/benchmarks-common"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      libraryDependencies ++= GraalVM.modules ++ Seq(
+        "org.openjdk.jmh"  % "jmh-core"                 % jmhVersion,
+        "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion,
+        "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion,
+        "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion
+      )
+    )
+    .dependsOn(`polyglot-api`)
+
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
     frgaalJavaCompilerSetting,
@@ -2269,28 +2356,21 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
     (Test / unmanagedClasspath) :=
       (LocalProject("runtime-fat-jar") / Compile / fullClasspath).value
   )
+  .dependsOn(`benchmarks-common`)
   .dependsOn(`polyglot-api`)
   .dependsOn(runtime)
 
 lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
-    libraryDependencies ++= jmh ++ Seq(
-      "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion                % Benchmark,
-      "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
-      "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion % Benchmark,
-      "org.slf4j"            % "slf4j-api"                % slf4jVersion              % Benchmark,
-      "org.slf4j"            % "slf4j-nop"                % slf4jVersion              % Benchmark
+    libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+      "org.openjdk.jmh"      % "jmh-core"                 % jmhVersion,
+      "org.openjdk.jmh"      % "jmh-generator-annprocess" % jmhVersion,
+      "org.graalvm.polyglot" % "polyglot"                 % graalMavenPackagesVersion,
+      "org.slf4j"            % "slf4j-api"                % slf4jVersion,
+      "org.slf4j"            % "slf4j-nop"                % slf4jVersion
     ),
-    // Add all GraalVM packages with Benchmark scope - we don't need them for compilation,
-    // just provide them for benchmarks (in module-path).
-    libraryDependencies ++= {
-      val necessaryModules =
-        GraalVM.modules.map(_.withConfigurations(Some(Benchmark.name)))
-      val langs =
-        GraalVM.langsPkgs.map(_.withConfigurations(Some(Benchmark.name)))
-      necessaryModules ++ langs
-    },
     commands += WithDebugCommand.withDebug,
     (Compile / logManager) :=
       sbt.internal.util.CustomLogManager.excludeMsg(
@@ -2298,67 +2378,56 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         Level.Warn
       )
   )
-  .configs(Benchmark)
   .settings(
-    inConfig(Benchmark)(Defaults.testSettings)
-  )
-  .settings(
-    (Benchmark / parallelExecution) := false,
-    (Benchmark / run / fork) := true,
-    (Benchmark / run / connectInput) := true,
-    // This ensures that the full class-path of runtime-fat-jar is put on
-    // class-path of the Java compiler (and thus the benchmark annotation processor).
-    (Benchmark / compile / unmanagedClasspath) ++=
-      (LocalProject(
-        "runtime-fat-jar"
-      ) / Compile / fullClasspath).value,
-    (Benchmark / compile / javacOptions) ++= Seq(
+    parallelExecution := false,
+    run / fork := true,
+    run / connectInput := true,
+    mainClass :=
+      (LocalProject("bench-processor") / mainClass).value,
+    Compile / compile := (Compile / compile)
+      .dependsOn(`runtime-fat-jar` / assembly)
+      .value,
+    Compile / javacOptions ++= Seq(
       "-s",
-      (Benchmark / sourceManaged).value.getAbsolutePath,
+      (Compile / sourceManaged).value.getAbsolutePath,
       "-Xlint:unchecked",
       "-J-Dpolyglotimpl.DisableClassPathIsolation=true",
       "-J-Dpolyglot.engine.WarnInterpreterOnly=false"
     ),
-    (Benchmark / run / javaOptions) ++= {
-      val requiredModules = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
+    modulePath := {
+      val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
         "org.slf4j" % "slf4j-api" % slf4jVersion,
         "org.slf4j" % "slf4j-nop" % slf4jVersion
       )
-      val requiredModulesCp = JPMSUtils.filterModulesFromClasspath(
-        (Benchmark / fullClasspath).value,
-        requiredModules,
+      val requiredMods = JPMSUtils.filterModulesFromUpdate(
+        (Compile / update).value,
+        requiredModIds,
         streams.value.log,
         shouldContainAll = true
       )
-      val requiredModulesPaths = requiredModulesCp
-        .map(_.data.getAbsolutePath)
-      val runtimeJar =
-        (LocalProject(
-          "runtime-fat-jar"
-        ) / assembly / assemblyOutputPath).value.getAbsolutePath
-      val allModulePaths = requiredModulesPaths ++ Seq(runtimeJar)
-      val runtimeModuleName =
-        (LocalProject(
-          "runtime-fat-jar"
-        ) / javaModuleName).value
+      val runtimeMod =
+        (`runtime-fat-jar` / assembly / assemblyOutputPath).value
+      requiredMods ++ Seq(runtimeMod)
+    },
+    addModules := {
+      val runtimeModuleName = (`runtime-fat-jar` / javaModuleName).value
+      Seq(runtimeModuleName)
+    },
+    addExports := {
+      Map("org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j"))
+    },
+    javaOptions ++= {
       Seq(
         // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
-        "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider",
-        "--module-path",
-        allModulePaths.mkString(File.pathSeparator),
-        "--add-modules",
-        runtimeModuleName,
-        "--add-exports",
-        "org.slf4j.nop/org.slf4j.nop=org.slf4j"
+        "-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
       )
     },
-    (Benchmark / run / mainClass) :=
-      (LocalProject("bench-processor") / mainClass).value
+    javaOptions ++= benchOnlyOptions
   )
   .settings(
     bench := Def
       .task {
-        (Benchmark / run).toTask("").tag(Exclusive).value
+        (Compile / run).toTask("").tag(Exclusive).value
       }
       .dependsOn(
         buildEngineDistribution
@@ -2371,12 +2440,13 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         case _          => throw new IllegalArgumentException("Expected one argument.")
       }
       Def.task {
-        (Benchmark / run).toTask(" " + name).value
+        (Compile / run).toTask(" " + name).value
       }
     }.evaluated
   )
-  .dependsOn(`bench-processor` % Benchmark)
-  .dependsOn(runtime % Benchmark)
+  .dependsOn(`bench-processor`)
+  .dependsOn(`runtime-fat-jar`)
+  .dependsOn(`std-table`)
 
 lazy val editions = project
   .in(file("lib/scala/editions"))
@@ -2412,19 +2482,23 @@ lazy val editions = project
 lazy val downloader = (project in file("lib/scala/downloader"))
   .settings(
     frgaalJavaCompilerSetting,
+    // Fork the tests to make sure that the withDebug command works (we can
+    // attach debugger to the subprocess)
+    (Test / fork) := true,
+    commands += WithDebugCommand.withDebug,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "commons-io"                  % "commons-io"       % commonsIoVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
-      akkaActor,
-      akkaStream,
-      akkaHttp,
-      akkaSLF4J
+      "junit"                       % "junit"            % junitVersion     % Test,
+      "com.github.sbt"              % "junit-interface"  % junitIfVersion   % Test,
+      "org.hamcrest"                % "hamcrest-all"     % hamcrestVersion  % Test
     )
   )
   .dependsOn(cli)
+  .dependsOn(`http-test-helper`)
 
 lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
@@ -2473,6 +2547,7 @@ lazy val `library-manager-test` = project
   .settings(
     frgaalJavaCompilerSetting,
     Test / fork := true,
+    commands += WithDebugCommand.withDebug,
     Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
@@ -2487,6 +2562,22 @@ lazy val `library-manager-test` = project
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .dependsOn(`distribution-manager`)
+  .dependsOn(`connected-lock-manager-server` % "test->test")
+  .dependsOn(`polyglot-api`)
+
+/** Unlike `connected-lock-manager` project, has a dependency on akka.
+  */
+lazy val `connected-lock-manager-server` = project
+  .in(file("lib/scala/connected-lock-manager-server"))
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -2577,8 +2668,9 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.polyglot"       % "polyglot"                % graalMavenPackagesVersion,
+      "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2610,12 +2702,12 @@ lazy val `common-polyglot-core-utils` = project
   )
 
 lazy val `enso-test-java-helpers` = project
-  .in(file("test/Tests/polyglot-sources/enso-test-java-helpers"))
+  .in(file("test/Base_Tests/polyglot-sources/enso-test-java-helpers"))
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      file("test/Tests/polyglot/java/helpers.jar"),
+      file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
@@ -2755,8 +2847,9 @@ lazy val `std-google-api` = project
     Compile / packageBin / artifactPath :=
       `google-api-polyglot-root` / "std-google-api.jar",
     libraryDependencies ++= Seq(
-      "com.google.api-client" % "google-api-client"          % "1.35.2",
-      "com.google.apis"       % "google-api-services-sheets" % "v4-rev612-1.25.0"
+      "com.google.api-client" % "google-api-client"          % "2.2.0" exclude ("com.google.code.findbugs", "jsr305"),
+      "com.google.apis"       % "google-api-services-sheets" % "v4-rev612-1.25.0" exclude ("com.google.code.findbugs", "jsr305"),
+      "com.google.analytics"  % "google-analytics-data"      % "0.44.0" exclude ("com.google.code.findbugs", "jsr305")
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2993,11 +3086,19 @@ lazy val `http-test-helper` = project
     autoScalaLibrary := false,
     Compile / javacOptions ++= Seq("-Xlint:all"),
     Compile / run / mainClass := Some("org.enso.shttp.HTTPTestHelperServer"),
-    assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= Seq(
-      "org.apache.commons"        % "commons-text" % commonsTextVersion,
-      "org.apache.httpcomponents" % "httpclient"   % httpComponentsVersion
+      "org.apache.commons"         % "commons-text"     % commonsTextVersion,
+      "org.apache.httpcomponents"  % "httpclient"       % httpComponentsVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
     ),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case PathList(xs @ _*) if xs.last.contains("module-info") =>
+        MergeStrategy.discard
+      case _ => MergeStrategy.first
+    },
+    assembly / mainClass := (Compile / run / mainClass).value,
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true
   )

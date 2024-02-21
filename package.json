@@ -5,8 +5,7 @@
   },
   "dependencies": {
     "chromedriver": "^106.0.1",
-    "tslib": "^2.6.2",
-    "vue3-toastify": "^0.1.14"
+    "tslib": "^2.6.2"
   },
   "name": "root",
   "scripts": {
@@ -20,7 +19,6 @@
   "workspaces": [
     "app/ide-desktop",
     "app/ide-desktop/lib/*",
-    "app/ide-desktop/lib/dashboard/src/authentication",
     "app/gui2",
     "lib/rust/ensogl/pack/js"
   ],

@@ -5,6 +5,7 @@ import org.apache.commons.io.FileUtils
 import org.enso.languageserver.protocol.binary._
 import org.enso.languageserver.util.binary.BinaryDecoder
 import org.enso.languageserver.websocket.binary.factory._
+import org.enso.logger.ReportLogsOnFailure
 import org.enso.testkit.FlakySpec
 
 import java.io.File
@@ -12,10 +13,12 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.UUID
-
 import scala.io.Source
 
-class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
+class BinaryFileManipulationTest
+    extends BaseBinaryServerTest
+    with FlakySpec
+    with ReportLogsOnFailure {
 
   implicit private val decoder: BinaryDecoder[OutboundMessage] =
     OutboundMessageDecoder

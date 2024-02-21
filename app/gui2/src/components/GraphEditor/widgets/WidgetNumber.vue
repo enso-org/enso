@@ -1,44 +1,58 @@
 <script setup lang="ts">
-import SliderWidget from '@/components/widgets/SliderWidget.vue'
-import { AnyWidget, Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
+import type { TokenId } from '@/util/ast/abstract.ts'
+import { asNot } from '@/util/data/types.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const value = computed({
   get() {
-    const valueStr = props.input.ast?.code() ?? props.input.argInfo?.defaultValue ?? ''
+    const valueStr = WidgetInput.valueRepr(props.input)
     return valueStr ? parseFloat(valueStr) : 0
   },
   set(value) {
-    props.onUpdate(value.toString(), props.input.portId)
+    props.onUpdate({
+      portUpdate: { value: value.toString(), origin: asNot<TokenId>(props.input.portId) },
+    })
   },
+})
+
+const limits = computed(() => {
+  const config = props.input.dynamicConfig
+  if (config?.kind === 'Numeric_Input' && config?.minimum != null && config?.maximum != null) {
+    return { min: config.minimum, max: config.maximum }
+  } else {
+    return undefined
+  }
 })
 </script>
 
 <script lang="ts">
-export const widgetDefinition = defineWidget(AnyWidget, {
-  priority: 10,
+export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
+  priority: 1001,
   score: (props) => {
     if (
-      props.input.ast instanceof Ast.NumericLiteral ||
-      (props.input.ast instanceof Ast.NegationOprApp &&
-        props.input.ast.argument instanceof Ast.NumericLiteral)
+      props.input.value instanceof Ast.NumericLiteral ||
+      (props.input.value instanceof Ast.NegationApp &&
+        props.input.value.argument instanceof Ast.NumericLiteral)
     )
       return Score.Perfect
+    const type = props.input.expectedType
     if (
-      props.input.argInfo?.reprType === 'Standard.Base.Data.Number' ||
-      props.input.argInfo?.reprType === 'Standard.Base.Data.Numbers.Integer' ||
-      props.input.argInfo?.reprType === 'Standard.Data.Numbers.Float'
+      type === 'Standard.Base.Data.Number' ||
+      type === 'Standard.Base.Data.Numbers.Integer' ||
+      type === 'Standard.Data.Numbers.Float'
     )
-      return Score.Perfect
+      return Score.Good
     return Score.Mismatch
   },
 })
 </script>
 
 <template>
-  <SliderWidget v-model="value" class="WidgetNumber r-24" :min="-1000" :max="1000" />
+  <NumericInputWidget v-model="value" class="WidgetNumber r-24" :limits="limits" />
 </template>
 
 <style scoped>

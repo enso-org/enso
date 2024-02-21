@@ -12,14 +12,13 @@ import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import {
-  identifierUnchecked,
   normalizeQualifiedName,
   qnFromSegments,
   qnSegments,
   qnSplit,
   tryIdentifier,
   tryQualifiedName,
-  type Identifier,
+  type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
 
@@ -27,39 +26,61 @@ import {
 // === Imports analysis ===
 // ========================
 
-function unrollOprChain(ast: Ast.Ast, operator: string): Identifier[] | null {
-  const idents: Identifier[] = []
-  let ast_: Ast.Ast | null = ast
+/** If the input is a chain of applications of the given left-associative operator, and all the leaves of the
+ *  operator-application tree are identifier expressions, return the identifiers from left to right.
+ *  This is analogous to `ast.code().split(operator)`, but type-enforcing.
+ */
+function unrollOprChain(
+  ast: Ast.Ast,
+  leftAssociativeOperator: string,
+): IdentifierOrOperatorIdentifier[] | null {
+  const idents: IdentifierOrOperatorIdentifier[] = []
+  let ast_: Ast.Ast | undefined = ast
   while (
     ast_ instanceof Ast.OprApp &&
     ast_.operator.ok &&
-    ast_.operator.value.code() === operator
+    ast_.operator.value.code() === leftAssociativeOperator
   ) {
     if (!(ast_.rhs instanceof Ast.Ident)) return null
-    idents.unshift(identifierUnchecked(ast_.rhs.code()))
+    idents.unshift(ast_.rhs.code())
     ast_ = ast_.lhs
   }
   if (!(ast_ instanceof Ast.Ident)) return null
-  idents.unshift(identifierUnchecked(ast_.code()))
+  idents.unshift(ast_.code())
   return idents
 }
 
-function parseIdent(ast: Ast.Ast): Identifier | null {
+/** If the input is a chain of property accesses (uses of the `.` operator with a syntactic identifier on the RHS), and
+ *  the value at the beginning of the sequence is an identifier expression, return all the identifiers from left to
+ *  right. This is analogous to `ast.code().split('.')`, but type-enforcing.
+ */
+function unrollPropertyAccess(ast: Ast.Ast): IdentifierOrOperatorIdentifier[] | null {
+  const idents: IdentifierOrOperatorIdentifier[] = []
+  let ast_: Ast.Ast | undefined = ast
+  while (ast_ instanceof Ast.PropertyAccess) {
+    idents.unshift(ast_.rhs.code())
+    ast_ = ast_.lhs
+  }
+  if (!(ast_ instanceof Ast.Ident)) return null
+  idents.unshift(ast_.code())
+  return idents
+}
+
+function parseIdent(ast: Ast.Ast): IdentifierOrOperatorIdentifier | null {
   if (ast instanceof Ast.Ident) {
-    return identifierUnchecked(ast.code())
+    return ast.code()
   } else {
     return null
   }
 }
 
-function parseIdents(ast: Ast.Ast): Identifier[] | null {
+function parseIdents(ast: Ast.Ast): IdentifierOrOperatorIdentifier[] | null {
   return unrollOprChain(ast, ',')
 }
 
 function parseQualifiedName(ast: Ast.Ast): QualifiedName | null {
-  const idents = unrollOprChain(ast, '.')
-  if (idents === null) return null
-  return normalizeQualifiedName(qnFromSegments(idents))
+  const idents = unrollPropertyAccess(ast)
+  return idents && normalizeQualifiedName(qnFromSegments(idents))
 }
 
 /** Parse import statement. */
@@ -109,19 +130,19 @@ export type ImportedNames = Module | List | All
 /** import Module.Path (as Alias)? */
 export interface Module {
   kind: 'Module'
-  alias?: Identifier
+  alias?: IdentifierOrOperatorIdentifier
 }
 
 /** from Module.Path import (Ident),+ */
 export interface List {
   kind: 'List'
-  names: Identifier[]
+  names: IdentifierOrOperatorIdentifier[]
 }
 
 /** from Module.Path import all (hiding (Ident),*)? */
 export interface All {
   kind: 'All'
-  except: Identifier[]
+  except: IdentifierOrOperatorIdentifier[]
 }
 
 // ========================
@@ -141,18 +162,30 @@ export interface QualifiedImport {
 export interface UnqualifiedImport {
   kind: 'Unqualified'
   from: QualifiedName
-  import: Identifier
+  import: IdentifierOrOperatorIdentifier
+}
+
+/** Read imports from given module block */
+export function readImports(ast: Ast.Ast): Import[] {
+  const imports: Import[] = []
+  ast.visitRecursiveAst((node) => {
+    if (node instanceof Ast.Import) {
+      const recognized = recognizeImport(node)
+      if (recognized) {
+        imports.push(recognized)
+      }
+      return false
+    }
+    return true
+  })
+  return imports
 }
 
 /** Insert the given imports into the given block at an appropriate location. */
-export function addImports(
-  edit: MutableModule,
-  scope: Ast.BodyBlock,
-  importsToAdd: RequiredImport[],
-) {
-  const imports = importsToAdd.map((info) => requiredImportToAst(info, edit))
-  const position = newImportsLocation(edit, scope)
-  scope.insert(edit, position, ...imports)
+export function addImports(scope: Ast.MutableBodyBlock, importsToAdd: RequiredImport[]) {
+  const imports = importsToAdd.map((info) => requiredImportToAst(info, scope.module))
+  const position = newImportsLocation(scope)
+  scope.insert(position, ...imports)
 }
 
 /** Return a suitable location in the given block to insert an import statement.
@@ -160,9 +193,9 @@ export function addImports(
  *  The location chosen will be before the first non-import line, and after all preexisting imports.
  *  If there are any blank lines in that range, it will be before them.
  */
-function newImportsLocation(module: Ast.Module, scope: Ast.BodyBlock): number {
+function newImportsLocation(scope: Ast.BodyBlock): number {
   let lastImport
-  const lines = scope.lines()
+  const lines = scope.lines
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!
     if (line.expression) {
@@ -177,7 +210,7 @@ function newImportsLocation(module: Ast.Module, scope: Ast.BodyBlock): number {
 }
 
 /** Create an AST representing the required import statement. */
-function requiredImportToAst(value: RequiredImport, module?: MutableModule): Ast.Import {
+function requiredImportToAst(value: RequiredImport, module?: MutableModule) {
   const module_ = module ?? MutableModule.Transient()
   switch (value.kind) {
     case 'Qualified':
@@ -188,37 +221,41 @@ function requiredImportToAst(value: RequiredImport, module?: MutableModule): Ast
 }
 
 /** A list of required imports for specific suggestion entry */
-export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): RequiredImport[] {
+export function requiredImports(
+  db: SuggestionDb,
+  entry: SuggestionEntry,
+  directConImport: boolean = false,
+): RequiredImport[] {
+  const unqualifiedImport = (from: QualifiedName): UnqualifiedImport[] => [
+    {
+      kind: 'Unqualified',
+      from,
+      import: entry.name,
+    },
+  ]
   switch (entry.kind) {
     case SuggestionKind.Module:
       return entry.reexportedIn
-        ? [
-            {
-              kind: 'Unqualified',
-              from: entry.reexportedIn,
-              import: entry.name,
-            },
-          ]
+        ? unqualifiedImport(entry.reexportedIn)
         : [
             {
               kind: 'Qualified',
               module: entry.definedIn,
             },
           ]
-    case SuggestionKind.Type: {
-      const from = entry.reexportedIn ? entry.reexportedIn : entry.definedIn
-      return [
-        {
-          kind: 'Unqualified',
-          from,
-          import: entry.name,
-        },
-      ]
-    }
-    case SuggestionKind.Constructor: {
-      const selfType = selfTypeEntry(db, entry)
-      return selfType ? requiredImports(db, selfType) : []
-    }
+    case SuggestionKind.Type:
+      return unqualifiedImport(entry.reexportedIn ? entry.reexportedIn : entry.definedIn)
+    case SuggestionKind.Constructor:
+      if (directConImport) {
+        return entry.reexportedIn
+          ? unqualifiedImport(entry.reexportedIn)
+          : entry.memberOf
+          ? unqualifiedImport(entry.memberOf)
+          : []
+      } else {
+        const selfType = selfTypeEntry(db, entry)
+        return selfType ? requiredImports(db, selfType) : []
+      }
     case SuggestionKind.Method: {
       const isStatic = entry.selfType == null
       const selfType = selfTypeEntry(db, entry)
@@ -237,6 +274,16 @@ export function requiredImports(db: SuggestionDb, entry: SuggestionEntry): Requi
     default:
       return []
   }
+}
+
+export function requiredImportsByFQN(
+  db: SuggestionDb,
+  fqn: QualifiedName,
+  directConImport: boolean = false,
+) {
+  const entry = db.getEntryByQualifiedName(fqn)
+  if (!entry) return []
+  return requiredImports(db, entry, directConImport)
 }
 
 function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
@@ -288,14 +335,17 @@ export function covers(existing: Import, required: RequiredImport): boolean {
 }
 
 export function filterOutRedundantImports(
-  existing: { import: Import }[],
+  existing: Import[],
   required: RequiredImport[],
 ): RequiredImport[] {
-  return required.filter((info) => !existing.some((existing) => covers(existing.import, info)))
+  return required.filter((info) => !existing.some((existing) => covers(existing, info)))
 }
 
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
+  const { initializeFFI } = await import('shared/ast/ffi')
+
+  await initializeFFI()
 
   test.each([
     {
@@ -405,7 +455,7 @@ if (import.meta.vitest) {
     const db = new SuggestionDb()
     const reexportedModule = makeModule('Standard.AWS.Connections')
     reexportedModule.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
-    const reexportedType = makeModule('Standard.Database.Table.Table')
+    const reexportedType = makeModule('Standard.Database.DB_Table.DB_Table')
     reexportedType.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
     const extensionMethod = makeMethod('Standard.Network.URI.fetch')
     extensionMethod.definedIn = unwrap(tryQualifiedName('Standard.Base'))
@@ -458,7 +508,7 @@ if (import.meta.vitest) {
         {
           kind: 'Unqualified',
           from: unwrap(tryQualifiedName('Standard.Base')),
-          import: unwrap(tryIdentifier('Table')),
+          import: unwrap(tryIdentifier('DB_Table')),
         },
       ],
     },
@@ -501,18 +551,8 @@ if (import.meta.vitest) {
   })
 
   const parseImport = (code: string): Import | null => {
-    let ast = null
-    Ast.parseBlock(code).visitRecursive((node) => {
-      if (node instanceof Ast.Import) {
-        ast = node
-        return false
-      }
-      return true
-    })
-    if (ast) {
-      return recognizeImport(ast)
-    }
-    return null
+    const ast = Ast.Import.tryParse(code)
+    return ast ? recognizeImport(ast) : null
   }
 
   test.each([
@@ -635,10 +675,10 @@ if (import.meta.vitest) {
   test('Insert after other imports in module', () => {
     const module_ = Ast.parseBlock('from Standard.Base import all\n\nmain = 42\n')
     const edit = module_.module.edit()
-    addImports(edit, module_, [
+    addImports(edit.getVersion(module_), [
       { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Visualization')) },
     ])
-    expect(module_.code(edit)).toBe(
+    expect(edit.getVersion(module_).code()).toBe(
       'from Standard.Base import all\nimport Standard.Visualization\n\nmain = 42\n',
     )
   })
@@ -646,9 +686,9 @@ if (import.meta.vitest) {
   test('Insert import in module with no other imports', () => {
     const module_ = Ast.parseBlock('main = 42\n')
     const edit = module_.module.edit()
-    addImports(edit, module_, [
+    addImports(edit.getVersion(module_), [
       { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Visualization')) },
     ])
-    expect(module_.code(edit)).toBe('import Standard.Visualization\nmain = 42\n')
+    expect(edit.getVersion(module_).code()).toBe('import Standard.Visualization\nmain = 42\n')
   })
 }

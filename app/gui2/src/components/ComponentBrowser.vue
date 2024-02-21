@@ -21,6 +21,7 @@ import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
 import { Vec2 } from '@/util/data/vec2'
+import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import { computed, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
 
@@ -91,6 +92,11 @@ const currentFiltering = computed(() => {
 watch(currentFiltering, () => {
   selected.value = input.autoSelectFirstComponent.value ? 0 : null
   scrolling.targetScroll.value = { type: 'bottom' }
+
+  // Update `highlightPosition` synchronously, so the subsequent animation `skip` have an effect.
+  if (selectedPosition.value != null) {
+    highlightPosition.value = selectedPosition.value
+  }
   animatedHighlightPosition.skip()
   animatedHighlightHeight.skip()
 })
@@ -153,28 +159,8 @@ useEvent(
   { capture: true },
 )
 
-// === Preview ===
-
 const inputElement = ref<HTMLElement>()
 const inputSize = useResizeObserver(inputElement, false)
-
-const previewedExpression = computed(() => {
-  if (selectedSuggestion.value == null) return input.code.value
-  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
-})
-
-const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
-  if (!previewedExpression.value.trim()) return
-  if (!graphStore.methodAst) return
-  const body = graphStore.methodAst.body
-  if (!body) return
-
-  return {
-    type: 'expression',
-    expression: previewedExpression.value,
-    contextId: body.exprId,
-  }
-})
 
 // === Components List and Positions ===
 
@@ -233,18 +219,10 @@ const selectedSuggestion = computed(() => {
   return suggestionDbStore.entries.get(id) ?? null
 })
 
-watch(
-  selectedPosition,
-  (newPos) => {
-    if (newPos == null) return
-    highlightPosition.value = newPos
-    if (animatedHighlightHeight.value <= 1.0) {
-      animatedHighlightPosition.skip()
-    }
-  },
-  // Needs to be synchronous to make skipping highlight animation work.
-  { flush: 'sync' },
-)
+watch(selectedPosition, (newPos) => {
+  if (newPos == null) return
+  highlightPosition.value = newPos
+})
 
 const highlightClipPath = computed(() => {
   let height = animatedHighlightHeight.value
@@ -259,6 +237,26 @@ function selectWithoutScrolling(index: number) {
   scrolling.targetScroll.value = { type: 'offset', offset: scrollPos }
   selected.value = index
 }
+
+// === Preview ===
+
+const previewedExpression = debouncedGetter(() => {
+  if (selectedSuggestion.value == null) return input.code.value
+  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
+}, 200)
+
+const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
+  if (!previewedExpression.value.trim()) return
+  if (!graphStore.methodAst) return
+  const body = graphStore.methodAst.body
+  if (!body) return
+
+  return {
+    type: 'expression',
+    expression: previewedExpression.value,
+    contextId: body.externalId,
+  }
+})
 
 // === Scrolling ===
 
@@ -321,7 +319,7 @@ function acceptSuggestion(index: Opt<Component> = null) {
 }
 
 function acceptInput() {
-  emit('accepted', input.code.value, input.importsToAdd())
+  emit('accepted', input.code.value.trim(), input.importsToAdd())
 }
 
 // === Key Events Handler ===
