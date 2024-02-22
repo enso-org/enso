@@ -225,6 +225,11 @@ public final class ModuleScope implements EnsoObject {
   }
 
   public Function getMethodForPolyglot(Object obj, String name, boolean useStatic) {
+    return getMethodForPolyglot(obj, name, useStatic, true);
+  }
+
+  private Function getMethodForPolyglot(
+      Object obj, String name, boolean useStatic, boolean checkImports) {
     try {
       Map<String, Supplier<Function>> m;
       if (useStatic) {
@@ -234,10 +239,21 @@ public final class ModuleScope implements EnsoObject {
         m = polyMethods.get(metaKey(metaObject));
       }
       var f = m == null ? null : m.get(name);
-      return f == null ? null : f.get();
+      if (f != null) {
+        return f.get();
+      }
     } catch (UnsupportedMessageException ex) {
-      return null;
     }
+
+    if (checkImports) {
+      for (var scope : imports) {
+        var f = scope.getMethodForPolyglot(obj, name, useStatic, false);
+        if (f != null) {
+          return f;
+        }
+      }
+    }
+    return null;
   }
 
   /**

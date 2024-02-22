@@ -1,7 +1,7 @@
 from Standard.Base import all
-
 from Standard.Test import all
 
+from project.Data.Polyglot_Extensions import all
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Integer as Java_Integer
@@ -54,6 +54,11 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
 
     group_builder.specify "static extension method on IntHolder" <|
         hold = IntHolder.create (6 * 7)
+        hold.value . should_equal 42
+        hold.boxed . should_equal 42
+
+    group_builder.specify "imported static extension method on IntHolder" <|
+        hold = IntHolder.negative (6 * -7)
         hold.value . should_equal 42
         hold.boxed . should_equal 42
 
