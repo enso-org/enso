@@ -2,9 +2,9 @@ import logging
 import shutil
 import tempfile
 from datetime import datetime
-from typing import List, Set
+from typing import List, Set, Dict, Any
 
-from bench_tool import JobReport, GH_DATE_FORMAT, Commit
+from bench_tool import JobReport, GH_DATE_FORMAT, Commit, JobRun, Author
 
 _logger = logging.getLogger(__name__)
 
@@ -54,3 +54,26 @@ def sort_job_reports(
     job_reports.sort(key=lambda report: _get_timestamp(report))
 
 
+def parse_bench_run_from_json(obj: Dict[Any, Any]) -> JobRun:
+    return JobRun(
+        id=str(obj["id"]),
+        html_url=obj["html_url"],
+        run_attempt=int(obj["run_attempt"]),
+        event=obj["event"],
+        display_title=obj["display_title"],
+        head_commit=Commit(
+            id=obj["head_commit"]["id"],
+            message=obj["head_commit"]["message"],
+            timestamp=obj["head_commit"]["timestamp"],
+            author=Author(
+                name=obj["head_commit"]["author"]["name"]
+            )
+        )
+    )
+
+
+def parse_bench_report_from_json(obj: Dict[Any, Any]) -> JobReport:
+    return JobReport(
+        bench_run=parse_bench_run_from_json(obj["bench_run"]),
+        label_score_dict=obj["label_score_dict"]
+    )

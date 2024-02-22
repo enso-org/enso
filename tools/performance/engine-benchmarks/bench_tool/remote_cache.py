@@ -7,12 +7,12 @@ import json
 import logging
 import os
 import re
-import shutil
 import tempfile
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Dict, Optional
 
-from . import gh, JobReport, BENCH_REPO, JobRun, Commit, Author, git
+from . import gh, JobReport, BENCH_REPO, git
+from .utils import parse_bench_report_from_json
 
 _logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ class ReadonlyRemoteCache(RemoteCache):
         if content is None:
             _logger.warning("Cache not found for %s", bench_id)
             return None
-        bench_report = _parse_bench_report_from_json(
+        bench_report = parse_bench_report_from_json(
             json.loads(content)
         )
         assert bench_id not in self._fetched_items
@@ -129,7 +129,7 @@ class SyncRemoteCache(RemoteCache):
         path = self._cache_dir.joinpath(bench_id + ".json")
         if path.exists():
             with path.open() as f:
-                return _parse_bench_report_from_json(json.load(f))
+                return parse_bench_report_from_json(json.load(f))
         return None
 
     async def put(self, bench_id: str, job_report: JobReport) -> None:
@@ -163,26 +163,4 @@ def _is_benchrun_id(name: str) -> bool:
     return re.match(r"\d{9}", name) is not None
 
 
-def _parse_bench_report_from_json(obj: Dict[Any, Any]) -> JobReport:
-    return JobReport(
-        bench_run=_parse_bench_run_from_json(obj["bench_run"]),
-        label_score_dict=obj["label_score_dict"]
-    )
 
-
-def _parse_bench_run_from_json(obj: Dict[Any, Any]) -> JobRun:
-    return JobRun(
-        id=str(obj["id"]),
-        html_url=obj["html_url"],
-        run_attempt=int(obj["run_attempt"]),
-        event=obj["event"],
-        display_title=obj["display_title"],
-        head_commit=Commit(
-            id=obj["head_commit"]["id"],
-            message=obj["head_commit"]["message"],
-            timestamp=obj["head_commit"]["timestamp"],
-            author=Author(
-                name=obj["head_commit"]["author"]["name"]
-            )
-        )
-    )

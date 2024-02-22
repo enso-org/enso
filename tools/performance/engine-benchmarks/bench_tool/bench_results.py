@@ -9,10 +9,10 @@ from os import path
 from typing import List, Dict, Optional, Any
 from xml.etree import ElementTree as ET
 
-from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport, Commit, Author
+from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport
 from bench_tool.gh import invoke_gh_api
 from bench_tool.remote_cache import RemoteCache
-from bench_tool.utils import WithTempDir
+from bench_tool.utils import WithTempDir, parse_bench_run_from_json
 
 ARTIFACT_ID = "Runtime Benchmark Report"
 
@@ -49,7 +49,7 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow
         _query_fields["page"] = str(page)
         res = await invoke_gh_api(ENSO_REPO, f"/actions/workflows/{workflow_id}/runs", _query_fields)
         bench_runs_json = res["workflow_runs"]
-        _parsed_bench_runs = [_parse_bench_run_from_json(bench_run_json)
+        _parsed_bench_runs = [parse_bench_run_from_json(bench_run_json)
                               for bench_run_json in bench_runs_json]
         parsed_bench_runs.extend(_parsed_bench_runs)
 
@@ -182,20 +182,3 @@ def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) 
         bench_run=bench_run
     )
 
-
-def _parse_bench_run_from_json(obj: Dict[Any, Any]) -> JobRun:
-    return JobRun(
-        id=str(obj["id"]),
-        html_url=obj["html_url"],
-        run_attempt=int(obj["run_attempt"]),
-        event=obj["event"],
-        display_title=obj["display_title"],
-        head_commit=Commit(
-            id=obj["head_commit"]["id"],
-            message=obj["head_commit"]["message"],
-            timestamp=obj["head_commit"]["timestamp"],
-            author=Author(
-                name=obj["head_commit"]["author"]["name"]
-            )
-        )
-    )
