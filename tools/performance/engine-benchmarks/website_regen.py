@@ -13,7 +13,7 @@ from typing import Optional
 
 from bench_tool import Source
 from bench_tool.remote_cache import SyncRemoteCache
-from bench_tool.utils import generate_bench_website
+from bench_tool.website import generate_bench_website
 
 # The inception date of the benchmarks, i.e., the date of the first benchmark run.
 ENGINE_SINCE = datetime.fromisoformat("2022-12-01")
@@ -30,9 +30,11 @@ async def main():
                             type=str,
                             help="Path to the local clone of the engine-benchmark-results repo")
     args = arg_parser.parse_args()
+    dry_run: bool = args.dry_run
     verbose: bool = args.verbose
     local_repo: Optional[Path] = Path(args.local_repo) if args.local_repo else None
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
+    _logger.debug(f"Args: dry_run={dry_run}, verbose={verbose}, local_repo={local_repo}")
     remote_cache = SyncRemoteCache(local_repo)
     _logger.info("Initializing the bench results repo, this might take some time")
     await remote_cache.initialize()
@@ -54,7 +56,10 @@ async def main():
         remote_cache.stdlib_index_html()
     )
     await asyncio.gather(engine_html_task, stdlib_html_task)
-    await remote_cache.sync()
+    if dry_run:
+        _logger.info("Dry-run, not syncing the remote cache")
+    else:
+        await remote_cache.sync()
 
 
 if __name__ == "__main__":
