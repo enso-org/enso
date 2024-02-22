@@ -21,13 +21,13 @@ jobs:
     steps:
       - name: Checkout enso repository
         uses: actions/checkout@v4
-        repository: enso-org/enso
         with:
+          repository: enso-org/enso
           path: enso
       - name: Checkout engine-benchmark-results repository
         uses: actions/checkout@v4
-        repository: enso-org/engine-benchmark-results
         with:
+          repository: enso-org/engine-benchmark-results
           path: engine-benchmark-results
       - name: Install dependencies
         run: |
