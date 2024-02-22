@@ -109,6 +109,7 @@ final class EnsoHashMapBuilder {
       Object value,
       HashCodeNode hashCodeNode,
       EqualsNode equalsNode) {
+    assert actualSize <= generation;
     var at = findWhereToStart(key, hashCodeNode);
     var nextGeneration = ++generation;
     var replacingExistingKey = false;
@@ -168,7 +169,7 @@ final class EnsoHashMapBuilder {
   }
 
   /**
-   * Removes an entry denoted by the given key. Removal is "non-destrutive" - the "removed" entry
+   * Removes an entry denoted by the given key. Removal is "non-destructive" - the "removed" entry
    * stays in the array - only its {@link StorageEntry#removed()} value is set to the next
    * generation.
    *
@@ -176,6 +177,7 @@ final class EnsoHashMapBuilder {
    */
   public boolean remove(
       VirtualFrame frame, Object key, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+    assert actualSize <= generation;
     var at = findWhereToStart(key, hashCodeNode);
     var nextGeneration = ++generation;
     for (var i = 0; i < byHash.length; i++) {
@@ -214,6 +216,7 @@ final class EnsoHashMapBuilder {
         newBuilder.put(frame, entry.key(), entry.value(), hashCodeNode, equalsNode);
       }
     }
+    assert newBuilder.actualSize <= size;
     return newBuilder;
   }
 
@@ -232,8 +235,10 @@ final class EnsoHashMapBuilder {
 
   @Override
   public String toString() {
-    return "EnsoHashMapBuilder{size = "
+    return "EnsoHashMapBuilder{generation = "
         + generation
+        + ", actualSize = "
+        + actualSize
         + ", storage = "
         + Arrays.toString(byHash)
         + "}";
@@ -262,10 +267,12 @@ final class EnsoHashMapBuilder {
     }
 
     boolean isVisible(int generation) {
+      assert added() < removed();
       return added() <= generation && generation < removed();
     }
 
     StorageEntry markRemoved(int when) {
+      assert added() < removed();
       if (removed() <= when) {
         return this;
       } else {

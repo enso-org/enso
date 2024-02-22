@@ -626,10 +626,10 @@ add_specs suite_builder =
             r3.should_fail_with HTTP_Error
             r3.catch.status_code.code . should_equal 401
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 echo_response_template method path data content_type content_length=data.length =

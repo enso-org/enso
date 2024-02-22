@@ -9,7 +9,7 @@ import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type My_Type
     Value x:Text
@@ -255,7 +255,7 @@ add_specs suite_builder setup =
             cases.map cs->
                 input = cs.at 0
                 output = cs.at 4
-                containing_values = make_containing_values (cs.at 1) (cs.at 2) (cs.at 3) 
+                containing_values = make_containing_values (cs.at 1) (cs.at 2) (cs.at 3)
 
                 group_builder.specify "Boolean is_in: (Vector), "+negation_desc+" "+cs.to_text <|
                     input_column = transform_input [input]

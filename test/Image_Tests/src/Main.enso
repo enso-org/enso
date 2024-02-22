@@ -6,10 +6,10 @@ import project.Image_Read_Write_Spec
 import project.Data.Image_Spec
 import project.Data.Matrix_Spec
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         Image_Read_Write_Spec.add_specs suite_builder
         Matrix_Spec.add_specs suite_builder
         Image_Spec.add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

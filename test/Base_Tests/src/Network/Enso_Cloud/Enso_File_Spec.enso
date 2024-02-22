@@ -198,8 +198,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             nested_file.move_to "TODO this needs design"
             nested_file.exists . should_be_false
 
-main =
+main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
         add_specs suite_builder setup
-    suite.run_with_filter
+    suite.run_with_filter filter
