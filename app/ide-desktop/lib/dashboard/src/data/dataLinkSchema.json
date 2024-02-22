@@ -8,10 +8,9 @@
         { "$ref": "#/$defs/HttpFetchDataLink" }
       ],
       "properties": {
-        "version": { "type": "integer", "description": "Schema version of this data link instance." },
         "libraryName": { "type": "string", "description": "Name of the library that provides the data link." }
       },
-      "required": ["type", "version", "libraryName"]
+      "required": ["type", "libraryName"]
     },
     "SecureValue": {
       "title": "Secure Value",
@@ -93,7 +92,6 @@
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "S3", "type": "string" },
-        "version": { "const": 1 },
         "libraryName": { "const": "Standard.AWS" },
         "uri": {
           "title": "URI",
