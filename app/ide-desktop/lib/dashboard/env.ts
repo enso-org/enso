@@ -15,16 +15,23 @@ export async function loadEnv() {
   const filePath = path.join(url.fileURLToPath(new URL('.', import.meta.url)), fileName)
   try {
     const file = await fs.readFile(filePath, { encoding: 'utf-8' })
-    const variables = Object.fromEntries(
-      file.split('\n').flatMap(line => {
-        if (/^\s*$|^.s*#/.test(line)) {
-          return []
-        } else {
-          const [key = '', value = ''] = line.split('=', 2)
-          return [[key, value]]
-        }
+    let entries: readonly (readonly [string, string])[] = file.split('\n').flatMap(line => {
+      if (/^\s*$|^.s*#/.test(line)) {
+        return []
+      } else {
+        const [key = '', value = ''] = line.split('=', 2)
+        return [[key, value]]
+      }
+    })
+    if (environment == null) {
+      entries = entries.filter(kv => {
+        const [k] = kv
+        // TypeScript thinks `process.env[k]` is `undefined` because of the index signature.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        return k != null && process.env[k] != null
       })
-    )
+    }
+    const variables = Object.fromEntries(entries)
     Object.assign(process.env, variables)
   } catch (error) {
     if (isProduction) {
