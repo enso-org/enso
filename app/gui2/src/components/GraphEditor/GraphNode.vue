@@ -578,7 +578,7 @@ function openFullMenu() {
   caret-shape: bar;
   height: var(--node-height);
   border-radius: var(--node-border-radius);
-  display: flex;
+  display: inline-flex;
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
