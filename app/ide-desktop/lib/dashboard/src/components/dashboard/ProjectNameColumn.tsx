@@ -293,7 +293,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setItem={setItem}
           asset={object.merge(asset, { projectState })}
           setAsset={setAsset}
-          setRowState={setRowState}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
           openIde={switchPage => {
