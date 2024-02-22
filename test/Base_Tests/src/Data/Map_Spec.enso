@@ -440,7 +440,7 @@ add_specs suite_builder =
             py_dict_from_vec ["A", 1, "B", 2] . remove "A" . size . should_equal 1
             py_dict_from_vec ["A", 1, "B", 2] . remove "A" . get "B" . should_equal 2
 
-        group_builder.specify "XX should be able to remove NaN keys" pending=pending_python_missing <|
+        group_builder.specify "should be able to remove NaN keys" pending=pending_python_missing <|
             py_dict_from_vec [Number.nan, 1] . remove Number.nan . size . should_equal 0
 
         group_builder.specify "should pass maps with null keys to Python and back" pending=pending_python_missing <|
@@ -506,6 +506,7 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_m
             map = Map.empty.insert 0 json . insert 1 pair
             map.get 0 . should_equal json
             map.get 1 . should_equal pair
+
         group_builder.specify "should support NaN as keys" <|
             empty_map.insert Number.nan 1 . contains_key Number.nan . should_be_true
             empty_map.insert Number.nan 1 . values . should_equal [1]
