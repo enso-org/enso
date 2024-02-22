@@ -95,7 +95,7 @@ export interface ListProjectsResponseBody {
 
 /** HTTP response body for the "list files" endpoint. */
 export interface ListFilesResponseBody {
-  readonly files: backendModule.File[]
+  readonly files: backendModule.FileLocator[]
 }
 
 /** HTTP response body for the "list secrets" endpoint. */
@@ -611,7 +611,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return a list of files accessible by the current user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listFiles(): Promise<backendModule.File[]> {
+  override async listFiles(): Promise<backendModule.FileLocator[]> {
     const path = remoteBackendPaths.LIST_FILES_PATH
     const response = await this.get<ListFilesResponseBody>(path)
     if (!responseIsSuccessful(response)) {

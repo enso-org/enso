@@ -385,7 +385,7 @@ export default function AssetRow(props: AssetRowProps) {
               try {
                 const details = await backend.getFileDetails(asset.id, asset.title)
                 const file = details.file
-                download.download(download.s3URLToHTTPURL(file.path), asset.title)
+                download.download(details.url ?? download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
                 toastAndLog('Could not download selected files', error)
               }

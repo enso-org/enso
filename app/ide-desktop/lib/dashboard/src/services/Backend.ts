@@ -234,8 +234,8 @@ export interface ProjectStartupInfo {
   readonly accessToken: string | null
 }
 
-/** Metadata describing an uploaded file. */
-export interface File {
+/** Metadata describing the location of an uploaded file. */
+export interface FileLocator {
   readonly fileId: FileId
   readonly fileName: string | null
   readonly path: S3FilePath
@@ -250,9 +250,17 @@ export interface FileInfo {
   readonly project: CreatedProject | null
 }
 
+/** Metadata for a file. */
+export interface FileMetadata {
+  readonly size: number
+}
+
 /** All metadata related to a file. */
 export interface FileDetails {
-  readonly file: File
+  readonly file: FileLocator
+  readonly metadata: FileMetadata
+  /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
+  readonly url?: string
 }
 
 /** A secret environment variable. */
@@ -1066,7 +1074,7 @@ export default abstract class Backend {
   /** Return project memory, processor and storage usage. */
   abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<File[]>
+  abstract listFiles(): Promise<FileLocator[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Return file details. */
