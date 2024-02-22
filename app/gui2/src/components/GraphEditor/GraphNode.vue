@@ -412,6 +412,7 @@ function openFullMenu() {
       :dataSource="{ type: 'node', nodeId: externalId }"
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
+      :isFocused="nodeHovered || isSelected"
       @update:rect="
         emit('update:visualizationRect', $event),
           (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)

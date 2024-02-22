@@ -29,11 +29,7 @@ import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
-import type {
-  LocalOrigin,
-  SourceRangeKey,
-  VisualizationMetadata,
-} from 'shared/yjsModel'
+import type { LocalOrigin, SourceRangeKey, VisualizationMetadata } from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch, type ShallowRef } from 'vue'
 

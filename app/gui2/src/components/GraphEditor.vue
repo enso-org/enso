@@ -237,6 +237,7 @@ const graphBindingsHandler = graphBindings.handler({
       document.activeElement.blur()
     }
     graphStore.stopCapturingUndo()
+    return false
   },
   toggleVisualization() {
     if (keyboardBusy()) return false

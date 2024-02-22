@@ -1,8 +1,15 @@
 <script setup lang="ts">
+import { visualizationBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
-import { PointerButtonMask, isTriggeredByKeyboard, usePointer } from '@/composables/events'
+import {
+  PointerButtonMask,
+  isTriggeredByKeyboard,
+  useEvent,
+  usePointer,
+} from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { visIdentifierEquals } from 'shared/yjsModel'
 import { onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{
@@ -88,6 +95,29 @@ const resizeBottomRight = usePointer((pos, _, type) => {
     config.height = Math.max(0, height)
   }
 }, PointerButtonMask.Main)
+
+const keydownHandler = visualizationBindings.handler({
+  nextType: () => {
+    if (config.isFocused) {
+      const allTypes = Array.from(config.types)
+      const currentIndex = allTypes.findIndex((type) => visIdentifierEquals(type, config.currentType))
+      const nextIndex = (currentIndex + 1) % allTypes.length
+      config.updateType(allTypes[nextIndex]!)
+    } else {
+      return false
+    }
+  },
+  exitFullscreen: () => {
+    console.log('exit fullscreen')
+    if (config.fullscreen) {
+      config.fullscreen = false
+    } else {
+      return false
+    }
+  }
+})
+
+useEvent(window, 'keydown', (event) => keydownHandler(event))
 </script>
 
 <template>
@@ -105,7 +135,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
       }"
-      @keydown.escape.stop="config.fullscreen = false"
     >
       <div class="resizer-right" v-on="resizeRight.stop.events"></div>
       <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>

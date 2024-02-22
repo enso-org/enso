@@ -465,6 +465,7 @@ const handler = componentBrowserBindings.handler({
         :scale="1"
         :isCircularMenuVisible="false"
         :isFullscreen="false"
+        :isFocused="true"
         :width="null"
         :dataSource="previewDataSource"
       />

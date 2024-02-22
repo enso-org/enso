@@ -44,6 +44,7 @@ const props = defineProps<{
   nodeSize: Vec2
   width: Opt<number>
   scale: number
+  isFocused: boolean
   isFullscreen: boolean
   typename?: string | undefined
   dataSource?: VisualizationDataSource | undefined
@@ -228,18 +229,10 @@ watchEffect(() =>
 
 onUnmounted(() => emit('update:rect', undefined))
 
-const keydownHandler = visualizationBindings.handler({
-  nextType: () => {
-    const allTypes = Array.from(visualizationStore.types(props.typename))
-    const currentIndex = allTypes.findIndex((type) => type.name === currentType.value?.name)
-    const nextIndex = (currentIndex + 1) % allTypes.length
-    emit('update:id', allTypes[nextIndex]!)
-  },
-})
-
-useEvent(window, 'keydown', (event) => keydownHandler(event))
-
 provideVisualizationConfig({
+  get isFocused() {
+    return props.isFocused
+  },
   get fullscreen() {
     return props.isFullscreen
   },
