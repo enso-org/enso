@@ -35,11 +35,6 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public int countMissing() {
-    return 0;
-  }
-
-  @Override
   public StorageType getType() {
     return IntegerType.INT_64;
   }

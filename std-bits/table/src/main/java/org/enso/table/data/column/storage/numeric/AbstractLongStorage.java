@@ -16,16 +16,13 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqu
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long>
-    implements ColumnLongStorage {
+    implements ColumnLongStorage, ColumnStorageWithNothingMap {
   public abstract long getItem(int idx);
 
   public abstract BitSet getIsMissing();
@@ -172,5 +169,10 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
       throw new ValueIsNothingException(index);
     }
     return getItem((int) index);
+  }
+
+  @Override
+  public BitSet getIsNothingMap() {
+    return getIsMissing();
   }
 }

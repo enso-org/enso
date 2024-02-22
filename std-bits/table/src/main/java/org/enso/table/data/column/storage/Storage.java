@@ -29,11 +29,6 @@ public abstract class Storage<T> implements ColumnStorage {
   public abstract int size();
 
   /**
-   * @return the number of NA elements in this column
-   */
-  public abstract int countMissing();
-
-  /**
    * @return the type tag of this column's storage.
    */
   public abstract StorageType getType();
