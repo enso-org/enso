@@ -33,7 +33,7 @@ public class CountNothing {
   /** Returns true if any value in the storage is Nothing. */
   public static boolean anyNothing(ColumnStorage storage) {
     if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
-      return withNothingMap.getIsNothingMap().cardinality() > 0;
+      return !withNothingMap.getIsNothingMap().isEmpty();
     }
 
     Context context = Context.getCurrent();
