@@ -109,6 +109,7 @@ export interface SingleChoice {
   kind: 'Single_Choice'
   label: string | null
   values: Choice[]
+  showArrow: boolean
 }
 
 /** Dynamic configuration for a function call with a list of arguments with known dynamic configuration.
@@ -128,6 +129,7 @@ export interface OneOfFunctionCalls {
    * The key is typically a fully qualified name of the function, but in general it can be anything,
    * depending on the widget implementation. */
   possibleFunctions: Map<string, FunctionCall>
+  showArrow: boolean
 }
 
 export const widgetConfigurationSchema: z.ZodType<
@@ -200,5 +202,6 @@ export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCa
     possibleFunctions: new Map(
       config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
     ),
+    showArrow: config.showArrow,
   }
 }

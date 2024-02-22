@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import {
@@ -39,7 +38,7 @@ interface Tag {
 }
 
 function identToLabel(name: IdentifierOrOperatorIdentifier): string {
-  return name.replaceAll('_', ' ')
+  return name
 }
 
 function tagFromExpression(expression: string): Tag {
@@ -77,7 +76,6 @@ const dynamicTags = computed<Tag[]>(() => {
   if (config?.kind !== 'Single_Choice') return []
   return config.values.map((value) => ({
     ...tagFromExpression(value.value),
-    ...(value.label ? { label: value.label } : {}),
     parameters: value.parameters,
   }))
 })
@@ -116,6 +114,7 @@ const innerWidgetInput = computed(() => {
   if (props.input.dynamicConfig == null) return props.input
   const config = props.input.dynamicConfig
   if (config.kind !== 'Single_Choice') return props.input
+  config.showArrow = isHovered.value
   return { ...props.input, dynamicConfig: singleChoiceConfiguration(config) }
 })
 const showDropdownWidget = ref(false)
@@ -144,6 +143,8 @@ watch(selectedIndex, (_index) => {
     },
   })
 })
+
+const isHovered = ref(false)
 </script>
 
 <script lang="ts">
@@ -172,9 +173,15 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 
 <template>
   <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
-  <div class="WidgetSelection" @pointerdown.stop @pointerup.stop @click.stop="toggleDropdownWidget">
-    <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
-    <SvgIcon name="arrow_right_head_only" class="arrow" />
+  <div
+    class="WidgetSelection"
+    @pointerdown.stop @pointerup.stop @click.stop="toggleDropdownWidget"
+    @pointerover="isHovered = true"
+    @pointerout="isHovered = false"
+  >
+    <div class="WidgetSelection_inner">
+      <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
+    </div>
     <DropdownWidget
       v-if="showDropdownWidget"
       class="dropdownContainer"
@@ -190,12 +197,5 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 .WidgetSelection {
   display: flex;
   flex-direction: row;
-}
-
-.arrow {
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%) rotate(90deg);
 }
 </style>
