@@ -62,7 +62,7 @@ add_specs suite_builder =
             Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) Value_Type.Boolean . should_equal Value_Type.Mixed
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
