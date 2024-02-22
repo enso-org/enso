@@ -46,6 +46,10 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
         hold = IntHolder.new (6 * 7)
         hold.value_plus 3 . should_equal 45
 
+    group_builder.specify "static extension method on IntHolder" <|
+        hold = IntHolder.new (6 * 7)
+        IntHolder.value_plus hold 3 . should_equal 45
+
     group_builder.specify "should be able to execute a polyglot function object along with corresponding arguments" <|
         fun = Java_Function.identity
         Polyglot.execute fun ["42"] . should_equal "42"

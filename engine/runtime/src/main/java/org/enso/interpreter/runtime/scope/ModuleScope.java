@@ -103,7 +103,7 @@ public final class ModuleScope implements EnsoObject {
   /**
    * Returns a map of methods defined in this module for a given constructor.
    *
-   * @param type the type for which metaKey map is requested
+   * @param type the type for which method map is requested
    * @return a map containing all the defined methods by name
    */
   private Map<String, Supplier<Function>> ensureMethodMapFor(Type type) {
@@ -121,10 +121,10 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Registers a metaKey defined for a given type.
+   * Registers a method defined for a given type.
    *
-   * @param type the type the metaKey was defined for
-   * @param method metaKey name
+   * @param type the type the method was defined for
+   * @param method method name
    * @param function the {@link Function} associated with this definition
    */
   public void registerMethod(Type type, String method, Function function) {
@@ -140,10 +140,10 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Registers a lazily constructed metaKey defined for a given type.
+   * Registers a lazily constructed method defined for a given type.
    *
-   * @param type the type the metaKey was defined for
-   * @param method metaKey name
+   * @param type the type the method was defined for
+   * @param method method name
    * @param supply provider of the {@link Function} associated with this definition
    */
   public void registerMethod(Type type, String method, Supplier<Function> supply) {
@@ -161,7 +161,7 @@ public final class ModuleScope implements EnsoObject {
   /**
    * Returns a list of the conversion methods defined in this module for a given constructor.
    *
-   * @param type the type for which metaKey map is requested
+   * @param type the type for which method map is requested
    * @return a list containing all the defined conversions in definition order
    */
   private Map<Type, Function> ensureConversionsFor(Type type) {
@@ -177,7 +177,7 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * Registers a conversion metaKey for a given type
+   * Registers a conversion method for a given type
    *
    * @param toType type the conversion was defined to
    * @param fromType type the conversion was defined from
@@ -223,10 +223,15 @@ public final class ModuleScope implements EnsoObject {
     }
   }
 
-  public Function getMethodForPolyglot(Object obj, String name) {
+  public Function getMethodForPolyglot(Object obj, String name, boolean useStatic) {
     try {
-      var metaObject = InteropLibrary.getUncached(obj).getMetaObject(obj);
-      var m = polyMethods.get(metaKey(metaObject));
+      Map<String, Supplier<Function>> m;
+      if (useStatic) {
+        m = polyMethods.get(metaKey(obj));
+      } else {
+        var metaObject = InteropLibrary.getUncached(obj).getMetaObject(obj);
+        m = polyMethods.get(metaKey(metaObject));
+      }
       var f = m == null ? null : m.get(name);
       return f == null ? null : f.get();
     } catch (UnsupportedMessageException ex) {
@@ -239,11 +244,11 @@ public final class ModuleScope implements EnsoObject {
    *
    * <p>The resolution algorithm is first looking for methods defined at the constructor definition
    * site (i.e. non-overloads), then looks for methods defined in this scope and finally tries to
-   * resolve the metaKey in all dependencies of this module.
+   * resolve the method in all dependencies of this module.
    *
-   * @param type type to lookup the metaKey for.
-   * @param name the metaKey name.
-   * @return the matching metaKey definition or null if not found.
+   * @param type type to lookup the method for.
+   * @param name the method name.
+   * @return the matching method definition or null if not found.
    */
   @TruffleBoundary
   public Function lookupMethodDefinition(Type type, String name) {
@@ -342,7 +347,8 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * @return a metaKey for the given type
+   * @ret
+   * @param tpeurn a method for the given type
    */
   public Function getMethodForType(Type tpe, String name) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;

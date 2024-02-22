@@ -842,11 +842,17 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode resolverNode) {
     var ctx = EnsoContext.get(this);
-    if (symbol.getScope().getMethodForPolyglot(self, symbol.getName())
+    if (symbol.getScope().getMethodForPolyglot(self, symbol.getName(), false)
         instanceof Function function) {
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } else {
-      throw ctx.raiseAssertionPanic(this, "Error", null);
+      if (symbol.getScope().getMethodForPolyglot(self, symbol.getName(), true)
+          instanceof Function function) {
+        var lessArgs = Arrays.copyOfRange(arguments, 1, arguments.length);
+        return invokeFunctionNode.execute(function, frame, state, lessArgs);
+      } else {
+        throw ctx.raiseAssertionPanic(this, "Error", null);
+      }
     }
   }
 

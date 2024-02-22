@@ -155,7 +155,12 @@ public abstract class HostMethodCallNode extends Node {
       UnresolvedSymbol symbol,
       InteropLibrary library,
       MethodResolverNode methodResolverNode) {
-    if (symbol.getScope().getMethodForPolyglot(self, symbol.getName()) instanceof Function fn) {
+    if (symbol.getScope().getMethodForPolyglot(self, symbol.getName(), false)
+        instanceof Function fn) {
+      return PolyglotCallType.EXTENSION_METHOD;
+    }
+    if (symbol.getScope().getMethodForPolyglot(self, symbol.getName(), true)
+        instanceof Function fn) {
       return PolyglotCallType.EXTENSION_METHOD;
     }
     if (library.isDate(self)) {
