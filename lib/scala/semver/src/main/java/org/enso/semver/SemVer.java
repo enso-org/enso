@@ -19,7 +19,8 @@ public final class SemVer {
       Pattern.compile(
           "^([a-z]+-)?(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)(-[0-9A-Za-z-\\.]+)?(\\+[0-9A-Za-z-\\.\\+]+)?$");
 
-  private SemVer(long major, long minor, long patch, String preRelease, String prefix, String buildMetadata) {
+  private SemVer(
+      long major, long minor, long patch, String preRelease, String prefix, String buildMetadata) {
     this.major = major;
     this.minor = minor;
     this.patch = patch;
@@ -53,14 +54,15 @@ public final class SemVer {
       var preRelease =
           match.groupCount() == 6 && match.group(5) != null ? match.group(5).substring(1) : null;
       var buildMetadata =
-              match.groupCount() == 6 && match.group(6) != null ? match.group(6).substring(1) : null;
+          match.groupCount() == 6 && match.group(6) != null ? match.group(6).substring(1) : null;
       return Success.apply(
           new SemVer(
               Integer.valueOf(match.group(2)),
               Integer.valueOf(match.group(3)),
               Integer.valueOf(match.group(4)),
               preRelease,
-              prefix, buildMetadata));
+              prefix,
+              buildMetadata));
 
     } else {
       return Failure.apply(new RuntimeException("Invalid version " + version));
@@ -103,7 +105,9 @@ public final class SemVer {
     return preRelease;
   }
 
-  public String getBuildMetadata() { return buildMetadata; }
+  public String getBuildMetadata() {
+    return buildMetadata;
+  }
 
   /**
    * Compares two versions. Comparison ignores an optional prefix or build metadata suffix.
