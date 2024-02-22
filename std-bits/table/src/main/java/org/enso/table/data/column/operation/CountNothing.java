@@ -49,7 +49,7 @@ public class CountNothing {
   /** Returns true if all values in the storage are Nothing. */
   public static boolean allNothing(ColumnStorage storage) {
     if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
-      return withNothingMap.getIsNothingMap().cardinality() == withNothingMap.getSize();
+      return withNothingMap.getIsNothingMap().nextClearBit(0) >= storage.getSize();
     }
 
     Context context = Context.getCurrent();
