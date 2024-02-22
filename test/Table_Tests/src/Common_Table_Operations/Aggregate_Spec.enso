@@ -1512,7 +1512,7 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should raise a warning when duplicate column names" <|
-            action = table.aggregate columns=[Sum "Value" new_name="AGG1", Count new_name="AGG1"] on_problems=_
+            action = table.aggregate columns=[Sum "Value" as="AGG1", Count as="AGG1"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["AGG1"]]
             tester = expect_column_names ["AGG1", "AGG1 1"]
             Problems.test_problem_handling action problems tester

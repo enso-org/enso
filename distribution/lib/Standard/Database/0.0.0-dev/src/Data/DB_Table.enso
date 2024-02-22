@@ -1824,8 +1824,8 @@ type DB_Table
                     type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
                 results = resolved_aggregates.map p->
                     agg = p.second
-                    new_name = p.first
-                    result = Aggregate_Helper.make_aggregate_column self agg new_name dialect infer_return_type problem_builder
+                    as = p.first
+                    result = Aggregate_Helper.make_aggregate_column self agg as dialect infer_return_type problem_builder
                     ## If the `result` did contain an error, we catch it to be
                        able to store it in a vector and then we will partition the
                        created columns and failures.

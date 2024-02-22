@@ -29,7 +29,7 @@ add_specs suite_builder = suite_builder.group "Aggregate Columns" group_builder-
     test_aggregator table col expected_name expected_result epsilon=False =
         problem_builder = Problem_Builder.new
         resolved = Aggregate_Column_Helper.resolve_aggregate table problem_builder col
-        name = if resolved.new_name != "" then resolved.new_name else
+        name = if resolved.as != "" then resolved.as else
             Aggregate_Column_Helper.default_aggregate_column_name resolved
         name . should_equal expected_name
 

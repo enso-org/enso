@@ -180,7 +180,7 @@ add_specs suite_builder setup =
             err1.should_fail_with Illegal_Argument
 
         group_builder.specify "should gracefully handle duplicate aggregate names" <|
-            action = data.table.cross_tab [] "Key" values=[Aggregate_Column.Count new_name="Agg1", Aggregate_Column.Sum "Value" new_name="Agg1"] on_problems=_
+            action = data.table.cross_tab [] "Key" values=[Aggregate_Column.Count as="Agg1", Aggregate_Column.Sum "Value" as="Agg1"] on_problems=_
             tester table =
                 table.column_names . should_equal ["x Agg1", "x Agg1 1", "y Agg1", "y Agg1 1", "z Agg1", "z Agg1 1"]
             problems = [Duplicate_Output_Column_Names.Error ["x Agg1", "y Agg1", "z Agg1"]]
@@ -263,7 +263,7 @@ add_specs suite_builder setup =
             r1.should_fail_with Invalid_Column_Names
             r1.catch.to_display_text . should_contain "cannot contain the NUL character"
 
-            r2 = data.table2.cross_tab [] "Key" values=[Aggregate_Column.Average "Value" new_name='x\0']
+            r2 = data.table2.cross_tab [] "Key" values=[Aggregate_Column.Average "Value" as='x\0']
             r2.print
             r2.should_fail_with Invalid_Column_Names
             r2.catch.to_display_text . should_contain "cannot contain the NUL character"
