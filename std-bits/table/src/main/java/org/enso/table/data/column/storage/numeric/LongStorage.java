@@ -6,6 +6,7 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.BigIntegerBuilder;
 import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -17,7 +18,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column storing 64-bit integers. */
-public final class LongStorage extends AbstractLongStorage {
+public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
@@ -258,5 +259,10 @@ public final class LongStorage extends AbstractLongStorage {
   public LongStorage widen(IntegerType widerType) {
     assert widerType.fits(type);
     return new LongStorage(data, size, isMissing, widerType);
+  }
+
+  @Override
+  public BitSet getIsNothingMap() {
+    return isMissing;
   }
 }
