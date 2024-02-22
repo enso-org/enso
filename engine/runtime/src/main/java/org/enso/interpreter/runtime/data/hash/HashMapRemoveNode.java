@@ -32,11 +32,7 @@ public abstract class HashMapRemoveNode extends Node {
 
   public abstract EnsoHashMap execute(VirtualFrame frame, Object self, Object key);
 
-  protected static boolean isEnsoHashMap(Object obj) {
-    return obj instanceof EnsoHashMap;
-  }
-
-  @Specialization(guards = "isEnsoHashMap(ensoMap)")
+  @Specialization
   EnsoHashMap removeFromEnsoMap(
       VirtualFrame frame,
       EnsoHashMap ensoMap,
@@ -51,7 +47,7 @@ public abstract class HashMapRemoveNode extends Node {
     }
   }
 
-  @Specialization(guards = {"!isEnsoHashMap(map)", "interop.hasHashEntries(map)"})
+  @Specialization(guards = "interop.hasHashEntries(map)")
   EnsoHashMap removeFromInteropMap(
       VirtualFrame frame,
       Object map,
