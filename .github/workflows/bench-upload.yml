@@ -34,10 +34,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3 python3-jinja2 python3-numpy
           sudo apt-get install -y gh
+      - name: Upload benchmarks (dry-run)
+        if: ${{ github.event.inputs.just-check }}
+        run: |
+          cd enso/tools/performance/engine-benchmarks/bench_tool
+          python3 website_regen.py \
+            -v \
+            --dry-run \
+            --local-repo  engine-benchmark-results
       - name: Upload benchmarks
         run: |
           cd enso/tools/performance/engine-benchmarks/bench_tool
           python3 website_regen.py \
             -v \
-            ${{ if github.event.inputs.just-check}} --dry-run ${{ endif }} \
             --local-repo  engine-benchmark-results
