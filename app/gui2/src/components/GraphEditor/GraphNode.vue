@@ -420,10 +420,10 @@ function openFullMenu() {
     <div
       ref="contentNode"
       class="node"
-      v-on="dragPointer.events"
       @click.stop
-      @pointerdown.stop
+      @pointerdown.stop="handleNodeClick"
       @pointerup.stop
+      v-on="dragPointer.events"
     >
       <NodeWidgetTree
         :ast="displayedExpression"
