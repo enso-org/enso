@@ -38,6 +38,10 @@ jobs:
             python3-numpy \
             python3-pandas
           sudo apt-get install -y gh
+      - name: Set up git
+        run: |
+          git config --global user.email "pavel.marek@enso.org"
+          git config --global user.name "enso-bench-bot"
       - name: Upload benchmarks (dry-run)
         if: ${{ github.event.inputs.just-check }}
         run: |
