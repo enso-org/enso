@@ -136,7 +136,12 @@ class SyncRemoteCache(RemoteCache):
         path = self._cache_dir.joinpath(bench_id + ".json")
         assert not path.exists()
         with path.open("w") as f:
-            json.dump(job_report.to_dict(), f)
+            json.dump(
+                job_report.to_dict(),
+                f,
+                ensure_ascii=True,
+                indent=2
+            )
 
     async def sync(self) -> None:
         """
