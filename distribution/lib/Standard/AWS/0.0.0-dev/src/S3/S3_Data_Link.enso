@@ -1,0 +1,14 @@
+from Standard.Base import all
+from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
+
+## PRIVATE
+type S3_Data_Link
+    ## PRIVATE
+    Value
+
+    ## PRIVATE
+    parse json -> S3_Data_Link =
+        # TODO
+        S3_Data_Link.Value
+
+    read self (on_problems : Problem_Behavior) = ""

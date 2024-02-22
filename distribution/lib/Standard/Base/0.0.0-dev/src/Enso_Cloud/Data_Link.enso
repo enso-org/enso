@@ -6,6 +6,9 @@ import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format.JSON_Format
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
+from project.Enso_Cloud.Public_Utils import get_required_field
+
+polyglot java import org.enso.base.enso_cloud.DataLinkSPI
 
 ## PRIVATE
    A file format for reading data links.
@@ -30,15 +33,26 @@ type Data_Link_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         json = JSON_Format.read file on_problems
-        interpret_json_as_datalink json on_problems
+        read_datalink json on_problems
 
     ## PRIVATE
        Implements decoding the format from a stream.
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
         json = JSON_Format.read_stream stream metadata
-        interpret_json_as_datalink json metadata
+        read_datalink json Problem_Behavior.Report_Error
 
 ## PRIVATE
-interpret_json_as_datalink json on_problems =
-    "TODO"
+interpret_json_as_datalink json =
+    typ = get_required_field "type" json
+    case DataLinkSPI.findDataLinkType typ of
+        Nothing ->
+            library_name = get_required_field "libraryName" json
+            Error.throw (Illegal_State.Error "The data link for "+typ+" is provided by the library "+library_name+" which is not loaded. Please import the library, and if necessary, restart the project.")
+        data_link_type ->
+            data_link_type.parse json
+
+## PRIVATE
+read_datalink json on_problems =
+    data_link_instance = interpret_json_as_datalink json
+    data_link_instance.read on_problems
