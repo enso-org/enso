@@ -39,7 +39,7 @@ import * as listen from './listen.mock'
 // This file exports a subset of the values from the original file.
 // @ts-expect-error This is a mock file that needs to reference its original file.
 // eslint-disable-next-line no-restricted-syntax
-export { CognitoErrorType } from './cognito.ts'
+export { CognitoErrorType, isAmplifyError } from './cognito.ts'
 
 // There are unused function parameters in this file.
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -86,7 +86,7 @@ export class Cognito implements original.Cognito {
     const date = Math.floor(Number(new Date()) / SEC_MS)
     const expirationDate = date + TEN_HOURS_S
     if (!this.isSignedIn) {
-      throw new Error('No current user')
+      return Promise.resolve(null)
     } else {
       const currentSession: cognito.CognitoUserSession = {
         isValid: () => true,
@@ -133,7 +133,7 @@ export class Cognito implements original.Cognito {
     }
   }
 
-  async organizationId() {
+  organizationId() {
     return Promise.resolve(mockOrganizationId)
   }
 
@@ -153,10 +153,10 @@ export class Cognito implements original.Cognito {
     return confirmSignUp(email, code)
   }
 
-  async signInWithGoogle() {
+  signInWithGoogle() {
     this.isSignedIn = true
     listen.authEventListener?.(listen.AuthEvent.signIn)
-    await Promise.resolve()
+    return Promise.resolve()
   }
 
   signInWithGitHub() {
@@ -168,7 +168,7 @@ export class Cognito implements original.Cognito {
   /** Sign in with the given username and password.
    *
    * Does not rely on external identity providers (e.g., Google or GitHub). */
-  async signInWithPassword(username: string, _password: string) {
+  signInWithPassword(username: string, _password: string) {
     this.isSignedIn = true
     mockEmail = username
     localStorage.setItem(MOCK_EMAIL_KEY, username)
@@ -177,7 +177,7 @@ export class Cognito implements original.Cognito {
   }
 
   /** Sign out the current user. */
-  async signOut() {
+  signOut() {
     listen.authEventListener?.(listen.AuthEvent.signOut)
     this.isSignedIn = false
     return Promise.resolve()
