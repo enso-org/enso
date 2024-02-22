@@ -1,7 +1,7 @@
 package org.enso.editions
 
-import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
+import org.enso.semver.SemVer
 
 /** A resolved version of the library. */
 sealed trait LibraryVersion

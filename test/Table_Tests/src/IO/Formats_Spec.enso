@@ -161,8 +161,8 @@ add_specs suite_builder =
     write_tests "csv"
     write_tests "json"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

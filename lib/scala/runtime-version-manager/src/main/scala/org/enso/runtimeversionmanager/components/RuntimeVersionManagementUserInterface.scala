@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.components
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.task.ProgressReporter
 import org.enso.distribution.locking.LockUserInterface
 
