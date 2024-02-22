@@ -35,7 +35,9 @@ async def pull(repo: Path) -> None:
     proc = await asyncio.create_subprocess_exec("git", *args, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = await proc.wait()
     if ret != 0:
-        raise RuntimeError(f"Failed to pull {repo}")
+        stdout, stderr = await proc.communicate()
+        out = stdout.decode() + stderr.decode()
+        raise RuntimeError(f"Failed to pull {repo}: {out}")
 
 
 async def status(repo: Path) -> GitStatus:
@@ -64,7 +66,9 @@ async def add(repo: Path, files: Set[str]) -> None:
     proc = await asyncio.create_subprocess_exec("git", *args, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = await proc.wait()
     if ret != 0:
-        raise RuntimeError(f"Failed to add {files} to {repo}")
+        out, err = await proc.communicate()
+        all_out = out.decode() + err.decode()
+        raise RuntimeError(f"Failed to add {files} to {repo}. Output: {all_out}")
 
 
 async def commit(repo: Path, msg: str) -> None:
@@ -86,7 +90,9 @@ async def push(repo: Path) -> None:
     proc = await asyncio.create_subprocess_exec("git", *args, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = await proc.wait()
     if ret != 0:
-        raise RuntimeError(f"Failed to push {repo}")
+        out, err = await proc.communicate()
+        all_out = out.decode() + err.decode()
+        raise RuntimeError(f"Failed to push {repo}. Output: {all_out}")
 
 
 async def init(repo: Path) -> None:
@@ -96,4 +102,6 @@ async def init(repo: Path) -> None:
     proc = await asyncio.create_subprocess_exec("git", *args, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = await proc.wait()
     if ret != 0:
-        raise RuntimeError(f"Failed to init {repo}")
+        out, err = await proc.communicate()
+        all_out = out.decode() + err.decode()
+        raise RuntimeError(f"Failed to init {repo}. Output: {all_out}")
