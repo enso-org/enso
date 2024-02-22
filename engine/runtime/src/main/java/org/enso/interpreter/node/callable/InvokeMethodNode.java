@@ -848,7 +848,21 @@ public abstract class InvokeMethodNode extends BaseNode {
     } else {
       if (symbol.getScope().getMethodForPolyglot(self, symbol.getName(), true)
           instanceof Function function) {
-        return invokeFunctionNode.execute(function, frame, state, arguments);
+        if (function.getSchema().getArgumentsCount() == arguments.length - 1
+            && "self".equals(function.getSchema().getArgumentInfos()[0].getName())) {
+          var lessArgs = Arrays.copyOfRange(arguments, 1, arguments.length);
+          var lessSchema =
+              Arrays.copyOfRange(
+                  invokeFunctionNode.getSchema(), 1, invokeFunctionNode.getSchema().length);
+          var node =
+              InvokeFunctionNode.build(
+                  lessSchema,
+                  invokeFunctionNode.getDefaultsExecutionMode(),
+                  invokeFunctionNode.getArgumentsExecutionMode());
+          return node.execute(function, frame, state, lessArgs);
+        } else {
+          return invokeFunctionNode.execute(function, frame, state, arguments);
+        }
       } else {
         throw ctx.raiseAssertionPanic(this, "Error", null);
       }

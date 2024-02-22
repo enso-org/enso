@@ -75,7 +75,10 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
 foreign js js_meaning = """
     return { meaning : 6 * 7 };
 
-IntHolder.value_plus self add:Integer = self.value+add
+IntHolder.value_plus self add =
+    v1=self.value
+    v1+add
+
 IntHolder.create n:Integer = IntHolder.new n
 
 main =
