@@ -30,7 +30,7 @@ public class CountNothing {
     return count;
   }
 
-  /** Returns true if all values in the storage are Nothing. */
+  /** Returns true if any values in the storage are Nothing. */
   public static boolean anyNothing(ColumnStorage storage) {
     if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
       return withNothingMap.getIsNothingMap().cardinality() > 0;
