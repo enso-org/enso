@@ -53,4 +53,4 @@ jobs:
           python3 website_regen.py \
             -v \
             --dry-run \
-            --local-repo  engine-benchmark-results
+            --local-repo  ${{ github.workspace }}/engine-benchmark-results
