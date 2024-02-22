@@ -534,8 +534,8 @@ add_specs suite_builder =
             replacer_cache_lookup "$1$1x0" . should_equal Nothing
             replacer_cache_lookup "$1$1x1" . should_not_equal Nothing
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

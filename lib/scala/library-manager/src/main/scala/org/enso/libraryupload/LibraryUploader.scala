@@ -1,7 +1,7 @@
 package org.enso.libraryupload
 
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.distribution.FileSystem
 import org.enso.distribution.FileSystem.PathSyntax
@@ -40,7 +40,7 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
   ): Try[Unit] = Try {
     FileSystem.withTemporaryDirectory("enso-upload") { tmpDir =>
       val pkg = PackageManager.Default.loadPackage(projectRoot.toFile).get
-      val version = SemVer(pkg.getConfig().version).getOrElse {
+      val version = SemVer.parse(pkg.getConfig().version).getOrElse {
         throw new IllegalStateException(
           s"Project version [${pkg.getConfig().version}] is not a valid semver " +
           s"string."

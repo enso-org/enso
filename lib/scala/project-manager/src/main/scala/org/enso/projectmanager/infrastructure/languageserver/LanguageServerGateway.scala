@@ -3,7 +3,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 import java.util.UUID
 
 import akka.actor.ActorRef
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckTimeout,
