@@ -89,7 +89,7 @@ type S3_Path
 
        S3 does not treat `/` in any special way, it allows using any character as a
        path delimiter. In the future we could allow customizing it.
-    delimiter = "/"
+    delimiter -> Text = "/"
 
 ## PRIVATE
 type Path_Entry

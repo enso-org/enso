@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
+import Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Request.Request

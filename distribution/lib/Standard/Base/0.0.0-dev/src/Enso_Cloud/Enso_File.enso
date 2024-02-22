@@ -1,6 +1,6 @@
 import project.Any.Any
-import project.Data.Enso_Cloud.Errors.Enso_Cloud_Error
-import project.Data.Enso_Cloud.Utils
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Utils
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
@@ -29,7 +29,7 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Enso_Cloud.Utils import get_required_field
+from project.Enso_Cloud.Utils import get_required_field
 from project.Data.Text.Extensions import all
 from project.System.File.Generic.File_Write_Strategy import generic_copy
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
