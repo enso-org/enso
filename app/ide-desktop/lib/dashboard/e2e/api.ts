@@ -29,7 +29,7 @@ const GLOB_PROJECT_ID = backend.ProjectId('*')
 /** A tag ID that is a path glob. */
 const GLOB_TAG_ID = backend.TagId('*')
 /* eslint-enable no-restricted-syntax */
-const BASE_URL = process.env.ENSO_CLOUD_API_URL + '/'
+const BASE_URL = 'https://mock/'
 
 // ===============
 // === mockApi ===

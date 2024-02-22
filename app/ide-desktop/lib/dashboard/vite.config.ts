@@ -26,9 +26,7 @@ export default vite.defineConfig(viteEnv => {
     plugins: [
       vitePluginReact({
         include: '**/*.tsx',
-        babel: {
-          plugins: ['@babel/plugin-syntax-import-assertions'],
-        },
+        babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
       }),
       vitePluginYaml(),
     ],

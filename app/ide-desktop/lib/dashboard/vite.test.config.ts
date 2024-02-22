@@ -37,7 +37,7 @@ export default vite.defineConfig(env =>
         'process.env.NODE_ENV': JSON.stringify('production'),
         'process.env.ENSO_CLOUD_REDIRECT': JSON.stringify(`http://localhost:${SERVER_PORT}`),
         'process.env.ENSO_CLOUD_ENVIRONMENT': JSON.stringify('production'),
-        'process.env.ENSO_CLOUD_API_URL': JSON.stringify(''),
+        'process.env.ENSO_CLOUD_API_URL': JSON.stringify('https://mock'),
         'process.env.ENSO_CLOUD_SENTRY_DSN': JSON.stringify(''),
         'process.env.ENSO_CLOUD_STRIPE_KEY': JSON.stringify(''),
         'process.env.ENSO_CLOUD_CHAT_URL': JSON.stringify(''),
