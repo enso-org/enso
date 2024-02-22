@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Data.Enso_Cloud.Errors.Enso_Cloud_Error
-import Standard.Base.Data.Enso_Cloud.Errors.Not_Logged_In
+import Standard.Base.Enso_Cloud.Errors.Enso_Cloud_Error
+import Standard.Base.Enso_Cloud.Errors.Not_Logged_In
 import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -86,8 +86,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                     r.catch.should_be_a Enso_Cloud_Error.Unauthorized
                     r.catch.to_display_text . should_contain "401"
 
-main =
+main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
         add_specs suite_builder setup
-    suite.run_with_filter
+    suite.run_with_filter filter

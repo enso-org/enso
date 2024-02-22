@@ -230,7 +230,7 @@ fn export_body<'s>(
 /// If-then-else macro definition.
 pub fn if_then_else<'s>() -> Definition<'s> {
     crate::macro_definition! {
-    ("if", everything(), "then", everything(), "else", everything()) if_body}
+    ("if", everything(), "then", everything(), "else", or(block(), many(not_block()))) if_body}
 }
 
 /// If-then macro definition.

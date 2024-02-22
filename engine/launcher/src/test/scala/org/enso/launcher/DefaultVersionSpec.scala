@@ -1,6 +1,6 @@
 package org.enso.launcher
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.config.DefaultVersion.{Exact, LatestInstalled}
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
@@ -21,7 +21,7 @@ class DefaultVersionSpec extends RuntimeVersionManagerTest {
   def makeConfigurationManager(): GlobalRunnerConfigurationManager =
     makeConfigAndComponentsManagers()._2
 
-  private val latestAvailable = SemVer(0, 1, 0)
+  private val latestAvailable = SemVer.of(0, 1, 0)
 
   "enso default" should {
     "fallback to latest available version if none is installed" in {
@@ -31,12 +31,12 @@ class DefaultVersionSpec extends RuntimeVersionManagerTest {
     "fallback to latest installed version" in {
       val (componentsManager, configManager) =
         makeConfigAndComponentsManagers()
-      componentsManager.findOrInstallEngine(SemVer(0, 0, 0))
-      configManager.defaultVersion shouldEqual SemVer(0, 0, 0)
+      componentsManager.findOrInstallEngine(SemVer.of(0, 0, 0))
+      configManager.defaultVersion shouldEqual SemVer.of(0, 0, 0)
     }
 
     "set an exact version in the config" in {
-      val version              = SemVer(0, 1, 0, Some("test"))
+      val version              = SemVer.of(0, 1, 0, "test")
       val configurationManager = makeConfigurationManager()
       configurationManager.updateConfig { config =>
         config.copy(defaultVersion = Exact(version))

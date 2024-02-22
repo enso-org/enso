@@ -1,6 +1,6 @@
 package org.enso.projectmanager.service.config
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.editions.EnsoVersion
 
 /** A contract for the Global Config Service.

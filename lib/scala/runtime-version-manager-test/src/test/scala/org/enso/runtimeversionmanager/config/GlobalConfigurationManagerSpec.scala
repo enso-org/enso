@@ -1,7 +1,7 @@
 package org.enso.runtimeversionmanager.config
 
 import io.circe.Json
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.config.InvalidConfigError
 import org.enso.runtimeversionmanager.test.FakeEnvironment
@@ -20,7 +20,7 @@ class GlobalConfigurationManagerSpec
     val env                 = fakeInstalledEnvironment()
     val distributionManager = new DistributionManager(env)
     new GlobalRunnerConfigurationManager(null, distributionManager) {
-      override def defaultVersion: SemVer = SemVer(0, 0, 0)
+      override def defaultVersion: SemVer = SemVer.of(0, 0, 0)
     }
   }
 
