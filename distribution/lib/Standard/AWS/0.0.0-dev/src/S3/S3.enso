@@ -56,6 +56,12 @@ list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max
 ## PRIVATE
    Reads an S3 bucket returning a pair of vectors, one with common prefixes and
    one with object keys.
+
+   Arguments:
+   - bucket: The name of the bucket.
+   - prefix: The prefix to use when searching for keys to return.
+   - credentials: The credentials for the AWS resource.
+   - delimiter: The delimiter used to deduce common prefixes.
 @credentials AWS_Credential.default_widget
 read_bucket : Text -> Text -> AWS_Credential | Nothing -> Integer -> Text -> Pair Vector Vector ! S3_Error
 read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
@@ -122,6 +128,7 @@ raw_head bucket key credentials =
    - key: the key of the object.
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
+   - delimiter: The delimiter to use for deducing the filename from the path.
 get_object : Text -> Text -> AWS_Credential | Nothing -> Response_Body ! S3_Error
 get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" = handle_s3_errors bucket=bucket key=key <|
     request = GetObjectRequest.builder.bucket bucket . key key . build
