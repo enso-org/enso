@@ -38,7 +38,7 @@ public class CountNothing {
 
     Context context = Context.getCurrent();
     for (long i = 0; i < storage.getSize(); i++) {
-      if (!storage.isNothing(i)) {
+      if (storage.isNothing(i)) {
         return true;
       }
       context.safepoint();
