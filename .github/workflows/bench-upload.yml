@@ -1,0 +1,41 @@
+# This file is manually managed. It is used to upload benchmarks to to the
+# https://github.com/enso-org/engine-benchmark-results repository.
+
+name: Benchmarks upload
+on:
+  schedule:
+    - cron: 0 0 * * *
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: If set, no results will be uploaded.
+        required: true
+        type: boolean
+        default: false
+jobs:
+  upload-benchmarks:
+    name: Upload benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout enso repository
+        uses: actions/checkout@v4
+        repository: enso-org/enso
+        with:
+          path: enso
+      - name: Checkout engine-benchmark-results repository
+        uses: actions/checkout@v4
+        repository: enso-org/engine-benchmark-results
+        with:
+          path: engine-benchmark-results
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-jinja2 python3-numpy
+          sudo apt-get install -y gh
+      - name: Upload benchmarks
+        run: |
+          cd enso/tools/performance/engine-benchmarks/bench_tool
+          python3 website_regen.py \
+            -v \
+            ${{ if github.event.inputs.dry-run}} --dry-run ${{ endif }} \
+            --local-repo  engine-benchmark-results
