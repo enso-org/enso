@@ -150,6 +150,9 @@ const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
 let startPos = Vec2.Zero
 
+// TODO[ao]: Now, the dragPointer.events are preventing `click` events on widgets if they don't
+// stop pointerup and pointerdown. Now we ensure that any widget handling click does that, but
+// instead `usePointer` should be smarter.
 const dragPointer = usePointer((pos, event, type) => {
   if (type !== 'start') {
     const fullOffset = pos.absolute.sub(startPos)
