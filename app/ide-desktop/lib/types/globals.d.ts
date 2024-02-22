@@ -82,6 +82,8 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             TZ?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly CI?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly CSC_LINK?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly APPLEID?: string
