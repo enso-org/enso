@@ -1,7 +1,9 @@
+import json
 import unittest
 from datetime import datetime
 
-from bench_tool import ENGINE_BENCH_WORKFLOW_ID
+from bench_tool import ENGINE_BENCH_WORKFLOW_ID, JobReport, JobRun, Commit, \
+    Author
 from .bench_results import get_bench_report, get_bench_runs
 from .remote_cache import ReadonlyRemoteCache
 from .utils import parse_commit_timestamp, WithTempDir
@@ -10,8 +12,39 @@ from .utils import parse_commit_timestamp, WithTempDir
 # We know for sure that this workflow run is on the GH.
 BENCH_RUN_ID = "4888453297"
 
+sample_job_report = JobReport(
+    label_score_dict={
+        "test_label": 1.0
+    },
+    bench_run=JobRun(
+        id="123456789",
+        display_title="Test",
+        html_url="https://github.com/enso-org/enso/actions/runs/123456789",
+        run_attempt=1,
+        event="push",
+        head_commit=Commit(
+            id="a67297aebf6a094d1ad0b0d88cf7438dbf8bd8fe",
+            message="Test commit",
+            timestamp="2021-06-01T12:00:00Z",
+            author=Author(
+                name="Pavel Marek"
+            )
+        )
+    )
+)
 
-class MyTestCase(unittest.IsolatedAsyncioTestCase):
+
+class TestBenchResults(unittest.IsolatedAsyncioTestCase):
+    def test_job_report_is_serializable(self):
+        s = json.dumps(sample_job_report.to_dict())
+        self.assertIsNotNone(s)
+        self.assertGreater(len(s), 0)
+
+    def test_job_report_is_deserializable(self):
+        d = sample_job_report.to_dict()
+        job_report = JobReport.from_dict(d)
+        self.assertEqual(sample_job_report, job_report)
+
     async def test_get_bench_run(self):
         """
         Bench run does not need remote cache - it fetches just some metadata about GH artifacts.

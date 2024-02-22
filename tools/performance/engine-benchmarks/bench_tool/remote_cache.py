@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from . import gh, JobReport, BENCH_REPO, git
-from .utils import parse_bench_report_from_json
 
 _logger = logging.getLogger(__name__)
 
@@ -64,7 +63,7 @@ class ReadonlyRemoteCache(RemoteCache):
         if content is None:
             _logger.warning("Cache not found for %s", bench_id)
             return None
-        bench_report = parse_bench_report_from_json(
+        bench_report = JobReport.from_dict(
             json.loads(content)
         )
         assert bench_id not in self._fetched_items
@@ -129,7 +128,7 @@ class SyncRemoteCache(RemoteCache):
         path = self._cache_dir.joinpath(bench_id + ".json")
         if path.exists():
             with path.open() as f:
-                return parse_bench_report_from_json(json.load(f))
+                return JobReport.from_dict(json.load(f))
         return None
 
     async def put(self, bench_id: str, job_report: JobReport) -> None:
@@ -137,7 +136,7 @@ class SyncRemoteCache(RemoteCache):
         path = self._cache_dir.joinpath(bench_id + ".json")
         assert not path.exists()
         with path.open("w") as f:
-            json.dump(job_report, f)
+            json.dump(job_report.to_dict(), f)
 
     async def sync(self) -> None:
         """

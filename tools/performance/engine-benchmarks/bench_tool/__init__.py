@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import timedelta, datetime
 from enum import Enum
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Any
 
 
 def pkg_dir() -> Path:
@@ -94,6 +94,41 @@ class JobRun:
     event: str
     head_commit: Commit
 
+    @staticmethod
+    def from_dict(obj: Dict[Any, Any]) -> "JobRun":
+        return JobRun(
+            id=str(obj["id"]),
+            html_url=obj["html_url"],
+            run_attempt=int(obj["run_attempt"]),
+            event=obj["event"],
+            display_title=obj["display_title"],
+            head_commit=Commit(
+                id=obj["head_commit"]["id"],
+                message=obj["head_commit"]["message"],
+                timestamp=obj["head_commit"]["timestamp"],
+                author=Author(
+                    name=obj["head_commit"]["author"]["name"]
+                )
+            )
+        )
+
+    def to_dict(self) -> Dict[Any, Any]:
+        return {
+            "id": self.id,
+            "html_url": self.html_url,
+            "run_attempt": self.run_attempt,
+            "event": self.event,
+            "display_title": self.display_title,
+            "head_commit": {
+                "id": self.head_commit.id,
+                "message": self.head_commit.message,
+                "timestamp": self.head_commit.timestamp,
+                "author": {
+                    "name": self.head_commit.author.name
+                }
+            }
+        }
+
 
 @dataclass
 class JobReport:
@@ -104,6 +139,19 @@ class JobReport:
     label_score_dict: Dict[str, float]
     """ A mapping of benchmark labels to their scores """
     bench_run: JobRun
+
+    @staticmethod
+    def from_dict(obj: Dict[Any, Any]) -> "JobReport":
+        return JobReport(
+            bench_run=JobRun.from_dict(obj["bench_run"]),
+            label_score_dict=obj["label_score_dict"]
+        )
+
+    def to_dict(self) -> Dict[Any, Any]:
+        return {
+            "bench_run": self.bench_run.to_dict(),
+            "label_score_dict": self.label_score_dict
+        }
 
 
 @dataclass

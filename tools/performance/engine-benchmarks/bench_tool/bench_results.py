@@ -12,7 +12,7 @@ from xml.etree import ElementTree as ET
 from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport, Source
 from bench_tool.gh import invoke_gh_api
 from bench_tool.remote_cache import RemoteCache
-from bench_tool.utils import WithTempDir, parse_bench_run_from_json
+from bench_tool.utils import WithTempDir
 
 ARTIFACT_ID = "Runtime Benchmark Report"
 
@@ -49,7 +49,7 @@ async def get_bench_runs(since: datetime, until: datetime, branch: str, workflow
         _query_fields["page"] = str(page)
         res = await invoke_gh_api(ENSO_REPO, f"/actions/workflows/{workflow_id}/runs", _query_fields)
         bench_runs_json = res["workflow_runs"]
-        _parsed_bench_runs = [parse_bench_run_from_json(bench_run_json)
+        _parsed_bench_runs = [JobRun.from_dict(bench_run_json)
                               for bench_run_json in bench_runs_json]
         parsed_bench_runs.extend(_parsed_bench_runs)
 
