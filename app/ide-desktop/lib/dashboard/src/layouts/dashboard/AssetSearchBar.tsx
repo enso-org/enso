@@ -87,7 +87,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       querySource.current !== QuerySource.tabbing
     ) {
       if (searchRef.current != null) {
-        searchRef.current.value = query.toString()
+        searchRef.current.value = query.query
       }
     }
   }, [query])
@@ -137,7 +137,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             }
           })
         }
-        if (event.key === 'Enter' || event.key === ' ') {
+        if (
+          event.key === 'Enter' ||
+          (event.key === ' ' && document.activeElement !== searchRef.current)
+        ) {
           querySource.current = QuerySource.external
           if (searchRef.current != null) {
             searchRef.current.focus()
