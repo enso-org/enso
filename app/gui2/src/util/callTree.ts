@@ -388,12 +388,14 @@ export function getAccessOprSubject(app: Ast.Ast): Ast.Ast | undefined {
 
 export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')
 export const ArgumentInfoKey: unique symbol = Symbol('ArgumentInfoKey')
+export const ArgumentNameShownKey: unique symbol = Symbol('ArgumentNameShownKey')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [ArgumentApplicationKey]?: ArgumentApplication
     [ArgumentInfoKey]?: {
       appKind: ApplicationKind
       info: SuggestionEntryArgument | undefined
+      [ArgumentNameShownKey]?: boolean
     }
   }
 }

@@ -3,7 +3,12 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { ApplicationKind, ArgumentInfoKey, ArgumentPlaceholder } from '@/util/callTree'
+import {
+  ApplicationKind,
+  ArgumentInfoKey,
+  ArgumentNameShownKey,
+  ArgumentPlaceholder,
+} from '@/util/callTree'
 import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
 
@@ -21,6 +26,11 @@ const showArgumentValue = computed(() => {
 
 const placeholder = computed(() => props.input instanceof ArgumentPlaceholder)
 const primary = computed(() => props.nesting < 2)
+
+const innerInput = computed(() => ({
+  ...props.input,
+  [ArgumentInfoKey]: { ...props.input[ArgumentInfoKey], [ArgumentNameShownKey]: true },
+}))
 </script>
 
 <script lang="ts">
@@ -46,7 +56,7 @@ export const widgetDefinition = defineWidget(hasKnownArgumentName, {
   <div class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
       <span class="name">{{ props.input[ArgumentInfoKey].info.name }}</span
-      ><NodeWidget :input="props.input" allowEmpty />
+      ><NodeWidget :input="innerInput" allowEmpty />
     </template>
     <template v-else>{{ props.input[ArgumentInfoKey].info.name }}</template>
   </div>
