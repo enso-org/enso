@@ -52,7 +52,7 @@ class TestGit(unittest.IsolatedAsyncioTestCase):
         self.repo_root.joinpath("README.md").write_text("Hello")
         self.repo_root.joinpath("pom.xml").write_text("<xml></xml>")
         status = await git.status(self.repo_root)
-        self.assertEquals(2, len(status.untracked))
+        self.assertEqual(2, len(status.untracked))
         await git.add(self.repo_root, {"README.md", "pom.xml"})
         status = await git.status(self.repo_root)
         self.assertEqual(2, len(status.added))

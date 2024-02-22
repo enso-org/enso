@@ -34,9 +34,9 @@ class TestReadonlyRemoteCache(unittest.IsolatedAsyncioTestCase):
         bench_id = "3686412302"
         job_report = await remote_cache.fetch(bench_id)
         self.assertIsNotNone(job_report)
-        self.assertEquals(1, job_report.bench_run.run_attempt)
-        self.assertEquals(bench_id, job_report.bench_run.id)
-        self.assertEquals("Jaroslav Tulach", job_report.bench_run.head_commit.author.name)
+        self.assertEqual(1, job_report.bench_run.run_attempt)
+        self.assertEqual(bench_id, job_report.bench_run.id)
+        self.assertEqual("Jaroslav Tulach", job_report.bench_run.head_commit.author.name)
 
     async def test_non_existing_cache_should_not_fail(self):
         remote_cache = ReadonlyRemoteCache()

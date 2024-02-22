@@ -40,6 +40,6 @@ class MyTestCase(unittest.IsolatedAsyncioTestCase):
         with WithTempDir("test_get_bench_report") as temp_dir:
             bench_report = await get_bench_report(bench_run, temp_dir, remote_cache)
             self.assertIsNotNone(bench_report)
-            self.assertEquals(bench_run, bench_report.bench_run)
-            self.assertEquals(55, len(bench_report.label_score_dict))
+            self.assertEqual(bench_run, bench_report.bench_run)
+            self.assertEqual(55, len(bench_report.label_score_dict))
 
