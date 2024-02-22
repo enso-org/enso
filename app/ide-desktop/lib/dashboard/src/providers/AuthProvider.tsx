@@ -25,7 +25,6 @@ import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 
-import * as errorModule from '#/utilities/error'
 import HttpClient, * as httpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
@@ -439,20 +438,21 @@ export default function AuthProvider(props: AuthProviderProps) {
   const signUp = async (username: string, password: string, organizationId: string | null) => {
     gtagEvent('cloud_sign_up')
     const result = await cognito.signUp(username, password, organizationId)
-    if (result.ok) {
+    if (cognitoModule.isAmplifyError(result)) {
+      toastError(result.message)
+      return false
+    } else {
       toastSuccess('We have sent you an email with further instructions!')
       navigate(appUtils.LOGIN_PATH)
-    } else {
-      toastError(result.val.message)
+      return true
     }
-    return result.ok
   }
 
   const confirmSignUp = async (email: string, code: string) => {
     gtagEvent('cloud_confirm_sign_up')
     const result = await cognito.confirmSignUp(email, code)
-    if (result.err) {
-      switch (result.val.type) {
+    if (cognitoModule.isAmplifyError(result)) {
+      switch (result.type) {
         case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
           break
         }
@@ -462,28 +462,32 @@ export default function AuthProvider(props: AuthProviderProps) {
           return false
         }
         default: {
-          throw new errorModule.UnreachableCaseError(result.val.type)
+          // This is REQUIRED, as a sanity check to ensure that this case is impossible to reach.
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const sanity: never = result.type
+          throw new Error(`Unreachable value detected: ${JSON.stringify(result)}`)
         }
       }
     }
     toastSuccess('Your account has been confirmed! Please log in.')
     navigate(appUtils.LOGIN_PATH)
-    return result.ok
+    return true
   }
 
   const signInWithPassword = async (email: string, password: string) => {
     gtagEvent('cloud_sign_in', { provider: 'Email' })
     const result = await cognito.signInWithPassword(email, password)
-    if (result.ok) {
-      toastSuccess('Successfully logged in!')
-    } else {
-      if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
+    if (cognitoModule.isAmplifyError(result)) {
+      if (result.type === cognitoModule.CognitoErrorType.userNotFound) {
         // It may not be safe to pass the user's password in the URL.
         navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
       }
-      toastError(result.val.message)
+      toastError(result.message)
+      return false
+    } else {
+      toastSuccess('Successfully logged in!')
+      return true
     }
-    return result.ok
   }
 
   const setUsername = async (username: string, email: string) => {
@@ -525,34 +529,37 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const forgotPassword = async (email: string) => {
     const result = await cognito.forgotPassword(email)
-    if (result.ok) {
+    if (cognitoModule.isAmplifyError(result)) {
+      toastError(result.message)
+      return false
+    } else {
       toastSuccess('We have sent you an email with further instructions!')
       navigate(appUtils.LOGIN_PATH)
-    } else {
-      toastError(result.val.message)
+      return true
     }
-    return result.ok
   }
 
   const resetPassword = async (email: string, code: string, password: string) => {
     const result = await cognito.forgotPasswordSubmit(email, code, password)
-    if (result.ok) {
+    if (cognitoModule.isAmplifyError(result)) {
+      toastError(result.message)
+      return false
+    } else {
       toastSuccess('Successfully reset password!')
       navigate(appUtils.LOGIN_PATH)
-    } else {
-      toastError(result.val.message)
+      return true
     }
-    return result.ok
   }
 
   const changePassword = async (oldPassword: string, newPassword: string) => {
     const result = await cognito.changePassword(oldPassword, newPassword)
-    if (result.ok) {
-      toastSuccess('Successfully changed password!')
+    if (cognitoModule.isAmplifyError(result)) {
+      toastError(result.message)
+      return false
     } else {
-      toastError(result.val.message)
+      toastSuccess('Successfully changed password!')
+      return true
     }
-    return result.ok
   }
 
   const signOut = async () => {

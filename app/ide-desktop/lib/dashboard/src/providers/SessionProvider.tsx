@@ -5,8 +5,6 @@ import * as React from 'react'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as refreshHooks from '#/hooks/refreshHooks'
 
-import * as errorModule from '#/utilities/error'
-
 import type * as cognito from '#/authentication/cognito'
 import * as listen from '#/authentication/listen'
 
@@ -118,7 +116,10 @@ export default function SessionProvider(props: SessionProviderProps) {
           break
         }
         default: {
-          throw new errorModule.UnreachableCaseError(event)
+          // This is REQUIRED, as a sanity check to ensure that this case is impossible to reach.
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const sanity: never = event
+          throw new Error(`Unreachable value detected: ${JSON.stringify(event)}`)
         }
       }
     }

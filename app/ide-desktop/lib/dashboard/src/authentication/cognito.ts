@@ -96,7 +96,7 @@ export interface AmplifyError extends Error {
 }
 
 /** Hint to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
-function isAmplifyError(error: unknown): error is AmplifyError {
+export function isAmplifyError(error: unknown): error is AmplifyError {
   if (error != null && typeof error === 'object') {
     return 'code' in error && 'message' in error && 'name' in error
   } else {
@@ -315,7 +315,7 @@ export class Cognito {
       await amplify.Auth.forgotPasswordSubmit(email, code, password)
       return null
     } catch (error) {
-      throw tryIntoForgotPasswordSubmitError(error)
+      return tryIntoForgotPasswordSubmitError(error)
     }
   }
 
