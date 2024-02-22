@@ -37,14 +37,16 @@ jobs:
       - name: Upload benchmarks (dry-run)
         if: ${{ github.event.inputs.just-check }}
         run: |
-          cd enso/tools/performance/engine-benchmarks/bench_tool
+          cd enso/tools/performance/engine-benchmarks
           python3 website_regen.py \
             -v \
             --dry-run \
             --local-repo  engine-benchmark-results
       - name: Upload benchmarks
+        # TODO: Remove the --dry-run arg
         run: |
-          cd enso/tools/performance/engine-benchmarks/bench_tool
+          cd enso/tools/performance/engine-benchmarks
           python3 website_regen.py \
             -v \
+            --dry-run \
             --local-repo  engine-benchmark-results
