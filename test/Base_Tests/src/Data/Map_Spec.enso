@@ -587,12 +587,11 @@ add_specs suite_builder =
             py_empty_dict.insert "A" 1 . insert "A" 2 . get "A" . should_equal 2
 
         group_builder.specify "should be able to remove entries" pending=pending_python_missing <|
-          py_dict_from_vec ["A", 1, "B", 2] . remove "A" . size . should_equal 1
-          py_dict_from_vec ["A", 1, "B", 2] . remove "A" . get "B" . should_equal 2
-          # Let's test EnoHashMap removal after polyglot hash map removal.
-          # This test used to fail because of some internal engine bug.
-          Map.from_vector [["A", 1], ["B", 2]] . remove "A" . size . should_equal 1
+            py_dict_from_vec ["A", 1, "B", 2] . remove "A" . size . should_equal 1
+            py_dict_from_vec ["A", 1, "B", 2] . remove "A" . get "B" . should_equal 2
 
+        group_builder.specify "should be able to remove NaN keys" pending=pending_python_missing <|
+            py_dict_from_vec [Number.nan, 1] . remove Number.nan . size . should_equal 0
 
         group_builder.specify "should pass maps with null keys to Python and back" pending=pending_python_missing <|
             # Python supports None as keys, Enso support Nothing as keys
