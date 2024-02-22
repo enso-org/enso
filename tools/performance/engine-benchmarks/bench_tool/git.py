@@ -68,14 +68,16 @@ async def add(repo: Path, files: Set[str]) -> None:
 
 
 async def commit(repo: Path, msg: str) -> None:
-    _logger.debug("Committing %s with message %s", repo, msg)
+    _logger.debug("Committing %s with message '%s'", repo, msg)
     stat = await status(repo)
     assert len(stat.added) > 0
     args = ["commit", "-m", msg]
     proc = await asyncio.create_subprocess_exec("git", *args, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = await proc.wait()
     if ret != 0:
-        raise RuntimeError(f"Failed to commit {repo}")
+        out, err = await proc.communicate()
+        all_out = out.decode() + err.decode()
+        raise RuntimeError(f"Failed to commit {repo}. Output: {all_out}")
 
 
 async def push(repo: Path) -> None:
