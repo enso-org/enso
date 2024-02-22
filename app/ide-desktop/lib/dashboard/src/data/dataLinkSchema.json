@@ -6,7 +6,12 @@
       "anyOf": [
         { "$ref": "#/$defs/S3DataLink" },
         { "$ref": "#/$defs/HttpFetchDataLink" }
-      ]
+      ],
+      "properties": {
+        "version": { "type": "integer", "description": "Schema version of this data link instance." },
+        "libraryName": { "type": "string", "description": "Name of the library that provides the data link." }
+      },
+      "required": ["type", "version", "libraryName"]
     },
     "SecureValue": {
       "title": "Secure Value",
@@ -88,6 +93,8 @@
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "S3", "type": "string" },
+        "version": { "const": 1 },
+        "libraryName": { "const": "Standard.AWS" },
         "uri": {
           "title": "URI",
           "description": "Must start with \"s3://\".",
@@ -97,14 +104,15 @@
         "auth": { "title": "Authentication", "$ref": "#/$defs/AwsAuth" },
         "format": { "title": "Format", "$ref": "#/$defs/Format" }
       },
-      "required": ["type", "uri", "auth"]
+      "required": ["type","uri", "auth"]
     },
     "HttpFetchDataLink": {
-      "$comment": "missing <headers with secrets> OR <query string with secrets>",
+      "$comment": "missing <headers with secrets> and <query string with secrets>",
       "title": "HTTP Fetch",
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "HTTP", "type": "string" },
+        "libraryName": { "const": "Standard.Base" },
         "uri": {
           "title": "URI",
           "description": "Must start with \"http://\" or \"https://\".",
