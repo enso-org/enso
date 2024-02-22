@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 
 from . import JobReport, JobRun, Commit, Author
+from .bench_results import fetch_job_reports
 from .remote_cache import ReadonlyRemoteCache, SyncRemoteCache
 
 
@@ -23,6 +24,20 @@ sample_job_report = JobReport(
                 name="Pavel Marek"
             )
         )
+    )
+)
+
+stdlib_bench_run = JobRun(
+    id='7879611014',
+    display_title='Benchmark Standard Libraries',
+    html_url='https://github.com/enso-org/enso/actions/runs/7879611014',
+    run_attempt=1,
+    event='schedule',
+    head_commit=Commit(
+        id='eb59b475f68146f03fc3cef1092ee56eaaa1600a',
+        author=Author(name='Radosław Waśko'),
+        timestamp='2024-02-12T19:04:13Z',
+        message='Write support for S3 (#8921)\n\n- Closes #8809'
     )
 )
 
@@ -51,6 +66,12 @@ class TestReadonlyRemoteCache(unittest.IsolatedAsyncioTestCase):
         job_report = await remote_cache.fetch(bench_id)
         self.assertIsNotNone(job_report)
         self.assertEquals(bench_id, job_report.bench_run.id)
+
+    async def test_fetch_stdlib_report(self):
+        remote_cache = ReadonlyRemoteCache()
+        job_reports = await fetch_job_reports([stdlib_bench_run], remote_cache)
+        self.assertIsNotNone(job_reports)
+        self.assertEqual(1, len(job_reports))
 
 
 class TestSyncRemoteCache(unittest.IsolatedAsyncioTestCase):
@@ -82,3 +103,12 @@ class TestSyncRemoteCache(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(cache_dir.is_dir())
         self.assertTrue(remote_cache.engine_index_html().exists())
         self.assertTrue(remote_cache.stdlib_index_html().exists())
+
+    async def test_fetch_stdlib_report(self):
+        if not self.LOCAL_REPO_ROOT.exists():
+            self.skipTest(f"Local repo {self.LOCAL_REPO_ROOT} does not exist")
+        remote_cache = SyncRemoteCache(self.LOCAL_REPO_ROOT)
+        await remote_cache.initialize()
+        job_reports = await fetch_job_reports([stdlib_bench_run], remote_cache)
+        self.assertIsNotNone(job_reports)
+        self.assertEqual(1, len(job_reports))
