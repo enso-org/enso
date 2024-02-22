@@ -9,7 +9,7 @@ from os import path
 from typing import List, Dict, Optional, Any
 from xml.etree import ElementTree as ET
 
-from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport
+from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport, Source
 from bench_tool.gh import invoke_gh_api
 from bench_tool.remote_cache import RemoteCache
 from bench_tool.utils import WithTempDir, parse_bench_run_from_json
@@ -95,6 +95,10 @@ async def fetch_job_reports(
     return job_reports
 
 
+def _known_artifact_names() -> List[str]:
+    return Source.STDLIB.artifact_names() + Source.ENGINE.artifact_names()
+
+
 async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: RemoteCache) -> Optional[JobReport]:
     """
     Extracts some data from the given bench_run, which was fetched via the GH API,
@@ -112,11 +116,17 @@ async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: Remot
     obj: Dict[str, Any] = await invoke_gh_api(ENSO_REPO, f"/actions/runs/{bench_run.id}/artifacts")
     artifacts = obj["artifacts"]
     artifacts_by_names = {artifact["name"]: artifact for artifact in artifacts}
-    if ARTIFACT_ID not in artifacts_by_names:
-        _logger.warning("Bench run %s does not contain the artifact named %s, but it is a successful run.",
-                        bench_run.id, ARTIFACT_ID)
+    # At this point, we don't know the source of the benchmark - either it is from
+    # Engine, or from stdlib. Thus, we don't know exactly which artifact name we
+    # are looking for. But we know, there must be exactly one of the artifact names.
+    bench_report_artifact = None
+    for known_name in _known_artifact_names():
+        if known_name in artifacts_by_names:
+            bench_report_artifact = artifacts_by_names[known_name]
+    if bench_report_artifact is None:
+        _logger.warning(f"Bench run {bench_run.id} does not contain any of the known artifact names: "
+                        f"{_known_artifact_names()}, but it is a successful run.")
         return None
-    bench_report_artifact = artifacts_by_names[ARTIFACT_ID]
     assert bench_report_artifact, "Benchmark Report artifact not found"
     artifact_id = str(bench_report_artifact["id"])
     created_at = bench_report_artifact["created_at"]

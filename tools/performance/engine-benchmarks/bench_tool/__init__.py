@@ -58,6 +58,14 @@ class Source(Enum):
         else:
             raise ValueError(f"Unknown source {self}")
 
+    def artifact_names(self) -> List[str]:
+        if self == Source.ENGINE:
+            return ["Runtime Benchmark Report"]
+        elif self == Source.STDLIB:
+            return ["Enso JMH Benchmark Report"]
+        else:
+            raise ValueError(f"Unknown source {self}")
+
 
 @dataclass
 class Author:
