@@ -222,16 +222,15 @@ impl RunContext {
     async fn upload_native_image_arg_files(&self) -> Result {
         debug!("Uploading Native Image Arg Files");
         let engine_runner_ni_argfile =
-            self.repo_root.engine.runner.target.native_image_args_txt.path.clone();
-        let launcher_ni_argfile =
-            self.repo_root.engine.launcher.target.native_image_args_txt.path.clone();
+            &self.repo_root.engine.runner.target.native_image_args_txt.path;
+        let launcher_ni_argfile = &self.repo_root.engine.launcher.target.native_image_args_txt.path;
         let project_manager_ni_argfile =
-            self.repo_root.lib.scala.project_manager.target.native_image_args_txt.path.clone();
-        let native_image_arg_files: HashMap<&PathBuf, &str> = HashMap::from_iter([
-            (&engine_runner_ni_argfile, "Engine Runner"),
-            (&launcher_ni_argfile, "Launcher"),
-            (&project_manager_ni_argfile, "Project Manager"),
-        ]);
+            &self.repo_root.lib.scala.project_manager.target.native_image_args_txt.path;
+        let native_image_arg_files = [
+            (engine_runner_ni_argfile, "Engine Runner"),
+            (launcher_ni_argfile, "Launcher"),
+            (project_manager_ni_argfile, "Project Manager"),
+        ];
         for (argfile, artifact_name) in native_image_arg_files {
             if argfile.exists() {
                 ide_ci::actions::artifacts::upload_single_file(&argfile, artifact_name).await?;
