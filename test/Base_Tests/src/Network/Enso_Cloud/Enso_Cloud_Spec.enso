@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Data.Enso_Cloud.Errors.Enso_Cloud_Error
-import Standard.Base.Data.Enso_Cloud.Errors.Not_Logged_In
+import Standard.Base.Enso_Cloud.Errors.Enso_Cloud_Error
+import Standard.Base.Enso_Cloud.Errors.Not_Logged_In
 import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
