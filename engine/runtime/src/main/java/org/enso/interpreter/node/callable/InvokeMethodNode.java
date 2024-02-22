@@ -848,8 +848,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     } else {
       if (symbol.getScope().getMethodForPolyglot(self, symbol.getName(), true)
           instanceof Function function) {
-        var lessArgs = Arrays.copyOfRange(arguments, 1, arguments.length);
-        return invokeFunctionNode.execute(function, frame, state, lessArgs);
+        return invokeFunctionNode.execute(function, frame, state, arguments);
       } else {
         throw ctx.raiseAssertionPanic(this, "Error", null);
       }

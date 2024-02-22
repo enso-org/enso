@@ -204,7 +204,8 @@ public final class ModuleScope implements EnsoObject {
 
   private final Map<String, Map<String, Supplier<Function>>> polyMethods = new HashMap<>();
 
-  public void registerPolyglotMethod(Object metaObject, String name, Supplier<Function> fn) {
+  public void registerPolyglotMethod(
+      Object metaObject, String name, boolean instance, Supplier<Function> fn) {
     String meta = metaKey(metaObject);
     var m = polyMethods.get(meta);
     if (m == null) {

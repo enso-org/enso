@@ -52,6 +52,11 @@ final class IrToTruffleUtils {
   }
 
   static MethodRegistrar wrapPolyglot(EnsoContext ctx, Object metaObject) {
+    return wrapPolyglot(ctx, metaObject, true);
+  }
+
+  private static MethodRegistrar wrapPolyglot(
+      EnsoContext ctx, Object metaObject, boolean instance) {
     var iop = InteropLibrary.getUncached(metaObject);
     assert iop.isMetaObject(metaObject);
     return new MethodRegistrar() {
@@ -62,7 +67,7 @@ final class IrToTruffleUtils {
 
       @Override
       public MethodRegistrar getEigentype() {
-        return wrap(forType().getEigentype());
+        return wrapPolyglot(ctx, metaObject, false);
       }
 
       @Override
@@ -77,7 +82,7 @@ final class IrToTruffleUtils {
 
       @Override
       public void registerMethod(ModuleScope scope, String name, Supplier<Function> fn) {
-        scope.registerPolyglotMethod(metaObject, name, fn);
+        scope.registerPolyglotMethod(metaObject, name, instance, fn);
       }
     };
   }
