@@ -1,0 +1,42 @@
+import project.Any.Any
+import project.Nothing.Nothing
+import project.System.File_Format.JSON_Format
+import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File_Format_Metadata.File_Format_Metadata
+import project.System.Input_Stream.Input_Stream
+
+## PRIVATE
+   A file format for reading data links.
+type Data_Link_Format
+    ## PRIVATE
+       If the File_Format supports reading from the file, return a configured instance.
+    for_read : File_Format_Metadata -> Data_Link_Format | Nothing
+    for_read file:File_Format_Metadata =
+        case file.guess_extension of
+            ".datalink" -> Data_Link_Format
+            _ -> Nothing
+
+    ## PRIVATE
+       Currently writing data links is not supported.
+    for_file_write : Writable_File -> Nothing
+    for_file_write file =
+        _ = file
+        Nothing
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems =
+        json = JSON_Format.read file on_problems
+        interpret_json_as_datalink json on_problems
+
+    ## PRIVATE
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
+        json = JSON_Format.read_stream stream metadata
+        interpret_json_as_datalink json metadata
+
+## PRIVATE
+interpret_json_as_datalink json on_problems =
+    "TODO"
