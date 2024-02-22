@@ -144,6 +144,7 @@ export default function Dashboard(props: DashboardProps) {
     () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
     [session.user]
   )
+  const isCloud = backend.type === backendModule.BackendType.remote
 
   React.useEffect(() => {
     setInitialized(true)
@@ -437,6 +438,7 @@ export default function Dashboard(props: DashboardProps) {
         >
           <TopBar
             supportsLocalBackend={supportsLocalBackend}
+            isCloud={isCloud}
             projectAsset={projectStartupInfo?.projectAsset ?? null}
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
             page={page}

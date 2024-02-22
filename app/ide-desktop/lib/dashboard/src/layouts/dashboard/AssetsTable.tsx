@@ -619,12 +619,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         case 'no':
         case '-has': {
-          setSuggestions(SUGGESTIONS_FOR_NO)
+          setSuggestions(isCloud ? SUGGESTIONS_FOR_NO : [])
           break
         }
         case 'has':
         case '-no': {
-          setSuggestions(SUGGESTIONS_FOR_HAS)
+          setSuggestions(isCloud ? SUGGESTIONS_FOR_HAS : [])
           break
         }
         case 'type': {
@@ -726,24 +726,26 @@ export default function AssetsTable(props: AssetsTableProps) {
         case 'label':
         case '-label': {
           setSuggestions(
-            Array.from(
-              allLabels.values(),
-              (label): assetSearchBar.Suggestion => ({
-                render: () => (
-                  <Label active color={label.color} onClick={() => {}}>
-                    {label.value}
-                  </Label>
-                ),
-                addToQuery: oldQuery =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                  ),
-                deleteFromQuery: oldQuery =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                  ),
-              })
-            )
+            !isCloud
+              ? []
+              : Array.from(
+                  allLabels.values(),
+                  (label): assetSearchBar.Suggestion => ({
+                    render: () => (
+                      <Label active color={label.color} onClick={() => {}}>
+                        {label.value}
+                      </Label>
+                    ),
+                    addToQuery: oldQuery =>
+                      oldQuery.addToLastTerm(
+                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                      ),
+                    deleteFromQuery: oldQuery =>
+                      oldQuery.deleteFromLastTerm(
+                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                      ),
+                  })
+                )
           )
 
           break
@@ -754,7 +756,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
+  }, [isCloud,assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
 
   React.useEffect(() => {
     if (rawQueuedAssetEvents.length !== 0) {
