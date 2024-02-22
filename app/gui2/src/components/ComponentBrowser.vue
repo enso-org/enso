@@ -43,7 +43,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [searcherExpression: string, requiredImports: RequiredImport[], anyInputChange: boolean]
   canceled: []
 }>()
 
@@ -166,7 +165,11 @@ useEvent(
     if (event.button !== 0) return
     if (!(event.target instanceof Element)) return
     if (!cbRoot.value?.contains(event.target)) {
-      emit('closed', input.code.value, input.importsToAdd(), input.anyChange.value)
+      if (input.anyChange.value) {
+        emit('accepted', input.code.value, input.importsToAdd())
+      } else {
+        emit('canceled')
+      }
     }
   },
   { capture: true },
