@@ -2505,7 +2505,7 @@ type Table
                     c -> Aggregate_Column_Helper.default_aggregate_column_name c include_column_name
 
             data_columns = validated_values.map c->
-                col_name = if c.new_name != "" then c.new_name else
+                col_name = if c.as != "" then c.as else
                     Aggregate_Column_Helper.default_aggregate_column_name c
                 Aggregate_Column_Helper.java_aggregator col_name c
 
@@ -2518,7 +2518,7 @@ type Table
                         Table.Value new_java_table
                     False ->
                         aggregate_names = validated_values.map c->
-                            if c.new_name != "" then c.new_name else (name_mapper c)
+                            if c.as != "" then c.as else (name_mapper c)
 
                         too_many_columns caught_panic =
                             inner_panic = caught_panic.payload

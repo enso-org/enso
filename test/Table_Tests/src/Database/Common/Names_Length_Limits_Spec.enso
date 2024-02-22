@@ -372,7 +372,7 @@ add_specs suite_builder prefix create_connection_func =
                 src = Table.new [["X", [1, 2, 3]]]
                 db_table = src.select_into_database_table data.connection (Name_Generator.random_name "long-column-names") temporary=True
                 long_name = "a" * (max_column_name_length + 1)
-                r = db_table.aggregate columns=[Aggregate_Column.Maximum "X" new_name=long_name]
+                r = db_table.aggregate columns=[Aggregate_Column.Maximum "X" as=long_name]
                 r.should_fail_with Name_Too_Long
                 r.catch.entity_kind . should_equal "column"
                 r.catch.name . should_equal long_name
