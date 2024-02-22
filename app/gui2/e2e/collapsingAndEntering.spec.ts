@@ -63,9 +63,19 @@ test('Collapsing nodes', async ({ page }) => {
   const initialNodesCount = await locate.graphNode(page).count()
   await mockCollapsedFunctionInfo(page, 'final', 'func1')
 
-  await locate.graphNodeByBinding(page, 'ten').click({ modifiers: ['Shift'] })
-  await locate.graphNodeByBinding(page, 'sum').click({ modifiers: ['Shift'] })
-  await locate.graphNodeByBinding(page, 'prod').click({ modifiers: ['Shift'] })
+  // Widgets may "steal" clicks, so we always click at icon.
+  await locate
+    .graphNodeByBinding(page, 'ten')
+    .locator('.icon')
+    .click({ modifiers: ['Shift'] })
+  await locate
+    .graphNodeByBinding(page, 'sum')
+    .locator('.icon')
+    .click({ modifiers: ['Shift'] })
+  await locate
+    .graphNodeByBinding(page, 'prod')
+    .locator('.icon')
+    .click({ modifiers: ['Shift'] })
 
   await page.keyboard.press(COLLAPSE_SHORTCUT)
   await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 2)
@@ -79,7 +89,10 @@ test('Collapsing nodes', async ({ page }) => {
   await customExpect.toExist(locate.graphNodeByBinding(page, 'sum'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'prod'))
 
-  locate.graphNodeByBinding(page, 'ten').click({ modifiers: ['Shift'] })
+  locate
+    .graphNodeByBinding(page, 'ten')
+    .locator('.icon')
+    .click({ modifiers: ['Shift'] })
   // Wait till node is selected.
   await expect(locate.graphNodeByBinding(page, 'ten').and(page.locator('.selected'))).toHaveCount(1)
   await page.keyboard.press(COLLAPSE_SHORTCUT)

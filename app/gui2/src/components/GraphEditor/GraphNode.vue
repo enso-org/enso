@@ -173,6 +173,7 @@ const dragPointer = usePointer((pos, event, type) => {
         pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
         nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
+        handleNodeClick(event)
         menuVisible.value = MenuState.Partial
       }
       startEvent = null
@@ -419,8 +420,8 @@ function openFullMenu() {
     <div
       ref="contentNode"
       class="node"
-      @click.stop="handleNodeClick"
       v-on="dragPointer.events"
+      @click.stop
       @pointerdown.stop
       @pointerup.stop
     >
