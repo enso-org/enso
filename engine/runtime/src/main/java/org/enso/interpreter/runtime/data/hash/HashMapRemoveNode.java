@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -47,7 +48,7 @@ public abstract class HashMapRemoveNode extends Node {
     }
   }
 
-  @Specialization(guards = "interop.hasHashEntries(map)")
+  @Fallback
   EnsoHashMap removeFromInteropMap(
       VirtualFrame frame,
       Object map,
@@ -65,7 +66,7 @@ public abstract class HashMapRemoveNode extends Node {
       while (interop.hasIteratorNextElement(entriesIterator)) {
         Object keyValueArr = interop.getIteratorNextElement(entriesIterator);
         Object key = interop.readArrayElement(keyValueArr, 0);
-        if (equalsNode.execute(frame, keyToRemove, key)) {
+        if (polyglotEquals(key, keyToRemove, frame, equalsNode, interop)) {
           if (keyToRemoveFound) {
             CompilerDirectives.transferToInterpreter();
             var ctx = EnsoContext.get(this);
@@ -92,6 +93,24 @@ public abstract class HashMapRemoveNode extends Node {
     } else {
       CompilerDirectives.transferToInterpreter();
       throw DataflowError.withoutTrace("No such key " + keyToRemove, interop);
+    }
+  }
+
+  /** A special case of equals - we want to be able to remove NaN from the map. */
+  private static boolean polyglotEquals(
+      Object obj1, Object obj2, VirtualFrame frame, EqualsNode equalsNode, InteropLibrary interop) {
+    if (isNan(obj1, interop) && isNan(obj2, interop)) {
+      return true;
+    } else {
+      return equalsNode.execute(frame, obj1, obj2);
+    }
+  }
+
+  private static boolean isNan(Object obj, InteropLibrary interop) {
+    try {
+      return interop.fitsInDouble(obj) && Double.isNaN(interop.asDouble(obj));
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
   }
 }
