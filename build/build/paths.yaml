@@ -1,5 +1,5 @@
 # This file is used to generate `target/<profile>/build/enso-build-<hash>/out/paths.rs`.
-# Generation logic is in `src/paths.rs`.
+# Generation logic is in `build/macros/lib/src/paths.rs`.
 
 <repo_root>/:
   .github/:
