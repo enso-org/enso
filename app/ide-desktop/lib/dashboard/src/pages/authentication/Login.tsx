@@ -1,22 +1,23 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as React from 'react'
 
-import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
 import * as router from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
+import GithubIcon from 'enso-assets/github.svg'
+import GoogleIcon from 'enso-assets/google.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
 
-import FontAwesomeIcon from '#/components/FontAwesomeIcon'
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
+import SvgMask from '#/components/SvgMask'
 
 import * as validation from '#/utilities/validation'
 
@@ -58,7 +59,10 @@ export default function Login(props: LoginProps) {
             }}
             className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
           >
-            <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
+            <SvgMask
+              src={GoogleIcon}
+              className="absolute left-0 top-1/2 -translate-y-1/2 text-blue-500 mx-3 h-full w-4"
+            />
             Sign up or login with Google
           </button>
           <button
@@ -71,7 +75,10 @@ export default function Login(props: LoginProps) {
             }}
             className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
           >
-            <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
+            <SvgMask
+              src={GithubIcon}
+              className="absolute left-0 top-1/2 -translate-y-1/2 text-blue-500 mx-3 h-full w-4"
+            />
             Sign up or login with GitHub
           </button>
         </div>

@@ -30,9 +30,6 @@
   "dependencies": {
     "@aws-amplify/auth": "^5.6.5",
     "@aws-amplify/core": "^5.8.5",
-    "@fortawesome/fontawesome-svg-core": "^6.4.2",
-    "@fortawesome/free-brands-svg-icons": "^6.4.2",
-    "@fortawesome/react-fontawesome": "^0.2.0",
     "@sentry/react": "^7.74.0",
     "enso-common": "^1.0.0",
     "is-network-error": "^1.0.1",
