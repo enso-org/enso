@@ -287,6 +287,9 @@ add_specs suite_builder =
             vec = [[0, 0], [3, -5], [1, 2]]
             Map.from_vector vec . should_equal expected
 
+        group_builder.specify "should fail when building the map from wrong vector" <|
+          Map.from_vector [["A", 1, "B", 2]] . should_fail_with Illegal_Argument
+
         group_builder.specify "should not allow duplicates when building the map from a vector, unless explicitly allowed" <|
             vec = [[0, 0], [3, -5], [1, 2], [0, 1]]
             m1 = Map.from_vector vec
@@ -582,6 +585,14 @@ add_specs suite_builder =
             map.to_vector . should_contain_the_same_elements_as [["A", 1], ["B", 2], ["C", 3]]
             py_empty_dict.is_empty.should_be_true
             py_empty_dict.insert "A" 1 . insert "A" 2 . get "A" . should_equal 2
+
+        group_builder.specify "should be able to remove entries" pending=pending_python_missing <|
+          py_dict_from_vec ["A", 1, "B", 2] . remove "A" . size . should_equal 1
+          py_dict_from_vec ["A", 1, "B", 2] . remove "A" . get "B" . should_equal 2
+          # Let's test EnoHashMap removal after polyglot hash map removal.
+          # This test used to fail because of some internal engine bug.
+          Map.from_vector [["A", 1], ["B", 2]] . remove "A" . size . should_equal 1
+
 
         group_builder.specify "should pass maps with null keys to Python and back" pending=pending_python_missing <|
             # Python supports None as keys, Enso support Nothing as keys
