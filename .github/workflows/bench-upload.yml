@@ -44,15 +44,15 @@ jobs:
           cd enso/tools/performance/engine-benchmarks
           python3 website_regen.py \
             -v \
-            --dry-run \
-            --local-repo  engine-benchmark-results
+           --dry-run \
+            --local-repo  ${{ github.workspace }}/engine-benchmark-results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload benchmarks
-        # TODO: Remove the --dry-run arg
         run: |
           cd enso/tools/performance/engine-benchmarks
           python3 website_regen.py \
             -v \
-            --dry-run \
             --local-repo  ${{ github.workspace }}/engine-benchmark-results
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
