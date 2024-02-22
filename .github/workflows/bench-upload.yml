@@ -54,3 +54,5 @@ jobs:
             -v \
             --dry-run \
             --local-repo  ${{ github.workspace }}/engine-benchmark-results
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
