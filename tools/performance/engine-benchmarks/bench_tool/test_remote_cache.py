@@ -65,7 +65,7 @@ class TestReadonlyRemoteCache(unittest.IsolatedAsyncioTestCase):
         await remote_cache.put(bench_id, sample_job_report)
         job_report = await remote_cache.fetch(bench_id)
         self.assertIsNotNone(job_report)
-        self.assertEquals(bench_id, job_report.bench_run.id)
+        self.assertEqual(bench_id, job_report.bench_run.id)
 
     async def test_fetch_stdlib_report(self):
         remote_cache = ReadonlyRemoteCache()
