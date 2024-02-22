@@ -827,13 +827,24 @@ export default function AssetsTable(props: AssetsTableProps) {
     (newSelectedKeys: ReadonlySet<backendModule.AssetId>) => {
       selectedKeysRef.current = newSelectedKeys
       setSelectedKeysRaw(newSelectedKeys)
+      if (!isCloud) {
+        setCanDownloadFiles(newSelectedKeys.size !== 0)
+      } else {
+        setCanDownloadFiles(
+          newSelectedKeys.size !== 0 &&
+            Array.from(newSelectedKeys).every(key => {
+              const node = nodeMapRef.current.get(key)
+              return node?.item.type === backendModule.AssetType.file
+            })
+        )
+      }
     },
-    []
+    [isCloud, /* should never change */ setCanDownloadFiles]
   )
 
   const clearSelectedKeys = React.useCallback(() => {
     setSelectedKeys(new Set())
-  }, [/* should never change */ setSelectedKeys])
+  }, [setSelectedKeys])
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
@@ -1558,7 +1569,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     setSelectedKeys(new Set())
   }, [
     pasteData,
-    /* should never change */ setSelectedKeys,
+    setSelectedKeys,
     /* should never change */ unsetModal,
     /* should never change */ dispatchAssetEvent,
   ])
@@ -1747,7 +1758,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     return () => {
       document.removeEventListener('click', onDocumentClick)
     }
-  }, [shortcutManager, /* should never change */ setSelectedKeys])
+  }, [shortcutManager, setSelectedKeys])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -1811,12 +1822,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       setPreviouslySelectedKey(key)
     },
-    [
-      displayItems,
-      previouslySelectedKey,
-      shortcutManager,
-      /* should never change */ setSelectedKeys,
-    ]
+    [displayItems, previouslySelectedKey, shortcutManager, setSelectedKeys]
   )
 
   const columns = columnUtils.getColumnList(backend.type, extraColumns)
