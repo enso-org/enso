@@ -3,6 +3,8 @@
 
 name: Benchmarks upload
 on:
+  pull_request:
+    branches: ["*"]
   schedule:
     - cron: 0 0 * * *
   workflow_dispatch:
