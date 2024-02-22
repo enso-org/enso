@@ -7,7 +7,7 @@ on:
     - cron: 0 0 * * *
   workflow_dispatch:
     inputs:
-      dry-run:
+      just-check:
         description: If set, no results will be uploaded.
         required: true
         type: boolean
@@ -37,5 +37,5 @@ jobs:
           cd enso/tools/performance/engine-benchmarks/bench_tool
           python3 website_regen.py \
             -v \
-            ${{ if github.event.inputs.dry-run}} --dry-run ${{ endif }} \
+            ${{ if github.event.inputs.just-check}} --dry-run ${{ endif }} \
             --local-repo  engine-benchmark-results
