@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.runner
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 
 /** Represents settings that are used to launch the runner JAR.
   *
