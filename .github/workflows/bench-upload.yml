@@ -32,7 +32,11 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 python3-jinja2 python3-numpy
+          sudo apt-get install -y \
+            python3 \
+            python3-jinja2 \
+            python3-numpy \
+            python3-pandas
           sudo apt-get install -y gh
       - name: Upload benchmarks (dry-run)
         if: ${{ github.event.inputs.just-check }}
