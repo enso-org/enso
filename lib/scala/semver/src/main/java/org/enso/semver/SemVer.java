@@ -13,17 +13,19 @@ public final class SemVer {
   private final long patch;
   private final String preRelease;
   private final String prefix;
+  private final String buildMetadata;
 
   private static final Pattern regex =
       Pattern.compile(
-          "^([a-z]+-)?(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)(-[0-9A-Za-z-\\.]+)?$");
+          "^([a-z]+-)?(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)(-[0-9A-Za-z-\\.]+)?(\\+[0-9A-Za-z-\\.\\+]+)?$");
 
-  private SemVer(long major, long minor, long patch, String preRelease, String prefix) {
+  private SemVer(long major, long minor, long patch, String preRelease, String prefix, String buildMetadata) {
     this.major = major;
     this.minor = minor;
     this.patch = patch;
     this.preRelease = preRelease;
     this.prefix = prefix;
+    this.buildMetadata = buildMetadata;
   }
 
   private SemVer(long major, long minor, long patch, String preRelease) {
@@ -32,6 +34,7 @@ public final class SemVer {
     this.patch = patch;
     this.preRelease = preRelease;
     this.prefix = null;
+    this.buildMetadata = null;
   }
 
   private SemVer(long major, long minor, long patch) {
@@ -40,6 +43,7 @@ public final class SemVer {
     this.patch = patch;
     this.preRelease = null;
     this.prefix = null;
+    this.buildMetadata = null;
   }
 
   public static Try<SemVer> parse(String version) {
@@ -47,14 +51,16 @@ public final class SemVer {
     if (match.find()) {
       var prefix = match.groupCount() > 0 ? match.group(1) : null;
       var preRelease =
-          match.groupCount() == 5 && match.group(5) != null ? match.group(5).substring(1) : null;
+          match.groupCount() == 6 && match.group(5) != null ? match.group(5).substring(1) : null;
+      var buildMetadata =
+              match.groupCount() == 6 && match.group(6) != null ? match.group(6).substring(1) : null;
       return Success.apply(
           new SemVer(
               Integer.valueOf(match.group(2)),
               Integer.valueOf(match.group(3)),
               Integer.valueOf(match.group(4)),
               preRelease,
-              prefix));
+              prefix, buildMetadata));
 
     } else {
       return Failure.apply(new RuntimeException("Invalid version " + version));
@@ -97,8 +103,10 @@ public final class SemVer {
     return preRelease;
   }
 
+  public String getBuildMetadata() { return buildMetadata; }
+
   /**
-   * Compares two versions. Comparison ignores an optional prefix.
+   * Compares two versions. Comparison ignores an optional prefix or build metadata suffix.
    *
    * @param v version to compare to
    * @return -1 if this version is less than `v`, 1 if it is bigger than `v`, and 0 if they are the

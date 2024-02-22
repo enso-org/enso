@@ -28,6 +28,10 @@ public class VersionsTest {
     assertTrue(r4.get().preReleaseVersion() != null);
     assertTrue(!r4.get().equals(SemVer.of(0, 1, 0)));
     assertEquals("parsed version should preserve prefix", r4.get().toString(), "enso-0.1.0-b");
+    var r5 = SemVer.parse("1.2.3+21");
+    assertTrue(r5.isSuccess());
+    assertTrue(r5.get().preReleaseVersion() == null);
+    assertTrue(r5.get().getBuildMetadata().equals("21"));
   }
 
   @Test
