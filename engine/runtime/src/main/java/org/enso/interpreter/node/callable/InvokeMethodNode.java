@@ -850,6 +850,17 @@ public abstract class InvokeMethodNode extends BaseNode {
           instanceof Function function) {
         if (function.getSchema().getArgumentsCount() == arguments.length - 1
             && "self".equals(function.getSchema().getArgumentInfos()[0].getName())) {
+          var ok = false;
+          try {
+            if (interop.isMetaInstance(arguments[0], arguments[1])) {
+              ok = true;
+            }
+          } catch (UnsupportedMessageException ex) {
+          }
+          if (!ok) {
+            var err = ctx.getBuiltins().error().makeTypeError(arguments[0], arguments[1], "self");
+            throw new PanicException(err, this);
+          }
           var lessArgs = Arrays.copyOfRange(arguments, 1, arguments.length);
           var lessSchema =
               Arrays.copyOfRange(

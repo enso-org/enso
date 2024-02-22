@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 from Standard.Test import all
 
 from project.Data.Polyglot_Extensions import all
@@ -51,6 +52,9 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
         hold = IntHolder.new (6 * 7)
         v = IntHolder.value_plus hold 3
         v . should_equal 45
+
+    group_builder.specify "extension method (static syntax) checks self type" <|
+        Test.expect_panic Type_Error (IntHolder.value_plus 10 12)
 
     group_builder.specify "static extension method on IntHolder" <|
         hold = IntHolder.create (6 * 7)
