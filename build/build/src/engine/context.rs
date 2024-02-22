@@ -227,9 +227,9 @@ impl RunContext {
         let project_manager_ni_argfile =
             &self.repo_root.lib.scala.project_manager.target.native_image_args_txt.path;
         let native_image_arg_files = [
-            (engine_runner_ni_argfile, "Engine Runner"),
-            (launcher_ni_argfile, "Launcher"),
-            (project_manager_ni_argfile, "Project Manager"),
+            (engine_runner_ni_argfile, "Engine Runner native-image-args"),
+            (launcher_ni_argfile, "Launcher native-image-args"),
+            (project_manager_ni_argfile, "Project Manager native-image-args"),
         ];
         for (argfile, artifact_name) in native_image_arg_files {
             if argfile.exists() {
