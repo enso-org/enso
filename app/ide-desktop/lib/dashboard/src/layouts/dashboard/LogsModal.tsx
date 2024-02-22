@@ -9,7 +9,7 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link LogsModal}. */
 export interface LogsModalProps {
-  logs: string
+  readonly logs: string
 }
 
 /** A modal for confirming the deletion of an asset. */
