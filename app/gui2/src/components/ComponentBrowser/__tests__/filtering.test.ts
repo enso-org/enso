@@ -181,8 +181,16 @@ test.each([
   expect(filtering.filter(entry)).toBeNull()
 })
 
-test.each(['bar', 'barfoo', 'fo', 'bar_fo_bar'])("%s is not matched by pattern 'foo'", (name) => {
-  const pattern = 'foo'
+test.each`
+  name            | pattern
+  ${'bar'}        | ${'foo'}
+  ${'barfoo'}     | ${'foo'}
+  ${'fo'}         | ${'foo'}
+  ${'bar_fo_bar'} | ${'foo'}
+  ${'bar'}        | ${'+'}
+  ${'*'}          | ${'+'}
+  ${'<='}         | ${'='}
+`('$name is not matched by pattern $pattern', ({ name, pattern }) => {
   const entry = makeModuleMethod(`local.Project.${name}`)
   const filtering = new Filtering({ pattern })
   expect(filtering.filter(entry)).toBeNull()
@@ -258,6 +266,43 @@ test('Matching pattern with underscores', () => {
   ]
   const matchResults = Array.from(matchedSorted, ({ name, aliases }) => {
     const entry = { ...makeModuleMethod(`local.Project.${name}`), aliases: aliases ?? [] }
+    return filtering.filter(entry)
+  })
+  expect(matchResults[0]).not.toBeNull()
+  expect(
+    matchedText(matchedSorted[0]!.name, matchResults[0]!),
+    `matchedText('${matchedSorted[0]!.name}')`,
+  ).toEqual(pattern)
+  for (let i = 1; i < matchResults.length; i++) {
+    expect(
+      matchResults[i],
+      `\`matchResults\` for ${JSON.stringify(matchedSorted[i]!)}`,
+    ).not.toBeNull()
+    expect(
+      matchResults[i]!.score,
+      `score('${matchedSorted[i]!.name}') > score('${matchedSorted[i - 1]!.name}')`,
+    ).toBeGreaterThan(matchResults[i - 1]!.score)
+    expect(
+      matchedText(matchedSorted[i]!.name, matchResults[i]!),
+      `matchedText('${matchedSorted[i]!.name}')`,
+    ).toEqual(pattern)
+  }
+})
+
+test('Matching operators', () => {
+  const pattern = '+'
+  const filtering = new Filtering({
+    pattern,
+    selfArg: { type: 'known', typename: 'local.Project.Type' },
+  })
+  const matchedSorted = [
+    { name: '+' }, // exact match
+    { name: '+=' }, // prefix match
+    { name: 'add', aliases: ['+'] }, // alias exact match
+    { name: 'increase', aliases: ['+='] }, // alias match
+  ]
+  const matchResults = Array.from(matchedSorted, ({ name, aliases }) => {
+    const entry = { ...makeMethod(`local.Project.Type.${name}`), aliases: aliases ?? [] }
     return filtering.filter(entry)
   })
   expect(matchResults[0]).not.toBeNull()
