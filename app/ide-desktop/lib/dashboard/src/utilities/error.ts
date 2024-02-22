@@ -1,11 +1,10 @@
 /** @file Contains useful error types common across the module. */
-import type * as toastify from 'react-toastify'
 
 // =====================
 // === tryGetMessage ===
 // =====================
 
-/** Evaluates the given type only if it the exact same type as `Expected`. */
+/** Evaluates to the given type only if it the exact same type as `Expected`. */
 type MustBe<T, Expected> = (<U>() => U extends T ? 1 : 2) extends <U>() => U extends Expected
   ? 1
   : 2
@@ -22,7 +21,7 @@ export type MustNotBeKnown<T> =
   // eslint-disable-next-line @typescript-eslint/ban-types, no-restricted-syntax
   MustBe<T, {}> | MustBe<T, object> | MustBe<T, unknown> | MustBeAny<T>
 
-/** Extracts the `message` property of a value if it is a string. Intended to be used on
+/** Extract the `message` property of a value if it is a string. Intended to be used on
  * {@link Error}s. */
 export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null {
   const unknownError: unknown = error
@@ -32,27 +31,4 @@ export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null {
     typeof unknownError.message === 'string'
     ? unknownError.message
     : null
-}
-
-/** Extracts the `error` property of a value if it is a string. */
-export function tryGetError<T>(error: MustNotBeKnown<T>): string | null {
-  const unknownError: unknown = error
-  return unknownError != null &&
-    typeof unknownError === 'object' &&
-    'error' in unknownError &&
-    typeof unknownError.error === 'string'
-    ? unknownError.error
-    : null
-}
-
-/** Like {@link tryGetMessage} but return the string representation of the value if it is not an
- * {@link Error}. */
-export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
-  return tryGetMessage(error) ?? String(error)
-}
-
-/** Return a toastify option object that renders an error message. */
-// eslint-disable-next-line no-restricted-syntax
-export function render(f: (message: string) => string): toastify.UpdateOptions {
-  return { render: ({ data }) => f(getMessageOrToString(data)) }
 }

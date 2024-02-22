@@ -12,7 +12,7 @@ import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
 import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
-import * as errorModule from '#/utilities/error'
+import type * as errorModule from '#/utilities/error'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -31,9 +31,23 @@ const STATUS_NOT_FOUND = 404
 const STATUS_SERVER_ERROR = 500
 /** The interval between requests checking whether the IDE is ready. */
 const CHECK_STATUS_INTERVAL_MS = 5000
-
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
+
+// ===================
+// === tryGetError ===
+// ===================
+
+/** Extract the `error` property of a value if it is a string. */
+function tryGetError<T>(error: errorModule.MustNotBeKnown<T>): string | null {
+  const unknownError: unknown = error
+  return unknownError != null &&
+    typeof unknownError === 'object' &&
+    'error' in unknownError &&
+    typeof unknownError.error === 'string'
+    ? unknownError.error
+    : null
+}
 
 // ============================
 // === responseIsSuccessful ===
@@ -737,7 +751,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
         if (!responseIsSuccessful(response)) {
           let suffix = '.'
           try {
-            const error = errorModule.tryGetError<unknown>(await response.json())
+            const error = tryGetError<unknown>(await response.json())
             if (error != null) {
               suffix = `: ${error}`
             }
@@ -829,7 +843,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       if (!responseIsSuccessful(response)) {
         let suffix = '.'
         try {
-          const error = errorModule.tryGetError<unknown>(await response.json())
+          const error = tryGetError<unknown>(await response.json())
           if (error != null) {
             suffix = `: ${error}`
           }
@@ -1391,7 +1405,7 @@ export default class RemoteBackend extends Backend {
     if (!responseIsSuccessful(response)) {
       let suffix = '.'
       try {
-        const error = errorModule.tryGetError(await response.json())
+        const error = tryGetError(await response.json())
         if (error != null) {
           suffix = `: ${error}`
         }

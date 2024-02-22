@@ -25,12 +25,11 @@ export function useToastAndLog() {
         error == null
           ? `${messagePrefix ?? ''}.`
           : // DO NOT explicitly pass the generic parameter anywhere else.
-
             // It is only being used here because this function also checks for
             // `MustNotBeKnown<T>`.
-            `${
-              messagePrefix != null ? messagePrefix + ': ' : ''
-            }${errorModule.getMessageOrToString<unknown>(error)}`
+            `${messagePrefix != null ? messagePrefix + ': ' : ''}${
+              errorModule.tryGetMessage<unknown>(error) ?? String(error)
+            }`
       const id = toastify.toast.error(message, options)
       logger.error(message)
       return id
