@@ -91,8 +91,8 @@ make_metrics_vector_selector =
    - end_date: The end date being queried. Defaults to today.
 @dimensions make_dimensions_vector_selector
 @metrics make_metrics_vector_selector
-run_analytics_report : Text -> Date -> Date -> (Vector Text) -> Vector -> Table
-run_analytics_report property_id:Text start_date:Date=(Date.new 2020 3 31) end_date:Date=Date.today dimensions:(Vector)=['userType'] metrics:Vector=['users'] -> Table =
+run_analytics_report : Text -> Date -> Date -> (Vector Text) -> (Vector Text) -> Table
+run_analytics_report property_id:Text start_date:Date=(Date.new 2020 3 31) end_date:Date=Date.today dimensions:Vector=['userType'] metrics:Vector=['users'] -> Table =
     analytics_data = BetaAnalyticsDataClient.create
     request_builder = RunReportRequest.newBuilder
         . setProperty ("properties/"+property_id)
