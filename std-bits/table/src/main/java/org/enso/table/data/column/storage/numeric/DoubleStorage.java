@@ -44,8 +44,8 @@ public final class DoubleStorage extends NumericStorage<Double>
   /**
    * @param data the underlying data
    * @param size the number of items stored
-   * @param isNothing a bit set denoting at index {@code i} whether the value at index
-   *     {@code i} is Nothing.
+   * @param isNothing a bit set denoting at index {@code i} whether the value at index {@code i} is
+   *     Nothing.
    */
   public DoubleStorage(long[] data, int size, BitSet isNothing) {
     this.data = data;

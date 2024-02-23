@@ -71,11 +71,15 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
     if (hadTrue && !hadFalse) {
       newValues = storage.isNegated() ? isNothing.notAndNot(values) : isNothing.notAnd(values);
       newIsNothing =
-          hadNull ? (storage.isNegated() ? isNothing.or(values) : isNothing.orNot(values)) : isNothing;
+          hadNull
+              ? (storage.isNegated() ? isNothing.or(values) : isNothing.orNot(values))
+              : isNothing;
     } else if (!hadTrue && hadFalse) {
       newValues = storage.isNegated() ? isNothing.notAnd(values) : isNothing.notAndNot(values);
       newIsNothing =
-          hadNull ? (storage.isNegated() ? isNothing.orNot(values) : isNothing.or(values)) : isNothing;
+          hadNull
+              ? (storage.isNegated() ? isNothing.orNot(values) : isNothing.or(values))
+              : isNothing;
     } else if (hadTrue) {
       newValues = isNothing.not();
       newIsNothing = isNothing;

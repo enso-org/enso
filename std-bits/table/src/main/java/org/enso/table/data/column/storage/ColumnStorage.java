@@ -13,7 +13,7 @@ public interface ColumnStorage {
   /**
    * Checks whether the value at idx is Nothing.
    *
-   * @param index  – the index to check.
+   * @param index – the index to check.
    * @return whether the value is Nothing.
    */
   boolean isNothing(long index);

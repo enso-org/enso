@@ -30,8 +30,8 @@ public final class LongStorage extends AbstractLongStorage {
   /**
    * @param data the underlying data
    * @param size the number of items stored
-   * @param isNothing a bit set denoting at index {@code i} whether or not the value at index
-   *     {@code i} is missing.
+   * @param isNothing a bit set denoting at index {@code i} whether or not the value at index {@code
+   *     i} is missing.
    * @param type the type specifying the bit-width of integers that are allowed in this storage
    */
   public LongStorage(long[] data, int size, BitSet isNothing, IntegerType type) {
