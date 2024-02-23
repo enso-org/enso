@@ -671,7 +671,9 @@ function openFullMenu() {
   display: grid;
   overflow: hidden;
   grid-template-columns: 1fr;
-  transition: grid-template-columns 50ms;
+  transition:
+    grid-template-columns 50ms,
+    padding 50ms;
 
   > :deep(div) {
     min-width: 11px;
@@ -680,6 +682,7 @@ function openFullMenu() {
 
 .message.messageCollapsed {
   grid-template-columns: 0fr;
+  padding: 1px 6.5px;
 }
 
 .messageWithMenu {
