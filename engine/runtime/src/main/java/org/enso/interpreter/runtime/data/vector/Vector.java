@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -234,6 +235,18 @@ abstract class Vector implements EnsoObject {
         return WithWarnings.wrap(EnsoContext.get(interop), toEnso.execute(v), extracted);
       }
       return toEnso.execute(v);
+    }
+
+    @ExportMessage
+    void writeArrayElement(
+        long index,
+        Object element,
+        @Cached.Shared(value = "interop") @CachedLibrary(limit = "3") InteropLibrary interop)
+        throws InvalidArrayIndexException, UnsupportedMessageException, UnsupportedTypeException {
+      if (!interop.isArrayElementWritable(this.storage, index)) {
+        throw UnsupportedMessageException.create();
+      }
+      interop.writeArrayElement(this.storage, index, element);
     }
 
     /**

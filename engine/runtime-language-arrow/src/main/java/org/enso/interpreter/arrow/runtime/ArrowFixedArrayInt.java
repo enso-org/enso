@@ -88,7 +88,8 @@ public final class ArrowFixedArrayInt implements TruffleObject {
       return receiver.buffer.getLong(at);
     }
 
-    private static void validAccess(ArrowFixedArrayInt receiver, long index) throws InvalidArrayIndexException {
+    private static void validAccess(ArrowFixedArrayInt receiver, long index)
+        throws InvalidArrayIndexException {
       if (index >= receiver.size || index < 0) {
         throw InvalidArrayIndexException.create(index);
       }
@@ -104,7 +105,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
         long index,
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException, InvalidArrayIndexException{
+        throws UnsupportedMessageException, InvalidArrayIndexException {
       validAccess(receiver, index);
       if (!iop.fitsInByte(value)) {
         throw UnsupportedMessageException.create();
@@ -154,7 +155,8 @@ public final class ArrowFixedArrayInt implements TruffleObject {
       receiver.buffer.putLong(typeAdjustedIndex(index, receiver.unit), (iop.asLong(value)));
     }
 
-    private static void validAccess(ArrowFixedArrayInt receiver, long index) throws InvalidArrayIndexException{
+    private static void validAccess(ArrowFixedArrayInt receiver, long index)
+        throws InvalidArrayIndexException {
       if (index >= receiver.size || index < 0) {
         throw InvalidArrayIndexException.create(index);
       }

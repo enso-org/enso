@@ -1,9 +1,16 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
 from Standard.Test import all
 
 foreign arrow new_arrow = """
     new[Int8]
+
+Vector.set self index elem =
+    set_builtin self index elem
+
+set_builtin : (Vector | Array) -> Integer -> Any -> Nothing
+set_builtin vector at item = @Builtin_Method "Array_Like_Helpers.set_builtin"
 
 add_specs suite_builder =
     pending = if Polyglot.is_language_installed "arrow" then Nothing else """
@@ -17,6 +24,10 @@ add_specs suite_builder =
             v.length . should_equal 10
             v.at 1 . should_equal Nothing
             v.at 10 . should_fail_with Index_Out_Of_Bounds
+            v.set 1 10
+            v.at 1 . should_equal 10
+            v.set 8 127
+            v.set 8 128 . should_fail_with Unsupported_Argument_Types
 
 main =
     suite = Test.build suite_builder->
