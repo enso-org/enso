@@ -34,6 +34,16 @@ These are environment variables related to the cloud backend. If these variables
 are not set, the build will still work, however access to the cloud backend will
 be disabled.
 
+Note that `ENSO_CLOUD_ENV` may be set to instead load the files from a `.env`
+file. If `ENSO_CLOUD_ENV` is not set, or it is `production`, then variables are
+attempted to be read from `.env`. If it is set to any other value (say, `foo`),
+then it is loaded from `.foo.env`.
+
+(While the convention in the Node.js ecosystem is to name the variants like
+`.env.foo`, `.foo.env` has been chosen here because `.env` should be more like
+a file extension. Visual Studio Code also understands `.foo.env` but not
+`.env.foo`.)
+
 - `ENSO_CLOUD_REDIRECT`: The domain (or `localhost:8080`) where the login link
   should redirect. Should include neither a path, nor a trailing slash.
 - `ENSO_CLOUD_ENVIRONMENT`: The name of backend environment matching the
