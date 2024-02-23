@@ -171,7 +171,7 @@ test('Editing existing nodes', async ({ page }) => {
 
   // Edit again, using "edit" button
   await locate.graphNodeIcon(node).click()
-  await node.locator('.CircularMenu .slot6').click()
+  await node.getByTestId('edit-button').click()
   await expect(locate.componentBrowser(page)).toBeVisible()
   await expect(input).toHaveValue(`Data.read ${ADDED_PATH}`)
   for (let i = 0; i < ADDED_PATH.length; ++i) await page.keyboard.press('Backspace')
