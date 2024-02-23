@@ -3,7 +3,6 @@ import { Ast } from '@/util/ast'
 import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { MutableModule, type Identifier } from '../abstract'
-import { escape, unescape } from '../text'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
@@ -771,4 +770,11 @@ test('Code edit merging', () => {
   module.applyEdit(editA)
   module.applyEdit(editB)
   expect(module.root()?.code()).toBe('a = 10\nb = 20')
+})
+
+test('Analyze app-like', () => {
+  const appLike = Ast.parse('(Preprocessor.default_preprocessor 3 _ 5 _ <| 4) <| 6')
+  const { func, args } = Ast.analyzeAppLike(appLike)
+  expect(func.code()).toBe('Preprocessor.default_preprocessor')
+  expect(args.map((ast) => ast.code())).toEqual(['3', '4', '5', '6'])
 })

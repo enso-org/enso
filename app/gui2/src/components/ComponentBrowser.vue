@@ -23,7 +23,8 @@ import { allRanges } from '@/util/data/range'
 import { Vec2 } from '@/util/data/vec2'
 import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import { computed, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, onMounted, reactive, ref, watch, type ComputedRef, type Ref } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -261,6 +262,18 @@ const previewedExpression = debouncedGetter(() => {
   else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
 }, 200)
 
+const previewedExpressionSuggestionId = ref<SuggestionId>()
+
+watch(previewedExpression, () => {
+  previewedExpressionSuggestionId.value = selectedSuggestionId.value ?? undefined
+})
+
+const previewedExpressionSuggestionReturnType = computed(() => {
+  const id = previewedExpressionSuggestionId.value
+  if (id == null) return
+  return suggestionDbStore.entries.get(id)?.returnType
+})
+
 const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
   if (!previewedExpression.value.trim()) return
   if (!graphStore.methodAst) return
@@ -369,6 +382,14 @@ const handler = componentBrowserBindings.handler({
     emit('canceled')
   },
 })
+
+const visualizationSelections = reactive(new Map<SuggestionId | null, VisualizationIdentifier>())
+const previewedExpressionVisualizationId = computed(() => {
+  return visualizationSelections.get(previewedExpressionSuggestionId.value ?? null)
+})
+function setVisualization(visualization: VisualizationIdentifier) {
+  visualizationSelections.set(previewedExpressionSuggestionId.value ?? null, visualization)
+}
 </script>
 
 <template>
@@ -477,6 +498,9 @@ const handler = componentBrowserBindings.handler({
         :scale="1"
         :isCircularMenuVisible="false"
         :dataSource="previewDataSource"
+        :typename="previewedExpressionSuggestionReturnType"
+        :currentType="previewedExpressionVisualizationId"
+        @update:id="setVisualization($event)"
       />
       <div ref="inputElement" class="CBInput">
         <input
