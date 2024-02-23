@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -45,7 +46,8 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   static class ReadArrayElement {
     @Specialization(guards = "receiver.getUnit() == Byte1")
     public static Object doByte(ArrowFixedArrayInt receiver, long index)
-        throws UnsupportedMessageException {
+        throws UnsupportedMessageException, InvalidArrayIndexException {
+      validAccess(receiver, index);
       if (receiver.buffer.isNull((int) index)) {
         return NullValue.get();
       }
@@ -55,7 +57,8 @@ public final class ArrowFixedArrayInt implements TruffleObject {
 
     @Specialization(guards = "receiver.getUnit() == Byte2")
     public static Object doShort(ArrowFixedArrayInt receiver, long index)
-        throws UnsupportedMessageException {
+        throws UnsupportedMessageException, InvalidArrayIndexException {
+      validAccess(receiver, index);
       if (receiver.buffer.isNull((int) index)) {
         return NullValue.get();
       }
@@ -65,8 +68,8 @@ public final class ArrowFixedArrayInt implements TruffleObject {
 
     @Specialization(guards = "receiver.getUnit() == Byte4")
     public static Object doInt(ArrowFixedArrayInt receiver, long index)
-        throws UnsupportedMessageException {
-
+        throws UnsupportedMessageException, InvalidArrayIndexException {
+      validAccess(receiver, index);
       if (receiver.buffer.isNull((int) index)) {
         return NullValue.get();
       }
@@ -76,12 +79,19 @@ public final class ArrowFixedArrayInt implements TruffleObject {
 
     @Specialization(guards = "receiver.getUnit() == Byte8")
     public static Object doLong(ArrowFixedArrayInt receiver, long index)
-        throws UnsupportedMessageException {
+        throws UnsupportedMessageException, InvalidArrayIndexException {
+      validAccess(receiver, index);
       if (receiver.buffer.isNull((int) index)) {
         return NullValue.get();
       }
       var at = typeAdjustedIndex(index, receiver.unit);
       return receiver.buffer.getLong(at);
+    }
+
+    private static void validAccess(ArrowFixedArrayInt receiver, long index) throws InvalidArrayIndexException {
+      if (index >= receiver.size || index < 0) {
+        throw InvalidArrayIndexException.create(index);
+      }
     }
   }
 
@@ -94,7 +104,8 @@ public final class ArrowFixedArrayInt implements TruffleObject {
         long index,
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
+        throws UnsupportedMessageException, InvalidArrayIndexException{
+      validAccess(receiver, index);
       if (!iop.fitsInByte(value)) {
         throw UnsupportedMessageException.create();
       }
@@ -107,7 +118,8 @@ public final class ArrowFixedArrayInt implements TruffleObject {
         long index,
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
+        throws UnsupportedMessageException, InvalidArrayIndexException {
+      validAccess(receiver, index);
       if (!iop.fitsInShort(value)) {
         throw UnsupportedMessageException.create();
       }
@@ -120,7 +132,8 @@ public final class ArrowFixedArrayInt implements TruffleObject {
         long index,
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
+        throws UnsupportedMessageException, InvalidArrayIndexException {
+      validAccess(receiver, index);
       if (!iop.fitsInInt(value)) {
         throw UnsupportedMessageException.create();
       }
@@ -133,11 +146,18 @@ public final class ArrowFixedArrayInt implements TruffleObject {
         long index,
         Object value,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
+        throws UnsupportedMessageException, InvalidArrayIndexException {
+      validAccess(receiver, index);
       if (!iop.fitsInLong(value)) {
         throw UnsupportedMessageException.create();
       }
       receiver.buffer.putLong(typeAdjustedIndex(index, receiver.unit), (iop.asLong(value)));
+    }
+
+    private static void validAccess(ArrowFixedArrayInt receiver, long index) throws InvalidArrayIndexException{
+      if (index >= receiver.size || index < 0) {
+        throw InvalidArrayIndexException.create(index);
+      }
     }
   }
 

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 from Standard.Test import all
 
 foreign arrow new_arrow = """
@@ -12,9 +13,10 @@ add_specs suite_builder =
         group_builder.specify "should allow for creating a new fixed Array in Arrow" <|
             arrow_array_constructor = new_arrow
             array_10 = arrow_array_constructor.new 10
-            v = Vector.from_array array_10
+            v = Vector.from_polyglot_array array_10
             v.length . should_equal 10
             v.at 1 . should_equal Nothing
+            v.at 10 . should_fail_with Index_Out_Of_Bounds
 
 main =
     suite = Test.build suite_builder->
