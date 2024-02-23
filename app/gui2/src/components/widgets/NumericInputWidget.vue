@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PointerButtonMask, usePointer, useResizeObserver } from '@/composables/events'
-import { blurIfNecessary } from '@/util/autoBlur'
+import { useAutoBlur } from '@/util/autoBlur'
 import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'
 
@@ -63,6 +63,7 @@ const sliderWidth = computed(() => {
 })
 
 const inputNode = ref<HTMLInputElement>()
+useAutoBlur(inputNode)
 const inputSize = useResizeObserver(inputNode)
 const inputMeasurements = computed(() => {
   if (inputNode.value == null) return { availableWidth: 0, font: '' }
@@ -100,25 +101,9 @@ function blur() {
   emit('update:modelValue', editedValue.value)
 }
 
-/** To prevent other elements from stealing mouse events (which breaks blur),
- * we instead setup our own `pointerdown` handler while the input is focused.
- * Any click outside of the input field causes `blur`.
- * We don’t want to `useAutoBlur` here, because it would require a separate `pointerdown` handler per input widget.
- * Instead we setup a single handler for the currently focused widget only, and thus safe performance. */
-function setupAutoBlur() {
-  const options = { capture: true }
-  function callback(event: MouseEvent) {
-    if (blurIfNecessary(inputNode, event)) {
-      window.removeEventListener('pointerdown', callback, options)
-    }
-  }
-  window.addEventListener('pointerdown', callback, options)
-}
-
 function focus() {
   inputNode.value?.select()
   inputFieldActive.value = true
-  setupAutoBlur()
 }
 </script>
 

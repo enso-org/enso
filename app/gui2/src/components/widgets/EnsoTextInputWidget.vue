@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@/composables/events'
-import { escape, unescape } from '@/util/ast/text'
-import { blurIfNecessary } from '@/util/autoBlur'
+import { escape } from '@/util/ast/text'
+import { useAutoBlur } from '@/util/autoBlur'
 import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'
 
@@ -20,6 +20,7 @@ watch(
 )
 
 const inputNode = ref<HTMLInputElement>()
+useAutoBlur(inputNode)
 const inputSize = useResizeObserver(inputNode)
 const inputMeasurements = computed(() => {
   if (inputNode.value == null) return { availableWidth: 0, font: '' }
@@ -41,37 +42,8 @@ const inputStyle = computed<StyleValue>(() => {
   }
 })
 
-/** To prevent other elements from stealing mouse events (which breaks blur),
- * we instead setup our own `pointerdown` handler while the input is focused.
- * Any click outside of the input field causes `blur`.
- * We don’t want to `useAutoBlur` here, because it would require a separate `pointerdown` handler per input widget.
- * Instead we setup a single handler for the currently focused widget only, and thus safe performance. */
-function setupAutoBlur() {
-  const options = { capture: true }
-  function callback(event: MouseEvent) {
-    if (blurIfNecessary(inputNode, event)) {
-      window.removeEventListener('pointerdown', callback, options)
-    }
-  }
-  window.addEventListener('pointerdown', callback, options)
-}
-
-const separators = /(^('''|"""|['"]))|(('''|"""|['"])$)/g
-/** Display the value in a more human-readable form for easier editing. */
-function prepareForEditing() {
-  editedValue.value = unescape(editedValue.value.replace(separators, ''))
-}
-
-function focus() {
-  setupAutoBlur()
-  prepareForEditing()
-}
-
-const escapedValue = computed(() => `'${escape(editedValue.value)}'`)
-
 function blur() {
-  emit('update:modelValue', escapedValue.value)
-  editedValue.value = props.modelValue
+  emit('update:modelValue', `'${escape(editedValue.value)}'`)
 }
 </script>
 
@@ -88,7 +60,6 @@ function blur() {
       class="value"
       :style="inputStyle"
       @keydown.enter.stop="($event.target as HTMLInputElement).blur()"
-      @focus="focus"
       @blur="blur"
     />
   </div>
