@@ -22,7 +22,6 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
         class="button"
         name="record_once"
         draggable="false"
-        :width="24"
         @click.stop="() => emit('recordOnce')"
       />
     </div>
@@ -45,7 +44,6 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 
 .left-end {
   border-radius: var(--radius-full) 0 0 var(--radius-full);
-  padding-right: 8px;
 }
 
 .right-end {
