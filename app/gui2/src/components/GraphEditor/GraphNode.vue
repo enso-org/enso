@@ -172,7 +172,7 @@ const dragPointer = usePointer((pos, event, type) => {
         startEvent != null &&
         pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
-        nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
+        nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
         handleNodeClick(event)
         menuVisible.value = MenuState.Partial
       }
