@@ -105,14 +105,10 @@ export const useGraphStore = defineStore('graph', () => {
     const root = module.root()
     if (!root) return
     if (moduleRoot.value != root) {
-      console.time('set moduleRoot')
       moduleRoot.value = root
-      console.timeEnd('set moduleRoot')
     }
     if (root instanceof Ast.BodyBlock && topLevel.value != root) {
-      console.time('set topLevel')
       topLevel.value = root
-      console.timeEnd('set topLevel')
     }
     // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
     const nodeMetadataUpdates = update.metadataUpdated as any as {
@@ -132,9 +128,7 @@ export const useGraphStore = defineStore('graph', () => {
         }
         return true
       })
-      console.time('updateState')
       updateState(dirtyNodeSet)
-      console.timeEnd('updateState')
     }
     if (nodeMetadataUpdates.length !== 0) {
       for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
@@ -147,9 +141,7 @@ export const useGraphStore = defineStore('graph', () => {
     const textContentLocal = moduleSource.text
     if (!textContentLocal) return
     if (!syncModule.value) return
-    console.time('set methodAst')
     methodAst.value = methodAstInModule(syncModule.value)
-    console.timeEnd('set methodAst')
     if (methodAst.value) {
       const methodSpan = moduleSource.getSpan(methodAst.value.id)
       assert(methodSpan != null)
@@ -167,7 +159,6 @@ export const useGraphStore = defineStore('graph', () => {
 
   function methodAstInModule(mod: Module) {
     const topLevel = mod.root()
-    console.log('topLevel', topLevel)
     if (!topLevel) return
     assert(topLevel instanceof Ast.BodyBlock)
     return getExecutedMethodAst(topLevel, proj.executionContext.getStackTop(), db)
@@ -339,24 +330,37 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
-    if (!nodeAst) return
-    if (rect.pos.equals(Vec2.Zero) && !nodeAst.nodeMetadata.get('position')) {
-      const { position } = nonDictatedPlacement(rect.size, {
-        nodeRects: visibleNodeAreas.value,
-        // The rest of the properties should not matter.
-        selectedNodeRects: [],
-        screenBounds: Rect.Zero,
-        mousePosition: Vec2.Zero,
-      })
-      editNodeMetadata(nodeAst, (metadata) =>
-        metadata.set('position', { x: position.x, y: position.y }),
-      )
-      nodeRects.set(nodeId, new Rect(position, rect.size))
-    } else {
-      nodeRects.set(nodeId, rect)
+    nodeRects.set(nodeId, rect)
+    if (rect.pos.equals(Vec2.Zero)) {
+      nodesToPlace.push(nodeId)
     }
   }
+
+  const nodesToPlace = reactive<NodeId[]>([])
+
+  watch(nodesToPlace, (nodeIds) => {
+    if (nodeIds.length === 0) return
+    const nodesToProcess = [...nodeIds]
+    nodesToPlace.length = 0
+    batchEdits(() => {
+      for (const nodeId of nodesToProcess) {
+        const nodeAst = syncModule.value?.get(nodeId)
+        const rect = nodeRects.get(nodeId)
+        if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
+        const { position } = nonDictatedPlacement(rect.size, {
+          nodeRects: visibleNodeAreas.value,
+          // The rest of the properties should not matter.
+          selectedNodeRects: [],
+          screenBounds: Rect.Zero,
+          mousePosition: Vec2.Zero,
+        })
+        editNodeMetadata(nodeAst, (metadata) =>
+          metadata.set('position', { x: position.x, y: position.y }),
+        )
+        nodeRects.set(nodeId, new Rect(position, rect.size))
+      }
+    })
+  })
 
   function updateVizRect(id: NodeId, rect: Rect | undefined) {
     if (rect) vizRects.set(id, rect)
@@ -468,6 +472,11 @@ export const useGraphStore = defineStore('graph', () => {
       if (!direct) syncModule.value!.applyEdit(edit)
     })
     return result!
+  }
+
+  function batchEdits(f: () => void) {
+    assert(syncModule.value != null)
+    syncModule.value.transact(f, 'local')
   }
 
   function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {
@@ -590,6 +599,7 @@ export const useGraphStore = defineStore('graph', () => {
     createNode,
     deleteNodes,
     ensureCorrectNodeOrder,
+    batchEdits,
     setNodeContent,
     setNodePosition,
     setNodeVisualizationId,
