@@ -3,12 +3,7 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import {
-  ApplicationKind,
-  ArgumentInfoKey,
-  ArgumentNameShownKey,
-  ArgumentPlaceholder,
-} from '@/util/callTree'
+import { ApplicationKind, ArgumentInfoKey, ArgumentPlaceholder } from '@/util/callTree'
 import type { SuggestionEntryArgument } from 'shared/languageServerTypes/suggestions'
 import { computed } from 'vue'
 
@@ -29,7 +24,7 @@ const primary = computed(() => props.nesting < 2)
 
 const innerInput = computed(() => ({
   ...props.input,
-  [ArgumentInfoKey]: { ...props.input[ArgumentInfoKey], [ArgumentNameShownKey]: true },
+  [ArgumentNameShownKey]: true,
 }))
 </script>
 
@@ -50,6 +45,8 @@ export const widgetDefinition = defineWidget(hasKnownArgumentName, {
     return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch
   },
 })
+
+export const ArgumentNameShownKey: unique symbol = Symbol('ArgumentNameShownKey')
 </script>
 
 <template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
@@ -7,7 +8,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract'
-import { ArgumentInfoKey, ArgumentNameShownKey } from '@/util/callTree'
+import { ArgumentInfoKey } from '@/util/callTree'
 import { asNot } from '@/util/data/types.ts'
 import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
@@ -59,9 +60,8 @@ const value = computed({
 
 const primary = computed(() => props.nesting < 2)
 const argumentName = computed(() => {
-  if (props.input[ArgumentInfoKey]?.info == null) return
-  if (props.input[ArgumentInfoKey][ArgumentNameShownKey]) return
-  return props.input[ArgumentInfoKey].info.name
+  if (ArgumentNameShownKey in props.input) return
+  return props.input[ArgumentInfoKey]?.info?.name
 })
 </script>
 
