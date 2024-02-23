@@ -28,7 +28,7 @@ export async function loadEnv() {
         const [k] = kv
         // TypeScript thinks `process.env[k]` is `undefined` because of the index signature.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        return k != null && process.env[k] != null
+        return process.env[k] == null
       })
     }
     const variables = Object.fromEntries(entries)
