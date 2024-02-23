@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { WidgetModule } from '@/providers/widgetRegistry'
-import { injectWidgetRegistry, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
+import type { Editing, WidgetModule } from '@/providers/widgetRegistry'
+import { WidgetInput, injectWidgetRegistry, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
   injectWidgetUsageInfo,
@@ -21,12 +21,14 @@ const props = defineProps<{
    * the update is considered handled and is not propagated further.
    */
   onUpdate?: UpdateHandler
+  onEdit?: EditHandler
 }>()
 defineOptions({
   inheritAttrs: false,
 })
 
 type UpdateHandler = (update: WidgetUpdate) => boolean
+type EditHandler = (edit: Editing) => boolean
 
 const graph = useGraphStore()
 const registry = injectWidgetRegistry()
@@ -64,11 +66,29 @@ const updateHandler = computed(() => {
   return nextHandler
 })
 
+//TODO consider deduplication
+const editHandler = computed(() => {
+  const localHandler = props.onEdit
+  const nextHandler = parentUsageInfo?.editHandler
+  if (localHandler != null) {
+    return (edit: Editing) => {
+      // TODO What does it mean? Do we need it?
+      const handled = localHandler(edit)
+      if (!handled) nextHandler?.(edit)
+    }
+  } else if (nextHandler) {
+    return nextHandler
+  } else {
+    return (_edit: Editing) => {}
+  }
+})
+
 provideWidgetUsageInfo(
   proxyRefs({
     usageKey,
     nesting,
     updateHandler,
+    editHandler,
     previouslyUsed: computed(() => {
       const nextSameNodeWidgets = new Set(sameInputParentWidgets.value)
       if (selectedWidget.value != null) {
@@ -101,6 +121,7 @@ const spanStart = computed(() => {
     :data-span-start="spanStart"
     :data-port="props.input.portId"
     @update="updateHandler"
+    @edit="editHandler"
   />
   <span
     v-else-if="!props.allowEmpty"

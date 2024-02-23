@@ -5,6 +5,9 @@ import { computed, ref, watch, type StyleValue } from 'vue'
 
 const [model, modifiers] = defineModel<string>()
 const props = defineProps<{ autoSelect?: boolean }>()
+const emit = defineEmits<{
+  input: [value: string | undefined]
+}>()
 
 const innerModel = modifiers.lazy ? ref(model.value) : model
 if (modifiers.lazy) watch(model, (newVal) => (innerModel.value = newVal))
@@ -52,6 +55,7 @@ defineExpose({
     @keydown.backspace.stop
     @keydown.delete.stop
     @keydown.enter.stop="onEnterDown"
+    @input="emit('input', innerModel)"
     @change="onChange"
     @focus="onFocus"
   />

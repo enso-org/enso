@@ -3,7 +3,13 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+  type Editing,
+} from '@/providers/widgetRegistry'
 import {
   singleChoiceConfiguration,
   type ArgumentWidgetConfiguration,
@@ -28,6 +34,8 @@ const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
 const interaction = injectInteractionHandler()
 const widgetRoot = ref<HTMLElement>()
+const filter = ref<string>()
+const isHovered = ref(false)
 
 interface Tag {
   /** If not set, the label is same as expression */
@@ -55,10 +63,24 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
   return {
     label: entry.name,
     expression:
-      entry.selfType != null ? `_.${entry.name}`
-      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
-      : entry.name,
+      entry.selfType != null
+        ? `_.${entry.name}`
+        : entry.memberOf
+        ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+        : entry.name,
     requiredImports: requiredImports(suggestions.entries, entry),
+  }
+}
+
+function isFilteredIn(tag: Tag): boolean {
+  const pattern = filter.value
+  if (!pattern) return true
+  const textLiteralPattern = /^(['"])(.*)\1$/.exec(pattern)
+  if (textLiteralPattern) {
+    const [, sep, pattern] = textLiteralPattern
+    return tag.expression.startsWith(`${sep}${pattern}`) && tag.expression.endsWith(sep!)
+  } else {
+    return tag.expression.startsWith(pattern)
   }
 }
 
@@ -77,7 +99,9 @@ const dynamicTags = computed<Tag[]>(() => {
   }))
 })
 
-const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
+const tags = computed(() =>
+  (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value).filter(isFilteredIn),
+)
 const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
 
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
@@ -98,11 +122,7 @@ const selectedTag = computed(() => {
     // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
     const sortedTags = tags.value
       .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
-      .sort(([a], [b]) =>
-        a < b ? 1
-        : a > b ? -1
-        : 0,
-      )
+      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
     const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
     return index != null ? tags.value[index] : undefined
   }
@@ -153,7 +173,27 @@ watch(selectedIndex, (_index) => {
   props.onUpdate({ edit, portUpdate: { value, origin: props.input.portId } })
 })
 
-const isHovered = ref(false)
+function handleEdit(edit: Editing) {
+  console.log('Handle edit', edit)
+  switch (edit.type) {
+    case 'started':
+      if (edit.origin !== props.input.portId) return false
+      showDropdownWidget.value = true
+      break
+    case 'edited':
+      if (edit.edit.origin !== props.input.portId) return false
+      if (edit.edit.value != null)
+        filter.value = edit.edit.value instanceof Ast.Ast ? edit.edit.value.code() : edit.edit.value
+      break
+    case 'ended':
+      if (edit.origin !== props.input.portId) return false
+      filter.value = undefined
+      showDropdownWidget.value = false
+      break
+  }
+  console.log(filter.value)
+  return false
+}
 </script>
 
 <script lang="ts">
@@ -191,7 +231,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"
   >
-    <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
+    <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" @edit="handleEdit" />
     <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
       v-if="showDropdownWidget"

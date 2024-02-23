@@ -130,6 +130,11 @@ export interface WidgetProps<T> {
   nesting: number
 }
 
+export interface PortUpdate {
+  value: Ast.Owned | string | undefined
+  origin: PortId
+}
+
 /**
  * Information about widget update.
  *
@@ -148,6 +153,11 @@ export interface WidgetUpdate {
   }
 }
 
+export type Editing =
+  | { type: 'started'; origin: PortId }
+  | { type: 'edited'; edit: PortUpdate }
+  | { type: 'ended'; origin: PortId }
+
 /**
  * Create Vue props definition for a widget component. This cannot be done automatically by using
  * typed `defineProps`, because vue compiler is not able to resolve conditional types. As a
@@ -165,16 +175,22 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
       type: Function as PropType<(update: WidgetUpdate) => void>,
       required: true,
     },
+    onEdit: {
+      type: Function as PropType<(edit: Editing) => void>,
+      required: true,
+    },
   } as const
 }
 
 type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T
 type InputMatcher<T extends WidgetInput> = keyof WidgetInput | InputMatcherFn<T>
 
-type InputTy<M> =
-  M extends (infer T)[] ? InputTy<T>
-  : M extends InputMatcherFn<infer T> ? T
-  : M extends keyof WidgetInput ? WidgetInput & Required<Pick<WidgetInput, M>>
+type InputTy<M> = M extends (infer T)[]
+  ? InputTy<T>
+  : M extends InputMatcherFn<infer T>
+  ? T
+  : M extends keyof WidgetInput
+  ? WidgetInput & Required<Pick<WidgetInput, M>>
   : never
 
 export interface WidgetOptions<T extends WidgetInput> {

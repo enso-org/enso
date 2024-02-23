@@ -21,6 +21,17 @@ function makeNewLiteral(value: string) {
   return Ast.TextLiteral.new(value, MutableModule.Transient())
 }
 
+function makeLiteralFromValue(value: string) {
+  if (props.input.value instanceof Ast.TextLiteral) {
+    const edit = graph.startEdit()
+    const literal = edit.getVersion(props.input.value)
+    literal.setRawTextContent(value)
+    return literal.code()
+  } else {
+    return makeNewLiteral(value).code()
+  }
+}
+
 const emptyTextLiteral = makeNewLiteral('')
 const shownLiteral = computed(() => inputTextLiteral.value ?? emptyTextLiteral)
 const closeToken = computed(() => shownLiteral.value.close ?? shownLiteral.value.open)
@@ -62,7 +73,20 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 <template>
   <label class="WidgetText r-24" @pointerdown.stop>
     <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
-    <AutoSizedInput v-model.lazy="textContents" />
+    <AutoSizedInput
+      v-model.lazy="textContents"
+      @pointerdown.stop
+      @pointerup.stop
+      @click.stop
+      @focusin="props.onEdit({ type: 'started', origin: props.input.portId })"
+      @focusout="props.onEdit({ type: 'ended', origin: props.input.portId })"
+      @input="
+        props.onEdit({
+          type: 'edited',
+          edit: { value: makeLiteralFromValue($event ?? ''), origin: props.input.portId },
+        })
+      "
+    />
     <NodeWidget v-if="closeToken" :input="WidgetInput.FromAst(closeToken)" />
   </label>
 </template>
