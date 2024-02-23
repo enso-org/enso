@@ -52,7 +52,7 @@ final class InvalidateModulesIndexHandler(
       context.stop(self)
 
     case Api.Response(_, Api.InvalidateModulesIndexResponse()) =>
-      suggestionsHandler ! SearchProtocol.CleanSuggestionsDatabase
+      suggestionsHandler ! SearchProtocol.ClearSuggestionsDatabase
       replyTo ! SearchProtocol.InvalidateSuggestionsDatabaseResult
       cancellable.cancel()
       context.stop(self)
