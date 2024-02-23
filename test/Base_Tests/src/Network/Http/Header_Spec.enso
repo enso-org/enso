@@ -11,8 +11,8 @@ add_specs suite_builder =
             (Header.new "A" "B" == Header.new "A" "b") . should_equal False
             (Header.new "A" "B" == Header.new "a" "b") . should_equal False
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -104,6 +104,61 @@ fn else_block() {
                           ((Ident else) (BodyBlock #((Ident False))))))]);
 }
 
+#[test]
+fn if_then_else_chained_block() {
+    #[rustfmt::skip]
+    test("if True then True else False\n    . to_text", block![
+        (OperatorBlockApplication
+            (MultiSegmentApp #(((Ident if) (Ident True))
+                ((Ident then) (Ident True))
+                ((Ident else) (Ident False)
+            )))
+            #(((Ok ".") (Ident to_text)))
+            #()
+        )]);
+}
+
+#[test]
+fn if_then_else_chained_block_with_group() {
+    #[rustfmt::skip]
+    test("(if True then True else False)\n    . to_text", block![
+        (OperatorBlockApplication
+            (Group (MultiSegmentApp #(((Ident if) (Ident True))
+                ((Ident then) (Ident True))
+                ((Ident else) (Ident False)
+            ))))
+            #(((Ok ".") (Ident to_text)))
+            #()
+        )]);
+}
+
+#[test]
+fn if_then_else_chained_block_multi2() {
+    #[rustfmt::skip]
+    test("if True then True else False\n    . to_text\n    . as_value", block![
+        (OperatorBlockApplication
+            (MultiSegmentApp #(((Ident if) (Ident True))
+                ((Ident then) (Ident True))
+                ((Ident else) (Ident False)
+            )))
+            #(((Ok ".") (Ident to_text)) ((Ok ".") (Ident as_value)))
+            #()
+        )]);
+}
+
+#[test]
+fn if_then_else_chained_block_multi3() {
+    #[rustfmt::skip]
+    test("if True then True else False\n    . to_text\n    . as_value\n    . done 42", block![
+        (OperatorBlockApplication
+            (MultiSegmentApp #(((Ident if) (Ident True))
+                ((Ident then) (Ident True))
+                ((Ident else) (Ident False)
+            )))
+            #(((Ok ".") (Ident to_text)) ((Ok ".") (Ident as_value)) ((Ok ".") (App (Ident done) (Number () "42" ()))))
+            #()
+        )]);
+}
 
 // === Comments ===
 

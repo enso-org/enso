@@ -52,7 +52,14 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <NumericInputWidget v-model="value" class="WidgetNumber r-24" :limits="limits" />
+  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
+  <NumericInputWidget
+    v-model="value"
+    class="WidgetNumber r-24"
+    :limits="limits"
+    @pointerdown.stop
+    @pointerup.stop
+  />
 </template>
 
 <style scoped>

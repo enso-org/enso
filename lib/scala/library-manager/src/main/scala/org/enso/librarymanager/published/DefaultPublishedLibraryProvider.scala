@@ -1,7 +1,7 @@
 package org.enso.librarymanager.published
 
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.librarymanager.published.cache.{
   LibraryCache,

@@ -318,6 +318,7 @@ lazy val enso = (project in file("."))
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
+    semver,
     `distribution-manager`,
     `edition-updater`,
     `edition-uploader`,
@@ -486,7 +487,6 @@ val zio = Seq(
 // === Other ==================================================================
 
 val bcpkixJdk15Version      = "1.70"
-val bumpVersion             = "0.1.3"
 val declineVersion          = "2.4.1"
 val directoryWatcherVersion = "0.18.0"
 val flatbuffersVersion      = "1.12.0"
@@ -2238,7 +2238,6 @@ lazy val launcher = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.typelevel"              %% "cats-core"        % catsVersion,
-      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaSLF4J
@@ -2468,12 +2467,42 @@ lazy val editions = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "nl.gn0s1s"                  %% "bump"          % bumpVersion,
       "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(
+        Def.task {
+          Editions.writeEditionConfig(
+            editionsRoot   = file("distribution") / "editions",
+            ensoVersion    = ensoVersion,
+            editionName    = currentEdition,
+            libraryVersion = stdLibVersion,
+            log            = streams.value.log
+          )
+        }
+      )
+      .value,
+    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
+  )
+  .dependsOn(semver)
+  .dependsOn(testkit % Test)
+
+lazy val semver = project
+  .in(file("lib/scala/semver"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging"   % scalaLoggingVersion,
+      "io.circe"                   %% "circe-yaml"      % circeYamlVersion,
+      "org.scalatest"              %% "scalatest"       % scalatestVersion % Test,
+      "junit"                       % "junit"           % junitVersion     % Test,
+      "com.github.sbt"              % "junit-interface" % junitIfVersion   % Test
     )
   )
   .settings(
@@ -2616,7 +2645,6 @@ lazy val `runtime-version-manager` = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.typelevel"              %% "cats-core"        % catsVersion,
-      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaHttp

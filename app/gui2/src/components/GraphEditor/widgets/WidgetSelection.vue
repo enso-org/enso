@@ -171,7 +171,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <div class="WidgetSelection" @pointerdown.stop="toggleDropdownWidget">
+  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
+  <div class="WidgetSelection" @pointerdown.stop @pointerup.stop @click.stop="toggleDropdownWidget">
     <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
     <SvgIcon name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
@@ -180,7 +181,6 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       :color="'var(--node-color-primary)'"
       :values="tagLabels"
       :selectedValue="selectedLabel"
-      @pointerdown.stop
       @click="onClick($event)"
     />
   </div>

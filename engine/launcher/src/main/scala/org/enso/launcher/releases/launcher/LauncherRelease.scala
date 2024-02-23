@@ -2,7 +2,7 @@ package org.enso.launcher.releases.launcher
 
 import java.nio.file.Path
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.CurrentVersion
 
@@ -44,5 +44,7 @@ trait LauncherRelease {
     * If false, a multi-step upgrade must be performed.
     */
   def canPerformUpgradeFromCurrentVersion: Boolean =
-    CurrentVersion.version >= minimumVersionToPerformUpgrade
+    CurrentVersion.version.isGreaterThanOrEqual(
+      minimumVersionToPerformUpgrade
+    )
 }

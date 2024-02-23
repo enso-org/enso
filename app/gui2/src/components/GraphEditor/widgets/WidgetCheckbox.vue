@@ -90,10 +90,13 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
+  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <CheckboxWidget
     v-model="value"
     class="WidgetCheckbox"
     contenteditable="false"
     @beforeinput.stop
+    @pointerdown.stop
+    @pointerup.stop
   />
 </template>
