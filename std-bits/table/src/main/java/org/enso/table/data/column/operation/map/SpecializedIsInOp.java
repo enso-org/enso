@@ -56,17 +56,16 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
     CompactRepresentation<T> compactRepresentation = prepareList(arg);
     BitSet newVals = new BitSet();
     BitSet missing = new BitSet();
-    if (arg.size() > 0) {
+    if (!arg.isEmpty()) {
       for (int i = 0; i < storage.size(); i++) {
-        if (storage.isNa(i)) {
+        if (storage.isNothing(i)) {
           missing.set(i);
         } else if (compactRepresentation.coercedValues.contains(storage.getItemBoxed(i))) {
           newVals.set(i);
         } else if (compactRepresentation.hasNulls) {
           missing.set(i);
-        } else {
-          // Leave as default=false
         }
+        // Otherwise leave as default=false
 
         context.safepoint();
       }

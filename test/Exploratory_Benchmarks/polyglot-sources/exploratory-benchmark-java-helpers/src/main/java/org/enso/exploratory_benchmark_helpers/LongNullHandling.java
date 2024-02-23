@@ -25,7 +25,7 @@ public class LongNullHandling {
       long[] newVals = new long[n];
       BitSet missing = new BitSet();
       for (int i = 0; i < n; i++) {
-        if (storage.isNa(i) || arg.isNa(i)) {
+        if (storage.isNothing(i) || arg.isNothing(i)) {
           missing.set(i);
         } else {
           newVals[i] = doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator);
@@ -47,7 +47,7 @@ public class LongNullHandling {
       long[] newVals = new long[n];
       BitSet missing = new BitSet();
       for (int i = 0; i < n; i++) {
-        if (storage.isNa(i) || arg.isNa(i)) {
+        if (storage.isNothing(i) || arg.isNothing(i)) {
           missing.set(i);
         } else {
           Long x = doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator);
@@ -86,7 +86,7 @@ public class LongNullHandling {
       BitSet missing = new BitSet();
       NullityReporter nullityReporter = new NullityReporter();
       for (int i = 0; i < n; i++) {
-        if (storage.isNa(i) || arg.isNa(i)) {
+        if (storage.isNothing(i) || arg.isNothing(i)) {
           missing.set(i);
         } else {
           long x =

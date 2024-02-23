@@ -42,7 +42,7 @@ public abstract class GenericBinaryObjectMapOperation<
       Builder builder = createOutputBuilder(n);
       Context context = Context.getCurrent();
       for (int i = 0; i < n; i++) {
-        if (storage.isNa(i)) {
+        if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
           OutputType result = run(storage.getItemBoxed(i), casted);
@@ -67,7 +67,7 @@ public abstract class GenericBinaryObjectMapOperation<
       Builder builder = createOutputBuilder(n);
       Context context = Context.getCurrent();
       for (int i = 0; i < n; ++i) {
-        if (storage.isNa(i) || otherCasted.isNa(i)) {
+        if (storage.isNothing(i) || otherCasted.isNothing(i)) {
           builder.appendNulls(1);
         } else {
           InputType left = storage.getItemBoxed(i);
@@ -85,7 +85,7 @@ public abstract class GenericBinaryObjectMapOperation<
       Builder builder = createOutputBuilder(n);
       Context context = Context.getCurrent();
       for (int i = 0; i < n; ++i) {
-        if (storage.isNa(i) || arg.isNa(i)) {
+        if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
         } else {
           InputType left = storage.getItemBoxed(i);

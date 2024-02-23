@@ -33,7 +33,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     return false;
   }
 

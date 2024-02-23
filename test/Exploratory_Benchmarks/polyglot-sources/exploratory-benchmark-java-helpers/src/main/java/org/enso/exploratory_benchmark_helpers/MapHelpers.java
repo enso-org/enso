@@ -24,7 +24,7 @@ public class MapHelpers {
     int n = storage1.size();
     String[] result = new String[n];
     for (int i = 0; i < n; i++) {
-      if (!storage1.isNa(i) && !storage2.isNa(i)) {
+      if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
         result[i] = storage1.getItem(i) + storage2.getItem(i);
       } else {
         result[i] = null;
@@ -42,7 +42,7 @@ public class MapHelpers {
     long[] result = new long[n];
     BitSet missing = new BitSet();
     for (int i = 0; i < n; i++) {
-      if (!storage1.isNa(i) && !storage2.isNa(i)) {
+      if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
         result[i] = storage1.getItem(i) + storage2.getItem(i);
       } else {
         missing.set(i);
@@ -56,7 +56,7 @@ public class MapHelpers {
     BitSet result = new BitSet();
     BitSet missing = new BitSet();
     for (int i = 0; i < n; i++) {
-      if (storage.isNa(i)) {
+      if (storage.isNothing(i)) {
         missing.set(i);
       } else {
         if (Text_Utils.ends_with(storage.getItem(i), suffix)) {
@@ -72,7 +72,7 @@ public class MapHelpers {
     long[] result = new long[n];
     BitSet missing = new BitSet();
     for (int i = 0; i < n; i++) {
-      if (!storage.isNa(i)) {
+      if (!storage.isNothing(i)) {
         result[i] = storage.getItem(i) + shift;
       } else {
         missing.set(i);
@@ -86,7 +86,7 @@ public class MapHelpers {
     long[] result = new long[n];
     BitSet missing = new BitSet();
     for (int i = 0; i < n; i++) {
-      if (!storage.isNa(i)) {
+      if (!storage.isNothing(i)) {
         result[i] = storage.getItem(i).getYear();
       } else {
         missing.set(i);
@@ -106,7 +106,7 @@ public class MapHelpers {
             ? new InferredBuilder(n, problemAggregator)
             : Builder.getForType(expectedType, n, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (!storage.isNa(i)) {
+      if (!storage.isNothing(i)) {
         builder.append(fn.apply(storage.getItemBoxed(i)));
       } else {
         builder.appendNulls(1);

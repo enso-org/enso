@@ -37,7 +37,7 @@ public abstract class StringBooleanOp
       BitSet newMissing = new BitSet();
       Context context = Context.getCurrent();
       for (int i = 0; i < storage.size(); i++) {
-        if (storage.isNa(i)) {
+        if (storage.isNothing(i)) {
           newMissing.set(i);
         } else if (doString(storage.getItem(i), argString)) {
           newVals.set(i);
@@ -51,7 +51,7 @@ public abstract class StringBooleanOp
       BitSet newMissing = new BitSet();
       Context context = Context.getCurrent();
       for (int i = 0; i < storage.size(); i++) {
-        if (storage.isNa(i)) {
+        if (storage.isNothing(i)) {
           newMissing.set(i);
         } else if (doObject(storage.getItem(i), arg)) {
           newVals.set(i);
@@ -73,7 +73,7 @@ public abstract class StringBooleanOp
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
+        if (!storage.isNothing(i) && i < v.size() && !v.isNothing(i)) {
           if (doString(storage.getItem(i), v.getItem(i))) {
             newVals.set(i);
           }
@@ -88,7 +88,7 @@ public abstract class StringBooleanOp
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNa(i) && i < arg.size() && !arg.isNa(i)) {
+        if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
           Object x = arg.getItemBoxed(i);
           if (x instanceof String) {
             if (doString(storage.getItem(i), (String) x)) {

@@ -36,7 +36,7 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     if (idx < 0 || idx >= size) {
       throw new IndexOutOfBoundsException(
           "Index " + idx + " is out of bounds for range of length " + size + ".");

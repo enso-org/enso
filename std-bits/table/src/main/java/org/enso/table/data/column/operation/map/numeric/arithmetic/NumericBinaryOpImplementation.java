@@ -124,7 +124,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     long[] out = new long[n];
     BitSet newMissing = new BitSet();
     for (int i = 0; i < m; i++) {
-      if (a.isNa(i) || b.isNa(i)) {
+      if (a.isNothing(i) || b.isNothing(i)) {
         newMissing.set(i);
       } else {
         double r = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
@@ -163,7 +163,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     long[] out = new long[n];
     BitSet newMissing = new BitSet();
     for (int i = 0; i < n; i++) {
-      if (a.isNa(i)) {
+      if (a.isNothing(i)) {
         newMissing.set(i);
       } else {
         double r = doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator);
@@ -186,7 +186,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     long[] out = new long[n];
     BitSet newMissing = new BitSet();
     for (int i = 0; i < m; i++) {
-      if (a.isNa(i) || b.isNa(i)) {
+      if (a.isNothing(i) || b.isNothing(i)) {
         newMissing.set(i);
       } else {
         Long r = doLong(a.getItem(i), b.getItem(i), i, problemAggregator);
@@ -219,7 +219,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     long[] out = new long[n];
     BitSet newMissing = new BitSet();
     for (int i = 0; i < n; i++) {
-      if (a.isNa(i)) {
+      if (a.isNothing(i)) {
         newMissing.set(i);
       } else {
         Long r = doLong(a.getItem(i), bNonNull, i, problemAggregator);

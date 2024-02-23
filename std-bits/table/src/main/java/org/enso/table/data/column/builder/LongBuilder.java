@@ -87,7 +87,7 @@ public abstract class LongBuilder extends NumericBuilder {
         int n = longStorage.size();
         ensureFreeSpaceFor(n);
         for (int i = 0; i < n; i++) {
-          if (longStorage.isNa(i)) {
+          if (longStorage.isNothing(i)) {
             isMissing.set(currentSize++);
           } else {
             appendLongNoGrow(longStorage.getItem(i));
@@ -103,7 +103,7 @@ public abstract class LongBuilder extends NumericBuilder {
       if (storage instanceof BoolStorage boolStorage) {
         int n = boolStorage.size();
         for (int i = 0; i < n; i++) {
-          if (boolStorage.isNa(i)) {
+          if (boolStorage.isNothing(i)) {
             isMissing.set(currentSize++);
           } else {
             data[currentSize++] = ToIntegerStorageConverter.booleanAsLong(boolStorage.getItem(i));

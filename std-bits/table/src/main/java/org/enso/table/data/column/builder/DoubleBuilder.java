@@ -128,7 +128,7 @@ public class DoubleBuilder extends NumericBuilder {
       if (storage instanceof BoolStorage boolStorage) {
         int n = boolStorage.size();
         for (int i = 0; i < n; i++) {
-          if (boolStorage.isNa(i)) {
+          if (boolStorage.isNothing(i)) {
             isMissing.set(currentSize++);
           } else {
             double x = ToFloatStorageConverter.booleanAsDouble(boolStorage.getItem(i));

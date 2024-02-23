@@ -97,7 +97,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     int n = boolStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (boolStorage.isNa(i)) {
+      if (boolStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         boolean value = boolStorage.getItem(i);
@@ -116,7 +116,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     int n = doubleStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (doubleStorage.isNa(i)) {
+      if (doubleStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         double value = doubleStorage.getItemAsDouble(i);

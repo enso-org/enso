@@ -92,18 +92,13 @@ public final class DoubleStorage extends NumericStorage<Double>
    * @inheritDoc
    */
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     return isMissing.get((int) idx);
   }
 
   @Override
   public double getItemAsDouble(int i) {
     return Double.longBitsToDouble(data[i]);
-  }
-
-  @Override
-  public boolean isNa(int i) {
-    return isMissing.get(i);
   }
 
   @Override
@@ -216,7 +211,7 @@ public final class DoubleStorage extends NumericStorage<Double>
 
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      boolean isCurrentMissing = isNa(i);
+      boolean isCurrentMissing = isNothing(i);
       if (isCurrentMissing) {
         if (hasPrevious) {
           newData[i] = previousValueRaw;
@@ -388,7 +383,7 @@ public final class DoubleStorage extends NumericStorage<Double>
         new ComputedNullableLongStorage(size) {
           @Override
           protected Long computeItem(int idx) {
-            if (parent.isNa(idx)) {
+            if (parent.isNothing(idx)) {
               return null;
             }
 

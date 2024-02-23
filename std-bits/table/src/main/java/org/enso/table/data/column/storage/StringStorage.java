@@ -77,7 +77,7 @@ public final class StringStorage extends SpecializedStorage<String> {
             BitSet missing = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
-              if (storage.getItem(i) == null || i >= arg.size() || arg.isNa(i)) {
+              if (storage.getItem(i) == null || i >= arg.size() || arg.isNothing(i)) {
                 missing.set(i);
               } else if (arg.getItemBoxed(i) instanceof String s
                   && Text_Utils.equals(storage.getItem(i), s)) {

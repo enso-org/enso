@@ -88,7 +88,7 @@ public final class LongStorage extends AbstractLongStorage {
    * @inheritDoc
    */
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     return isMissing.get((int) idx);
   }
 

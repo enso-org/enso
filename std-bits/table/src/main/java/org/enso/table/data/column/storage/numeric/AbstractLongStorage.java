@@ -84,7 +84,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
     int n = size();
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      if (isNa(i)) {
+      if (isNothing(i)) {
         continue;
       }
 
@@ -136,7 +136,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
 
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      boolean isCurrentMissing = isNa(i);
+      boolean isCurrentMissing = isNothing(i);
       if (isCurrentMissing) {
         if (hasPrevious) {
           newData[i] = previousValue;

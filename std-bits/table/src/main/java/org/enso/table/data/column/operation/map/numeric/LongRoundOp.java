@@ -48,7 +48,7 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
     BitSet isMissing = new BitSet();
 
     for (int i = 0; i < storage.size(); i++) {
-      if (!storage.isNa(i)) {
+      if (!storage.isNothing(i)) {
         long item = storage.getItem(i);
         boolean outOfRange = item < ROUND_MIN_LONG || item > ROUND_MAX_LONG;
         if (!outOfRange) {

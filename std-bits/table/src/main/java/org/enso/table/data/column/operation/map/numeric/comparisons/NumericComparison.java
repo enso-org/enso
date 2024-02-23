@@ -95,7 +95,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     BitSet missing = BitSets.makeDuplicate(lhs.getIsMissing());
     Context context = Context.getCurrent();
     for (int i = 0; i < n; ++i) {
-      if (!lhs.isNa(i)) {
+      if (!lhs.isNothing(i)) {
         long item = lhs.getItem(i);
         boolean r = doLong(item, rhs);
         if (r) {
@@ -116,7 +116,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     BitSet missing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < n; ++i) {
-      if (lhs.isNa(i)) {
+      if (lhs.isNothing(i)) {
         missing.set(i);
       } else {
         double item = lhs.getItemAsDouble(i);
@@ -211,7 +211,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     BitSet missing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < m; ++i) {
-      if (lhs.isNa(i) || rhs.isNa(i)) {
+      if (lhs.isNothing(i) || rhs.isNothing(i)) {
         missing.set(i);
       } else {
         long x = lhs.getItem(i);
@@ -242,7 +242,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     BitSet missing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < m; ++i) {
-      if (lhs.isNa(i) || rhs.isNa(i)) {
+      if (lhs.isNothing(i) || rhs.isNothing(i)) {
         missing.set(i);
       } else {
         double x = lhs.getItemAsDouble(i);

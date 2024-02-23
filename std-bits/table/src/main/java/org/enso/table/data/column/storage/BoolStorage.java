@@ -66,7 +66,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     return isMissing.get((int) idx);
   }
 
@@ -266,7 +266,7 @@ public final class BoolStorage extends Storage<Boolean>
                 BitSet out = new BitSet();
                 BitSet missing = new BitSet();
                 for (int i = 0; i < storage.size; i++) {
-                  if (!storage.isNa(i) && i < arg.size() && !arg.isNa(i)) {
+                  if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
                     if (((Boolean) storage.getItem(i)).equals(arg.getItemBoxed(i))) {
                       out.set(i);
                     }

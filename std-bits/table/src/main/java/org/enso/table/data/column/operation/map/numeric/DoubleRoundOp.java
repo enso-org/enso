@@ -42,7 +42,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
       BitSet isMissing = new BitSet();
 
       for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNa(i)) {
+        if (!storage.isNothing(i)) {
           double item = storage.getItemAsDouble(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
           if (!special) {
@@ -65,7 +65,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
           NumericBuilder.createDoubleBuilder(storage.size(), problemAggregator);
 
       for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNa(i)) {
+        if (!storage.isNothing(i)) {
           double item = storage.getItemAsDouble(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
           if (!special) {

@@ -50,7 +50,7 @@ public class LikeOp extends StringBooleanOp {
       BitSet newMissing = new BitSet();
       Context context = Context.getCurrent();
       for (int i = 0; i < storage.size(); i++) {
-        if (storage.isNa(i)) {
+        if (storage.isNothing(i)) {
           newMissing.set(i);
         } else if (pattern.matcher(storage.getItem(i)).matches()) {
           newVals.set(i);
