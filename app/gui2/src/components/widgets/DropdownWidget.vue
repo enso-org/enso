@@ -10,7 +10,7 @@ enum SortDirection {
 }
 
 const props = defineProps<{ color: string; selectedValue: string | undefined; values: string[] }>()
-const emit = defineEmits<{ click: [index: number] }>()
+const emit = defineEmits<{ click: [index: number, keepOpen: boolean] }>()
 
 const sortDirection = ref<SortDirection>(SortDirection.none)
 
@@ -51,11 +51,11 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
     <ul class="list" :style="{ background: color }" @wheel.stop>
       <template v-for="[value, index] in sortedValuesAndIndices" :key="value">
         <li v-if="value === selectedValue">
-          <div class="selected-item button" @click.stop="emit('click', index)">
+          <div class="selected-item button" @click.stop="emit('click', index, $event.altKey)">
             <span v-text="value"></span>
           </div>
         </li>
-        <li v-else class="selectable-item button" @click.stop="emit('click', index)">
+        <li v-else class="selectable-item button" @click.stop="emit('click', index, $event.altKey)">
           <span v-text="value"></span>
         </li>
       </template>
