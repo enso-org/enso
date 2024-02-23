@@ -135,6 +135,9 @@ useEvent(window, 'keydown', (event) => keydownHandler(event))
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
       }"
+      @pointerdown.stop
+      @pointerup.stop
+      @click.stop
     >
       <div class="resizer-right" v-on="resizeRight.stop.events"></div>
       <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>
@@ -162,22 +165,18 @@ useEvent(window, 'keydown', (event) => keydownHandler(event))
             invisible: config.isCircularMenuVisible,
             hidden: config.fullscreen,
           }"
+          @pointerdown.stop
+          @pointerup.stop
+          @click.stop
         >
-          <button
-            class="image-button active"
-            @pointerdown.stop="config.hide()"
-            @click="config.hide()"
-          >
+          <button class="image-button active" @click.stop="config.hide()">
             <SvgIcon class="icon" name="eye" alt="Hide visualization" />
           </button>
         </div>
         <div class="toolbar">
           <button
             class="image-button active"
-            @pointerdown.stop="(config.fullscreen = !config.fullscreen), blur($event)"
-            @click.prevent="
-              isTriggeredByKeyboard($event) && (config.fullscreen = !config.fullscreen)
-            "
+            @click.stop.prevent="(config.fullscreen = !config.fullscreen), blur($event)"
           >
             <SvgIcon
               class="icon"
@@ -188,9 +187,9 @@ useEvent(window, 'keydown', (event) => keydownHandler(event))
           <div class="icon-container">
             <button
               class="image-button active"
-              @pointerdown.stop="!isSelectorVisible && (isSelectorVisible = !isSelectorVisible)"
-              @click.prevent="
-                isTriggeredByKeyboard($event) && (isSelectorVisible = !isSelectorVisible)
+              @click.stop.prevent="
+                (!isSelectorVisible || isTriggeredByKeyboard($event)) &&
+                  (isSelectorVisible = !isSelectorVisible)
               "
             >
               <SvgIcon

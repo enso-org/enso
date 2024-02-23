@@ -9,7 +9,7 @@ import org.enso.cli.task.notifications.TaskNotificationApi._
   *
   * Do not remove this import.
   */
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 
 object JsonRpc {
 

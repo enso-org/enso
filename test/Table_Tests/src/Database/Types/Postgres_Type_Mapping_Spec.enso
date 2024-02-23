@@ -194,11 +194,11 @@ add_specs suite_builder create_connection_fn =
             beef = [-66, -17]
             materialized_table.at "B" . to_vector . should_equal [ffff, caffee, beef]
 
-main =
+main filter=Nothing =
     create_connection_fn = _-> create_connection_builder Nothing
     suite = Test.build suite_builder->
         add_specs suite_builder create_connection_fn
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 max_int4 = 2147483647
 default_text = Value_Type.Char size=Nothing variable_length=True

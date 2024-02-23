@@ -14,6 +14,7 @@ import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.CountNothing;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -166,7 +167,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
    */
   public KeyType findAnyNullKey() {
     for (Column c : keyColumns) {
-      boolean containsNulls = c.getStorage().countMissing() > 0;
+      boolean containsNulls = CountNothing.anyNothing(c.getStorage());
       if (containsNulls) {
         for (KeyType key : locs.keySet()) {
           if (key.hasAnyNulls()) {

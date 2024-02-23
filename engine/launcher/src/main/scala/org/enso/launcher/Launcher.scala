@@ -3,7 +3,7 @@ package org.enso.launcher
 import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.config.DefaultVersion
 import org.enso.editions.updater.EditionManager
 import org.enso.runtimeversionmanager.CurrentVersion
@@ -565,7 +565,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     if (targetVersion == CurrentVersion.version) {
       InfoLogger.info("Already up-to-date.")
       0
-    } else if (targetVersion < CurrentVersion.version && !isManuallyRequested) {
+    } else if (
+      targetVersion.isLessThan(CurrentVersion.version) && !isManuallyRequested
+    ) {
       logger.warn(
         s"The latest available version is $targetVersion, but you are " +
         s"running ${CurrentVersion.version} which is more recent."

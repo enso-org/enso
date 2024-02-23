@@ -83,7 +83,7 @@ provideWidgetTree(
       v-if="!props.connectedSelfArgumentId"
       class="icon grab-handle"
       :name="props.icon"
-      @pointerdown.right.stop="emit('openFullMenu')"
+      @click.right.stop.prevent="emit('openFullMenu')"
     />
     <NodeWidget :input="rootPort" @update="handleWidgetUpdates" />
   </div>

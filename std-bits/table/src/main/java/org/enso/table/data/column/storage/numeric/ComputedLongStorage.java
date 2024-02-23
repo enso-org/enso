@@ -28,11 +28,6 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public int countMissing() {
-    return 0;
-  }
-
-  @Override
   public IntegerType getType() {
     return IntegerType.INT_64;
   }

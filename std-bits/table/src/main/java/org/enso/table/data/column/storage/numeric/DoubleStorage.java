@@ -68,14 +68,6 @@ public final class DoubleStorage extends NumericStorage<Double>
   }
 
   /**
-   * @inheritDoc
-   */
-  @Override
-  public int countMissing() {
-    return isMissing.cardinality();
-  }
-
-  /**
    * @param idx an index
    * @return the data item contained at the given index.
    */

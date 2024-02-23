@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path, StandardOpenOption}
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.{
   DistributionManager,
@@ -430,7 +430,11 @@ class RuntimeVersionManager(
   private def isEngineVersionCompatibleWithThisInstaller(
     manifest: Manifest
   ): Boolean = {
-    if (CurrentVersion.version >= manifest.minimumRequiredVersion) true
+    if (
+      CurrentVersion.version.isGreaterThanOrEqual(
+        manifest.minimumRequiredVersion
+      )
+    ) true
     else if (CurrentVersion.isDevVersion) {
       logger.warn(
         "Ignoring the minimum required engine version check " +
@@ -712,13 +716,15 @@ class RuntimeVersionManager(
     */
   private def parseEngineVersion(path: Path): Try[SemVer] = {
     val name = path.getFileName.toString
-    SemVer(name)
-      .toRight(
-        UnrecognizedComponentError(
-          s"Invalid engine component version `$name`."
+    SemVer
+      .parse(name)
+      .recoverWith(_ =>
+        Failure(
+          UnrecognizedComponentError(
+            s"Invalid engine component version `$name`."
+          )
         )
       )
-      .toTry
   }
 
   /** Loads the engine manifest, checking if that release is compatible with the

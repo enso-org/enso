@@ -1,6 +1,7 @@
 import Standard.Base.Runtime
 import Standard.Base.Data.Numbers.Integer
 import Standard.Base.Any.Any
+import Standard.Base.Nothing.Nothing
 import Standard.Base.Panic.Panic
 
 from Standard.Base.Runtime.Context import Input, Output
@@ -38,7 +39,7 @@ add_specs suite_builder =
             r2 = Panic.catch Any (Runtime.with_disabled_context Input environment=Runtime.current_execution_environment  <| in_fn (out_fn 10)) p-> p.payload.to_text
             r2 . should_equal "(Forbidden_Operation.Error 'The Input context is disabled.')"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
