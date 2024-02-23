@@ -2,14 +2,14 @@ from Standard.Base import all
 
 from Standard.Table import all
 
-import Standard.Database.Data.Column.Column as Database_Column
+import Standard.Database.Data.DB_Column.DB_Column
 
 from Standard.Test import Test
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type My_Type
     Value x:Text
@@ -32,11 +32,13 @@ add_specs suite_builder setup =
 
     zone = Time_Zone.parse "Z"
 
-    mixed_values = if setup.is_database then [] else [[My_Type.Value "1", My_Type.Value "2", Value_Type.Mixed]]
-        + [[[1], [2], Value_Type.Mixed]]
-    date_time_values = if setup.test_selection.date_time.not then [] else [[Date.new 2024 1 3, Date.new 2024 1 4, Value_Type.Date]]
-        + [[Date_Time.new 2024 1 3 2 30 10 zone=zone, Date_Time.new 2024 1 3 2 30 11 zone=zone, Value_Type.Date_Time]]
-        + [[Time_Of_Day.new 2 30 10, Time_Of_Day.new 2 30 11, Value_Type.Time]]
+    mixed_values = if setup.is_database then [] else
+        [[My_Type.Value "1", My_Type.Value "2", Value_Type.Mixed]]
+            + [[[1], [2], Value_Type.Mixed]]
+    date_time_values = if setup.test_selection.date_time.not then [] else
+        [[Date.new 2024 1 3, Date.new 2024 1 4, Value_Type.Date]]
+            + [[Date_Time.new 2024 1 3 2 30 10 zone=zone, Date_Time.new 2024 1 3 2 30 11 zone=zone, Value_Type.Date_Time]]
+            + [[Time_Of_Day.new 2 30 10, Time_Of_Day.new 2 30 11, Value_Type.Time]]
     values_without_nothing = [[False, True, Value_Type.Boolean]]
             + [["abcd", "efgh", Value_Type.Char]]
             + [[12, 13, Value_Type.Integer]]
@@ -241,7 +243,7 @@ add_specs suite_builder setup =
         negate vorc = case vorc of
             _ : Vector -> vorc.map (x-> x.if_not_nothing x.not) # Invert values first
             _ : Column -> vorc.not                              # Set negated bit
-            _ : Database_Column -> vorc.not                     # Set negated bit
+            _ : DB_Column -> vorc.not                     # Set negated bit
         negation_cases = [["normal input, normal argument", identity, identity]]
             + [["negated input, normal argument", negate, identity]]
             + [["normal input, negated argument", identity, negate]]
@@ -255,7 +257,7 @@ add_specs suite_builder setup =
             cases.map cs->
                 input = cs.at 0
                 output = cs.at 4
-                containing_values = make_containing_values (cs.at 1) (cs.at 2) (cs.at 3) 
+                containing_values = make_containing_values (cs.at 1) (cs.at 2) (cs.at 3)
 
                 group_builder.specify "Boolean is_in: (Vector), "+negation_desc+" "+cs.to_text <|
                     input_column = transform_input [input]

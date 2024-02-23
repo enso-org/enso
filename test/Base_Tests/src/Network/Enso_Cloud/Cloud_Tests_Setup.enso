@@ -113,7 +113,7 @@ with_retries ~action =
 
     # Delays are in seconds
     sleep_time = 0.1
-    total_sleep_delay = if Environment.get "CI" . is_nothing . not then 10 else 5
+    total_sleep_delay = if Environment.get "CI" . is_nothing . not then 10 else 2
 
     max_iterations = total_sleep_delay / sleep_time
     go i =

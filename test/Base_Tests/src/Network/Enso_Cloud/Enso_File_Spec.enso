@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -33,17 +34,12 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
                 my_dir.is_directory . should_be_true
                 my_dir.exists . should_be_true
                 my_dir.name . should_equal my_name
-
-                # TODO this is a workaround because create does not return organizationId!
-                # Enso_File.root.list . should_contain my_dir
-                Enso_File.root.list.map .name . should_contain my_name
+                Enso_File.root.list . should_contain my_dir
 
             my_dir.delete . should_succeed
 
             with_retries <|
-                # TODO workaround for missing organizationId
-                # Enso_File.root.list . should_not_contain my_dir
-                Enso_File.root.list.map .name . should_not_contain my_name
+                Enso_File.root.list . should_not_contain my_dir
 
                 # TODO the dir still shows as 'existing' after deletion, probably because it still is there in the Trash
                 # my_dir.exists . should_be_false
@@ -153,26 +149,32 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             nested_file.is_directory.should_be_false
             nested_file.is_regular_file.should_be_true
             nested_file.size . should_equal nested_file.read_bytes.length
+            nested_file.creation_time . should_be_a Date_Time
+            nested_file.last_modified_time . should_be_a Date_Time
 
-        group_builder.specify "should be able to read file metadata (v2)" pending="TODO Enso_File more detailed metadata, waiting on https://github.com/enso-org/cloud-v2/issues/870" <|
+        group_builder.specify "currently does not support metadata for directories" <|
+            # TODO this test should be 'reversed' and merged with above once the metadata is implemented
+            dir = Enso_File.root / "test-directory"
+            Test.expect_panic Unimplemented dir.creation_time
+            Test.expect_panic Unimplemented dir.last_modified_time
+
+        group_builder.specify "should be able to read file metadata (v2)" pending="TODO Enso_File parent and path resolution" <|
             Enso_File.root.parent . should_equal Nothing
             Enso_File.root.path . should_equal "enso://"
 
             dir = Enso_File.root / "test-directory"
             dir.path . should_equal "enso://test-directory/"
             dir.parent . should_equal Enso_File.root
-            dir.is_child_of Enso_File.root . should_be_true
-            Enso_File.root.is_child_of dir . should_be_false
-            dir.creation_time . should_be_a Date_Time
-            dir.last_modified_time . should_be_a Date_Time
+            dir.is_descendant_of Enso_File.root . should_be_true
+            Enso_File.root.is_descendant_of dir . should_be_false
 
             nested_file = dir / "another.txt"
             nested_file.path . should_equal "enso://test-directory/another.txt"
             nested_file.parent . should_equal dir
-            nested_file.is_child_of dir . should_be_true
-            nested_file.is_child_of Enso_File.root . should_be_true
-            nested_file.creation_time . should_be_a Date_Time
-            nested_file.last_modified_time . should_be_a Date_Time
+            ## TODO test for `enso://test-directory-longer-name` . is_descendant_of `enso://test-directory` . should_be_false
+               (even though one is a prefix of the other, but not in the directory tree sense)
+            nested_file.is_descendant_of dir . should_be_true
+            nested_file.is_descendant_of Enso_File.root . should_be_true
 
         group_builder.specify "should be able to read other file metadata" pending="TODO needs further design" <|
             nested_file = Enso_File.root / "test-directory" / "another.txt"
@@ -196,8 +198,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             nested_file.move_to "TODO this needs design"
             nested_file.exists . should_be_false
 
-main =
+main filter=Nothing =
+    setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
-        add_specs suite_builder
-    suite.run_with_filter
-
+        add_specs suite_builder setup
+    suite.run_with_filter filter

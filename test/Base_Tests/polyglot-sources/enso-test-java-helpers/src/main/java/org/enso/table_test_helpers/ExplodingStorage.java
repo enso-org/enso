@@ -35,11 +35,6 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public int countMissing() {
-    return 0;
-  }
-
-  @Override
   public StorageType getType() {
     return IntegerType.INT_64;
   }
@@ -61,19 +56,8 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return false;
-  }
-
-  @Override
   public boolean isBinaryOpVectorized(String name) {
     return false;
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    return null;
   }
 
   @Override
@@ -94,17 +78,12 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Storage<Long> mask(BitSet mask, int cardinality) {
+  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
     return null;
   }
 
   @Override
   public Storage<Long> applyMask(OrderMask mask) {
-    return null;
-  }
-
-  @Override
-  public Storage<Long> countMask(int[] counts, int total) {
     return null;
   }
 

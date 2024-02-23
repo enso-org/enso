@@ -266,7 +266,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         no_error = warned.remove_warnings Unimplemented
         Warning.get_all no_error . map .value . should_equal [1, "Alpha", Nothing]
 
-    group_builder.specify "should allow to throwing warnings, by type" <|
+    group_builder.specify "should allow raising warnings as errors, by type" <|
         warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
 
         warned.throw_on_warning . should_fail_with Integer
@@ -308,7 +308,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         r.should_equal [0, 1, 20, 3, 40, 5, 60, 7, 80, 9]
         Warning.get_all r wrap_errors=True . map .value . should_contain_the_same_elements_as [Map_Error.Error 1 100, Map_Error.Error 3 300, Map_Error.Error 5 500, Map_Error.Error 7 700, Map_Error.Error 9 900]
 
-    group_builder.specify "should be preserved after operations on multi-dimensional Vector" pending="https://github.com/enso-org/enso/issues/8910" <|
+    group_builder.specify "should be preserved after operations on multi-dimensional Vector" <|
         even x = (Warning.attach x x) % 2
         nested_range_even x =
             (0.up_to x).to_vector.map even
@@ -318,6 +318,11 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         Warning.get_all res . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
         Warning.get_all res wrap_errors=True . map .value . should_equal [(Map_Error.Error 3 (Map_Error.Error 3 3)), (Map_Error.Error 3 (Map_Error.Error 2 2)), (Map_Error.Error 3 (Map_Error.Error 1 1)), (Map_Error.Error 3 (Map_Error.Error 0 0)), (Map_Error.Error 2 (Map_Error.Error 2 2)), (Map_Error.Error 2 (Map_Error.Error 1 1)), (Map_Error.Error 2 (Map_Error.Error 0 0)), (Map_Error.Error 1 (Map_Error.Error 1 1)), (Map_Error.Error 1 (Map_Error.Error 0 0)), (Map_Error.Error 0 (Map_Error.Error 0 0))]
         Warning.get_all (res.at 2) . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
+
+    group_builder.specify "should wrap errors with even deeper nesting" <|
+        Warning.get_all [[[Warning.attach "warning" 10]]] wrap_errors=True . map .value . should_equal [Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 "warning"))]
+        Warning.get_all [[[[Warning.attach "warning" 10]]]] wrap_errors=True . map .value . should_equal [Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 "warning")))]
+        Warning.get_all [[[[[Warning.attach "warning" 10]]]]] wrap_errors=True . map .value . should_equal [Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 (Map_Error.Error 0 "warning"))))]
 
     group_builder.specify "should be preserved over arbitrary dataflow dependencies between values introduced using `if_not_error`" <|
         a = Warning.attach "a" 1
@@ -463,8 +468,7 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         res2 . should_equal True
         Warning.get_all res2 . map .value . should_equal ["WARNING2"]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
-
+    suite.run_with_filter filter

@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path}
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.logger.masking.MaskedPath
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.Manifest.JVMOption
@@ -105,5 +105,7 @@ object Engine {
     * See `docs/distribution/nightly.md` for more information.
     */
   def isNightly(version: SemVer): Boolean =
-    version.preRelease.exists(_.contains(nightlyInfix))
+    version.preReleaseVersion() != null && version
+      .preReleaseVersion()
+      .contains(nightlyInfix)
 }

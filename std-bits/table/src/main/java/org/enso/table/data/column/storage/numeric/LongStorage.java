@@ -9,7 +9,6 @@ import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
@@ -62,14 +61,6 @@ public final class LongStorage extends AbstractLongStorage {
   @Override
   public int size() {
     return size;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  @Override
-  public int countMissing() {
-    return isMissing.cardinality();
   }
 
   /**
@@ -170,13 +161,13 @@ public final class LongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public Storage<Long> mask(BitSet mask, int cardinality) {
+  public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
     BitSet newMissing = new BitSet();
-    long[] newData = new long[cardinality];
+    long[] newData = new long[newLength];
     int resIx = 0;
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         if (isMissing.get(i)) {
           newMissing.set(resIx++);
         } else {
@@ -186,7 +177,7 @@ public final class LongStorage extends AbstractLongStorage {
 
       context.safepoint();
     }
-    return new LongStorage(newData, cardinality, newMissing, type);
+    return new LongStorage(newData, newLength, newMissing, type);
   }
 
   @Override
@@ -196,7 +187,7 @@ public final class LongStorage extends AbstractLongStorage {
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Index.NOT_FOUND || isMissing.get(position)) {
+      if (position == Storage.NOT_FOUND_INDEX || isMissing.get(position)) {
         newMissing.set(i);
       } else {
         newData[i] = data[position];
@@ -205,27 +196,6 @@ public final class LongStorage extends AbstractLongStorage {
       context.safepoint();
     }
     return new LongStorage(newData, newData.length, newMissing, type);
-  }
-
-  @Override
-  public Storage<Long> countMask(int[] counts, int total) {
-    long[] newData = new long[total];
-    BitSet newMissing = new BitSet();
-    int pos = 0;
-    Context context = Context.getCurrent();
-    for (int i = 0; i < counts.length; i++) {
-      if (isMissing.get(i)) {
-        newMissing.set(pos, pos + counts[i]);
-        pos += counts[i];
-      } else {
-        for (int j = 0; j < counts[i]; j++) {
-          newData[pos++] = data[i];
-        }
-      }
-
-      context.safepoint();
-    }
-    return new LongStorage(newData, total, newMissing, type);
   }
 
   @Override

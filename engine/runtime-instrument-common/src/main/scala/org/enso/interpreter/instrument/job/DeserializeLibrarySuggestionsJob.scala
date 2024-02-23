@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters._
   */
 final class DeserializeLibrarySuggestionsJob(
   val libraryName: LibraryName
-) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority)
+) extends BackgroundJob[Unit](DeserializeLibrarySuggestionsJob.Priority, true)
     with UniqueJob[Unit] {
 
   /** @inheritdoc */

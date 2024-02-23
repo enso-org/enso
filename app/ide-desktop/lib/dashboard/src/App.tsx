@@ -61,6 +61,7 @@ import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
+import Subscribe from '#/pages/subscribe/Subscribe'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
@@ -191,7 +192,8 @@ function AppRouter(props: AppProps) {
       if (
         isClick &&
         !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLTextAreaElement)
+        !(event.target instanceof HTMLTextAreaElement) &&
+        !(event.target instanceof HTMLElement && event.target.isContentEditable)
       ) {
         document.getSelection()?.removeAllRanges()
       }
@@ -225,6 +227,7 @@ function AppRouter(props: AppProps) {
             path={appUtils.DASHBOARD_PATH}
             element={shouldShowDashboard && <Dashboard {...props} />}
           />
+          <router.Route path={appUtils.SUBSCRIBE_PATH} element={<Subscribe />} />
         </router.Route>
         {/* Semi-protected pages are visible to users currently registering. */}
         <router.Route element={<authProvider.SemiProtectedLayout />}>

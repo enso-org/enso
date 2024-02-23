@@ -6,8 +6,6 @@ import java.util.List;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
-import org.enso.table.data.column.operation.map.UnaryMapOperation;
-import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
@@ -23,11 +21,11 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualC
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.ProblemAggregator;
@@ -36,7 +34,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends NumericStorage<Double> implements DoubleArrayAdapter {
+public final class DoubleStorage extends NumericStorage<Double>
+    implements DoubleArrayAdapter, ColumnStorageWithNothingMap {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
@@ -69,14 +68,6 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
   }
 
   /**
-   * @inheritDoc
-   */
-  @Override
-  public int countMissing() {
-    return isMissing.cardinality();
-  }
-
-  /**
    * @param idx an index
    * @return the data item contained at the given index.
    */
@@ -87,17 +78,6 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
   @Override
   public Double getItemBoxed(int idx) {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
-  }
-
-  @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return ops.isSupportedUnary(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    return ops.runUnaryMap(name, this, problemAggregator);
   }
 
   /**
@@ -257,13 +237,13 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
   }
 
   @Override
-  public Storage<Double> mask(BitSet mask, int cardinality) {
+  public Storage<Double> applyFilter(BitSet filterMask, int newLength) {
     BitSet newMissing = new BitSet();
-    long[] newData = new long[cardinality];
+    long[] newData = new long[newLength];
     int resIx = 0;
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
-      if (mask.get(i)) {
+      if (filterMask.get(i)) {
         if (isMissing.get(i)) {
           newMissing.set(resIx++);
         } else {
@@ -273,7 +253,7 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
       context.safepoint();
     }
-    return new DoubleStorage(newData, cardinality, newMissing);
+    return new DoubleStorage(newData, newLength, newMissing);
   }
 
   @Override
@@ -283,7 +263,7 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Index.NOT_FOUND || isMissing.get(position)) {
+      if (position == Storage.NOT_FOUND_INDEX || isMissing.get(position)) {
         newMissing.set(i);
       } else {
         newData[i] = data[position];
@@ -292,27 +272,6 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
       context.safepoint();
     }
     return new DoubleStorage(newData, newData.length, newMissing);
-  }
-
-  @Override
-  public Storage<Double> countMask(int[] counts, int total) {
-    long[] newData = new long[total];
-    BitSet newMissing = new BitSet();
-    int pos = 0;
-    Context context = Context.getCurrent();
-    for (int i = 0; i < counts.length; i++) {
-      if (isMissing.get(i)) {
-        newMissing.set(pos, pos + counts[i]);
-        pos += counts[i];
-      } else {
-        for (int j = 0; j < counts[i]; j++) {
-          newData[pos++] = data[i];
-        }
-      }
-
-      context.safepoint();
-    }
-    return new DoubleStorage(newData, total, newMissing);
   }
 
   public BitSet getIsMissing() {
@@ -331,75 +290,12 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
         .add(new DivideOp<>())
         .add(new ModOp<>())
         .add(new PowerOp<>())
-        .add(
-            new DoubleLongMapOpWithSpecialNumericHandling(Maps.TRUNCATE) {
-              @Override
-              protected long doOperation(double a) {
-                return (long) a;
-              }
-            })
-        .add(
-            new DoubleLongMapOpWithSpecialNumericHandling(Maps.CEIL) {
-              @Override
-              protected long doOperation(double a) {
-                return (long) Math.ceil(a);
-              }
-            })
-        .add(
-            new DoubleLongMapOpWithSpecialNumericHandling(Maps.FLOOR) {
-              @Override
-              protected long doOperation(double a) {
-                return (long) Math.floor(a);
-              }
-            })
         .add(new DoubleRoundOp(Maps.ROUND))
         .add(new LessComparison<>())
         .add(new LessOrEqualComparison<>())
         .add(new EqualsComparison<>())
         .add(new GreaterOrEqualComparison<>())
         .add(new GreaterComparison<>())
-        .add(
-            new UnaryMapOperation<>(Maps.IS_NOTHING) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
-                return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
-              }
-            })
-        .add(
-            new UnaryMapOperation<>(Maps.IS_NAN) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
-                BitSet nans = new BitSet();
-                Context context = Context.getCurrent();
-                for (int i = 0; i < storage.size; i++) {
-                  if (!storage.isNa(i) && Double.isNaN(storage.getItemAsDouble(i))) {
-                    nans.set(i);
-                  }
-
-                  context.safepoint();
-                }
-                return new BoolStorage(nans, storage.isMissing, storage.size, false);
-              }
-            })
-        .add(
-            new UnaryMapOperation<>(Maps.IS_INFINITE) {
-              @Override
-              public BoolStorage runUnaryMap(
-                  DoubleStorage storage, MapOperationProblemAggregator problemAggregator) {
-                BitSet infintes = new BitSet();
-                Context context = Context.getCurrent();
-                for (int i = 0; i < storage.size; i++) {
-                  if (!storage.isNa(i) && Double.isInfinite(storage.getItemAsDouble(i))) {
-                    infintes.set(i);
-                  }
-
-                  context.safepoint();
-                }
-                return new BoolStorage(infintes, storage.isMissing, storage.size, false);
-              }
-            })
         .add(new DoubleIsInOp());
     return ops;
   }
@@ -505,5 +401,10 @@ public final class DoubleStorage extends NumericStorage<Double> implements Doubl
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();
+  }
+
+  @Override
+  public BitSet getIsNothingMap() {
+    return isMissing;
   }
 }

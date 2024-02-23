@@ -4,9 +4,9 @@ import akka.testkit.TestDuration
 import io.circe.Json
 import io.circe.syntax._
 import io.circe.literal._
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 import io.circe.parser.parse
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.projectmanager.data.{MissingComponentAction, Socket}
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
 import org.scalactic.source.Position

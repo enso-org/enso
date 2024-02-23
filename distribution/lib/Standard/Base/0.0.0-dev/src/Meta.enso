@@ -386,8 +386,19 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
    `fill` properties. Value contains the created atom and `fill` holds a
    function to "fill the hole" later.
 
+   There can be only one hole in the atom, i.e., only one field of the atom
+   returned by the `value` method should be a hole. If this condition is
+   violated, a Panic error with `Uninitialized_State` payload is thrown.
+
    Arguments:
    - factory: a function that takes the "hole" element and returns newly created atom
+
+   > Example
+     Create a Pair that has a hole in its first element.
+         atom_with_hole = Meta.atom_with_hole (e-> Pair.Value e 2)
+         atom_with_hole.value.first.to_text == "Meta.atom_with_hole"
+         atom_with_hole.fill 1
+         atom_with_hole.value.first.to_text == "1"
 atom_with_hole : (Any -> Atom) -> Any
 atom_with_hole factory = @Builtin_Method "Meta.atom_with_hole_builtin"
 

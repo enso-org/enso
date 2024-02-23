@@ -103,7 +103,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         115.25: '28.8125rem',
         120: '30rem',
         140: '35rem',
+        155: '38.75rem',
         '10lh': '10lh',
+      },
+      minHeight: {
+        '5lh': '5lh',
       },
       width: {
         container: '100cqw',

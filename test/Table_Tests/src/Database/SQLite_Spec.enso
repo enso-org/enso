@@ -9,7 +9,6 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
 
-import Standard.Database.Data.Column.Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
@@ -454,7 +453,7 @@ add_specs suite_builder =
             t2 = t1.cast "X" (Value_Type.Char size=1)
             Warning.get_all t2 . length . should_equal 1
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

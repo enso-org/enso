@@ -43,9 +43,9 @@ const pluralize = string.makePluralize('item', 'items')
 export interface AssetsTableContextMenuProps {
   readonly hidden?: boolean
   readonly category: Category
-  readonly pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>> | null
-  readonly selectedKeys: Set<backendModule.AssetId>
-  readonly setSelectedKeys: (items: Set<backendModule.AssetId>) => void
+  readonly pasteData: pasteDataModule.PasteData<ReadonlySet<backendModule.AssetId>> | null
+  readonly selectedKeys: ReadonlySet<backendModule.AssetId>
+  readonly clearSelectedKeys: () => void
   readonly nodeMapRef: React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
   readonly event: Pick<React.MouseEvent<Element, MouseEvent>, 'pageX' | 'pageY'>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
@@ -61,15 +61,15 @@ export interface AssetsTableContextMenuProps {
 /** A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected. */
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
-  const { category, pasteData, selectedKeys, setSelectedKeys, nodeMapRef, event } = props
+  const { category, pasteData, selectedKeys, clearSelectedKeys, nodeMapRef, event } = props
   const { dispatchAssetEvent, dispatchAssetListEvent, hidden = false } = props
   const { doCopy, doCut, doPaste } = props
   const { backend } = backendProvider.useBackend()
-  const { organization } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const rootDirectoryId = React.useMemo(
-    () => organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [organization]
+    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+    [user]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -78,11 +78,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   // up to date.
   const ownsAllSelectedAssets =
     !isCloud ||
-    (organization != null &&
+    (user != null &&
       Array.from(selectedKeys, key => {
         const userPermissions = nodeMapRef.current.get(key)?.item.permissions
         const selfPermission = userPermissions?.find(
-          permission => permission.user.user_email === organization.email
+          permission => permission.user.user_email === user.email
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))
@@ -91,20 +91,14 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   const doDeleteAll = () => {
     if (isCloud) {
       unsetModal()
-      dispatchAssetEvent({
-        type: AssetEventType.delete,
-        ids: selectedKeys,
-      })
+      dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
     } else {
       setModal(
         <ConfirmDeleteModal
           description={`${selectedKeys.size} selected ${pluralized}`}
           doDelete={() => {
-            setSelectedKeys(new Set())
-            dispatchAssetEvent({
-              type: AssetEventType.delete,
-              ids: selectedKeys,
-            })
+            clearSelectedKeys()
+            dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
           }}
         />
       )

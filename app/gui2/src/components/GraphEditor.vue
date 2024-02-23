@@ -90,12 +90,12 @@ projectStore.lsRpcConnection.then(
     })
   },
   (err) => {
-    toast.error(`Connection to language server failed: ${err}`)
+    toast.error(`Connection to language server failed: ${JSON.stringify(err)}`)
   },
 )
 
 projectStore.executionContext.on('executionFailed', (err) => {
-  toast.error(`Execution Failed: ${err}`, {})
+  toast.error(`Execution Failed: ${JSON.stringify(err)}`, {})
 })
 
 onMounted(() => {
@@ -163,11 +163,35 @@ function sourcePortForSelection() {
 }
 
 useEvent(window, 'keydown', (event) => {
-  interactionBindingsHandler(event) || graphBindingsHandler(event) || codeEditorHandler(event)
+  ;(!keyboardBusy() && (interactionBindingsHandler(event) || graphBindingsHandler(event))) ||
+    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
 
 onMounted(() => viewportNode.value?.focus())
+
+function zoomToSelected() {
+  if (!viewportNode.value) return
+  let left = Infinity
+  let top = Infinity
+  let right = -Infinity
+  let bottom = -Infinity
+  const nodesToCenter =
+    nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
+  for (const id of nodesToCenter) {
+    const rect = graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id)
+    if (!rect) continue
+    left = Math.min(left, rect.left)
+    right = Math.max(right, rect.right)
+    top = Math.min(top, rect.top)
+    bottom = Math.max(bottom, rect.bottom)
+  }
+  graphNavigator.panAndZoomTo(
+    Rect.FromBounds(left, top, right, bottom),
+    0.1,
+    Math.max(1, graphNavigator.scale),
+  )
+}
 
 const graphBindingsHandler = graphBindings.handler({
   undo() {
@@ -201,26 +225,7 @@ const graphBindingsHandler = graphBindings.handler({
     })
   },
   zoomToSelected() {
-    if (!viewportNode.value) return
-    let left = Infinity
-    let top = Infinity
-    let right = -Infinity
-    let bottom = -Infinity
-    const nodesToCenter =
-      nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
-    for (const id of nodesToCenter) {
-      const rect = graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id)
-      if (!rect) continue
-      left = Math.min(left, rect.left)
-      right = Math.max(right, rect.right)
-      top = Math.min(top, rect.top)
-      bottom = Math.max(bottom, rect.bottom)
-    }
-    graphNavigator.panAndZoomTo(
-      Rect.FromBounds(left, top, right, bottom),
-      0.1,
-      Math.max(1, graphNavigator.scale),
-    )
+    zoomToSelected()
   },
   selectAll() {
     if (keyboardBusy()) return
@@ -281,7 +286,7 @@ const graphBindingsHandler = graphBindings.handler({
         // For collapsed function, only selected nodes would affect placement of the output node.
         collapsedFunctionEnv.nodeRects = collapsedFunctionEnv.selectedNodeRects
         edit
-          .checkedGet(refactoredNodeId)
+          .get(refactoredNodeId)
           .mutableNodeMetadata()
           .set('position', { x: position.x, y: position.y })
         if (outputNodeId != null) {
@@ -290,7 +295,7 @@ const graphBindingsHandler = graphBindings.handler({
             collapsedFunctionEnv,
           )
           edit
-            .checkedGet(outputNodeId)
+            .get(outputNodeId)
             .mutableNodeMetadata()
             .set('position', { x: position.x, y: position.y })
         }
@@ -312,7 +317,7 @@ const graphBindingsHandler = graphBindings.handler({
   },
 })
 
-const handleClick = useDoubleClick(
+const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
     graphBindingsHandler(e)
   },
@@ -320,12 +325,11 @@ const handleClick = useDoubleClick(
     if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
-).handleClick
+)
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
   toggle() {
-    if (keyboardBusyExceptIn(codeEditorArea.value)) return false
     showCodeEditor.value = !showCodeEditor.value
   },
 })
@@ -417,7 +421,7 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
     if (graphStore.editedNodeInfo) {
       // We finish editing a node.
       graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
-    } else {
+    } else if (content != '') {
       // We finish creating a new node.
       const metadata = undefined
       const createdNode = graphStore.createNode(
@@ -641,9 +645,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
       />
     </div>
-    <svg :viewBox="graphNavigator.viewBox" class="svgBackdropLayer">
-      <GraphEdges @createNodeFromEdge="handleEdgeDrop" />
-    </svg>
+    <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
 
     <ComponentBrowser
       v-if="componentBrowserVisible"
@@ -652,22 +654,28 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       :nodePosition="componentBrowserNodePosition"
       :usage="componentBrowserUsage"
       @accepted="onComponentBrowserCommit"
-      @closed="onComponentBrowserCommit"
       @canceled="onComponentBrowserCancel"
     />
     <TopBar
       v-model:mode="projectStore.executionMode"
-      :title="projectStore.displayName"
       :modes="EXECUTION_MODES"
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
+      :zoomLevel="100.0 * graphNavigator.scale"
       @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
       @back="stackNavigator.exitNode"
       @forward="stackNavigator.enterNextNodeFromHistory"
       @execute="onPlayButtonPress()"
+      @fitToAllClicked="zoomToSelected"
+      @zoomIn="graphNavigator.scale *= 1.1"
+      @zoomOut="graphNavigator.scale *= 0.9"
     />
-    <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
+    <PlusButton
+      @click.stop="interaction.setCurrent(creatingNodeFromButton)"
+      @pointerdown.stop
+      @pointerup.stop
+    />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" />
@@ -684,13 +692,6 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   overflow: clip;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
-}
-
-.svgBackdropLayer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: -1;
 }
 
 .htmlLayer {
