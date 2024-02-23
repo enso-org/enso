@@ -172,7 +172,7 @@ const dragPointer = usePointer((pos, event, type) => {
         startEvent != null &&
         pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
-        nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
+        nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
         handleNodeClick(event)
         menuVisible.value = MenuState.Partial
       }
@@ -256,7 +256,7 @@ const nodeEditHandler = nodeEditBindings.handler({
 })
 
 function startEditingNode(position: Vec2 | undefined) {
-  let sourceOffset = 0
+  let sourceOffset = props.node.rootSpan.code().length
   if (position != null) {
     let domNode, domOffset
     if ((document as any).caretPositionFromPoint) {

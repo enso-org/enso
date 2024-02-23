@@ -31,7 +31,12 @@ const emit = defineEmits<{
       :modelValue="props.isVisualizationVisible"
       @update:modelValue="emit('update:isVisualizationVisible', $event)"
     />
-    <SvgIcon name="edit" class="icon-container button slot6" @click.stop="emit('startEditing')" />
+    <SvgIcon
+      name="edit"
+      class="icon-container button slot6"
+      data-testid="edit-button"
+      @click.stop="emit('startEditing')"
+    />
     <ToggleIcon
       :icon="props.isOutputContextEnabledGlobally ? 'no_auto_replay' : 'auto_replay'"
       class="icon-container button slot7"
