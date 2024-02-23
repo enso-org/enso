@@ -19,6 +19,7 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
+import { nbsp } from '@/util/specialCharacters'
 import { setIfUndefined } from 'lib0/map'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
@@ -114,7 +115,7 @@ const warning = computed(() => {
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
   if (!warning) return
-  return '⚠\xa0\xa0Warning: ' + warning!
+  return `⚠${nbsp}${nbsp}Warning: ` + warning!
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
