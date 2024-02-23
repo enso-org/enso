@@ -10,13 +10,13 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ 'update:modelValue': [modelValue: string] }>()
 
+const separatorRegex = /(^('''|"""|['"]))|(('''|"""|['"])$)/g
+
 // Edited value reflects the `modelValue`, but does not update it until the user defocuses the field.
-const editedValue = ref(props.modelValue)
+const editedValue = ref(unescape(props.modelValue.replace(separatorRegex, '')))
 watch(
   () => props.modelValue,
-  (newValue) => {
-    editedValue.value = newValue
-  },
+  (newValue) => (editedValue.value = unescape(newValue.replace(separatorRegex, ''))),
 )
 
 const inputNode = ref<HTMLInputElement>()
@@ -30,15 +30,11 @@ const inputMeasurements = computed(() => {
 })
 
 const inputStyle = computed<StyleValue>(() => {
-  if (inputNode.value == null) {
-    return {}
-  }
-  const value = `${editedValue.value}`
+  if (inputNode.value == null) return {}
+  const value = editedValue.value
   const measurements = inputMeasurements.value
   const width = getTextWidthByFont(value, measurements.font)
-  return {
-    width: `${width}px`,
-  }
+  return { width: `${width}px` }
 })
 
 /** To prevent other elements from stealing mouse events (which breaks blur),
@@ -55,24 +51,6 @@ function setupAutoBlur() {
   }
   window.addEventListener('pointerdown', callback, options)
 }
-
-const separators = /(^('''|"""|['"]))|(('''|"""|['"])$)/g
-/** Display the value in a more human-readable form for easier editing. */
-function prepareForEditing() {
-  editedValue.value = unescape(editedValue.value.replace(separators, ''))
-}
-
-function focus() {
-  setupAutoBlur()
-  prepareForEditing()
-}
-
-const escapedValue = computed(() => `'${escape(editedValue.value)}'`)
-
-function blur() {
-  emit('update:modelValue', escapedValue.value)
-  editedValue.value = props.modelValue
-}
 </script>
 
 <template>
@@ -88,8 +66,8 @@ function blur() {
       class="value"
       :style="inputStyle"
       @keydown.enter.stop="($event.target as HTMLInputElement).blur()"
-      @focus="focus"
-      @blur="blur"
+      @focus="setupAutoBlur"
+      @blur="emit('update:modelValue', `'${escape(editedValue)}'`)"
     />
   </div>
 </template>
