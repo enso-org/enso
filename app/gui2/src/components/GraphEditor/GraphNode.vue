@@ -256,7 +256,7 @@ const nodeEditHandler = nodeEditBindings.handler({
 })
 
 function startEditingNode(position: Vec2 | undefined) {
-  let sourceOffset = 0
+  let sourceOffset = props.node.rootSpan.code().length
   if (position != null) {
     let domNode, domOffset
     if ((document as any).caretPositionFromPoint) {
