@@ -11,16 +11,16 @@ test('Entering nodes', async ({ page }) => {
   await actions.goToGraph(page)
   await mockCollapsedFunctionInfo(page, 'final', 'func1')
   await expectInsideMain(page)
-  await expect(locate.navBreadcrumb(page)).toHaveText(['main'])
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project'])
 
   await locate.graphNodeByBinding(page, 'final').dblclick()
   await mockCollapsedFunctionInfo(page, 'f2', 'func2')
   await expectInsideFunc1(page)
-  await expect(locate.navBreadcrumb(page)).toHaveText(['main', 'func1'])
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
 
   await locate.graphNodeByBinding(page, 'f2').dblclick()
   await expectInsideFunc2(page)
-  await expect(locate.navBreadcrumb(page)).toHaveText(['main', 'func1', 'func2'])
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
 })
 
 test('Leaving entered nodes', async ({ page }) => {
@@ -42,7 +42,7 @@ test('Using breadcrumbs to navigate', async ({ page }) => {
   await page.mouse.dblclick(100, 100)
   await expectInsideMain(page)
   // Breadcrumbs still have all the crumbs, but the last two are dimmed.
-  await expect(locate.navBreadcrumb(page)).toHaveText(['main', 'func1', 'func2'])
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
   await expect(locate.navBreadcrumb(page, (f) => f.class('inactive'))).toHaveText([
     'func1',
     'func2',
@@ -51,7 +51,7 @@ test('Using breadcrumbs to navigate', async ({ page }) => {
   await locate.navBreadcrumb(page).filter({ hasText: 'func2' }).click()
   await expectInsideFunc2(page)
 
-  await locate.navBreadcrumb(page).filter({ hasText: 'main' }).click()
+  await locate.navBreadcrumb(page).filter({ hasText: 'Mock Project' }).click()
   await expectInsideMain(page)
 
   await locate.navBreadcrumb(page).filter({ hasText: 'func1' }).click()

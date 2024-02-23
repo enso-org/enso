@@ -658,7 +658,6 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
     />
     <TopBar
       v-model:mode="projectStore.executionMode"
-      :title="projectStore.displayName"
       :modes="EXECUTION_MODES"
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
