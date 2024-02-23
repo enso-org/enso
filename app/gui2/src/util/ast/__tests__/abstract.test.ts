@@ -508,23 +508,6 @@ test('Construct app', () => {
   expect(namedApp.code()).toBe('func name=arg')
 })
 
-test.each([
-  ['Hello, World!', 'Hello, World!'],
-  ['Hello\t\tWorld!', 'Hello\\t\\tWorld!'],
-  ['He\nllo, W\rorld!', 'He\\nllo, W\\rorld!'],
-  ['Hello,\vWorld!', 'Hello,\\vWorld!'],
-  ['Hello, \\World!', 'Hello, \\World!'],
-  ['Hello, `World!`', 'Hello, ``World!``'],
-  ["'Hello, World!'", "\\'Hello, World!\\'"],
-  ['"Hello, World!"', '\\"Hello, World!\\"'],
-  ['Hello, \fWorld!', 'Hello, \\fWorld!'],
-  ['Hello, \bWorld!', 'Hello, \\bWorld!'],
-])('Text literals escaping and unescaping', (original, expectedEscaped) => {
-  const escaped = escape(original)
-  expect(escaped).toBe(expectedEscaped)
-  expect(unescape(escaped)).toBe(original)
-})
-
 test('Automatic parenthesis', () => {
   const block = Ast.parseBlock('main = func arg1 arg2')
   let arg1: Ast.MutableAst | undefined

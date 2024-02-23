@@ -823,7 +823,8 @@ type Table
                 self.java_table.orderBy java_columns directions comparator
             Table.Value java_table
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS unique, deduplicate
+       GROUP Standard.Base.Selections
        ICON preparation
        Returns the distinct set of rows within the specified columns from the
        input table.

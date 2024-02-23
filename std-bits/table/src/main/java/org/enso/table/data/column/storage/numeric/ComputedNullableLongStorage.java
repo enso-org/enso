@@ -17,6 +17,8 @@ import org.graalvm.polyglot.Context;
 public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
   protected final int size;
 
+  protected BitSet isMissing = null;
+
   protected abstract Long computeItem(int idx);
 
   protected ComputedNullableLongStorage(int size) {
@@ -26,11 +28,6 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
   @Override
   public int size() {
     return size;
-  }
-
-  @Override
-  public int countMissing() {
-    return 0;
   }
 
   @Override
@@ -64,16 +61,20 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
 
   @Override
   public BitSet getIsMissing() {
-    BitSet missing = new BitSet();
-    Context context = Context.getCurrent();
-    for (int i = 0; i < size; i++) {
-      if (computeItem(i) == null) {
-        missing.set(i);
-      }
+    if (isMissing == null) {
+      // Only compute once as needed.
+      BitSet missing = new BitSet();
+      Context context = Context.getCurrent();
+      for (int i = 0; i < size; i++) {
+        if (computeItem(i) == null) {
+          missing.set(i);
+        }
 
-      context.safepoint();
+        context.safepoint();
+      }
+      isMissing = missing;
     }
-    return missing;
+    return isMissing;
   }
 
   @Override

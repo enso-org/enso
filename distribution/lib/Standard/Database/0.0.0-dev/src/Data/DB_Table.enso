@@ -1138,7 +1138,8 @@ type DB_Table
         # If the key is a result of a join, union or a subquery then it has no notion of primary key.
         _ -> Nothing
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS unique, deduplicate
+       GROUP Standard.Base.Selections
        ICON preparation
        Returns the distinct set of rows within the specified columns from the
        input table.
