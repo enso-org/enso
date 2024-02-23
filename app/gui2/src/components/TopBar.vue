@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ExecutionModeSelector from '@/components/ExecutionModeSelector.vue'
 import ExtendedMenu from '@/components/ExtendedMenu.vue'
 import NavBar from '@/components/NavBar.vue'
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'

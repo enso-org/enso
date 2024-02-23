@@ -7,10 +7,11 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
 </script>
 
 <template>
-  <div class="RecordControl">
+  <div class="RecordControl" @pointerdown.stop @pointerup.stop @click.stop>
     <div class="control left-end">
       <ToggleIcon
         icon="record"
+        class="button"
         :alt="`${props.recordMode ? 'Enable' : 'Disable'} record mode`"
         :modelValue="props.recordMode"
         @update:modelValue="emit('update:recordMode', $event)"
