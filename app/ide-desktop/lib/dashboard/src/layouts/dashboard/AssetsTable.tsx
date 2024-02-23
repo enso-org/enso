@@ -1523,7 +1523,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           toastAndLog('Can only empty trash when in Trash')
         } else if (assetTree.children != null) {
           const ids = new Set(assetTree.children.map(child => child.item.id))
-          dispatchAssetEvent({ type: AssetEventType.deleteForever, ids })
+          // This is required to prevent an infinite loop,
+          window.setTimeout(() => {
+            dispatchAssetEvent({ type: AssetEventType.deleteForever, ids })
+          })
         }
         break
       }
