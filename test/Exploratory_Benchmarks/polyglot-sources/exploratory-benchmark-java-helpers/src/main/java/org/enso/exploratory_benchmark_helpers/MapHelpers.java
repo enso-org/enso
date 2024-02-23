@@ -40,59 +40,59 @@ public class MapHelpers {
 
     int n = storage1.size();
     long[] result = new long[n];
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
         result[i] = storage1.getItem(i) + storage2.getItem(i);
       } else {
-        missing.set(i);
+        isNothing.set(i);
       }
     }
-    return new LongStorage(result, n, missing, IntegerType.INT_64);
+    return new LongStorage(result, n, isNothing, IntegerType.INT_64);
   }
 
   public static BoolStorage textEndsWith(StringStorage storage, String suffix) {
     int n = storage.size();
     BitSet result = new BitSet();
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       if (storage.isNothing(i)) {
-        missing.set(i);
+        isNothing.set(i);
       } else {
         if (Text_Utils.ends_with(storage.getItem(i), suffix)) {
           result.set(i);
         }
       }
     }
-    return new BoolStorage(result, missing, n, false);
+    return new BoolStorage(result, isNothing, n, false);
   }
 
   public static LongStorage longAdd(LongStorage storage, long shift) {
     int n = storage.size();
     long[] result = new long[n];
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
         result[i] = storage.getItem(i) + shift;
       } else {
-        missing.set(i);
+        isNothing.set(i);
       }
     }
-    return new LongStorage(result, n, missing, IntegerType.INT_64);
+    return new LongStorage(result, n, isNothing, IntegerType.INT_64);
   }
 
   public static LongStorage getYear(DateStorage storage) {
     int n = storage.size();
     long[] result = new long[n];
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
         result[i] = storage.getItem(i).getYear();
       } else {
-        missing.set(i);
+        isNothing.set(i);
       }
     }
-    return new LongStorage(result, n, missing, IntegerType.INT_64);
+    return new LongStorage(result, n, isNothing, IntegerType.INT_64);
   }
 
   public static Storage<?> mapCallback(

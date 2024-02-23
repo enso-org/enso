@@ -45,7 +45,7 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
 
     Context context = Context.getCurrent();
     long[] out = new long[storage.size()];
-    BitSet isMissing = new BitSet();
+    BitSet isNothing = new BitSet();
 
     for (int i = 0; i < storage.size(); i++) {
       if (!storage.isNothing(i)) {
@@ -62,16 +62,16 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
                   + " (inclusive), but was "
                   + item;
           problemAggregator.reportIllegalArgumentError(msg, i);
-          isMissing.set(i);
+          isNothing.set(i);
         }
 
       } else {
-        isMissing.set(i);
+        isNothing.set(i);
       }
 
       context.safepoint();
     }
 
-    return new LongStorage(out, storage.size(), isMissing, IntegerType.INT_64);
+    return new LongStorage(out, storage.size(), isNothing, IntegerType.INT_64);
   }
 }

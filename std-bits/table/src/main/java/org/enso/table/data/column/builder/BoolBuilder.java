@@ -73,7 +73,7 @@ public class BoolBuilder extends TypedBuilder {
     if (storage.getType().equals(getType())) {
       if (storage instanceof BoolStorage boolStorage) {
         BitSets.copy(boolStorage.getValues(), vals, size, boolStorage.size());
-        BitSets.copy(boolStorage.getIsMissing(), isNothing, size, boolStorage.size());
+        BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, boolStorage.size());
         size += boolStorage.size();
       } else {
         throw new IllegalStateException(
