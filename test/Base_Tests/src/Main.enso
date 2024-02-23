@@ -40,6 +40,7 @@ import project.Data.Ordering.Comparator_Spec
 import project.Data.Ordering.Natural_Order_Spec
 import project.Data.Ordering.Vector_Lexicographic_Order_Spec
 import project.Data.Pair_Spec
+import project.Data.Polyglot_Spec
 import project.Data.Problems_Spec
 import project.Data.Range_Spec
 import project.Data.Regression_Spec
@@ -137,6 +138,7 @@ main filter=Nothing =
         R_Interop_Spec.add_specs suite_builder
         Pair_Spec.add_specs suite_builder
         Parse_Spec.add_specs suite_builder
+        Polyglot_Spec.add_specs suite_builder
         Problems_Spec.add_specs suite_builder
         Range_Spec.add_specs suite_builder
         Ref_Spec.add_specs suite_builder

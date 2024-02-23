@@ -3,7 +3,7 @@ package org.enso.launcher.cli
 import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException, Path}
 import cats.implicits._
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.OS
 import org.enso.cli.arguments.Opts
 import org.enso.cli.arguments.Opts.implicits._

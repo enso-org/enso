@@ -1,7 +1,7 @@
 package org.enso.launcher.cli
 
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.CLIOutput
 import org.enso.distribution.locking.Resource
 import org.enso.launcher.InfoLogger

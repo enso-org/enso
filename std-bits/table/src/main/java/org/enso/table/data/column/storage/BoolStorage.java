@@ -51,14 +51,6 @@ public final class BoolStorage extends Storage<Boolean>
     return size;
   }
 
-  /**
-   * @inheritDoc
-   */
-  @Override
-  public int countMissing() {
-    return isMissing.cardinality();
-  }
-
   @Override
   public StorageType getType() {
     return BooleanType.INSTANCE;

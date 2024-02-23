@@ -1662,8 +1662,8 @@ add_specs suite_builder =
         group_builder.specify "should error if start index is larger than string"
             "Hello World!".substring 20 5 . should_fail_with Index_Out_Of_Bounds
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
