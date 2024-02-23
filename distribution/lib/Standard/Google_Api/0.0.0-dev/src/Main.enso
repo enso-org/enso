@@ -73,13 +73,13 @@ initialize secret_file =
 ## PRIVATE
 make_dimensions_vector_selector : Widget
 make_dimensions_vector_selector =
-    item_editor = make_single_choice ['newVsReturning', 'city']
+    item_editor = make_single_choice ['country', 'date', 'isConversionEvent', 'language', 'userAgeBracket', 'userGender']
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
 
 ## PRIVATE
 make_metrics_vector_selector : Widget
 make_metrics_vector_selector =
-    item_editor = make_single_choice ['totalUsers', 'newUsers']
+    item_editor = make_single_choice ['activeUsers', 'bounceRate', 'conversions', 'newUsers', 'sessionsPerUser', 'userConversionRate']
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
 
 
