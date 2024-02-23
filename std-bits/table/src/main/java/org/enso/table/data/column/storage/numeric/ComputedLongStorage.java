@@ -143,4 +143,9 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
       }
     };
   }
+
+  @Override
+  public BitSet getIsNothingMap() {
+    return EMPTY;
+  }
 }
