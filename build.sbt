@@ -2208,7 +2208,6 @@ lazy val `engine-runner` = project
             "com.sun.jna.internal.Cleaner",
             "com.sun.jna.Structure$FFIType",
             "akka.http",
-            "org.enso.interpreter.arrow.util.MemoryUtil"
           )
         )
         .dependsOn(assembly)
@@ -3021,7 +3020,8 @@ buildEngineDistribution := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value.map(_.data)
-  val engineModules = Seq(file("runtime.jar"))
+  val arrow = Seq((`runtime-language-arrow`/Compile/packageBin ).value)
+  val engineModules = Seq(file("runtime.jar")) ++ arrow
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
   val cacheFactory  = streams.value.cacheStoreFactory

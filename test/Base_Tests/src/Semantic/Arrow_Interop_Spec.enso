@@ -1,0 +1,22 @@
+from Standard.Base import all
+from Standard.Test import all
+
+foreign arrow new_arrow = """
+    new[Int8]
+
+add_specs suite_builder =
+    pending = if Polyglot.is_language_installed "arrow" then Nothing else """
+        Can't run Arrow tests, Arrow is not installed.
+
+    suite_builder.group "Arrow" pending=pending group_builder->
+        group_builder.specify "should allow for creating a new fixed Array in Arrow" <|
+            arrow_array_constructor = new_arrow
+            array_10 = arrow_array_constructor.new 10
+            v = Vector.from_array array_10
+            v.length . should_equal 10
+            v.at 1 . should_equal Nothing
+
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
