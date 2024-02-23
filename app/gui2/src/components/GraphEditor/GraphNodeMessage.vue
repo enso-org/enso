@@ -17,7 +17,9 @@ function styleClassForType(type: GraphNodeMessageType) {
 </script>
 
 <template>
-  <div class="GraphNodeMessage" :class="styleClassForType(props.type)" v-text="props.message"></div>
+  <div class="GraphNodeMessage" :class="styleClassForType(props.type)">
+    <div v-text="props.message"></div>
+  </div>
 </template>
 
 <style scoped>

@@ -114,7 +114,7 @@ const warning = computed(() => {
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
   if (!warning) return
-  return '⚠ Warning: ' + warning!
+  return '⚠\xa0\xa0Warning: ' + warning!
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
@@ -436,9 +436,12 @@ function openFullMenu() {
     </div>
     <GraphNodeError v-if="error" class="message" :message="error" type="error" />
     <GraphNodeError
-      v-if="warning && (nodeHovered || isSelected)"
+      v-if="warning"
       class="message warning"
-      :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
+      :class="{
+        messageWithMenu: menuVisible !== MenuState.Off,
+        messageCollapsed: !nodeHovered && !isSelected,
+      }"
       :message="warning"
       type="warning"
     />
@@ -662,6 +665,21 @@ function openFullMenu() {
   position: absolute;
   top: 100%;
   margin-top: 4px;
+}
+
+.message.warning {
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: 1fr;
+  transition: grid-template-columns 50ms;
+
+  > :deep(div) {
+    min-width: 11px;
+  }
+}
+
+.message.messageCollapsed {
+  grid-template-columns: 0fr;
 }
 
 .messageWithMenu {
