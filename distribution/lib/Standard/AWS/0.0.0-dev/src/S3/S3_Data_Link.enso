@@ -1,14 +1,40 @@
 from Standard.Base import all
 from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
+from Standard.Base.Enso_Cloud.Data_Link import parse_format, parse_secure_value
 
 ## PRIVATE
 type S3_Data_Link
     ## PRIVATE
-    Value
+    Value uri format (credentials : AWS_Credential | Nothing)
 
     ## PRIVATE
     parse json -> S3_Data_Link =
-        # TODO
-        S3_Data_Link.Value
+        uri = get_required_field "uri" json
+        auth = get_required_field "auth" json |> parse_aws_auth
+        format_json = json.get "format" Nothing
+        format = format_json
+            . if_not_nothing (parse_format format_json)
+            . if_nothing Auto_Detect
+        S3_Data_Link.Value uri format auth
 
-    read self (on_problems : Problem_Behavior) = ""
+    ## PRIVATE
+    as_file self -> S3_File = S3_File.new self.uri self.credentials
+
+    ## PRIVATE
+    read self (on_problems : Problem_Behavior) =
+        self.as_file self.format on_problems
+
+## PRIVATE
+parse_aws_auth json -> AWS_Credential | Nothing =
+    case get_required_field "type" json of
+        "aws_auth" -> case get_required_field "subType" json of
+            "default" -> Nothing
+            "profile" ->
+                profile = get_required_field "profile" json
+                AWS_Credential.Profile profile
+            "access_key" ->
+                access_key_id = get_required_field "accessKeyId" json |> parse_secure_value
+                secret_access_key = get_required_field "secretAccessKey" json |> parse_secure_value
+                AWS_Credential.Access_Key access_key_id secret_access_key
+            unexpected -> Error.throw (Illegal_State.Error "Unexpected subType inside of `auth` field of a datalink: "+unexpected.to_text)
+        unexpected -> Error.throw (Illegal_State.Error "Unexpected type inside of `auth` field of a datalink: "+unexpected.to_text)

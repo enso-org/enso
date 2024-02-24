@@ -25,7 +25,7 @@ public abstract class DataLinkSPI {
       throw new IllegalStateException("Error: Multiple Data Link providers found for type: " + name + ". The clashing definitions are in the following modules: " + modules + ".");
     }
 
-    return providers.getFirst().get().getTypeObject();
+    return providers.get(0).get().getTypeObject();
   }
 
   public Value getTypeObject() {

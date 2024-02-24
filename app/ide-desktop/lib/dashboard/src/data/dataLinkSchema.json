@@ -153,7 +153,8 @@
           "title": "Delimiter",
           "description": "Must not be blank.",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 1
         },
         "encoding": { "title": "Encoding", "const": "utf8", "type": "string" },
         "headers": {
