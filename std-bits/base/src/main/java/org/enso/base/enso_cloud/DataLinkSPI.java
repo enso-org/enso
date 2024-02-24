@@ -14,7 +14,7 @@ public abstract class DataLinkSPI {
     loader.reload();
   }
 
-  public Value findDataLinkType(String name) {
+  public static Value findDataLinkType(String name) {
     var providers = loader.stream().filter(provider -> provider.get().getTypeName().equals(name)).toList();
     if (providers.isEmpty()) {
       return null;
