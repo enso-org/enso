@@ -544,6 +544,18 @@ add_specs suite_builder =
                 destination_file.read . should_equal "FooBar"
                 source_file.exists . should_be_false
 
+    suite_builder.group "DataLinks to S3_File" pending=api_pending group_builder->
+        group_builder.specify "should be able to read a data link of an S3 File" <|
+            # It reads the datalink description and then reads the actual S3 file contents:
+            (enso_project.data / "simple.datalink") . read . should_equal "Hello WORLD!"
+
+        # TODO also secrets in there
+        group_builder.specify "should be able to read a data link with custom credentials" pending="TODO" <|
+            Error.throw "TODO"
+
+        group_builder.specify "should be able to read a data link with custom a custom file format set" pending="TODO" <|
+            Error.throw "TODO"
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
