@@ -20,6 +20,7 @@ import * as validation from '#/utilities/validation'
 
 /** A modal for changing the user's password. */
 export default function ChangePasswordModal() {
+  const { user } = authProvider.useNonPartialUserSession()
   const { changePassword } = authProvider.useAuth()
   const { unsetModal } = modalProvider.useSetModal()
 
@@ -47,6 +48,7 @@ export default function ChangePasswordModal() {
         }}
       >
         <div className="self-center text-xl">Change your password</div>
+        <input type="text" autoComplete="username" hidden value={user?.email} />
         <Input
           autoFocus
           required

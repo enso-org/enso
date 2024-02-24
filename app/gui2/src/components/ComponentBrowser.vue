@@ -43,7 +43,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [searcherExpression: string, requiredImports: RequiredImport[]]
   canceled: []
 }>()
 
@@ -107,8 +106,10 @@ function readInputFieldSelection() {
     inputField.value.selectionStart != null &&
     inputField.value.selectionEnd != null
   ) {
-    input.selection.value.start = inputField.value.selectionStart
-    input.selection.value.end = inputField.value.selectionEnd
+    input.selection.value = {
+      start: inputField.value.selectionStart,
+      end: inputField.value.selectionEnd,
+    }
   }
 }
 // HTMLInputElement's same event is not supported in chrome yet. We just react for any
@@ -146,6 +147,17 @@ function handleDefocus(e: FocusEvent) {
   }
 }
 
+/** Prevent default on an event if input is not its target.
+ *
+ * The mouse events emitted on other elements may make input selection disappear, what we want to
+ * avoid.
+ */
+function preventNonInputDefault(e: Event) {
+  if (inputField.value != null && e.target !== inputField.value) {
+    e.preventDefault()
+  }
+}
+
 useEvent(
   window,
   'pointerdown',
@@ -153,7 +165,11 @@ useEvent(
     if (event.button !== 0) return
     if (!(event.target instanceof Element)) return
     if (!cbRoot.value?.contains(event.target)) {
-      emit('closed', input.code.value, input.importsToAdd())
+      if (input.anyChange.value) {
+        emit('accepted', input.code.value, input.importsToAdd())
+      } else {
+        emit('canceled')
+      }
     }
   },
   { capture: true },
@@ -363,7 +379,9 @@ const handler = componentBrowserBindings.handler({
     tabindex="-1"
     @focusout="handleDefocus"
     @keydown="handler"
-    @pointerdown.stop
+    @pointerdown.stop="preventNonInputDefault"
+    @pointerup.stop="preventNonInputDefault"
+    @click.stop="preventNonInputDefault"
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop
@@ -401,10 +419,7 @@ const handler = componentBrowserBindings.handler({
                   :style="{ color: componentColor(item.component) }"
                 />
                 <span>
-                  <span
-                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
-                    v-text="item.component.label"
-                  ></span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
                     v-for="range in allRanges(
                       item.component.matchedRanges,
@@ -432,10 +447,7 @@ const handler = componentBrowserBindings.handler({
               >
                 <SvgIcon :name="item.component.icon" />
                 <span>
-                  <span
-                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
-                    v-text="item.component.label"
-                  ></span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
                     v-for="range in allRanges(
                       item.component.matchedRanges,

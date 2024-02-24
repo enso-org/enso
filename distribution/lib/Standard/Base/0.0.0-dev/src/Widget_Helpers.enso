@@ -14,7 +14,7 @@ from project.Metadata.Choice import Option
    Creates a Regex / Text Widget for search and replace.
 make_regex_text_widget : Widget
 make_regex_text_widget =
-    make_single_choice [["Text", '""'], ["Regular Expression", '"^$".to_regex']]
+    make_single_choice [["<Text Value>", '""'], ["<Regular Expression>", '(regex "^$")']]
 
 ## PRIVATE
    Creates a Single_Choice Widget for delimiters.

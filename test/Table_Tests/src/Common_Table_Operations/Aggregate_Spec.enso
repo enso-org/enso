@@ -1,6 +1,6 @@
 from Standard.Base import all hiding First, Last
 
-from Standard.Table import Table, Sort_Column
+from Standard.Table import Table, Sort_Column, expr
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import all
@@ -17,8 +17,8 @@ polyglot java import java.lang.Double
 type Test_Selection
     Config problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True nan=True date_support=True
 
-main =
-    run_default_backend add_specs
+main filter=Nothing =
+    run_default_backend add_specs filter
 
 type Data
     Value ~data
@@ -1405,7 +1405,7 @@ add_specs suite_builder setup =
            to verify that  all of them correctly support expressions.
         group_builder.specify "should allow expressions in aggregates" <|
             table = table_builder [["Index", [1, 1, 2, 2]], ["Value", [1, 2, 3, 4]]]
-            t1 = table.aggregate ["Index"] [Sum "Value", Sum "[Value]*[Value]"]
+            t1 = table.aggregate ["Index"] [Sum "Value", Sum (expr "[Value]*[Value]")]
             t1.column_count . should_equal 3
             r1 =  t1 |> materialize |> _.order_by "Index"
             r1.at "Index" . to_vector . should_equal [1, 2]
@@ -1415,19 +1415,19 @@ add_specs suite_builder setup =
             r1.at -1 . to_vector . should_equal [5, 25]
 
         group_builder.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
-            action1 = data.table.aggregate ["Index"] [Sum "Value", Sum "[MISSING]*[MISSING]"] on_problems=_
+            action1 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[MISSING]*[MISSING]")] on_problems=_
             tester1 = expect_column_names ["Index", "Sum Value"]
             problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
             Problems.test_problem_handling action1 problems1 tester1
 
-            t2 = data.table.aggregate ["Index"] [Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Ignore
+            t2 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=Problem_Behavior.Ignore
             expect_column_names ["Index", "Sum Value"] t2
-            err3 = data.table.aggregate ["Index"] [Sum "Value", Sum "[[["] on_problems=Problem_Behavior.Report_Error
+            err3 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=Problem_Behavior.Report_Error
             err3.should_fail_with Invalid_Aggregate_Column
             err3.catch.name . should_equal "[[["
             err3.catch.expression_error . should_be_a Expression_Error.Syntax_Error
 
-            t4 = data.table.aggregate columns=[Sum "[MISSING]*[MISSING]"]
+            t4 = data.table.aggregate columns=[Sum (expr "[MISSING]*[MISSING]")]
             t4 . should_fail_with Invalid_Aggregate_Column
             err4 = t4.catch
             err4.name.should_equal "[MISSING]*[MISSING]"
@@ -1512,7 +1512,7 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should raise a warning when duplicate column names" <|
-            action = table.aggregate columns=[Sum "Value" new_name="AGG1", Count new_name="AGG1"] on_problems=_
+            action = table.aggregate columns=[Sum "Value" as="AGG1", Count as="AGG1"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["AGG1"]]
             tester = expect_column_names ["AGG1", "AGG1 1"]
             Problems.test_problem_handling action problems tester

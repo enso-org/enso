@@ -21,7 +21,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAst, {
 </script>
 
 <template>
-  <SvgIcon class="icon" :name="icon" @pointerdown.right.stop="tree.emitOpenFullMenu()" />
+  <SvgIcon class="icon" :name="icon" @click.right.stop.prevent="tree.emitOpenFullMenu()" />
 </template>
 
 <style scoped>

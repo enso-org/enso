@@ -4,7 +4,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
-from Standard.Base.Data.Enso_Cloud.Enso_Secret import as_hideable_value
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
