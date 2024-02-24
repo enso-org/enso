@@ -13,4 +13,9 @@ public class S3DataLinkSPI extends DataLinkSPI {
   protected String getTypeName() {
     return "S3_Data_Link";
   }
+
+  @Override
+  protected String getLinkTypeName() {
+    return "S3";
+  }
 }
