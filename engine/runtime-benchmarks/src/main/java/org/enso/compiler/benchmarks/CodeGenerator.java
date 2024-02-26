@@ -3,6 +3,7 @@ package org.enso.compiler.benchmarks;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 // TODO: Make sure all identifiers are used, so that there is no unused variable warning
 public class CodeGenerator {
@@ -71,7 +72,14 @@ public class CodeGenerator {
     };
   }
 
-  public String createExpression(List<String> identifiers, int size) {
+  /**
+   * Creates an expression with the given size.
+   * @param identifiers A collection of all the identifiers that can be used in the expression.
+   * @param usedIdentifiers Will be filled with the identifiers used in the expression.
+   * @param size Arity of the expression.
+   * @return A string representing the expression.
+   */
+  public String createExpression(List<String> identifiers, Set<String> usedIdentifiers, int size) {
     switch (size) {
       // Literal
       case 0 -> {
@@ -81,6 +89,7 @@ public class CodeGenerator {
       case 1 -> {
         var sb = new StringBuilder();
         var ident = chooseIdentifier(identifiers);
+        usedIdentifiers.add(ident);
         sb.append(ident);
         var shouldCallMethod = random.nextBoolean();
         if (shouldCallMethod) {
@@ -94,8 +103,9 @@ public class CodeGenerator {
         var sb = new StringBuilder();
         var shouldCallMethod = random.nextBoolean();
         var ident1 = chooseIdentifier(identifiers);
+        usedIdentifiers.add(ident1);
         if (shouldCallMethod) {
-          var methodArg = createExpression(identifiers, 1);
+          var methodArg = createExpression(identifiers, usedIdentifiers, 1);
           sb.append(ident1)
               .append(".")
               .append(nextMethod())
@@ -104,6 +114,7 @@ public class CodeGenerator {
               .append(")");
         } else {
           var ident2 = chooseIdentifier(identifiers);
+          usedIdentifiers.add(ident2);
           // Binary operator
           sb.append(ident1)
               .append(nextOperator())
@@ -117,11 +128,12 @@ public class CodeGenerator {
         var shouldCallMethod = random.nextBoolean();
         if (shouldCallMethod) {
           var ident = chooseIdentifier(identifiers);
+          usedIdentifiers.add(ident);
           var methodArity = size - 1;
           List<String> methodArgs = new ArrayList<>();
           for (int i = 0; i < methodArity; i++) {
             methodArgs.add(
-                createExpression(identifiers, size - 1)
+                createExpression(identifiers, usedIdentifiers, size - 1)
             );
           }
           sb.append(ident)
@@ -136,8 +148,8 @@ public class CodeGenerator {
           var rndIdx = Math.max(2, random.nextInt(size));
           var size1 = rndIdx;
           var size2 = size - rndIdx;
-          var expr1 = createExpression(identifiers, size1);
-          var expr2 = createExpression(identifiers, size2);
+          var expr1 = createExpression(identifiers, usedIdentifiers, size1);
+          var expr2 = createExpression(identifiers, usedIdentifiers, size2);
           var op = nextOperator();
           sb.append("(")
               .append(expr1)

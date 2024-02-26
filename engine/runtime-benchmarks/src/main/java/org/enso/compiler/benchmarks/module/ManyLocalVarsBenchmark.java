@@ -2,7 +2,9 @@ package org.enso.compiler.benchmarks.module;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.CodeGenerator;
@@ -69,6 +71,7 @@ public class ManyLocalVarsBenchmark {
         .append("42")
         .append(System.lineSeparator());
 
+    Set<String> usedIdentifiers = new HashSet<>();
     allIdentifiers
         .stream()
         .skip(1)
@@ -78,11 +81,32 @@ public class ManyLocalVarsBenchmark {
               sb.append("    ")
                   .append(identifier)
                   .append(" = ")
-                  .append(codeGen.createExpression(initializedIdentifiers, maxExprSize))
+                  .append(codeGen.createExpression(initializedIdentifiers, usedIdentifiers, maxExprSize))
                   .append(System.lineSeparator());
               initializedIdentifiers.add(identifier);
             });
 
+    assert initializedIdentifiers.size() == IDENTIFIERS_CNT;
+    assert usedIdentifiers.size() <= IDENTIFIERS_CNT;
+    if (usedIdentifiers.size() < IDENTIFIERS_CNT) {
+      // Add a final line that uses the rest of the identifiers, so that there is no "Unused binding"
+      // warning.
+      List<String> unusedIdentifiers = new ArrayList<>(allIdentifiers);
+      unusedIdentifiers.removeAll(usedIdentifiers);
+      sb.append("    ")
+          .append("result = ");
+      sb.append(
+        unusedIdentifiers
+            .stream()
+            .reduce((a, b) -> a + " + " + b)
+            .orElseThrow()
+      );
+      sb.append(System.lineSeparator());
+      // result is the return value from the main method
+      sb.append("    ")
+          .append("result")
+          .append(System.lineSeparator());
+    }
     var code = sb.toString();
     var srcFile = Utils.createSrcFile(code, "longMethodWithLotOfLocalVars.enso");
     var src = Source.newBuilder(LanguageInfo.ID, srcFile).build();
