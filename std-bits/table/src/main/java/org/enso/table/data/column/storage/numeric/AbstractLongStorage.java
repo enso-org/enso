@@ -16,19 +16,14 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqu
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends NumericStorage<Long>
-    implements ColumnLongStorage {
+    implements ColumnLongStorage, ColumnStorageWithNothingMap {
   public abstract long getItem(int idx);
-
-  public abstract BitSet getIsMissing();
 
   private static final MapOperationStorage<Long, AbstractLongStorage> ops = buildOps();
 
@@ -87,7 +82,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
     int n = size();
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      if (isNa(i)) {
+      if (isNothing(i)) {
         continue;
       }
 
@@ -133,18 +128,18 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
 
     int n = size();
     long[] newData = new long[n];
-    BitSet newMissing = new BitSet();
+    BitSet newIsNothing = new BitSet();
     long previousValue = 0;
     boolean hasPrevious = false;
 
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      boolean isCurrentMissing = isNa(i);
-      if (isCurrentMissing) {
+      boolean isCurrentNothing = isNothing(i);
+      if (isCurrentNothing) {
         if (hasPrevious) {
           newData[i] = previousValue;
         } else {
-          newMissing.set(i);
+          newIsNothing.set(i);
         }
       } else {
         long currentValue = getItem(i);
@@ -156,7 +151,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
       context.safepoint();
     }
 
-    return new LongStorage(newData, n, newMissing, getType());
+    return new LongStorage(newData, n, newIsNothing, getType());
   }
 
   /**
@@ -173,4 +168,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long>
     }
     return getItem((int) index);
   }
+
+  @Override
+  public abstract BitSet getIsNothingMap();
 }

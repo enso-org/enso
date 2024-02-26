@@ -11,23 +11,23 @@ import org.enso.table.util.BitSets;
 /** A builder for boolean columns. */
 public class BoolBuilder extends TypedBuilder {
   private final BitSet vals;
-  private final BitSet isNa;
+  private final BitSet isNothing;
   int size = 0;
 
   public BoolBuilder() {
     vals = new BitSet();
-    isNa = new BitSet();
+    isNothing = new BitSet();
   }
 
   public BoolBuilder(int capacity) {
     vals = new BitSet(capacity);
-    isNa = new BitSet(capacity);
+    isNothing = new BitSet(capacity);
   }
 
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
-      isNa.set(size);
+      isNothing.set(size);
     } else {
       if (o instanceof Boolean b) {
         if (b) {
@@ -64,7 +64,7 @@ public class BoolBuilder extends TypedBuilder {
 
   @Override
   public void appendNulls(int count) {
-    isNa.set(size, size + count);
+    isNothing.set(size, size + count);
     size += count;
   }
 
@@ -73,7 +73,7 @@ public class BoolBuilder extends TypedBuilder {
     if (storage.getType().equals(getType())) {
       if (storage instanceof BoolStorage boolStorage) {
         BitSets.copy(boolStorage.getValues(), vals, size, boolStorage.size());
-        BitSets.copy(boolStorage.getIsMissing(), isNa, size, boolStorage.size());
+        BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, boolStorage.size());
         size += boolStorage.size();
       } else {
         throw new IllegalStateException(
@@ -88,7 +88,7 @@ public class BoolBuilder extends TypedBuilder {
 
   @Override
   public Storage<Boolean> seal() {
-    return new BoolStorage(vals, isNa, size, false);
+    return new BoolStorage(vals, isNothing, size, false);
   }
 
   @Override
@@ -99,7 +99,7 @@ public class BoolBuilder extends TypedBuilder {
   @Override
   public void retypeToMixed(Object[] items) {
     for (int i = 0; i < size; i++) {
-      if (isNa.get(i)) {
+      if (isNothing.get(i)) {
         items[i] = null;
       } else {
         items[i] = vals.get(i);

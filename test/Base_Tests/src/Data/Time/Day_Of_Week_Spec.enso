@@ -53,8 +53,8 @@ add_specs suite_builder =
             Day_Of_Week.from 4 Day_Of_Week.Monday True . should_equal Day_Of_Week.Friday
             Day_Of_Week.from 5 Day_Of_Week.Monday True . should_equal Day_Of_Week.Saturday
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

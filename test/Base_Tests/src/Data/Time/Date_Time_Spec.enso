@@ -838,8 +838,8 @@ java_parse date_text_raw pattern=Nothing =
       formatter = DateTimeFormatter.ofPattern(pattern)
       Panic.catch Any (maybe_parse_java_zoned date_text formatter) (cause -> parse_java_local cause.payload date_text pattern)
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

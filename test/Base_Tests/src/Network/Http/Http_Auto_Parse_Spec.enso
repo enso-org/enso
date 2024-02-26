@@ -7,10 +7,10 @@ import Standard.Base.Network.HTTP.Response.Response
 
 from Standard.Test import all
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 add_specs suite_builder =

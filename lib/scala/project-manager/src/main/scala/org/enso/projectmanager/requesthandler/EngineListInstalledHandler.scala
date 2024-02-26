@@ -2,6 +2,7 @@ package org.enso.projectmanager.requesthandler
 
 import akka.actor.Props
 import org.enso.jsonrpc.Unused
+import org.enso.semver.SemVerOrdering._
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
@@ -52,4 +53,5 @@ object EngineListInstalledHandler {
     service: RuntimeVersionManagementServiceApi[F],
     requestTimeout: FiniteDuration
   ): Props = Props(new EngineListInstalledHandler[F](service, requestTimeout))
+
 }

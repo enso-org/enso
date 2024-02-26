@@ -43,7 +43,7 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
   const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenManually, doOpenIde, doCloseIde } = state
+  const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
@@ -62,7 +62,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const projectState = asset.projectState ?? {
     type: backendModule.ProjectState.closed,
   }
-  const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
+  const isRunning = backendModule.IS_OPENING_OR_OPENED[projectState.type]
   const canExecute =
     backend.type === backendModule.BackendType.local ||
     (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
@@ -98,7 +98,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:
@@ -295,11 +294,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setItem={setAsset}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
-          openIde={switchPage => {
-            doOpenIde(asset, setAsset, switchPage)
+          doOpenEditor={switchPage => {
+            doOpenEditor(asset, setAsset, switchPage)
           }}
-          onClose={() => {
-            doCloseIde(asset)
+          doCloseEditor={() => {
+            doCloseEditor(asset)
           }}
         />
       )}

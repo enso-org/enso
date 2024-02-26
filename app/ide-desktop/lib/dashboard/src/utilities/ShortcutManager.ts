@@ -8,7 +8,6 @@ import AddNetworkIcon from 'enso-assets/add_network.svg'
 import AppDownloadIcon from 'enso-assets/app_download.svg'
 import BlankIcon from 'enso-assets/blank_16.svg'
 import CameraIcon from 'enso-assets/camera.svg'
-import ChangePasswordIcon from 'enso-assets/change_password.svg'
 import CloseIcon from 'enso-assets/close.svg'
 import CloudToIcon from 'enso-assets/cloud_to.svg'
 import CopyIcon from 'enso-assets/copy.svg'
@@ -87,7 +86,6 @@ export enum KeyboardAction {
   newDataLink = 'new-data-link',
   closeModal = 'close-modal',
   cancelEditName = 'cancel-edit-name',
-  changeYourPassword = 'change-your-password',
   signIn = 'sign-in',
   signOut = 'sign-out',
   downloadApp = 'download-app',
@@ -471,7 +469,6 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Readonly<Record<KeyboardAction, KeyboardShortc
   ],
   [KeyboardAction.closeModal]: [keybind(KeyboardAction.closeModal, [], 'Escape')],
   [KeyboardAction.cancelEditName]: [keybind(KeyboardAction.cancelEditName, [], 'Escape')],
-  [KeyboardAction.changeYourPassword]: [],
   [KeyboardAction.signIn]: [],
   [KeyboardAction.signOut]: [],
   [KeyboardAction.downloadApp]: [],
@@ -520,7 +517,6 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Readonly<Record<KeyboardAction, ShortcutIn
   // These should not appear in any context menus.
   [KeyboardAction.closeModal]: { name: 'Close', icon: BlankIcon },
   [KeyboardAction.cancelEditName]: { name: 'Cancel Editing', icon: BlankIcon },
-  [KeyboardAction.changeYourPassword]: { name: 'Change Your Password', icon: ChangePasswordIcon },
   [KeyboardAction.signIn]: { name: 'Login', icon: SignInIcon },
   [KeyboardAction.signOut]: { name: 'Logout', icon: SignOutIcon, colorClass: 'text-delete' },
   [KeyboardAction.downloadApp]: { name: 'Download App', icon: AppDownloadIcon },

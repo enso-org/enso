@@ -313,8 +313,7 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.newSecret:
       case AssetEventType.updateFiles:
       case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects: {
+      case AssetEventType.closeProject: {
         break
       }
       case AssetEventType.copy: {
@@ -386,7 +385,7 @@ export default function AssetRow(props: AssetRowProps) {
               try {
                 const details = await backend.getFileDetails(asset.id, asset.title)
                 const file = details.file
-                download.download(download.s3URLToHTTPURL(file.path), asset.title)
+                download.download(details.url ?? download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
                 toastAndLog('Could not download selected files', error)
               }

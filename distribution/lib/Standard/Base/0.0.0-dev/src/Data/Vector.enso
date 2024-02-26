@@ -1047,7 +1047,8 @@ type Vector a
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## GROUP Selections
+    ## ALIAS unique, deduplicate
+       GROUP Selections
        ICON preparation
        Keeps only unique elements within the vector, removing any duplicates.
 

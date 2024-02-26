@@ -9,7 +9,7 @@ const emit = defineEmits<{ click: [] }>()
 <template>
   <div class="Breadcrumb">
     <SvgIcon v-if="props.icon" :name="props.icon || ''" />
-    <span @pointerdown="emit('click')" v-text="props.text"></span>
+    <span @click.stop="emit('click')" v-text="props.text"></span>
   </div>
 </template>
 
