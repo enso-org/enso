@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column_Ref.Column_Ref
+import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Table.Table
@@ -31,8 +32,8 @@ type Table_Ref
        - expression: The expression to evaluate.
        - on_problems: Specifies how to handle non-fatal problems, attaching a
          warning by default.
-    evaluate_expression : Text -> Problem_Behavior -> Any ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    evaluate_expression self expression on_problems=Report_Warning = self.underlying.evaluate_expression expression on_problems=on_problems
+    evaluate_expression : Expression -> Problem_Behavior -> Any ! No_Such_Column | Invalid_Value_Type | Expression_Error
+    evaluate_expression self expression:Expression on_problems=Report_Warning = self.underlying.evaluate_expression expression on_problems=on_problems
 
     ## PRIVATE
        Resolve a Column_Ref to a Column, keeping any other values as-is.
@@ -40,7 +41,7 @@ type Table_Ref
     resolve self value = case value of
         Column_Ref.Name name -> self.at name
         Column_Ref.Index index -> self.at index
-        Column_Ref.Expression expression -> self.evaluate_expression expression
+        Expression.Value _ -> self.evaluate_expression value
         _ -> value
 
     ## PRIVATE
@@ -50,7 +51,7 @@ type Table_Ref
     resolve_as_column self value = case value of
         Column_Ref.Name name -> self.at name
         Column_Ref.Index index -> self.at index
-        Column_Ref.Expression expression -> self.evaluate_expression expression
+        Expression.Value _ -> self.evaluate_expression value
         _ -> self.underlying.make_constant_column value
 
     ## PRIVATE
@@ -75,8 +76,8 @@ type Table_Ref
     ## PRIVATE
        Set a column.
     set : Any -> Text -> Set_Mode -> Problem_Behavior -> Table_Ref ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
-    set self column new_name:Text set_mode:Set_Mode=Set_Mode.Add_Or_Update on_problems:Problem_Behavior=Report_Warning =
-        new_underlying = self.underlying.set column new_name set_mode=set_mode on_problems=on_problems
+    set self column as:Text set_mode:Set_Mode=Set_Mode.Add_Or_Update on_problems:Problem_Behavior=Report_Warning =
+        new_underlying = self.underlying.set column as set_mode=set_mode on_problems=on_problems
         Table_Ref.from new_underlying
 
     ## PRIVATE

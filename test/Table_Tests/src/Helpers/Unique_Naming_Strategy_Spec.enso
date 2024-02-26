@@ -235,7 +235,7 @@ add_specs suite_builder =
             r3 = Unique_Name_Strategy.new no_limit . combine_with_prefix first third "P_"
             r3 . should_equal ["P_B 3", "P_A", "P_B", "X", "P_B 1", "P_B 2"]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

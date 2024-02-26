@@ -877,7 +877,7 @@ add_specs suite_builder =
                             Test.with_clue "("+column_vector.to_text+" Is_In "+in_vector.to_text+"): " <|
                                 t.filter "X" (Filter_Condition.Is_In in_vector) . at "X" . to_vector . should_equal expected_vector
                                 t.filter "X" (Filter_Condition.Is_In in_column) . at "X" . to_vector . should_equal expected_vector
-                                t2 = t.set (t.at "X" . not) new_name="Y"
+                                t2 = t.set (t.at "X" . not) as="Y"
                                 t2.filter "Y" (Filter_Condition.Is_In in_vector) . at "Y" . to_vector . should_equal expected_neg_vector
                                 t2.filter "Y" (Filter_Condition.Is_In in_column) . at "Y" . to_vector . should_equal expected_neg_vector
 
@@ -922,10 +922,10 @@ add_specs suite_builder =
             t.set (100.up_to 102) . should_fail_with Row_Count_Mismatch
             t.set ((Date.new 2020 1 1).up_to (Date.new 2020 1 3)) . should_fail_with Row_Count_Mismatch
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 ## JS indexes months form 0, so we need to subtract 1.

@@ -80,14 +80,14 @@ prepare_aggregate_columns naming_helper group_by aggregates table error_on_missi
                The second pass resolves the default names, ensuring that they do not
                clash with the user-specified names (ensuring that user-specified names
                take precedence).
-            pass_1 = valid_resolved_aggregate_columns.map on_problems=No_Wrap c-> if c.new_name == "" then "" else
+            pass_1 = valid_resolved_aggregate_columns.map on_problems=No_Wrap c-> if c.as == "" then "" else
                 # Verify if the user-provided name is valid and if not, throw an error.
-                naming_helper.ensure_name_is_valid c.new_name <|
-                    unique.make_unique c.new_name
+                naming_helper.ensure_name_is_valid c.as <|
+                    unique.make_unique c.as
             renamed_columns = pass_1.map_with_index i->name->
                 agg = valid_resolved_aggregate_columns.at i
-                new_name = if name != "" then name else unique.make_unique (default_aggregate_column_name agg)
-                Pair.new new_name agg
+                as = if name != "" then name else unique.make_unique (default_aggregate_column_name agg)
+                Pair.new as agg
 
             # Build Problems Output
             case renamed_columns.is_empty of
@@ -106,7 +106,7 @@ prepare_aggregate_columns naming_helper group_by aggregates table error_on_missi
 ## PRIVATE
    Defines the default name of an `Aggregate_Column`.
 
-   To be used when `new_name` is `Nothing`.
+   To be used when `as` is `Nothing`.
 
    Assumes that the `Aggregate_Column` is resolved. You may need to transform it
    with `resolve_aggregate` first.
@@ -189,28 +189,28 @@ resolve_aggregate table problem_builder aggregate_column =
             internal_column
 
     result = case aggregate_column of
-        Group_By c new_name -> Group_By (resolve c) new_name
-        Count new_name -> Count new_name
-        Count_Distinct c new_name ignore_nothing ->
+        Group_By c as -> Group_By (resolve c) as
+        Count as -> Count as
+        Count_Distinct c as ignore_nothing ->
             new_c = resolve_selector_to_vector c
-            Count_Distinct new_c new_name ignore_nothing
-        Count_Not_Nothing c new_name -> Count_Not_Nothing (resolve c) new_name
-        Count_Nothing c new_name -> Count_Nothing (resolve c) new_name
-        Count_Not_Empty c new_name -> Count_Not_Empty (resolve_text c) new_name
-        Count_Empty c new_name ->  Count_Empty (resolve_text c) new_name
-        Sum c new_name -> Sum (resolve_numeric c) new_name
-        Average c new_name -> Average (resolve_numeric c) new_name
-        Median c new_name -> Median (resolve_numeric c) new_name
-        Percentile p c new_name -> Percentile p (resolve_numeric c) new_name
-        Mode c new_name -> Mode (resolve c) new_name
-        Standard_Deviation c new_name population -> Standard_Deviation (resolve_numeric c) new_name population
-        Concatenate c new_name separator prefix suffix quote_char -> Concatenate (resolve_text c) new_name separator prefix suffix quote_char
-        First c new_name ignore_nothing order_by -> First (resolve c) new_name ignore_nothing (resolve_order_by order_by)
-        Last c new_name ignore_nothing order_by -> Last (resolve c) new_name ignore_nothing (resolve_order_by order_by)
-        Maximum c new_name -> Maximum (resolve c) new_name
-        Minimum c new_name -> Minimum (resolve c) new_name
-        Shortest c new_name -> Shortest (resolve_text c) new_name
-        Longest c new_name -> Longest (resolve_text c) new_name
+            Count_Distinct new_c as ignore_nothing
+        Count_Not_Nothing c as -> Count_Not_Nothing (resolve c) as
+        Count_Nothing c as -> Count_Nothing (resolve c) as
+        Count_Not_Empty c as -> Count_Not_Empty (resolve_text c) as
+        Count_Empty c as ->  Count_Empty (resolve_text c) as
+        Sum c as -> Sum (resolve_numeric c) as
+        Average c as -> Average (resolve_numeric c) as
+        Median c as -> Median (resolve_numeric c) as
+        Percentile p c as -> Percentile p (resolve_numeric c) as
+        Mode c as -> Mode (resolve c) as
+        Standard_Deviation c as population -> Standard_Deviation (resolve_numeric c) as population
+        Concatenate c as separator prefix suffix quote_char -> Concatenate (resolve_text c) as separator prefix suffix quote_char
+        First c as ignore_nothing order_by -> First (resolve c) as ignore_nothing (resolve_order_by order_by)
+        Last c as ignore_nothing order_by -> Last (resolve c) as ignore_nothing (resolve_order_by order_by)
+        Maximum c as -> Maximum (resolve c) as
+        Minimum c as -> Minimum (resolve c) as
+        Shortest c as -> Shortest (resolve_text c) as
+        Longest c as -> Longest (resolve_text c) as
 
     ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
        value, keeping any other dataflow errors intact.

@@ -4,7 +4,6 @@ import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
@@ -26,8 +25,6 @@ import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
-/** The width in pixels that is not the widget tree. This includes the icon, and padding. */
-const NODE_EXTRA_WIDTH_PX = 30
 
 const prefixes = Prefixes.FromLines({
   enableOutputContext:
@@ -73,15 +70,19 @@ const outputPortsSet = computed(() => {
 const widthOverridePx = ref<number>()
 const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
 const externalId = computed(() => props.node.rootSpan.externalId)
+const potentialSelfArgumentId = computed(() => props.node.primarySubject)
+const connectedSelfArgumentId = computed(() =>
+  props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject)
+    ? props.node.primarySubject
+    : undefined,
+)
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const baseNodeSize = computed(
-  () => new Vec2((contentNode.value?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX, nodeSize.value.y),
-)
+const baseNodeSize = computed(() => new Vec2(contentNode.value?.scrollWidth ?? 0, nodeSize.value.y))
 
 /// Menu can be full, partial or off
 enum MenuState {
@@ -149,6 +150,9 @@ const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
 let startPos = Vec2.Zero
 
+// TODO[ao]: Now, the dragPointer.events are preventing `click` events on widgets if they don't
+// stop pointerup and pointerdown. Now we ensure that any widget handling click does that, but
+// instead `usePointer` should be smarter.
 const dragPointer = usePointer((pos, event, type) => {
   if (type !== 'start') {
     const fullOffset = pos.absolute.sub(startPos)
@@ -168,7 +172,8 @@ const dragPointer = usePointer((pos, event, type) => {
         startEvent != null &&
         pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
-        nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
+        nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
+        handleNodeClick(event)
         menuVisible.value = MenuState.Partial
       }
       startEvent = null
@@ -251,7 +256,7 @@ const nodeEditHandler = nodeEditBindings.handler({
 })
 
 function startEditingNode(position: Vec2 | undefined) {
-  let sourceOffset = 0
+  let sourceOffset = props.node.rootSpan.code().length
   if (position != null) {
     let domNode, domOffset
     if ((document as any).caretPositionFromPoint) {
@@ -367,7 +372,7 @@ function openFullMenu() {
       transform,
       width:
         widthOverridePx != null && isVisualizationVisible
-          ? `${Math.max(widthOverridePx, (contentNode?.scrollWidth ?? 0) + NODE_EXTRA_WIDTH_PX)}px`
+          ? `${Math.max(widthOverridePx, contentNode?.scrollWidth ?? 0)}px`
           : undefined,
       '--node-group-color': color,
     }"
@@ -412,15 +417,22 @@ function openFullMenu() {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
-      <SvgIcon
-        class="icon grab-handle"
-        :name="icon"
-        @pointerdown.right.stop="openFullMenu"
-      ></SvgIcon>
-      <div ref="contentNode" class="widget-tree">
-        <NodeWidgetTree :ast="displayedExpression" :nodeId="nodeId" />
-      </div>
+    <div
+      ref="contentNode"
+      class="node"
+      v-on="dragPointer.events"
+      @click.stop
+      @pointerdown.stop
+      @pointerup.stop
+    >
+      <NodeWidgetTree
+        :ast="displayedExpression"
+        :nodeId="nodeId"
+        :icon="icon"
+        :connectedSelfArgumentId="connectedSelfArgumentId"
+        :potentialSelfArgumentId="potentialSelfArgumentId"
+        @openFullMenu="openFullMenu"
+      />
     </div>
     <GraphNodeError v-if="error" class="message" :message="error" type="error" />
     <GraphNodeError
@@ -566,7 +578,7 @@ function openFullMenu() {
   caret-shape: bar;
   height: var(--node-height);
   border-radius: var(--node-border-radius);
-  display: flex;
+  display: inline-flex;
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
@@ -636,11 +648,6 @@ function openFullMenu() {
   position: relative;
   display: flex;
   gap: 4px;
-}
-
-.grab-handle {
-  color: white;
-  margin: 0 4px;
 }
 
 .CircularMenu {
