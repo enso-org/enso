@@ -1,6 +1,9 @@
 /** @file A dynamic wizard for creating an arbitrary type of Data Link. */
 import * as React from 'react'
 
+import type * as ajv from 'ajv/dist/2020'
+import Ajv from 'ajv/dist/2020'
+
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 
 import * as backendProvider from '#/providers/BackendProvider'
@@ -8,6 +11,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
 
+import * as error from '#/utilities/error'
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
 
@@ -16,6 +20,9 @@ import * as object from '#/utilities/object'
 // =================
 
 const DEFS: Record<string, object> = SCHEMA.$defs
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const AJV = new Ajv({ formats: { 'enso-secret': true } })
+AJV.addSchema(SCHEMA)
 
 // =====================
 // === constantValue ===
@@ -75,6 +82,7 @@ function getSchemaName(schema: object) {
 export interface DataLinkInputProps {
   readonly dropdownTitle?: string
   readonly schema?: object
+  readonly path?: string
   readonly readOnly?: boolean
   readonly value: NonNullable<unknown> | null
   readonly setValue: React.Dispatch<React.SetStateAction<NonNullable<unknown> | null>>
@@ -82,8 +90,8 @@ export interface DataLinkInputProps {
 
 /** A dynamic wizard for creating an arbitrary type of Data Link. */
 export default function DataLinkInput(props: DataLinkInputProps) {
-  const { dropdownTitle, schema = SCHEMA.$defs.DataLink, readOnly = false, value: valueRaw } = props
-  const { setValue: setValueRaw } = props
+  const { dropdownTitle, schema = SCHEMA.$defs.DataLink, path = '#/$defs/DataLink' } = props
+  const { readOnly = false, value: valueRaw, setValue: setValueRaw } = props
   const { backend } = backendProvider.useBackend()
   const [value, setValue] = React.useState(valueRaw)
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
@@ -148,7 +156,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               value={typeof value === 'string' ? value : ''}
               size={1}
               className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
-                jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
+                error.assert<ajv.ValidateFunction>(() => AJV.getSchema(path))(value)
+                  ? 'border-black/10'
+                  : 'border-red-700/60'
               }`}
               placeholder="Enter text"
               onChange={event => {
@@ -167,7 +177,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             value={typeof value === 'number' ? value : ''}
             size={1}
             className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
-              jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
+              error.assert<ajv.ValidateFunction>(() => AJV.getSchema(path))(value)
+                ? 'border-black/10'
+                : 'border-red-700/60'
             }`}
             placeholder="Enter number"
             onChange={event => {
@@ -187,7 +199,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             value={typeof value === 'number' ? value : ''}
             size={1}
             className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
-              jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
+              error.assert<ajv.ValidateFunction>(() => AJV.getSchema(path))(value)
+                ? 'border-black/10'
+                : 'border-red-700/60'
             }`}
             placeholder="Enter integer"
             onChange={event => {
@@ -266,6 +280,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
                     <DataLinkInput
                       readOnly={readOnly}
                       schema={childSchema}
+                      path={`${path}/properties/${key}`}
                       // This is SAFE, as `value` is an untyped object.
                       // eslint-disable-next-line no-restricted-syntax
                       value={(value as Record<string, unknown>)[key] ?? null}
@@ -304,6 +319,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           key={String(schema.$ref)}
           readOnly={readOnly}
           schema={referencedSchema}
+          path={String(schema.$ref)}
           value={value}
           setValue={setValue}
         />
@@ -316,15 +332,18 @@ export default function DataLinkInput(props: DataLinkInputProps) {
       const childSchemas = schema.anyOf.flatMap(object.singletonObjectOrNull)
       const selectedChildSchema =
         selectedChildIndex == null ? null : childSchemas[selectedChildIndex]
+      const selectedChildPath = `${path}/anyOf/${selectedChildIndex}`
       const childValue = selectedChildSchema == null ? [] : constantValue(selectedChildSchema)
       if (
         value != null &&
         (selectedChildSchema == null ||
-          !jsonSchema.isMatch(DEFS, selectedChildSchema, value, { partial: true }))
+          error.assert<ajv.ValidateFunction>(() => AJV.getSchema(selectedChildPath))(value) !==
+            true)
       ) {
-        const newIndex = childSchemas.findIndex(childSchema =>
-          jsonSchema.isMatch(DEFS, childSchema, value, { partial: true })
+        const newIndexRaw = childSchemas.findIndex((_, index) =>
+          error.assert<ajv.ValidateFunction>(() => AJV.getSchema(`${path}/anyOf/${index}`))(value)
         )
+        const newIndex = selectedChildSchema == null && newIndexRaw === -1 ? 0 : newIndexRaw
         if (newIndex !== -1 && newIndex !== selectedChildIndex) {
           setSelectedChildIndex(newIndex)
         }
@@ -340,6 +359,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             setSelectedChildIndex(index)
             const newConstantValue = constantValue(childSchema, true)
             setValue(newConstantValue[0] ?? null)
+            setSelectedChildIndex(index)
           }}
         />
       )
@@ -358,6 +378,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               key={selectedChildIndex}
               readOnly={readOnly}
               schema={selectedChildSchema}
+              path={selectedChildPath}
               value={value}
               setValue={setValue}
             />
@@ -377,6 +398,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               key={i}
               readOnly={readOnly}
               schema={childSchema}
+              path={`${path}/allOf/${i}`}
               value={value}
               setValue={setValue}
             />
