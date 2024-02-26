@@ -27,6 +27,7 @@ async def invoke_gh_api(
         repo: str,
         endpoint: str,
         query_params: Dict[str, str] = {},
+        fields: Dict[str, str] = {},
         result_as_json: bool = True,
         method: str = "GET"
 ) -> Optional[Union[Dict[str, Any], bytes]]:
@@ -35,12 +36,16 @@ async def invoke_gh_api(
     :param repo: Repository name in the form `owner/repo`
     :param endpoint: Endpoint of the query. Must start with `/`.
     :param query_params: Additional query parameters.
+    :param fields: Additional fields to be added to the query. add static
+    string parameters to the request payload.
     :param result_as_json: If result should be parsed as JSON.
           If false, the raw bytes are returned.
     :param method: HTTP method to use, 'GET' by default.
     :return: None if the query fails
     """
     assert endpoint.startswith("/")
+    if len(fields) > 0 and method != "POST":
+        raise ValueError("Fields can be used only with POST method")
     urlencode(query_params)
     cmd = [
         "gh",
@@ -48,6 +53,8 @@ async def invoke_gh_api(
         "--method", method,
         f"/repos/{repo}{endpoint}" + "?" + urlencode(query_params)
     ]
+    for k, v in fields.items():
+        cmd.append(f"-f {k}='{v}'")
     _logger.debug("Invoking gh API with `%s`", " ".join(cmd))
     proc = await asyncio.create_subprocess_exec("gh", *cmd[1:],
                                                 stdout=subprocess.PIPE,
@@ -58,6 +65,8 @@ async def invoke_gh_api(
         _logger.error("Command `%s` FAILED with errcode %d",
                       " ".join(cmd),
                       proc.returncode)
+        _logger.error("  stdout: %s", out.decode())
+        _logger.error("  stderr: %s", err.decode())
         return None
     if result_as_json:
         return json.loads(out.decode())
