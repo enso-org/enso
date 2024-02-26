@@ -1,6 +1,6 @@
 package org.enso.editions.updater
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.librarymanager.published.repository.ExampleRepository
 import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.Inside
@@ -50,7 +50,7 @@ class UpdatingEditionProviderTest
         provider.findAvailableEditions(update = false) shouldBe empty
         inside(provider.findEditionForName("testlocal")) {
           case Right(edition) =>
-            edition.engineVersion shouldEqual Some(SemVer(0, 0, 0))
+            edition.engineVersion shouldEqual Some(SemVer.of(0, 0, 0))
         }
       }
     }

@@ -97,7 +97,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     int n = boolStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (boolStorage.isNa(i)) {
+      if (boolStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         boolean value = boolStorage.getItem(i);
@@ -116,7 +116,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     int n = doubleStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (doubleStorage.isNa(i)) {
+      if (doubleStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         double value = doubleStorage.getItemAsDouble(i);
@@ -147,14 +147,14 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       Context context = Context.getCurrent();
       int n = longStorage.size();
       long[] data = new long[n];
-      BitSet isMissing = BitSets.makeDuplicate(longStorage.getIsMissing());
+      BitSet isNothing = BitSets.makeDuplicate(longStorage.getIsNothingMap());
       for (int i = 0; i < n; i++) {
-        if (!isMissing.get(i)) {
+        if (!isNothing.get(i)) {
           long value = longStorage.getItem(i);
           if (targetType.fits(value)) {
             data[i] = value;
           } else {
-            isMissing.set(i);
+            isNothing.set(i);
             problemAggregator.reportNumberOutOfRange(value);
           }
         }
@@ -162,7 +162,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         context.safepoint();
       }
 
-      return new LongStorage(data, n, isMissing, targetType);
+      return new LongStorage(data, n, isNothing, targetType);
     }
   }
 
@@ -171,22 +171,22 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     Context context = Context.getCurrent();
     int n = storage.size();
     long[] data = new long[n];
-    BitSet isMissing = new BitSet();
+    BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
       BigInteger value = storage.getItemBoxed(i);
       if (value == null) {
-        isMissing.set(i);
+        isNothing.set(i);
       } else if (targetType.fits(value)) {
         data[i] = value.longValue();
       } else {
-        isMissing.set(i);
+        isNothing.set(i);
         problemAggregator.reportNumberOutOfRange(value);
       }
 
       context.safepoint();
     }
 
-    return new LongStorage(data, n, isMissing, targetType);
+    return new LongStorage(data, n, isNothing, targetType);
   }
 
   public static long booleanAsLong(boolean value) {

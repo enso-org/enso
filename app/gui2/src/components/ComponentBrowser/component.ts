@@ -12,9 +12,14 @@ import { displayedIconOf } from '@/util/getIconName'
 import type { Icon } from '@/util/iconName'
 import { qnIsTopElement, qnLastSegmentIndex } from '@/util/qualifiedName'
 
-interface ComponentLabel {
+interface ComponentLabelInfo {
   label: string
   matchedAlias?: string | undefined
+  matchedRanges?: Range[] | undefined
+}
+
+interface ComponentLabel {
+  label: string
   matchedRanges?: Range[] | undefined
 }
 
@@ -28,7 +33,7 @@ export function labelOfEntry(
   entry: SuggestionEntry,
   filtering: Filtering,
   match: MatchResult,
-): ComponentLabel {
+): ComponentLabelInfo {
   const isTopModule = entry.kind == SuggestionKind.Module && qnIsTopElement(entry.definedIn)
   if (filtering.isMainView() && isTopModule) return { label: entry.definedIn }
   else if (entry.memberOf && entry.selfType == null) {
@@ -69,6 +74,15 @@ export function labelOfEntry(
       : { label: entry.name, matchedAlias: match.matchedAlias }
 }
 
+function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
+  return {
+    label: labelInfo.matchedAlias
+      ? `${labelInfo.matchedAlias} (${labelInfo.label})`
+      : labelInfo.label,
+    matchedRanges: labelInfo.matchedRanges,
+  }
+}
+
 export interface MatchedSuggestion {
   id: SuggestionId
   entry: SuggestionEntry
@@ -99,7 +113,7 @@ export function makeComponent(
   filtering: Filtering,
 ): Component {
   return {
-    ...labelOfEntry(entry, filtering, match),
+    ...formatLabel(labelOfEntry(entry, filtering, match)),
     suggestionId: id,
     icon: displayedIconOf(entry),
     group: entry.groupIndex,

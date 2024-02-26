@@ -1,6 +1,6 @@
 package org.enso.projectmanager.service
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.projectmanager.requesthandler.{
   FailureMapper,
   ProjectServiceFailureMapper

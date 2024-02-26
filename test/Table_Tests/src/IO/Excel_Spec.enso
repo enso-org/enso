@@ -1027,8 +1027,8 @@ add_specs suite_builder =
     spec_write suite_builder "xlsx" 'TestSheet.xlsx'
     spec_write suite_builder "xls" 'TestSheetOld.xls'
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter spec_filter="should write a table to non-existent file as a new sheet with headers; and return the file object on success"
+    suite.run_with_filter filter
 

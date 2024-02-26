@@ -110,6 +110,8 @@ final class SuggestionsHandler(
     )
     context.system.eventStream
       .subscribe(self, classOf[Api.LibraryLoaded])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.BackgroundJobsStartedNotification])
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
     context.system.eventStream
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
@@ -186,12 +188,28 @@ final class SuggestionsHandler(
 
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification
         if state.isSuggestionLoadingRunning =>
-      state.suggestionLoadingQueue.enqueue(msg)
+      logger.trace(
+        "SuggestionsDatabaseSuggestionsLoadedNotification [shouldStartBackgroundProcessing={}].",
+        state.shouldStartBackgroundProcessing
+      )
+      if (state.shouldStartBackgroundProcessing) {
+        state.suggestionLoadingQueue.clear()
+      } else {
+        state.suggestionLoadingQueue.enqueue(msg)
+      }
 
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification =>
       logger.debug(
         "Starting loading suggestions for library [{}].",
         msg.libraryName
+      )
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.suggestionLoadingRunning()
+        )
       )
       applyLoadedSuggestions(msg.suggestions)
         .onComplete {
@@ -214,14 +232,6 @@ final class SuggestionsHandler(
             )
             self ! SuggestionsHandler.SuggestionLoadingCompleted
         }
-      context.become(
-        initialized(
-          projectName,
-          graph,
-          clients,
-          state.suggestionLoadingRunning()
-        )
-      )
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification
         if state.isSuggestionUpdatesRunning =>
@@ -304,39 +314,65 @@ final class SuggestionsHandler(
         )
       )
 
-    case GetSuggestionsDatabaseVersion =>
-      suggestionsRepo.currentVersion
-        .map(GetSuggestionsDatabaseVersionResult)
-        .pipeTo(sender())
-
-    case GetSuggestionsDatabase =>
-      val responseAction = for {
-        _       <- suggestionsRepo.clean
-        version <- suggestionsRepo.currentVersion
-      } yield GetSuggestionsDatabaseResult(version, Seq())
-
-      responseAction.pipeTo(sender())
-
-      val handlerAction = for {
-        _ <- responseAction
-      } yield SearchProtocol.InvalidateModulesIndex
-
-      val handler = context.system.actorOf(
-        InvalidateModulesIndexHandler.props(
-          RuntimeFailureMapper(contentRootManager),
-          timeout,
-          runtimeConnector
-        )
-      )
-
-      handlerAction.pipeTo(handler)
-
+    case Api.BackgroundJobsStartedNotification() =>
+      self ! SuggestionLoadingCompleted
       context.become(
         initialized(
           projectName,
           graph,
           clients,
           state.backgroundProcessingStarted()
+        )
+      )
+
+    case GetSuggestionsDatabaseVersion =>
+      suggestionsRepo.currentVersion
+        .map(GetSuggestionsDatabaseVersionResult)
+        .pipeTo(sender())
+
+    case ClearSuggestionsDatabase =>
+      if (state.isSuggestionLoadingRunning) stash()
+      else {
+        context.become(
+          initialized(
+            projectName,
+            graph,
+            clients,
+            state.suggestionLoadingRunning()
+          )
+        )
+        for {
+          _ <- suggestionsRepo.clean
+        } yield {
+          logger.trace(
+            "ClearSuggestionsDatabase [{}].",
+            state.suggestionLoadingQueue
+          )
+          state.suggestionLoadingQueue.clear()
+          runtimeConnector ! Api.Request(Api.StartBackgroundProcessing())
+        }
+      }
+
+    case GetSuggestionsDatabase =>
+      val handler = context.system.actorOf(
+        InvalidateModulesIndexHandler.props(
+          RuntimeFailureMapper(contentRootManager),
+          timeout,
+          runtimeConnector,
+          self
+        )
+      )
+
+      handler ! SearchProtocol.InvalidateModulesIndex
+
+      sender() ! GetSuggestionsDatabaseResult(0, Seq())
+
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.backgroundProcessingStopped()
         )
       )
 
@@ -419,7 +455,8 @@ final class SuggestionsHandler(
         InvalidateModulesIndexHandler.props(
           runtimeFailureMapper,
           timeout,
-          runtimeConnector
+          runtimeConnector,
+          self
         )
       )
       action.pipeTo(handler)(sender())
@@ -450,6 +487,7 @@ final class SuggestionsHandler(
       )
 
     case SuggestionLoadingCompleted =>
+      unstashAll()
       if (state.suggestionLoadingQueue.nonEmpty) {
         self ! state.suggestionLoadingQueue.dequeue()
       }

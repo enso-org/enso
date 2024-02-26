@@ -27,19 +27,17 @@ type Complex
     < self (that:Complex) = Complex_Comparator.compare self that == Ordering.Less
     > self (that:Complex) = Complex_Comparator.compare self that == Ordering.Greater
 
-    == self (that:Complex) = Complex_Comparator.compare self that == Ordering.Equal
-
-    pending_equality -> Text = "== with conversions isn't yet supported"
-
 Complex.from (that:Number) = Complex.new that
 
 type Complex_Comparator
     compare x:Complex y:Complex = if x.re==y.re && x.im==y.im then Ordering.Equal else
         if x.im==0 && y.im==0 then Ordering.compare x.re y.re else
             Nothing
-    hash x:Complex = 7*x.re + 11*x.im
+    hash x:Complex = if x.im == 0 then Default_Comparator.hash x.re else
+        7*x.re + 11*x.im
 
 Comparable.from (_:Complex) = Complex_Comparator
+Comparable.from (_:Number) = Complex_Comparator
 
 
 add_specs suite_builder =
@@ -591,21 +589,25 @@ add_specs suite_builder =
             v2 = (Complex.new 6 6)
             Ordering.compare v1 v2 . catch Incomparable_Values (_->42) . should_equal 42
 
-        group_builder.specify "Equality of complex and number" pending=Complex.pending_equality <|
+        group_builder.specify "Equality of complex and number" <|
             v1 = (Complex.new 3)
             v2 = 3
+            r1 = v1==v2
+            r2 = v2==v1
+            r1 . should_be_true
+            r2 . should_be_true
             v1 . should_equal v2
             v2 . should_equal v1
-            v1==v2 . should_be_true
-            v2==v1 . should_be_true
 
-        group_builder.specify "Equality of number and complex" pending=Complex.pending_equality <|
+        group_builder.specify "Equality of number and complex" <|
             v1 = 3
             v2 = (Complex.new 3)
+            r1 = v1==v2
+            r2 = v2==v1
+            r1 . should_be_true
+            r2 . should_be_true
             v1 . should_equal v2
             v2 . should_equal v1
-            v1==v2 . should_be_true
-            v2==v1 . should_be_true
 
         group_builder.specify "Greater or equal of complex and complex" <|
             v1 = (Complex.new 3)
@@ -699,10 +701,10 @@ add_specs suite_builder =
                 [x, y, z, w].each b->
                     a+b . should_equal 20
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 foreign js to_js_bigint n = """

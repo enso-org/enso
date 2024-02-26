@@ -2,7 +2,7 @@ package org.enso.launcher.cli
 
 import cats.data.NonEmptyList
 import cats.implicits._
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli._
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._

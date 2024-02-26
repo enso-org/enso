@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.StopIterationException;
@@ -30,17 +31,18 @@ public abstract class HashMapInsertNode extends Node {
     return HashMapInsertNodeGen.create();
   }
 
-  public abstract EnsoHashMap execute(Object self, Object key, Object value);
+  public abstract EnsoHashMap execute(VirtualFrame frame, Object self, Object key, Object value);
 
   @Specialization
   EnsoHashMap doEnsoHashMap(
+      VirtualFrame frame,
       EnsoHashMap hashMap,
       Object key,
       Object value,
       @Shared("hash") @Cached HashCodeNode hashCodeNode,
       @Shared("equals") @Cached EqualsNode equalsNode) {
-    var mapBuilder = hashMap.getMapBuilder(false, hashCodeNode, equalsNode);
-    mapBuilder.put(key, value, hashCodeNode, equalsNode);
+    var mapBuilder = hashMap.getMapBuilder(frame, false, hashCodeNode, equalsNode);
+    mapBuilder.put(frame, key, value, hashCodeNode, equalsNode);
     var newMap = mapBuilder.build();
     return newMap;
   }
@@ -51,6 +53,7 @@ public abstract class HashMapInsertNode extends Node {
    */
   @Specialization(guards = "mapInterop.hasHashEntries(foreignMap)", limit = "3")
   EnsoHashMap doForeign(
+      VirtualFrame frame,
       Object foreignMap,
       Object keyToInsert,
       Object valueToInsert,
@@ -65,8 +68,9 @@ public abstract class HashMapInsertNode extends Node {
         Object keyValueArr = iteratorInterop.getIteratorNextElement(entriesIterator);
         Object key = iteratorInterop.readArrayElement(keyValueArr, 0);
         Object value = iteratorInterop.readArrayElement(keyValueArr, 1);
-        mapBuilder = mapBuilder.asModifiable(mapBuilder.generation(), hashCodeNode, equalsNode);
-        mapBuilder.put(key, value, hashCodeNode, equalsNode);
+        mapBuilder =
+            mapBuilder.asModifiable(frame, mapBuilder.generation(), hashCodeNode, equalsNode);
+        mapBuilder.put(frame, key, value, hashCodeNode, equalsNode);
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       CompilerDirectives.transferToInterpreter();
@@ -76,8 +80,8 @@ public abstract class HashMapInsertNode extends Node {
               + " has wrongly specified Interop API (hash entries iterator)";
       throw new PanicException(Text.create(msg), this);
     }
-    mapBuilder = mapBuilder.asModifiable(mapBuilder.generation(), hashCodeNode, equalsNode);
-    mapBuilder.put(keyToInsert, valueToInsert, hashCodeNode, equalsNode);
+    mapBuilder = mapBuilder.asModifiable(frame, mapBuilder.generation(), hashCodeNode, equalsNode);
+    mapBuilder.put(frame, keyToInsert, valueToInsert, hashCodeNode, equalsNode);
     return EnsoHashMap.createWithBuilder(mapBuilder);
   }
 }

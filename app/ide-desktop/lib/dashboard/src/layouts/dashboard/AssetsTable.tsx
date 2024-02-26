@@ -312,12 +312,12 @@ export interface AssetsTableState {
   ) => void
   /** Called when the project is opened via the `ProjectActionButton`. */
   readonly doOpenManually: (projectId: backendModule.ProjectId) => void
-  readonly doOpenIde: (
+  readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  readonly doCloseIde: (project: backendModule.ProjectAsset) => void
+  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
   readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   readonly doCopy: () => void
   readonly doCut: () => void
@@ -356,12 +356,12 @@ export interface AssetsTableProps {
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
   readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
-  readonly doOpenIde: (
+  readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  readonly doCloseIde: (project: backendModule.ProjectAsset) => void
+  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
   readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
 }
 
@@ -371,7 +371,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
+  const { setAssetPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor, doCreateLabel } = props
   const { setIsAssetPanelTemporarilyVisible } = props
 
   const { user, userInfo, accessToken } = authProvider.useNonPartialUserSession()
@@ -546,14 +546,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       switch (sortColumn) {
         case columnUtils.Column.name: {
           compare = (a, b) => {
-            const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
-            const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
-            const typeDelta = aTypeOrder - bTypeOrder
             const aTitle = a.item.title.toLowerCase()
             const bTitle = b.item.title.toLowerCase()
-            if (typeDelta !== 0) {
-              return typeDelta
-            } else if (aTitle === bTitle) {
+            if (aTitle === bTitle) {
               const delta = a.item.title > b.item.title ? 1 : a.item.title < b.item.title ? -1 : 0
               return multiplier * delta
             } else {
@@ -565,16 +560,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         case columnUtils.Column.modified: {
           compare = (a, b) => {
-            const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
-            const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
-            const typeDelta = aTypeOrder - bTypeOrder
-            if (typeDelta !== 0) {
-              return typeDelta
-            } else {
-              const aOrder = Number(new Date(a.item.modifiedAt))
-              const bOrder = Number(new Date(b.item.modifiedAt))
-              return multiplier * (aOrder - bOrder)
-            }
+            const aOrder = Number(new Date(a.item.modifiedAt))
+            const bOrder = Number(new Date(b.item.modifiedAt))
+            return multiplier * (aOrder - bOrder)
           }
           break
         }
@@ -668,12 +656,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         case 'no':
         case '-has': {
-          setSuggestions(SUGGESTIONS_FOR_NO)
+          setSuggestions(isCloud ? SUGGESTIONS_FOR_NO : [])
           break
         }
         case 'has':
         case '-no': {
-          setSuggestions(SUGGESTIONS_FOR_HAS)
+          setSuggestions(isCloud ? SUGGESTIONS_FOR_HAS : [])
           break
         }
         case 'type': {
@@ -775,24 +763,26 @@ export default function AssetsTable(props: AssetsTableProps) {
         case 'label':
         case '-label': {
           setSuggestions(
-            Array.from(
-              allLabels.values(),
-              (label): assetSearchBar.Suggestion => ({
-                render: () => (
-                  <Label active color={label.color} onClick={() => {}}>
-                    {label.value}
-                  </Label>
-                ),
-                addToQuery: oldQuery =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                  ),
-                deleteFromQuery: oldQuery =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                  ),
-              })
-            )
+            !isCloud
+              ? []
+              : Array.from(
+                  allLabels.values(),
+                  (label): assetSearchBar.Suggestion => ({
+                    render: () => (
+                      <Label active color={label.color} onClick={() => {}}>
+                        {label.value}
+                      </Label>
+                    ),
+                    addToQuery: oldQuery =>
+                      oldQuery.addToLastTerm(
+                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                      ),
+                    deleteFromQuery: oldQuery =>
+                      oldQuery.deleteFromLastTerm(
+                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                      ),
+                  })
+                )
           )
 
           break
@@ -803,7 +793,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
+  }, [isCloud, assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
 
   React.useEffect(() => {
     if (rawQueuedAssetEvents.length !== 0) {
@@ -874,13 +864,24 @@ export default function AssetsTable(props: AssetsTableProps) {
     (newSelectedKeys: ReadonlySet<backendModule.AssetId>) => {
       selectedKeysRef.current = newSelectedKeys
       setSelectedKeysRaw(newSelectedKeys)
+      if (!isCloud) {
+        setCanDownloadFiles(newSelectedKeys.size !== 0)
+      } else {
+        setCanDownloadFiles(
+          newSelectedKeys.size !== 0 &&
+            Array.from(newSelectedKeys).every(key => {
+              const node = nodeMapRef.current.get(key)
+              return node?.item.type === backendModule.AssetType.file
+            })
+        )
+      }
     },
-    []
+    [isCloud, /* should never change */ setCanDownloadFiles]
   )
 
   const clearSelectedKeys = React.useCallback(() => {
     setSelectedKeys(new Set())
-  }, [/* should never change */ setSelectedKeys])
+  }, [setSelectedKeys])
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
@@ -1750,16 +1751,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     [/* should never change */ dispatchAssetEvent]
   )
 
-  const doCloseIde = React.useCallback(
+  const doCloseEditor = React.useCallback(
     (project: backendModule.ProjectAsset) => {
       if (project.id === projectStartupInfo?.projectAsset.id) {
-        dispatchAssetEvent({
-          type: AssetEventType.cancelOpeningAllProjects,
-        })
-        rawDoCloseIde(project)
+        rawDoCloseEditor(project)
       }
     },
-    [projectStartupInfo, rawDoCloseIde, /* should never change */ dispatchAssetEvent]
+    [projectStartupInfo, rawDoCloseEditor]
   )
 
   const doCopy = React.useCallback(() => {
@@ -1777,7 +1775,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     setSelectedKeys(new Set())
   }, [
     pasteData,
-    /* should never change */ setSelectedKeys,
+    setSelectedKeys,
     /* should never change */ unsetModal,
     /* should never change */ dispatchAssetEvent,
   ])
@@ -1884,8 +1882,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       nodeMap: nodeMapRef,
       doToggleDirectoryExpansion,
       doOpenManually,
-      doOpenIde,
-      doCloseIde,
+      doOpenEditor: doOpenEditor,
+      doCloseEditor: doCloseEditor,
       doCreateLabel,
       doCopy,
       doCut,
@@ -1903,8 +1901,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       query,
       doToggleDirectoryExpansion,
       doOpenManually,
-      doOpenIde,
-      doCloseIde,
+      doOpenEditor,
+      doCloseEditor,
       doCreateLabel,
       doCopy,
       doCut,

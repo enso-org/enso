@@ -50,7 +50,7 @@ public abstract class MultiValueKeyBase {
   /** Checks if all cells in the current row are missing. */
   public boolean areAllNull() {
     for (Storage<?> storage : storages) {
-      if (!storage.isNa(rowIndex)) {
+      if (!storage.isNothing(rowIndex)) {
         return false;
       }
     }
@@ -60,7 +60,7 @@ public abstract class MultiValueKeyBase {
   /** Checks if any cells in the current row are missing. */
   public boolean hasAnyNulls() {
     for (Storage<?> storage : storages) {
-      if (storage.isNa(rowIndex)) {
+      if (storage.isNothing(rowIndex)) {
         return true;
       }
     }
