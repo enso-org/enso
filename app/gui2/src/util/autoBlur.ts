@@ -7,7 +7,6 @@ export function useAutoBlur(root: Ref<HTMLElement | SVGElement | undefined>) {
   watchEffect((onCleanup) => {
     const element = root.value
     if (element) {
-      console.log('autoBlurRoots')
       autoBlurRoots.add(element)
       onCleanup(() => autoBlurRoots.delete(element))
     }
@@ -16,26 +15,27 @@ export function useAutoBlur(root: Ref<HTMLElement | SVGElement | undefined>) {
 
 const autoBlurRoots = new Set<HTMLElement | SVGElement | MathMLElement>()
 
-useEvent(
-  window,
-  'pointerdown',
-  (event) => {
-    console.log('autoBlur')
-    if (
-      !(event.target instanceof Element) ||
-      (!(document.activeElement instanceof HTMLElement) &&
-        !(document.activeElement instanceof SVGElement) &&
-        !(document.activeElement instanceof MathMLElement))
-    )
-      return false
+export function registerAutoBlurHandler() {
+  useEvent(
+    window,
+    'pointerdown',
+    (event) => {
+      if (
+        !(event.target instanceof Element) ||
+        (!(document.activeElement instanceof HTMLElement) &&
+          !(document.activeElement instanceof SVGElement) &&
+          !(document.activeElement instanceof MathMLElement))
+      )
+        return false
 
-    for (const root of autoBlurRoots) {
-      if (root.contains(document.activeElement) && !root.contains(event.target)) {
-        document.activeElement.blur()
-        return true
+      for (const root of autoBlurRoots) {
+        if (root.contains(document.activeElement) && !root.contains(event.target)) {
+          document.activeElement.blur()
+          return true
+        }
       }
-    }
-    return false
-  },
-  { capture: true },
-)
+      return false
+    },
+    { capture: true },
+  )
+}

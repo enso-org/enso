@@ -8,6 +8,7 @@ import ProjectView from '@/views/ProjectView.vue'
 import { isDevMode } from 'shared/util/detect'
 import { computed, onMounted, onUnmounted, toRaw } from 'vue'
 import { useProjectStore } from './stores/project'
+import { registerAutoBlurHandler } from './util/autoBlur'
 
 const props = defineProps<{
   config: ApplicationConfig
@@ -19,6 +20,8 @@ const props = defineProps<{
 const classSet = provideAppClassSet()
 
 provideGuiConfig(computed((): ApplicationConfigValue => configValue(props.config)))
+
+registerAutoBlurHandler()
 
 // Initialize suggestion db immediately, so it will be ready when user needs it.
 onMounted(() => {
