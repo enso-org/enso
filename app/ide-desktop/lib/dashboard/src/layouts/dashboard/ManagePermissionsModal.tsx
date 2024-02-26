@@ -278,7 +278,8 @@ export default function ManagePermissionsModal<
                   multiple
                   autoFocus
                   placeholder={
-                    listedUsers?.length !== 0
+                    // `listedUsers` will always include the current user.
+                    listedUsers?.length !== 1
                       ? 'Type usernames or emails to search or invite'
                       : 'Enter an email to invite someone'
                   }
