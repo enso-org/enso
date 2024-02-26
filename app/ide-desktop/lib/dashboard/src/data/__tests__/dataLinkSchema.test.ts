@@ -28,4 +28,12 @@ v.test('correctly validates example S3 .datalink files with the schema', () => {
 
   const simple = loadDataLinkFile(path.resolve(s3datalinksRoot, 'simple.datalink'))
   v.expect(jsonSchema.isMatch(DEFS, DATALINK_SCHEMA, simple)).toBe(true)
+
+  const credentialsWithSecrets = loadDataLinkFile(
+    path.resolve(s3datalinksRoot, 'credentials-with-secrets.datalink')
+  )
+  v.expect(jsonSchema.isMatch(DEFS, DATALINK_SCHEMA, credentialsWithSecrets)).toBe(true)
+
+  const formatted = loadDataLinkFile(path.resolve(s3datalinksRoot, 'formatted.datalink'))
+  v.expect(jsonSchema.isMatch(DEFS, DATALINK_SCHEMA, formatted)).toBe(true)
 })
