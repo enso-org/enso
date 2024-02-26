@@ -46,7 +46,8 @@ const CLOUD_REDIRECTS = {
 /** All possible API URLs, sorted by environment. */
 const API_URLS = {
   pbuchu: ApiUrl('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
-  npekin: ApiUrl('https://lkxuay3ha1.execute-api.eu-west-1.amazonaws.com'),
+  npekin: ApiUrl('https://opk1cxpwec.execute-api.eu-west-1.amazonaws.com'),
+  npekin2: ApiUrl('https://8rf1a7iy49.execute-api.eu-west-1.amazonaws.com'),
   production: ApiUrl('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
 }
 
@@ -60,22 +61,41 @@ const CHAT_URLS = {
   production: ChatUrl('wss://chat.cloud.enso.org'),
 }
 
+/** All possible Stripe API public keys, sorted by environment. */
+const STRIPE_KEYS = {
+  npekin:
+    'pk_test_51O8REgAjUAkYBrsQooU5iMWumr7D4Vf9H2A671A8zXV87VwDOTenDbJx5g3PN9IjgkbK6omxlp01bGfghA3qZSIu00lYsytprU',
+  development:
+    'pk_test_51Iv1a0FpIovSdxvQBRpzZpfikr7CD6DFWFF8g2ycjut3d9PXD2Jc9I2j3G1DWWgMfaNzzHyXtvUr2GaNkuQayEzu00YHYfKtGC',
+  production:
+    'pk_test_51Iv3YNB30SZwisesLWKD1KCUmkkOy2Bbq0zwYO56zgSjdIf00Bw39BC1Zvn4PPjq6GHZd8Q8oaR6M0JlC1K9b1f1007cjnwi4e',
+} as const
+
 /** All possible configuration options, sorted by environment. */
 const CONFIGS = {
   npekin: {
     cloudRedirect: CLOUD_REDIRECTS.development,
     apiUrl: API_URLS.npekin,
     chatUrl: CHAT_URLS.development,
+    stripeKey: STRIPE_KEYS.npekin,
+  } satisfies Config,
+  npekin2: {
+    cloudRedirect: CLOUD_REDIRECTS.development,
+    apiUrl: API_URLS.npekin2,
+    chatUrl: CHAT_URLS.development,
+    stripeKey: STRIPE_KEYS.npekin,
   } satisfies Config,
   pbuchu: {
     cloudRedirect: CLOUD_REDIRECTS.development,
     apiUrl: API_URLS.pbuchu,
     chatUrl: CHAT_URLS.development,
+    stripeKey: STRIPE_KEYS.development,
   } satisfies Config,
   production: {
     cloudRedirect: CLOUD_REDIRECTS.production,
     apiUrl: API_URLS.production,
     chatUrl: CHAT_URLS.production,
+    stripeKey: STRIPE_KEYS.production,
   } satisfies Config,
 }
 /** Export the configuration that is currently in use. */
@@ -95,6 +115,10 @@ export interface Config {
   readonly apiUrl: ApiUrl
   /** URL to the websocket endpoint of the Help Chat. */
   readonly chatUrl: ChatUrl
+  /** Key used to authenticate with the Stripe API. Must point at the same Stripe account that the
+   * backend is configured to use (though the backend will use a secret key, while this component
+   * uses a public key). */
+  readonly stripeKey: string
 }
 
 // ===================
@@ -103,4 +127,4 @@ export interface Config {
 
 /** Possible values for the environment/user we're running for and whose infrastructure we're
  * testing against. */
-export type Environment = 'npekin' | 'pbuchu' | 'production'
+export type Environment = 'npekin' | 'npekin2' | 'pbuchu' | 'production'

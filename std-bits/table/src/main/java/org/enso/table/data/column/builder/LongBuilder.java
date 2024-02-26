@@ -21,25 +21,25 @@ public abstract class LongBuilder extends NumericBuilder {
   protected final ProblemAggregator problemAggregator;
 
   protected LongBuilder(
-      BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
-    super(isMissing, data, currentSize);
+      BitSet isNothing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
+    super(isNothing, data, currentSize);
     this.problemAggregator = problemAggregator;
   }
 
   static LongBuilder make(int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
-    BitSet isMissing = new BitSet();
+    BitSet isNothing = new BitSet();
     long[] data = new long[initialSize];
     if (type.equals(IntegerType.INT_64)) {
-      return new LongBuilderUnchecked(isMissing, data, 0, problemAggregator);
+      return new LongBuilderUnchecked(isNothing, data, 0, problemAggregator);
     } else {
-      return new LongBuilderChecked(isMissing, data, 0, type, problemAggregator);
+      return new LongBuilderChecked(isNothing, data, 0, type, problemAggregator);
     }
   }
 
   @Override
   public void retypeToMixed(Object[] items) {
     for (int i = 0; i < currentSize; i++) {
-      if (isMissing.get(i)) {
+      if (isNothing.get(i)) {
         items[i] = null;
       } else {
         items[i] = data[i];
@@ -80,15 +80,15 @@ public abstract class LongBuilder extends NumericBuilder {
       int n = longStorage.size();
       ensureFreeSpaceFor(n);
       System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
-      BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
+      BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
       currentSize += n;
     } else if (storage.getType() instanceof IntegerType otherType && getType().fits(otherType)) {
       if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
         ensureFreeSpaceFor(n);
         for (int i = 0; i < n; i++) {
-          if (longStorage.isNa(i)) {
-            isMissing.set(currentSize++);
+          if (longStorage.isNothing(i)) {
+            isNothing.set(currentSize++);
           } else {
             appendLongNoGrow(longStorage.getItem(i));
           }
@@ -103,8 +103,8 @@ public abstract class LongBuilder extends NumericBuilder {
       if (storage instanceof BoolStorage boolStorage) {
         int n = boolStorage.size();
         for (int i = 0; i < n; i++) {
-          if (boolStorage.isNa(i)) {
-            isMissing.set(currentSize++);
+          if (boolStorage.isNothing(i)) {
+            isNothing.set(currentSize++);
           } else {
             data[currentSize++] = ToIntegerStorageConverter.booleanAsLong(boolStorage.getItem(i));
           }
@@ -147,6 +147,6 @@ public abstract class LongBuilder extends NumericBuilder {
 
   @Override
   public Storage<Long> seal() {
-    return new LongStorage(data, currentSize, isMissing, getType());
+    return new LongStorage(data, currentSize, isNothing, getType());
   }
 }

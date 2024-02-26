@@ -13,12 +13,12 @@ public class LongBuilderChecked extends LongBuilder {
   private final CastProblemAggregator castProblemAggregator;
 
   protected LongBuilderChecked(
-      BitSet isMissing,
+      BitSet isNothing,
       long[] data,
       int currentSize,
       IntegerType type,
       ProblemAggregator problemAggregator) {
-    super(isMissing, data, currentSize, problemAggregator);
+    super(isNothing, data, currentSize, problemAggregator);
     this.type = type;
 
     // Currently we have no correlation with column name, and it may not be necessary for now.
@@ -31,7 +31,7 @@ public class LongBuilderChecked extends LongBuilder {
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
-      isMissing.set(currentSize++);
+      isNothing.set(currentSize++);
     } else {
       Long x = NumericConverter.tryConvertingToLong(o);
       if (x != null) {
@@ -52,7 +52,7 @@ public class LongBuilderChecked extends LongBuilder {
     if (type.fits(x)) {
       data[currentSize++] = x;
     } else {
-      isMissing.set(currentSize++);
+      isNothing.set(currentSize++);
       castProblemAggregator.reportNumberOutOfRange(x);
     }
   }

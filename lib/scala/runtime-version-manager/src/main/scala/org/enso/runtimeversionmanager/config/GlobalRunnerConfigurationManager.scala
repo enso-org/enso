@@ -1,7 +1,8 @@
 package org.enso.runtimeversionmanager.config
 
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
+import org.enso.semver.SemVerOrdering._
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.config.{DefaultVersion, GlobalConfigurationManager}
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager

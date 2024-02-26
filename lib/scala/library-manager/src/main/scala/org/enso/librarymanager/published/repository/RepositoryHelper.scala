@@ -1,6 +1,6 @@
 package org.enso.librarymanager.published.repository
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.task.TaskProgress
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.downloader.http.{HTTPDownload, URIBuilder}

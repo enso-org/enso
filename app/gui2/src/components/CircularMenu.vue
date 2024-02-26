@@ -18,7 +18,12 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div :class="`${props.isFullMenuVisible ? 'CircularMenu full' : 'CircularMenu partial'}`">
+  <div
+    :class="`${props.isFullMenuVisible ? 'CircularMenu full' : 'CircularMenu partial'}`"
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop
+  >
     <ToggleIcon
       icon="eye"
       class="icon-container button slot5"
@@ -26,7 +31,12 @@ const emit = defineEmits<{
       :modelValue="props.isVisualizationVisible"
       @update:modelValue="emit('update:isVisualizationVisible', $event)"
     />
-    <SvgIcon name="edit" class="icon-container button slot6" @pointerdown="emit('startEditing')" />
+    <SvgIcon
+      name="edit"
+      class="icon-container button slot6"
+      data-testid="edit-button"
+      @click.stop="emit('startEditing')"
+    />
     <ToggleIcon
       :icon="props.isOutputContextEnabledGlobally ? 'no_auto_replay' : 'auto_replay'"
       class="icon-container button slot7"

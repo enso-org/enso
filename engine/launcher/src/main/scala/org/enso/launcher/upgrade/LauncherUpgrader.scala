@@ -2,7 +2,8 @@ package org.enso.launcher.upgrade
 
 import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
+import org.enso.semver.SemVerOrdering._
 import org.enso.cli.{CLIOutput, OS}
 import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.distribution.locking.{
@@ -220,7 +221,9 @@ class LauncherUpgrader(
     availableVersions: Seq[SemVer]
   ): LauncherRelease = {
     val recentEnoughVersions =
-      availableVersions.filter(_ >= release.minimumVersionToPerformUpgrade)
+      availableVersions.filter(
+        _.isGreaterThanOrEqual(release.minimumVersionToPerformUpgrade)
+      )
     val minimumValidVersion = recentEnoughVersions.sorted.headOption.getOrElse {
       throw UpgradeError(
         s"Upgrade failed: To continue upgrade, a version at least " +
@@ -338,7 +341,8 @@ class LauncherUpgrader(
       replaceLauncherExecutable(temporaryExecutable)
 
       val verb =
-        if (release.version >= CurrentVersion.version) "upgraded"
+        if (release.version.isGreaterThanOrEqual(CurrentVersion.version))
+          "upgraded"
         else "downgraded"
       InfoLogger.info(s"Successfully $verb the launcher to ${release.version}.")
     }

@@ -356,8 +356,8 @@ add_specs suite_builder =
             formatter_3.true_values . should_equal []
             formatter_3.false_values . should_equal []
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

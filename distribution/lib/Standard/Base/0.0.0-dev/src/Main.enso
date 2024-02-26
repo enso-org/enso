@@ -2,9 +2,9 @@ import project.Any.Any
 import project.Data
 import project.Data.Array.Array
 import project.Data.Boolean
-import project.Data.Enso_Cloud.Enso_File.Enso_File
-import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
-import project.Data.Enso_Cloud.Enso_User.Enso_User
+import project.Enso_Cloud.Enso_File.Enso_File
+import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Enso_Cloud.Enso_User.Enso_User
 import project.Data.Filter_Condition.Filter_Action
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
@@ -92,6 +92,7 @@ from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 from project.Data.Json.Extensions import all
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
+from project.Data.Text.Regex import regex
 from project.Errors.Problem_Behavior.Problem_Behavior import all
 from project.Meta.Enso_Project import enso_project
 from project.Network.Extensions import all
@@ -100,9 +101,9 @@ from project.System.File_Format.Plain_Text_Format import Plain_Text
 export project.Any.Any
 export project.Data
 export project.Data.Array.Array
-export project.Data.Enso_Cloud.Enso_File.Enso_File
-export project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
-export project.Data.Enso_Cloud.Enso_User.Enso_User
+export project.Enso_Cloud.Enso_File.Enso_File
+export project.Enso_Cloud.Enso_Secret.Enso_Secret
+export project.Enso_Cloud.Enso_User.Enso_User
 export project.Data.Filter_Condition.Filter_Action
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
@@ -189,6 +190,7 @@ from project.Data.Numbers export Float, Integer, Number
 from project.Data.Range.Extensions export all
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid
 from project.Data.Text.Extensions export all
+from project.Data.Text.Regex export regex
 from project.Errors.Problem_Behavior.Problem_Behavior export all
 from project.Function export all
 from project.Meta.Enso_Project export enso_project
