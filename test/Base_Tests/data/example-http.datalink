@@ -1,0 +1,6 @@
+{
+    "type": "HTTP",
+    "libraryName": "Standard.Base",
+    "method": "GET",
+    "uri": "http://example.com/"
+}
