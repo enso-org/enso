@@ -1,9 +1,6 @@
 /** @file A modal for creating a Data Link. */
 import * as React from 'react'
 
-import type * as ajv from 'ajv/dist/2020'
-import Ajv from 'ajv/dist/2020'
-
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 
 import * as modalProvider from '#/providers/ModalProvider'
@@ -12,8 +9,8 @@ import DataLinkInput from '#/layouts/dashboard/DataLinkInput'
 
 import Modal from '#/components/Modal'
 
-import * as error from '#/utilities/error'
 import * as jsonSchema from '#/utilities/jsonSchema'
+import * as validateDataLink from '#/utilities/validateDataLink'
 
 // =================
 // === Constants ===
@@ -22,12 +19,6 @@ import * as jsonSchema from '#/utilities/jsonSchema'
 const DEFS: Record<string, object> = SCHEMA.$defs
 const INITIAL_DATA_LINK_VALUE =
   jsonSchema.constantValue(DEFS, SCHEMA.$defs.DataLink, true)[0] ?? null
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const AJV = new Ajv({ formats: { 'enso-secret': true } })
-AJV.addSchema(SCHEMA)
-// This is a function, even though it does not contain function syntax.
-// eslint-disable-next-line no-restricted-syntax
-const validateDataLink = error.assert<ajv.ValidateFunction>(() => AJV.getSchema('#/$defs/DataLink'))
 
 // ===========================
 // === UpsertDataLinkModal ===
@@ -44,7 +35,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const [name, setName] = React.useState('')
   const [value, setValue] = React.useState<NonNullable<unknown> | null>(INITIAL_DATA_LINK_VALUE)
-  const isValueSubmittable = React.useMemo(() => validateDataLink(value), [value])
+  const isValueSubmittable = React.useMemo(() => validateDataLink.validateDataLink(value), [value])
   const isSubmittable = name !== '' && isValueSubmittable
 
   return (

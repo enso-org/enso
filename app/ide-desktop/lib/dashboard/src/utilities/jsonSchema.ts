@@ -37,7 +37,13 @@ export function constantValueToSchema(value: unknown): object | null {
         result = { type: 'null' }
       } else if (Array.isArray(value)) {
         const prefixItems: object[] = []
-        result = { type: 'array', prefixItems, items: false }
+        result = {
+          type: 'array',
+          ...(value.length === 0 ? {} : { prefixItems }),
+          minItems: value.length,
+          maxItems: value.length,
+          items: false,
+        }
         for (const child of value) {
           const schema = constantValueToSchema(child)
           if (schema == null) {
@@ -154,8 +160,7 @@ function constantValueHelper(
           result = []
           break
         } else if (!('prefixItems' in schema) || !Array.isArray(schema.prefixItems)) {
-          // Invalid format.
-          result = partial ? [[]] : []
+          result = [[]]
           break
         } else {
           const array: unknown[] = []
