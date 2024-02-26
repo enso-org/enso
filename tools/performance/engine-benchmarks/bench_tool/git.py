@@ -105,3 +105,14 @@ async def init(repo: Path) -> None:
         out, err = await proc.communicate()
         all_out = out.decode() + err.decode()
         raise RuntimeError(f"Failed to init {repo}. Output: {all_out}")
+
+
+async def head_commit(repo: Path) -> str:
+    args = ["rev-parse", "HEAD"]
+    proc = await asyncio.create_subprocess_exec("git", *args, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ret = await proc.wait()
+    out, err = await proc.communicate()
+    if ret != 0:
+        raise RuntimeError(f"Failed to get HEAD commit of {repo}: {err.decode()}")
+    else:
+        return out.decode().strip()
