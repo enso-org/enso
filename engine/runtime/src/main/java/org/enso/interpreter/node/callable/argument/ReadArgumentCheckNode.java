@@ -25,6 +25,7 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
@@ -32,6 +33,7 @@ import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
+import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition.ExecutionMode;
@@ -45,6 +47,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 import org.graalvm.collections.Pair;
 
 public abstract class ReadArgumentCheckNode extends Node {
@@ -252,6 +255,20 @@ public abstract class ReadArgumentCheckNode extends Node {
     @Specialization
     Object doPanicSentinel(VirtualFrame frame, PanicSentinel panicSentinel) {
       throw panicSentinel;
+    }
+
+    @Specialization
+    Object doUnresolvedName(VirtualFrame frame, UnresolvedConstructor unresolved) {
+      var c = expectedType.getConstructors().get(unresolved.getName());
+      if (c != null) {
+        var ctx = EnsoContext.get(this);
+        var fn = c.getConstructorFunction();
+        var n = InvokeFunctionNode.buildWithArity(unresolved.getArgs().length);
+        var state = State.create(ctx);
+        var r = n.execute(fn, frame, state, unresolved.getArgs());
+        return r;
+      }
+      return null;
     }
 
     @Specialization(rewriteOn = InvalidAssumptionException.class)

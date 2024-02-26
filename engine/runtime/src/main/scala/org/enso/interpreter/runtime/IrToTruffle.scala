@@ -97,6 +97,7 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.callable.{
+  UnresolvedConstructor,
   UnresolvedConversion,
   UnresolvedSymbol,
   Annotation => RuntimeAnnotation
@@ -1680,6 +1681,16 @@ class IrToTruffle(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
+        case Name.MethodReference(
+              None,
+              Name.Literal(nameStr, _, _, _, _, _),
+              _,
+              _,
+              _
+            ) =>
+          DynamicSymbolNode.build(
+            UnresolvedConstructor.build(nameStr)
+          )
         case Name.Self(location, _, passData, _) =>
           processName(
             Name.Literal(
@@ -1714,10 +1725,6 @@ class IrToTruffle(
         case _: Name.Blank =>
           throw new CompilerError(
             "Blanks should not be present at codegen time."
-          )
-        case _: Name.MethodReference =>
-          throw new CompilerError(
-            "Method references should not be present at codegen time."
           )
         case _: Name.Qualified =>
           throw new CompilerError(
