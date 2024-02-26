@@ -23,7 +23,7 @@ import {
 } from '@/util/qualifiedName'
 import { equalFlat } from 'lib0/array'
 import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
-import { computed, nextTick, ref, watch, type ComputedRef } from 'vue'
+import { computed, nextTick, ref, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =

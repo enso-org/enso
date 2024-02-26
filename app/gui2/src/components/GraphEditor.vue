@@ -38,7 +38,6 @@ import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vu
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
 
-const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
 const DEFAULT_NODE_SIZE = new Vec2(0, 24)
 const gapBetweenNodes = 48.0
@@ -334,8 +333,8 @@ const codeEditorHandler = codeEditorBindings.handler({
   },
 })
 
-/** Track play button presses. */
-function onPlayButtonPress() {
+/** Handle record-once button presses. */
+function onRecordOnceButtonPress() {
   projectStore.lsRpcConnection.then(async () => {
     const modeValue = projectStore.executionMode
     if (modeValue == undefined) {
@@ -657,9 +656,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @canceled="onComponentBrowserCancel"
     />
     <TopBar
-      v-model:mode="projectStore.executionMode"
-      :title="projectStore.displayName"
-      :modes="EXECUTION_MODES"
+      v-model:recordMode="projectStore.recordMode"
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
@@ -667,7 +664,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
       @back="stackNavigator.exitNode"
       @forward="stackNavigator.enterNextNodeFromHistory"
-      @execute="onPlayButtonPress()"
+      @recordOnce="onRecordOnceButtonPress()"
       @fitToAllClicked="zoomToSelected"
       @zoomIn="graphNavigator.scale *= 1.1"
       @zoomOut="graphNavigator.scale *= 0.9"

@@ -68,7 +68,7 @@ type Primitive_Bi_Map_Test
             storage_1 = self.int_column_1.java_column.getStorage
             storage_2 = self.int_column_2.java_column.getStorage
             0.up_to n . each i->
-                if storage_1.isNa i || storage_2.isNa i then builder.appendNulls 1 else
+                if storage_1.isNothing i || storage_2.isNothing i then builder.appendNulls 1 else
                     item_1 = storage_1.getItem i
                     item_2 = storage_2.getItem i
                     res = item_1 + item_2

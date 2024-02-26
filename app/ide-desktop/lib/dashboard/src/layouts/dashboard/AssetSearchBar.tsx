@@ -41,16 +41,16 @@ export interface Suggestion {
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
+  readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly labels: backend.Label[]
   readonly suggestions: Suggestion[]
-  readonly isCloud: boolean
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { query, setQuery, labels, suggestions: rawSuggestions, isCloud } = props
+  const { isCloud, query, setQuery, labels, suggestions: rawSuggestions } = props
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
   const [suggestions, setSuggestions] = React.useState(rawSuggestions)
@@ -87,7 +87,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       querySource.current !== QuerySource.tabbing
     ) {
       if (searchRef.current != null) {
-        searchRef.current.value = query.toString()
+        searchRef.current.value = query.query
       }
     }
   }, [query])
@@ -137,7 +137,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             }
           })
         }
-        if (event.key === 'Enter' || event.key === ' ') {
+        if (
+          event.key === 'Enter' ||
+          (event.key === ' ' && document.activeElement !== searchRef.current)
+        ) {
           querySource.current = QuerySource.external
           if (searchRef.current != null) {
             searchRef.current.focus()
@@ -215,8 +218,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         ref={searchRef}
         type="search"
         size={1}
-        placeholder="Type to search for projects, data connectors, users, and more."
-        className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px xl:placeholder:text-center"
+        placeholder={
+          isCloud
+            ? 'Type to search for projects, Data Links, users, and more.'
+            : 'Type to search for projects.'
+        }
+        className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px placeholder:text-center"
         onChange={event => {
           if (querySource.current !== QuerySource.internal) {
             querySource.current = QuerySource.typing
@@ -237,7 +244,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         }}
       />
       <div className="absolute flex flex-col top-0 left-0 overflow-hidden w-full before:absolute before:bg-frame before:inset-0 before:backdrop-blur-3xl rounded-2xl pointer-events-none transition-all duration-300">
-        <div className="relative padding h-8"></div>
+        <div className="relative padding h-8" />
         {areSuggestionsVisible && (
           <div className="relative flex flex-col gap-2">
             {/* Tags (`name:`, `modified:`, etc.) */}
@@ -245,7 +252,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               data-testid="asset-search-tag-names"
               className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto"
             >
-              {AssetQuery.tagNames.flatMap(entry => {
+              {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
                 const [key, tag] = entry
                 return tag == null || isShiftPressed !== tag.startsWith('-')
                   ? []

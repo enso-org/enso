@@ -1,8 +1,8 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
+import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
-import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
@@ -77,7 +77,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       case AssetEventType.openProject:
       case AssetEventType.updateFiles:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:
@@ -146,10 +145,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }}
     >
       <SvgMask
-        src={TriangleDownIcon}
+        src={FolderArrowIcon}
         alt={item.children == null ? 'Expand' : 'Collapse'}
         className={`hidden group-hover:inline-block cursor-pointer h-4 w-4 m-1 transition-transform duration-300 ${
-          item.children != null ? '' : '-rotate-90'
+          item.children != null ? 'rotate-90' : ''
         }`}
         onClick={event => {
           event.stopPropagation()
