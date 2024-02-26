@@ -56,7 +56,12 @@ export default function UserMenu(props: UserMenuProps) {
           <>
             <div className="flex items-center gap-3 px-1">
               <div className="flex items-center rounded-full overflow-clip w-7.25 h-7.25">
-                <img src={user.profilePicture ?? DefaultUserIcon} height={28} width={28} />
+                <img
+                  src={user.profilePicture ?? DefaultUserIcon}
+                  height={28}
+                  width={28}
+                  className="pointer-events-none"
+                />
               </div>
               <span className="leading-170 h-6 py-px">{user.name}</span>
             </div>

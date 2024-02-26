@@ -119,6 +119,7 @@ export default function UserBar(props: UserBarProps) {
         <img
           src={user?.profilePicture ?? DefaultUserIcon}
           alt="Open user menu"
+          className="pointer-events-none"
           height={28}
           width={28}
         />

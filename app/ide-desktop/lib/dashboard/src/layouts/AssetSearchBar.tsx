@@ -125,12 +125,14 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       setIsShiftPressed(event.shiftKey)
       if (areSuggestionsVisibleRef.current) {
-        if (event.key === 'Tab') {
+        if (event.key === 'Tab' || event.key === 'ArrowUp' || event.key === 'ArrowDown') {
           event.preventDefault()
+          event.stopImmediatePropagation()
           querySource.current = QuerySource.tabbing
+          const reverse = (event.key === 'Tab' && event.shiftKey) || event.key === 'ArrowUp'
           setSelectedIndex(oldIndex => {
             const length = Math.max(1, suggestionsRef.current.length)
-            if (event.shiftKey) {
+            if (reverse) {
               return oldIndex == null ? length - 1 : (oldIndex + length - 1) % length
             } else {
               return oldIndex == null ? 0 : (oldIndex + 1) % length
@@ -153,7 +155,13 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         }
       }
       if (event.key === 'Escape') {
-        searchRef.current?.blur()
+        if (querySource.current === QuerySource.tabbing) {
+          querySource.current = QuerySource.external
+          setQuery(baseQuery.current)
+          setAreSuggestionsVisible(false)
+        } else {
+          searchRef.current?.blur()
+        }
       }
       // Allow `alt` key to be pressed in case it is being used to enter special characters.
       if (
@@ -161,7 +169,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         !(event.target instanceof HTMLTextAreaElement) &&
         (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
-        eventModule.isTextInputEvent(event)
+        eventModule.isTextInputEvent(event) &&
+        event.key !== ' '
       ) {
         searchRef.current?.focus()
       }
@@ -182,7 +191,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       document.removeEventListener('keydown', onKeyDown)
       document.removeEventListener('keyup', onKeyUp)
     }
-  }, [])
+  }, [setQuery])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {

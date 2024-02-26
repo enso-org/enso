@@ -139,6 +139,7 @@ export default function Dashboard(props: DashboardProps) {
   const [isAssetPanelVisible, setIsAssetPanelVisible] = React.useState(
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
+  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
   const rootDirectoryId = React.useMemo(
     () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
@@ -481,6 +482,7 @@ export default function Dashboard(props: DashboardProps) {
             assetEvents={assetEvents}
             dispatchAssetEvent={dispatchAssetEvent}
             setAssetPanelProps={setAssetPanelProps}
+            setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
             doCreateProject={doCreateProject}
             doOpenEditor={doOpenEditor}
             doCloseEditor={doCloseEditor}
@@ -513,10 +515,12 @@ export default function Dashboard(props: DashboardProps) {
         </div>
         <div
           className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
-            isAssetPanelVisible && assetPanelProps != null ? 'min-w-120' : 'min-w-0 invisible'
+            (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && assetPanelProps != null
+              ? 'min-w-120'
+              : 'min-w-0 invisible'
           }`}
         >
-          {assetPanelProps && isAssetPanelVisible && (
+          {assetPanelProps && (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && (
             <AssetPanel
               supportsLocalBackend={supportsLocalBackend}
               key={assetPanelProps.item.item.id}

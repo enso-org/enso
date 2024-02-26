@@ -35,7 +35,7 @@ export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
-  const { assetEvents, dispatchAssetListEvent } = state
+  const { assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -133,7 +133,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()
-          // FIXME: Open sidebar and show DataLinkInput populated with the current value
+          setIsAssetPanelTemporarilyVisible(true)
         }
       }}
     >

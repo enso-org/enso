@@ -270,7 +270,12 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
             accept="image/*"
             onChange={doUploadOrganizationPicture}
           />
-          <img src={organization.picture ?? DefaultUserIcon} width={128} height={128} />
+          <img
+            src={organization.picture ?? DefaultUserIcon}
+            width={128}
+            height={128}
+            className="pointer-events-none"
+          />
         </label>
         <span className="py-1 w-64">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It

@@ -24,7 +24,7 @@ export interface AssetColumnProps {
   readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelectedItem: boolean
+  readonly isSoleSelected: boolean
   readonly state: assetsTable.AssetsTableState
   readonly rowState: assetsTable.AssetRowState
   readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
