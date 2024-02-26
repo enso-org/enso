@@ -4,6 +4,7 @@ import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
@@ -19,7 +20,6 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { displayedIconOf } from '@/util/getIconName'
-import { nbsp } from '@/util/specialCharacters'
 import { setIfUndefined } from 'lib0/map'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
@@ -115,7 +115,7 @@ const warning = computed(() => {
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
   if (!warning) return
-  return `⚠${nbsp}${nbsp}Warning: ` + warning!
+  return `⚠ Warning: ` + warning!
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
@@ -435,14 +435,14 @@ function openFullMenu() {
         @openFullMenu="openFullMenu"
       />
     </div>
+    <div class="statuses">
+      <SvgIcon v-if="warning" name="warning" />
+    </div>
     <GraphNodeError v-if="error" class="message" :message="error" type="error" />
     <GraphNodeError
-      v-if="warning"
-      class="message warning"
-      :class="{
-        messageWithMenu: menuVisible !== MenuState.Off,
-        messageCollapsed: !nodeHovered && !isSelected,
-      }"
+      v-if="warning && (nodeHovered || isSelected)"
+      class="message messageWarning"
+      :class="{ messageWithMenu: menuVisible !== MenuState.Off }"
       :message="warning"
       type="warning"
     />
@@ -668,29 +668,29 @@ function openFullMenu() {
   margin-top: 4px;
 }
 
-.message.warning {
-  display: grid;
-  overflow: hidden;
-  grid-template-columns: 1fr;
-  transition:
-    grid-template-columns 50ms,
-    padding 50ms;
-
-  > :deep(div) {
-    min-width: 11px;
-  }
-}
-
-.message.messageCollapsed {
-  grid-template-columns: 0fr;
-  padding: 1px 6.5px;
+.messageWarning {
+  margin-top: 8px;
 }
 
 .messageWithMenu {
   left: 40px;
 }
 
-.warning {
-  top: 35px;
+.statuses {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  top: 0;
+  right: 100%;
+  margin-right: 8px;
+  color: var(--color-warning);
+  transition: opacity 0.2s ease-in-out;
+}
+
+.GraphNode:has(.selection:hover) .statuses {
+  opacity: 0;
 }
 </style>
