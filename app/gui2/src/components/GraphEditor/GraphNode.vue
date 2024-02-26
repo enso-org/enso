@@ -181,7 +181,7 @@ const dragPointer = usePointer((pos, event, type) => {
 const matches = computed(() => prefixes.extractMatches(props.node.rootSpan))
 const displayedExpression = computed(() => props.node.rootSpan.module.get(matches.value.innerExpr))
 
-const isOutputContextOverridden = computed({
+const isRecordingOverridden = computed({
   get() {
     return matches.value.matches.enableOutputContext != null
   },
@@ -360,9 +360,16 @@ function openFullMenu() {
     <div class="binding" @pointerdown.stop>
       {{ node.pattern?.code() ?? '' }}
     </div>
+    <button
+      v-if="menuVisible === MenuState.Off && isRecordingOverridden"
+      class="overrideRecordButton"
+      @click="isRecordingOverridden = false"
+    >
+      <SvgIcon name="record" />
+    </button>
     <CircularMenu
       v-if="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
-      v-model:isOutputContextOverridden="isOutputContextOverridden"
+      v-model:isRecordingOverridden="isRecordingOverridden"
       v-model:isDocsVisible="isDocsVisible"
       :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
       :isVisualizationVisible="isVisualizationVisible"
@@ -639,5 +646,20 @@ function openFullMenu() {
 
 .warning {
   top: 35px;
+}
+
+.overrideRecordButton {
+  position: absolute;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  backdrop-filter: var(--blur-app-bg);
+  background: var(--color-app-bg);
+  border-radius: var(--radius-full);
+  color: red;
+  padding: 8px;
+  height: 100%;
+  right: 100%;
+  margin-right: 4px;
 }
 </style>

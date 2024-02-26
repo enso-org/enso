@@ -4,13 +4,13 @@ import ToggleIcon from '@/components/ToggleIcon.vue'
 
 const props = defineProps<{
   isOutputContextEnabledGlobally: boolean
-  isOutputContextOverridden: boolean
+  isRecordingOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
   isFullMenuVisible: boolean
 }>()
 const emit = defineEmits<{
-  'update:isOutputContextOverridden': [isOutputContextOverridden: boolean]
+  'update:isRecordingOverridden': [isRecordingOverridden: boolean]
   'update:isDocsVisible': [isDocsVisible: boolean]
   'update:isVisualizationVisible': [isVisualizationVisible: boolean]
   startEditing: []
@@ -40,14 +40,12 @@ const emit = defineEmits<{
     <ToggleIcon
       icon="record"
       class="icon-container button slot7"
-      :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
+      :class="{ 'output-context-overridden': props.isRecordingOverridden }"
       :alt="`${
-        props.isOutputContextEnabledGlobally != props.isOutputContextOverridden
-          ? 'Disable'
-          : 'Enable'
+        props.isOutputContextEnabledGlobally != props.isRecordingOverridden ? 'Disable' : 'Enable'
       } output context`"
-      :modelValue="props.isOutputContextOverridden"
-      @update:modelValue="emit('update:isOutputContextOverridden', $event)"
+      :modelValue="props.isRecordingOverridden"
+      @update:modelValue="emit('update:isRecordingOverridden', $event)"
     />
   </div>
 </template>
