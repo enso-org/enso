@@ -143,6 +143,7 @@ export const widgetConfigurationSchema: z.ZodType<
         kind: z.literal('Single_Choice'),
         label: z.string().nullable(),
         values: z.array(choiceSchema),
+        showArrow: z.boolean(),
       })
       .merge(withDisplay),
     z
