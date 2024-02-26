@@ -83,7 +83,7 @@ export function locateSecretValueInput(page: test.Locator | test.Page) {
 /** Find a search bar input (if any) on the current page. */
 export function locateSearchBarInput(page: test.Locator | test.Page) {
   return locateSearchBar(page).getByPlaceholder(
-    'Type to search for projects, data connectors, users, and more.'
+    'Type to search for projects, Data Links, users, and more.'
   )
 }
 

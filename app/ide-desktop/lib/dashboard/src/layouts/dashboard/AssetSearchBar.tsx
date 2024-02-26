@@ -41,6 +41,7 @@ export interface Suggestion {
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
+  readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly labels: backend.Label[]
@@ -49,7 +50,7 @@ export interface AssetSearchBarProps {
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { query, setQuery, labels, suggestions: rawSuggestions } = props
+  const { isCloud, query, setQuery, labels, suggestions: rawSuggestions } = props
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
   const [suggestions, setSuggestions] = React.useState(rawSuggestions)
@@ -86,7 +87,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       querySource.current !== QuerySource.tabbing
     ) {
       if (searchRef.current != null) {
-        searchRef.current.value = query.toString()
+        searchRef.current.value = query.query
       }
     }
   }, [query])
@@ -136,7 +137,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             }
           })
         }
-        if (event.key === 'Enter' || event.key === ' ') {
+        if (
+          event.key === 'Enter' ||
+          (event.key === ' ' && document.activeElement !== searchRef.current)
+        ) {
           querySource.current = QuerySource.external
           if (searchRef.current != null) {
             searchRef.current.focus()
@@ -214,8 +218,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         ref={searchRef}
         type="search"
         size={1}
-        placeholder="Type to search for projects, data connectors, users, and more."
-        className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px xl:placeholder:text-center"
+        placeholder={
+          isCloud
+            ? 'Type to search for projects, Data Links, users, and more.'
+            : 'Type to search for projects.'
+        }
+        className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px placeholder:text-center"
         onChange={event => {
           if (querySource.current !== QuerySource.internal) {
             querySource.current = QuerySource.typing
@@ -244,7 +252,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               data-testid="asset-search-tag-names"
               className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto"
             >
-              {AssetQuery.tagNames.flatMap(entry => {
+              {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
                 const [key, tag] = entry
                 return tag == null || isShiftPressed !== tag.startsWith('-')
                   ? []
@@ -263,38 +271,41 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               })}
             </div>
             {/* Asset labels */}
-            <div data-testid="asset-search-labels" className="flex gap-2 p-2 pointer-events-auto">
-              {labels.map(label => {
-                const negated = query.negativeLabels.some(term =>
-                  array.shallowEqual(term, [label.value])
-                )
-                return (
-                  <Label
-                    key={label.id}
-                    color={label.color}
-                    group={false}
-                    active={
-                      negated || query.labels.some(term => array.shallowEqual(term, [label.value]))
-                    }
-                    negated={negated}
-                    onClick={event => {
-                      querySource.current = QuerySource.internal
-                      setQuery(oldQuery => {
-                        const newQuery = assetQuery.toggleLabel(
-                          oldQuery,
-                          label.value,
-                          event.shiftKey
-                        )
-                        baseQuery.current = newQuery
-                        return newQuery
-                      })
-                    }}
-                  >
-                    {label.value}
-                  </Label>
-                )
-              })}
-            </div>
+            {isCloud && (
+              <div data-testid="asset-search-labels" className="flex gap-2 p-2 pointer-events-auto">
+                {labels.map(label => {
+                  const negated = query.negativeLabels.some(term =>
+                    array.shallowEqual(term, [label.value])
+                  )
+                  return (
+                    <Label
+                      key={label.id}
+                      color={label.color}
+                      group={false}
+                      active={
+                        negated ||
+                        query.labels.some(term => array.shallowEqual(term, [label.value]))
+                      }
+                      negated={negated}
+                      onClick={event => {
+                        querySource.current = QuerySource.internal
+                        setQuery(oldQuery => {
+                          const newQuery = assetQuery.toggleLabel(
+                            oldQuery,
+                            label.value,
+                            event.shiftKey
+                          )
+                          baseQuery.current = newQuery
+                          return newQuery
+                        })
+                      }}
+                    >
+                      {label.value}
+                    </Label>
+                  )
+                })}
+              </div>
+            )}
             {/* Suggestions */}
             <div className="flex flex-col max-h-[16rem] overflow-y-auto">
               {suggestions.map((suggestion, index) => (

@@ -17,6 +17,7 @@ import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 
+import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as shortcutManager from '#/utilities/ShortcutManager'
 
@@ -88,7 +89,7 @@ export default function UserMenu(props: UserMenuProps) {
                     if (downloadUrl == null) {
                       toastAndLog('Could not find a download link for the current OS')
                     } else {
-                      window.open(downloadUrl, '_blank')
+                      download.download(downloadUrl)
                     }
                   }}
                 />

@@ -31,10 +31,7 @@ const STATUS_SERVER_ERROR = 500
 const ONE_DAY_MS = 86_400_000
 
 /** Default HTTP body for an "open project" request. */
-const DEFAULT_OPEN_PROJECT_BODY: backendModule.OpenProjectRequestBody = {
-  forceCreate: false,
-  executeAsync: false,
-}
+const DEFAULT_OPEN_PROJECT_BODY: backendModule.OpenProjectRequestBody = { executeAsync: false }
 
 // =============
 // === Types ===
@@ -71,7 +68,7 @@ export async function waitUntilProjectIsReady(
   abortController: AbortController = new AbortController()
 ) {
   let project = await backend.getProjectDetails(item.id, item.title)
-  if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
+  if (!backendModule.IS_OPENING_OR_OPENED[project.state.type]) {
     await backend.openProject(item.id, null, item.title)
   }
   let nextCheckTimestamp = 0
@@ -109,7 +106,7 @@ export interface ListProjectsResponseBody {
 
 /** HTTP response body for the "list files" endpoint. */
 export interface ListFilesResponseBody {
-  readonly files: backendModule.File[]
+  readonly files: backendModule.FileLocator[]
 }
 
 /** HTTP response body for the "list secrets" endpoint. */
@@ -641,7 +638,7 @@ export default class RemoteBackend extends Backend {
 
   /** Return a list of files accessible by the current user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async listFiles(): Promise<backendModule.File[]> {
+  override async listFiles(): Promise<backendModule.FileLocator[]> {
     const path = remoteBackendPaths.LIST_FILES_PATH
     const response = await this.get<ListFilesResponseBody>(path)
     if (!responseIsSuccessful(response)) {
