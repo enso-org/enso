@@ -196,14 +196,17 @@ function AppRouter(props: AppProps) {
         !(event.target instanceof HTMLElement && event.target.isContentEditable)
       ) {
         const selection = document.getSelection()
-        if (!selection) return
         const app = document.getElementById('app')
         const appContainsSelection =
-          selection.anchorNode &&
-          app?.contains(selection.anchorNode) &&
-          selection.focusNode &&
-          app?.contains(selection.focusNode)
-        if (!appContainsSelection) selection.removeAllRanges()
+          app != null &&
+          selection != null &&
+          selection.anchorNode != null &&
+          app.contains(selection.anchorNode) &&
+          selection.focusNode != null &&
+          app.contains(selection.focusNode)
+        if (selection != null && !appContainsSelection) {
+          selection.removeAllRanges()
+        }
       }
     }
     const onSelectStart = () => {
