@@ -161,7 +161,7 @@ type Column
         num_rows = java_col.getSize
         display_rows = num_rows.min show_rows
         items = Vector.new display_rows num->
-            row = if storage.isNa num then "Nothing" else
+            row = if storage.isNothing num then "Nothing" else
                 get_item_string storage num
             [num.to_text, row]
         table = print_table ["", col_name] items 1 format_terminal
@@ -2141,7 +2141,7 @@ type Column
         valid_index = (index >= 0) && (index < self.length)
         if valid_index.not then default else
             storage = self.java_column.getStorage
-            if storage.isNa index then Nothing else
+            if storage.isNothing index then Nothing else
                 storage.getItem index
 
     ## ICON data_input
