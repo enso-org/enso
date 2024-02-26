@@ -236,7 +236,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         }}
       />
       <div className="absolute flex flex-col top-0 left-0 overflow-hidden w-full before:absolute before:bg-frame before:inset-0 before:backdrop-blur-3xl rounded-2xl pointer-events-none transition-all duration-300">
-        <div className="relative padding h-8"></div>
+        <div className="relative padding h-8" />
         {areSuggestionsVisible && (
           <div className="relative flex flex-col gap-2">
             {/* Tags (`name:`, `modified:`, etc.) */}

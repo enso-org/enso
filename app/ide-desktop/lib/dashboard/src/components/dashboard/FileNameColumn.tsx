@@ -90,11 +90,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           rowState.setVisibility(Visibility.faded)
           try {
             const createdFile = await backend.uploadFile(
-              {
-                fileId,
-                fileName: asset.title,
-                parentDirectoryId: asset.parentId,
-              },
+              { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
               file
             )
             rowState.setVisibility(Visibility.visible)
@@ -102,15 +98,12 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           } catch (error) {
             switch (event.type) {
               case AssetEventType.uploadFiles: {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.delete,
-                  key: item.key,
-                })
-                toastAndLog('Could not upload file', error)
+                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+                toastAndLog(null, error)
                 break
               }
               case AssetEventType.updateFiles: {
-                toastAndLog('Could not update file', error)
+                toastAndLog(null, error)
                 break
               }
             }
