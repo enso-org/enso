@@ -690,6 +690,7 @@ function openFullMenu() {
   transition: opacity 0.2s ease-in-out;
 }
 
+.GraphNode:is(:hover, .selected) .statuses,
 .GraphNode:has(.selection:hover) .statuses {
   opacity: 0;
 }
