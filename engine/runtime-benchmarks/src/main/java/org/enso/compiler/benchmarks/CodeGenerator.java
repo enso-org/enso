@@ -12,7 +12,7 @@ public class CodeGenerator {
   private static final int SEED = 42;
 
   private static final List<String> OPERATORS = List.of(
-      "+", "-", "*", "/", "&&", "||", "!", "==", "!=", "<", ">", "<=", ">="
+      "+", "-", "*", "/", "&&", "||", "==", "!=", "<", ">", "<=", ">="
   );
 
   private static final List<String> METHODS = List.of(
@@ -23,7 +23,7 @@ public class CodeGenerator {
   private int identifierCnt = 0;
 
 
-  List<String> createIdentifiers(int count) {
+  public List<String> createIdentifiers(int count) {
     List<String> idents = new ArrayList<>(count);
     for (int i = 0; i < count; i++) {
       idents.add(nextIdentifier());
@@ -71,7 +71,7 @@ public class CodeGenerator {
     };
   }
 
-  String createExpression(List<String> identifiers, int size) {
+  public String createExpression(List<String> identifiers, int size) {
     switch (size) {
       // Literal
       case 0 -> {

@@ -43,14 +43,14 @@ public class Utils {
         .as(EnsoContext.class);
   }
 
-  static Object unwrapReceiver(Context ctx, Value value) {
+  public static Object unwrapReceiver(Context ctx, Value value) {
     var unwrapper = new Unwrapper();
     var unwrapperValue = ctx.asValue(unwrapper);
     unwrapperValue.execute(value);
     return unwrapper.args[0];
   }
 
-  static File createSrcFile(String code, String name) {
+  public static File createSrcFile(String code, String name) {
     var benchDataDir = Path.of(".", "target", "bench-data");
     var srcFile = benchDataDir.resolve(name).toFile();
     try {

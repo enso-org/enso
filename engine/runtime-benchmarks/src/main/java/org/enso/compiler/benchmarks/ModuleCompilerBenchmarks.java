@@ -35,8 +35,6 @@ import org.openjdk.jmh.infra.Blackhole;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class ModuleCompilerBenchmarks {
-
-  private static final int IDENTIFIERS_CNT = 10;
   private Compiler compiler;
   private Module module;
 
@@ -45,66 +43,10 @@ public class ModuleCompilerBenchmarks {
     var ctx = Utils.createDefaultContext();
     var ensoCtx = Utils.leakEnsoContext(ctx);
     switch (params.getBenchmark()) {
-      case "org.enso.compiler.benchmarks.ModuleCompilerBenchmarks.longMethodWithLotOfLocalVars" -> {
-        var sb = new StringBuilder();
-        var codeGen = new CodeGenerator();
-        var allIdentifiers = codeGen.createIdentifiers(IDENTIFIERS_CNT);
-        var firstIdent = allIdentifiers.get(0);
-        List<String> initializedIdentifiers = new ArrayList<>();
-        initializedIdentifiers.add(firstIdent);
-        sb.append("main = ").append(System.lineSeparator());
-        sb.append("    ")
-            .append(firstIdent)
-            .append(" = ")
-            .append("42")
-            .append(System.lineSeparator());
 
-        allIdentifiers
-            .stream()
-            .skip(1)
-            .forEach(
-                identifier -> {
-                  var maxExprSize = Math.min(5, initializedIdentifiers.size() - 1);
-                  sb.append("    ")
-                      .append(identifier)
-                      .append(" = ")
-                      .append(codeGen.createExpression(initializedIdentifiers, maxExprSize))
-                      .append(System.lineSeparator());
-                  initializedIdentifiers.add(identifier);
-                });
-
-        var code = sb.toString();
-        var srcFile = Utils.createSrcFile(code, "longMethodWithLotOfLocalVars.enso");
-        var src = Source.newBuilder(LanguageInfo.ID, srcFile).build();
-        var module = ctx.eval(src);
-        var assocTypeValue = module.invokeMember(MethodNames.Module.GET_ASSOCIATED_TYPE);
-        var assocType = (Type) Utils.unwrapReceiver(ctx, assocTypeValue);
-        var moduleScope = assocType.getDefinitionScope();
-        this.module = moduleScope.getModule();
-        this.compiler = ensoCtx.getCompiler();
-      }
       default -> {
         throw new UnsupportedOperationException("unimplemented: Benchmark " + params.getBenchmark());
       }
-    }
-  }
-
-  /**
-   * Measure compilation of a module with a single long method with a format like:
-   * <pre>
-   * main =
-   *    obj1 = ...
-   *    obj2 = ...
-   *    obj3 = ...
-   * </pre>
-   * This is the format that is used by the IDE.
-   * This should measure mostly the performance of the dataflow analysis pass.
-   */
-  @Benchmark
-  public void longMethodWithLotOfLocalVars(Blackhole blackhole) {
-    var compilerResult = compiler.run(module.asCompilerModule());
-    if (compilerResult.compiledModules().size() != 1) {
-      throw new AssertionError("Module compilation failed");
     }
   }
 
