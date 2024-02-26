@@ -19,7 +19,6 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
@@ -53,7 +52,7 @@ public class ManyLocalVarsBenchmark {
    * Total count of local variables in the `main` method. Every variable is defined on
    * a new line.
    */
-  private static final int IDENTIFIERS_CNT = 10;
+  private static final int IDENTIFIERS_CNT = 40;
   private Context context;
   private Compiler compiler;
   private Module module;
@@ -144,5 +143,6 @@ public class ManyLocalVarsBenchmark {
     if (compilerResult.compiledModules().size() != 1) {
       throw new AssertionError("Module compilation failed");
     }
+    blackhole.consume(compilerResult);
   }
 }
