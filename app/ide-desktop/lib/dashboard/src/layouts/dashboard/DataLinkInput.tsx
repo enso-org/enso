@@ -24,6 +24,16 @@ const DEFS: Record<string, object> = SCHEMA.$defs
 const AJV = new Ajv({ formats: { 'enso-secret': true } })
 AJV.addSchema(SCHEMA)
 
+// =================
+// === getSchema ===
+// =================
+
+/** Get a known schema using a path.
+ * @throws {Error} when there is no schema present at the given path. */
+function getSchema(path: string) {
+  return error.assert<ajv.ValidateFunction>(() => AJV.getSchema(path))
+}
+
 // =====================
 // === constantValue ===
 // =====================
@@ -156,9 +166,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               value={typeof value === 'string' ? value : ''}
               size={1}
               className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
-                error.assert<ajv.ValidateFunction>(() => AJV.getSchema(path))(value)
-                  ? 'border-black/10'
-                  : 'border-red-700/60'
+                getSchema(path)(value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter text"
               onChange={event => {
@@ -177,9 +185,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             value={typeof value === 'number' ? value : ''}
             size={1}
             className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
-              error.assert<ajv.ValidateFunction>(() => AJV.getSchema(path))(value)
-                ? 'border-black/10'
-                : 'border-red-700/60'
+              getSchema(path)(value) ? 'border-black/10' : 'border-red-700/60'
             }`}
             placeholder="Enter number"
             onChange={event => {
@@ -199,9 +205,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             value={typeof value === 'number' ? value : ''}
             size={1}
             className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
-              error.assert<ajv.ValidateFunction>(() => AJV.getSchema(path))(value)
-                ? 'border-black/10'
-                : 'border-red-700/60'
+              getSchema(path)(value) ? 'border-black/10' : 'border-red-700/60'
             }`}
             placeholder="Enter integer"
             onChange={event => {
@@ -336,12 +340,10 @@ export default function DataLinkInput(props: DataLinkInputProps) {
       const childValue = selectedChildSchema == null ? [] : constantValue(selectedChildSchema)
       if (
         value != null &&
-        (selectedChildSchema == null ||
-          error.assert<ajv.ValidateFunction>(() => AJV.getSchema(selectedChildPath))(value) !==
-            true)
+        (selectedChildSchema == null || getSchema(selectedChildPath)(value) !== true)
       ) {
         const newIndexRaw = childSchemas.findIndex((_, index) =>
-          error.assert<ajv.ValidateFunction>(() => AJV.getSchema(`${path}/anyOf/${index}`))(value)
+          getSchema(`${path}/anyOf/${index}`)(value)
         )
         const newIndex = selectedChildSchema == null && newIndexRaw === -1 ? 0 : newIndexRaw
         if (newIndex !== -1 && newIndex !== selectedChildIndex) {

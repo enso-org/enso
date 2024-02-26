@@ -96,9 +96,9 @@ export function assert<T>(makeValue: () => T | '' | 0 | 0n | false | null | unde
   // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (!result) {
     throw new Error(
-      'Value should not be null: `' +
+      'Assertion failed: `' +
         makeValue.toString().replace(/^\s*[(].*?[)]\s*=>\s*/, '') +
-        '`'
+        '` should not be `null`.'
     )
   } else {
     return result
