@@ -272,7 +272,30 @@ public final class EqualsNode extends Node {
     private boolean assertHashCodeIsTheSame(Object self, Object converted) {
       var selfHash = HashCodeNode.getUncached().execute(self);
       var convertedHash = HashCodeNode.getUncached().execute(converted);
-      var ok = selfHash == convertedHash;
+      System.out.println(self + " " + self.getClass() + " " + selfHash + " " + self.hashCode());
+      System.out.println(converted + " " + converted.getClass() + " " + convertedHash + " " + converted.hashCode());
+      /*
+      System.out.println("Um " + HashCodeNode.getUncached().execute(Long.valueOf(1)));
+      System.out.println("Um " + HashCodeNode.getUncached().execute(Double.valueOf(1.0)));
+      Double bigd = Double.valueOf(9223372036854775808.0);
+      System.out.println("big d is " + bigd);
+      System.out.println("big d is " + String.format("%.50f", bigd.doubleValue()));
+      System.out.println("big d is " + String.format("%f", bigd.doubleValue()));
+      System.out.println("big d " + HashCodeNode.getUncached().execute(bigd));
+      {
+        Float f = Float.valueOf(23.456f);
+        Double d = Double.valueOf(23.456);
+        System.out.println("fd f " + HashCodeNode.getUncached().execute(f));
+        System.out.println("fd d " + HashCodeNode.getUncached().execute(d));
+      }
+      {
+        Float f = Float.valueOf(23.456f);
+        Double d = Double.valueOf(23.456);
+        System.out.println("fd f " + HashCodeNode.getUncached().execute(f));
+        System.out.println("fd d " + HashCodeNode.getUncached().execute(d));
+      }
+      */
+        var ok = selfHash == convertedHash;
       if (!ok) {
         var msg =
             "Different hash code! Original "

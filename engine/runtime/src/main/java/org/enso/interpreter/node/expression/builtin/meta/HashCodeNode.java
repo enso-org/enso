@@ -122,8 +122,10 @@ public abstract class HashCodeNode extends Node {
       // NaN is Incomparable, just return a "random" constant
       return 456879;
     } else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
+      // If d is not a whole number or d is a whole number that fits in long
       return Double.hashCode(d);
     } else {
+      // If d is a whole number that does not fit in long
       return bigDoubleHash(d);
     }
   }
