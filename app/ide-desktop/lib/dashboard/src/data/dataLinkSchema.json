@@ -97,7 +97,7 @@
           "title": "URI",
           "description": "Must start with \"s3://\".",
           "type": "string",
-          "pattern": "^s3://[\\w.~-]+/[/\\w.~-]+$"
+          "pattern": "^s3://[a-z0-9.-]{3,63}/.+$"
         },
         "auth": { "title": "Authentication", "$ref": "#/$defs/AwsAuth" },
         "format": { "title": "Format", "$ref": "#/$defs/Format" }
