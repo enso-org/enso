@@ -549,12 +549,22 @@ add_specs suite_builder =
             # It reads the datalink description and then reads the actual S3 file contents:
             (enso_project.data / "simple.datalink") . read . should_equal "Hello WORLD!"
 
-        # TODO also secrets in there
-        group_builder.specify "should be able to read a data link with custom credentials" pending="TODO" <|
-            Error.throw "TODO"
+        #group_builder.specify "should be able to read a data link with custom credentials and secrets" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
+        group_builder.specify "should be able to read a data link with custom credentials and secrets" pending="TODO: reading secrets from path" <| cloud_setup.with_prepared_environment <|
+            secret_key_id = Enso_Secret.create "datalink-secret-AWS-keyid" (Environment.get "AWS_ACCESS_KEY_ID")
+            secret_key_id.should_succeed
+            Panic.with_finalizer secret_key_id.delete <|
+                secret_key_value = Enso_Secret.create "datalink-secret-AWS-secretkey" (Environment.get "AWS_SECRET_ACCESS_KEY")
+                secret_key_value.should_succeed
+                Panic.with_finalizer secret_key_value.delete <| with_retries <|
+                    (enso_project.data / "credentials-with-secrets.datalink") . read . should_equal "Hello WORLD!"
 
-        group_builder.specify "should be able to read a data link with custom a custom file format set" pending="TODO" <|
-            Error.throw "TODO"
+        group_builder.specify "should be able to read a data link with custom a custom file format set" <|
+            r = (enso_project.data / "formatted.datalink") . read
+            # The datalink itself is configured to interpret the data as a Table delimited by space
+            r.should_be_a Table
+            r.column_names . should_equal ["Column 1", "Column 2"]
+            r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]
 
 main filter=Nothing =
     suite = Test.build suite_builder->
