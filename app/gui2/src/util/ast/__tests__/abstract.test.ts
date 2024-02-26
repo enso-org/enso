@@ -2,7 +2,8 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
-import { MutableModule, escape, unescape, type Identifier } from '../abstract'
+import { MutableModule, type Identifier } from '../abstract'
+import { escape, unescape } from '../text'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
@@ -505,23 +506,6 @@ test('Construct app', () => {
     Ast.Ident.new(edit, 'arg' as Identifier),
   )
   expect(namedApp.code()).toBe('func name=arg')
-})
-
-test.each([
-  ['Hello, World!', 'Hello, World!'],
-  ['Hello\t\tWorld!', 'Hello\\t\\tWorld!'],
-  ['He\nllo, W\rorld!', 'He\\nllo, W\\rorld!'],
-  ['Hello,\vWorld!', 'Hello,\\vWorld!'],
-  ['Hello, \\World!', 'Hello, \\World!'],
-  ['Hello, `World!`', 'Hello, ``World!``'],
-  ["'Hello, World!'", "\\'Hello, World!\\'"],
-  ['"Hello, World!"', '\\"Hello, World!\\"'],
-  ['Hello, \fWorld!', 'Hello, \\fWorld!'],
-  ['Hello, \bWorld!', 'Hello, \\bWorld!'],
-])('Text literals escaping and unescaping', (original, expectedEscaped) => {
-  const escaped = escape(original)
-  expect(escaped).toBe(expectedEscaped)
-  expect(unescape(escaped)).toBe(original)
 })
 
 test('Automatic parenthesis', () => {

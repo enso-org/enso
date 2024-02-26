@@ -6,7 +6,6 @@ import AddKeyIcon from 'enso-assets/add_key.svg'
 import AddNetworkIcon from 'enso-assets/add_network.svg'
 import AppDownloadIcon from 'enso-assets/app_download.svg'
 import CameraIcon from 'enso-assets/camera.svg'
-import ChangePasswordIcon from 'enso-assets/change_password.svg'
 import CloseIcon from 'enso-assets/close.svg'
 import CloudToIcon from 'enso-assets/cloud_to.svg'
 import CopyIcon from 'enso-assets/copy.svg'
@@ -111,12 +110,6 @@ export const BINDINGS = inputBindings.defineBindings({
   // These should not appear in any menus.
   closeModal: { name: 'Close Modal', bindings: ['Escape'], rebindable: false },
   cancelEditName: { name: 'Cancel Editing', bindings: ['Escape'], rebindable: false },
-  changeYourPassword: {
-    name: 'Change Your Password',
-    bindings: [],
-    icon: ChangePasswordIcon,
-    rebindable: false,
-  },
   downloadApp: { name: 'Download App', bindings: [], icon: AppDownloadIcon, rebindable: false },
   cancelCut: { name: 'Cancel Cut', bindings: ['Escape'], rebindable: false },
   // TODO: support handlers for double click; make single click handlers not work on double click events

@@ -21,6 +21,7 @@ import type AssetQuery from '#/utilities/AssetQuery'
 export interface TopBarProps {
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
+  readonly isCloud: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
   readonly projectAsset: backendModule.ProjectAsset | null
@@ -43,7 +44,7 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
-  const { supportsLocalBackend, page, setPage, projectAsset, setProjectAsset } = props
+  const { supportsLocalBackend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, canToggleAssetPanel } = props
   const { isAssetPanelVisible, setIsAssetPanelVisible, doRemoveSelf, onSignOut } = props
@@ -63,6 +64,7 @@ export default function TopBar(props: TopBarProps) {
       ) : (
         <div className="flex-1 flex flex-wrap justify-around">
           <AssetSearchBar
+            isCloud={isCloud}
             query={query}
             setQuery={setQuery}
             labels={labels}

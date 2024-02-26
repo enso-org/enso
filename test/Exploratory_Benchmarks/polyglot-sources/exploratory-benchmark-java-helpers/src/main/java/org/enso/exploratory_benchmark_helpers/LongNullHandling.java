@@ -23,15 +23,15 @@ public class LongNullHandling {
         LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemAggregator) {
       int n = storage.size();
       long[] newVals = new long[n];
-      BitSet missing = new BitSet();
+      BitSet isNothing = new BitSet();
       for (int i = 0; i < n; i++) {
-        if (storage.isNa(i) || arg.isNa(i)) {
-          missing.set(i);
+        if (storage.isNothing(i) || arg.isNothing(i)) {
+          isNothing.set(i);
         } else {
           newVals[i] = doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator);
         }
       }
-      return new LongStorage(newVals, n, missing, IntegerType.INT_64);
+      return new LongStorage(newVals, n, isNothing, IntegerType.INT_64);
     }
   }
 
@@ -45,20 +45,20 @@ public class LongNullHandling {
         LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemAggregator) {
       int n = storage.size();
       long[] newVals = new long[n];
-      BitSet missing = new BitSet();
+      BitSet isNothing = new BitSet();
       for (int i = 0; i < n; i++) {
-        if (storage.isNa(i) || arg.isNa(i)) {
-          missing.set(i);
+        if (storage.isNothing(i) || arg.isNothing(i)) {
+          isNothing.set(i);
         } else {
           Long x = doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator);
           if (x == null) {
-            missing.set(i);
+            isNothing.set(i);
           } else {
             newVals[i] = x;
           }
         }
       }
-      return new LongStorage(newVals, n, missing, IntegerType.INT_64);
+      return new LongStorage(newVals, n, isNothing, IntegerType.INT_64);
     }
   }
 
@@ -83,23 +83,23 @@ public class LongNullHandling {
         LongStorage storage, LongStorage arg, MapOperationProblemAggregator problemAggregator) {
       int n = storage.size();
       long[] newVals = new long[n];
-      BitSet missing = new BitSet();
+      BitSet isNothing = new BitSet();
       NullityReporter nullityReporter = new NullityReporter();
       for (int i = 0; i < n; i++) {
-        if (storage.isNa(i) || arg.isNa(i)) {
-          missing.set(i);
+        if (storage.isNothing(i) || arg.isNothing(i)) {
+          isNothing.set(i);
         } else {
           long x =
               doLong(storage.getItem(i), arg.getItem(i), i, problemAggregator, nullityReporter);
           if (nullityReporter.wasLastNull) {
-            missing.set(i);
+            isNothing.set(i);
             nullityReporter.wasLastNull = false;
           } else {
             newVals[i] = x;
           }
         }
       }
-      return new LongStorage(newVals, n, missing, IntegerType.INT_64);
+      return new LongStorage(newVals, n, isNothing, IntegerType.INT_64);
     }
   }
 

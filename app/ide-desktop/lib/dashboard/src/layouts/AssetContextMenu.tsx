@@ -75,7 +75,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     managesThisAsset || self?.permission === permissions.PermissionAction.edit
   const isRunningProject =
     asset.type === backendModule.AssetType.project &&
-    backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[asset.projectState.type]
+    backendModule.IS_OPENING_OR_OPENED[asset.projectState.type]
   const canExecute =
     backend.type === backendModule.BackendType.local ||
     (self?.permission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[self.permission])

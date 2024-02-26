@@ -47,7 +47,7 @@ function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags {
     (event.metaKey ? RAW_MODIFIER_FLAG.Meta : 0)) as ModifierFlags
 }
 
-/** These values MUST match the flags on `MouseEvent#button`.
+/** These values MUST match the flags on `MouseEvent#buttons`.
  * See https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons */
 const POINTER_BUTTON_FLAG = {
   PointerMain: 1 << 0,
@@ -56,6 +56,27 @@ const POINTER_BUTTON_FLAG = {
   PointerBack: 1 << 3,
   PointerForward: 1 << 4,
 } satisfies Record<Pointer, number> as Record<Pointer, PointerButtonFlags>
+
+/**
+ * Mapping from the MouseEvent's `button` field to PointerButtonFlags.
+ *
+ * No, it is not as simple as (1 << event.button) as PointerButtonFlags; compare
+ * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons with
+ * https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
+ */
+const flagsOfButtonField = [
+  POINTER_BUTTON_FLAG.PointerMain,
+  POINTER_BUTTON_FLAG.PointerAux,
+  POINTER_BUTTON_FLAG.PointerSecondary,
+  POINTER_BUTTON_FLAG.PointerBack,
+  POINTER_BUTTON_FLAG.PointerForward,
+]
+
+function buttonFlagsForEvent(event: MouseEvent): PointerButtonFlags {
+  // event.buttons keeps information about buttons being pressed, but in case of `click` or
+  // `pointerup` events we also want to know what buttons were just released.
+  return (event.buttons | (flagsOfButtonField[event.button] ?? 0)) as PointerButtonFlags
+}
 
 // ==========================
 // === Autocomplete types ===
@@ -333,7 +354,7 @@ export function defineKeybinds<
       const keybinds =
         event instanceof KeyboardEvent
           ? keyboardShortcuts[event.key.toLowerCase() as Key_]?.[eventModifierFlags]
-          : mouseShortcuts[event.buttons as PointerButtonFlags]?.[eventModifierFlags]
+          : mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
       let handle = handlers[DefaultHandler]
       if (keybinds != null) {
         for (const bindingName in handlers) {

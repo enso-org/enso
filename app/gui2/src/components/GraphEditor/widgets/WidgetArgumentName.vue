@@ -21,6 +21,11 @@ const showArgumentValue = computed(() => {
 
 const placeholder = computed(() => props.input instanceof ArgumentPlaceholder)
 const primary = computed(() => props.nesting < 2)
+
+const innerInput = computed(() => ({
+  ...props.input,
+  [ArgumentNameShownKey]: true,
+}))
 </script>
 
 <script lang="ts">
@@ -40,13 +45,15 @@ export const widgetDefinition = defineWidget(hasKnownArgumentName, {
     return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch
   },
 })
+
+export const ArgumentNameShownKey: unique symbol = Symbol('ArgumentNameShownKey')
 </script>
 
 <template>
   <div class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
       <span class="name">{{ props.input[ArgumentInfoKey].info.name }}</span
-      ><NodeWidget :input="props.input" allowEmpty />
+      ><NodeWidget :input="innerInput" allowEmpty />
     </template>
     <template v-else>{{ props.input[ArgumentInfoKey].info.name }}</template>
   </div>

@@ -63,7 +63,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
               unsetModal()
             }
           }}
-        ></input>
+        />
       )}
       <MenuEntry
         hidden={hidden}

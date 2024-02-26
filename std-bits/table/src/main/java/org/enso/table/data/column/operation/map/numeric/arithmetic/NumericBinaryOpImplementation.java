@@ -122,10 +122,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     int n = a.size();
     int m = Math.min(a.size(), b.size());
     long[] out = new long[n];
-    BitSet newMissing = new BitSet();
+    BitSet isNothing = new BitSet();
     for (int i = 0; i < m; i++) {
-      if (a.isNa(i) || b.isNa(i)) {
-        newMissing.set(i);
+      if (a.isNothing(i) || b.isNothing(i)) {
+        isNothing.set(i);
       } else {
         double r = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
         out[i] = Double.doubleToRawLongBits(r);
@@ -135,10 +135,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     }
 
     if (m < n) {
-      newMissing.set(m, n);
+      isNothing.set(m, n);
     }
 
-    return new DoubleStorage(out, n, newMissing);
+    return new DoubleStorage(out, n, isNothing);
   }
 
   private static Storage<? extends Number> allNullStorageOfSameType(Storage<?> storage) {
@@ -161,10 +161,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     Context context = Context.getCurrent();
     int n = a.size();
     long[] out = new long[n];
-    BitSet newMissing = new BitSet();
+    BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
-      if (a.isNa(i)) {
-        newMissing.set(i);
+      if (a.isNothing(i)) {
+        isNothing.set(i);
       } else {
         double r = doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator);
         out[i] = Double.doubleToRawLongBits(r);
@@ -173,7 +173,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       context.safepoint();
     }
 
-    return new DoubleStorage(out, n, newMissing);
+    return new DoubleStorage(out, n, isNothing);
   }
 
   protected LongStorage runLongZip(
@@ -184,14 +184,14 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     int n = a.size();
     int m = Math.min(a.size(), b.size());
     long[] out = new long[n];
-    BitSet newMissing = new BitSet();
+    BitSet isNothing = new BitSet();
     for (int i = 0; i < m; i++) {
-      if (a.isNa(i) || b.isNa(i)) {
-        newMissing.set(i);
+      if (a.isNothing(i) || b.isNothing(i)) {
+        isNothing.set(i);
       } else {
         Long r = doLong(a.getItem(i), b.getItem(i), i, problemAggregator);
         if (r == null) {
-          newMissing.set(i);
+          isNothing.set(i);
         } else {
           out[i] = r;
         }
@@ -201,10 +201,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     }
 
     if (m < n) {
-      newMissing.set(m, n);
+      isNothing.set(m, n);
     }
 
-    return new LongStorage(out, n, newMissing, INTEGER_RESULT_TYPE);
+    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
   }
 
   protected LongStorage runLongMap(
@@ -217,14 +217,14 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     Context context = Context.getCurrent();
     int n = a.size();
     long[] out = new long[n];
-    BitSet newMissing = new BitSet();
+    BitSet isNothing = new BitSet();
     for (int i = 0; i < n; i++) {
-      if (a.isNa(i)) {
-        newMissing.set(i);
+      if (a.isNothing(i)) {
+        isNothing.set(i);
       } else {
         Long r = doLong(a.getItem(i), bNonNull, i, problemAggregator);
         if (r == null) {
-          newMissing.set(i);
+          isNothing.set(i);
         } else {
           out[i] = r;
         }
@@ -233,7 +233,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       context.safepoint();
     }
 
-    return new LongStorage(out, n, newMissing, INTEGER_RESULT_TYPE);
+    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
   }
 
   protected BigIntegerStorage runBigIntegerZip(
@@ -244,22 +244,14 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     int n = a.size();
     int m = Math.min(a.size(), b.size());
     BigInteger[] out = new BigInteger[n];
-    BitSet newMissing = new BitSet();
     for (int i = 0; i < m; i++) {
       BigInteger x = a.getItem(i);
       BigInteger y = b.getItem(i);
-      if (x == null || y == null) {
-        newMissing.set(i);
-      } else {
+      if (x != null && y != null) {
         BigInteger r = doBigInteger(x, y, i, problemAggregator);
         out[i] = r;
       }
-
       context.safepoint();
-    }
-
-    if (m < n) {
-      newMissing.set(m, n);
     }
 
     return new BigIntegerStorage(out, n);

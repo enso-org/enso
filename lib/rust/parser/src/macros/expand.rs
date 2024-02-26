@@ -162,6 +162,7 @@ impl<'s> Match<'s> {
             | Self::Nothing
             | Self::Identifier(_)
             | Self::Expected(_, _)
+            | Self::Block(_)
             | Self::NotBlock(_) => {}
             Self::Or(box OrMatch::First(item) | box OrMatch::Second(item)) =>
                 item.build_var_map(tree, validator),

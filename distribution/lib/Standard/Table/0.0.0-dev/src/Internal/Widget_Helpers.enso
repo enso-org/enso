@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Numeric_Input, Single_Choice, Vector_Editor
+from Standard.Base.Metadata.Widget import Numeric_Input, Single_Choice, Text_Input, Vector_Editor
 from Standard.Base.System.File_Format import format_types
 from Standard.Base.Widget_Helpers import make_format_chooser
 
@@ -68,11 +68,12 @@ make_aggregate_column_vector_selector table display=Display.Always =
 
 ## PRIVATE
    Make a column name selector.
-make_column_name_selector : Table -> Display -> Widget
-make_column_name_selector table display=Display.Always =
+make_column_name_selector : Table -> Boolean -> Display -> Widget
+make_column_name_selector table add_expression:Boolean=False display=Display.Always =
     col_names = table.column_names
     names = col_names.map n-> Option n n.pretty
-    Single_Choice display=display values=names
+    expression = if add_expression then [Option "<Expression>" "(expr '["+table.column_names.first+"]')"] else []
+    Single_Choice display=display values=(expression+names)
 
 ## PRIVATE
    Make a multiple column name selector.
@@ -86,10 +87,10 @@ make_column_name_vector_selector table display=Display.Always =
 make_column_ref_by_name_selector : Table -> Display -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
 make_column_ref_by_name_selector table display:Display=Display.Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False =
     text = if add_text then [Option "<Text Value>" "''"] else []
-    regex = if add_regex then [Option "<Regular Expression>" "('').to_regex"] else []
+    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
     number = if add_number then [Option "<Number Value>" "0"] else []
     boolean = if add_boolean then [Option "<True/False>" "True"] else []
-    expression = if table.is_nothing then [] else [Option "<Expression>" "(Column_Ref.Expression '["+table.column_names.first+"]')"]
+    expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
     col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(Column_Ref.Name "+name.pretty+")")
     values = text + regex + number + boolean + expression + col_names
     Single_Choice values=values display=display
@@ -143,14 +144,14 @@ make_join_condition_selector : Table -> Display -> Widget
 make_join_condition_selector table display=Display.Always =
     col_names_selector = make_column_name_selector table display=Display.Always
 
-    fqn = "Join_Condition"
-    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector]]
-    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector]]
-    between = Option "Between" fqn+".Between" [["left", col_names_selector]]
+    fqn = Meta.get_qualified_type_name Join_Condition
+    equals = Option "Equals" fqn+".Equals" [["left", col_names_selector], ["right", Text_Input]]
+    equals_ci = Option "Equals (Ignore Case)" fqn+".Equals_Ignore_Case" [["left", col_names_selector], ["right", Text_Input]]
+    between = Option "Between" fqn+".Between" [["left", col_names_selector], ["right_lower", Text_Input], ["right_upper", Text_Input]]
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
-    Vector_Editor item_editor=item_editor item_default="("+item_editor.values.first.value+")" display=display
+    Vector_Editor item_editor=item_editor item_default="(Join_Condition.Equals "+table.column_names.first.pretty+")" display=display
 
 ## PRIVATE
    Make a column name selector.
@@ -168,7 +169,7 @@ make_order_by_selector table display=Display.Always =
 make_rename_name_vector_selector : Table -> Display -> Widget
 make_rename_name_vector_selector table display=Display.Always =
     col_names = table.column_names
-    names = [Option "<Regular Expression>" "'^.*$'.to_regex"] + (col_names.map n-> Option n n.pretty)
+    names = [Option "<Regular Expression>" "(regex '^.*$')"] + (col_names.map n-> Option n n.pretty)
     fqn = Meta.get_qualified_type_name Pair
     name = Option "Name" fqn+".Value" [["first", Single_Choice values=names display=Display.Always]]
     item_editor = Single_Choice display=Display.Always values=[name]

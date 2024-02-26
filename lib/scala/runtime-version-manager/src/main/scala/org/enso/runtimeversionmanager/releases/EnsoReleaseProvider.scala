@@ -1,5 +1,6 @@
 package org.enso.runtimeversionmanager.releases
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
+import org.enso.semver.SemVerOrdering._
 import org.enso.cli.OS
 
 import scala.util.{Failure, Success, Try}
@@ -33,7 +34,7 @@ abstract class EnsoReleaseProvider[ReleaseType](
       for {
         release <- releases
         versionString = release.tag.stripPrefix(tagPrefix)
-        version <- SemVer(versionString)
+        version <- SemVer.parse(versionString).toOption
       } yield ReleaseProvider
         .Version(version = version, markedAsBroken = release.isMarkedBroken)
     }
