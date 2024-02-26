@@ -155,7 +155,7 @@ export default function Subscribe() {
             </stripeReact.EmbeddedCheckoutProvider>
           </div>
         ) : (
-          <div className="h-155 transition-all"></div>
+          <div className="h-155 transition-all" />
         )}
       </div>
     </Modal>
