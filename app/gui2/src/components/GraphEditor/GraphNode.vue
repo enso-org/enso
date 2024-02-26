@@ -29,11 +29,6 @@ const MAXIMUM_CLICK_DISTANCE_SQ = 50
 const prefixes = Prefixes.FromLines({
   enableOutputContext:
     'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
-  disableOutputContext:
-    'Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output __ <| __',
-  // Currently unused; included as PoC.
-  skip: 'SKIP __',
-  freeze: 'FREEZE __',
 })
 
 const props = defineProps<{
@@ -188,52 +183,26 @@ const displayedExpression = computed(() => props.node.rootSpan.module.get(matche
 
 const isOutputContextOverridden = computed({
   get() {
-    const override =
-      matches.value.matches.enableOutputContext ?? matches.value.matches.disableOutputContext
-    const overrideEnabled = matches.value.matches.enableOutputContext != null
-    // An override is only counted as enabled if it is currently in effect. This requires:
-    // - that an override exists
-    if (!override) return false
-    // - that it is setting the "enabled" value to a non-default value
-    else if (overrideEnabled === projectStore.isOutputContextEnabled) return false
-    // - and that it applies to the current execution context.
-    else {
-      const module = props.node.rootSpan.module
-      const contextWithoutQuotes = module
-        .get(override[0])
-        ?.code()
-        .replace(/^['"]|['"]$/g, '')
-      return contextWithoutQuotes === projectStore.executionMode
-    }
+    return matches.value.matches.enableOutputContext != null
   },
   set(shouldOverride) {
-    const module = projectStore.module
-    if (!module) return
     const edit = props.node.rootSpan.module.edit()
-    const replacementText = shouldOverride
-      ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
-      : undefined
-    const replacements = projectStore.isOutputContextEnabled
-      ? {
-          enableOutputContext: undefined,
-          disableOutputContext: replacementText,
-        }
-      : {
-          enableOutputContext: replacementText,
-          disableOutputContext: undefined,
-        }
-    prefixes.modify(edit.getVersion(props.node.rootSpan), replacements)
+    const replacement =
+      shouldOverride && !projectStore.isOutputContextEnabled
+        ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
+        : undefined
+    prefixes.modify(edit.getVersion(props.node.rootSpan), { enableOutputContext: replacement })
     graph.commitEdit(edit)
   },
 })
 
-// FIXME [sb]: https://github.com/enso-org/enso/issues/8442
-// This does not take into account `displayedExpression`.
 const expressionInfo = computed(() => graph.db.getExpressionInfo(externalId.value))
 const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
+// FIXME [sb]: https://github.com/enso-org/enso/issues/8442
+// This does not take into account `displayedExpression`.
 const icon = computed(() => {
   const expressionInfo = graph.db.getExpressionInfo(externalId.value)
   return displayedIconOf(

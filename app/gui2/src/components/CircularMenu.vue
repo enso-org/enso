@@ -38,7 +38,7 @@ const emit = defineEmits<{
       @click.stop="emit('startEditing')"
     />
     <ToggleIcon
-      :icon="props.isOutputContextEnabledGlobally ? 'no_auto_replay' : 'auto_replay'"
+      icon="record"
       class="icon-container button slot7"
       :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
       :alt="`${
@@ -187,7 +187,7 @@ const emit = defineEmits<{
 .slot7 {
   position: absolute;
   top: 44px;
-  left: 9px;
+  left: 8px;
 }
 
 .slot8 {
