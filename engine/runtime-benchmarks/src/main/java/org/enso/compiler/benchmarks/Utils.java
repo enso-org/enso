@@ -19,21 +19,15 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 
 public class Utils {
-  public static Context createDefaultContext() {
-    var ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .logHandler(System.err)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
-    return ctx;
+  public static Context.Builder createDefaultContextBuilder() {
+      return Context.newBuilder()
+          .allowExperimentalOptions(true)
+          .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+          .option(RuntimeOptions.STRICT_ERRORS, "true")
+          .logHandler(System.err)
+          .allowIO(IOAccess.ALL)
+          .allowAllAccess(true);
   }
 
   public static EnsoContext leakEnsoContext(Context ctx) {

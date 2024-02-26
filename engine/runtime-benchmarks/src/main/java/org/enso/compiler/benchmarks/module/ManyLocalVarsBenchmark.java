@@ -1,6 +1,8 @@
 package org.enso.compiler.benchmarks.module;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -13,6 +15,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -23,6 +26,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
@@ -39,9 +43,8 @@ import org.openjdk.jmh.infra.Blackhole;
  * This should measure mostly the performance of the dataflow analysis pass.
  */
 @BenchmarkMode(Mode.AverageTime)
-@Fork(0)
-@Warmup(iterations = 1)
-@Measurement(iterations = 1)
+@Warmup(iterations = 6)
+@Measurement(iterations = 4)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class ManyLocalVarsBenchmark {
@@ -51,13 +54,21 @@ public class ManyLocalVarsBenchmark {
    * a new line.
    */
   private static final int IDENTIFIERS_CNT = 10;
+  private Context context;
   private Compiler compiler;
   private Module module;
+  private OutputStream out;
 
   @Setup
   public void setup(BenchmarkParams params) throws IOException {
-    var ctx = Utils.createDefaultContext();
-    var ensoCtx = Utils.leakEnsoContext(ctx);
+    this.out = new ByteArrayOutputStream();
+    this.context = Utils
+        .createDefaultContextBuilder()
+        .logHandler(out)
+        .out(out)
+        .err(out)
+        .build();
+    var ensoCtx = Utils.leakEnsoContext(context);
     var sb = new StringBuilder();
     var codeGen = new CodeGenerator();
     var allIdentifiers = codeGen.createIdentifiers(IDENTIFIERS_CNT);
@@ -110,12 +121,21 @@ public class ManyLocalVarsBenchmark {
     var code = sb.toString();
     var srcFile = Utils.createSrcFile(code, "longMethodWithLotOfLocalVars.enso");
     var src = Source.newBuilder(LanguageInfo.ID, srcFile).build();
-    var module = ctx.eval(src);
+    var module = context.eval(src);
     var assocTypeValue = module.invokeMember(MethodNames.Module.GET_ASSOCIATED_TYPE);
-    var assocType = (Type) Utils.unwrapReceiver(ctx, assocTypeValue);
+    var assocType = (Type) Utils.unwrapReceiver(context, assocTypeValue);
     var moduleScope = assocType.getDefinitionScope();
     this.module = moduleScope.getModule();
     this.compiler = ensoCtx.getCompiler();
+  }
+
+  @TearDown
+  public void tearDown() throws IOException {
+    if (!out.toString().isEmpty()) {
+      throw new AssertionError("Unexpected output from the compiler: " + out.toString());
+    }
+    out.close();
+    context.close();
   }
 
   @Benchmark
