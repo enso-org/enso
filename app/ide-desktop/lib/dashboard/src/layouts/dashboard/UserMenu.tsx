@@ -11,12 +11,12 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
-import ChangePasswordModal from '#/layouts/dashboard/ChangePasswordModal'
 import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
 
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 
+import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import * as shortcutManager from '#/utilities/ShortcutManager'
 
@@ -38,16 +38,9 @@ export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, setPage, supportsLocalBackend, onSignOut } = props
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
-  const { accessToken, user } = authProvider.useNonPartialUserSession()
-  const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { user } = authProvider.useNonPartialUserSession()
+  const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-
-  // The shape of the JWT payload is statically known.
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const username: string | null =
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
-    accessToken != null ? JSON.parse(atob(accessToken.split('.')[1]!)).username : null
-  const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
 
   return (
     <Modal hidden={hidden} className="absolute overflow-hidden bg-dim w-full h-full">
@@ -64,20 +57,16 @@ export default function UserMenu(props: UserMenuProps) {
           <>
             <div className="flex items-center gap-3 px-1">
               <div className="flex items-center rounded-full overflow-clip w-7.25 h-7.25">
-                <img src={user.profilePicture ?? DefaultUserIcon} height={28} width={28} />
+                <img
+                  src={user.profilePicture ?? DefaultUserIcon}
+                  height={28}
+                  width={28}
+                  className="pointer-events-none"
+                />
               </div>
               <span className="leading-170 h-6 py-px">{user.name}</span>
             </div>
             <div className="flex flex-col">
-              {canChangePassword && (
-                <MenuEntry
-                  action={shortcutManager.KeyboardAction.changeYourPassword}
-                  paddingClassName="p-1"
-                  doAction={() => {
-                    setModal(<ChangePasswordModal />)
-                  }}
-                />
-              )}
               {!supportsLocalBackend && (
                 <MenuEntry
                   action={shortcutManager.KeyboardAction.downloadApp}
@@ -88,7 +77,7 @@ export default function UserMenu(props: UserMenuProps) {
                     if (downloadUrl == null) {
                       toastAndLog('Could not find a download link for the current OS')
                     } else {
-                      window.open(downloadUrl, '_blank')
+                      download.download(downloadUrl)
                     }
                   }}
                 />

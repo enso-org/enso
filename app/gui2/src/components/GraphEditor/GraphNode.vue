@@ -150,6 +150,9 @@ const startEpochMs = ref(0)
 let startEvent: PointerEvent | null = null
 let startPos = Vec2.Zero
 
+// TODO[ao]: Now, the dragPointer.events are preventing `click` events on widgets if they don't
+// stop pointerup and pointerdown. Now we ensure that any widget handling click does that, but
+// instead `usePointer` should be smarter.
 const dragPointer = usePointer((pos, event, type) => {
   if (type !== 'start') {
     const fullOffset = pos.absolute.sub(startPos)
@@ -169,7 +172,8 @@ const dragPointer = usePointer((pos, event, type) => {
         startEvent != null &&
         pos.absolute.distanceSquared(startPos) <= MAXIMUM_CLICK_DISTANCE_SQ
       ) {
-        nodeSelection?.handleSelectionOf(startEvent, new Set([nodeId.value]))
+        nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
+        handleNodeClick(event)
         menuVisible.value = MenuState.Partial
       }
       startEvent = null
@@ -252,7 +256,7 @@ const nodeEditHandler = nodeEditBindings.handler({
 })
 
 function startEditingNode(position: Vec2 | undefined) {
-  let sourceOffset = 0
+  let sourceOffset = props.node.rootSpan.code().length
   if (position != null) {
     let domNode, domOffset
     if ((document as any).caretPositionFromPoint) {
@@ -413,7 +417,14 @@ function openFullMenu() {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
-    <div ref="contentNode" class="node" @pointerdown="handleNodeClick" v-on="dragPointer.events">
+    <div
+      ref="contentNode"
+      class="node"
+      v-on="dragPointer.events"
+      @click.stop
+      @pointerdown.stop
+      @pointerup.stop
+    >
       <NodeWidgetTree
         :ast="displayedExpression"
         :nodeId="nodeId"
@@ -567,7 +578,7 @@ function openFullMenu() {
   caret-shape: bar;
   height: var(--node-height);
   border-radius: var(--node-border-radius);
-  display: flex;
+  display: inline-flex;
   flex-direction: row;
   align-items: center;
   white-space: nowrap;

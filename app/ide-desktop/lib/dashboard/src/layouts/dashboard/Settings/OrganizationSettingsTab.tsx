@@ -13,46 +13,6 @@ import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
-// =================
-// === InfoEntry ===
-// =================
-
-/** Props for a transparent wrapper component. */
-interface InternalTransparentWrapperProps {
-  readonly children: React.ReactNode
-}
-
-/** A transparent wrapper component */
-// This is a React component even though it does not contain JSX.
-// eslint-disable-next-line no-restricted-syntax
-function Name(props: InternalTransparentWrapperProps) {
-  return props.children
-}
-
-/** A transparent wrapper component */
-// This is a React component even though it does not contain JSX.
-// eslint-disable-next-line no-restricted-syntax
-function Value(props: InternalTransparentWrapperProps) {
-  return props.children
-}
-
-/** Props for a {@link InfoEntry}. */
-interface InternalInfoEntryProps {
-  readonly children: [React.ReactNode, React.ReactNode]
-}
-
-/** Styled information display containing key and value. */
-function InfoEntry(props: InternalInfoEntryProps) {
-  const { children } = props
-  const [name, value] = children
-  return (
-    <div className="flex gap-4.75">
-      <span className="leading-5 w-40 h-8 py-1.25">{name}</span>
-      <span className="grow font-bold leading-5 h-8 py-1.25">{value}</span>
-    </div>
-  )
-}
-
 // ===============================
 // === OrganizationSettingsTab ===
 // ===============================
@@ -202,9 +162,9 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
         <div className="flex flex-col gap-2.5">
           <h3 className="font-bold text-xl h-9.5 py-0.5">Organization</h3>
           <div className="flex flex-col">
-            <InfoEntry>
-              <Name>Organization display name</Name>
-              <Value>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-40 h-8 py-1.25">Organization display name</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
                 <input
                   ref={nameRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
@@ -217,11 +177,28 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                     onKeyDown(event, organization.organization_name ?? '')
                   }}
                 />
-              </Value>
-            </InfoEntry>
-            <InfoEntry>
-              <Name>Email</Name>
-              <Value>
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-40 h-8 py-1.25">Organization display name</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
+                <input
+                  ref={nameRef}
+                  className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
+                  key={organization.organization_name}
+                  type="text"
+                  size={1}
+                  defaultValue={organization.organization_name ?? ''}
+                  onBlur={doUpdateName}
+                  onKeyDown={event => {
+                    onKeyDown(event, organization.organization_name ?? '')
+                  }}
+                />
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-40 h-8 py-1.25">Email</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
                 <input
                   ref={emailRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors invalid:border invalid:border-red-700"
@@ -245,11 +222,11 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                     )
                   }}
                 />
-              </Value>
-            </InfoEntry>
-            <InfoEntry>
-              <Name>Website</Name>
-              <Value>
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-40 h-8 py-1.25">Website</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
                 <input
                   ref={websiteRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
@@ -262,11 +239,11 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                     onKeyDown(event, organization.website ?? '')
                   }}
                 />
-              </Value>
-            </InfoEntry>
-            <InfoEntry>
-              <Name>Location</Name>
-              <Value>
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-40 h-8 py-1.25">Location</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
                 <input
                   ref={locationRef}
                   className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
@@ -279,8 +256,8 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                     onKeyDown(event, organization.address ?? '')
                   }}
                 />
-              </Value>
-            </InfoEntry>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -293,7 +270,12 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
             accept="image/*"
             onChange={doUploadOrganizationPicture}
           />
-          <img src={organization.picture ?? DefaultUserIcon} width={128} height={128} />
+          <img
+            src={organization.picture ?? DefaultUserIcon}
+            width={128}
+            height={128}
+            className="pointer-events-none"
+          />
         </label>
         <span className="py-1 w-64">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It

@@ -1138,7 +1138,8 @@ type DB_Table
         # If the key is a result of a join, union or a subquery then it has no notion of primary key.
         _ -> Nothing
 
-    ## GROUP Standard.Base.Selections
+    ## ALIAS unique, deduplicate
+       GROUP Standard.Base.Selections
        ICON preparation
        Returns the distinct set of rows within the specified columns from the
        input table.
@@ -2781,7 +2782,7 @@ display_dataframe df indices_count all_rows_count format_terminal =
     display_rows = df.row_count
     rows = Vector.new display_rows row_num->
         col_vals.map col->
-            if col.isNa row_num then "Nothing" else get_item_string col row_num
+            if col.isNothing row_num then "Nothing" else get_item_string col row_num
     table = print_table col_names rows indices_count format_terminal
     if display_rows == all_rows_count then table else
         missing_rows_count = all_rows_count - display_rows

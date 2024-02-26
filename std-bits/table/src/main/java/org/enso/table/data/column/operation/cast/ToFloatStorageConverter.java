@@ -75,7 +75,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     int n = longStorage.size();
     DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (longStorage.isNa(i)) {
+      if (longStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         long value = longStorage.getItem(i);
@@ -91,7 +91,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     int n = boolStorage.size();
     DoubleBuilder builder = NumericBuilder.createDoubleBuilder(n, problemAggregator);
     for (int i = 0; i < n; i++) {
-      if (boolStorage.isNa(i)) {
+      if (boolStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         boolean value = boolStorage.getItem(i);

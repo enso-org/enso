@@ -67,13 +67,13 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       return runDoubleMap(lhs, rhs, problemAggregator);
     } else {
       int n = storage.size();
-      BitSet missing = new BitSet();
+      BitSet isNothing = new BitSet();
       BitSet comparisonResults = new BitSet();
       Context context = Context.getCurrent();
       for (int i = 0; i < n; ++i) {
         Object item = storage.getItemBoxed(i);
         if (item == null) {
-          missing.set(i);
+          isNothing.set(i);
         } else {
           boolean r = onOtherType(item, arg);
           if (r) {
@@ -84,7 +84,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         context.safepoint();
       }
 
-      return new BoolStorage(comparisonResults, missing, n, false);
+      return new BoolStorage(comparisonResults, isNothing, n, false);
     }
   }
 
@@ -92,10 +92,10 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       AbstractLongStorage lhs, long rhs, MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     BitSet comparisonResults = new BitSet();
-    BitSet missing = BitSets.makeDuplicate(lhs.getIsMissing());
+    BitSet isNothing = BitSets.makeDuplicate(lhs.getIsNothingMap());
     Context context = Context.getCurrent();
     for (int i = 0; i < n; ++i) {
-      if (!lhs.isNa(i)) {
+      if (!lhs.isNothing(i)) {
         long item = lhs.getItem(i);
         boolean r = doLong(item, rhs);
         if (r) {
@@ -106,18 +106,18 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       context.safepoint();
     }
 
-    return new BoolStorage(comparisonResults, missing, n, false);
+    return new BoolStorage(comparisonResults, isNothing, n, false);
   }
 
   protected BoolStorage runDoubleMap(
       DoubleArrayAdapter lhs, double rhs, MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     BitSet comparisonResults = new BitSet();
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < n; ++i) {
-      if (lhs.isNa(i)) {
-        missing.set(i);
+      if (lhs.isNothing(i)) {
+        isNothing.set(i);
       } else {
         double item = lhs.getItemAsDouble(i);
         boolean r = doDouble(item, rhs);
@@ -129,19 +129,19 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       context.safepoint();
     }
 
-    return new BoolStorage(comparisonResults, missing, n, false);
+    return new BoolStorage(comparisonResults, isNothing, n, false);
   }
 
   protected BoolStorage runBigIntegerMap(
       BigIntegerArrayAdapter lhs, BigInteger rhs, MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
     BitSet comparisonResults = new BitSet();
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < n; ++i) {
       BigInteger item = lhs.getItem(i);
       if (item == null) {
-        missing.set(i);
+        isNothing.set(i);
       } else {
         boolean r = doBigInteger(item, rhs);
         if (r) {
@@ -152,7 +152,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       context.safepoint();
     }
 
-    return new BoolStorage(comparisonResults, missing, n, false);
+    return new BoolStorage(comparisonResults, isNothing, n, false);
   }
 
   @Override
@@ -208,11 +208,11 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < m; ++i) {
-      if (lhs.isNa(i) || rhs.isNa(i)) {
-        missing.set(i);
+      if (lhs.isNothing(i) || rhs.isNothing(i)) {
+        isNothing.set(i);
       } else {
         long x = lhs.getItem(i);
         long y = rhs.getItem(i);
@@ -226,10 +226,10 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     }
 
     if (m < n) {
-      missing.set(m, n);
+      isNothing.set(m, n);
     }
 
-    return new BoolStorage(comparisonResults, missing, n, false);
+    return new BoolStorage(comparisonResults, isNothing, n, false);
   }
 
   protected BoolStorage runDoubleZip(
@@ -239,11 +239,11 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < m; ++i) {
-      if (lhs.isNa(i) || rhs.isNa(i)) {
-        missing.set(i);
+      if (lhs.isNothing(i) || rhs.isNothing(i)) {
+        isNothing.set(i);
       } else {
         double x = lhs.getItemAsDouble(i);
         double y = rhs.getItemAsDouble(i);
@@ -257,10 +257,10 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     }
 
     if (m < n) {
-      missing.set(m, n);
+      isNothing.set(m, n);
     }
 
-    return new BoolStorage(comparisonResults, missing, n, false);
+    return new BoolStorage(comparisonResults, isNothing, n, false);
   }
 
   protected BoolStorage runBigIntegerZip(
@@ -270,13 +270,13 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < m; ++i) {
       BigInteger x = lhs.getItem(i);
       BigInteger y = rhs.getItem(i);
       if (x == null || y == null) {
-        missing.set(i);
+        isNothing.set(i);
       } else {
         boolean r = doBigInteger(x, y);
         if (r) {
@@ -288,10 +288,10 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     }
 
     if (m < n) {
-      missing.set(m, n);
+      isNothing.set(m, n);
     }
 
-    return new BoolStorage(comparisonResults, missing, n, false);
+    return new BoolStorage(comparisonResults, isNothing, n, false);
   }
 
   protected BoolStorage runMixedZip(
@@ -299,13 +299,13 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     int n = lhs.size();
     int m = Math.min(lhs.size(), rhs.size());
     BitSet comparisonResults = new BitSet();
-    BitSet missing = new BitSet();
+    BitSet isNothing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < m; ++i) {
       Object x = lhs.getItemBoxed(i);
       Object y = rhs.getItemBoxed(i);
       if (x == null || y == null) {
-        missing.set(i);
+        isNothing.set(i);
       } else {
         boolean r = false;
         // Any number is coercible to double, if the value is not coercible, it is not a supported
@@ -341,9 +341,9 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     }
 
     if (m < n) {
-      missing.set(m, n);
+      isNothing.set(m, n);
     }
 
-    return new BoolStorage(comparisonResults, missing, n, false);
+    return new BoolStorage(comparisonResults, isNothing, n, false);
   }
 }

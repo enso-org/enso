@@ -21,7 +21,7 @@ import enso_dev.Base_Tests.Data.Round_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~connection
@@ -73,28 +73,28 @@ type Min_Max_Data
 
 type Literal_Data
     Value ~data
-    
+
     connection self = self.data.at 0
     col0 self = self.data.at 1
     col1 self = self.data.at 2
-    
+
     setup create_connection_fn table_builder = Literal_Data.Value <|
         connection = create_connection_fn Nothing
         col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
         col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
         [connection, col0, col1]
-    
+
     teardown self =
         self.connection.close
 
 type Replace_Data
     Value ~data
-    
+
     connection self = self.data.at 0
     col self = self.data.at 1
     patterns self = self.data.at 2
     replacements self = self.data.at 3
-    
+
     setup create_connection_fn table_builder = Replace_Data.Value <|
         connection = create_connection_fn Nothing
         table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
@@ -102,7 +102,7 @@ type Replace_Data
         patterns = table.at "patterns"
         replacements = table.at "replacements"
         [connection, col, patterns, replacements]
-    
+
     teardown self =
         self.connection.close
 
@@ -505,7 +505,7 @@ add_specs suite_builder setup =
             actual = t.fill_nothing ["col0", "col1"] default
             actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
-        
+
         group_builder.specify "should allow to fill_nothing from larger string and expands type to fit" <|
             t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
             actual = t.fill_nothing ["col0"] "ABCDE"
@@ -523,11 +523,11 @@ add_specs suite_builder setup =
         group_builder.specify "should allow to fill_nothing a fixed width from an empty string" <|
             t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
             actual = t.fill_nothing ["col0"] ""
-            actual.at "col0" . to_vector . should_equal ["", "200", "", "400", "500", ""]  
+            actual.at "col0" . to_vector . should_equal ["", "200", "", "400", "500", ""]
             case setup.test_selection.length_restricted_text_columns of
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=True)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
-        
+
         group_builder.specify "should allow to fill_nothing a fixed width of width 1 correctly expanding ouptut types" <|
             t = table_builder [["col0", ["a", Nothing, " "]]] . cast "col0" (Value_Type.Char size=1 variable_length=False)
             fillBlank = t.fill_nothing ["col0"] ""
@@ -540,21 +540,21 @@ add_specs suite_builder setup =
                 False -> fillBlank.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
                     fillOneSpace.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
                     fillTwoSpaces.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
-            
+
             case setup.test_selection.removes_trailing_whitespace_casting_from_char_to_varchar of
                 True -> fillBlank.at "col0" . to_vector . should_equal ["a", "", ""]
                 False -> fillBlank.at "col0" . to_vector . should_equal ["a", "", " "]
 
             fillOneSpace.at "col0" . to_vector . should_equal ["a", " ", " "]
-                   
+
             case setup.test_selection.removes_trailing_whitespace_casting_from_char_to_varchar of
                 True -> fillTwoSpaces.at "col0" . to_vector . should_equal ["a", "", ""]
                 False -> fillTwoSpaces.at "col0" . to_vector . should_equal ["a", "  ", " "]
-                
+
         group_builder.specify "should allow to fill_nothing a fixed width with a string of correct length without changing the type" <|
             t = table_builder [["col0", [Nothing, "200", Nothing, "400", "500", Nothing]]] . cast "col0" (Value_Type.Char size=3 variable_length=False)
             actual = t.fill_nothing ["col0"] "   "
-            actual.at "col0" . to_vector . should_equal ["   ", "200", "   ", "400", "500", "   "]  
+            actual.at "col0" . to_vector . should_equal ["   ", "200", "   ", "400", "500", "   "]
             case setup.test_selection.fixed_length_text_columns of
                 True -> actual.at "col0" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
                 False -> actual.at "col0" . value_type . should_equal (Value_Type.Char variable_length=True)
@@ -1163,7 +1163,7 @@ add_specs suite_builder setup =
             t = table_builder [["numbers", [1, 2, 3]]]
             col = t.at "numbers"
             col.text_length . should_fail_with Invalid_Value_Type
-        
+
         group_builder.specify "should handle operation text_left and text_right with length 1" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings" . cast (Value_Type.Char size=286 variable_length=True)
@@ -1171,7 +1171,7 @@ add_specs suite_builder setup =
                 resLeft.name . should_equal "text_left([strings], 1)"
                 resRight = col.text_right 1
                 resRight.name . should_equal "text_right([strings], 1)"
-                resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"] 
+                resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"]
                 resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
                 case setup.is_database of
                     False -> resLeft . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
@@ -1179,7 +1179,7 @@ add_specs suite_builder setup =
                 case setup.is_database of
                     False -> resRight . value_type . should_equal (Value_Type.Char size=286 variable_length=True)
                     True -> resRight . value_type . should_equal (Value_Type.Char variable_length=True)
-        
+
         group_builder.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
@@ -1194,7 +1194,7 @@ add_specs suite_builder setup =
                 case setup.is_database of
                     False -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "V👩‍🔬👩‍🔬", "afé", "ir."] # Grapheme Length
                     True -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "afé", "ir."]  # Storage Length
-        
+
         group_builder.specify "text_left and text_right should error on non-string columns" <|
             t = table_builder [["numbers", [1, 2, 3]]]
             col = t.at "numbers"

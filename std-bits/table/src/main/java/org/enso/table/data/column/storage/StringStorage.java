@@ -54,18 +54,18 @@ public final class StringStorage extends SpecializedStorage<String> {
               Object arg,
               MapOperationProblemAggregator problemAggregator) {
             BitSet r = new BitSet();
-            BitSet missing = new BitSet();
+            BitSet isNothing = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null || arg == null) {
-                missing.set(i);
+                isNothing.set(i);
               } else if (arg instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
 
               context.safepoint();
             }
-            return new BoolStorage(r, missing, storage.size(), false);
+            return new BoolStorage(r, isNothing, storage.size(), false);
           }
 
           @Override
@@ -74,11 +74,11 @@ public final class StringStorage extends SpecializedStorage<String> {
               Storage<?> arg,
               MapOperationProblemAggregator problemAggregator) {
             BitSet r = new BitSet();
-            BitSet missing = new BitSet();
+            BitSet isNothing = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
-              if (storage.getItem(i) == null || i >= arg.size() || arg.isNa(i)) {
-                missing.set(i);
+              if (storage.getItem(i) == null || i >= arg.size() || arg.isNothing(i)) {
+                isNothing.set(i);
               } else if (arg.getItemBoxed(i) instanceof String s
                   && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
@@ -86,7 +86,7 @@ public final class StringStorage extends SpecializedStorage<String> {
 
               context.safepoint();
             }
-            return new BoolStorage(r, missing, storage.size(), false);
+            return new BoolStorage(r, isNothing, storage.size(), false);
           }
         });
     t.add(
