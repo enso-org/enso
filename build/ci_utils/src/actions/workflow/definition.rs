@@ -52,6 +52,11 @@ pub fn secret_expression(secret_name: impl AsRef<str>) -> String {
     wrap_expression(format!("secrets.{}", secret_name.as_ref()))
 }
 
+/// An expression that accesses a variable with a given name.
+pub fn variable_expression(secret_name: impl AsRef<str>) -> String {
+    wrap_expression(format!("vars.{}", secret_name.as_ref()))
+}
+
 /// An expression that accesses an environment variable with a given name.
 pub fn env_expression(environment_variable: &impl RawVariable) -> String {
     wrap_expression(format!("env.{}", environment_variable.name()))
@@ -861,6 +866,13 @@ impl Step {
         let secret_name = secret.as_ref();
         let env_name = secret_name.to_owned();
         self.with_secret_exposed_as(secret_name, env_name)
+    }
+
+    /// Expose [a variable](https://docs.github.com/en/actions/learn-github-actions/variables) as an environment variable with the same name.
+    pub fn with_variable_exposed(self, variable: impl AsRef<str>) -> Self {
+        let variable_name = variable.as_ref();
+        let env_name = variable_name.to_owned();
+        self.with_env(env_name, variable_expression(variable_name))
     }
 
     /// Expose a secret as an environment variable with a given name.
