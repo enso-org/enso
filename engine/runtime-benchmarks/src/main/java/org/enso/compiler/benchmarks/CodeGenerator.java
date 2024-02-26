@@ -1,6 +1,7 @@
 package org.enso.compiler.benchmarks;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -49,7 +50,7 @@ public class CodeGenerator {
       var rndChar = (char) ('a' + random.nextInt(SMALL_LETTERS_CNT));
       sb.append(rndChar);
     }
-    return sb.toString();
+    return "\"" + sb + "\"";
   }
 
   private String nextIntLiteral() {
@@ -62,7 +63,7 @@ public class CodeGenerator {
     return part1 + "." + decimalPart;
   }
 
-  private String nextLiteral() {
+  public String nextLiteral() {
     var rndInt = random.nextInt(3);
     return switch (rndInt) {
       case 0 -> nextTextLiteral();
@@ -70,6 +71,9 @@ public class CodeGenerator {
       case 2 -> nextDecimalLiteral();
       default -> throw new UnsupportedOperationException("unimplemented");
     };
+  }
+  public String createExpression(List<String> identifiers, int size) {
+    return createExpression(identifiers, new HashSet<>(), size);
   }
 
   /**

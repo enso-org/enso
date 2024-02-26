@@ -53,6 +53,7 @@ public class ManyLocalVarsBenchmark {
    * a new line.
    */
   private static final int IDENTIFIERS_CNT = 40;
+  private static final int MAX_EXPR_SIZE = 5;
   private Context context;
   private Compiler compiler;
   private Module module;
@@ -87,7 +88,7 @@ public class ManyLocalVarsBenchmark {
         .skip(1)
         .forEach(
             identifier -> {
-              var maxExprSize = Math.min(5, initializedIdentifiers.size() - 1);
+              var maxExprSize = Math.min(MAX_EXPR_SIZE, initializedIdentifiers.size() - 1);
               sb.append("    ")
                   .append(identifier)
                   .append(" = ")
