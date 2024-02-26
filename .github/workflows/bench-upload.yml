@@ -37,6 +37,8 @@ jobs:
         run: |
           git config --global user.email "actions@github.org"
           git config --global user.name "enso-bench-bot"
+          cd ${{ github.workspace }}/engine-benchmark-results
+          git remote set-url origin https://x-access-token:${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}@github.com/enso-org/engine-benchmark-results
       - name: Upload benchmarks
         run: |
           cd enso/tools/performance/engine-benchmarks
