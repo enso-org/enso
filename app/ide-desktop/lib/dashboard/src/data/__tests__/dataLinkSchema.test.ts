@@ -27,6 +27,5 @@ v.test('correctly validates example S3 .datalink files with the schema', () => {
   const s3datalinksRoot = path.resolve(repoRoot, 'test/AWS_Tests/data/')
 
   const simple = loadDataLinkFile(path.resolve(s3datalinksRoot, 'simple.datalink'))
-  console.log(simple)
   v.expect(jsonSchema.isMatch(DEFS, DATALINK_SCHEMA, simple)).toBe(true)
 })
