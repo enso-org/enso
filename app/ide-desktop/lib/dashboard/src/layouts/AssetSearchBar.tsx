@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import FindIcon from 'enso-assets/find.svg'
+import * as detect from 'enso-common/src/detect'
 
 import Label from '#/components/dashboard/Label'
 
@@ -170,7 +171,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
         eventModule.isTextInputEvent(event) &&
-        event.key !== ' '
+        event.key !== ' ' &&
+        (!detect.isOnMacOS() || event.key !== 'Delete')
       ) {
         searchRef.current?.focus()
       }
