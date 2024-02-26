@@ -19,11 +19,11 @@ public class InferringDoubleBuilder extends DoubleBuilder {
     int currentSize = longBuilder.currentSize;
     InferringDoubleBuilder newBuilder =
         new InferringDoubleBuilder(
-            longBuilder.isMissing, longBuilder.data, currentSize, longBuilder.problemAggregator);
+            longBuilder.isNothing, longBuilder.data, currentSize, longBuilder.problemAggregator);
 
     // Invalidate the old builder.
     longBuilder.data = null;
-    longBuilder.isMissing = null;
+    longBuilder.isNothing = null;
     longBuilder.currentSize = -1;
 
     // Assume all longs will be compacted.
@@ -31,7 +31,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
 
     // Translate the data in-place to avoid unnecessary allocations.
     for (int i = 0; i < currentSize; i++) {
-      if (!newBuilder.isMissing.get(i)) {
+      if (!newBuilder.isNothing.get(i)) {
         long currentIntegerValue = newBuilder.data[i];
         double convertedFloatValue = (double) currentIntegerValue;
         boolean isLossy = currentIntegerValue != (long) convertedFloatValue;
@@ -52,8 +52,8 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   }
 
   InferringDoubleBuilder(
-      BitSet isMissing, long[] doubleData, int currentSize, ProblemAggregator problemAggregator) {
-    super(isMissing, doubleData, currentSize, problemAggregator);
+      BitSet isNothing, long[] doubleData, int currentSize, ProblemAggregator problemAggregator) {
+    super(isNothing, doubleData, currentSize, problemAggregator);
     rawData = null;
     isLongCompactedAsDouble = new BitSet();
   }
@@ -81,7 +81,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   public void retypeToMixed(Object[] items) {
     int rawN = rawData == null ? 0 : rawData.length;
     for (int i = 0; i < currentSize; i++) {
-      if (isMissing.get(i)) {
+      if (isNothing.get(i)) {
         items[i] = null;
       } else {
         if (isLongCompactedAsDouble.get(i)) {
@@ -157,7 +157,7 @@ public class InferringDoubleBuilder extends DoubleBuilder {
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
-      isMissing.set(currentSize++);
+      isNothing.set(currentSize++);
     } else if (NumericConverter.isFloatLike(o)) {
       double value = NumericConverter.coerceToDouble(o);
       data[currentSize++] = Double.doubleToRawLongBits(value);

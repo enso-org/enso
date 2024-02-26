@@ -5,7 +5,8 @@ import * as actions from './actions'
 import * as customExpect from './customExpect'
 import * as locate from './locate'
 
-const ACCEPT_SUGGESTION_SHORTCUT = os.platform() === 'darwin' ? 'Meta+Enter' : 'Control+Enter'
+const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
+const ACCEPT_SUGGESTION_SHORTCUT = `${CONTROL_KEY}+Enter`
 
 async function deselectAllNodes(page: Page) {
   await page.keyboard.press('Escape')
@@ -155,7 +156,7 @@ test('Editing existing nodes', async ({ page }) => {
   const ADDED_PATH = '"/home/enso/Input.txt"'
 
   // Start node editing
-  await locate.graphNodeIcon(node).click({ modifiers: ['Control'] })
+  await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
   await expect(locate.componentBrowser(page)).toBeVisible()
   const input = locate.componentBrowserInput(page).locator('input')
   await expect(input).toHaveValue('Data.read')

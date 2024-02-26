@@ -42,8 +42,8 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public boolean isNa(long idx) {
-    return underlyingStorage.isNa(idx);
+  public boolean isNothing(long idx) {
+    return underlyingStorage.isNothing(idx);
   }
 
   @Override

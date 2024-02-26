@@ -41,6 +41,7 @@ export interface Suggestion {
 
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
+  readonly isCloud: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly labels: backend.Label[]
@@ -49,7 +50,7 @@ export interface AssetSearchBarProps {
 
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
-  const { query, setQuery, labels, suggestions: rawSuggestions } = props
+  const { isCloud, query, setQuery, labels, suggestions: rawSuggestions } = props
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
   const [suggestions, setSuggestions] = React.useState(rawSuggestions)
@@ -86,7 +87,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       querySource.current !== QuerySource.tabbing
     ) {
       if (searchRef.current != null) {
-        searchRef.current.value = query.toString()
+        searchRef.current.value = query.query
       }
     }
   }, [query])
@@ -124,19 +125,24 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       setIsShiftPressed(event.shiftKey)
       if (areSuggestionsVisibleRef.current) {
-        if (event.key === 'Tab') {
+        if (event.key === 'Tab' || event.key === 'ArrowUp' || event.key === 'ArrowDown') {
           event.preventDefault()
+          event.stopImmediatePropagation()
           querySource.current = QuerySource.tabbing
+          const reverse = (event.key === 'Tab' && event.shiftKey) || event.key === 'ArrowUp'
           setSelectedIndex(oldIndex => {
             const length = Math.max(1, suggestionsRef.current.length)
-            if (event.shiftKey) {
+            if (reverse) {
               return oldIndex == null ? length - 1 : (oldIndex + length - 1) % length
             } else {
               return oldIndex == null ? 0 : (oldIndex + 1) % length
             }
           })
         }
-        if (event.key === 'Enter' || event.key === ' ') {
+        if (
+          event.key === 'Enter' ||
+          (event.key === ' ' && document.activeElement !== searchRef.current)
+        ) {
           querySource.current = QuerySource.external
           if (searchRef.current != null) {
             searchRef.current.focus()
@@ -149,7 +155,13 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         }
       }
       if (event.key === 'Escape') {
-        searchRef.current?.blur()
+        if (querySource.current === QuerySource.tabbing) {
+          querySource.current = QuerySource.external
+          setQuery(baseQuery.current)
+          setAreSuggestionsVisible(false)
+        } else {
+          searchRef.current?.blur()
+        }
       }
       // Allow `alt` key to be pressed in case it is being used to enter special characters.
       if (
@@ -157,7 +169,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         !(event.target instanceof HTMLTextAreaElement) &&
         (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
-        shortcutManager.isTextInputEvent(event)
+        shortcutManager.isTextInputEvent(event) &&
+        event.key !== ' '
       ) {
         searchRef.current?.focus()
       }
@@ -178,7 +191,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       document.removeEventListener('keydown', onKeyDown)
       document.removeEventListener('keyup', onKeyUp)
     }
-  }, [])
+  }, [setQuery])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {
@@ -214,8 +227,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         ref={searchRef}
         type="search"
         size={1}
-        placeholder="Type to search for projects, data connectors, users, and more."
-        className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px xl:placeholder:text-center"
+        placeholder={
+          isCloud
+            ? 'Type to search for projects, Data Links, users, and more.'
+            : 'Type to search for projects.'
+        }
+        className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px placeholder:text-center"
         onChange={event => {
           if (querySource.current !== QuerySource.internal) {
             querySource.current = QuerySource.typing
@@ -236,7 +253,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         }}
       />
       <div className="absolute flex flex-col top-0 left-0 overflow-hidden w-full before:absolute before:bg-frame before:inset-0 before:backdrop-blur-3xl rounded-2xl pointer-events-none transition-all duration-300">
-        <div className="relative padding h-8"></div>
+        <div className="relative padding h-8" />
         {areSuggestionsVisible && (
           <div className="relative flex flex-col gap-2">
             {/* Tags (`name:`, `modified:`, etc.) */}
@@ -244,7 +261,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               data-testid="asset-search-tag-names"
               className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto"
             >
-              {AssetQuery.tagNames.flatMap(entry => {
+              {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
                 const [key, tag] = entry
                 return tag == null || isShiftPressed !== tag.startsWith('-')
                   ? []
@@ -263,38 +280,41 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               })}
             </div>
             {/* Asset labels */}
-            <div data-testid="asset-search-labels" className="flex gap-2 p-2 pointer-events-auto">
-              {labels.map(label => {
-                const negated = query.negativeLabels.some(term =>
-                  array.shallowEqual(term, [label.value])
-                )
-                return (
-                  <Label
-                    key={label.id}
-                    color={label.color}
-                    group={false}
-                    active={
-                      negated || query.labels.some(term => array.shallowEqual(term, [label.value]))
-                    }
-                    negated={negated}
-                    onClick={event => {
-                      querySource.current = QuerySource.internal
-                      setQuery(oldQuery => {
-                        const newQuery = assetQuery.toggleLabel(
-                          oldQuery,
-                          label.value,
-                          event.shiftKey
-                        )
-                        baseQuery.current = newQuery
-                        return newQuery
-                      })
-                    }}
-                  >
-                    {label.value}
-                  </Label>
-                )
-              })}
-            </div>
+            {isCloud && (
+              <div data-testid="asset-search-labels" className="flex gap-2 p-2 pointer-events-auto">
+                {labels.map(label => {
+                  const negated = query.negativeLabels.some(term =>
+                    array.shallowEqual(term, [label.value])
+                  )
+                  return (
+                    <Label
+                      key={label.id}
+                      color={label.color}
+                      group={false}
+                      active={
+                        negated ||
+                        query.labels.some(term => array.shallowEqual(term, [label.value]))
+                      }
+                      negated={negated}
+                      onClick={event => {
+                        querySource.current = QuerySource.internal
+                        setQuery(oldQuery => {
+                          const newQuery = assetQuery.toggleLabel(
+                            oldQuery,
+                            label.value,
+                            event.shiftKey
+                          )
+                          baseQuery.current = newQuery
+                          return newQuery
+                        })
+                      }}
+                    >
+                      {label.value}
+                    </Label>
+                  )
+                })}
+              </div>
+            )}
             {/* Suggestions */}
             <div className="flex flex-col max-h-[16rem] overflow-y-auto">
               {suggestions.map((suggestion, index) => (

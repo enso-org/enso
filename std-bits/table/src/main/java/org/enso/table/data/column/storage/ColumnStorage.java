@@ -10,7 +10,12 @@ public interface ColumnStorage {
   /* Gets the value type of the storage. */
   StorageType getType();
 
-  /* Gets if a value is Nothing at a given index. */
+  /**
+   * Checks whether the value at idx is Nothing.
+   *
+   * @param index – the index to check.
+   * @return whether the value is Nothing.
+   */
   boolean isNothing(long index);
 
   /* Gets the value at a given index. */
