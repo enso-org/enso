@@ -146,7 +146,7 @@ export class GraphDb {
 
   private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
-    entry.rootSpan.visitRecursiveAst((ast) => void exprs.push(ast.id))
+    entry.innerExpr.visitRecursiveAst((ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
@@ -346,9 +346,9 @@ export class GraphDb {
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
       if (!newNode) continue
-      const nodeId = asNodeId(newNode.rootSpan.id)
+      const nodeId = asNodeId(newNode.rootSpanId)
       const node = this.nodeIdToNode.get(nodeId)
-      const nodeMeta = (node ?? newNode).rootSpan.nodeMetadata
+      const nodeMeta = (node ?? newNode).innerExpr.nodeMetadata
       currentNodeIds.add(nodeId)
       if (node == null) {
         // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
@@ -364,10 +364,21 @@ export class GraphDb {
           a?.id !== b?.id || (a && subtreeDirty(a.id))
         if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
         if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
-        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) {
-          node.rootSpan = newNode.rootSpan
-          const primarySubject = primaryApplicationSubject(newNode.rootSpan)
+        if (node.rootSpanId !== newNode.rootSpanId) node.rootSpanId = newNode.rootSpanId
+        if (differentOrDirty(node.innerExpr, newNode.innerExpr)) {
+          node.innerExpr = newNode.innerExpr
+          const primarySubject = primaryApplicationSubject(newNode.innerExpr)
           if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
+        }
+        console.log(
+          ':(',
+          node.prefixes,
+          newNode.prefixes,
+          JSON.stringify(node.prefixes),
+          JSON.stringify(newNode.prefixes),
+        )
+        if (JSON.stringify(node.prefixes) !== JSON.stringify(newNode.prefixes)) {
+          node.prefixes = newNode.prefixes
         }
       }
     }
@@ -387,7 +398,7 @@ export class GraphDb {
       idToExternalNew.set(ast.id, ast.externalId)
       idFromExternalNew.set(ast.externalId, ast.id)
     })
-    const updateMap = (map: Map<any, any>, newMap: Map<any, any>) => {
+    const updateMap = <K, V>(map: Map<K, V>, newMap: Map<K, V>) => {
       for (const key of map.keys()) if (!newMap.has(key)) map.delete(key)
       for (const [key, value] of newMap) map.set(key, value)
     }
@@ -438,8 +449,9 @@ export class GraphDb {
     const node: Node = {
       ...baseMockNode,
       outerExprId: id,
+      rootSpanId: id,
       pattern,
-      rootSpan: Ast.parse(code ?? '0'),
+      innerExpr: Ast.parse(code ?? '0'),
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(asNodeId(id), node)
@@ -456,10 +468,12 @@ export function asNodeId(id: Ast.AstId): NodeId {
 
 export interface Node {
   outerExprId: Ast.AstId
+  rootSpanId: Ast.AstId
   pattern: Ast.Ast | undefined
-  rootSpan: Ast.Ast
+  innerExpr: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
+  prefixes: Record<'enableOutputContext', Ast.AstId[] | undefined>
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
 }
@@ -467,8 +481,9 @@ export interface Node {
 const baseMockNode = {
   position: Vec2.Zero,
   vis: undefined,
+  prefixes: { enableOutputContext: undefined },
   primarySubject: undefined,
-}
+} satisfies Partial<Node>
 
 /** This should only be used for supplying as initial props when testing.
  * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
@@ -476,8 +491,9 @@ export function mockNode(exprId?: Ast.AstId): Node {
   return {
     ...baseMockNode,
     outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
+    rootSpanId: random.uuidv4() as Ast.AstId,
     pattern: undefined,
-    rootSpan: Ast.parse('0'),
+    innerExpr: Ast.parse('0'),
   }
 }
 

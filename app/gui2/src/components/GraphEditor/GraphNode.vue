@@ -15,7 +15,7 @@ import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import { Prefixes } from '@/util/ast/prefixes'
+import { prefixes } from '@/util/ast/node'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -26,11 +26,6 @@ import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
-
-const prefixes = Prefixes.FromLines({
-  enableOutputContext:
-    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
-})
 
 const props = defineProps<{
   node: Node
@@ -64,8 +59,8 @@ const outputPortsSet = computed(() => {
 })
 
 const widthOverridePx = ref<number>()
-const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
-const externalId = computed(() => props.node.rootSpan.externalId)
+const nodeId = computed(() => asNodeId(props.node.rootSpanId))
+const externalId = computed(() => props.node.innerExpr.externalId)
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
   props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject)
@@ -179,20 +174,19 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const matches = computed(() => prefixes.extractMatches(props.node.rootSpan))
-const displayedExpression = computed(() => props.node.rootSpan.module.get(matches.value.innerExpr))
-
 const isRecordingOverridden = computed({
   get() {
-    return matches.value.matches.enableOutputContext != null
+    console.log(':o', props.node.prefixes.enableOutputContext)
+    return props.node.prefixes.enableOutputContext != null
   },
   set(shouldOverride) {
-    const edit = props.node.rootSpan.module.edit()
+    const edit = props.node.innerExpr.module.edit()
     const replacement =
       shouldOverride && !projectStore.isOutputContextEnabled
         ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
         : undefined
-    prefixes.modify(edit.getVersion(props.node.rootSpan), { enableOutputContext: replacement })
+    console.log('...', shouldOverride, replacement)
+    prefixes.modify(edit.getVersion(props.node.innerExpr), { enableOutputContext: replacement })
     graph.commitEdit(edit)
   },
 })
@@ -226,7 +220,7 @@ const nodeEditHandler = nodeEditBindings.handler({
 })
 
 function startEditingNode(position: Vec2 | undefined) {
-  let sourceOffset = props.node.rootSpan.code().length
+  let sourceOffset = props.node.innerExpr.code().length
   if (position != null) {
     let domNode, domOffset
     if ((document as any).caretPositionFromPoint) {
@@ -403,7 +397,7 @@ function openFullMenu() {
       @pointerup.stop
     >
       <NodeWidgetTree
-        :ast="displayedExpression"
+        :ast="props.node.innerExpr"
         :nodeId="nodeId"
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"

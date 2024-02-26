@@ -196,7 +196,7 @@ export function performCollapse(
 
   // Insert a new function.
   const collapsedNodeIds = collapsed
-    .map((ast) => asNodeId(nodeFromAst(ast)?.rootSpan.id ?? ast.id))
+    .map((ast) => asNodeId(nodeFromAst(ast)?.rootSpanId ?? ast.id))
     .reverse()
   let outputNodeId: NodeId | undefined
   const outputIdentifier = info.extracted.output?.identifier
@@ -355,7 +355,7 @@ if (import.meta.vitest) {
     const nodePatternToId = new Map<string, NodeId>()
     for (const code of testCase.initialNodes) {
       const [pattern, expr] = code.split(/\s*=\s*/)
-      const [id, _] = nodes.find(([_id, node]) => node.rootSpan.code() == expr)!
+      const [id, _] = nodes.find(([_id, node]) => node.innerExpr.code() == expr)!
       nodeCodeToId.set(code, id)
       if (pattern != null) nodePatternToId.set(pattern, id)
     }

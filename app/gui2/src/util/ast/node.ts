@@ -1,18 +1,27 @@
 import type { Node } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import { Prefixes } from '@/util/ast/prefixes'
 import { Vec2 } from '@/util/data/vec2'
+
+export const prefixes = Prefixes.FromLines({
+  enableOutputContext:
+    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+})
 
 export function nodeFromAst(ast: Ast.Ast): Node | undefined {
   const nodeCode = ast instanceof Ast.Documented ? ast.expression : ast
   if (!nodeCode) return
   const pattern = nodeCode instanceof Ast.Assignment ? nodeCode.pattern : undefined
   const rootSpan = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode
+  const matches = prefixes.extractMatches(rootSpan)
   return {
     outerExprId: ast.id,
     pattern,
-    rootSpan,
+    rootSpanId: rootSpan.id,
+    innerExpr: matches.innerExpr,
     position: Vec2.Zero,
     vis: undefined,
+    prefixes: matches.matches,
     primarySubject: primaryApplicationSubject(rootSpan),
   }
 }
@@ -47,7 +56,7 @@ if (import.meta.vitest) {
     const node = nodeFromAst(ast)
     expect(node?.outerExprId).toBe(ast.id)
     expect(node?.pattern?.code()).toBe(pattern)
-    expect(node?.rootSpan.code()).toBe(rootSpan)
+    expect(node?.innerExpr.code()).toBe(rootSpan)
   })
 
   test.each(['## Documentation only'])("'%s' should not be a node", (line) => {

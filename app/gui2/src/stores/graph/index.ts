@@ -271,7 +271,7 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
-      edit.getVersion(node.rootSpan).syncToCode(content)
+      edit.getVersion(node.innerExpr).syncToCode(content)
     })
   }
 
@@ -476,7 +476,7 @@ export const useGraphStore = defineStore('graph', () => {
     let exprId: AstId | undefined
     if (expr) {
       const node = db.nodeIdToNode.get(nodeId)
-      node?.rootSpan.visitRecursive((ast) => {
+      node?.innerExpr.visitRecursive((ast) => {
         if (ast instanceof Ast.Ast && ast.code() == expr) {
           exprId = ast.id
         }
