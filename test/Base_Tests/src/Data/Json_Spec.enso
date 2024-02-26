@@ -216,8 +216,8 @@ add_specs suite_builder =
             Json.parse '"foo"' . length . should_equal 3
             Json.parse '""' . length . should_equal 0
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

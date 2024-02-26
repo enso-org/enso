@@ -1,6 +1,6 @@
 package org.enso.editions
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -57,13 +57,13 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
           Editions.Raw.LocalLibrary(LibraryName("Foo", "Local")),
           Editions.Raw.PublishedLibrary(
             LibraryName("Bar", "Baz"),
-            SemVer(0, 0, 0),
+            SemVer.of(0, 0, 0),
             "example"
           ),
           Editions.Raw
-            .PublishedLibrary(LibraryName("A", "B"), SemVer(1, 0, 1), "bar")
+            .PublishedLibrary(LibraryName("A", "B"), SemVer.of(1, 0, 1), "bar")
         )
-        edition.engineVersion should contain(SemVer(1, 2, 3, Some("SNAPSHOT")))
+        edition.engineVersion should contain(SemVer.of(1, 2, 3, "SNAPSHOT"))
       }
     }
 

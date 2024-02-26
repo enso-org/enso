@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.releases
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 
 import scala.util.Try
 

@@ -12,14 +12,14 @@ import org.enso.table.problems.ProblemAggregator;
  */
 public class LongBuilderUnchecked extends LongBuilder {
   protected LongBuilderUnchecked(
-      BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
-    super(isMissing, data, currentSize, problemAggregator);
+      BitSet isNothing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
+    super(isNothing, data, currentSize, problemAggregator);
   }
 
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
-      isMissing.set(currentSize++);
+      isNothing.set(currentSize++);
     } else {
       Long x = NumericConverter.tryConvertingToLong(o);
       if (x != null) {

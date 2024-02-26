@@ -12,7 +12,7 @@ from Standard.Test import all
 
 type Data
     Value ~data
-    
+
     simple_table self = self.data.at 0
     empty_table self = self.data.at 1
 
@@ -29,7 +29,7 @@ add_specs suite_builder = suite_builder.group "Aggregate Columns" group_builder-
     test_aggregator table col expected_name expected_result epsilon=False =
         problem_builder = Problem_Builder.new
         resolved = Aggregate_Column_Helper.resolve_aggregate table problem_builder col
-        name = if resolved.new_name != "" then resolved.new_name else
+        name = if resolved.as != "" then resolved.as else
             Aggregate_Column_Helper.default_aggregate_column_name resolved
         name . should_equal expected_name
 
@@ -196,8 +196,8 @@ add_specs suite_builder = suite_builder.group "Aggregate Columns" group_builder-
         test_aggregator percentile_table (Percentile 0.66 0) "66%-ile tests" 70.78
         test_aggregator data.empty_table (Mode 0 test_name) test_name Nothing
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -489,7 +489,7 @@ public class ExcelWriter {
 
   private static void writeValueToCell(Cell cell, int j, Storage<?> storage, Workbook workbook)
       throws IllegalStateException {
-    if (storage.isNa(j)) {
+    if (storage.isNothing(j)) {
       cell.setBlank();
     } else if (storage instanceof DoubleStorage doubleStorage) {
       cell.setCellValue(doubleStorage.getItemAsDouble(j));
