@@ -307,7 +307,7 @@ type Key = (typeof ALL_KEYS)[number]
 type LowercaseKey = Lowercase<Key>
 /** A segment of a keyboard shortcut. */
 type KeybindSegment = Key | Modifier | Pointer
-const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
+export const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
   [...ALL_MODIFIERS, ...ALL_POINTERS, ...ALL_KEYS].map(entry => [entry.toLowerCase(), entry])
 )
 normalizedKeyboardSegmentLookup[''] = '+'

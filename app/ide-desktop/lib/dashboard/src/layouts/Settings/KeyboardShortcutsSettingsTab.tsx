@@ -29,9 +29,15 @@ import * as object from '#/utilities/object'
 export default function KeyboardShortcutsSettingsTab() {
   const inputBindings = inputBindingsManager.useInputBindings()
   const { setModal } = modalProvider.useSetModal()
-  const [, doRefresh] = refreshHooks.useRefresh()
+  const [refresh, doRefresh] = refreshHooks.useRefresh()
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
+  const allShortcuts = React.useMemo(() => {
+    // This is REQUIRED, in order to avoid disabling the `react-hooks/exhaustive-deps` lint.
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    refresh
+    return new Set(Object.values(inputBindings.metadata).flatMap(value => value.bindings))
+  }, [inputBindings.metadata, refresh])
 
   // This is required to prevent the table body from overlapping the table header, because
   // the table header is transparent.
@@ -139,6 +145,7 @@ export default function KeyboardShortcutsSettingsTab() {
                               setModal(
                                 <CaptureKeyboardShortcutModal
                                   description={`'${info.name}'`}
+                                  existingShortcuts={allShortcuts}
                                   onSubmit={shortcut => {
                                     inputBindings.add(action, shortcut)
                                     doRefresh()

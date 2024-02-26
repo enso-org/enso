@@ -31,7 +31,7 @@ function eventToPartialShortcut(event: KeyboardEvent | React.KeyboardEvent) {
       ? 'Space'
       : event.key === DELETE_KEY
       ? 'OsDelete'
-      : event.key
+      : inputBindings.normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key
   return { key, modifiers }
 }
 
@@ -42,16 +42,19 @@ function eventToPartialShortcut(event: KeyboardEvent | React.KeyboardEvent) {
 /** Props for a {@link CaptureKeyboardShortcutModal}. */
 export interface CaptureKeyboardShortcutModalProps {
   readonly description: string
+  readonly existingShortcuts: Set<string>
   readonly onSubmit: (shortcut: string) => void
 }
 
 /** A modal for capturing an arbitrary keyboard shortcut. */
 export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShortcutModalProps) {
-  const { description, onSubmit } = props
+  const { description, existingShortcuts, onSubmit } = props
   const { unsetModal } = modalProvider.useSetModal()
   const [key, setKey] = React.useState<string | null>(null)
   const [modifiers, setModifiers] = React.useState<string>('')
   const shortcut = key == null ? modifiers : modifiers === '' ? key : `${modifiers}+${key}`
+  const doesAlreadyExist = key != null && existingShortcuts.has(shortcut)
+  const canSubmit = key != null && !doesAlreadyExist
 
   return (
     <Modal centered className="bg-dim">
@@ -90,23 +93,30 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         }}
         onSubmit={event => {
           event.preventDefault()
-          if (key != null) {
+          if (canSubmit) {
             unsetModal()
             onSubmit(shortcut)
           }
         }}
       >
         <div className="relative">Enter the new keyboard shortcut for {description}.</div>
-        <div className="relative flex scale-150 items-center justify-center">
+        <div
+          className={`relative flex scale-150 items-center justify-center ${
+            doesAlreadyExist ? 'text-red-600' : ''
+          }`}
+        >
           {shortcut === '' ? (
             <span className="leading-170 text-primary/30 h-6 py-px">No shortcut entered</span>
           ) : (
             <KeyboardShortcut shortcut={shortcut} />
           )}
         </div>
+        <span className="relative text-red-600">
+          {doesAlreadyExist ? 'This shortcut already exists.' : ''}
+        </span>
         <div className="relative flex self-start gap-2">
           <button
-            disabled={key == null}
+            disabled={!canSubmit}
             type="submit"
             className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50"
           >
