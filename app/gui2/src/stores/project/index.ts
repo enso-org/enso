@@ -582,9 +582,7 @@ export const useProjectStore = defineStore('project', () => {
     diagnostics.value = newDiagnostics
   })
 
-  function useVisualizationData(
-    configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
-  ): ShallowRef<Result<{}> | undefined> {
+  function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
     const id = random.uuidv4() as Uuid
 
     watch(
@@ -598,13 +596,13 @@ export const useProjectStore = defineStore('project', () => {
       { immediate: true, flush: 'post' },
     )
 
-    return shallowRef(
-      computed(() => {
-        const json = visualizationDataRegistry.getRawData(id)
-        if (!json?.ok) return json ?? undefined
-        else return Ok(JSON.parse(json.value))
-      }),
-    )
+    return computed(() => {
+      const json = visualizationDataRegistry.getRawData(id)
+      if (!json?.ok) return json ?? undefined
+      const parsed = Ok(JSON.parse(json.value))
+      markRaw(parsed)
+      return parsed
+    })
   }
 
   const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {

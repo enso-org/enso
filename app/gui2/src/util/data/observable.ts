@@ -20,7 +20,7 @@ export function nextEvent<O extends ObservableV2<any>, NAME extends string>(
 
 declare const EVENTS_BRAND: unique symbol
 declare module 'lib0/observable' {
-  interface ObservableV2<EVENTS extends { [key: string]: (...arg0: any[]) => void }> {
+  interface ObservableV2<EVENTS extends { [key in keyof EVENTS]: (...arg0: any[]) => void }> {
     [EVENTS_BRAND]: EVENTS
   }
 }

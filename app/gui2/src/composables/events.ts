@@ -256,13 +256,12 @@ export function usePointer(
       trackedElement?.releasePointerCapture(trackedPointer.value)
     }
 
-    trackedPointer.value = null
-
     if (trackedElement != null && initialGrabPos != null && lastPos != null) {
       handler(computePosition(e, initialGrabPos, lastPos), e, 'stop')
       lastPos = null
       trackedElement = null
     }
+    trackedPointer.value = null
   }
 
   function doMove(e: PointerEvent) {

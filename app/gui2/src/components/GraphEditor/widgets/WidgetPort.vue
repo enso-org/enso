@@ -98,7 +98,7 @@ const randSlice = randomUuid.slice(0, 4)
 watchEffect(
   (onCleanup) => {
     const id = portId.value
-    const instance = markRaw(new PortViewInstance(portRect, tree.nodeId, props.onUpdate))
+    const instance = new PortViewInstance(portRect, tree.nodeId, props.onUpdate)
     graph.addPortInstance(id, instance)
     onCleanup(() => graph.removePortInstance(id, instance))
   },

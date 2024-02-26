@@ -7,7 +7,7 @@ import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
+import { computed, proxyRefs, ref, shallowReactive, shallowRef } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
@@ -21,7 +21,7 @@ export function useSelection<T>(
 ) {
   const anchor = shallowRef<Vec2>()
   const initiallySelected = new Set<T>()
-  const selected = reactive(new Set<T>())
+  const selected = shallowReactive(new Set<T>())
   const hoveredNode = ref<NodeId>()
   const hoveredPort = ref<PortId>()
 
@@ -128,11 +128,14 @@ export function useSelection<T>(
       readInitiallySelected()
     } else if (pointer.dragging && anchor.value == null) {
       anchor.value = navigator.sceneMousePos?.copy()
-    } else if (eventType === 'stop') {
+    }
+
+    selectionEventHandler(event)
+
+    if (eventType === 'stop') {
       anchor.value = undefined
       initiallySelected.clear()
     }
-    selectionEventHandler(event)
   })
 
   return proxyRefs({

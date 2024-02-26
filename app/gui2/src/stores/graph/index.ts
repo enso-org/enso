@@ -36,7 +36,16 @@ import type {
   VisualizationMetadata,
 } from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
-import { computed, markRaw, reactive, ref, toRef, watch, type ShallowRef } from 'vue'
+import {
+  computed,
+  markRaw,
+  reactive,
+  ref,
+  shallowReactive,
+  toRef,
+  watch,
+  type ShallowRef,
+} from 'vue'
 
 export { type Node, type NodeId } from '@/stores/graph/graphDatabase'
 
@@ -50,7 +59,9 @@ export class PortViewInstance {
     public rect: ShallowRef<Rect | undefined>,
     public nodeId: NodeId,
     public onUpdate: (update: WidgetUpdate) => void,
-  ) {}
+  ) {
+    markRaw(this)
+  }
 }
 
 export const useGraphStore = defineStore('graph', () => {
@@ -74,7 +85,7 @@ export const useGraphStore = defineStore('graph', () => {
     toRef(suggestionDb, 'groups'),
     proj.computedValueRegistry,
   )
-  const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
+  const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const methodAst = ref<Ast.Function>()
 

@@ -437,6 +437,7 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
                   if (mimetype != null) {
                     return importAsset(path, mimetype)
                   }
+                  return Promise.resolve(undefined)
                 }
               }
             })
