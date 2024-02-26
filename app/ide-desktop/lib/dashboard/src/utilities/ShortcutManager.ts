@@ -291,7 +291,7 @@ export default class ShortcutManager {
     const button: number = shortcut.button
     return (
       button === event.button &&
-      event.detail >= shortcut.clicks &&
+      Math.max(event.detail, 1) >= shortcut.clicks &&
       modifiersMatchEvent(shortcut, event)
     )
   }

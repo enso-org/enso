@@ -291,7 +291,12 @@ export default function AccountSettingsTab() {
         <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
-          <img src={user?.profilePicture ?? DefaultUserIcon} width={128} height={128} />
+          <img
+            src={user?.profilePicture ?? DefaultUserIcon}
+            width={128}
+            height={128}
+            className="pointer-events-none"
+          />
         </label>
         <span className="py-1 w-64">
           Your profile picture should not be irrelevant, abusive or vulgar. It should not be a
