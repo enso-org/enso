@@ -2,6 +2,8 @@
 import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
+import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
+import EyeIcon from 'enso-assets/eye.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -9,46 +11,91 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
+import SvgMask from '#/components/SvgMask'
+
 import * as object from '#/utilities/object'
+import * as uniqueString from '#/utilities/uniqueString'
+import * as validation from '#/utilities/validation'
 
 import ConfirmDeleteUserModal from '../ConfirmDeleteUserModal'
 
-// =================
-// === InfoEntry ===
-// =================
+// =============
+// === Input ===
+// =============
 
-/** Props for a transparent wrapper component. */
-interface InternalTransparentWrapperProps {
-  readonly children: React.ReactNode
+/** Props for an {@link Input}. */
+interface InternalInputProps {
+  readonly originalValue: string
+  readonly type?: string
+  readonly placeholder?: string
+  readonly onChange?: React.ChangeEventHandler<HTMLInputElement>
+  readonly onSubmit?: (value: string) => void
 }
 
-/** A transparent wrapper component */
-// This is a React component even though it does not contain JSX.
-// eslint-disable-next-line no-restricted-syntax
-function Name(props: InternalTransparentWrapperProps) {
-  return props.children
-}
+/** A styled input. */
+function Input(props: InternalInputProps) {
+  const { originalValue, type, placeholder, onChange, onSubmit } = props
+  const [isShowingPassword, setIsShowingPassword] = React.useState(false)
+  const cancelled = React.useRef(false)
 
-/** A transparent wrapper component */
-// This is a React component even though it does not contain JSX.
-// eslint-disable-next-line no-restricted-syntax
-function Value(props: InternalTransparentWrapperProps) {
-  return props.children
-}
+  const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    switch (event.key) {
+      case 'Escape': {
+        cancelled.current = true
+        event.stopPropagation()
+        event.currentTarget.value = originalValue
+        event.currentTarget.blur()
+        break
+      }
+      case 'Enter': {
+        cancelled.current = false
+        event.stopPropagation()
+        event.currentTarget.blur()
+        break
+      }
+      case 'Tab': {
+        cancelled.current = false
+        event.currentTarget.blur()
+        break
+      }
+      default: {
+        cancelled.current = false
+        break
+      }
+    }
+  }
 
-/** Props for a {@link InfoEntry}. */
-interface InternalInfoEntryProps {
-  readonly children: [React.ReactNode, React.ReactNode]
-}
+  const input = (
+    <input
+      className="rounded-full font-bold leading-5 w-full h-6 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors placeholder-primary/30 invalid:border invalid:border-red-700"
+      type={isShowingPassword ? 'text' : type}
+      size={1}
+      defaultValue={originalValue}
+      placeholder={placeholder}
+      onKeyDown={onKeyDown}
+      onChange={onChange}
+      onBlur={event => {
+        if (!cancelled.current) {
+          onSubmit?.(event.currentTarget.value)
+        }
+      }}
+    />
+  )
 
-/** Styled information display containing key and value. */
-function InfoEntry(props: InternalInfoEntryProps) {
-  const { children } = props
-  const [name, value] = children
-  return (
-    <div className="flex gap-4.75">
-      <span className="leading-5 w-12 h-8 py-1.25">{name}</span>
-      <span className="grow font-bold leading-5 h-8 py-1.25">{value}</span>
+  return type !== 'password' ? (
+    input
+  ) : (
+    <div className="relative">
+      {input}
+      {
+        <SvgMask
+          src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
+          className="absolute cursor-pointer rounded-full right-2 top-1"
+          onClick={() => {
+            setIsShowingPassword(show => !show)
+          }}
+        />
+      }
     </div>
   )
 }
@@ -60,15 +107,24 @@ function InfoEntry(props: InternalInfoEntryProps) {
 /** Settings tab for viewing and editing account information. */
 export default function AccountSettingsTab() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { setUser, signOut } = authProvider.useAuth()
+  const { setUser, changePassword, signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
-  const { user } = authProvider.useNonPartialUserSession()
-  const nameInputRef = React.useRef<HTMLInputElement>(null)
+  const { user, accessToken } = authProvider.useNonPartialUserSession()
+  const [passwordFormKey, setPasswordFormKey] = React.useState('')
+  const [currentPassword, setCurrentPassword] = React.useState('')
+  const [newPassword, setNewPassword] = React.useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = React.useState('')
 
-  const doUpdateName = async () => {
+  // The shape of the JWT payload is statically known.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const username: string | null =
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
+    accessToken != null ? JSON.parse(atob(accessToken.split('.')[1]!)).username : null
+  const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
+
+  const doUpdateName = async (newName: string) => {
     const oldName = user?.name ?? ''
-    const newName = nameInputRef.current?.value ?? ''
     if (newName === oldName) {
       return
     } else {
@@ -77,9 +133,6 @@ export default function AccountSettingsTab() {
         setUser(object.merger({ name: newName }))
       } catch (error) {
         toastAndLog(null, error)
-        if (nameInputRef.current) {
-          nameInputRef.current.value = oldName
-        }
       }
       return
     }
@@ -108,45 +161,106 @@ export default function AccountSettingsTab() {
         <div className="flex flex-col gap-2.5">
           <h3 className="font-bold text-xl h-9.5 py-0.5">User Account</h3>
           <div className="flex flex-col">
-            <InfoEntry>
-              <Name>Name</Name>
-              <Value>
-                <input
-                  ref={nameInputRef}
-                  className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={user?.name}
-                  type="text"
-                  size={1}
-                  defaultValue={user?.name ?? ''}
-                  onBlur={doUpdateName}
-                  onKeyDown={event => {
-                    switch (event.key) {
-                      case 'Escape': {
-                        event.stopPropagation()
-                        event.currentTarget.value = user?.name ?? ''
-                        event.currentTarget.blur()
-                        break
-                      }
-                      case 'Enter': {
-                        event.stopPropagation()
-                        event.currentTarget.blur()
-                        break
-                      }
-                      case 'Tab': {
-                        event.currentTarget.blur()
-                        break
-                      }
-                    }
-                  }}
-                />
-              </Value>
-            </InfoEntry>
-            <InfoEntry>
-              <Name>Email</Name>
-              <Value>{user?.email ?? ''}</Value>
-            </InfoEntry>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-12 h-8 py-1.25">Name</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
+                <Input originalValue={user?.name ?? ''} onSubmit={doUpdateName} />
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-12 h-8 py-1.25">Email</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">{user?.email ?? ''}</span>
+            </div>
           </div>
         </div>
+        {canChangePassword && (
+          <div key={passwordFormKey}>
+            <h3 className="font-bold text-xl h-9.5 py-0.5">Change Password</h3>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-36 h-8 py-1.25">Current Password</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
+                <Input
+                  type="password"
+                  originalValue=""
+                  placeholder="Enter your current password"
+                  onChange={event => {
+                    setCurrentPassword(event.currentTarget.value)
+                  }}
+                />
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-36 h-8 py-1.25">New Password</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
+                <Input
+                  type="password"
+                  originalValue=""
+                  placeholder="Enter your new password"
+                  onChange={event => {
+                    const newValue = event.currentTarget.value
+                    setNewPassword(newValue)
+                    event.currentTarget.setCustomValidity(
+                      newValue === '' || validation.PASSWORD_REGEX.test(newValue)
+                        ? ''
+                        : validation.PASSWORD_ERROR
+                    )
+                  }}
+                />
+              </span>
+            </div>
+            <div className="flex gap-4.75">
+              <span className="leading-5 w-36 h-8 py-1.25">Confirm New Password</span>
+              <span className="grow font-bold leading-5 h-8 py-1.25">
+                <Input
+                  type="password"
+                  originalValue=""
+                  placeholder="Confirm your new password"
+                  onChange={event => {
+                    const newValue = event.currentTarget.value
+                    setConfirmNewPassword(newValue)
+                    event.currentTarget.setCustomValidity(
+                      newValue === '' || newValue === newPassword ? '' : 'Passwords must match.'
+                    )
+                  }}
+                />
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={
+                  currentPassword === '' ||
+                  newPassword === '' ||
+                  confirmNewPassword === '' ||
+                  newPassword !== confirmNewPassword ||
+                  !validation.PASSWORD_REGEX.test(newPassword)
+                }
+                type="submit"
+                className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px disabled:opacity-50"
+                onClick={() => {
+                  setPasswordFormKey(uniqueString.uniqueString())
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmNewPassword('')
+                  void changePassword(currentPassword, newPassword)
+                }}
+              >
+                Change
+              </button>
+              <button
+                type="button"
+                className="bg-frame-selected font-medium rounded-full h-6 py-px px-2 -my-px"
+                onClick={() => {
+                  setPasswordFormKey(uniqueString.uniqueString())
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmNewPassword('')
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
         <div className="flex flex-col gap-2.5 rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
           <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">Danger Zone</h3>
           <div className="flex gap-2">
