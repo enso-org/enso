@@ -115,7 +115,7 @@ const warning = computed(() => {
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
   if (!warning) return
-  return '⚠ Warning: ' + warning!
+  return 'Warning: ' + warning!
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
@@ -444,6 +444,7 @@ function openFullMenu() {
       class="message messageWarning"
       :class="{ messageWithMenu: menuVisible !== MenuState.Off }"
       :message="warning"
+      icon="warning"
       type="warning"
     />
     <svg class="bgPaths" :style="bgStyleVariables">
