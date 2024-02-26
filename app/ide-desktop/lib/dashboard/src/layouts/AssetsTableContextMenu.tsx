@@ -119,29 +119,41 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     ) : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         <ContextMenu hidden={hidden}>
-          <MenuEntry hidden={hidden} action="restoreAllFromTrash" doAction={doRestoreAll} />
+          <MenuEntry
+            hidden={hidden}
+            action="undelete"
+            label="Restore All From Trash"
+            doAction={doRestoreAll}
+          />
         </ContextMenu>
       </ContextMenus>
     )
   } else if (category !== Category.home) {
     return null
   } else {
-    const deleteAction = isCloud ? 'moveAllToTrash' : 'deleteAll'
     return (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         {selectedKeys.size !== 0 && (
           <ContextMenu hidden={hidden}>
             {ownsAllSelectedAssets && (
-              <MenuEntry hidden={hidden} action={deleteAction} doAction={doDeleteAll} />
+              <MenuEntry
+                hidden={hidden}
+                action="delete"
+                label={isCloud ? 'Move All To Trash' : 'Delete All'}
+                doAction={doDeleteAll}
+              />
             )}
-            {isCloud && <MenuEntry hidden={hidden} action="copyAll" doAction={doCopy} />}
+            {isCloud && (
+              <MenuEntry hidden={hidden} action="copy" label="Copy All" doAction={doCopy} />
+            )}
             {isCloud && ownsAllSelectedAssets && (
-              <MenuEntry hidden={hidden} action="cutAll" doAction={doCut} />
+              <MenuEntry hidden={hidden} action="cut" label="Cut All" doAction={doCut} />
             )}
             {pasteData != null && pasteData.data.size > 0 && (
               <MenuEntry
                 hidden={hidden}
-                action="pasteAll"
+                action="paste"
+                label="Paste All"
                 doAction={() => {
                   const [firstKey] = selectedKeys
                   const selectedNode =

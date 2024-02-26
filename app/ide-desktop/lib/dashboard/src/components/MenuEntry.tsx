@@ -20,6 +20,8 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 export interface MenuEntryProps {
   readonly hidden?: boolean
   readonly action: inputBindings.DashboardBindingKey
+  /** Overrides the text for the menu entry. */
+  readonly label?: string
   /** When true, the button is not clickable. */
   readonly disabled?: boolean
   readonly title?: string
@@ -29,7 +31,8 @@ export interface MenuEntryProps {
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
-  const { hidden = false, action, disabled = false, title, paddingClassName, doAction } = props
+  const { hidden = false, action, label, disabled = false, title, paddingClassName } = props
+  const { doAction } = props
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
   React.useEffect(() => {
@@ -58,7 +61,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     >
       <div className="flex items-center gap-3">
         <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="w-4 h-4" />
-        {info.name}
+        {label ?? info.name}
       </div>
       <KeyboardShortcut action={action} />
     </button>

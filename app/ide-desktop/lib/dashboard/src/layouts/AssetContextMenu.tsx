@@ -104,7 +104,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         <ContextMenu hidden={hidden}>
           <MenuEntry
             hidden={hidden}
-            action="restoreFromTrash"
+            action="undelete"
+            label="Restore From Trash"
             doAction={() => {
               unsetModal()
               dispatchAssetEvent({
@@ -252,7 +253,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
           <MenuEntry
             hidden={hidden}
-            action={backend.type === backendModule.BackendType.local ? 'delete' : 'moveToTrash'}
+            action="delete"
+            label={backend.type === backendModule.BackendType.local ? 'Delete' : 'Move To Trash'}
             doAction={() => {
               if (backend.type === backendModule.BackendType.remote) {
                 unsetModal()
