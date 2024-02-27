@@ -17,7 +17,7 @@ export interface AssetInfoBarProps {
   readonly setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-/** A toolbar for displaying asset information. */
+/** A menubar for displaying asset information. */
 // This parameter will be used in the future.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(props: AssetInfoBarProps) {
@@ -25,7 +25,7 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
   const { backend } = backendProvider.useBackend()
   return (
     <div
-      className={`flex items-center shrink-0 bg-frame rounded-full gap-3 h-8 px-2 cursor-default pointer-events-auto ${
+      className={`flex items-center shrink-0 bg-frame rounded-full gap-3 h-row px-2 cursor-default pointer-events-auto ${
         backend.type === backendModule.BackendType.remote ? '' : 'invisible'
       }`}
       onClick={event => {

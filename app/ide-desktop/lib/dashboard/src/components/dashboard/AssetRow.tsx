@@ -566,7 +566,7 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }
               }}
-              className={`h-row transition duration-300 ease-in-out rounded-full outline-2 -outline-offset-2 outline-prmary ${
+              className={`h-row ease-in-out outline-2 -outline-offset-2 outline-primary ${
                 visibilityModule.CLASS_NAME[visibility]
               } ${isKeyboardSelected ? 'outline' : ''} ${
                 isDraggedOver || selected ? 'selected' : ''
@@ -740,7 +740,7 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
             <div
-              className={`flex justify-center rounded-full h-8 py-1 w-container ${indent.indentClass(
+              className={`flex justify-center rounded-full h-row py-1 w-container ${indent.indentClass(
                 item.depth
               )}`}
             >
@@ -755,7 +755,7 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
             <div
-              className={`flex items-center rounded-full h-8 py-2 ${indent.indentClass(
+              className={`flex items-center rounded-full h-row py-2 ${indent.indentClass(
                 item.depth
               )}`}
             >

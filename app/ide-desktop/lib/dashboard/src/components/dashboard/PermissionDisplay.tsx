@@ -27,6 +27,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.edit: {
       return (
         <button
+          disabled={!onClick}
           className={`${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
           } inline-block rounded-full whitespace-nowrap h-6 px-1.75 py-0.5 ${className ?? ''}`}
