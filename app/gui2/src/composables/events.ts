@@ -215,7 +215,7 @@ export function useResizeObserver(
       const data = getOrCreateObserverData(element)
       if (data.refCount === 0) observer.observe(element)
       data.refCount += 1
-      if (useContentRect) {
+      if (!useContentRect) {
         if (data.boundRectUsers === 0) {
           const rect = element.getBoundingClientRect()
           data.boundRect.value = new Vec2(rect.width, rect.height)
@@ -225,7 +225,7 @@ export function useResizeObserver(
       onCleanup(() => {
         if (elementRef.value != null) {
           data.refCount -= 1
-          if (useContentRect) data.boundRectUsers -= 1
+          if (!useContentRect) data.boundRectUsers -= 1
           if (data.refCount === 0) observer.unobserve(element)
         }
       })
