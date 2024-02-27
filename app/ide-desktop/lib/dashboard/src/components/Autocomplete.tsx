@@ -218,12 +218,12 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
       </div>
       <div className="h-0">
         <div
-          className={`relative rounded-2xl shadow-soft w-full h-max top-2 z-1 before:absolute before:rounded-2xl before:backdrop-blur-default before:top-0 before:w-full before:h-full ${
+          className={`relative rounded-default shadow-soft w-full h-max top-2 z-1 before:absolute before:rounded-default before:backdrop-blur-default before:top-0 before:w-full before:h-full ${
             isDropdownVisible ? 'before:border before:border-black/10' : ''
           }`}
         >
           <div
-            className={`relative rounded-2xl overflow-auto w-full max-h-10lh ${
+            className={`relative rounded-default overflow-auto w-full max-h-10lh ${
               isDropdownVisible ? '' : 'h-0'
             }`}
           >

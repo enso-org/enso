@@ -66,6 +66,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       borderRadius: {
         '2.5xl': '1.25rem',
         '4xl': '2rem',
+        default: 'var(--default-corner-radius)',
         auth: 'var(--auth-corner-radius)',
       },
       spacing: {

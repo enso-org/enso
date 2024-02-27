@@ -22,7 +22,7 @@ export interface AssetSummaryProps {
 export default function AssetSummary(props: AssetSummaryProps) {
   const { asset, new: isNew = false, newName, className } = props
   return (
-    <div className={`flex items-center gap-2.5 rounded-2xl bg-frame px-2 ${className}`}>
+    <div className={`flex items-center gap-2.5 rounded-default bg-frame px-2 ${className}`}>
       <div className="grid place-items-center h-8 w-4">
         <AssetIcon asset={asset} />
       </div>

@@ -123,7 +123,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           }
           return (
             <div
-              className={`rounded-2xl border ${isValid ? 'border-black/10' : 'border-red-700/60'}`}
+              className={`rounded-default border ${
+                isValid ? 'border-black/10' : 'border-red-700/60'
+              }`}
             >
               <Autocomplete
                 items={autocompleteItems ?? []}
@@ -225,7 +227,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           }
         )
         return constantValue(schema).length === 1 ? null : (
-          <div className="flex flex-col gap-1 rounded-2xl border border-black/10 p-2">
+          <div className="flex flex-col gap-1 rounded-default border border-black/10 p-2">
             {propertyDefinitions.map(definition => {
               const { key, schema: childSchema } = definition
               const isOptional = !requiredProperties.includes(key)

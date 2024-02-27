@@ -110,10 +110,10 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <button
-        className="relative h-sample cursor-pointer before:absolute before:inset-0 before:bg-frame before:rounded-2xl before:w-full before:h-full before:opacity-60"
+        className="relative h-sample cursor-pointer before:absolute before:inset-0 before:bg-frame before:rounded-default before:w-full before:h-full before:opacity-60"
         onClick={onClick}
       >
-        <div className="relative flex rounded-2xl w-full h-full">
+        <div className="relative flex rounded-default w-full h-full">
           <div className="flex flex-col text-center items-center gap-3 m-auto">
             {spinnerState != null ? (
               <div className="p-2">

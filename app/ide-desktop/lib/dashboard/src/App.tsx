@@ -122,7 +122,7 @@ export default function App(props: AppProps) {
         theme="light"
         closeOnClick={false}
         draggable={false}
-        toastClassName="text-sm leading-cozy bg-selected-frame rounded-2xl backdrop-blur-default"
+        toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
         transition={toastify.Zoom}
         limit={3}
       />

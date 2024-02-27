@@ -744,7 +744,7 @@ export default function Chat(props: ChatProps) {
             />
           ))}
         </div>
-        <form className="rounded-2xl bg-frame p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
+        <form className="rounded-default bg-frame p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
           <textarea
             ref={messageInputRef}
             rows={1}
@@ -803,7 +803,7 @@ export default function Chat(props: ChatProps) {
         </form>
         {!isPaidUser && (
           <button
-            className="leading-cozy rounded-2xl bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
+            className="leading-cozy rounded-default bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
             onClick={upgradeToPro}
           >
             Click here to upgrade to Enso Pro and get access to high-priority, live support!

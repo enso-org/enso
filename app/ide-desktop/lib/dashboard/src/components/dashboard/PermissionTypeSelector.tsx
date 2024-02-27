@@ -85,7 +85,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
   return (
     <div
       style={style}
-      className="sticky pointer-events-auto w-min before:absolute before:bg-selected-frame before:rounded-2xl before:backdrop-blur-default before:w-full before:h-full"
+      className="sticky pointer-events-auto w-min before:absolute before:bg-selected-frame before:rounded-default before:backdrop-blur-default before:w-full before:h-full"
       onClick={event => {
         event.stopPropagation()
       }}

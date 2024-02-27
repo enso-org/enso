@@ -16,6 +16,7 @@
   /* The looser of the custom line heights. */
   --cozy-line-height: 170%;
   --default-backdrop-blur: 64px;
+  --default-corner-radius: 1rem;
 
   --frame-color: rgb(255 255 255 / 40%);
   --selected-frame-color: rgb(255 255 255 / 70%);

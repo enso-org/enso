@@ -27,7 +27,7 @@ export default function ForgotPassword() {
   return (
     <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
       <form
-        className="flex flex-col gap-6 bg-selected-frame rounded-2xl shadow-md p-8 w-full max-w-md"
+        className="flex flex-col gap-6 bg-selected-frame rounded-default shadow-md p-8 w-full max-w-md"
         onSubmit={async event => {
           event.preventDefault()
           await forgotPassword(email)

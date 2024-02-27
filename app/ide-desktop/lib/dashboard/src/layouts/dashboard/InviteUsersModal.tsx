@@ -118,7 +118,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
             : {}
         }
-        className="sticky w-115.25 rounded-2xl before:absolute before:bg-selected-frame before:backdrop-blur-default before:rounded-2xl before:w-full before:h-full"
+        className="sticky w-115.25 rounded-default before:absolute before:bg-selected-frame before:backdrop-blur-default before:rounded-default before:w-full before:h-full"
         onClick={mouseEvent => {
           mouseEvent.stopPropagation()
         }}
@@ -132,7 +132,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           }
         }}
       >
-        <div className="relative flex flex-col rounded-2xl gap-2 p-2">
+        <div className="relative flex flex-col rounded-default gap-2 p-2">
           <div>
             <h2 className="text-sm font-bold">Invite</h2>
             {/* Space reserved for other tabs. */}
@@ -149,7 +149,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               }
             }}
           >
-            <label className="block min-h-5lh rounded-2xl border border-black/10 py-0.5 px-1">
+            <label className="block min-h-5lh rounded-default border border-black/10 py-0.5 px-1">
               {Array.from(newEmails, (newEmail, i) => (
                 <Email
                   key={i}
