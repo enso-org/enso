@@ -4,7 +4,7 @@ import { Prefixes } from '@/util/ast/prefixes'
 import { Vec2 } from '@/util/data/vec2'
 
 export const prefixes = Prefixes.FromLines({
-  enableOutputContext:
+  enableRecording:
     'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
 })
 

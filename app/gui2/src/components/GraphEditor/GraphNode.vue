@@ -176,17 +176,16 @@ const dragPointer = usePointer((pos, event, type) => {
 
 const isRecordingOverridden = computed({
   get() {
-    console.log(':o', props.node.prefixes.enableOutputContext)
-    return props.node.prefixes.enableOutputContext != null
+    return props.node.prefixes.enableRecording != null
   },
   set(shouldOverride) {
     const edit = props.node.innerExpr.module.edit()
     const replacement =
-      shouldOverride && !projectStore.isOutputContextEnabled
+      shouldOverride && !projectStore.isRecordingEnabled
         ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
         : undefined
     console.log('...', shouldOverride, replacement)
-    prefixes.modify(edit.getVersion(props.node.innerExpr), { enableOutputContext: replacement })
+    prefixes.modify(edit.getVersion(props.node.innerExpr), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
 })
@@ -366,7 +365,7 @@ function openFullMenu() {
       v-if="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       v-model:isRecordingOverridden="isRecordingOverridden"
       v-model:isDocsVisible="isDocsVisible"
-      :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
+      :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       :isFullMenuVisible="menuVisible === MenuState.Full"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"

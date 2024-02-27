@@ -473,7 +473,7 @@ export interface Node {
   innerExpr: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
-  prefixes: Record<'enableOutputContext', Ast.AstId[] | undefined>
+  prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
 }
@@ -481,7 +481,7 @@ export interface Node {
 const baseMockNode = {
   position: Vec2.Zero,
   vis: undefined,
-  prefixes: { enableOutputContext: undefined },
+  prefixes: { enableRecording: undefined },
   primarySubject: undefined,
 } satisfies Partial<Node>
 

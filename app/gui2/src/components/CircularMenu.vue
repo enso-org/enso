@@ -3,7 +3,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 
 const props = defineProps<{
-  isOutputContextEnabledGlobally: boolean
+  isRecordingEnabledGlobally: boolean
   isRecordingOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
@@ -42,7 +42,7 @@ const emit = defineEmits<{
       class="icon-container button slot7"
       :class="{ 'output-context-overridden': props.isRecordingOverridden }"
       :alt="`${
-        props.isOutputContextEnabledGlobally != props.isRecordingOverridden ? 'Disable' : 'Enable'
+        props.isRecordingEnabledGlobally != props.isRecordingOverridden ? 'Disable' : 'Enable'
       } output context`"
       :modelValue="props.isRecordingOverridden"
       @update:modelValue="emit('update:isRecordingOverridden', $event)"

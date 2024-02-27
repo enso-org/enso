@@ -38,7 +38,7 @@ const node = computed((): Node => {
     rootSpanId: '' as any,
     pattern: pattern.value,
     position: position.value,
-    prefixes: { enableOutputContext: undefined },
+    prefixes: { enableRecording: undefined },
     innerExpr: innerExpr.value,
     primarySubject: undefined,
     vis: undefined,
