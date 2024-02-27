@@ -109,18 +109,10 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           </div>
         </label>
         <div className="relative flex gap-2">
-          <button
-            disabled={!canSubmit}
-            type="submit"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
-          >
+          <button disabled={!canSubmit} type="submit" className="button text-white bg-invite">
             Create
           </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1"
-            onClick={unsetModal}
-          >
+          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
             Cancel
           </button>
         </div>

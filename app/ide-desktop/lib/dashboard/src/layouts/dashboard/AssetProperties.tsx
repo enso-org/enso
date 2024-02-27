@@ -165,7 +165,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 }}
                 className="bg-frame resize-none rounded-lg w-full p-2"
               />
-              <button type="submit" className="self-start bg-selected-frame rounded-full px-4 py-1">
+              <button type="submit" className="button self-start bg-selected-frame">
                 Update
               </button>
             </form>
@@ -211,7 +211,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   <button
                     type="button"
                     disabled={dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable}
-                    className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
+                    className="button text-white bg-invite disabled:opacity-disabled"
                     onClick={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.dataLink) {
@@ -237,7 +237,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   </button>
                   <button
                     type="button"
-                    className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1"
+                    className="button bg-selected-frame"
                     onClick={() => {
                       setEditedDataLinkValue(structuredClone(dataLinkValue))
                     }}

@@ -148,6 +148,14 @@ body::before {
 .enso-dashboard,
 .enso-chat {
   @layer components {
+    .button {
+      @apply cursor-pointer disabled:cursor-default inline-block rounded-full px-4 py-1 disabled:opacity-disabled;
+    }
+
+    .button\/30 {
+      @apply cursor-pointer disabled:cursor-default inline-block rounded-full px-4 py-1 disabled:opacity-30;
+    }
+
     .text {
       @apply leading-cozy h-text py-px;
     }

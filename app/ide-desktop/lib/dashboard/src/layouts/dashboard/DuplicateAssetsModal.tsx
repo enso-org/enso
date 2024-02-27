@@ -223,7 +223,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             </span>
             <button
               type="button"
-              className="relative self-start hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
+              className="button relative self-start bg-selected-frame rounded-full"
               onClick={doUploadNonConflicting}
             >
               Upload
@@ -249,7 +249,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               <div className="relative flex gap-2">
                 <button
                   type="button"
-                  className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
+                  className="button bg-selected-frame"
                   onClick={() => {
                     doUpdate([firstConflict])
                     switch (firstConflict.new.type) {
@@ -268,7 +268,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 </button>
                 <button
                   type="button"
-                  className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
+                  className="button bg-selected-frame"
                   onClick={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
@@ -295,7 +295,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         <div className="relative flex gap-2">
           <button
             type="button"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
+            className="button text-white bg-invite"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -306,7 +306,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           </button>
           <button
             type="button"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
+            className="button text-white bg-invite"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -317,11 +317,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               ? `Rename New ${firstConflictTypeName}`
               : `Rename New ${firstConflictTypeName}s`}
           </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1"
-            onClick={unsetModal}
-          >
+          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
             Cancel
           </button>
         </div>

@@ -77,18 +77,10 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
         <div className="relative flex gap-2">
-          <button
-            type="submit"
-            disabled={!isSubmittable}
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
-          >
+          <button type="submit" disabled={!isSubmittable} className="button text-white bg-invite">
             Create
           </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1"
-            onClick={unsetModal}
-          >
+          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
             Cancel
           </button>
         </div>

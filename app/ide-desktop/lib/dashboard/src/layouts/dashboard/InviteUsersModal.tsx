@@ -201,7 +201,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             <button
               type="submit"
               disabled={!canSubmit}
-              className="text-tag-text bg-invite rounded-full px-4 py-1 disabled:opacity-30"
+              className="button/30 text-tag-text bg-invite"
               onClick={() => {
                 doSubmit()
               }}
