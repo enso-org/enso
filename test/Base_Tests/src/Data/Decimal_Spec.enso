@@ -76,7 +76,6 @@ add_specs suite_builder =
                 + [-922.0]
 
             vs.map v->
-                IO.println "======== "+v.to_text
                 r = float_id v
                 #r = identity v
                 IO.println "float_id "+v.to_text+" "+r.to_text
