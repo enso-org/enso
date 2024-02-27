@@ -3,7 +3,6 @@ import { Ast } from '@/util/ast'
 import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { MutableModule, type Identifier } from '../abstract'
-import { escape, unescape } from '../text'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
