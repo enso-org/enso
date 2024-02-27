@@ -149,7 +149,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               readOnly={readOnly}
               value={typeof value === 'string' ? value : ''}
               size={1}
-              className={`rounded-full w-40 px-2 bg-transparent border leading-cozy h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+              className={`rounded-full w-40 px-2 bg-transparent border text disabled:opacity-disabled read-only:opacity-75 read-only:cursor-not-allowed ${
                 jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter text"
@@ -168,7 +168,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className={`rounded-full w-40 px-2 bg-transparent border leading-cozy h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+            className={`rounded-full w-40 px-2 bg-transparent border text disabled:opacity-disabled read-only:opacity-75 read-only:cursor-not-allowed ${
               jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
             }`}
             placeholder="Enter number"
@@ -188,7 +188,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className={`rounded-full w-40 px-2 bg-transparent border leading-cozy h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+            className={`rounded-full w-40 px-2 bg-transparent border text disabled:opacity-disabled read-only:opacity-75 read-only:cursor-not-allowed ${
               jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
             }`}
             placeholder="Enter integer"

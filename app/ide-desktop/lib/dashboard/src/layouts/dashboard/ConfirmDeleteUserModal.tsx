@@ -58,9 +58,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
         <div className="relative flex flex-col gap-2">
           Once deleted, this {description} will be gone forever.
           <button type="submit" className="rounded-full bg-danger text-inversed px-2 py-1">
-            <span className="leading-cozy h-6 py-px">
-              I confirm that I want to delete this {description}.
-            </span>
+            <span className="text">I confirm that I want to delete this {description}.</span>
           </button>
         </div>
       </form>

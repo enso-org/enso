@@ -64,7 +64,7 @@ export default function UserMenu(props: UserMenuProps) {
                   className="pointer-events-none"
                 />
               </div>
-              <span className="leading-cozy h-6 py-px">{user.name}</span>
+              <span className="text">{user.name}</span>
             </div>
             <div className="flex flex-col">
               {!supportsLocalBackend && (
@@ -106,7 +106,7 @@ export default function UserMenu(props: UserMenuProps) {
         ) : (
           <>
             <div className="flex items-center h-7">
-              <span className="leading-cozy h-6 py-px">You are not logged in.</span>
+              <span className="text">You are not logged in.</span>
             </div>
             <div className="flex flex-col">
               <MenuEntry

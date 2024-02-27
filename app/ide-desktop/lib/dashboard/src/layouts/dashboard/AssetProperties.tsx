@@ -178,7 +178,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           <tbody>
             <tr data-testid="asset-panel-permissions">
               <td className="min-w-32 px-0 py-1">
-                <span className="inline-block leading-cozy h-6 py-px">Shared with</span>
+                <span className="inline-block text">Shared with</span>
               </td>
               <td className="p-0 w-full">
                 <SharedWithColumn
@@ -211,7 +211,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   <button
                     type="button"
                     disabled={dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable}
-                    className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                    className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
                     onClick={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.dataLink) {

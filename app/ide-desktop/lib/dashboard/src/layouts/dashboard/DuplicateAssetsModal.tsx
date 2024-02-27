@@ -223,7 +223,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             </span>
             <button
               type="button"
-              className="relative self-start hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+              className="relative self-start hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
               onClick={doUploadNonConflicting}
             >
               Upload
@@ -249,7 +249,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               <div className="relative flex gap-2">
                 <button
                   type="button"
-                  className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                  className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
                   onClick={() => {
                     doUpdate([firstConflict])
                     switch (firstConflict.new.type) {
@@ -268,7 +268,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 </button>
                 <button
                   type="button"
-                  className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                  className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
                   onClick={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
@@ -295,7 +295,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         <div className="relative flex gap-2">
           <button
             type="button"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -306,7 +306,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           </button>
           <button
             type="button"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()

@@ -184,7 +184,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             size={1}
             value={text ?? ''}
             placeholder={placeholder}
-            className="grow bg-transparent leading-cozy h-6 py-px px-2"
+            className="grow bg-transparent text px-2"
             onFocus={() => {
               setIsDropdownVisible(true)
             }}
@@ -202,7 +202,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
           <div
             ref={element => element?.focus()}
             tabIndex={-1}
-            className="grow cursor-pointer bg-transparent leading-cozy h-6 py-px px-2"
+            className="grow cursor-pointer bg-transparent text px-2"
             onClick={() => {
               setIsDropdownVisible(true)
             }}

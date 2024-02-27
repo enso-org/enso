@@ -67,7 +67,7 @@ function Input(props: InternalInputProps) {
 
   const input = (
     <input
-      className="rounded-full font-bold leading-cozy w-full h-6 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-primary/30 invalid:border invalid:border-red-700"
+      className="rounded-full font-bold leading-cozy w-full h-6 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
       type={isShowingPassword ? 'text' : type}
       size={1}
       defaultValue={originalValue}
@@ -169,7 +169,9 @@ export default function AccountSettingsTab() {
             </div>
             <div className="flex gap-4.75">
               <span className="leading-cozy w-12 h-row py-1.25">Email</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">{user?.email ?? ''}</span>
+              <span className="grow font-bold leading-cozy h-row px-2 py-1.25">
+                {user?.email ?? ''}
+              </span>
             </div>
           </div>
         </div>
@@ -235,7 +237,7 @@ export default function AccountSettingsTab() {
                   !validation.PASSWORD_REGEX.test(newPassword)
                 }
                 type="submit"
-                className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px disabled:opacity-50"
+                className="text-white bg-invite font-medium rounded-full text px-2 -my-px disabled:opacity-disabled"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -248,7 +250,7 @@ export default function AccountSettingsTab() {
               </button>
               <button
                 type="button"
-                className="bg-selected-frame font-medium rounded-full h-6 py-px px-2 -my-px"
+                className="bg-selected-frame font-medium rounded-full text px-2 -my-px"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -279,7 +281,7 @@ export default function AccountSettingsTab() {
                 )
               }}
             >
-              <span className="leading-cozy h-6 py-px">Delete this user account</span>
+              <span className="inline-block text">Delete this user account</span>
             </button>
             <span className="leading-cozy h-row py-1.25">
               Once deleted, it will be gone forever. Please be certain.

@@ -69,7 +69,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
           doDelete(userPermissions.user)
         }}
       />
-      <span className="leading-cozy h-6 py-px">{userPermissions.user.user_name}</span>
+      <span className="text">{userPermissions.user.user_name}</span>
     </div>
   )
 }

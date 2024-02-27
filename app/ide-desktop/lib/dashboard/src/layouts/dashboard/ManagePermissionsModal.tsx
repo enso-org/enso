@@ -254,7 +254,7 @@ export default function ManagePermissionsModal<
           }}
         >
           <div className="relative flex flex-col rounded-default gap-2 p-2">
-            <div>
+            <div className="flex gap-2">
               <h2 className="text-sm font-bold">Invite</h2>
               {/* Space reserved for other tabs. */}
             </div>

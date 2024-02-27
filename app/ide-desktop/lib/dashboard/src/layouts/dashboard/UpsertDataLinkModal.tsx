@@ -64,7 +64,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           <input
             autoFocus
             placeholder="Enter the name of the Data Link"
-            className={`grow bg-transparent border rounded-full leading-cozy h-6 px-4 py-px disabled:opacity-50 ${
+            className={`grow bg-transparent border rounded-full leading-cozy h-6 px-4 py-px disabled:opacity-disabled ${
               name !== '' ? 'border-black/10' : 'border-red-700/60'
             }`}
             value={name}
@@ -80,7 +80,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           <button
             type="submit"
             disabled={!isSubmittable}
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
           >
             Create
           </button>

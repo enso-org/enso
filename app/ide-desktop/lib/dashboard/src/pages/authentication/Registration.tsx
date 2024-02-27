@@ -82,7 +82,6 @@ export default function Registration() {
           validate
           type="email"
           autoComplete="email"
-          label="Email"
           icon={AtIcon}
           placeholder="Enter your email"
           value={email}
@@ -94,7 +93,6 @@ export default function Registration() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Password"
           icon={LockIcon}
           placeholder="Enter your password"
           pattern={validation.PASSWORD_PATTERN}
@@ -108,7 +106,6 @@ export default function Registration() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Confirm password"
           icon={LockIcon}
           placeholder="Confirm your password"
           pattern={string.regexEscape(password)}

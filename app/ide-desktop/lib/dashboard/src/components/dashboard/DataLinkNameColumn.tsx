@@ -152,7 +152,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         onCancel={() => {
           setRowState(object.merger({ isEditingName: false }))
         }}
-        className="bg-transparent grow leading-cozy h-6 py-px"
+        className="bg-transparent grow text"
       >
         {asset.title}
       </EditableSpan>

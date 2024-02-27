@@ -62,7 +62,7 @@ export default function ResetPassword() {
   return (
     <div className="flex flex-col gap-auth text-primary text-sm items-center justify-center min-h-screen">
       <form
-        className="flex flex-col gap-auth bg-selected-frame rounded-4xl shadow-md p-auth w-full max-w-md"
+        className="flex flex-col gap-auth bg-selected-frame rounded-auth shadow-md p-auth w-full max-w-md"
         onSubmit={async event => {
           event.preventDefault()
           await onSubmit()
@@ -93,7 +93,6 @@ export default function ResetPassword() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="New password"
           icon={LockIcon}
           placeholder="Enter your new password"
           pattern={validation.PASSWORD_PATTERN}
@@ -107,7 +106,6 @@ export default function ResetPassword() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label="Confirm new password"
           icon={LockIcon}
           placeholder="Confirm your new password"
           pattern={string.regexEscape(newPassword)}

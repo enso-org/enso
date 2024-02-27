@@ -74,12 +74,12 @@ export default function NewLabelModal(props: NewLabelModalProps) {
       >
         <h1 className="relative text-sm font-semibold">New Label</h1>
         <label className="relative flex">
-          <div className="w-12 h-6 py-1">Name</div>
+          <div className="w-12 h-text py-1">Name</div>
           <input
             autoFocus
             size={1}
             placeholder="Enter the name of the label"
-            className={`grow bg-transparent border border-black/10 rounded-full leading-cozy h-6 px-4 py-px ${
+            className={`grow bg-transparent border border-black/10 rounded-full leading-cozy h-text px-4 py-px ${
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers
               color != null && color.lightness <= 50
                 ? 'text-tag-text placeholder-selected-frame'
@@ -103,7 +103,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             event.preventDefault()
           }}
         >
-          <div className="w-12 h-6 py-1">Color</div>
+          <div className="w-12 h-text py-1">Color</div>
           <div className="grow flex items-center gap-1">
             <ColorPicker setColor={setColor} />
           </div>
@@ -112,7 +112,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           <button
             disabled={!canSubmit}
             type="submit"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
           >
             Create
           </button>

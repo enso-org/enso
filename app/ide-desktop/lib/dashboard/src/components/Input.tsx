@@ -15,17 +15,15 @@ import SvgIcon from '#/components/SvgIcon'
 /** Props for a {@link Input}. */
 export interface InputProps extends controlledInput.ControlledInputProps {
   readonly allowShowingPassword?: boolean
-  readonly label: string | null
   readonly icon: string
-  readonly footer?: React.ReactNode
 }
 
 /** A styled input that includes an icon. */
 export default function Input(props: InputProps) {
-  const { allowShowingPassword = false, label, icon, type, footer, ...passthrough } = props
+  const { allowShowingPassword = false, icon, type, ...passthrough } = props
   const [isShowingPassword, setIsShowingPassword] = React.useState(false)
 
-  const input = (
+  return (
     <div className="relative">
       <SvgIcon src={icon} />
       <ControlledInput {...passthrough} type={isShowingPassword ? 'text' : type} />
@@ -40,15 +38,5 @@ export default function Input(props: InputProps) {
         />
       )}
     </div>
-  )
-
-  return label == null && footer == null ? (
-    input
-  ) : (
-    <label className="flex flex-col gap-1">
-      {label}
-      {input}
-      {footer}
-    </label>
   )
 }

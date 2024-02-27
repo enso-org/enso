@@ -42,7 +42,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     <button
       disabled={disabled}
       title={title}
-      className={`flex items-center place-content-between h-8 disabled:bg-transparent rounded-lg text-left disabled:opacity-50 hover:bg-black/10 ${
+      className={`flex items-center place-content-between h-row disabled:bg-transparent rounded-lg text-left disabled:opacity-disabled hover:bg-black/10 ${
         paddingClassName ?? 'px-3 py-1'
       }`}
       onClick={event => {
@@ -50,7 +50,7 @@ export default function MenuEntry(props: MenuEntryProps) {
         doAction()
       }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-menu-entry">
         <SvgMask
           style={{
             width: shortcutManagerModule.ICON_SIZE_PX,

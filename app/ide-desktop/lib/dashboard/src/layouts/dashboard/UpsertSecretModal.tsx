@@ -69,7 +69,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             autoFocus
             disabled={!isNameEditable}
             placeholder="Enter the name of the secret"
-            className="grow bg-transparent border border-black/10 rounded-full leading-cozy h-6 px-4 py-px disabled:opacity-50"
+            className="grow bg-transparent border border-black/10 rounded-full leading-cozy h-6 px-4 py-px disabled:opacity-disabled"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
@@ -91,7 +91,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           <button
             disabled={!canSubmit}
             type="submit"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-disabled disabled:cursor-default"
           >
             {isCreatingSecret ? 'Create' : 'Update'}
           </button>

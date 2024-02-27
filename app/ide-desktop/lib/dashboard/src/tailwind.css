@@ -3,6 +3,9 @@
 
 :root {
   --row-height: 2rem;
+  /* The height of text not beside an icon. */
+  --text-height: 1.5rem;
+  --disabled-opacity: 50%;
   --placeholder-opacity: 75%;
   --disabled-icon-opacity: 75%;
   /* The gap between each icon in a horizontal list of icons. */
@@ -11,6 +14,12 @@
   --icon-with-text-gap: 0.375rem;
   --pages-gap: 1rem;
   --drive-gap: 0.75rem;
+  /* The gap between the icon and label of a menu entry or context menu entry. */
+  --menu-entry-gap: 0.75rem;
+  /* The vertical gap between items on a page displaying an abnormal status.
+   * These include the loading screen and pages for accessing the drive or chat
+   * without the appropriate permissions. */
+  --status-page-gap: 1rem;
   /* The tighter of the custom line heights. */
   --snug-line-height: 144.5%;
   /* The looser of the custom line heights. */
@@ -36,6 +45,8 @@
    * Currently the only transitions are of the bagkround color of buttons
    * and inputs when they are hovered over or focused. */
   --auth-transition-duration: 300ms;
+  /* The gap between the icon and text of an auth link. */
+  --auth-link-gap: 0.5rem;
 
   /* The top and bottom padding for the entire sidebar. */
   --sidebar-padding: 0.25rem;
@@ -135,6 +146,10 @@ body::before {
 .enso-dashboard,
 .enso-chat {
   @layer components {
+    .text {
+      @apply leading-cozy h-text py-px;
+    }
+
     .clip-path-top {
       clip-path: polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px));
     }

@@ -20,7 +20,7 @@ const SPINNER_SIZE_PX = 64
 export default function LoadingScreen() {
   return (
     <div className="grid place-items-center text-primary h-screen w-screen">
-      <div className="flex flex-col gap-4 items-center">
+      <div className="flex flex-col text-base text-center items-center gap-status-page">
         <StatelessSpinner
           state={statelessSpinner.SpinnerState.loadingMedium}
           size={SPINNER_SIZE_PX}

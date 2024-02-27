@@ -75,11 +75,7 @@ export default function Login(props: LoginProps) {
             Sign up or login with GitHub
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="grow border-t border-primary/30 h-0" />
-          <span className="text-xs self-center text-primary/60">or login with email</span>
-          <div className="grow border-t border-primary/30 h-0" />
-        </div>
+        <div />
         <form
           className="flex flex-col gap-auth"
           onSubmit={async event => {
@@ -95,35 +91,33 @@ export default function Login(props: LoginProps) {
             validate
             type="email"
             autoComplete="email"
-            label="Email"
             icon={AtIcon}
             placeholder="Enter your email"
             value={email}
             setValue={setEmail}
             shouldReportValidityRef={shouldReportValidityRef}
           />
-          <Input
-            required
-            validate
-            allowShowingPassword
-            type="password"
-            autoComplete="current-password"
-            label="Password"
-            icon={LockIcon}
-            placeholder="Enter your password"
-            error={validation.PASSWORD_ERROR}
-            value={password}
-            setValue={setPassword}
-            shouldReportValidityRef={shouldReportValidityRef}
-            footer={
-              <router.Link
-                to={appUtils.FORGOT_PASSWORD_PATH}
-                className="text-xs text-blue-500 hover:text-blue-700 focus:text-blue-700 transition-all duration-300 text-end"
-              >
-                Forgot Your Password?
-              </router.Link>
-            }
-          />
+          <div className="flex flex-col">
+            <Input
+              required
+              validate
+              allowShowingPassword
+              type="password"
+              autoComplete="current-password"
+              icon={LockIcon}
+              placeholder="Enter your password"
+              error={validation.PASSWORD_ERROR}
+              value={password}
+              setValue={setPassword}
+              shouldReportValidityRef={shouldReportValidityRef}
+            />
+            <router.Link
+              to={appUtils.FORGOT_PASSWORD_PATH}
+              className="text-xs text-blue-500 hover:text-blue-700 focus:text-blue-700 transition-all duration-auth text-end"
+            >
+              Forgot Your Password?
+            </router.Link>
+          </div>
           <SubmitButton disabled={isSubmitting} text="Login" icon={ArrowRightIcon} />
         </form>
       </div>

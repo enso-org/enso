@@ -111,6 +111,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       height: {
         row: 'var(--row-height)',
+        text: 'var(--text-height)',
         sample: 'var(--sample-height)',
         'sample-info': 'var(--sample-info-height)',
       },
@@ -136,6 +137,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       opacity: {
         '1/3': '.33333333',
+        disabled: 'var(--disabled-opacity)',
         'disabled-icon': 'var(--disabled-icon-opacity)',
         placeholder: 'var(--placeholder-opacity)',
       },
@@ -144,8 +146,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'icon-with-text': 'var(--icon-with-text-gap)',
         pages: 'var(--pages-gap)',
         auth: 'var(--auth-gap)',
+        'auth-link': 'var(--auth-link-gap)',
         sidebar: 'var(--sidebar-gap)',
         drive: 'var(--drive-gap)',
+        'status-page': 'var(--status-page-gap)',
+        'menu-entry': 'var(--menu-entry-gap)',
       },
       padding: {
         auth: 'var(--auth-padding)',

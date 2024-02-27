@@ -33,9 +33,7 @@ export default function MembersSettingsTab() {
               setModal(<InviteUsersModal eventTarget={null} />)
             }}
           >
-            <span className="font-semibold whitespace-nowrap leading-cozy h-6 py-px">
-              Invite Members
-            </span>
+            <span className="font-semibold whitespace-nowrap text">Invite Members</span>
           </button>
         </div>
         <table className="self-start table-fixed">

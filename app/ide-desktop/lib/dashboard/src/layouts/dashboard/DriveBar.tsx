@@ -84,7 +84,7 @@ export default function DriveBar(props: DriveBarProps) {
           }}
         >
           <span
-            className={`font-semibold whitespace-nowrap leading-cozy h-6 py-px ${
+            className={`font-semibold whitespace-nowrap text ${
               !isHomeCategory ? 'opacity-50' : ''
             }`}
           >

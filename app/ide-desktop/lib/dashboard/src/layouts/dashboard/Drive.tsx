@@ -294,8 +294,8 @@ export default function Drive(props: DriveProps) {
     case DriveStatus.offline: {
       return (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-          <div className="flex flex-col text-base gap-4">
-            <div className="text-center">You are not logged in.</div>
+          <div className="flex flex-col text-base text-center gap-status-page">
+            <div>You are not logged in.</div>
             <button
               className="text-white bg-help rounded-full self-center leading-cozy h-row py-px w-16"
               onClick={() => {
@@ -311,7 +311,7 @@ export default function Drive(props: DriveProps) {
     case DriveStatus.noProjectManager: {
       return (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-          <div className="text-base text-center">
+          <div className="flex flex-col text-base text-center gap-status-page">
             Could not connect to the Project Manager. Please try restarting {common.PRODUCT_NAME},
             or manually launching the Project Manager.
           </div>
@@ -321,7 +321,7 @@ export default function Drive(props: DriveProps) {
     case DriveStatus.notEnabled: {
       return (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-          <div className="flex flex-col gap-4 text-base text-center">
+          <div className="flex flex-col text-base text-center gap-status-page">
             Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
             <a
               className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-cozy h-row py-px px-2 w-min"
