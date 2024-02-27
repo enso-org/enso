@@ -26,7 +26,7 @@ type S3_Data_Link
 
     ## PRIVATE
     read self (on_problems : Problem_Behavior) =
-        self.as_file self.format on_problems
+        self.as_file.read self.format on_problems
 
 ## PRIVATE
 parse_aws_auth json -> AWS_Credential | Nothing =
