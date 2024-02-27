@@ -54,7 +54,8 @@ async def invoke_gh_api(
         f"/repos/{repo}{endpoint}" + "?" + urlencode(query_params)
     ]
     for k, v in fields.items():
-        cmd.append(f"-f {k}='{v}'")
+        cmd.append("-f")
+        cmd.append(f"{k}='{v}'")
     _logger.debug("Invoking gh API with `%s`", " ".join(cmd))
     proc = await asyncio.create_subprocess_exec("gh", *cmd[1:],
                                                 stdout=subprocess.PIPE,
