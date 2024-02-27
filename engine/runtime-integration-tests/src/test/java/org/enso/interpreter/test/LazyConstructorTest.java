@@ -153,6 +153,50 @@ public class LazyConstructorTest extends TestBase {
   }
 
   @Test
+  public void lazyConstructorWithNamedDefaultedArguments() {
+    try {
+      var module =
+          ctx.eval(
+              "enso",
+              """
+              type M
+                  Construct v1 v2=2 v3=3 v4=4
+
+                  materialize v:M = [v.v1, v.v2, v.v3, v.v4]
+
+              c1 a = M.materialize (~Construct a)
+              c12 a b = M.materialize (~Construct a b)
+              c123 a b c = M.materialize (~Construct a b c)
+              c1234 a b c d = M.materialize (~Construct a b c d)
+              c14 a d = M.materialize (~Construct a v4=d)
+              c13 a c = M.materialize (~Construct a v3=c)
+              c41 a d = M.materialize ((~Construct v4=d) a)
+              c31 a c = M.materialize ((~Construct v3=c) a)
+              """);
+
+      var c1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c1");
+      var c12 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c12");
+      var c123 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c123");
+      var c1234 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c1234");
+      var c14 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c14");
+      var c13 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c13");
+      var c41 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c41");
+      var c31 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c31");
+
+      assertEquals("[9, 2, 3, 4]", c1.execute(9).toString());
+      assertEquals("[9, 7, 3, 4]", c12.execute(9, 7).toString());
+      assertEquals("[9, 7, 5, 4]", c123.execute(9, 7, 5).toString());
+      assertEquals("[9, 7, 5, 3]", c1234.execute(9, 7, 5, 3).toString());
+      assertEquals("[8, 2, 3, 7]", c14.execute(8, 7).toString());
+      assertEquals("[8, 2, 7, 4]", c13.execute(8, 7).toString());
+      assertEquals("[8, 2, 3, 7]", c41.execute(8, 7).toString());
+      assertEquals("[8, 2, 7, 4]", c31.execute(8, 7).toString());
+    } catch (PolyglotException e) {
+      fail(e.getMessage() + " for \n" + out.toString());
+    }
+  }
+
+  @Test
   public void wrongConstructorNameYieldsTypeError() {
     try {
       var create =
