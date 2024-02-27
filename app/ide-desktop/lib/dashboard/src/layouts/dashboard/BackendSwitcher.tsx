@@ -27,7 +27,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
     <div className="flex shrink-0 gap-px">
       <button
         disabled={backend.type === backendModule.BackendType.remote}
-        className={`rounded-l-full px-2.5 py-1 ${
+        className={`rounded-l-full px-selector-x py-selector-y ${
           backend.type === backendModule.BackendType.remote
             ? 'bg-selected-frame text-cloud'
             : 'bg-frame text-black'
@@ -37,7 +37,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
         }}
       >
         <div
-          className={`flex items-center gap-2 ${
+          className={`flex items-center gap-selector-icon-with-text ${
             backend.type === backendModule.BackendType.remote ? '' : 'opacity-30'
           }`}
         >
@@ -47,7 +47,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       </button>
       <button
         disabled={backend.type === backendModule.BackendType.local}
-        className={`rounded-r-full px-2.5 py-1 ${
+        className={`rounded-r-full px-selector-x py-selector-y ${
           backend.type === backendModule.BackendType.local
             ? 'bg-selected-frame text-cloud'
             : 'bg-frame text-black'
@@ -57,7 +57,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
         }}
       >
         <div
-          className={`flex items-center gap-2 ${
+          className={`flex items-center gap-selector-icon-with-text ${
             backend.type === backendModule.BackendType.local ? '' : 'opacity-30'
           }`}
         >

@@ -8,10 +8,14 @@
   --disabled-opacity: 50%;
   --placeholder-opacity: 75%;
   --disabled-icon-opacity: 75%;
+  /* The default gap between a subheading and its content. */
+  --subheading-gap: 1rem;
   /* The gap between each icon in a horizontal list of icons. */
   --icons-gap: 0.75rem;
   /* The gap between an icon and its associated text. */
   --icon-with-text-gap: 0.375rem;
+  /* The gap between an icon and its associated text in a selector option. */
+  --selector-icon-with-text-gap: 0.5rem;
   --pages-gap: 1rem;
   --drive-gap: 0.75rem;
   /* The gap between the icon and label of a menu entry or context menu entry. */
@@ -28,6 +32,9 @@
   --default-corner-radius: 1rem;
   --profile-picture-large-size: 8rem;
   --profile-picture-caption-width: 16rem;
+  --button-padding-x: 0.5rem;
+  --selector-padding-x: 0.625rem;
+  --selector-padding-y: 0.25rem;
 
   --frame-color: rgb(255 255 255 / 40%);
   --selected-frame-color: rgb(255 255 255 / 70%);
@@ -172,14 +179,13 @@ body::before {
   background: rgba(0, 0, 0, 0);
 }
 
-/* Scoped to `.enso-dashboard .enso-chat` in tailwind config. */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 .enso-dashboard,
 .enso-chat {
   @layer components {
+    .transparent {
+      @apply opacity-0;
+    }
+
     .button {
       @apply cursor-pointer disabled:cursor-default inline-block rounded-full px-4 py-1 disabled:opacity-disabled;
     }
@@ -190,6 +196,10 @@ body::before {
 
     .text {
       @apply leading-cozy h-text py-px;
+    }
+
+    .text-subheading {
+      @apply text-xl leading-snug py-0.5;
     }
 
     .settings-value {
@@ -283,3 +293,8 @@ body::before {
     pointer-events: none;
   }
 }
+
+/* Scoped to `.enso-dashboard .enso-chat` in tailwind config. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

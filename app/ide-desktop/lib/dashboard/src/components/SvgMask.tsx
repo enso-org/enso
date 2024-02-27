@@ -35,14 +35,14 @@ export default function SvgMask(props: SvgMaskProps) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         WebkitMask: urlSrc,
       }}
-      className={`inline-block size-max ${className ?? ''}`}
+      className={`inline-block w-max h-max ${className ?? ''}`}
       onClick={onClick}
       onDragStart={event => {
         event.preventDefault()
       }}
     >
       {/* This is required for this component to have the right size. */}
-      <img alt={alt} src={src} className="opacity-0" />
+      <img alt={alt} src={src} className="transparent" />
     </div>
   )
 }

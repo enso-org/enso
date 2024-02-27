@@ -9,8 +9,9 @@ import * as authentication from '#/index'
 
 authentication.run({
   logger: console,
+  // FIXME:
   // This file is only included when building for the cloud.
-  supportsLocalBackend: false,
+  supportsLocalBackend: true,
   supportsDeepLinks: false,
   isAuthenticationDisabled: false,
   shouldShowDashboard: true,

@@ -148,6 +148,7 @@ interface InternalProjectTileProps {
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function ProjectTile(props: InternalProjectTileProps) {
   const { sample, createProject } = props
+  const { id, title, description, background } = sample
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
   const author = DUMMY_AUTHOR
   const opens = DUMMY_OPEN_COUNT
@@ -164,23 +165,23 @@ function ProjectTile(props: InternalProjectTileProps) {
 
   const onClick = () => {
     setSpinnerState(spinner.SpinnerState.initial)
-    createProject(sample.id, sample.title, onSpinnerStateChange)
+    createProject(id, title, onSpinnerStateChange)
   }
 
   return (
     <div className="flex flex-col gap-1.5">
       <button
-        key={sample.title}
+        key={title}
         className="relative flex flex-col grow cursor-pointer text-left h-sample"
         onClick={onClick}
       >
         <div
-          style={{ background: sample.background }}
-          className={`rounded-t-2xl w-full h-25 ${sample.background != null ? '' : 'bg-frame'}`}
+          style={{ background }}
+          className={`rounded-t-2xl w-full h-25 ${background != null ? '' : 'bg-frame'}`}
         />
         <div className="grow bg-frame backdrop-blur rounded-b-2xl w-full px-4 pt-1.75 pb-3.5">
-          <h2 className="text-sm font-bold leading-snug py-0.5">{sample.title}</h2>
-          <div className="text-xs text-ellipsis leading-snug pb-px">{sample.description}</div>
+          <h2 className="text-sm font-bold leading-snug py-0.5">{title}</h2>
+          <div className="text-xs text-ellipsis leading-snug pb-px">{description}</div>
         </div>
         {spinnerState != null && (
           <div className="absolute grid w-full h-25 place-items-center">
@@ -226,8 +227,8 @@ export interface SamplesProps {
 export default function Samples(props: SamplesProps) {
   const { createProject } = props
   return (
-    <div data-testid="samples" className="flex flex-col gap-4 px-4.75">
-      <h2 className="text-xl leading-snug py-0.5">Sample and community projects</h2>
+    <div data-testid="samples" className="flex flex-col gap-subheading px-4.75">
+      <h2 className="text-subheading">Sample and community projects</h2>
       <div className="grid gap-samples grid-cols-fill-samples">
         <ProjectsEntry createProject={createProject} />
         {SAMPLES.map(sample => (

@@ -152,8 +152,10 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         placeholder: 'var(--placeholder-opacity)',
       },
       gap: {
+        subheading: 'var(--subheading-gap)',
         icons: 'var(--icons-gap)',
         'icon-with-text': 'var(--icon-with-text-gap)',
+        'selector-icon-with-text': 'var(--selector-icon-with-text-gap)',
         pages: 'var(--pages-gap)',
         auth: 'var(--auth-gap)',
         'auth-link': 'var(--auth-link-gap)',
@@ -174,6 +176,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         auth: 'var(--auth-padding)',
         sidebar: 'var(--sidebar-padding)',
         'radio-button-dot': 'var(--radio-button-dot-padding)',
+        'button-x': 'var(--button-padding-x)',
+        'selector-x': 'var(--selector-padding-x)',
+        'selector-y': 'var(--selector-padding-y)',
       },
       lineHeight: {
         snug: 'var(--snug-line-height)',
