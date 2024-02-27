@@ -243,10 +243,32 @@ add_specs suite_builder =
             + [["-1", -1]]
             + [["2", 2]]
             + [["-2", -2]]
+            + [["0", 0.0]]
+            + [["1", 1.0]]
+            + [["-1", -1.0]]
+            + [["2", 2.0]]
+            + [["-2", -2.0]]
+            + [[0, 0]]
+            + [[1, 1]]
+            + [[-1, -1]]
+            + [[2, 2]]
+            + [[-2, -2]]
+            + [[0, 0.0]]
+            + [[1, 1.0]]
+            + [[-1, -1.0]]
+            + [[2, 2.0]]
+            + [[-2, -2.0]]
             + [["12.34", 12.34]]
             + [["-34.56", -34.56]]
+            + [["72775434512.34", 72775434512.34]]
+            + [["-347757349.56784374", -347757349.56784374]]
+            + [[12.34, 12.34]]
+            + [[-34.56, -34.56]]
+            + [[72775434512.34, 72775434512.34]]
+            + [[-347757349.56784374, -347757349.56784374]]
             + [["2.0", 2.0]]
             + [["2.00", 2.0]]
+            + [["2.000", 2.0]]
             + [[Decimal.new 12000 (Math_Context.new 0), 12000]]
             + [[Decimal.new 12000 (Math_Context.new 1), 10000]]
             + [[Decimal.new 12000 (Math_Context.new 2), 12000]]
@@ -283,14 +305,18 @@ add_specs suite_builder =
         _ = problematic_values
 
         values.map_with_index i-> pr->
-            group_builder.specify "should add Decimals correctly "+i.to_text <|
+            group_builder.specify "should compare correctly to Integer and Float "+i.to_text <|
                 arg = pr.at 0
                 expected = pr.at 1
                 d = case arg of
                     _ : Decimal -> arg
                     _ -> Decimal.new arg
                 d . should_equal expected
+                expected . should_equal d
+                d . should_equal d
                 (d == expected) . should_be_true
+                (expected == d) . should_be_true
+                (d == d) . should_be_true
 
 main =
     suite = Test.build suite_builder->
