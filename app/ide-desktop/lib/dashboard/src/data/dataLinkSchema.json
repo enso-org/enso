@@ -3,12 +3,16 @@
   "$defs": {
     "DataLink": {
       "title": "Data Link",
+      "type": "object",
       "anyOf": [
         { "$ref": "#/$defs/S3DataLink" },
         { "$ref": "#/$defs/HttpFetchDataLink" }
       ],
       "properties": {
-        "libraryName": { "type": "string", "description": "Name of the library that provides the data link." }
+        "libraryName": {
+          "type": "string",
+          "description": "Name of the library that provides the data link."
+        }
       },
       "required": ["type", "libraryName"]
     },
@@ -102,7 +106,7 @@
         "auth": { "title": "Authentication", "$ref": "#/$defs/AwsAuth" },
         "format": { "title": "Format", "$ref": "#/$defs/Format" }
       },
-      "required": ["type","uri", "auth"]
+      "required": ["type", "uri", "auth"]
     },
     "HttpFetchDataLink": {
       "$comment": "missing <headers with secrets> and <query string with secrets>",
