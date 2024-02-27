@@ -164,7 +164,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   setDescription(event.currentTarget.value)
                 }}
                 className="bg-frame resize-none rounded-lg w-full p-2"
-              ></textarea>
+              />
               <button type="submit" className="self-start bg-frame-selected rounded-full px-4 py-1">
                 Update
               </button>

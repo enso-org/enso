@@ -23,6 +23,7 @@ import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/dashboard/AssetsTableContextMenu'
 import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import DuplicateAssetsModal from '#/layouts/dashboard/DuplicateAssetsModal'
+import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import Button from '#/components/Button'
 import type * as assetRow from '#/components/dashboard/AssetRow'
@@ -33,6 +34,7 @@ import NameColumn from '#/components/dashboard/column/NameColumn'
 import * as columnHeading from '#/components/dashboard/columnHeading'
 import Label from '#/components/dashboard/Label'
 import DragModal from '#/components/DragModal'
+import SelectionBrush from '#/components/SelectionBrush'
 import Spinner, * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
@@ -44,6 +46,7 @@ import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as drag from '#/utilities/drag'
 import * as fileInfo from '#/utilities/fileInfo'
+import type * as geometry from '#/utilities/geometry'
 import LocalStorage from '#/utilities/LocalStorage'
 import type * as pasteDataModule from '#/utilities/pasteData'
 import PasteType from '#/utilities/PasteType'
@@ -78,8 +81,21 @@ LocalStorage.registerKey('extraColumns', {
 // === Constants ===
 // =================
 
+/** If the drag pointer is less than this distance away from the top or bottom of the
+ * scroll container, then the scroll container automatically scrolls upwards if the cursor is near
+ * the top of the scroll container, or downwards if the cursor is near the bottom. */
+const AUTOSCROLL_THRESHOLD_PX = 50
+/** An arbitrary constant that controls the speed of autoscroll. */
+const AUTOSCROLL_SPEED = 100
+/** The autoscroll speed is `AUTOSCROLL_SPEED / (distance + AUTOSCROLL_DAMPENING)`. */
+const AUTOSCROLL_DAMPENING = 10
+/** The height of the header row. */
+const HEADER_HEIGHT_PX = 34
+/** The height of each row in the table body. MUST be identical to the value as set by the
+ * Tailwind styling. */
+const ROW_HEIGHT_PX = 32
 /** The size of the loading spinner. */
-const LOADING_SPINNER_SIZE = 36
+const LOADING_SPINNER_SIZE_PX = 36
 /** The number of pixels the header bar should shrink when the extra column selector is visible. */
 const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
 /** The default placeholder row. */
@@ -135,9 +151,14 @@ const SUGGESTIONS_FOR_TYPE: assetSearchBar.Suggestion[] = [
     deleteFromQuery: query => query.deleteFromLastTerm({ types: ['file'] }),
   },
   {
-    render: () => 'type:connector',
-    addToQuery: query => query.addToLastTerm({ types: ['connector'] }),
-    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['connector'] }),
+    render: () => 'type:secret',
+    addToQuery: query => query.addToLastTerm({ types: ['secret'] }),
+    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['secret'] }),
+  },
+  {
+    render: () => 'type:datalink',
+    addToQuery: query => query.addToLastTerm({ types: ['datalink'] }),
+    deleteFromQuery: query => query.deleteFromLastTerm({ types: ['datalink'] }),
   },
 ]
 const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
@@ -234,6 +255,17 @@ function insertArbitraryAssetTreeNodeChildren(
   return newNodes === nodes ? item : item.with({ children: newNodes })
 }
 
+// =========================
+// === DragSelectionInfo ===
+// =========================
+
+/** Information related to a drag selection. */
+interface DragSelectionInfo {
+  readonly initialIndex: number
+  readonly start: number
+  readonly end: number
+}
+
 // =============================
 // === Category to filter by ===
 // =============================
@@ -251,6 +283,7 @@ const CATEGORY_TO_FILTER_BY: Readonly<Record<Category, backendModule.FilterBy | 
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
   readonly selectedKeys: React.MutableRefObject<ReadonlySet<backendModule.AssetId>>
+  readonly scrollContainerRef: React.RefObject<HTMLElement>
   readonly visibilities: ReadonlyMap<backendModule.AssetId, Visibility>
   readonly category: Category
   readonly labels: Map<backendModule.LabelName, backendModule.Label>
@@ -266,9 +299,8 @@ export interface AssetsTableState {
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  readonly setAssetPanelProps: React.Dispatch<
-    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
-  >
+  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
+  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly nodeMap: Readonly<
     React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
   >
@@ -280,12 +312,12 @@ export interface AssetsTableState {
   ) => void
   /** Called when the project is opened via the `ProjectActionButton`. */
   readonly doOpenManually: (projectId: backendModule.ProjectId) => void
-  readonly doOpenIde: (
+  readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  readonly doCloseIde: (project: backendModule.ProjectAsset) => void
+  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
   readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
   readonly doCopy: () => void
   readonly doCut: () => void
@@ -305,6 +337,7 @@ export interface AssetRowState {
 
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
+  readonly hidden: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setCanDownloadFiles: (canDownloadFiles: boolean) => void
@@ -321,25 +354,25 @@ export interface AssetsTableProps {
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  readonly setAssetPanelProps: React.Dispatch<
-    React.SetStateAction<assetPanel.AssetPanelRequiredProps | null>
-  >
-  readonly doOpenIde: (
+  readonly setAssetPanelProps: (props: assetPanel.AssetPanelRequiredProps | null) => void
+  readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
+  readonly doOpenEditor: (
     project: backendModule.ProjectAsset,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
-  readonly doCloseIde: (project: backendModule.ProjectAsset) => void
+  readonly doCloseEditor: (project: backendModule.ProjectAsset) => void
   readonly doCreateLabel: (value: string, color: backendModule.LChColor) => Promise<void>
 }
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { query, setQuery, setCanDownloadFiles, category, allLabels, setSuggestions } = props
-  const { deletedLabelNames, initialProjectName, projectStartupInfo } = props
+  const { hidden, query, setQuery, setCanDownloadFiles, category, allLabels } = props
+  const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
-  const { setAssetPanelProps, doOpenIde, doCloseIde: rawDoCloseIde, doCreateLabel } = props
+  const { setAssetPanelProps, doOpenEditor, doCloseEditor: rawDoCloseEditor, doCreateLabel } = props
+  const { setIsAssetPanelTemporarilyVisible } = props
 
   const { user, userInfo, accessToken } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -407,8 +440,8 @@ export default function AssetsTable(props: AssetsTableProps) {
         const assetType =
           node.item.type === backendModule.AssetType.directory
             ? 'folder'
-            : node.item.type === backendModule.AssetType.secret
-            ? 'connector'
+            : node.item.type === backendModule.AssetType.dataLink
+            ? 'datalink'
             : String(node.item.type)
         const assetExtension =
           node.item.type !== backendModule.AssetType.file
@@ -513,14 +546,9 @@ export default function AssetsTable(props: AssetsTableProps) {
       switch (sortColumn) {
         case columnUtils.Column.name: {
           compare = (a, b) => {
-            const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
-            const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
-            const typeDelta = aTypeOrder - bTypeOrder
             const aTitle = a.item.title.toLowerCase()
             const bTitle = b.item.title.toLowerCase()
-            if (typeDelta !== 0) {
-              return typeDelta
-            } else if (aTitle === bTitle) {
+            if (aTitle === bTitle) {
               const delta = a.item.title > b.item.title ? 1 : a.item.title < b.item.title ? -1 : 0
               return multiplier * delta
             } else {
@@ -532,16 +560,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         case columnUtils.Column.modified: {
           compare = (a, b) => {
-            const aTypeOrder = backendModule.ASSET_TYPE_ORDER[a.item.type]
-            const bTypeOrder = backendModule.ASSET_TYPE_ORDER[b.item.type]
-            const typeDelta = aTypeOrder - bTypeOrder
-            if (typeDelta !== 0) {
-              return typeDelta
-            } else {
-              const aOrder = Number(new Date(a.item.modifiedAt))
-              const bOrder = Number(new Date(b.item.modifiedAt))
-              return multiplier * (aOrder - bOrder)
-            }
+            const aOrder = Number(new Date(a.item.modifiedAt))
+            const bOrder = Number(new Date(b.item.modifiedAt))
+            return multiplier * (aOrder - bOrder)
           }
           break
         }
@@ -573,6 +594,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     processNode(assetTree)
     return map
   }, [assetTree, filter])
+  const visibleItems = React.useMemo(
+    () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
+    [displayItems, visibilities]
+  )
 
   React.useEffect(() => {
     if (category === Category.trash) {
@@ -631,12 +656,12 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         case 'no':
         case '-has': {
-          setSuggestions(SUGGESTIONS_FOR_NO)
+          setSuggestions(isCloud ? SUGGESTIONS_FOR_NO : [])
           break
         }
         case 'has':
         case '-no': {
-          setSuggestions(SUGGESTIONS_FOR_HAS)
+          setSuggestions(isCloud ? SUGGESTIONS_FOR_HAS : [])
           break
         }
         case 'type': {
@@ -738,24 +763,26 @@ export default function AssetsTable(props: AssetsTableProps) {
         case 'label':
         case '-label': {
           setSuggestions(
-            Array.from(
-              allLabels.values(),
-              (label): assetSearchBar.Suggestion => ({
-                render: () => (
-                  <Label active color={label.color} onClick={() => {}}>
-                    {label.value}
-                  </Label>
-                ),
-                addToQuery: oldQuery =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                  ),
-                deleteFromQuery: oldQuery =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
-                  ),
-              })
-            )
+            !isCloud
+              ? []
+              : Array.from(
+                  allLabels.values(),
+                  (label): assetSearchBar.Suggestion => ({
+                    render: () => (
+                      <Label active color={label.color} onClick={() => {}}>
+                        {label.value}
+                      </Label>
+                    ),
+                    addToQuery: oldQuery =>
+                      oldQuery.addToLastTerm(
+                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                      ),
+                    deleteFromQuery: oldQuery =>
+                      oldQuery.deleteFromLastTerm(
+                        negative ? { negativeLabels: [label.value] } : { labels: [label.value] }
+                      ),
+                  })
+                )
           )
 
           break
@@ -766,7 +793,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
+  }, [isCloud, assetTree, query, visibilities, allLabels, /* should never change */ setSuggestions])
 
   React.useEffect(() => {
     if (rawQueuedAssetEvents.length !== 0) {
@@ -837,16 +864,29 @@ export default function AssetsTable(props: AssetsTableProps) {
     (newSelectedKeys: ReadonlySet<backendModule.AssetId>) => {
       selectedKeysRef.current = newSelectedKeys
       setSelectedKeysRaw(newSelectedKeys)
+      if (!isCloud) {
+        setCanDownloadFiles(newSelectedKeys.size !== 0)
+      } else {
+        setCanDownloadFiles(
+          newSelectedKeys.size !== 0 &&
+            Array.from(newSelectedKeys).every(key => {
+              const node = nodeMapRef.current.get(key)
+              return node?.item.type === backendModule.AssetType.file
+            })
+        )
+      }
     },
-    []
+    [isCloud, /* should never change */ setCanDownloadFiles]
   )
 
   const clearSelectedKeys = React.useCallback(() => {
     setSelectedKeys(new Set())
-  }, [/* should never change */ setSelectedKeys])
+  }, [setSelectedKeys])
 
   const overwriteNodes = React.useCallback(
     (newAssets: backendModule.AnyAsset[]) => {
+      mostRecentlySelectedIndexRef.current = null
+      selectionStartIndexRef.current = null
       // This is required, otherwise we are using an outdated
       // `nameOfProjectToImmediatelyOpen`.
       setNameOfProjectToImmediatelyOpen(oldNameOfProjectToImmediatelyOpen => {
@@ -1071,8 +1111,13 @@ export default function AssetsTable(props: AssetsTableProps) {
   React.useEffect(() => {
     if (selectedKeysRef.current.size !== 1) {
       setAssetPanelProps(null)
+      setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [selectedKeysRef.current.size, /* should never change */ setAssetPanelProps])
+  }, [
+    selectedKeysRef.current.size,
+    /* should never change */ setAssetPanelProps,
+    /* should never change */ setIsAssetPanelTemporarilyVisible,
+  ])
 
   const directoryListAbortControllersRef = React.useRef(
     new Map<backendModule.DirectoryId, AbortController>()
@@ -1178,6 +1223,168 @@ export default function AssetsTable(props: AssetsTableProps) {
     },
     [category, backend]
   )
+
+  const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
+  const [keyboardSelectedIndex, setKeyboardSelectedIndexRaw] = React.useState<number | null>(null)
+  const mostRecentlySelectedIndexRef = React.useRef<number | null>(null)
+  const selectionStartIndexRef = React.useRef<number | null>(null)
+  const bodyRef = React.useRef<HTMLTableSectionElement>(null)
+
+  const setMostRecentlySelectedIndex = React.useCallback(
+    (index: number | null, isKeyboard = false) => {
+      mostRecentlySelectedIndexRef.current = index
+      setKeyboardSelectedIndexRaw(isKeyboard ? index : null)
+    },
+    []
+  )
+
+  React.useEffect(() => {
+    // This is not a React component, even though it contains JSX.
+    // eslint-disable-next-line no-restricted-syntax
+    const onKeyDown = (event: KeyboardEvent) => {
+      const prevIndex = mostRecentlySelectedIndexRef.current
+      const item = prevIndex == null ? null : visibleItems[prevIndex]
+      if (selectedKeysRef.current.size === 1 && item != null) {
+        switch (event.key) {
+          case 'Enter':
+          case ' ': {
+            if (event.key === ' ' && event.ctrlKey) {
+              const keys = selectedKeysRef.current
+              setSelectedKeys(set.withPresence(keys, item.key, !keys.has(item.key)))
+            } else {
+              switch (item.item.type) {
+                case backendModule.AssetType.directory: {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  doToggleDirectoryExpansion(item.item.id, item.key)
+                  break
+                }
+                case backendModule.AssetType.project: {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  dispatchAssetEvent({
+                    type: AssetEventType.openProject,
+                    id: item.item.id,
+                    runInBackground: false,
+                    shouldAutomaticallySwitchPage: true,
+                  })
+                  break
+                }
+                case backendModule.AssetType.dataLink: {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setIsAssetPanelTemporarilyVisible(true)
+                  break
+                }
+                case backendModule.AssetType.secret: {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  const id = item.item.id
+                  setModal(
+                    <UpsertSecretModal
+                      id={item.item.id}
+                      name={item.item.title}
+                      doCreate={async (_name, value) => {
+                        try {
+                          await backend.updateSecret(id, { value }, item.item.title)
+                        } catch (error) {
+                          toastAndLog(null, error)
+                        }
+                      }}
+                    />
+                  )
+                  break
+                }
+                default: {
+                  break
+                }
+              }
+            }
+            break
+          }
+          case 'ArrowLeft': {
+            if (item.item.type === backendModule.AssetType.directory && item.children != null) {
+              event.preventDefault()
+              event.stopPropagation()
+              doToggleDirectoryExpansion(item.item.id, item.key, null, false)
+            }
+            break
+          }
+          case 'ArrowRight': {
+            if (item.item.type === backendModule.AssetType.directory && item.children == null) {
+              event.preventDefault()
+              event.stopPropagation()
+              doToggleDirectoryExpansion(item.item.id, item.key, null, true)
+            }
+            break
+          }
+        }
+      }
+      switch (event.key) {
+        case ' ': {
+          if (event.ctrlKey && item != null) {
+            const keys = selectedKeysRef.current
+            setSelectedKeys(set.withPresence(keys, item.key, !keys.has(item.key)))
+          }
+          break
+        }
+        case 'Escape': {
+          setSelectedKeys(new Set())
+          setMostRecentlySelectedIndex(null)
+          selectionStartIndexRef.current = null
+          break
+        }
+        case 'ArrowUp':
+        case 'ArrowDown': {
+          event.preventDefault()
+          event.stopPropagation()
+          if (!event.shiftKey) {
+            selectionStartIndexRef.current = null
+          }
+          const index =
+            prevIndex == null
+              ? 0
+              : event.key === 'ArrowUp'
+              ? Math.max(0, prevIndex - 1)
+              : Math.min(visibleItems.length - 1, prevIndex + 1)
+          setMostRecentlySelectedIndex(index, true)
+          if (event.shiftKey) {
+            // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
+            if (selectionStartIndexRef.current == null) {
+              selectionStartIndexRef.current = prevIndex ?? 0
+            }
+            const startIndex = Math.min(index, selectionStartIndexRef.current)
+            const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
+            const selection = visibleItems.slice(startIndex, endIndex)
+            setSelectedKeys(new Set(selection.map(newItem => newItem.key)))
+          } else if (event.ctrlKey) {
+            selectionStartIndexRef.current = null
+          } else {
+            const newItem = visibleItems[index]
+            if (newItem != null) {
+              setSelectedKeys(new Set([newItem.key]))
+            }
+            selectionStartIndexRef.current = null
+          }
+          break
+        }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [
+    visibleItems,
+    backend,
+    doToggleDirectoryExpansion,
+    /* should never change */ toastAndLog,
+    /* should never change */ setModal,
+    /* should never change */ setMostRecentlySelectedIndex,
+    /* should never change */ setSelectedKeys,
+    /* should never change */ setIsAssetPanelTemporarilyVisible,
+    /* should never change */ dispatchAssetEvent,
+  ])
 
   const getNewProjectName = React.useCallback(
     (templateName: string | null, parentKey: backendModule.DirectoryId | null) => {
@@ -1544,16 +1751,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     [/* should never change */ dispatchAssetEvent]
   )
 
-  const doCloseIde = React.useCallback(
+  const doCloseEditor = React.useCallback(
     (project: backendModule.ProjectAsset) => {
       if (project.id === projectStartupInfo?.projectAsset.id) {
-        dispatchAssetEvent({
-          type: AssetEventType.cancelOpeningAllProjects,
-        })
-        rawDoCloseIde(project)
+        rawDoCloseEditor(project)
       }
     },
-    [projectStartupInfo, rawDoCloseIde, /* should never change */ dispatchAssetEvent]
+    [projectStartupInfo, rawDoCloseEditor]
   )
 
   const doCopy = React.useCallback(() => {
@@ -1571,7 +1775,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     setSelectedKeys(new Set())
   }, [
     pasteData,
-    /* should never change */ setSelectedKeys,
+    setSelectedKeys,
     /* should never change */ unsetModal,
     /* should never change */ dispatchAssetEvent,
   ])
@@ -1658,6 +1862,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     (): AssetsTableState => ({
       visibilities,
       selectedKeys: selectedKeysRef,
+      scrollContainerRef,
       category,
       labels: allLabels,
       deletedLabelNames,
@@ -1673,11 +1878,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       dispatchAssetEvent,
       dispatchAssetListEvent,
       setAssetPanelProps,
+      setIsAssetPanelTemporarilyVisible,
       nodeMap: nodeMapRef,
       doToggleDirectoryExpansion,
       doOpenManually,
-      doOpenIde,
-      doCloseIde,
+      doOpenEditor: doOpenEditor,
+      doCloseEditor: doCloseEditor,
       doCreateLabel,
       doCopy,
       doCut,
@@ -1695,23 +1901,19 @@ export default function AssetsTable(props: AssetsTableProps) {
       query,
       doToggleDirectoryExpansion,
       doOpenManually,
-      doOpenIde,
-      doCloseIde,
+      doOpenEditor,
+      doCloseEditor,
       doCreateLabel,
       doCopy,
       doCut,
       doPaste,
       /* should never change */ setAssetPanelProps,
+      /* should never change */ setIsAssetPanelTemporarilyVisible,
       /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
-
-  const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
-  const [previouslySelectedKey, setPreviouslySelectedKey] =
-    React.useState<backendModule.AssetId | null>(null)
-  const bodyRef = React.useRef<HTMLTableSectionElement>(null)
 
   // This is required to prevent the table body from overlapping the table header, because
   // the table header is transparent.
@@ -1754,13 +1956,18 @@ export default function AssetsTable(props: AssetsTableProps) {
         selectedKeysRef.current.size !== 0
       ) {
         setSelectedKeys(new Set())
+        setMostRecentlySelectedIndex(null)
       }
     }
     document.addEventListener('click', onDocumentClick)
     return () => {
       document.removeEventListener('click', onDocumentClick)
     }
-  }, [shortcutManager, /* should never change */ setSelectedKeys])
+  }, [
+    shortcutManager,
+    /* should never change */ setSelectedKeys,
+    /* should never change */ setMostRecentlySelectedIndex,
+  ])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -1774,38 +1981,24 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [isLoading])
 
-  const onRowClick = React.useCallback(
-    (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
-      const { key } = innerRowProps
+  const calculateNewKeys = React.useCallback(
+    (
+      event: MouseEvent | React.MouseEvent,
+      keys: backendModule.AssetId[],
+      getRange: () => backendModule.AssetId[]
+    ) => {
       event.stopPropagation()
-      const getNewlySelectedKeys = () => {
-        if (previouslySelectedKey == null) {
-          return [key]
-        } else {
-          const index1 = displayItems.findIndex(
-            innerItem => AssetTreeNode.getKey(innerItem) === previouslySelectedKey
-          )
-          const index2 = displayItems.findIndex(
-            innerItem => AssetTreeNode.getKey(innerItem) === key
-          )
-          const selectedItems =
-            index1 <= index2
-              ? displayItems.slice(index1, index2 + 1)
-              : displayItems.slice(index2, index1 + 1)
-          return selectedItems.map(AssetTreeNode.getKey)
-        }
-      }
       if (
         shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.selectRange, event)
       ) {
-        setSelectedKeys(new Set(getNewlySelectedKeys()))
+        return new Set(getRange())
       } else if (
         shortcutManager.matchesMouseAction(
           shortcutManagerModule.MouseAction.selectAdditionalRange,
           event
         )
       ) {
-        setSelectedKeys(new Set([...selectedKeysRef.current, ...getNewlySelectedKeys()]))
+        return new Set([...selectedKeysRef.current, ...getRange()])
       } else if (
         shortcutManager.matchesMouseAction(
           shortcutManagerModule.MouseAction.selectAdditional,
@@ -1813,22 +2006,147 @@ export default function AssetsTable(props: AssetsTableProps) {
         )
       ) {
         const newSelectedKeys = new Set(selectedKeysRef.current)
-        if (selectedKeysRef.current.has(key)) {
-          newSelectedKeys.delete(key)
-        } else {
-          newSelectedKeys.add(key)
+        let count = 0
+        for (const key of keys) {
+          if (selectedKeysRef.current.has(key)) {
+            count += 1
+          }
         }
-        setSelectedKeys(newSelectedKeys)
+        for (const key of keys) {
+          const add = count * 2 < keys.length
+          set.setPresence(newSelectedKeys, key, add)
+        }
+        return newSelectedKeys
       } else {
-        setSelectedKeys(new Set([key]))
+        return new Set(keys)
       }
-      setPreviouslySelectedKey(key)
+    },
+    [shortcutManager]
+  )
+
+  // Only non-`null` when it is different to`selectedKeys`.
+  const [visuallySelectedKeysOverride, setVisuallySelectedKeysOverride] =
+    React.useState<ReadonlySet<backendModule.AssetId> | null>(null)
+
+  const dragSelectionChangeLoopHandle = React.useRef(0)
+  const dragSelectionRangeRef = React.useRef<DragSelectionInfo | null>(null)
+  const onSelectionDrag = React.useCallback(
+    (rectangle: geometry.DetailedRectangle, event: MouseEvent) => {
+      if (mostRecentlySelectedIndexRef.current != null) {
+        setKeyboardSelectedIndexRaw(null)
+      }
+      cancelAnimationFrame(dragSelectionChangeLoopHandle.current)
+      const scrollContainer = scrollContainerRef.current
+      if (scrollContainer != null) {
+        const rect = scrollContainer.getBoundingClientRect()
+        if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
+          const distanceToTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
+          if (distanceToTop < AUTOSCROLL_THRESHOLD_PX) {
+            scrollContainer.scrollTop -= Math.floor(
+              AUTOSCROLL_SPEED / (distanceToTop + AUTOSCROLL_DAMPENING)
+            )
+            dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
+              onSelectionDrag(rectangle, event)
+            })
+          }
+        }
+        if (
+          rectangle.signedHeight >= 0 &&
+          scrollContainer.scrollTop + rect.height < scrollContainer.scrollHeight
+        ) {
+          const distanceToBottom = Math.max(0, rect.bottom - rectangle.bottom)
+          if (distanceToBottom < AUTOSCROLL_THRESHOLD_PX) {
+            scrollContainer.scrollTop += Math.floor(
+              AUTOSCROLL_SPEED / (distanceToBottom + AUTOSCROLL_DAMPENING)
+            )
+            dragSelectionChangeLoopHandle.current = requestAnimationFrame(() => {
+              onSelectionDrag(rectangle, event)
+            })
+          }
+        }
+        const overlapsHorizontally = rect.right > rectangle.left && rect.left < rectangle.right
+        const selectionTop = Math.max(0, rectangle.top - rect.top - HEADER_HEIGHT_PX)
+        const selectionBottom = Math.max(
+          0,
+          Math.min(rect.height, rectangle.bottom - rect.top - HEADER_HEIGHT_PX)
+        )
+        const range = dragSelectionRangeRef.current
+        if (!overlapsHorizontally) {
+          dragSelectionRangeRef.current = null
+        } else if (range == null) {
+          const topIndex = (selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT_PX
+          const bottomIndex = (selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT_PX
+          dragSelectionRangeRef.current = {
+            initialIndex: rectangle.signedHeight < 0 ? bottomIndex : topIndex,
+            start: Math.floor(topIndex),
+            end: Math.ceil(bottomIndex),
+          }
+        } else {
+          const topIndex = (selectionTop + scrollContainer.scrollTop) / ROW_HEIGHT_PX
+          const bottomIndex = (selectionBottom + scrollContainer.scrollTop) / ROW_HEIGHT_PX
+          const endIndex = rectangle.signedHeight < 0 ? topIndex : bottomIndex
+          dragSelectionRangeRef.current = {
+            initialIndex: range.initialIndex,
+            start: Math.floor(Math.min(range.initialIndex, endIndex)),
+            end: Math.ceil(Math.max(range.initialIndex, endIndex)),
+          }
+        }
+        if (range == null) {
+          setVisuallySelectedKeysOverride(null)
+        } else {
+          const keys = displayItems.slice(range.start, range.end).map(node => node.key)
+          setVisuallySelectedKeysOverride(calculateNewKeys(event, keys, () => []))
+        }
+      }
+    },
+    [displayItems, calculateNewKeys]
+  )
+
+  const onSelectionDragEnd = React.useCallback(
+    (event: MouseEvent) => {
+      const range = dragSelectionRangeRef.current
+      if (range != null) {
+        const keys = displayItems.slice(range.start, range.end).map(node => node.key)
+        setSelectedKeys(calculateNewKeys(event, keys, () => []))
+      }
+      setVisuallySelectedKeysOverride(null)
+      dragSelectionRangeRef.current = null
+    },
+    [displayItems, calculateNewKeys, /* should never change */ setSelectedKeys]
+  )
+
+  const onSelectionDragCancel = React.useCallback(() => {
+    setVisuallySelectedKeysOverride(null)
+    dragSelectionRangeRef.current = null
+  }, [])
+
+  const onRowClick = React.useCallback(
+    (innerRowProps: assetRow.AssetRowInnerProps, event: React.MouseEvent) => {
+      const { key } = innerRowProps
+      event.stopPropagation()
+      const newIndex = visibleItems.findIndex(innerItem => AssetTreeNode.getKey(innerItem) === key)
+      const getRange = () => {
+        if (mostRecentlySelectedIndexRef.current == null) {
+          return [key]
+        } else {
+          const index1 = mostRecentlySelectedIndexRef.current
+          const index2 = newIndex
+          const startIndex = Math.min(index1, index2)
+          const endIndex = Math.max(index1, index2) + 1
+          return visibleItems.slice(startIndex, endIndex).map(AssetTreeNode.getKey)
+        }
+      }
+      setSelectedKeys(calculateNewKeys(event, [key], getRange))
+      setMostRecentlySelectedIndex(newIndex)
+      if (!event.shiftKey) {
+        selectionStartIndexRef.current = null
+      }
     },
     [
-      displayItems,
-      previouslySelectedKey,
-      shortcutManager,
+      visibleItems,
+      calculateNewKeys,
       /* should never change */ setSelectedKeys,
+      /* should never change */ setMostRecentlySelectedIndex,
     ]
   )
 
@@ -1856,15 +2174,15 @@ export default function AssetsTable(props: AssetsTableProps) {
     <tr className="h-8">
       <td colSpan={columns.length} className="bg-transparent">
         <div className="grid justify-around w-container">
-          <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
+          <Spinner size={LOADING_SPINNER_SIZE_PX} state={spinnerState} />
         </div>
       </td>
     </tr>
   ) : (
     displayItems.map(item => {
       const key = AssetTreeNode.getKey(item)
-      const isSelected = selectedKeys.has(key)
-      const isSoleSelectedItem = selectedKeys.size === 1 && isSelected
+      const isSelected = (visuallySelectedKeysOverride ?? selectedKeys).has(key)
+      const isSoleSelected = selectedKeys.size === 1 && isSelected
       return (
         <AssetRow
           key={key}
@@ -1876,21 +2194,26 @@ export default function AssetsTable(props: AssetsTableProps) {
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
           }}
-          isSoleSelectedItem={isSoleSelectedItem}
-          allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelectedItem}
+          isSoleSelected={isSoleSelected}
+          isKeyboardSelected={
+            keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
+          }
+          allowContextMenu={selectedKeysRef.current.size === 0 || !isSelected || isSoleSelected}
           onClick={onRowClick}
           onContextMenu={(_innerProps, event) => {
             if (!isSelected) {
               event.preventDefault()
               event.stopPropagation()
-              setPreviouslySelectedKey(key)
+              setMostRecentlySelectedIndex(visibleItems.indexOf(item))
+              selectionStartIndexRef.current = null
               setSelectedKeys(new Set([key]))
             }
           }}
           onDragStart={event => {
             let newSelectedKeys = selectedKeysRef.current
-            if (!selectedKeysRef.current.has(key)) {
-              setPreviouslySelectedKey(key)
+            if (!newSelectedKeys.has(key)) {
+              setMostRecentlySelectedIndex(visibleItems.indexOf(item))
+              selectionStartIndexRef.current = null
               newSelectedKeys = new Set([key])
               setSelectedKeys(newSelectedKeys)
             }
@@ -1918,7 +2241,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     item={node.with({ depth: 0 })}
                     state={state}
                     // Default states.
-                    isSoleSelectedItem={false}
+                    isSoleSelected={false}
                     selected={false}
                     rowState={assetRowUtils.INITIAL_ROW_STATE}
                     // The drag placeholder cannot be interacted with.
@@ -2031,9 +2354,9 @@ export default function AssetsTable(props: AssetsTableProps) {
             category={category}
             pasteData={pasteData}
             selectedKeys={selectedKeys}
+            clearSelectedKeys={clearSelectedKeys}
             nodeMapRef={nodeMapRef}
             event={event}
-            clearSelectedKeys={clearSelectedKeys}
             dispatchAssetEvent={dispatchAssetEvent}
             dispatchAssetListEvent={dispatchAssetListEvent}
             doCopy={doCopy}
@@ -2106,6 +2429,13 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
+      {!hidden && (
+        <SelectionBrush
+          onDrag={onSelectionDrag}
+          onDragEnd={onSelectionDragEnd}
+          onDragCancel={onSelectionDragCancel}
+        />
+      )}
       <div className="flex flex-col w-min min-w-full h-full">
         {isCloud && (
           <div className="sticky top-0 h-0 flex flex-col">

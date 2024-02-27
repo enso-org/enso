@@ -101,7 +101,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(longStorage.size(), targetType);
     for (int i = 0; i < longStorage.size(); i++) {
-      if (longStorage.isNa(i)) {
+      if (longStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         long value = longStorage.getItem(i);
@@ -119,7 +119,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(boolStorage.size(), targetType);
     for (int i = 0; i < boolStorage.size(); i++) {
-      if (boolStorage.isNa(i)) {
+      if (boolStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         boolean value = boolStorage.getItem(i);
@@ -137,7 +137,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(doubleStorage.size(), targetType);
     for (int i = 0; i < doubleStorage.size(); i++) {
-      if (doubleStorage.isNa(i)) {
+      if (doubleStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         double value = doubleStorage.getItemAsDouble(i);
@@ -155,7 +155,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(storage.size(), targetType);
     for (int i = 0; i < storage.size(); i++) {
-      if (storage.isNa(i)) {
+      if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         T value = storage.getItemBoxed(i);
@@ -192,7 +192,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(stringStorage.size(), targetType);
     for (int i = 0; i < stringStorage.size(); i++) {
-      if (stringStorage.isNa(i)) {
+      if (stringStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         String value = stringStorage.getItem(i);

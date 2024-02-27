@@ -124,6 +124,7 @@ export interface CreatedDirectory {
 export enum ProjectState {
   created = 'Created',
   new = 'New',
+  scheduled = 'Scheduled',
   openInProgress = 'OpenInProgress',
   provisioned = 'Provisioned',
   opened = 'Opened',
@@ -152,9 +153,22 @@ export interface ProjectStateType {
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Readonly<Record<ProjectState, boolean>> = {
+export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.created]: false,
   [ProjectState.new]: false,
+  [ProjectState.scheduled]: true,
+  [ProjectState.openInProgress]: true,
+  [ProjectState.provisioned]: true,
+  [ProjectState.opened]: false,
+  [ProjectState.closed]: false,
+  [ProjectState.placeholder]: true,
+  [ProjectState.closing]: false,
+}
+
+export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
+  [ProjectState.created]: false,
+  [ProjectState.new]: false,
+  [ProjectState.scheduled]: true,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
   [ProjectState.opened]: true,
@@ -225,8 +239,8 @@ export interface ProjectStartupInfo {
   readonly accessToken: string | null
 }
 
-/** Metadata describing an uploaded file. */
-export interface File {
+/** Metadata describing the location of an uploaded file. */
+export interface FileLocator {
   readonly fileId: FileId
   readonly fileName: string | null
   readonly path: S3FilePath
@@ -241,9 +255,17 @@ export interface FileInfo {
   readonly project: CreatedProject | null
 }
 
+/** Metadata for a file. */
+export interface FileMetadata {
+  readonly size: number
+}
+
 /** All metadata related to a file. */
 export interface FileDetails {
-  readonly file: File
+  readonly file: FileLocator
+  readonly metadata: FileMetadata
+  /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
+  readonly url?: string
 }
 
 /** A secret environment variable. */
@@ -862,7 +884,6 @@ export interface UpdateProjectRequestBody {
 
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
-  readonly forceCreate: boolean
   readonly executeAsync: boolean
 }
 
@@ -1091,7 +1112,7 @@ export default abstract class Backend {
   /** Return project memory, processor and storage usage. */
   abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
   /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<File[]>
+  abstract listFiles(): Promise<FileLocator[]>
   /** Upload a file. */
   abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
   /** Return file details. */

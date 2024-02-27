@@ -28,9 +28,12 @@ public abstract class Storage<T> implements ColumnStorage {
    */
   public abstract int size();
 
-  /**
-   * @return the type tag of this column's storage.
-   */
+  @Override
+  public long getSize() {
+    return size();
+  }
+
+  @Override
   public abstract StorageType getType();
 
   /**
@@ -64,13 +67,8 @@ public abstract class Storage<T> implements ColumnStorage {
     return this;
   }
 
-  /**
-   * Checks whether the value at {@code idx} is missing.
-   *
-   * @param idx the index to check.
-   * @return whether or not the value is missing.
-   */
-  public abstract boolean isNa(long idx);
+  @Override
+  public abstract boolean isNothing(long index);
 
   /**
    * Returns a boxed representation of an item. Missing values are denoted with null.
@@ -356,7 +354,7 @@ public abstract class Storage<T> implements ColumnStorage {
     var builder = Builder.getForType(commonType, size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      if (isNa(i)) {
+      if (isNothing(i)) {
         builder.appendNoGrow(other.getItemBoxed(i));
       } else {
         builder.appendNoGrow(getItemBoxed(i));
@@ -439,16 +437,6 @@ public abstract class Storage<T> implements ColumnStorage {
       StorageType targetType, CastProblemAggregator castProblemAggregator) {
     StorageConverter<?> converter = StorageConverter.fromStorageType(targetType);
     return converter.cast(this, castProblemAggregator);
-  }
-
-  @Override
-  public long getSize() {
-    return size();
-  }
-
-  @Override
-  public boolean isNothing(long index) {
-    return isNa(index);
   }
 
   @Override

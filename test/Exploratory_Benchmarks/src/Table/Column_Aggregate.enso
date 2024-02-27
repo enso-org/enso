@@ -62,7 +62,7 @@ type Primitive_Total_Aggregate
         n = self.int_column.length
         storage = self.int_column.java_column.getStorage
         (0.up_to n).fold 0 acc-> ix->
-            if storage.isNa ix then acc else
+            if storage.isNothing ix then acc else
                 acc + storage.getItem ix
 
     verify_correctness self =
