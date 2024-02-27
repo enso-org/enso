@@ -1,6 +1,5 @@
 package org.enso.compiler.benchmarks.module;
 
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,9 +31,9 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * Measure compilation of a module with one method that contains a lot of errors -
- * syntactical errors and unknown identifiers. The compiler should be able to recover from errors
- * and so it should compile the whole module and not stop after the first error.
+ * Measure compilation of a module with one method that contains a lot of errors - syntactical
+ * errors and unknown identifiers. The compiler should be able to recover from errors and so it
+ * should compile the whole module and not stop after the first error.
  */
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
@@ -46,11 +45,8 @@ public class ManyErrorsBenchmark {
   private static final int ERRORS_CNT = 30;
   private static final int IDENTIFIERS_CNT = 40;
   private static final int EXPR_SIZE = 5;
-  private static final List<String> UNDEFINED_IDENTIFIERS = List.of(
-      "FOO_BAR",
-      "Bazzzzz",
-      "Type.Constructor.Foo.Bar.Baz"
-  );
+  private static final List<String> UNDEFINED_IDENTIFIERS =
+      List.of("FOO_BAR", "Bazzzzz", "Type.Constructor.Foo.Bar.Baz");
   private Context context;
   private Compiler compiler;
   private Module module;
@@ -58,17 +54,16 @@ public class ManyErrorsBenchmark {
 
   private final Random random = new Random(42);
 
-
   @Setup
   public void setup(BenchmarkParams params) throws IOException {
     this.out = new ByteArrayOutputStream();
-    this.context = Utils
-        .createDefaultContextBuilder()
-        .option(RuntimeOptions.STRICT_ERRORS, "false")
-        .logHandler(out)
-        .out(out)
-        .err(out)
-        .build();
+    this.context =
+        Utils.createDefaultContextBuilder()
+            .option(RuntimeOptions.STRICT_ERRORS, "false")
+            .logHandler(out)
+            .out(out)
+            .err(out)
+            .build();
     var ensoCtx = Utils.leakEnsoContext(context);
     var sb = new StringBuilder();
     var codeGen = new CodeGenerator();
@@ -84,14 +79,12 @@ public class ManyErrorsBenchmark {
     for (int i = 0; i < ERRORS_CNT; i++) {
       var rndInt = random.nextInt(0, 3);
       switch (rndInt) {
-        // Expression with unknown identifiers
+          // Expression with unknown identifiers
         case 0 -> {
           var expr = codeGen.createExpression(UNDEFINED_IDENTIFIERS, EXPR_SIZE);
-          sb.append("    ")
-              .append(expr)
-              .append(System.lineSeparator());
+          sb.append("    ").append(expr).append(System.lineSeparator());
         }
-        // Inline type ascription with unknown identifier
+          // Inline type ascription with unknown identifier
         case 1 -> {
           var expr = codeGen.createExpression(definedIdentifiers, EXPR_SIZE);
           sb.append("    ")
@@ -99,7 +92,7 @@ public class ManyErrorsBenchmark {
               .append(expr)
               .append(System.lineSeparator());
         }
-        // Put arrows before, after, and between expressions
+          // Put arrows before, after, and between expressions
         case 2 -> {
           var expr1 = codeGen.createExpression(definedIdentifiers, EXPR_SIZE);
           var expr2 = codeGen.createExpression(definedIdentifiers, EXPR_SIZE);
@@ -147,7 +140,7 @@ public class ManyErrorsBenchmark {
   }
 
   @Benchmark
-  public void longMethodWithLotOfLocalVars(Blackhole blackhole) {
+  public void manyErrors(Blackhole blackhole) {
     var compilerResult = compiler.run(module.asCompilerModule());
     blackhole.consume(compilerResult);
   }

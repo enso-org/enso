@@ -3,10 +3,7 @@ package org.enso.compiler.benchmarks.module;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.CodeGenerator;
@@ -32,14 +29,16 @@ import org.openjdk.jmh.infra.Blackhole;
 
 /**
  * Measure compilation of a module with a single long method with a format like:
+ *
  * <pre>
  * main =
  *    obj1 = ...
  *    obj2 = ...
  *    obj3 = ...
  * </pre>
- * This is the format that is used by the IDE.
- * This should measure mostly the performance of the dataflow analysis pass.
+ *
+ * This is the format that is used by the IDE. This should measure mostly the performance of the
+ * dataflow analysis pass.
  */
 @BenchmarkMode(Mode.AverageTime)
 @Warmup(iterations = 6)
@@ -49,11 +48,13 @@ import org.openjdk.jmh.infra.Blackhole;
 public class ManyLocalVarsBenchmark {
 
   /**
-   * Total count of local variables in the `main` method. Every variable is defined on
-   * a new line.
+   * Total count of local variables in the `main` method. Every variable is defined on a new line.
    */
   private static final int IDENTIFIERS_CNT = 40;
+
   private static final int MAX_EXPR_SIZE = 5;
+  private final CodeGenerator codeGen = new CodeGenerator();
+  private final Random random = new Random(42);
   private Context context;
   private Compiler compiler;
   private Module module;
@@ -62,62 +63,26 @@ public class ManyLocalVarsBenchmark {
   @Setup
   public void setup(BenchmarkParams params) throws IOException {
     this.out = new ByteArrayOutputStream();
-    this.context = Utils
-        .createDefaultContextBuilder()
-        .logHandler(out)
-        .out(out)
-        .err(out)
-        .build();
+    this.context = Utils.createDefaultContextBuilder().logHandler(out).out(out).err(out).build();
     var ensoCtx = Utils.leakEnsoContext(context);
     var sb = new StringBuilder();
     var codeGen = new CodeGenerator();
     var allIdentifiers = codeGen.createIdentifiers(IDENTIFIERS_CNT);
-    var firstIdent = allIdentifiers.get(0);
-    List<String> initializedIdentifiers = new ArrayList<>();
-    initializedIdentifiers.add(firstIdent);
-    sb.append("main = ").append(System.lineSeparator());
-    sb.append("    ")
-        .append(firstIdent)
-        .append(" = ")
-        .append("42")
-        .append(System.lineSeparator());
 
-    Set<String> usedIdentifiers = new HashSet<>();
-    allIdentifiers
-        .stream()
-        .skip(1)
-        .forEach(
-            identifier -> {
-              var maxExprSize = Math.min(MAX_EXPR_SIZE, initializedIdentifiers.size() - 1);
-              sb.append("    ")
-                  .append(identifier)
-                  .append(" = ")
-                  .append(codeGen.createExpression(initializedIdentifiers, usedIdentifiers, maxExprSize))
-                  .append(System.lineSeparator());
-              initializedIdentifiers.add(identifier);
-            });
-
-    assert initializedIdentifiers.size() == IDENTIFIERS_CNT;
-    assert usedIdentifiers.size() <= IDENTIFIERS_CNT;
-    if (usedIdentifiers.size() < IDENTIFIERS_CNT) {
-      // Add a final line that uses the rest of the identifiers, so that there is no "Unused binding"
-      // warning.
-      List<String> unusedIdentifiers = new ArrayList<>(allIdentifiers);
-      unusedIdentifiers.removeAll(usedIdentifiers);
-      sb.append("    ")
-          .append("result = ");
-      sb.append(
-        unusedIdentifiers
-            .stream()
-            .reduce((a, b) -> a + " + " + b)
-            .orElseThrow()
-      );
-      sb.append(System.lineSeparator());
-      // result is the return value from the main method
-      sb.append("    ")
-          .append("result")
-          .append(System.lineSeparator());
+    for (int i = 0; i < IDENTIFIERS_CNT; i++) {
+      int exprSize = random.nextInt(0, MAX_EXPR_SIZE);
+      var assignmentExpr = codeGen.defineNewVariable(exprSize);
+      sb.append("    ").append(assignmentExpr).append(System.lineSeparator());
     }
+
+    // Add a final line that uses the rest of the identifiers, so that there is no "Unused binding"
+    // warning.
+    sb.append("    ").append("result = ");
+    sb.append(
+        codeGen.getUnusedIdentifiers().stream().reduce((a, b) -> a + " + " + b).orElseThrow());
+    sb.append(System.lineSeparator());
+    // result is the return value from the main method
+    sb.append("    ").append("result").append(System.lineSeparator());
     var code = sb.toString();
     var srcFile = Utils.createSrcFile(code, "longMethodWithLotOfLocalVars.enso");
     var src = Source.newBuilder(LanguageInfo.ID, srcFile).build();
