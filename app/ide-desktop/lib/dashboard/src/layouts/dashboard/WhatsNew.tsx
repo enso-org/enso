@@ -14,15 +14,13 @@ export default function WhatsNew() {
   return (
     <div className="flex flex-col gap-4 px-4.75">
       <h2 className="text-xl leading-snug py-0.5">Discover what&rsquo;s new</h2>
-      <div className="grid gap-3 grid-cols-fill-75">
+      <div className="grid gap-news-items grid-cols-fill-news-items">
         <a
-          className="relative whatsnew-span-2 col-span-1 sm:col-span-2 bg-v3 text-tag-text rounded-default h-45"
+          className="relative whatsnew-span-2 col-span-1 sm:col-span-2 bg-v3 text-tag-text rounded-default h-news-item"
           rel="noreferrer"
           target="_blank"
           href="https://enso.org/"
-          style={{
-            background: `url(${IntegrationsImage}) top -85px right -390px / 1055px`,
-          }}
+          style={{ background: `url(${IntegrationsImage}) top -85px right -390px / 1055px` }}
         >
           <div className="absolute flex flex-col bottom p-4">
             <span className="text-xl font-bold leading-snug py-0.5">
@@ -34,7 +32,7 @@ export default function WhatsNew() {
           </div>
         </a>
         <a
-          className="relative bg-youtube text-tag-text rounded-default h-45"
+          className="relative bg-youtube text-tag-text rounded-default h-news-item"
           rel="noreferrer"
           target="_blank"
           href="https://www.youtube.com/c/Enso_org"
@@ -50,7 +48,7 @@ export default function WhatsNew() {
           </div>
         </a>
         <a
-          className="relative bg-discord text-tag-text rounded-default h-45"
+          className="relative bg-discord text-tag-text rounded-default h-news-item"
           rel="noreferrer"
           target="_blank"
           href="https://discord.gg/enso"

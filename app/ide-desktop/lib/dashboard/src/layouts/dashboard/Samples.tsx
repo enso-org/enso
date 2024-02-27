@@ -228,7 +228,7 @@ export default function Samples(props: SamplesProps) {
   return (
     <div data-testid="samples" className="flex flex-col gap-4 px-4.75">
       <h2 className="text-xl leading-snug py-0.5">Sample and community projects</h2>
-      <div className="grid gap-2 grid-cols-fill-60">
+      <div className="grid gap-samples grid-cols-fill-samples">
         <ProjectsEntry createProject={createProject} />
         {SAMPLES.map(sample => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />

@@ -124,6 +124,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       height: {
         row: 'var(--row-height)',
         text: 'var(--text-height)',
+        'news-item': 'var(--news-item-height)',
         sample: 'var(--sample-height)',
         'sample-info': 'var(--sample-info-height)',
       },
@@ -160,6 +161,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         drive: 'var(--drive-gap)',
         'status-page': 'var(--status-page-gap)',
         'menu-entry': 'var(--menu-entry-gap)',
+        'news-items': 'var(--news-items-gap)',
+        samples: 'var(--samples-gap)',
         settings: 'var(--settings-gap)',
         'settings-header': 'var(--settings-header-gap)',
         'settings-section': 'var(--settings-section-gap)',
@@ -211,8 +214,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         '1fr': '1fr',
       },
       gridTemplateColumns: {
-        'fill-60': 'repeat(auto-fill, minmax(15rem, 1fr))',
-        'fill-75': 'repeat(auto-fill, minmax(18.75rem, 1fr))',
+        'fill-news-items': 'repeat(auto-fill, minmax(var(--news-items-column-width), 1fr))',
+        'fill-samples': 'repeat(auto-fill, minmax(var(--samples-column-width), 1fr))',
       },
     },
   },

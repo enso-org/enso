@@ -80,6 +80,13 @@
   /* The gap between the individual panels in the sidebar. */
   --sidebar-gap: 1rem;
 
+  /* The horizontal and vertical gap between adjacent news items. */
+  --news-items-gap: 0.75rem;
+  --news-items-column-width: 18.75rem;
+  --news-item-height: 11.25rem;
+  /* The horizontal and vertical gap between adjacent samples. */
+  --samples-gap: 0.5rem;
+  --samples-column-width: 15rem;
   /* The height of the tile containing the sample's image and description.
    * Does not include the height of its info bar. */
   --sample-height: 11.25rem;

@@ -240,9 +240,9 @@ const RESTRICTED_SYNTAXES = [
         message: 'Fixed values for Tailwind `w-`, `h-`, `p-`, `m-` are not allowed',
     },
     {
-        selector: `[value.raw=/\\b(?:opacity|gap|rounded|leading|duration)-\\d/]`,
+        selector: `[value.raw=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-\\d/]`,
         message:
-            'Fixed values for Tailwind `opacity-`, `rounded-`, `leading-` and `duration-` are not allowed',
+            'Fixed values for Tailwind `opacity-`, `rounded-`, `leading-`, `duration-` and `grid-cols-fill` are not allowed',
     },
 ]
 
