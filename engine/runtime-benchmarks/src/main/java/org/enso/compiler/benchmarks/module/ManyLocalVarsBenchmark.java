@@ -53,7 +53,6 @@ public class ManyLocalVarsBenchmark {
   private static final int IDENTIFIERS_CNT = 40;
 
   private static final int MAX_EXPR_SIZE = 5;
-  private final CodeGenerator codeGen = new CodeGenerator();
   private final Random random = new Random(42);
   private Context context;
   private Compiler compiler;

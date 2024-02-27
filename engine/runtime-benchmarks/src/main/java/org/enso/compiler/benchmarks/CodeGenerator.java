@@ -1,6 +1,7 @@
 package org.enso.compiler.benchmarks;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -29,6 +30,21 @@ public class CodeGenerator {
 
   private final Random random = new Random(SEED);
   private int identifierCnt = 0;
+
+  /**
+   * Creates a new empty code generator.
+   */
+  public CodeGenerator() {
+
+  }
+
+  /**
+   *
+   * @param identifiers Collection of already defined identifiers, like arguments to a function.
+   */
+  public CodeGenerator(Collection<String> identifiers) {
+    definedIdentifiers.addAll(identifiers);
+  }
 
   /**
    * Creates an expression that initializes a new variable.
@@ -145,11 +161,12 @@ public class CodeGenerator {
    * @return A string representing the expression.
    */
   public String createExpression(List<String> identifiers, int size) {
-    switch (size) {
-        // Literal
-      case 0 -> {
-        return nextLiteral();
-      }
+    if (identifiers.isEmpty()) {
+      return nextLiteral();
+    }
+
+    return switch (size) {
+      case 0 -> nextLiteral();
         // Either a single identifier or a method call on the identifier
       case 1 -> {
         var sb = new StringBuilder();
@@ -160,9 +177,9 @@ public class CodeGenerator {
         if (shouldCallMethod) {
           sb.append(".").append(nextMethod());
         }
-        return sb.toString();
+        yield sb.toString();
       }
-        // Method call or binary operator
+      // Method call or binary operator
       case 2 -> {
         var sb = new StringBuilder();
         var shouldCallMethod = random.nextBoolean();
@@ -182,7 +199,7 @@ public class CodeGenerator {
           // Binary operator
           sb.append(ident1).append(nextOperator()).append(ident2);
         }
-        return sb.toString();
+        yield sb.toString();
       }
         // Split into two expressions with random size
       default -> {
@@ -209,9 +226,9 @@ public class CodeGenerator {
           var op = nextOperator();
           sb.append("(").append(expr1).append(")").append(op).append("(").append(expr2).append(")");
         }
-        return sb.toString();
+        yield sb.toString();
       }
-    }
+    };
   }
 
   private String nextOperator() {
