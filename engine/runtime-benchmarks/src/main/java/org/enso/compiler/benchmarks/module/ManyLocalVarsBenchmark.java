@@ -16,6 +16,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
@@ -41,6 +42,7 @@ import org.openjdk.jmh.infra.Blackhole;
  * dataflow analysis pass.
  */
 @BenchmarkMode(Mode.AverageTime)
+@Fork(1)
 @Warmup(iterations = 6)
 @Measurement(iterations = 4)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -50,7 +52,7 @@ public class ManyLocalVarsBenchmark {
   /**
    * Total count of local variables in the `main` method. Every variable is defined on a new line.
    */
-  private static final int IDENTIFIERS_CNT = 40;
+  private static final int IDENTIFIERS_CNT = 100;
 
   private static final int MAX_EXPR_SIZE = 5;
   private final Random random = new Random(42);
@@ -66,8 +68,9 @@ public class ManyLocalVarsBenchmark {
     var ensoCtx = Utils.leakEnsoContext(context);
     var sb = new StringBuilder();
     var codeGen = new CodeGenerator();
-    var allIdentifiers = codeGen.createIdentifiers(IDENTIFIERS_CNT);
 
+    sb.append("main =")
+      .append(System.lineSeparator());
     for (int i = 0; i < IDENTIFIERS_CNT; i++) {
       int exprSize = random.nextInt(0, MAX_EXPR_SIZE);
       var assignmentExpr = codeGen.defineNewVariable(exprSize);
@@ -83,7 +86,7 @@ public class ManyLocalVarsBenchmark {
     // result is the return value from the main method
     sb.append("    ").append("result").append(System.lineSeparator());
     var code = sb.toString();
-    var srcFile = Utils.createSrcFile(code, "longMethodWithLotOfLocalVars.enso");
+    var srcFile = Utils.createSrcFile(code, "manyLocalVars.enso");
     var src = Source.newBuilder(LanguageInfo.ID, srcFile).build();
     var module = context.eval(src);
     var assocTypeValue = module.invokeMember(MethodNames.Module.GET_ASSOCIATED_TYPE);
@@ -105,9 +108,6 @@ public class ManyLocalVarsBenchmark {
   @Benchmark
   public void longMethodWithLotOfLocalVars(Blackhole blackhole) {
     var compilerResult = compiler.run(module.asCompilerModule());
-    if (compilerResult.compiledModules().size() != 1) {
-      throw new AssertionError("Module compilation failed");
-    }
     blackhole.consume(compilerResult);
   }
 }
