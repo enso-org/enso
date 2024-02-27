@@ -2333,6 +2333,7 @@ type Table
 
     ## ALIAS metadata
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
