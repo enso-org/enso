@@ -171,7 +171,14 @@ function constantValueHelper(
         // eslint-disable-next-line no-restricted-syntax
         return invalid
       } else {
-        results.push(constantValue(defs, referencedSchema, partial))
+        const value = constantValue(defs, referencedSchema, partial)
+        if (!partial && value.length === 0) {
+          // eslint-disable-next-line no-restricted-syntax
+          return invalid
+        }
+        if (value.length === 1) {
+          results.push(value[0])
+        }
       }
     } else if ('anyOf' in schema) {
       if (!Array.isArray(schema.anyOf) || (!partial && schema.anyOf.length !== 1)) {
@@ -183,7 +190,14 @@ function constantValueHelper(
           // eslint-disable-next-line no-restricted-syntax
           return invalid
         } else {
-          results.push(constantValue(defs, firstMember, partial))
+          const value = constantValue(defs, firstMember, partial)
+          if (!partial && value.length === 0) {
+            // eslint-disable-next-line no-restricted-syntax
+            return invalid
+          }
+          if (value.length === 1) {
+            results.push(value[0])
+          }
         }
       }
     }
@@ -191,12 +205,16 @@ function constantValueHelper(
       if (schema.allOf.length === 0) {
         return invalid
       } else {
-        const newResults = schema.allOf.map(childSchema => {
+        for (const childSchema of schema.allOf) {
           const schemaObject = objectModule.asObject(childSchema)
-          return schemaObject == null ? [] : constantValue(defs, schemaObject, partial)
-        })
-        if (newResults.every(result => result.length === 1)) {
-          results.push(...newResults.flat())
+          const value = schemaObject == null ? [] : constantValue(defs, schemaObject, partial)
+          if (!partial && value.length === 0) {
+            // eslint-disable-next-line no-restricted-syntax
+            return invalid
+          }
+          if (value.length === 1) {
+            results.push(value[0])
+          }
         }
       }
     }
@@ -220,6 +238,8 @@ function constantValueHelper(
       } else {
         return SINGLETON_NULL
       }
+    } else if (results.length === 0) {
+      return invalid
     } else {
       const result = results[0] ?? null
       let resultArray: readonly [] | readonly [NonNullable<unknown> | null] = [result]

@@ -392,7 +392,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       ))
       children.push(...newChildren)
     }
-    return children.length === 1 && children[0] != null ? (
+    return children.length === 0 ? null : children.length === 1 && children[0] != null ? (
       children[0]
     ) : (
       <div className="flex flex-col gap-1">{...children}</div>
