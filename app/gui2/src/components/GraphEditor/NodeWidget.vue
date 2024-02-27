@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
 import {
   injectWidgetRegistry,
   type WidgetInput,
