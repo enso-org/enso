@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { visualizationBindings } from '@/bindings'
+import { fullscreenVisualizationBindings, visualizationBindings } from '@/bindings'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
-import { useEvent } from '@/composables/events'
+import { focusIsIn, unrefElement, useEvent } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
@@ -21,8 +21,8 @@ import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
 import { debouncedGetter } from '@/util/reactivity'
-import { computedAsync } from '@vueuse/core'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import { computedAsync, type VueInstance } from '@vueuse/core'
+import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
   onErrorCaptured,
@@ -32,6 +32,8 @@ import {
   watch,
   watchEffect,
   type ShallowRef,
+type Ref,
+nextTick,
 } from 'vue'
 
 const TOP_WITHOUT_TOOLBAR_PX = 36
@@ -292,10 +294,50 @@ const effectiveVisualization = computed(() => {
   }
   return visualization.value
 })
+
+const root = ref<HTMLElement>()
+
+const keydownHandler = visualizationBindings.handler({
+  nextType: () => {
+    if (props.isFocused || focusIsIn(root.value)) {
+      const allTypes = Array.from(visualizationStore.types(props.typename))
+      const currentIndex = allTypes.findIndex((type) => visIdentifierEquals(type, currentType.value))
+      const nextIndex = (currentIndex + 1) % allTypes.length
+      emit('update:id', allTypes[nextIndex]!)
+    } else {
+      return false
+    }
+  },
+  toggleFullscreen: () => {
+    console.log('toggle fullscreen', document.activeElement, focusIsIn(root.value))
+    if (props.isFocused || focusIsIn(root.value)) {
+      console.log('toggle fullscreen')
+      emit('update:fullscreen', !props.isFullscreen)
+    } else {
+      return false
+    }
+  }
+})
+const fullscreenHandler = fullscreenVisualizationBindings.handler({
+  exitFullscreen: () => {
+    console.log('exit fullscreen', props.isFullscreen, document.activeElement)
+    if (props.isFullscreen) {
+      emit('update:fullscreen', false)
+    } else {
+      return false
+    }
+  }
+})
+
+
+useEvent(window, 'keydown', (event) => keydownHandler(event))
+useEvent(window, 'keydown', (event) => fullscreenHandler(event))
+
+watch(() => props.isFullscreen, (f) => { f && nextTick(() => root.value?.focus()) })
 </script>
 
 <template>
-  <div class="GraphVisualization">
+  <div class="GraphVisualization" ref="root" tabindex="-1">
     <Suspense>
       <template #fallback><LoadingVisualization :data="{}" /></template>
       <component

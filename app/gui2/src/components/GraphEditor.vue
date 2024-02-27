@@ -232,15 +232,14 @@ const graphBindingsHandler = graphBindings.handler({
     nodeSelection.selectAll()
   },
   deselectAll() {
+    console.log('deselect all', document.activeElement)
     nodeSelection.deselectAll()
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
     graphStore.stopCapturingUndo()
-    return false
   },
   toggleVisualization() {
-    if (keyboardBusy()) return false
     graphStore.transact(() => {
       const allVisible = set
         .toArray(nodeSelection.selected)
@@ -252,7 +251,6 @@ const graphBindingsHandler = graphBindings.handler({
     })
   },
   toggleVisualizationFullscreen() {
-    if (keyboardBusy()) return false
     graphStore.transact(() => {
       const selected = set.first(nodeSelection.selected)
       const isFullscreen = graphStore.db.nodeIdToNode.get(selected)?.vis?.fullscreen
@@ -328,6 +326,9 @@ const graphBindingsHandler = graphBindings.handler({
 
 const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
     graphBindingsHandler(e)
   },
   () => {

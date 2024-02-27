@@ -120,6 +120,7 @@ const warning = computed(() => {
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+const isOnlyOneSelected = computed(() => isSelected.value && nodeSelection?.selected.size === 1)
 watch(isSelected, (selected) => {
   if (!selected) {
     menuVisible.value = MenuState.Off
@@ -416,7 +417,7 @@ function openFullMenu() {
       :dataSource="{ type: 'node', nodeId: externalId }"
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
-      :isFocused="nodeHovered || isSelected"
+      :isFocused="isOnlyOneSelected"
       @update:rect="
         emit('update:visualizationRect', $event),
           (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)

@@ -1,7 +1,7 @@
 import { defineKeybinds } from '@/util/shortcuts'
 
 export const codeEditorBindings = defineKeybinds('code-editor', {
-  toggle: ['Mod+`'],
+  toggle: ['`'],
 })
 
 export const interactionBindings = defineKeybinds('current-interaction', {
@@ -41,8 +41,12 @@ export const graphBindings = defineKeybinds('graph-editor', {
 
 export const visualizationBindings = defineKeybinds('visualization', {
   nextType: ['Mod+Space'],
-  exitFullscreen: ['Escape'],
+  toggleFullscreen: ['Shift+Space'],
 })
+
+export const fullscreenVisualizationBindings = defineKeybinds('visualizationFullscreen', {
+  exitFullscreen: ['Escape'],
+}) 
 
 export const selectionMouseBindings = defineKeybinds('selection', {
   replace: ['PointerMain'],
