@@ -231,7 +231,6 @@ const graphBindingsHandler = graphBindings.handler({
     nodeSelection.selectAll()
   },
   deselectAll() {
-    console.log('deselect all', document.activeElement)
     nodeSelection.deselectAll()
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
@@ -250,6 +249,7 @@ const graphBindingsHandler = graphBindings.handler({
     })
   },
   toggleVisualizationFullscreen() {
+    if (nodeSelection.selected.size !== 1) return
     graphStore.transact(() => {
       const selected = set.first(nodeSelection.selected)
       const isFullscreen = graphStore.db.nodeIdToNode.get(selected)?.vis?.fullscreen
@@ -325,10 +325,10 @@ const graphBindingsHandler = graphBindings.handler({
 
 const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
+    graphBindingsHandler(e)
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
-    graphBindingsHandler(e)
   },
   () => {
     if (keyboardBusy()) return false

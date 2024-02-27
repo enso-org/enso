@@ -1,7 +1,7 @@
 import { defineKeybinds } from '@/util/shortcuts'
 
 export const codeEditorBindings = defineKeybinds('code-editor', {
-  toggle: ['`'],
+  toggle: ['Mod+`'],
 })
 
 export const interactionBindings = defineKeybinds('current-interaction', {
