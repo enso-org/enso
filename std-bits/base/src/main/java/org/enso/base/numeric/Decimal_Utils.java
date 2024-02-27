@@ -7,6 +7,8 @@ import java.math.MathContext;
 
 /** Utils for the Enso Decmial type. */
 public class Decimal_Utils {
+  //private static final BigDecimal MIN_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MIN_VALUE);
+  //private static final BigDecimal MAX_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MAX_VALUE);
   private static final BigDecimal MIN_LONG_BIGDECIMAL = BigDecimal.valueOf((double)Long.MIN_VALUE);
   private static final BigDecimal MAX_LONG_BIGDECIMAL = BigDecimal.valueOf((double)Long.MAX_VALUE);
 
@@ -65,18 +67,23 @@ public class Decimal_Utils {
   }
 
   public static boolean fitsInLong(BigDecimal bigDecimal) {
-    return bigDecimal.compareTo(MIN_LONG_BIGDECIMAL) >= 0 && bigDecimal.compareTo(MAX_LONG_BIGDECIMAL) <= 0;
+    return bigDecimal.compareTo(MIN_LONG_BIGDECIMAL) >= 0 && bigDecimal.compareTo(MAX_LONG_BIGDECIMAL) < 0;
   }
 
   public static int hashCodeOf(BigDecimal bd) {
     boolean isFractional = bd.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) != 0;
     boolean fitsInLong = fitsInLong(bd);
+    //System.out.println("BD hash " + bd + " " + isFractional + " " + fitsInLong);
+    //System.out.println("" + bd + " " + MIN_LONG_BIGDECIMAL + " " + MAX_LONG_BIGDECIMAL);
+    //System.out.println("" + Double.hashCode(bd.doubleValue()) + " " + bd.toBigIntegerExact().hashCode());
     if (isFractional || fitsInLong) {
+      System.out.println("AAA new Double.hashCode");
       double d = bd.doubleValue();
       assert d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY;
       return Double.hashCode(d);
     } else {
       // Will not throw ArithmeticException since the value has a 0 fractional part.
+      System.out.println("AAA new hash as bi");
       return bd.toBigIntegerExact().hashCode();
     }
   }

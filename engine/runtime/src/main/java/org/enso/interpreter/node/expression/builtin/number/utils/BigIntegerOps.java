@@ -235,7 +235,7 @@ public class BigIntegerOps {
   }
 
   public static boolean fitsInLong(double decimal) {
-    return decimal <= Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
+    return decimal < Long.MAX_VALUE && decimal >= Long.MIN_VALUE;
   }
 
   public static boolean fitsInInt(long number) {

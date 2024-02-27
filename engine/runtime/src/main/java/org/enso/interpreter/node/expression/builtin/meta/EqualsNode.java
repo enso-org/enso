@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import java.math.BigInteger;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -269,11 +270,29 @@ public final class EqualsNode extends Node {
       }
     }
 
+    private void lala(Object o) {
+      var selfHash = HashCodeNode.getUncached().execute(o);
+      System.out.println("LALA " + o + " " + selfHash);
+    }
+
     private boolean assertHashCodeIsTheSame(Object self, Object converted) {
       var selfHash = HashCodeNode.getUncached().execute(self);
       var convertedHash = HashCodeNode.getUncached().execute(converted);
-      System.out.println(self + " " + self.getClass() + " " + selfHash + " " + self.hashCode());
-      System.out.println(converted + " " + converted.getClass() + " " + convertedHash + " " + converted.hashCode());
+      System.out.println(self + " " + self.getClass() + " hash " + Long.toHexString(selfHash));
+      System.out.println(converted + " " + converted.getClass() + " hash " + Long.toHexString(convertedHash));
+
+      /*
+      lala(9223372036854776000.0);
+      lala(new BigInteger("9223372036854776000"));
+      lala(9223372036854775806L);
+      lala(new BigInteger("9223372036854775806"));
+      */
+      /*
+      lala(9223372036854775805L);
+      lala(9223372036854775806L);
+      lala(9223372036854775807L);
+      lala(9223372036854775499L);
+      */
       /*
       System.out.println("Um " + HashCodeNode.getUncached().execute(Long.valueOf(1)));
       System.out.println("Um " + HashCodeNode.getUncached().execute(Double.valueOf(1.0)));

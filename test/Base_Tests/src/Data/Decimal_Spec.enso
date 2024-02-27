@@ -227,9 +227,10 @@ add_specs suite_builder =
                 + [[Decimal.new 12000 (Math_Context.new 3), 12000]]
 
             values_ = []
-                + [["9223372036854775808", 9223372036854775808]]
+                + [[9223372036854775806.0, 9223372036854775806.0]]
 
-            values.map pr->
+            values.map_with_index i-> pr->
+                IO.println i
                 IO.println pr
                 arg = pr.at 0
                 expected = pr.at 1
