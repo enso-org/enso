@@ -177,9 +177,7 @@ export default function DriveBar(props: DriveBarProps) {
             onClick={event => {
               event.stopPropagation()
               unsetModal()
-              dispatchAssetEvent({
-                type: AssetEventType.downloadSelected,
-              })
+              dispatchAssetEvent({ type: AssetEventType.downloadSelected })
             }}
           />
         </div>
