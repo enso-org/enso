@@ -69,8 +69,8 @@ function isBoolNode(ast: Ast.Ast) {
     ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean'
       ? ast.rhs
       : ast instanceof Ast.Ident
-      ? ast.token
-      : undefined
+        ? ast.token
+        : undefined
   return candidate && ['True', 'False'].includes(candidate.code())
 }
 function setBoolNode(ast: Ast.Mutable, value: Identifier): { requiresImport: boolean } {
@@ -96,7 +96,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <div class="CheckboxContainer" :class="{ primary }">
+  <div class="CheckboxContainer r-24" :class="{ primary }">
     <span v-if="argumentName" class="name" v-text="argumentName" />
     <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
     <CheckboxWidget

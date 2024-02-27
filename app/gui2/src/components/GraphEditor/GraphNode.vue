@@ -67,7 +67,7 @@ const outputPortsSet = computed(() => {
   return bindings
 })
 
-const widthOverridePx = ref<number>()
+const visSetSize = ref<Vec2>(Vec2.Zero)
 const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
 const externalId = computed(() => props.node.rootSpan.externalId)
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
@@ -82,7 +82,6 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const baseNodeSize = computed(() => new Vec2(contentNode.value?.scrollWidth ?? 0, nodeSize.value.y))
 
 /// Menu can be full, partial or off
 enum MenuState {
@@ -362,6 +361,10 @@ function openFullMenu() {
   }
   menuVisible.value = MenuState.Full
 }
+
+function updateVisualizationSize(size: Vec2) {
+  visSetSize.value = size
+}
 </script>
 
 <template>
@@ -370,10 +373,7 @@ function openFullMenu() {
     class="GraphNode"
     :style="{
       transform,
-      width:
-        widthOverridePx != null && isVisualizationVisible
-          ? `${Math.max(widthOverridePx, contentNode?.scrollWidth ?? 0)}px`
-          : undefined,
+      minWidth: isVisualizationVisible ? `${visSetSize.x}px` : undefined,
       '--node-group-color': color,
     }"
     :class="{
@@ -403,23 +403,21 @@ function openFullMenu() {
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
-      :nodeSize="baseNodeSize"
+      :nodeSize="nodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       :currentType="node.vis?.identifier"
       :dataSource="{ type: 'node', nodeId: externalId }"
       :typename="expressionInfo?.typename"
-      @update:rect="
-        emit('update:visualizationRect', $event),
-          (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
-      "
+      @update:userSetSize="updateVisualizationSize"
+      @update:rect="emit('update:visualizationRect', $event)"
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
     <div
       ref="contentNode"
-      class="node"
+      class="content"
       v-on="dragPointer.events"
       @click.stop
       @pointerdown.stop
@@ -561,6 +559,7 @@ function openFullMenu() {
   position: absolute;
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
+  box-sizing: border-box;
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
   }
@@ -570,7 +569,7 @@ function openFullMenu() {
   display: none;
 }
 
-.node {
+.content {
   font-family: var(--font-code);
   position: relative;
   top: 0;
@@ -578,7 +577,7 @@ function openFullMenu() {
   caret-shape: bar;
   height: var(--node-height);
   border-radius: var(--node-border-radius);
-  display: inline-flex;
+  display: flex;
   flex-direction: row;
   align-items: center;
   white-space: nowrap;

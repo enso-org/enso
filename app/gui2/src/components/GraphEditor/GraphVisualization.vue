@@ -46,6 +46,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   'update:rect': [rect: Rect | undefined]
+  'update:userSetSize': [size: Vec2]
   'update:id': [id: VisualizationIdentifier]
   'update:visible': [visible: boolean]
 }>()
@@ -200,23 +201,28 @@ watchEffect(async () => {
 })
 
 const isBelowToolbar = ref(false)
-let width = ref<number | null>(null)
-let height = ref(150)
+let userSetWidth = ref<number | null>(null)
+let userSetHeight = ref(150)
 
-watchEffect(() =>
-  emit(
-    'update:rect',
+const userSetSize = computed(() => new Vec2(userSetWidth.value ?? 0, userSetHeight.value))
+
+const rect = computed(
+  () =>
     new Rect(
       props.nodePosition,
       new Vec2(
-        width.value ?? props.nodeSize.x,
-        height.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
+        Math.max(userSetWidth.value ?? 0, props.nodeSize.x),
+        userSetHeight.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
       ),
     ),
-  ),
 )
 
-onUnmounted(() => emit('update:rect', undefined))
+watchEffect(() => emit('update:rect', rect.value))
+watchEffect(() => emit('update:userSetSize', userSetSize.value))
+onUnmounted(() => {
+  emit('update:rect', undefined)
+  emit('update:userSetSize', userSetSize.value)
+})
 
 provideVisualizationConfig({
   fullscreen: false,
@@ -224,16 +230,16 @@ provideVisualizationConfig({
     return props.scale
   },
   get width() {
-    return width.value
+    return rect.value.width
   },
   set width(value) {
-    width.value = value
+    userSetWidth.value = value
   },
   get height() {
-    return height.value
+    return userSetHeight.value
   },
   set height(value) {
-    height.value = value
+    userSetHeight.value = value
   },
   get isBelowToolbar() {
     return isBelowToolbar.value

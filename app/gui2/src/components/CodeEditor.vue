@@ -403,7 +403,7 @@ const editorStyle = computed(() => {
   }
 }
 
-.CodeEditor :is(.cm-editor) {
+.CodeEditor :deep(.cm-editor) {
   position: relative;
   color: white;
   width: 100%;
@@ -420,11 +420,11 @@ const editorStyle = computed(() => {
   transition: outline 0.1s ease-in-out;
 }
 
-.CodeEditor :is(.cm-focused) {
+.CodeEditor :deep(.cm-focused) {
   outline: 1px solid rgba(0, 0, 0, 0.5);
 }
 
-.CodeEditor :is(.cm-tooltip-hover) {
+.CodeEditor :deep(.cm-tooltip-hover) {
   padding: 4px;
   border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.4);
@@ -438,7 +438,7 @@ const editorStyle = computed(() => {
   }
 }
 
-.CodeEditor :is(.cm-gutters) {
+.CodeEditor :deep(.cm-gutters) {
   border-radius: 3px 0 0 3px;
 }
 </style>

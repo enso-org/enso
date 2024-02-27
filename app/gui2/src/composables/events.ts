@@ -165,7 +165,6 @@ const sharedResizeObserver: ResizeObserver | undefined =
   typeof ResizeObserver === 'undefined'
     ? undefined
     : new ResizeObserver((entries) => {
-        console.log('entries', entries)
         for (const entry of entries) {
           const data = resizeObserverData.get(entry.target)
           if (data != null) {
@@ -216,7 +215,13 @@ export function useResizeObserver(
       const data = getOrCreateObserverData(element)
       if (data.refCount === 0) observer.observe(element)
       data.refCount += 1
-      if (useContentRect) data.boundRectUsers += 1
+      if (useContentRect) {
+        if (data.boundRectUsers === 0) {
+          const rect = element.getBoundingClientRect()
+          data.boundRect.value = new Vec2(rect.width, rect.height)
+        }
+        data.boundRectUsers += 1
+      }
       onCleanup(() => {
         if (elementRef.value != null) {
           data.refCount -= 1

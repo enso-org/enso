@@ -18,6 +18,12 @@ const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   return undefined
 })
 
+function makeNewLiteral(value: string) {
+  return Ast.TextLiteral.new(value, MutableModule.Transient())
+}
+
+const emptyTextLiteral = makeNewLiteral('')
+
 const textContents = computed({
   get() {
     return inputTextLiteral.value?.textContents ?? ''
@@ -30,7 +36,7 @@ const textContents = computed({
     } else {
       props.onUpdate({
         portUpdate: {
-          value: Ast.TextLiteral.new(value, MutableModule.Transient()).code(),
+          value: makeNewLiteral(value).code(),
           origin: props.input.portId,
         },
       })
@@ -54,12 +60,9 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 
 <template>
   <label class="WidgetText r-24" @pointerdown.stop>
-    <NodeWidget v-if="inputTextLiteral?.open" :input="WidgetInput.FromAst(inputTextLiteral.open)" />
+    <NodeWidget :input="WidgetInput.FromAst(inputTextLiteral?.open ?? emptyTextLiteral.open!)" />
     <AutoSizedInput v-model.lazy="textContents" />
-    <NodeWidget
-      v-if="inputTextLiteral?.close"
-      :input="WidgetInput.FromAst(inputTextLiteral.close)"
-    />
+    <NodeWidget :input="WidgetInput.FromAst(inputTextLiteral?.close ?? emptyTextLiteral.close!)" />
   </label>
 </template>
 
@@ -73,6 +76,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   user-select: none;
   border-radius: var(--radius-full);
   padding: 0px 4px;
+  min-width: 24px;
   justify-content: center;
 
   &:has(> .AutoSizedInput:focus) {

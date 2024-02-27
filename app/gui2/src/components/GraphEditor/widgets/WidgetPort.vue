@@ -63,7 +63,7 @@ const isTarget = computed(
 )
 
 const rootNode = shallowRef<HTMLElement>()
-const nodeSize = useResizeObserver(rootNode, false)
+const nodeSize = useResizeObserver(rootNode)
 
 // Compute the scene-space bounding rectangle of the expression's widget. Those bounds are later
 // used for edge positioning. Querying and updating those bounds is relatively expensive, so we only
@@ -106,7 +106,7 @@ watchEffect(
 
 function updateRect() {
   let domNode = rootNode.value
-  const rootDomNode = domNode?.closest('.node')
+  const rootDomNode = domNode?.closest('.GraphNode')
   if (domNode == null || rootDomNode == null) return
 
   const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())

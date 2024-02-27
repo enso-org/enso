@@ -103,7 +103,7 @@ provideWidgetTree(
   }
 
   &:has(.WidgetPort.newToConnect > .r-24:only-child) {
-    margin-left: 4px;
+    margin-left: 0px;
   }
 }
 
