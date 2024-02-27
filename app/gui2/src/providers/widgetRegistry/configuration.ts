@@ -109,7 +109,7 @@ export interface SingleChoice {
   kind: 'Single_Choice'
   label: string | null
   values: Choice[]
-  showArrow: boolean
+  showArrow: boolean | undefined
 }
 
 /** Dynamic configuration for a function call with a list of arguments with known dynamic configuration.
@@ -203,6 +203,6 @@ export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCa
     possibleFunctions: new Map(
       config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
     ),
-    showArrow: config.showArrow,
+    showArrow: config.showArrow ?? false,
   }
 }
