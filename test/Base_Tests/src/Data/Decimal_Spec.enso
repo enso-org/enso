@@ -16,7 +16,7 @@ float_id f =
 
 add_specs suite_builder =
     suite_builder.group "arithmetic" group_builder->
-        group_builder.specify "should be able to create a Decimal from a negative Float " <|
+        group_builder.specify "should be able to pass a Float to Java" <|
             vs = []
                 + [92233720368547758080.0]
                 + [9223372036854777000.0]
