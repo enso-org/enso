@@ -269,10 +269,6 @@ add_specs suite_builder =
             + [["2.0", 2.0]]
             + [["2.00", 2.0]]
             + [["2.000", 2.0]]
-            + [[Decimal.new 12000 (Math_Context.new 0), 12000]]
-            + [[Decimal.new 12000 (Math_Context.new 1), 10000]]
-            + [[Decimal.new 12000 (Math_Context.new 2), 12000]]
-            + [[Decimal.new 12000 (Math_Context.new 3), 12000]]
 
         problematic_values = []
             + [["9223372036854775806", 9223372036854775806]]
@@ -306,17 +302,21 @@ add_specs suite_builder =
 
         values.map_with_index i-> pr->
             group_builder.specify "should compare correctly to Integer and Float "+i.to_text <|
-                arg = pr.at 0
+                d = Decimal.new (pr.at 0)
                 expected = pr.at 1
-                d = case arg of
-                    _ : Decimal -> arg
-                    _ -> Decimal.new arg
+
                 d . should_equal expected
                 expected . should_equal d
                 d . should_equal d
                 (d == expected) . should_be_true
                 (expected == d) . should_be_true
                 (d == d) . should_be_true
+
+        group_builder.specify "constructor should respect Math_Context " <|
+            Decimal.new 12000 (Math_Context.new 0) . should_equal 12000
+            Decimal.new 12000 (Math_Context.new 1) . should_equal 10000
+            Decimal.new 12000 (Math_Context.new 2) . should_equal 12000
+            Decimal.new 12000 (Math_Context.new 3) . should_equal 12000
 
 main =
     suite = Test.build suite_builder->
