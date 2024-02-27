@@ -175,7 +175,9 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <div
     class="WidgetSelection"
-    @pointerdown.stop @pointerup.stop @click.stop="toggleDropdownWidget"
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"
   >
