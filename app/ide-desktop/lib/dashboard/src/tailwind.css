@@ -15,6 +15,7 @@
   --snug-line-height: 144.5%;
   /* The looser of the custom line heights. */
   --cozy-line-height: 170%;
+  --default-backdrop-blur: 64px;
 
   --frame-color: rgb(255 255 255 / 40%);
   --selected-frame-color: rgb(255 255 255 / 70%);

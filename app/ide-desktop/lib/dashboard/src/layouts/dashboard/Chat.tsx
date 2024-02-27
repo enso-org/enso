@@ -329,7 +329,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-frame backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
+          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-frame backdrop-blur-default overflow-hidden transition-grid-template-rows w-full z-1 ${
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
@@ -663,7 +663,7 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
+        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-default h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
           detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >

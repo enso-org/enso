@@ -239,7 +239,7 @@ export default function ManagePermissionsModal<
                 }
               : {}
           }
-          className="sticky w-115.25 rounded-2xl before:absolute before:bg-selected-frame before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
+          className="sticky w-115.25 rounded-2xl before:absolute before:bg-selected-frame before:backdrop-blur-default before:rounded-2xl before:w-full before:h-full"
           onClick={mouseEvent => {
             mouseEvent.stopPropagation()
           }}

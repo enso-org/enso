@@ -59,7 +59,7 @@ export default function UserBar(props: UserBarProps) {
   return (
     <div
       className={
-        'flex shrink-0 items-center bg-frame backdrop-blur-3xl rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto' +
+        'flex shrink-0 items-center bg-frame backdrop-blur-default rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto' +
         (shouldMakeSpaceForExtendedEditorMenu ? ' mr-10' : '')
       }
     >

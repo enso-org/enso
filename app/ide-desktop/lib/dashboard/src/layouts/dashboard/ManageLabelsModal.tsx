@@ -137,7 +137,7 @@ export default function ManageLabelsModal<
             }
           }}
         >
-          <div className="absolute bg-selected-frame backdrop-blur-3xl rounded-2xl h-full w-full" />
+          <div className="absolute bg-selected-frame backdrop-blur-default rounded-2xl h-full w-full" />
           <form
             className="relative flex flex-col rounded-2xl gap-2 p-2"
             onSubmit={async event => {

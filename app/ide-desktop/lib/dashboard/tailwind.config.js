@@ -160,6 +160,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       backdropBlur: {
         xs: '2px',
+        default: 'var(--default-backdrop-blur)',
       },
       borderWidth: { 0.5: '0.5px', 6: '6px' },
       boxShadow: {

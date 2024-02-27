@@ -56,7 +56,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           left: position.left + window.scrollX,
           top: position.top + window.scrollY,
         }}
-        className="relative flex flex-col gap-2 rounded-2xl pointer-events-auto w-80 p-4 pt-2 before:inset-0 before:absolute before:rounded-2xl before:bg-selected-frame before:backdrop-blur-3xl before:w-full before:h-full"
+        className="relative flex flex-col gap-2 rounded-2xl pointer-events-auto w-80 p-4 pt-2 before:inset-0 before:absolute before:rounded-2xl before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
