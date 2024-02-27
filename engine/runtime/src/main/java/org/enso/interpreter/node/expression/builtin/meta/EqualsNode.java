@@ -327,7 +327,7 @@ public final class EqualsNode extends Node {
         System.out.println("fd d " + HashCodeNode.getUncached().execute(d));
       }
       */
-        var ok = selfHash == convertedHash;
+      var ok = selfHash == convertedHash;
       if (!ok) {
         var msg =
             "Different hash code! Original "

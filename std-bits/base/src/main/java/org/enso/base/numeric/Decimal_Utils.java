@@ -52,6 +52,11 @@ public class Decimal_Utils {
     }
   }
 
+  public static Double floatId(Double d) {
+    System.out.println("Decimal_Utils.floatId " + d);
+    return d;
+  }
+
   public static BigDecimal fromEnsoFloat(Double d) {
     System.out.println("AAA fromEnsoFloat " + d + " " + BigDecimal.valueOf(d));
     // According to the BigInteger Javadocs, valueOf is preferred because "the
@@ -69,7 +74,8 @@ public class Decimal_Utils {
   }
 
   public static boolean fitsInLong(BigDecimal bigDecimal) {
-    return bigDecimal.compareTo(new BigDecimal("-9223372036854775000.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854775000.0")) <= 0;
+    return bigDecimal.compareTo(MIN_LONG_BIGDECIMAL) >= 0 && bigDecimal.compareTo(MAX_LONG_BIGDECIMAL) <= 0;
+    //return bigDecimal.compareTo(new BigDecimal("-9223372036854775000.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854775000.0")) <= 0;
   }
 
   public static int hashCodeOf(BigDecimal bd) {

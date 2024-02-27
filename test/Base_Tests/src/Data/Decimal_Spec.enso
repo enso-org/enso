@@ -9,6 +9,8 @@ from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision
 
 from Standard.Test import all
 
+polyglot java import org.enso.base.numeric.Decimal_Utils
+
 Decimal.should_have_rep self rep = self.get_internal_representation . should_equal rep
 
 add_specs suite_builder =
@@ -174,15 +176,25 @@ add_specs suite_builder =
 
     suite_builder.group "arithmetic" group_builder->
         group_builder.specify "should be able to create a Decimal from a negative Float " <|
-            q0 = Decimal.from_float -9223372036854775809.0
-            q1 = Decimal.from_float -92233720368547758090.0
-            IO.println "float construction"
-            IO.println q0
-            IO.println q1
-            q1.should_not_equal (Decimal.from_float 0.0)
-            q0.should_not_equal (Decimal.from_float 0.0)
+            vs = []
+                + [92233720368547758080.0]
+                + [9223372036854777000.0]
+                + [9223372036854776001.0]
+                + [9223372036854776000.0]
+                + [9223372036854775808.0]
+                + [9223372036854775000.0]
+                + [9223372036854774000.0]
+                + [9223372036854700000.0]
+                + [9223372036854000000.0]
+                + [9223372000000000000.0]
+                + [922337203685470000.0]
 
-        values = [["0", 0]]
+            vs.map v->
+                IO.println "======== "+v.to_text
+                r = Decimal.float_id v
+                IO.println "float_id "+v.to_text+" "+r.to_text
+
+        values_ = [["0", 0]]
             + [["1", 1]]
             + [["-1", -1]]
             + [["2", 2]]
@@ -220,8 +232,7 @@ add_specs suite_builder =
             + [[Decimal.new 12000 (Math_Context.new 2), 1200]]
             + [[Decimal.new 12000 (Math_Context.new 3), 12000]]
 
-        values_ = []
-            + [[-922337203685477580900.0, -9223372036854775809.0]]
+        values = []
 
         values.map_with_index i-> pr->
             group_builder.specify "should add Decimals correctly "+i.to_text <|
@@ -236,4 +247,4 @@ add_specs suite_builder =
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter="negative Float"

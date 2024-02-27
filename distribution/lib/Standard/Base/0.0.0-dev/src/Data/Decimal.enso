@@ -156,6 +156,14 @@ type Decimal
                     IO.println r
                     r
 
+    float_id : Float -> Float
+    float_id f =
+        r = Decimal_Utils.floatId f
+        IO.println "AAA float_id"
+        IO.println f
+        IO.println r
+        r
+
     ## ALIAS plus
        GROUP Operators
        ICON math
