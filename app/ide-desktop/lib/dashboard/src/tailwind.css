@@ -49,7 +49,7 @@ body::before {
 
 .enso-dashboard *:focus,
 .enso-chat *:focus {
-  outline: none !important;
+  outline: none;
 }
 
 /* Must be kept in sync with app/gui/view/graph-editor/src/builtin/visualization/java_script/helpers/scrollable.js. */

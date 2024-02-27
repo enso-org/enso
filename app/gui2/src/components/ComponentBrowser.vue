@@ -419,10 +419,7 @@ const handler = componentBrowserBindings.handler({
                   :style="{ color: componentColor(item.component) }"
                 />
                 <span>
-                  <span
-                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
-                    v-text="item.component.label"
-                  ></span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
                     v-for="range in allRanges(
                       item.component.matchedRanges,
@@ -450,10 +447,7 @@ const handler = componentBrowserBindings.handler({
               >
                 <SvgIcon :name="item.component.icon" />
                 <span>
-                  <span
-                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
-                    v-text="item.component.label"
-                  ></span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
                     v-for="range in allRanges(
                       item.component.matchedRanges,

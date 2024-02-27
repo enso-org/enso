@@ -6,10 +6,9 @@ management, project sharing, and user accounts and authentication.
 ## Folder structure
 
 - `mock/`: Overrides for specific files in `src/` when running Playwright tests.
-- `test-component/`: Contains component tests.
-- `test-e2e/`: Contains end-to-end tests.
+- `e2e/`: Contains end-to-end tests.
 - `**/__tests__/`: Contains all unit tests. Unit tests MUST be in a `__tests__/`
-  subfolder, not beside the module they are testing.
+  subfolder, not beside (and not inside) the module they are testing.
 - `src/`: The dashboard application.
   - `index.html`: The sole HTML file used by this SPA. It imports the TS entry
     point.
@@ -27,3 +26,8 @@ management, project sharing, and user accounts and authentication.
       - `components/`: Contains all components used by the authentication flow.
       - `providers/`: Contains React `Context`s required for authentication, and
         used by the main app.
+- `index.html`: The entrypoint, in the format required by Vite.
+- `404.html`: A copy of the entrypoint. This is served on unknown routes by
+  certain static hosting providers.
+- `esbuild-config.ts`: Configuration for ESBuild based on the environment
+  variables. This is a dependency of `esbuild-config.ts` in sibling modules.

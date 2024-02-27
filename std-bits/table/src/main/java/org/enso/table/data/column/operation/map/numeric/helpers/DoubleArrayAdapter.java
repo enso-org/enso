@@ -9,7 +9,7 @@ import org.enso.table.data.column.storage.numeric.DoubleStorage;
 public interface DoubleArrayAdapter {
   double getItemAsDouble(int i);
 
-  boolean isNa(int i);
+  boolean isNothing(long i);
 
   int size();
 
@@ -49,8 +49,8 @@ public interface DoubleArrayAdapter {
     }
 
     @Override
-    public boolean isNa(int i) {
-      return storage.isNa(i);
+    public boolean isNothing(long i) {
+      return storage.isNothing(i);
     }
 
     @Override
@@ -73,7 +73,7 @@ public interface DoubleArrayAdapter {
     }
 
     @Override
-    public boolean isNa(int i) {
+    public boolean isNothing(long i) {
       return storage.getItem(i) == null;
     }
 
