@@ -12,11 +12,7 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
 
 float_id : Float -> Float
 float_id f =
-    r = Decimal_Utils.floatId f
-    IO.println "AAA float_id"
-    IO.println f
-    IO.println r
-    r
+    Decimal_Utils.floatId f
 
 add_specs suite_builder =
     suite_builder.group "arithmetic" group_builder->
@@ -77,7 +73,6 @@ add_specs suite_builder =
 
             vs.map v->
                 r = float_id v
-                #r = identity v
                 IO.println "float_id "+v.to_text+" "+r.to_text
 
 main =
