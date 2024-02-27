@@ -53,7 +53,7 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
           WithDiagnostics(
             Seq(),
             Seq(
-              Diagnostic.Problem(
+              Diagnostic.Error(
                 s"GitHub heuristic failure: Cannot find default branch for $address"
               )
             )
@@ -90,8 +90,9 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
                 WithDiagnostics(
                   Seq(),
                   Seq(
-                    Diagnostic.Problem(
-                      s"GitHub heuristic: Found file $rawHref but cannot download it: $error"
+                    Diagnostic.Error(
+                      s"GitHub heuristic failure: " +
+                      s"Found file $rawHref but cannot download it: $error"
                     )
                   )
                 )
@@ -104,8 +105,9 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
         WithDiagnostics(
           Seq(),
           Seq(
-            Diagnostic.Problem(
-              s"GitHub heuristic: processing ${info.packageName} failed with error: $error"
+            Diagnostic.Error(
+              s"GitHub heuristic failure: " +
+              s"processing ${info.packageName} failed with error: $error"
             )
           )
         )

@@ -40,25 +40,28 @@ object Report {
         s"${description.rootComponentsNames.mkString(", ")}."
       )
 
-      val (notices: Seq[Diagnostic.Notice], problems: Seq[Diagnostic.Problem]) =
+      val (warnings: Seq[Diagnostic.Warning], errors: Seq[Diagnostic.Error]) =
         Diagnostic.partition(diagnostics)
 
-      if (notices.nonEmpty) {
-        writer.writeSubHeading("Notices")
-        writer.writeList(notices.map { notice => () =>
+      if (warnings.nonEmpty) {
+        writer.writeSubHeading("Warnings")
+        writer.writeList(warnings.map { notice => () =>
           writer.writeText(notice.message)
         })
       }
 
-      if (problems.nonEmpty) {
+      if (errors.nonEmpty) {
         writer.writeSubHeading(
-          f"There are ${problems.size} problems found in the review."
+          f"There are ${errors.size} fatal-errors found in the review."
         )
-        writer.writeList(problems.map { problem => () =>
+        writer.writeList(errors.map { problem => () =>
           writer.writeText(problem.message, Style.Red)
         })
       } else {
-        writer.writeParagraph("No problems found in the review.", Style.Green)
+        writer.writeParagraph(
+          "No fatal-errors found in the review.",
+          Style.Green
+        )
       }
 
       writeDependencySummary(writer, summary)
@@ -239,7 +242,8 @@ object Report {
                 if (bothEmpty) {
                   writer.writeText(
                     "No notices or copyright information found, " +
-                    "this may be a problem.",
+                    "this is a problem - add the information manually " +
+                    "using `copyright-add` or `files-add`.",
                     Style.Red
                   )
                 } else {

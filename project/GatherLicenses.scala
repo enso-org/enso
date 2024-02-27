@@ -75,19 +75,19 @@ object GatherLicenses {
       val reportDestination =
         targetRoot / s"${distribution.artifactName}-report.html"
 
-      val (notices: Seq[Diagnostic.Notice], problems: Seq[Diagnostic.Problem]) =
+      val (warnings: Seq[Diagnostic.Warning], errors: Seq[Diagnostic.Error]) =
         Diagnostic.partition(allDiagnostics)
 
-      if (notices.nonEmpty) {
-        log.warn(s"Found ${notices.size} non-fatal notices in the report:")
-        notices.foreach(notice => log.warn(notice.message))
+      if (warnings.nonEmpty) {
+        log.warn(s"Found ${warnings.size} non-fatal warnings in the report:")
+        warnings.foreach(notice => log.warn(notice.message))
       }
 
-      if (problems.isEmpty) {
-        log.info("No problems found in the report.")
+      if (errors.isEmpty) {
+        log.info("No fatal errors found in the report.")
       } else {
-        log.error(s"Found ${problems.size} in the report:")
-        problems.foreach(problem => log.error(problem.message))
+        log.error(s"Found ${errors.size} fatal errors in the report:")
+        errors.foreach(problem => log.error(problem.message))
       }
 
       Report.writeHTML(
@@ -105,10 +105,10 @@ object GatherLicenses {
       ReportState.write(
         distributionRoot / stateFileName,
         distribution,
-        problems.size
+        errors.size
       )
       log.info(s"Re-generated distribution notices at `$packagePath`.")
-      if (problems.nonEmpty) {
+      if (errors.nonEmpty) {
         log.warn(
           "The distribution notices were regenerated, but there are " +
           "not-reviewed issues within the report. The notices are probably " +

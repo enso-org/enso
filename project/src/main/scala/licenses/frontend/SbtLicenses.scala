@@ -76,7 +76,7 @@ object SbtLicenses {
         val diagnostics =
           if (component.licenseReport.licenses.isEmpty)
             Seq(
-              Diagnostic.Problem(
+              Diagnostic.Error(
                 s"License report for component ${component.name} is empty."
               )
             )
@@ -102,11 +102,11 @@ object SbtLicenses {
     val missingWarnings = for {
       dep <- relevantDeps
       if dep.sources.isEmpty
-    } yield Diagnostic.Notice(s"Could not find sources for ${dep.moduleInfo}")
+    } yield Diagnostic.Warning(s"Could not find sources for ${dep.moduleInfo}")
     val unexpectedWarnings = for {
       source <- distinctSources
       if !distinctDependencies.exists(_.sourcesJARPaths.contains(source))
-    } yield Diagnostic.Notice(
+    } yield Diagnostic.Warning(
       s"Found a source $source that does not belong to any known " +
       s"dependencies, perhaps the algorithm needs updating?"
     )
