@@ -39,11 +39,11 @@ jobs:
           git config --global user.name "enso-bench-bot"
           cd ${{ github.workspace }}/engine-benchmark-results
           git remote set-url origin https://x-access-token:${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}@github.com/enso-org/engine-benchmark-results
-      - name: Upload benchmarks
-        run: |
-          cd enso/tools/performance/engine-benchmarks
-          python3 website_regen.py \
-            -v \
-            --local-repo  ${{ github.workspace }}/engine-benchmark-results
-        env:
-          GITHUB_TOKEN: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
+      #- name: Upload benchmarks
+        #run: |
+          #cd enso/tools/performance/engine-benchmarks
+          #python3 website_regen.py \
+          #  -v \
+          #  --local-repo  ${{ github.workspace }}/engine-benchmark-results
+        #env:
+        #  GITHUB_TOKEN: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
