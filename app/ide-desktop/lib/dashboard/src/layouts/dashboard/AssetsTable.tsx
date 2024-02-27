@@ -2155,7 +2155,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const columns = columnUtils.getColumnList(backend.type, extraColumns)
 
   const headerRow = (
-    <tr ref={headerRowRef} className="sticky top-0">
+    <tr ref={headerRowRef} className="sticky top">
       {columns.map(column => {
         // This is a React component, even though it does not contain JSX.
         // eslint-disable-next-line no-restricted-syntax
@@ -2439,8 +2439,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       )}
       <div className="flex flex-col w-min min-w-full h-full">
         {isCloud && (
-          <div className="sticky top-0 h-0 flex flex-col">
-            <div className="block sticky right-0 self-end px-2 py-2.25">
+          <div className="sticky top h-0 flex flex-col">
+            <div className="block sticky right self-end px-2 py-2.25">
               <div className="inline-flex gap-icons">
                 {columnUtils.EXTRA_COLUMNS.map(column => (
                   <Button

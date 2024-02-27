@@ -111,7 +111,7 @@ export default function ManageLabelsModal<
     return (
       <Modal
         centered={eventTarget == null}
-        className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-1"
+        className="absolute overflow-hidden bg-dim w-full h-full top left z-1"
       >
         <div
           tabIndex={-1}

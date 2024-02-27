@@ -24,7 +24,7 @@ export default function WhatsNew() {
             background: `url(${IntegrationsImage}) top -85px right -390px / 1055px`,
           }}
         >
-          <div className="absolute flex flex-col bottom-0 p-4">
+          <div className="absolute flex flex-col bottom p-4">
             <span className="text-xl font-bold leading-snug py-0.5">
               Read what&rsquo;s new in Enso 3.0 Beta
             </span>
@@ -40,7 +40,7 @@ export default function WhatsNew() {
           href="https://www.youtube.com/c/Enso_org"
         >
           <img className="absolute top-6 left-1/2 -translate-x-1/2 mx-auto" src={YoutubeIcon} />
-          <div className="absolute flex flex-col bottom-0 p-4">
+          <div className="absolute flex flex-col bottom p-4">
             <span className="text-xl font-bold leading-snug py-0.5">
               Watch weekly Enso tutorials
             </span>
@@ -56,7 +56,7 @@ export default function WhatsNew() {
           href="https://discord.gg/enso"
         >
           <img className="absolute top-7 left-1/2 -translate-x-1/2 mx-auto" src={DiscordIcon} />
-          <div className="absolute flex flex-col bottom-0 p-4">
+          <div className="absolute flex flex-col bottom p-4">
             <span className="text-xl font-bold leading-snug py-0.5">Join our community server</span>
             <span className="text-sm leading-snug py-0.5">
               Chat with our team and other Enso users.

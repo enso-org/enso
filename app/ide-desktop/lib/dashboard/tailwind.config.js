@@ -70,6 +70,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         auth: 'var(--auth-corner-radius)',
       },
       spacing: {
+        DEFAULT: '0',
         0.75: '0.1875rem',
         1.25: '0.3125rem',
         1.75: '0.4375rem',
