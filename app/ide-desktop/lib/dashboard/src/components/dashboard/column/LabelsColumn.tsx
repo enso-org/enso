@@ -144,7 +144,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             )
           }}
         >
-          <img className="w-4.5 h-4.5" src={Plus2Icon} />
+          <img className="size-4.5" src={Plus2Icon} />
         </button>
       )}
     </div>

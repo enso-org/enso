@@ -33,7 +33,7 @@ import * as object from '#/utilities/object'
 /** The size of the icon, in pixels. */
 const ICON_SIZE_PX = 24
 /** The styles of the icons. */
-const ICON_CLASSES = 'w-6 h-6'
+const ICON_CLASSES = 'size-6'
 const LOADING_MESSAGE =
   'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -337,7 +337,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closed:
       return (
         <button
-          className="w-6 h-6 disabled:opacity-disabled"
+          className="size-6 disabled:opacity-disabled"
           onClick={clickEvent => {
             clickEvent.stopPropagation()
             unsetModal()
@@ -355,7 +355,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <button
           disabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="w-6 h-6 disabled:opacity-disabled"
+          className="size-6 disabled:opacity-disabled"
           onClick={async clickEvent => {
             clickEvent.stopPropagation()
             unsetModal()
@@ -378,7 +378,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <button
             disabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="w-6 h-6 disabled:opacity-disabled"
+            className="size-6 disabled:opacity-disabled"
             onClick={async clickEvent => {
               clickEvent.stopPropagation()
               unsetModal()
@@ -396,7 +396,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           </button>
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <button
-              className="w-6 h-6"
+              className="size-6"
               onClick={clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()

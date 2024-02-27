@@ -110,7 +110,7 @@ export default function Labels(props: LabelsProps) {
                     <SvgMask
                       src={Trash2Icon}
                       alt="Delete"
-                      className="opacity-0 group-hover:opacity-100 text-delete w-4 h-4"
+                      className="opacity-0 group-hover:opacity-100 text-delete size-4"
                     />
                   </button>
                 )}
@@ -133,7 +133,7 @@ export default function Labels(props: LabelsProps) {
               )
             }}
           >
-            <img src={PlusIcon} className="w-1.5 h-1.5" />
+            <img src={PlusIcon} className="size-1.5" />
             <span className="leading-snug h-6 py-0.5">new label</span>
           </Label>
         </li>

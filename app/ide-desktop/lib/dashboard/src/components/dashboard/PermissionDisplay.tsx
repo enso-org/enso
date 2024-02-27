@@ -49,10 +49,10 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           onMouseLeave={onMouseLeave}
         >
           {permission.docs && (
-            <div className="border-permission-docs clip-path-top border-2 rounded-full absolute w-full h-full" />
+            <div className="border-permission-docs clip-path-top border-2 rounded-full absolute size-full" />
           )}
           {permission.execute && (
-            <div className="border-permission-exec clip-path-bottom border-2 rounded-full absolute w-full h-full" />
+            <div className="border-permission-exec clip-path-bottom border-2 rounded-full absolute size-full" />
           )}
           <div
             className={`${

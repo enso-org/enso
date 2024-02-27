@@ -43,7 +43,7 @@ export default function UserMenu(props: UserMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   return (
-    <Modal hidden={hidden} className="absolute overflow-hidden bg-dim w-full h-full">
+    <Modal hidden={hidden} className="absolute overflow-hidden bg-dim size-full">
       <div
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -56,7 +56,7 @@ export default function UserMenu(props: UserMenuProps) {
         {user != null ? (
           <>
             <div className="flex items-center gap-icons px-1">
-              <div className="flex items-center rounded-full overflow-clip w-7.25 h-7.25">
+              <div className="flex items-center rounded-full overflow-clip size-7.25">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
                   height={28}

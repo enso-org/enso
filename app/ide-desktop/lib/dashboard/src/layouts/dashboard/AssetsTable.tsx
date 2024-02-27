@@ -2437,7 +2437,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="flex flex-col w-min min-w-full h-full">
+      <div className="flex flex-col w-min min-size-full">
         {isCloud && (
           <div className="sticky top h-0 flex flex-col">
             <div className="block sticky right self-end px-2 py-2.25">

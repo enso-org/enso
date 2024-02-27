@@ -85,12 +85,12 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
         : function Child() {
             return (
               <Modal
-                className="fixed w-full h-full"
+                className="fixed size-full"
                 onClick={() => {
                   setTheChild(null)
                 }}
               >
-                <div style={{ clipPath }} className="absolute bg-dim w-full h-full" />
+                <div style={{ clipPath }} className="absolute bg-dim size-full" />
                 <PermissionTypeSelector
                   showDelete={showDelete}
                   type={permission.type}

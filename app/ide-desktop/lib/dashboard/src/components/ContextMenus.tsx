@@ -33,7 +33,7 @@ export default function ContextMenus(props: ContextMenusProps) {
     <>{children}</>
   ) : (
     <Modal
-      className="absolute overflow-hidden bg-dim w-full h-full"
+      className="absolute overflow-hidden bg-dim size-full"
       onContextMenu={innerEvent => {
         innerEvent.preventDefault()
       }}
