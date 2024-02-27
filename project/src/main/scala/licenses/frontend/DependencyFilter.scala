@@ -11,13 +11,18 @@ import src.main.scala.licenses.DependencyInformation
   */
 object DependencyFilter {
 
-  /** Decides if the dependency should be kept for further processing.
-    */
+  /** Decides if the dependency should be kept for further processing. */
   def shouldKeep(dependencyInformation: DependencyInformation): Boolean =
     shouldKeep(dependencyInformation.moduleInfo)
 
-  /** Decides if the module should be kept for further processing.
-    */
+  /** Decides if the module should be kept for further processing. */
   def shouldKeep(moduleInfo: DepModuleInfo): Boolean =
-    moduleInfo.organization != "org.enso"
+    !shouldIgnore(moduleInfo)
+
+  def shouldIgnore(moduleInfo: DepModuleInfo): Boolean = {
+    val isEnsoModule = moduleInfo.organization == "org.enso"
+    val isGuavaEmptyPlaceholder =
+      moduleInfo.version == "9999.0-empty-to-avoid-conflict-with-guava"
+    isEnsoModule || isGuavaEmptyPlaceholder
+  }
 }

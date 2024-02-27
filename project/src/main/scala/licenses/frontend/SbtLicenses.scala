@@ -1,20 +1,20 @@
 package src.main.scala.licenses.frontend
 
 import java.nio.file.Path
-
 import sbtlicensereport.license.{DepLicense, DepModuleInfo}
 import org.apache.ivy.core.resolve.IvyNode
 import sbt.Compile
 import sbt.internal.util.ManagedLogger
 import sbt.io.IO
 import sbt.librarymanagement.ConfigRef
+import src.main.scala.licenses.report.Diagnostic
 import src.main.scala.licenses.{
   DependencyInformation,
   SBTDistributionComponent,
   SourceAccess
 }
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConverters.*
 
 /** Defines the algorithm for discovering dependency metadata.
   */
@@ -44,8 +44,8 @@ object SbtLicenses {
   def analyze(
     components: Seq[SBTDistributionComponent],
     log: ManagedLogger
-  ): (Seq[DependencyInformation], Seq[String]) = {
-    val results: Seq[(Seq[Dependency], Vector[Path], Seq[String])] =
+  ): (Seq[DependencyInformation], Seq[Diagnostic]) = {
+    val results: Seq[(Seq[Dependency], Vector[Path], Seq[Diagnostic])] =
       components.map { component =>
         val report = component.licenseReport.orig
         val ivyDeps =
@@ -73,12 +73,16 @@ object SbtLicenses {
           Dependency(dep, depNode, sources)
         }
 
-        val warnings =
+        val diagnostics =
           if (component.licenseReport.licenses.isEmpty)
-            Seq(s"License report for component ${component.name} is empty.")
+            Seq(
+              Diagnostic.Error(
+                s"License report for component ${component.name} is empty."
+              )
+            )
           else Seq()
 
-        (deps, sourceArtifacts, warnings)
+        (deps, sourceArtifacts, diagnostics)
       }
 
     val distinctDependencies =
@@ -98,12 +102,14 @@ object SbtLicenses {
     val missingWarnings = for {
       dep <- relevantDeps
       if dep.sources.isEmpty
-    } yield s"Could not find sources for ${dep.moduleInfo}"
+    } yield Diagnostic.Warning(s"Could not find sources for ${dep.moduleInfo}")
     val unexpectedWarnings = for {
       source <- distinctSources
       if !distinctDependencies.exists(_.sourcesJARPaths.contains(source))
-    } yield s"Found a source $source that does not belong to any known " +
-    s"dependencies, perhaps the algorithm needs updating?"
+    } yield Diagnostic.Warning(
+      s"Found a source $source that does not belong to any known " +
+      s"dependencies, perhaps the algorithm needs updating?"
+    )
     val reportsWarnings = results.flatMap(_._3)
 
     (relevantDeps, missingWarnings ++ unexpectedWarnings ++ reportsWarnings)

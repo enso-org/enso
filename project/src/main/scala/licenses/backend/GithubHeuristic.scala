@@ -1,9 +1,9 @@
 package src.main.scala.licenses.backend
 
 import java.nio.file.Path
-
 import sbt.Logger
 import sbt.io.syntax.url
+import src.main.scala.licenses.report.{Diagnostic, WithDiagnostics}
 import src.main.scala.licenses.{
   AttachedFile,
   Attachment,
@@ -11,7 +11,7 @@ import src.main.scala.licenses.{
   PortablePath
 }
 
-import scala.sys.process._
+import scala.sys.process.*
 import scala.util.control.NonFatal
 
 /** Tries to find copyright mentions in the GitHub project homepage and any
@@ -28,11 +28,11 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
     *
     * It proceeds only if the project has an URL that seems to point to GitHub.
     */
-  def run(): Seq[Attachment] = {
+  def run(): WithDiagnostics[Seq[Attachment]] = {
     info.url match {
       case Some(url) if url.contains("github.com") =>
         tryDownloadingAttachments(url.replace("http://", "https://"))
-      case _ => Seq()
+      case _ => WithDiagnostics(Seq(), Seq())
     }
   }
 
@@ -41,15 +41,23 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
     *
     * Any found files are fetched and saved into the results.
     */
-  def tryDownloadingAttachments(address: String): Seq[Attachment] =
+  def tryDownloadingAttachments(
+    address: String
+  ): WithDiagnostics[Seq[Attachment]] =
     try {
       val homePage    = url(address).cat.!!
       val branchRegex = """"defaultBranch":"([^"]*?)"""".r("branch")
       val branch      = branchRegex.findFirstMatchIn(homePage).map(_.group("branch"))
       branch match {
         case None =>
-          log.warn(s"Cannot find default branch for $address")
-          Seq()
+          WithDiagnostics(
+            Seq(),
+            Seq(
+              Diagnostic.Error(
+                s"GitHub heuristic failure: Cannot find default branch for $address"
+              )
+            )
+          )
         case Some(branch) =>
           val fileRegex =
             """\{"name":"([^"]*?)","path":"([^"]*?)","contentType":"file"\}"""
@@ -59,7 +67,7 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
             .map(m => (m.group("name"), m.group("path")))
             .filter(p => mayBeRelevant(p._1))
             .toList
-          matches.flatMap { case (_, path) =>
+          val results = matches.map { case (_, path) =>
             val rawHref = address + "/raw/" + branch + "/" + path
             // This path is reconstructed to match the 'legacy' format for compatibility with older versions of the review settings.
             // It has the format <org>/<repo>/blob/<branch>/<path>
@@ -68,26 +76,41 @@ case class GithubHeuristic(info: DependencyInformation, log: Logger) {
               .stripSuffix("/") + "/blob/" + branch + "/" + path
             try {
               val content = url(rawHref).cat.!!
-              Seq(
-                AttachedFile(
-                  PortablePath.of(internalPath),
-                  content,
-                  origin = Some(address)
+              WithDiagnostics(
+                Seq(
+                  AttachedFile(
+                    PortablePath.of(internalPath),
+                    content,
+                    origin = Some(address)
+                  )
                 )
               )
             } catch {
               case NonFatal(error) =>
-                log.warn(
-                  s"Found file $rawHref but cannot download it: $error"
+                WithDiagnostics(
+                  Seq(),
+                  Seq(
+                    Diagnostic.Error(
+                      s"GitHub heuristic failure: " +
+                      s"Found file $rawHref but cannot download it: $error"
+                    )
+                  )
                 )
-                Seq()
             }
           }
+          results.flip.map(_.flatten)
       }
     } catch {
       case NonFatal(error) =>
-        log.warn(s"GitHub backend for ${info.packageName} failed with $error")
-        Seq()
+        WithDiagnostics(
+          Seq(),
+          Seq(
+            Diagnostic.Error(
+              s"GitHub heuristic failure: " +
+              s"processing ${info.packageName} failed with error: $error"
+            )
+          )
+        )
     }
 
   /** Decides if the file may be relevant and should be included in the result.
