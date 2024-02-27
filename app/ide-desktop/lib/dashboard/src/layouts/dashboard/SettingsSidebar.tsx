@@ -96,15 +96,15 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
           ? []
           : [
               <div key={section.name} className="flex flex-col items-start">
-                <h2 className="text-sm font-bold h-7.5 leading-5 pl-2 pt-0.5 pb-2">
+                <h2 className="text-sm font-bold h-7.5 leading-cozy pl-2 pt-0.5 pb-2">
                   {section.name}
                 </h2>
                 {tabs.map(tab => (
                   <div
                     key={tab.settingsTab}
-                    className={`flex items-center gap-2 h-8 px-2 rounded-full hover:text-primary hover:bg-frame-selected transition-colors ${
+                    className={`flex items-center gap-2 h-8 px-2 rounded-full hover:text-primary hover:bg-selected-frame transition-colors ${
                       tab.settingsTab === settingsTab
-                        ? 'text-primary bg-frame-selected'
+                        ? 'text-primary bg-selected-frame'
                         : 'cursor-pointer text-not-selected'
                     }`}
                     onClick={() => {
@@ -119,7 +119,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                           : 'text-icon-not-selected'
                       }
                     />
-                    <span className="h-6 leading-5 py-px">{tab.name}</span>
+                    <span className="h-6 leading-cozy py-px">{tab.name}</span>
                   </div>
                 ))}
               </div>,

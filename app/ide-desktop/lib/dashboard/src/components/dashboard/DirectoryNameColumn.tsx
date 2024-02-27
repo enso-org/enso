@@ -159,7 +159,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
+        className={`cursor-pointer bg-transparent grow leading-cozy h-6 py-px ${
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
         }`}
         checkSubmittable={newTitle =>

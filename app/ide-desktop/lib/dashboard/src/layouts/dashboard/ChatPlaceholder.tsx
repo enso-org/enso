@@ -55,7 +55,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
               with our support team.
             </div>
             <button
-              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-cozy h-8 py-px px-2 w-min"
               onClick={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
@@ -63,7 +63,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
               Login
             </button>
             <button
-              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-cozy h-8 py-px px-2 w-min"
               onClick={() => {
                 navigate(appUtils.REGISTRATION_PATH)
               }}

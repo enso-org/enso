@@ -192,7 +192,7 @@ function ChatMessage(props: ChatMessageProps) {
           src={message.avatar ?? DefaultUserIcon}
           className="rounded-full h-8 w-8 my-1"
         />
-        <div className="mx-2 leading-5">
+        <div className="mx-2 leading-cozy">
           <div className="font-bold">{message.name}</div>
           <div className="text-opacity-50 text-primary">
             {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
@@ -339,7 +339,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
                 key={thread.id}
                 className={`flex p-1 ${
                   thread.id === threadId
-                    ? 'cursor-default bg-frame-selected'
+                    ? 'cursor-default bg-selected-frame'
                     : 'cursor-pointer hover:bg-frame'
                 }`}
                 onClick={event => {
@@ -803,7 +803,7 @@ export default function Chat(props: ChatProps) {
         </form>
         {!isPaidUser && (
           <button
-            className="leading-5 rounded-2xl bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
+            className="leading-cozy rounded-2xl bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
             onClick={upgradeToPro}
           >
             Click here to upgrade to Enso Pro and get access to high-priority, live support!

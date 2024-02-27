@@ -43,7 +43,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   return (
     <Modal centered className="bg-dim">
       <form
-        className="relative flex flex-col gap-2 rounded-2xl w-96 p-4 pt-2 pointer-events-auto before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="relative flex flex-col gap-2 rounded-2xl w-96 p-4 pt-2 pointer-events-auto before:inset-0 before:absolute before:rounded-2xl before:bg-selected-frame before:backdrop-blur-3xl before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -64,7 +64,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           <input
             autoFocus
             placeholder="Enter the name of the Data Link"
-            className={`grow bg-transparent border rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50 ${
+            className={`grow bg-transparent border rounded-full leading-cozy h-6 px-4 py-px disabled:opacity-50 ${
               name !== '' ? 'border-black/10' : 'border-red-700/60'
             }`}
             value={name}
@@ -86,7 +86,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           </button>
           <button
             type="button"
-            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
+            className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1"
             onClick={unsetModal}
           >
             Cancel

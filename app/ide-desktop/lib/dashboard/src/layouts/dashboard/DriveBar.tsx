@@ -72,11 +72,11 @@ export default function DriveBar(props: DriveBarProps) {
   }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ shortcutManager])
 
   return (
-    <div className="flex h-8 py-0.5">
+    <div className="flex h-row py-0.5">
       <div className="flex gap-2.5">
         <button
           disabled={!isHomeCategory}
-          className="flex items-center bg-frame rounded-full h-8 px-2.5"
+          className="flex items-center bg-frame rounded-full h-row px-2.5"
           {...(!isHomeCategory ? { title: 'You can only create a new project in Home.' } : {})}
           onClick={() => {
             unsetModal()
@@ -84,14 +84,14 @@ export default function DriveBar(props: DriveBarProps) {
           }}
         >
           <span
-            className={`font-semibold whitespace-nowrap leading-5 h-6 py-px ${
+            className={`font-semibold whitespace-nowrap leading-cozy h-6 py-px ${
               !isHomeCategory ? 'opacity-50' : ''
             }`}
           >
             New Project
           </span>
         </button>
-        <div className="flex items-center text-black/50 bg-frame rounded-full gap-3 h-8 px-3">
+        <div className="flex items-center text-black/50 bg-frame rounded-full gap-icons h-row px-3">
           {backend.type !== backendModule.BackendType.local && (
             <Button
               active={isHomeCategory}
@@ -157,7 +157,7 @@ export default function DriveBar(props: DriveBarProps) {
             error="You can only upload files to Home."
             image={DataUploadIcon}
             alt="Upload Files"
-            disabledOpacityClassName="opacity-20"
+            disabledOpacityClassName="opacity-disabled-icon"
             onClick={() => {
               unsetModal()
               uploadFilesRef.current?.click()
@@ -173,7 +173,7 @@ export default function DriveBar(props: DriveBarProps) {
                 ? 'You cannot download files from Trash.'
                 : 'You currently can only download files.'
             }
-            disabledOpacityClassName="opacity-20"
+            disabledOpacityClassName="opacity-disabled-icon"
             onClick={event => {
               event.stopPropagation()
               unsetModal()

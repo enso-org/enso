@@ -67,7 +67,7 @@ function Input(props: InternalInputProps) {
 
   const input = (
     <input
-      className="rounded-full font-bold leading-5 w-full h-6 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors placeholder-primary/30 invalid:border invalid:border-red-700"
+      className="rounded-full font-bold leading-cozy w-full h-6 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-primary/30 invalid:border invalid:border-red-700"
       type={isShowingPassword ? 'text' : type}
       size={1}
       defaultValue={originalValue}
@@ -162,14 +162,14 @@ export default function AccountSettingsTab() {
           <h3 className="font-bold text-xl h-9.5 py-0.5">User Account</h3>
           <div className="flex flex-col">
             <div className="flex gap-4.75">
-              <span className="leading-5 w-12 h-8 py-1.25">Name</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+              <span className="leading-cozy w-12 h-8 py-1.25">Name</span>
+              <span className="grow font-bold leading-cozy h-8 py-1.25">
                 <Input originalValue={user?.name ?? ''} onSubmit={doUpdateName} />
               </span>
             </div>
             <div className="flex gap-4.75">
-              <span className="leading-5 w-12 h-8 py-1.25">Email</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">{user?.email ?? ''}</span>
+              <span className="leading-cozy w-12 h-8 py-1.25">Email</span>
+              <span className="grow font-bold leading-cozy h-8 py-1.25">{user?.email ?? ''}</span>
             </div>
           </div>
         </div>
@@ -177,8 +177,8 @@ export default function AccountSettingsTab() {
           <div key={passwordFormKey}>
             <h3 className="font-bold text-xl h-9.5 py-0.5">Change Password</h3>
             <div className="flex gap-4.75">
-              <span className="leading-5 w-36 h-8 py-1.25">Current Password</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+              <span className="leading-cozy w-36 h-8 py-1.25">Current Password</span>
+              <span className="grow font-bold leading-cozy h-8 py-1.25">
                 <Input
                   type="password"
                   originalValue=""
@@ -190,8 +190,8 @@ export default function AccountSettingsTab() {
               </span>
             </div>
             <div className="flex gap-4.75">
-              <span className="leading-5 w-36 h-8 py-1.25">New Password</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+              <span className="leading-cozy w-36 h-8 py-1.25">New Password</span>
+              <span className="grow font-bold leading-cozy h-8 py-1.25">
                 <Input
                   type="password"
                   originalValue=""
@@ -209,8 +209,8 @@ export default function AccountSettingsTab() {
               </span>
             </div>
             <div className="flex gap-4.75">
-              <span className="leading-5 w-36 h-8 py-1.25">Confirm New Password</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+              <span className="leading-cozy w-36 h-8 py-1.25">Confirm New Password</span>
+              <span className="grow font-bold leading-cozy h-8 py-1.25">
                 <Input
                   type="password"
                   originalValue=""
@@ -248,7 +248,7 @@ export default function AccountSettingsTab() {
               </button>
               <button
                 type="button"
-                className="bg-frame-selected font-medium rounded-full h-6 py-px px-2 -my-px"
+                className="bg-selected-frame font-medium rounded-full h-6 py-px px-2 -my-px"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -279,9 +279,9 @@ export default function AccountSettingsTab() {
                 )
               }}
             >
-              <span className="leading-5 h-6 py-px">Delete this user account</span>
+              <span className="leading-cozy h-6 py-px">Delete this user account</span>
             </button>
-            <span className="leading-5 h-8 py-1.25">
+            <span className="leading-cozy h-8 py-1.25">
               Once deleted, it will be gone forever. Please be certain.
             </span>
           </div>

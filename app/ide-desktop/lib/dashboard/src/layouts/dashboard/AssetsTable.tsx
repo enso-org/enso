@@ -100,15 +100,17 @@ const LOADING_SPINNER_SIZE_PX = 36
 const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
 /** The default placeholder row. */
 const PLACEHOLDER = (
-  <span className="opacity-75">
+  <span className="opacity-placeholder">
     You have no files. Go ahead and create one using the buttons above, or open a template from the
     home screen.
   </span>
 )
 /** A placeholder row for when a query (text or labels) is active. */
-const QUERY_PLACEHOLDER = <span className="opacity-75">No files match the current filters.</span>
+const QUERY_PLACEHOLDER = (
+  <span className="opacity-placeholder">No files match the current filters.</span>
+)
 /** The placeholder row for the Trash category. */
-const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
+const TRASH_PLACEHOLDER = <span className="opacity-placeholder px-1.5">Your trash is empty.</span>
 
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {
@@ -2171,7 +2173,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const itemRows = isLoading ? (
-    <tr className="h-8">
+    <tr className="h-row">
       <td colSpan={columns.length} className="bg-transparent">
         <div className="grid justify-around w-container">
           <Spinner size={LOADING_SPINNER_SIZE_PX} state={spinnerState} />
@@ -2229,7 +2231,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             setModal(
               <DragModal
                 event={event}
-                className="flex flex-col rounded-2xl bg-frame-selected backdrop-blur-3xl"
+                className="flex flex-col rounded-2xl bg-selected-frame backdrop-blur-3xl"
                 doCleanup={() => {
                   drag.ASSET_ROWS.unbind(payload)
                 }}
@@ -2380,11 +2382,11 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }}
     >
-      <table className="rounded-rows table-fixed border-collapse">
+      <table className="assets-table__table rounded-rows table-fixed border-collapse">
         <thead>{headerRow}</thead>
         <tbody ref={bodyRef}>
           {itemRows}
-          <tr className="h-8 hidden first:table-row">
+          <tr className="h-row hidden first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
               {placeholder}
             </td>
@@ -2428,7 +2430,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
+    <div ref={scrollContainerRef} className="assets-table container-size flex-1 overflow-auto">
       {!hidden && (
         <SelectionBrush
           onDrag={onSelectionDrag}
@@ -2436,11 +2438,11 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="flex flex-col w-min min-w-full h-full">
+      <div className="assets-table__container flex flex-col w-min min-w-full h-full">
         {isCloud && (
-          <div className="sticky top-0 h-0 flex flex-col">
-            <div className="block sticky right-0 self-end w-29 px-2 pt-2.25 pb-1.75 z-1">
-              <div className="inline-flex gap-3">
+          <div className="assets-table__extra-columns-container-2 sticky top-0 h-0 flex flex-col">
+            <div className="assets-table__extra-columns-container block sticky right-0 self-end px-2 py-2.25">
+              <div className="assets-table__extra-columns inline-flex gap-icons">
                 {columnUtils.EXTRA_COLUMNS.map(column => (
                   <Button
                     key={column}

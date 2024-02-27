@@ -56,7 +56,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           left: position.left + window.scrollX,
           top: position.top + window.scrollY,
         }}
-        className="relative flex flex-col gap-2 rounded-2xl pointer-events-auto w-80 p-4 pt-2 before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="relative flex flex-col gap-2 rounded-2xl pointer-events-auto w-80 p-4 pt-2 before:inset-0 before:absolute before:rounded-2xl before:bg-selected-frame before:backdrop-blur-3xl before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -79,10 +79,10 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             autoFocus
             size={1}
             placeholder="Enter the name of the label"
-            className={`grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px ${
+            className={`grow bg-transparent border border-black/10 rounded-full leading-cozy h-6 px-4 py-px ${
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers
               color != null && color.lightness <= 50
-                ? 'text-tag-text placeholder-frame-selected'
+                ? 'text-tag-text placeholder-selected-frame'
                 : 'text-primary'
             }`}
             style={
@@ -118,7 +118,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           </button>
           <button
             type="button"
-            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
+            className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1"
             onClick={unsetModal}
           >
             Cancel

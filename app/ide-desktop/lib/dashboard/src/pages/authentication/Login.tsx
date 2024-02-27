@@ -44,10 +44,10 @@ export default function Login(props: LoginProps) {
   const shouldReportValidityRef = React.useRef(true)
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
-      <div className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md">
+    <div className="flex flex-col gap-auth text-primary text-sm items-center justify-center min-h-screen">
+      <div className="flex flex-col gap-auth bg-selected-frame rounded-auth shadow-md p-auth w-full max-w-md">
         <div className="font-medium self-center text-xl">Login to your account</div>
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-auth">
           <button
             onMouseDown={() => {
               shouldReportValidityRef.current = false
@@ -56,7 +56,7 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGoogle()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
+            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-auth py-2"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
             Sign up or login with Google
@@ -69,7 +69,7 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGitHub()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
+            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-auth py-2"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
             Sign up or login with GitHub
@@ -81,7 +81,7 @@ export default function Login(props: LoginProps) {
           <div className="grow border-t border-primary/30 h-0" />
         </div>
         <form
-          className="flex flex-col gap-6"
+          className="flex flex-col gap-auth"
           onSubmit={async event => {
             event.preventDefault()
             setIsSubmitting(true)

@@ -85,7 +85,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
   return (
     <div
       style={style}
-      className="sticky pointer-events-auto w-min before:absolute before:bg-frame-selected before:rounded-2xl before:backdrop-blur-3xl before:w-full before:h-full"
+      className="sticky pointer-events-auto w-min before:absolute before:bg-selected-frame before:rounded-2xl before:backdrop-blur-3xl before:w-full before:h-full"
       onClick={event => {
         event.stopPropagation()
       }}
@@ -116,7 +116,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
             >
               {data.type}
             </div>
-            <span className="font-normal leading-170 h-6.5 pt-1">
+            <span className="font-normal leading-cozy h-6.5 pt-1">
               <span className="h-5.5 py-px">=</span>
             </span>
             {data.previous != null && (
@@ -128,12 +128,12 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                 >
                   {data.previous}
                 </div>
-                <span className="font-normal leading-170 h-6.5 pt-1">
+                <span className="font-normal leading-cozy h-6.5 pt-1">
                   <span className="h-5.5 py-px">+</span>
                 </span>
               </>
             )}
-            <div className="leading-170 h-6.5 pt-1">
+            <div className="leading-cozy h-6.5 pt-1">
               <span className="h-5.5 py-px">{data.description(assetType)}</span>
             </div>
           </button>

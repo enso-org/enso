@@ -8,14 +8,18 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
   theme: {
     extend: {
       colors: {
+        // While these COULD ideally be defined as CSS variables, then their opacity cannot be
+        // modified.
         /** The default color of all text. */
         // This should be named "regular".
-        primary: 'rgba(0, 0, 0, 0.60)',
-        'not-selected': 'rgba(0, 0, 0, 0.40)',
-        'icon-selected': 'rgba(0, 0, 0, 0.50)',
-        'icon-not-selected': 'rgba(0, 0, 0, 0.30)',
+        primary: 'rgb(0 0 0 / 60%)',
+        frame: 'var(--frame-color)',
+        'selected-frame': 'var(--selected-frame-color)',
+        'not-selected': 'rgb(0 0 0 / 40%)',
+        'icon-selected': 'rgb(0 0 0 / 50%)',
+        'icon-not-selected': 'rgb(0 0 0 / 30%)',
         'ide-bg': '#ebeef1',
-        selected: 'rgba(255, 255, 255, 0.40)',
+        selected: 'rgb(255 255 255 / 40%)',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
         label: '#f0f1f3',
         help: '#3f68ce',
@@ -24,17 +28,15 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         share: '#64b526',
         inversed: '#ffffff',
         green: '#3e8b29',
-        delete: 'rgba(243, 24, 10, 0.87)',
+        delete: 'rgba(243 24 10 / 87%)',
         v3: '#252423',
         youtube: '#c62421',
         discord: '#404796',
         danger: '#d33b0b',
         // Equivalent to `lch(70% 0 0 / 0.5)`
-        'selection-brush': 'rgba(171 171 171 / 0.5)',
+        'selection-brush': 'var(--selection-brush-color)',
         dim: 'rgba(0, 0, 0, 0.25)',
         'dim-darker': 'rgba(0, 0, 0, 0.40)',
-        frame: 'rgba(255, 255, 255, 0.40)',
-        'frame-selected': 'rgba(255, 255, 255, 0.70)',
         'tag-text': 'rgba(255, 255, 255, 0.90)',
         'tag-text-2': 'rgba(0, 0, 0, 0.60)',
         'permission-owner': 'rgba(236, 2, 2, 0.70)',
@@ -59,14 +61,12 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         sm: '0.8125rem',
         xl: '1.1875rem',
         '4xl': '2.375rem',
+        'auth-heading': 'var(--auth-heading-font-size)',
       },
       borderRadius: {
         '2.5xl': '1.25rem',
         '4xl': '2rem',
-      },
-      lineHeight: {
-        144.5: '144.5%',
-        170: '170%',
+        auth: 'var(--auth-corner-radius)',
       },
       spacing: {
         0.75: '0.1875rem',
@@ -108,6 +108,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         155: '38.75rem',
         '10lh': '10lh',
       },
+      height: {
+        row: 'var(--row-height)',
+        sample: 'var(--sample-height)',
+        'sample-info': 'var(--sample-info-height)',
+      },
       minHeight: {
         '5lh': '5lh',
       },
@@ -130,6 +135,24 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       opacity: {
         '1/3': '.33333333',
+        'disabled-icon': 'var(--disabled-icon-opacity)',
+        placeholder: 'var(--placeholder-opacity)',
+      },
+      gap: {
+        icons: 'var(--icons-gap)',
+        'icon-with-text': 'var(--icon-with-text-gap)',
+        pages: 'var(--pages-gap)',
+        auth: 'var(--auth-gap)',
+        sidebar: 'var(--sidebar-gap)',
+        drive: 'var(--drive-gap)',
+      },
+      padding: {
+        auth: 'var(--auth-padding)',
+        sidebar: 'var(--sidebar-padding)',
+      },
+      lineHeight: {
+        snug: 'var(--snug-line-height)',
+        cozy: 'var(--cozy-line-height)',
       },
       zIndex: {
         1: '1',
@@ -158,6 +181,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         400: '400ms',
         5000: '5000ms',
         90000: '90000ms',
+        auth: 'var(--auth-transition-duration)',
       },
       gridTemplateRows: {
         '0fr': '0fr',

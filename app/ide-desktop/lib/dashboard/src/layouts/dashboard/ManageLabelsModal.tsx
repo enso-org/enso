@@ -137,7 +137,7 @@ export default function ManageLabelsModal<
             }
           }}
         >
-          <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
+          <div className="absolute bg-selected-frame backdrop-blur-3xl rounded-2xl h-full w-full" />
           <form
             className="relative flex flex-col rounded-2xl gap-2 p-2"
             onSubmit={async event => {
@@ -179,7 +179,7 @@ export default function ManageLabelsModal<
                 autoFocus
                 type="text"
                 placeholder="Type labels to search"
-                className="grow bg-transparent leading-170 h-6 px-1 py-px"
+                className="grow bg-transparent leading-cozy h-6 px-1 py-px"
                 onChange={event => {
                   setQuery(event.currentTarget.value)
                 }}

@@ -43,7 +43,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
       }}
     >
       <SvgMask src={TimeIcon} className="h-4 w-4" />
-      <span className="leading-144.5 h-6 py-0.5">
+      <span className="leading-snug h-6 py-0.5">
         {columnUtils.COLUMN_NAME[columnUtils.Column.modified]}
       </span>
       <img

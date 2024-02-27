@@ -72,7 +72,7 @@ export default function UserBar(props: UserBarProps) {
       />
       {shouldShowInviteButton && (
         <button
-          className="text-inversed bg-share rounded-full leading-5 h-6 px-2 py-px"
+          className="text-inversed bg-share rounded-full leading-cozy h-6 px-2 py-px"
           onClick={event => {
             event.stopPropagation()
             setModal(<InviteUsersModal eventTarget={null} />)
@@ -83,7 +83,7 @@ export default function UserBar(props: UserBarProps) {
       )}
       {shouldShowShareButton && (
         <button
-          className="text-inversed bg-share rounded-full leading-5 h-6 px-2 py-px"
+          className="text-inversed bg-share rounded-full leading-cozy h-6 px-2 py-px"
           onClick={event => {
             event.stopPropagation()
             setModal(

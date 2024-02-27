@@ -118,8 +118,8 @@ export default function AssetPanel(props: AssetPanelProps) {
         {item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
             <button
-              className={`rounded-full leading-5 px-2 select-none bg-frame hover:bg-frame-selected transition-colors ${
-                tab !== AssetPanelTab.versions ? '' : 'bg-frame-selected'
+              className={`rounded-full leading-cozy px-2 select-none bg-frame hover:bg-selected-frame transition-colors ${
+                tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame'
               }`}
               onClick={() => {
                 setTab(oldTab =>

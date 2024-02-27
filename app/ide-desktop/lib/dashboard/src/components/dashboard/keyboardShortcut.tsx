@@ -40,7 +40,7 @@ const MODIFIER_MAPPINGS: Readonly<
   },
   [detect.Platform.linux]: {
     Meta: (
-      <span key="Meta" className="leading-170 h-6 py-px">
+      <span key="Meta" className="leading-cozy h-6 py-px">
         Super
       </span>
     ),
@@ -49,7 +49,7 @@ const MODIFIER_MAPPINGS: Readonly<
     // Assume the system is Unix-like and calls the key that triggers `event.metaKey`
     // the "Super" key.
     Meta: (
-      <span key="Meta" className="leading-170 h-6 py-px">
+      <span key="Meta" className="leading-cozy h-6 py-px">
         Super
       </span>
     ),
@@ -75,12 +75,12 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
         {shortcutManagerModule.getModifierKeysOfShortcut(shortcut).map(
           modifier =>
             MODIFIER_MAPPINGS[detect.platform()][modifier] ?? (
-              <span key={modifier} className="leading-170 h-6 py-px">
+              <span key={modifier} className="leading-cozy h-6 py-px">
                 {modifier}
               </span>
             )
         )}
-        <span className="leading-170 h-6 py-px">{shortcut.key}</span>
+        <span className="leading-cozy h-6 py-px">{shortcut.key}</span>
       </div>
     )
   }

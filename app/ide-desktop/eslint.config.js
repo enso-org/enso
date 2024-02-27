@@ -231,7 +231,20 @@ const RESTRICTED_SYNTAXES = [
     {
         selector:
             'JSXElement[closingElement!=null]:not(:has(.children:matches(JSXText[raw=/\\S/], :not(JSXText))))',
-        message: 'Use self-closing tags (`<tag />`) for tags without children.',
+        message: 'Use self-closing tags (`<tag />`) for tags without children',
+    },
+    {
+        // TODO [sb]: `z-3` should be eliminated, but is currently still required.
+        // TODO: this does not work for template strings and nested strings
+        selector: `[value.raw=/\\b(?:w|h|p[xylrbt]?|m[xylrbt]?)-(?!0)\\d+/]`,
+        message: 'Fixed values for Tailwind `w-`, `h-`, `p-`, `m-` are not allowed',
+    },
+    {
+        // TODO [sb]: `z-3` should be eliminated, but is currently still required.
+        // TODO: this does not work for template strings and nested strings
+        selector: `[value.raw=/\\b(?:opacity|gap|rounded|leading|duration)-(?!0)\\d+/]`,
+        message:
+            'Fixed values for Tailwind `opacity-`, `rounded-`, `leading-` and `duration-` are not allowed',
     },
 ]
 

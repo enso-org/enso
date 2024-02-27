@@ -47,7 +47,7 @@ export default function Labels(props: LabelsProps) {
   return (
     <div data-testid="labels" className="flex flex-col items-start w-30">
       <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">Labels</span>
+        <span className="inline-block font-bold text-sm leading-snug h-6 py-0.5">Labels</span>
       </div>
       <ul data-testid="labels-list" className="flex flex-col items-start gap-1">
         {labels
@@ -134,7 +134,7 @@ export default function Labels(props: LabelsProps) {
             }}
           >
             <img src={PlusIcon} className="w-1.5 h-1.5" />
-            <span className="leading-144.5 h-6 py-0.5">new label</span>
+            <span className="leading-snug h-6 py-0.5">new label</span>
           </Label>
         </li>
       </ul>

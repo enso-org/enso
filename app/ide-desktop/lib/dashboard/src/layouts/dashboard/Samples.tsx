@@ -108,9 +108,9 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5 h-51">
+    <div className="flex flex-col gap-1.5">
       <button
-        className="relative grow cursor-pointer before:absolute before:inset-0 before:bg-frame before:rounded-2xl before:w-full before:h-full before:opacity-60"
+        className="relative h-sample cursor-pointer before:absolute before:inset-0 before:bg-frame before:rounded-2xl before:w-full before:h-full before:opacity-60"
         onClick={onClick}
       >
         <div className="relative flex rounded-2xl w-full h-full">
@@ -126,7 +126,7 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
           </div>
         </div>
       </button>
-      <div className="h-4.5" />
+      <div className="h-sample-info" />
     </div>
   )
 }
@@ -168,10 +168,10 @@ function ProjectTile(props: InternalProjectTileProps) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5 h-51">
+    <div className="flex flex-col gap-1.5">
       <button
         key={sample.title}
-        className="relative flex flex-col grow cursor-pointer text-left"
+        className="relative flex flex-col grow cursor-pointer text-left h-sample"
         onClick={onClick}
       >
         <div
@@ -179,8 +179,8 @@ function ProjectTile(props: InternalProjectTileProps) {
           className={`rounded-t-2xl w-full h-25 ${sample.background != null ? '' : 'bg-frame'}`}
         />
         <div className="grow bg-frame backdrop-blur rounded-b-2xl w-full px-4 pt-1.75 pb-3.5">
-          <h2 className="text-sm font-bold leading-144.5 py-0.5">{sample.title}</h2>
-          <div className="text-xs text-ellipsis leading-144.5 pb-px">{sample.description}</div>
+          <h2 className="text-sm font-bold leading-snug py-0.5">{sample.title}</h2>
+          <div className="text-xs text-ellipsis leading-snug pb-px">{sample.description}</div>
         </div>
         {spinnerState != null && (
           <div className="absolute grid w-full h-25 place-items-center">
@@ -188,20 +188,20 @@ function ProjectTile(props: InternalProjectTileProps) {
           </div>
         )}
       </button>
-      <div className="flex justify-between text-primary h-4.5 px-4 opacity-70">
-        <div className="flex gap-1.5">
+      <div className="flex justify-between text-primary h-sample-info px-4 opacity-70">
+        <div className="flex gap-icon-with-text">
           <SvgMask src={Logo} />
-          <span className="font-bold leading-144.5 pb-px">{author}</span>
+          <span className="font-bold leading-snug pb-px">{author}</span>
         </div>
         {/* Normally `flex` */}
-        <div className="gap-3 hidden">
-          <div title="Views" className="flex gap-1.5">
+        <div className="gap-icons hidden">
+          <div title="Views" className="flex gap-icon-with-text">
             <SvgMask alt="Views" src={OpenCountIcon} />
-            <span className="font-bold leading-144.5 pb-px">{opens}</span>
+            <span className="font-bold leading-snug pb-px">{opens}</span>
           </div>
-          <div title="Likes" className="flex gap-1.5">
+          <div title="Likes" className="flex gap-icon-with-text">
             <SvgMask alt="Likes" src={HeartIcon} />
-            <span className="font-bold leading-144.5 pb-px">{likes}</span>
+            <span className="font-bold leading-snug pb-px">{likes}</span>
           </div>
         </div>
       </div>
@@ -227,7 +227,7 @@ export default function Samples(props: SamplesProps) {
   const { createProject } = props
   return (
     <div data-testid="samples" className="flex flex-col gap-4 px-4.75">
-      <h2 className="text-xl leading-144.5 py-0.5">Sample and community projects</h2>
+      <h2 className="text-xl leading-snug py-0.5">Sample and community projects</h2>
       <div className="grid gap-2 grid-cols-fill-60">
         <ProjectsEntry createProject={createProject} />
         {SAMPLES.map(sample => (

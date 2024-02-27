@@ -11,7 +11,7 @@ export default function DocsColumnHeading(): JSX.Element {
   return (
     <div className="flex items-center gap-2">
       <SvgMask src={DocsIcon} className="h-4 w-4" />
-      <span className="leading-144.5 h-6 py-0.5">
+      <span className="leading-snug h-6 py-0.5">
         {columnUtils.COLUMN_NAME[columnUtils.Column.docs]}
       </span>
     </div>

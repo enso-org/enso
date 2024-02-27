@@ -46,7 +46,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       <form
         data-testid="upsert-secret-modal"
         tabIndex={-1}
-        className="relative flex flex-col gap-2 rounded-2xl w-96 p-4 pt-2 pointer-events-auto before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="relative flex flex-col gap-2 rounded-2xl w-96 p-4 pt-2 pointer-events-auto before:inset-0 before:absolute before:rounded-2xl before:bg-selected-frame before:backdrop-blur-3xl before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -69,7 +69,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             autoFocus
             disabled={!isNameEditable}
             placeholder="Enter the name of the secret"
-            className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50"
+            className="grow bg-transparent border border-black/10 rounded-full leading-cozy h-6 px-4 py-px disabled:opacity-50"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
@@ -81,7 +81,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           <input
             autoFocus={!isNameEditable}
             placeholder="Enter the value of the secret"
-            className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px"
+            className="grow bg-transparent border border-black/10 rounded-full leading-cozy h-6 px-4 py-px"
             onInput={event => {
               setValue(event.currentTarget.value)
             }}
@@ -97,7 +97,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           </button>
           <button
             type="button"
-            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
+            className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1"
             onClick={unsetModal}
           >
             Cancel

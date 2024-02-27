@@ -566,7 +566,7 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }
               }}
-              className={`h-8 transition duration-300 ease-in-out rounded-full outline-2 -outline-offset-2 outline-prmary ${
+              className={`h-row transition duration-300 ease-in-out rounded-full outline-2 -outline-offset-2 outline-prmary ${
                 visibilityModule.CLASS_NAME[visibility]
               } ${isKeyboardSelected ? 'outline' : ''} ${
                 isDraggedOver || selected ? 'selected' : ''

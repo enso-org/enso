@@ -40,7 +40,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col items-center gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:inset-0 before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="relative flex flex-col items-center gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:inset-0 before:rounded-2xl before:bg-selected-frame before:backdrop-blur-3xl before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -58,7 +58,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
         <div className="relative flex flex-col gap-2">
           Once deleted, this {description} will be gone forever.
           <button type="submit" className="rounded-full bg-danger text-inversed px-2 py-1">
-            <span className="leading-5 h-6 py-px">
+            <span className="leading-cozy h-6 py-px">
               I confirm that I want to delete this {description}.
             </span>
           </button>

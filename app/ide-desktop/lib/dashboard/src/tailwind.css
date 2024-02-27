@@ -1,6 +1,52 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
+:root {
+  --row-height: 2rem;
+  --placeholder-opacity: 75%;
+  --disabled-icon-opacity: 75%;
+  /* The gap between each icon in a horizontal list of icons. */
+  --icons-gap: 0.75rem;
+  /* The gap between an icon and its associated text. */
+  --icon-with-text-gap: 0.375rem;
+  --pages-gap: 1rem;
+  --drive-gap: 0.75rem;
+  /* The tighter of the custom line heights. */
+  --snug-line-height: 144.5%;
+  /* The looser of the custom line heights. */
+  --cozy-line-height: 170%;
+
+  --frame-color: rgb(255 255 255 / 40%);
+  --selected-frame-color: rgb(255 255 255 / 70%);
+  --selection-brush-color: rgb(171 171 171 / 50%);
+
+  /* Variables specific to pages in the authentication flow. */
+
+  /* The vertical gap between elements in an auth form. */
+  --auth-gap: 1.5rem;
+  /* The padding around the entire auth form. */
+  --auth-padding: 2rem;
+  /* The corner radius of the entire auth form. */
+  --auth-corner-radius: 2rem;
+  /* The font size of the top-level heading (the page title) of an auth page. */
+  --auth-heading-font-size: 19px;
+  /* The transition duration for all transitions in the auth flow.
+   * Currently the only transitions are of the bagkround color of buttons
+   * and inputs when they are hovered over or focused. */
+  --auth-transition-duration: 300ms;
+
+  /* The top and bottom padding for the entire sidebar. */
+  --sidebar-padding: 0.25rem;
+  /* The gap between the individual panels in the sidebar. */
+  --sidebar-gap: 1rem;
+
+  /* The height of the tile containing the sample's image and description.
+   * Does not include the height of its info bar. */
+  --sample-height: 11.25rem;
+  /* The height of the sample's info bar. */
+  --sample-info-height: 1.125rem;
+}
+
 body {
   overflow: hidden;
   height: 100vh;

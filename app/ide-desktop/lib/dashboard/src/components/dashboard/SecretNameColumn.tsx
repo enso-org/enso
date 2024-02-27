@@ -144,7 +144,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     >
       <SvgMask src={KeyIcon} className="h-4 w-4 m-1" />
       {/* Secrets cannot be renamed. */}
-      <span data-testid="asset-row-name" className="bg-transparent grow leading-170 h-6 py-px">
+      <span data-testid="asset-row-name" className="bg-transparent grow leading-cozy h-6 py-px">
         {asset.title}
       </span>
     </div>

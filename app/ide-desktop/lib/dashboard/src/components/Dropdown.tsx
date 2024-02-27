@@ -102,7 +102,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     <div
       ref={rootRef}
       tabIndex={0}
-      className={`group relative flex flex-col w-max items-center rounded-xl cursor-pointer leading-5 whitespace-nowrap ${
+      className={`group relative flex flex-col w-max items-center rounded-xl cursor-pointer leading-cozy whitespace-nowrap ${
         className ?? ''
       }`}
       onFocus={event => {
@@ -139,7 +139,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                 className={`flex gap-1 rounded-xl px-2 h-6 transition-colors ${
                   i === visuallySelectedIndex
                     ? 'cursor-default bg-frame font-bold'
-                    : 'hover:bg-frame-selected'
+                    : 'hover:bg-selected-frame'
                 }`}
                 key={i}
                 onMouseDown={event => {

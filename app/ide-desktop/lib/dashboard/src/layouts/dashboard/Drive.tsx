@@ -294,10 +294,10 @@ export default function Drive(props: DriveProps) {
     case DriveStatus.offline: {
       return (
         <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
-          <div className="flex flex-col gap-4">
-            <div className="text-base text-center">You are not logged in.</div>
+          <div className="flex flex-col text-base gap-4">
+            <div className="text-center">You are not logged in.</div>
             <button
-              className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
+              className="text-white bg-help rounded-full self-center leading-cozy h-row py-px w-16"
               onClick={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
@@ -324,14 +324,14 @@ export default function Drive(props: DriveProps) {
           <div className="flex flex-col gap-4 text-base text-center">
             Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
             <a
-              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-cozy h-row py-px px-2 w-min"
               href="https://enso.org/pricing"
             >
               Upgrade
             </a>
             {!supportsLocalBackend && (
               <button
-                className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+                className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-cozy h-row py-px px-2 w-min"
                 onClick={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {
@@ -371,9 +371,9 @@ export default function Drive(props: DriveProps) {
               dispatchAssetEvent={dispatchAssetEvent}
             />
           </div>
-          <div className="flex flex-1 gap-3 overflow-hidden">
+          <div className="flex flex-1 gap-drive overflow-hidden">
             {backend.type === backendModule.BackendType.remote && (
-              <div className="flex flex-col gap-4 py-1">
+              <div className="flex flex-col gap-sidebar py-sidebar">
                 <CategorySwitcher
                   category={category}
                   setCategory={setCategory}

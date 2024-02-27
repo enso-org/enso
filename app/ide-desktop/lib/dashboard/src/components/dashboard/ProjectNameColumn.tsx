@@ -305,7 +305,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`bg-transparent grow leading-170 h-6 py-px ${
+        className={`bg-transparent grow leading-cozy h-6 py-px ${
           rowState.isEditingName
             ? 'cursor-text'
             : canExecute && !isOtherUserUsingProject

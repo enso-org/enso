@@ -147,7 +147,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               readOnly={readOnly}
               value={typeof value === 'string' ? value : ''}
               size={1}
-              className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+              className={`rounded-full w-40 px-2 bg-transparent border leading-cozy h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
                 jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter text"
@@ -166,7 +166,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+            className={`rounded-full w-40 px-2 bg-transparent border leading-cozy h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
               jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
             }`}
             placeholder="Enter number"
@@ -186,7 +186,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+            className={`rounded-full w-40 px-2 bg-transparent border leading-cozy h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
               jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
             }`}
             placeholder="Enter integer"
@@ -238,7 +238,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
                     : {})}
                 >
                   <div
-                    className={`inline-block h-6 leading-170 py-px w-28 whitespace-nowrap ${
+                    className={`inline-block h-6 leading-cozy py-px w-28 whitespace-nowrap ${
                       isOptional ? 'cursor-pointer' : ''
                     } ${value != null && key in value ? '' : 'opacity-50'}`}
                     onClick={() => {

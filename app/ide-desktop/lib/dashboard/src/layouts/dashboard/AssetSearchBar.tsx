@@ -232,7 +232,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             ? 'Type to search for projects, Data Links, users, and more.'
             : 'Type to search for projects.'
         }
-        className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px placeholder:text-center"
+        className="peer relative z-1 grow bg-transparent leading-cozy h-6 py-px placeholder:text-center"
         onChange={event => {
           if (querySource.current !== QuerySource.internal) {
             querySource.current = QuerySource.typing
@@ -268,7 +268,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                   : [
                       <button
                         key={key}
-                        className="bg-frame rounded-full h-6 px-2 hover:bg-frame-selected transition-all"
+                        className="bg-frame rounded-full h-6 px-2 hover:bg-selected-frame transition-all"
                         onClick={() => {
                           querySource.current = QuerySource.internal
                           setQuery(query.add({ [key]: [[]] }))
@@ -329,9 +329,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     }
                   }}
                   tabIndex={-1}
-                  className={`cursor-pointer px-2 py-1 mx-1 rounded-2xl text-left hover:bg-frame-selected last:mb-1 transition-colors pointer-events-auto ${
+                  className={`cursor-pointer px-2 py-1 mx-1 rounded-2xl text-left hover:bg-selected-frame last:mb-1 transition-colors pointer-events-auto ${
                     index === selectedIndex
-                      ? 'bg-frame-selected'
+                      ? 'bg-selected-frame'
                       : selectedIndices.has(index)
                       ? 'bg-frame'
                       : ''

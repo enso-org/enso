@@ -40,7 +40,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
         }
       }}
     >
-      <span className="leading-144.5 h-6 py-0.5">
+      <span className="leading-snug h-6 py-0.5">
         {columnUtils.COLUMN_NAME[columnUtils.Column.name]}
       </span>
       <img

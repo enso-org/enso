@@ -43,9 +43,9 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     <button
       disabled={disabled}
       title={`Go To ${name}`}
-      className={`group flex items-center rounded-full gap-2 h-8 px-2 hover:bg-frame-selected transition-colors ${
-        active ? 'bg-frame-selected' : 'text-not-selected'
-      } ${disabled ? '' : 'hover:text-primary hover:bg-frame-selected hover:opacity-100'} ${
+      className={`group flex items-center rounded-full gap-2 h-8 px-2 hover:bg-selected-frame transition-colors ${
+        active ? 'bg-selected-frame' : 'text-not-selected'
+      } ${disabled ? '' : 'hover:text-primary hover:bg-selected-frame hover:opacity-100'} ${
         !active && disabled ? 'cursor-not-allowed' : ''
       }`}
       onClick={onClick}
@@ -103,7 +103,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   return (
     <div className="flex flex-col items-start w-30">
       <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">Category</span>
+        <span className="inline-block font-bold text-sm leading-snug h-6 py-0.5">Category</span>
       </div>
       {CATEGORIES.map(currentCategory => (
         <CategorySwitcherItem

@@ -119,7 +119,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   return (
     <>
       <div className="flex flex-col items-start gap-1">
-        <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">
+        <span className="flex items-center gap-2 text-lg leading-snug h-7 py-px">
           Description
           {ownsThisAsset && !isEditingDescription && (
             <Button
@@ -133,7 +133,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         </span>
         <div data-testid="asset-panel-description" className="py-1 self-stretch">
           {!isEditingDescription ? (
-            <span className="leading-170 py-px">{item.item.description}</span>
+            <span className="leading-cozy py-px">{item.item.description}</span>
           ) : (
             <form className="flex flex-col gap-2" onSubmit={doEditDescription}>
               <textarea
@@ -165,7 +165,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 }}
                 className="bg-frame resize-none rounded-lg w-full p-2"
               />
-              <button type="submit" className="self-start bg-frame-selected rounded-full px-4 py-1">
+              <button type="submit" className="self-start bg-selected-frame rounded-full px-4 py-1">
                 Update
               </button>
             </form>
@@ -173,12 +173,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         </div>
       </div>
       <div className="flex flex-col items-start gap-2">
-        <span className="text-lg leading-144.5 h-7 py-px">Settings</span>
+        <span className="text-lg leading-snug h-7 py-px">Settings</span>
         <table>
           <tbody>
             <tr data-testid="asset-panel-permissions">
               <td className="min-w-32 px-0 py-1">
-                <span className="inline-block leading-170 h-6 py-px">Shared with</span>
+                <span className="inline-block leading-cozy h-6 py-px">Shared with</span>
               </td>
               <td className="p-0 w-full">
                 <SharedWithColumn
@@ -193,7 +193,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       </div>
       {isDataLink && (
         <div className="flex flex-col items-start gap-1">
-          <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">Data Link</span>
+          <span className="flex items-center gap-2 text-lg leading-snug h-7 py-px">Data Link</span>
           {!isDataLinkFetched ? (
             <div className="grid self-stretch place-items-center">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
@@ -237,7 +237,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   </button>
                   <button
                     type="button"
-                    className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
+                    className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1"
                     onClick={() => {
                       setEditedDataLinkValue(structuredClone(dataLinkValue))
                     }}

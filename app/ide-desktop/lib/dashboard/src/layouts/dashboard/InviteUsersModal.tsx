@@ -118,7 +118,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
             : {}
         }
-        className="sticky w-115.25 rounded-2xl before:absolute before:bg-frame-selected before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
+        className="sticky w-115.25 rounded-2xl before:absolute before:bg-selected-frame before:backdrop-blur-3xl before:rounded-2xl before:w-full before:h-full"
         onClick={mouseEvent => {
           mouseEvent.stopPropagation()
         }}
@@ -168,7 +168,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                 autoFocus
                 type="text"
                 placeholder="Type email to invite"
-                className="bg-transparent h-6 leading-5 py-px px-1 w-30 max-w-full"
+                className="bg-transparent h-6 leading-cozy py-px px-1 w-30 max-w-full"
                 value={email}
                 onKeyDown={event => {
                   if (

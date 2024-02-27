@@ -29,7 +29,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
         disabled={backend.type === backendModule.BackendType.remote}
         className={`rounded-l-full px-2.5 py-1 ${
           backend.type === backendModule.BackendType.remote
-            ? 'bg-frame-selected text-cloud'
+            ? 'bg-selected-frame text-cloud'
             : 'bg-frame text-black'
         }`}
         onClick={() => {
@@ -42,14 +42,14 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
           }`}
         >
           <SvgMask src={CloudIcon} />
-          <span className="leading-5 h-6 py-px">Cloud</span>
+          <span className="leading-cozy h-6 py-px">Cloud</span>
         </div>
       </button>
       <button
         disabled={backend.type === backendModule.BackendType.local}
         className={`rounded-r-full px-2.5 py-1 ${
           backend.type === backendModule.BackendType.local
-            ? 'bg-frame-selected text-cloud'
+            ? 'bg-selected-frame text-cloud'
             : 'bg-frame text-black'
         }`}
         onClick={() => {
@@ -62,7 +62,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
           }`}
         >
           <SvgMask src={NotCloudIcon} />
-          <span className="leading-5 h-6 py-px">Local</span>
+          <span className="leading-cozy h-6 py-px">Local</span>
         </div>
       </button>
     </div>
