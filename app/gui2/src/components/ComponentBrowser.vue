@@ -24,7 +24,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
-import { computed, onMounted, reactive, ref, watch, type ComputedRef, type Ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch, type Ref } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -257,35 +257,43 @@ function selectWithoutScrolling(index: number) {
 
 // === Preview ===
 
-const previewedExpression = debouncedGetter(() => {
-  if (selectedSuggestion.value == null) return input.code.value
-  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
+type PreviewState = { expression: string; suggestionId?: SuggestionId }
+const previewed = debouncedGetter<PreviewState>(() => {
+  if (selectedSuggestionId.value == null || selectedSuggestion.value == null)
+    return { expression: input.code.value }
+  else
+    return {
+      expression: input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode,
+      suggestionId: selectedSuggestionId.value,
+    }
 }, 200)
 
-const previewedExpressionSuggestionId = ref<SuggestionId>()
-
-watch(previewedExpression, () => {
-  previewedExpressionSuggestionId.value = selectedSuggestionId.value ?? undefined
-})
-
-const previewedExpressionSuggestionReturnType = computed(() => {
-  const id = previewedExpressionSuggestionId.value
+const previewedSuggestionReturnType = computed(() => {
+  const id = previewed.value.suggestionId
   if (id == null) return
   return suggestionDbStore.entries.get(id)?.returnType
 })
 
-const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
-  if (!previewedExpression.value.trim()) return
+const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
+  if (!previewed.value.expression.trim()) return
   if (!graphStore.methodAst) return
   const body = graphStore.methodAst.body
   if (!body) return
 
   return {
     type: 'expression',
-    expression: previewedExpression.value,
+    expression: previewed.value.expression,
     contextId: body.externalId,
   }
 })
+
+const visualizationSelections = reactive(new Map<SuggestionId | null, VisualizationIdentifier>())
+const previewedVisualizationId = computed(() => {
+  return visualizationSelections.get(previewed.value.suggestionId ?? null)
+})
+function setVisualization(visualization: VisualizationIdentifier) {
+  visualizationSelections.set(previewed.value.suggestionId ?? null, visualization)
+}
 
 // === Scrolling ===
 
@@ -382,14 +390,6 @@ const handler = componentBrowserBindings.handler({
     emit('canceled')
   },
 })
-
-const visualizationSelections = reactive(new Map<SuggestionId | null, VisualizationIdentifier>())
-const previewedExpressionVisualizationId = computed(() => {
-  return visualizationSelections.get(previewedExpressionSuggestionId.value ?? null)
-})
-function setVisualization(visualization: VisualizationIdentifier) {
-  visualizationSelections.set(previewedExpressionSuggestionId.value ?? null, visualization)
-}
 </script>
 
 <template>
@@ -498,8 +498,8 @@ function setVisualization(visualization: VisualizationIdentifier) {
         :scale="1"
         :isCircularMenuVisible="false"
         :dataSource="previewDataSource"
-        :typename="previewedExpressionSuggestionReturnType"
-        :currentType="previewedExpressionVisualizationId"
+        :typename="previewedSuggestionReturnType"
+        :currentType="previewedVisualizationId"
         @update:id="setVisualization($event)"
       />
       <div ref="inputElement" class="CBInput">

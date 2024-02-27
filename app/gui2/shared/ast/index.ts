@@ -69,11 +69,16 @@ export function subtreeRoots(module: Module, ids: Set<AstId>): Set<AstId> {
   return roots
 }
 
-function unwrapGroup(ast: Ast) {
+function unwrapGroups(ast: Ast) {
   while (ast instanceof Group && ast.expression) ast = ast.expression
   return ast
 }
 
+/** Tries to recognize inputs that are semantically-equivalent to a sequence of `App`s, and returns the arguments
+ *  identified and LHS of the analyzable chain.
+ *
+ *  In particular, this function currently recognizes syntax used in visualization-preprocessor expressions.
+ */
 export function analyzeAppLike(ast: Ast): { func: Ast; args: Ast[] } {
   const deferredOperands = new Array<Ast>()
   while (
@@ -83,14 +88,14 @@ export function analyzeAppLike(ast: Ast): { func: Ast; args: Ast[] } {
     ast.lhs &&
     ast.rhs
   ) {
-    deferredOperands.push(unwrapGroup(ast.rhs))
-    ast = unwrapGroup(ast.lhs)
+    deferredOperands.push(unwrapGroups(ast.rhs))
+    ast = unwrapGroups(ast.lhs)
   }
   deferredOperands.reverse()
   const args = new Array<Ast>()
   while (ast instanceof App) {
     const deferredOperand = ast.argument instanceof Wildcard ? deferredOperands.pop() : undefined
-    args.push(deferredOperand ?? unwrapGroup(ast.argument))
+    args.push(deferredOperand ?? unwrapGroups(ast.argument))
     ast = ast.function
   }
   args.reverse()
