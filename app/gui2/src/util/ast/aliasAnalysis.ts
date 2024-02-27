@@ -302,10 +302,9 @@ export class AliasAnalyzer {
           const expression = caseLine.case?.expression
           if (pattern) {
             const armStart = parsedTreeOrTokenRange(pattern)[0]
-            const armEnd = expression
-              ? parsedTreeOrTokenRange(expression)[1]
-              : arrow
-              ? parsedTreeOrTokenRange(arrow)[1]
+            const armEnd =
+              expression ? parsedTreeOrTokenRange(expression)[1]
+              : arrow ? parsedTreeOrTokenRange(arrow)[1]
               : parsedTreeOrTokenRange(pattern)[1]
 
             const armRange: SourceRange = [armStart, armEnd]

@@ -44,8 +44,8 @@ export class InteractionHandler {
   }
 
   handleClick(event: MouseEvent, graphNavigator: GraphNavigator): boolean | void {
-    return this.currentInteraction?.click
-      ? this.currentInteraction.click(event, graphNavigator)
+    return this.currentInteraction?.click ?
+        this.currentInteraction.click(event, graphNavigator)
       : false
   }
 }

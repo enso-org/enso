@@ -10,9 +10,9 @@ import { computed } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 
 const itemConfig = computed(() =>
-  props.input.dynamicConfig?.kind === 'Vector_Editor'
-    ? props.input.dynamicConfig.item_editor
-    : undefined,
+  props.input.dynamicConfig?.kind === 'Vector_Editor' ?
+    props.input.dynamicConfig.item_editor
+  : undefined,
 )
 
 const defaultItem = computed(() => {
@@ -50,8 +50,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     else if (props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector'))
       return Score.Good
     else if (props.input.value instanceof Ast.Ast) {
-      return props.input.value.children().next().value.code() === '['
-        ? Score.Perfect
+      return props.input.value.children().next().value.code() === '[' ?
+          Score.Perfect
         : Score.Mismatch
     } else return Score.Mismatch
   },

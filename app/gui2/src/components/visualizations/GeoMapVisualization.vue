@@ -380,9 +380,9 @@ function pushPoints(newPoints: Location[]) {
     ) {
       let position: [number, number] = [point.longitude, point.latitude]
       let radius =
-        typeof point.radius === 'number' && !Number.isNaN(point.radius)
-          ? point.radius
-          : DEFAULT_POINT_RADIUS
+        typeof point.radius === 'number' && !Number.isNaN(point.radius) ?
+          point.radius
+        : DEFAULT_POINT_RADIUS
       let color = point.color ?? ACCENT_COLOR
       let label = point.label ?? ''
       points.push({ position, color, radius, label })

@@ -1811,8 +1811,9 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   const expression = raw.expression ? module.get(raw.expression.node) : undefined
   return {
     newline: { ...raw.newline, node: module.getToken(raw.newline.node) },
-    expression: expression
-      ? {
+    expression:
+      expression ?
+        {
           whitespace: raw.expression?.whitespace,
           node: expression,
         }
@@ -1824,8 +1825,9 @@ function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockL
   const expression = raw.expression ? module.get(raw.expression.node).takeIfParented() : undefined
   return {
     newline: { ...raw.newline, node: module.getToken(raw.newline.node) },
-    expression: expression
-      ? {
+    expression:
+      expression ?
+        {
           whitespace: raw.expression?.whitespace,
           node: expression,
         }
@@ -1836,8 +1838,9 @@ function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockL
 function lineToRaw(line: OwnedBlockLine, module: MutableModule, block: AstId): RawBlockLine {
   return {
     newline: line.newline ?? unspaced(Token.new('\n', RawAst.Token.Type.Newline)),
-    expression: line.expression
-      ? {
+    expression:
+      line.expression ?
+        {
           whitespace: line.expression?.whitespace,
           node: claimChild(module, line.expression.node, block),
         }
@@ -1942,41 +1945,25 @@ export class MutableWildcard extends Wildcard implements MutableAst {
 export interface MutableWildcard extends Wildcard, MutableAst {}
 applyMixins(MutableWildcard, [MutableAst])
 
-export type Mutable<T extends Ast = Ast> = T extends App
-  ? MutableApp
-  : T extends Assignment
-    ? MutableAssignment
-    : T extends BodyBlock
-      ? MutableBodyBlock
-      : T extends Documented
-        ? MutableDocumented
-        : T extends Function
-          ? MutableFunction
-          : T extends Generic
-            ? MutableGeneric
-            : T extends Group
-              ? MutableGroup
-              : T extends Ident
-                ? MutableIdent
-                : T extends Import
-                  ? MutableImport
-                  : T extends Invalid
-                    ? MutableInvalid
-                    : T extends NegationApp
-                      ? MutableNegationApp
-                      : T extends NumericLiteral
-                        ? MutableNumericLiteral
-                        : T extends OprApp
-                          ? MutableOprApp
-                          : T extends PropertyAccess
-                            ? MutablePropertyAccess
-                            : T extends TextLiteral
-                              ? MutableTextLiteral
-                              : T extends UnaryOprApp
-                                ? MutableUnaryOprApp
-                                : T extends Wildcard
-                                  ? MutableWildcard
-                                  : MutableAst
+export type Mutable<T extends Ast = Ast> =
+  T extends App ? MutableApp
+  : T extends Assignment ? MutableAssignment
+  : T extends BodyBlock ? MutableBodyBlock
+  : T extends Documented ? MutableDocumented
+  : T extends Function ? MutableFunction
+  : T extends Generic ? MutableGeneric
+  : T extends Group ? MutableGroup
+  : T extends Ident ? MutableIdent
+  : T extends Import ? MutableImport
+  : T extends Invalid ? MutableInvalid
+  : T extends NegationApp ? MutableNegationApp
+  : T extends NumericLiteral ? MutableNumericLiteral
+  : T extends OprApp ? MutableOprApp
+  : T extends PropertyAccess ? MutablePropertyAccess
+  : T extends TextLiteral ? MutableTextLiteral
+  : T extends UnaryOprApp ? MutableUnaryOprApp
+  : T extends Wildcard ? MutableWildcard
+  : MutableAst
 
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
   const type = fields.get('type')
@@ -2152,22 +2139,24 @@ type StrictIdentLike = Identifier | IdentifierToken
 function toIdentStrict(ident: StrictIdentLike): IdentifierToken
 function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined
 function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined {
-  return ident
-    ? isToken(ident)
-      ? ident
+  return (
+    ident ?
+      isToken(ident) ? ident
       : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierToken)
     : undefined
+  )
 }
 
 type IdentLike = IdentifierOrOperatorIdentifier | IdentifierOrOperatorIdentifierToken
 function toIdent(ident: IdentLike): IdentifierOrOperatorIdentifierToken
 function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined
 function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined {
-  return ident
-    ? isToken(ident)
-      ? ident
+  return (
+    ident ?
+      isToken(ident) ? ident
       : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierOrOperatorIdentifierToken)
     : undefined
+  )
 }
 
 function makeEquals(): Token {

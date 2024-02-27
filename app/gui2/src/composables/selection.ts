@@ -29,11 +29,13 @@ export function useSelection<T>(
     if (event.target instanceof Element) {
       const widgetPort = event.target.closest('.WidgetPort')
       hoveredPort.value =
-        widgetPort instanceof HTMLElement &&
-        'port' in widgetPort.dataset &&
-        typeof widgetPort.dataset.port === 'string'
-          ? (widgetPort.dataset.port as PortId)
-          : undefined
+        (
+          widgetPort instanceof HTMLElement &&
+          'port' in widgetPort.dataset &&
+          typeof widgetPort.dataset.port === 'string'
+        ) ?
+          (widgetPort.dataset.port as PortId)
+        : undefined
     }
   })
 

@@ -235,12 +235,12 @@ export const useVisualizationStore = defineStore('visualization', () => {
 
   function* types(type: Opt<string>) {
     const types =
-      type == null
-        ? metadata.keys()
-        : new Set([
-            ...(metadata.visualizationIdToType.reverseLookup(type) ?? []),
-            ...(metadata.visualizationIdToType.reverseLookup('Any') ?? []),
-          ])
+      type == null ?
+        metadata.keys()
+      : new Set([
+          ...(metadata.visualizationIdToType.reverseLookup(type) ?? []),
+          ...(metadata.visualizationIdToType.reverseLookup('Any') ?? []),
+        ])
     for (const type of types) yield fromVisualizationId(type)
   }
 

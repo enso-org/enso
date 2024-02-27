@@ -89,14 +89,16 @@ const fill = computed(() =>
 
 const width = ref(Math.max(config.width ?? 0, config.nodeSize.x))
 watchPostEffect(() => {
-  width.value = config.fullscreen
-    ? containerNode.value?.parentElement?.clientWidth ?? 0
+  width.value =
+    config.fullscreen ?
+      containerNode.value?.parentElement?.clientWidth ?? 0
     : Math.max(config.width ?? 0, config.nodeSize.x)
 })
 const height = ref(config.height ?? (config.nodeSize.x * 3) / 4)
 watchPostEffect(() => {
-  height.value = config.fullscreen
-    ? containerNode.value?.parentElement?.clientHeight ?? 0
+  height.value =
+    config.fullscreen ?
+      containerNode.value?.parentElement?.clientHeight ?? 0
     : config.height ?? (config.nodeSize.x * 3) / 4
 })
 const boxWidth = computed(() => Math.max(0, width.value - MARGIN.left - MARGIN.right))

@@ -56,9 +56,8 @@ export function createContextStore<F extends (...args: any[]) => any>(name: stri
   ): ReturnType<F> {
     // Right now this function assumes that an array always represents the arguments to the factory.
     // If we ever need to mock an array as the context value, we'll worry about it then.
-    const constructed: ReturnType<F> = Array.isArray(valueOrArgs)
-      ? factory(...valueOrArgs)
-      : valueOrArgs
+    const constructed: ReturnType<F> =
+      Array.isArray(valueOrArgs) ? factory(...valueOrArgs) : valueOrArgs
     if (app != null) app.provide(provideKey, constructed)
     else provide(provideKey, constructed)
     return constructed

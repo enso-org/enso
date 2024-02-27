@@ -59,9 +59,9 @@ const graphStore = useGraphStore()
 const visualizationStore = useVisualizationStore()
 
 const expressionInfo = computed(() =>
-  props.dataSource?.type === 'node'
-    ? graphStore.db.getExpressionInfo(props.dataSource.nodeId)
-    : undefined,
+  props.dataSource?.type === 'node' ?
+    graphStore.db.getExpressionInfo(props.dataSource.nodeId)
+  : undefined,
 )
 const typeName = computed(() => expressionInfo.value?.typename ?? 'Any')
 
@@ -87,9 +87,9 @@ const defaultVisualization = computed<VisualizationIdentifier | undefined>(() =>
   return {
     name: raw.value.name,
     module:
-      raw.value.library == null
-        ? { kind: 'Builtin' }
-        : { kind: 'Library', name: raw.value.library.name },
+      raw.value.library == null ?
+        { kind: 'Builtin' }
+      : { kind: 'Library', name: raw.value.library.name },
   }
 })
 
@@ -109,8 +109,8 @@ onErrorCaptured((error) => {
 })
 
 const visualizationData = projectStore.useVisualizationData(() => {
-  return props.data == null && props.dataSource?.type === 'node'
-    ? {
+  return props.data == null && props.dataSource?.type === 'node' ?
+      {
         ...visPreprocessor.value,
         expressionId: props.dataSource.nodeId,
       }

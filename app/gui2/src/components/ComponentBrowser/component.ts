@@ -54,14 +54,9 @@ export function labelOfEntry(
       matchedAlias: match.matchedAlias,
       matchedRanges: [
         ...(match.memberOfRanges ?? match.definedInRanges ?? []).flatMap((range) =>
-          range.end <= lastSegmentStart
-            ? []
-            : [
-                new Range(
-                  Math.max(0, range.start - lastSegmentStart),
-                  range.end - lastSegmentStart,
-                ),
-              ],
+          range.end <= lastSegmentStart ?
+            []
+          : [new Range(Math.max(0, range.start - lastSegmentStart), range.end - lastSegmentStart)],
         ),
         ...(match.nameRanges ?? []).map(
           (range) => new Range(range.start + nameOffset, range.end + nameOffset),
@@ -69,16 +64,15 @@ export function labelOfEntry(
       ],
     }
   } else
-    return match.nameRanges
-      ? { label: entry.name, matchedAlias: match.matchedAlias, matchedRanges: match.nameRanges }
+    return match.nameRanges ?
+        { label: entry.name, matchedAlias: match.matchedAlias, matchedRanges: match.nameRanges }
       : { label: entry.name, matchedAlias: match.matchedAlias }
 }
 
 function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
   return {
-    label: labelInfo.matchedAlias
-      ? `${labelInfo.matchedAlias} (${labelInfo.label})`
-      : labelInfo.label,
+    label:
+      labelInfo.matchedAlias ? `${labelInfo.matchedAlias} (${labelInfo.label})` : labelInfo.label,
     matchedRanges: labelInfo.matchedRanges,
   }
 }

@@ -72,9 +72,9 @@ const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
 const externalId = computed(() => props.node.rootSpan.externalId)
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
-  props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject)
-    ? props.node.primarySubject
-    : undefined,
+  props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject) ?
+    props.node.primarySubject
+  : undefined,
 )
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
@@ -209,11 +209,11 @@ const isOutputContextOverridden = computed({
     const module = projectStore.module
     if (!module) return
     const edit = props.node.rootSpan.module.edit()
-    const replacementText = shouldOverride
-      ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
-      : undefined
-    const replacements = projectStore.isOutputContextEnabled
-      ? {
+    const replacementText =
+      shouldOverride ? [Ast.TextLiteral.new(projectStore.executionMode, edit)] : undefined
+    const replacements =
+      projectStore.isOutputContextEnabled ?
+        {
           enableOutputContext: undefined,
           disableOutputContext: replacementText,
         }

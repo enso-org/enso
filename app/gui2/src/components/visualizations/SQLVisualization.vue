@@ -46,9 +46,9 @@ const props = defineProps<{ data: Data }>()
 const theme: Theme = DEFAULT_THEME
 
 const language = computed(() =>
-  props.data.dialect != null && sqlFormatter.supportedDialects.includes(props.data.dialect)
-    ? props.data.dialect
-    : 'sql',
+  props.data.dialect != null && sqlFormatter.supportedDialects.includes(props.data.dialect) ?
+    props.data.dialect
+  : 'sql',
 )
 const formatted = computed(() => {
   if (props.data.error != null || props.data.code == null) {

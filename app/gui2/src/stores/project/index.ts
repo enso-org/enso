@@ -220,9 +220,9 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
               executionContextId: this.id,
               expression: config.expression,
               visualizationModule: config.visualizationModule,
-              ...(config.positionalArgumentsExpressions
-                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
-                : {}),
+              ...(config.positionalArgumentsExpressions ?
+                { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+              : {}),
             }),
           'Failed to attach visualization',
         ).then(() => {
@@ -237,9 +237,9 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
               executionContextId: this.id,
               expression: config.expression,
               visualizationModule: config.visualizationModule,
-              ...(config.positionalArgumentsExpressions
-                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
-                : {}),
+              ...(config.positionalArgumentsExpressions ?
+                { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+              : {}),
             }),
           'Failed to modify visualization',
         ).then(() => {

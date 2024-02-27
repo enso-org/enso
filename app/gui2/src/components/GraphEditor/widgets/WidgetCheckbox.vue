@@ -66,11 +66,9 @@ const argumentName = computed(() => {
 <script lang="ts">
 function isBoolNode(ast: Ast.Ast) {
   const candidate =
-    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean'
-      ? ast.rhs
-      : ast instanceof Ast.Ident
-        ? ast.token
-        : undefined
+    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean' ? ast.rhs
+    : ast instanceof Ast.Ident ? ast.token
+    : undefined
   return candidate && ['True', 'False'].includes(candidate.code())
 }
 function setBoolNode(ast: Ast.Mutable, value: Identifier): { requiresImport: boolean } {
@@ -88,8 +86,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 500,
   score: (props) => {
     if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value)) return Score.Perfect
-    return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean'
-      ? Score.Good
+    return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean' ?
+        Score.Good
       : Score.Mismatch
   },
 })

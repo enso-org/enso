@@ -42,9 +42,9 @@ const emit = defineEmits<{
       class="icon-container button slot7"
       :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
       :alt="`${
-        props.isOutputContextEnabledGlobally != props.isOutputContextOverridden
-          ? 'Disable'
-          : 'Enable'
+        props.isOutputContextEnabledGlobally != props.isOutputContextOverridden ?
+          'Disable'
+        : 'Enable'
       } output context`"
       :modelValue="props.isOutputContextOverridden"
       @update:modelValue="emit('update:isOutputContextOverridden', $event)"

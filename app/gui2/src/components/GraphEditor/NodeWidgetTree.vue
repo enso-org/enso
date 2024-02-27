@@ -47,7 +47,9 @@ function handleWidgetUpdates(update: WidgetUpdate) {
     const { value, origin } = update.portUpdate
     if (Ast.isAstId(origin)) {
       const ast =
-        value instanceof Ast.Ast ? value : value == null ? Ast.Wildcard.new(edit) : undefined
+        value instanceof Ast.Ast ? value
+        : value == null ? Ast.Wildcard.new(edit)
+        : undefined
       if (ast) {
         edit.replaceValue(origin as Ast.AstId, ast)
       } else if (typeof value === 'string') {

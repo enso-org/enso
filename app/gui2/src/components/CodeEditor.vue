@@ -227,9 +227,8 @@ function updateListener() {
         commitPendingChanges()
         currentModule = newModule
       } else if (transaction.docChanged && currentModule) {
-        pendingChanges = pendingChanges
-          ? pendingChanges.compose(transaction.changes)
-          : transaction.changes
+        pendingChanges =
+          pendingChanges ? pendingChanges.compose(transaction.changes) : transaction.changes
         // Defer the update until after pending events have been processed, so that if changes are arriving faster than
         // we would be able to apply them individually we coalesce them to keep up.
         debouncer(commitPendingChanges)
@@ -282,8 +281,9 @@ function observeSourceChange(textEdits: SourceRangeEdit[], origin: Origin | unde
 // too quickly can result in incorrect ranges, but at idle it should correct itself when we receive new diagnostics.
 watch([viewInitialized, () => projectStore.diagnostics], ([ready, diagnostics]) => {
   if (!ready) return
-  executionContextDiagnostics.value = graphStore.moduleSource.text
-    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleSource.text, diagnostics)
+  executionContextDiagnostics.value =
+    graphStore.moduleSource.text ?
+      lsDiagnosticsToCMDiagnostics(graphStore.moduleSource.text, diagnostics)
     : []
 })
 

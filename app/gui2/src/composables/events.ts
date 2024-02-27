@@ -162,22 +162,22 @@ function getOrCreateObserverData(element: Element): ResizeObserverData {
 }
 
 const sharedResizeObserver: ResizeObserver | undefined =
-  typeof ResizeObserver === 'undefined'
-    ? undefined
-    : new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const data = resizeObserverData.get(entry.target)
-          if (data != null) {
-            if (entry.contentRect != null) {
-              data.contentRect.value = new Vec2(entry.contentRect.width, entry.contentRect.height)
-            }
-            if (data.boundRectUsers > 0) {
-              const rect = entry.target.getBoundingClientRect()
-              data.boundRect.value = new Vec2(rect.width, rect.height)
-            }
+  typeof ResizeObserver === 'undefined' ? undefined : (
+    new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const data = resizeObserverData.get(entry.target)
+        if (data != null) {
+          if (entry.contentRect != null) {
+            data.contentRect.value = new Vec2(entry.contentRect.width, entry.contentRect.height)
+          }
+          if (data.boundRectUsers > 0) {
+            const rect = entry.target.getBoundingClientRect()
+            data.boundRect.value = new Vec2(rect.width, rect.height)
           }
         }
-      })
+      }
+    })
+  )
 
 /**
  * Get DOM node size and keep it up to date.

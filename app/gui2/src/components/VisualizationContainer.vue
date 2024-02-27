@@ -117,12 +117,10 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         class="content scrollable"
         :class="{ overflow: props.overflow }"
         :style="{
-          width: config.fullscreen
-            ? undefined
-            : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
-          height: config.fullscreen
-            ? undefined
-            : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
+          width:
+            config.fullscreen ? undefined : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
+          height:
+            config.fullscreen ? undefined : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
         }"
         @wheel.passive="onWheel"
       >

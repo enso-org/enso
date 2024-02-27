@@ -55,11 +55,9 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
   return {
     label: identToLabel(entry.name),
     expression:
-      entry.selfType != null
-        ? `_.${entry.name}`
-        : entry.memberOf
-        ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
-        : entry.name,
+      entry.selfType != null ? `_.${entry.name}`
+      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+      : entry.name,
     requiredImports: requiredImports(suggestions.entries, entry),
   }
 }
@@ -101,7 +99,11 @@ const selectedTag = computed(() => {
     // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
     const sortedTags = tags.value
       .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
-      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+      .sort(([a], [b]) =>
+        a < b ? 1
+        : a > b ? -1
+        : 0,
+      )
     const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
     return index != null ? tags.value[index] : undefined
   }

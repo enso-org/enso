@@ -169,8 +169,8 @@ export class ArgumentApplication {
     const argFor = (key: 'lhs' | 'rhs', index: number) => {
       const tree = interpreted[key]
       const info = tryGetIndex(suggestion?.arguments, index) ?? unknownArgInfoNamed(key)
-      return tree != null
-        ? ArgumentAst.WithRetrievedConfig(tree, index, info, kind, widgetCfg)
+      return tree != null ?
+          ArgumentAst.WithRetrievedConfig(tree, index, info, kind, widgetCfg)
         : ArgumentPlaceholder.WithRetrievedConfig(callId, index, info, kind, false, widgetCfg)
     }
     return new ArgumentApplication(
@@ -299,9 +299,9 @@ export class ArgumentApplication {
         })
       } else {
         const argumentFromDefinition =
-          argumentInCode.argName == null
-            ? takeNextArgumentFromDefinition()
-            : takeNamedArgumentFromDefinition(argumentInCode.argName)
+          argumentInCode.argName == null ?
+            takeNextArgumentFromDefinition()
+          : takeNamedArgumentFromDefinition(argumentInCode.argName)
         const { index, info } = argumentFromDefinition ?? {}
         resolvedArgs.push({
           appTree: argumentInCode.appTree,
@@ -309,9 +309,9 @@ export class ArgumentApplication {
             argumentInCode.argument,
             index,
             info ??
-              (argumentInCode.argName != null
-                ? unknownArgInfoNamed(argumentInCode.argName)
-                : undefined),
+              (argumentInCode.argName != null ?
+                unknownArgInfoNamed(argumentInCode.argName)
+              : undefined),
             ApplicationKind.Prefix,
             widgetCfg,
           ),
@@ -366,9 +366,9 @@ export class ArgumentApplication {
   toWidgetInput(): WidgetInput {
     return {
       portId:
-        this.argument instanceof ArgumentAst
-          ? this.appTree.id
-          : (`app:${this.argument.portId}` as PortId),
+        this.argument instanceof ArgumentAst ?
+          this.appTree.id
+        : (`app:${this.argument.portId}` as PortId),
       value: this.appTree,
       [ArgumentApplicationKey]: this,
     }

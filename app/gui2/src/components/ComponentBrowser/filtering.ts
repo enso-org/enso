@@ -305,9 +305,9 @@ export class Filtering {
       for (const [, text, separator] of this.fullPattern.matchAll(/(.+?)([._]|$)/g)) {
         const escaped = escapeStringRegexp(text ?? '')
         const segment =
-          separator === '_'
-            ? `()(${escaped})([^_.]*)(_)`
-            : `([^.]*_)?(${escaped})([^.]*)(${separator === '.' ? '\\.' : ''})`
+          separator === '_' ?
+            `()(${escaped})([^_.]*)(_)`
+          : `([^.]*_)?(${escaped})([^.]*)(${separator === '.' ? '\\.' : ''})`
         prefix = '(?:' + prefix
         suffix += segment + ')?'
       }

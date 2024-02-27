@@ -21,10 +21,18 @@ const sortedValuesAndIndices = computed(() => {
   ])
   switch (sortDirection.value) {
     case SortDirection.ascending: {
-      return valuesAndIndices.sort((a, b) => (a[0] > b[0] ? 1 : a[0] < b[0] ? -1 : 0))
+      return valuesAndIndices.sort((a, b) =>
+        a[0] > b[0] ? 1
+        : a[0] < b[0] ? -1
+        : 0,
+      )
     }
     case SortDirection.descending: {
-      return valuesAndIndices.sort((a, b) => (a[0] > b[0] ? -1 : a[0] < b[0] ? 1 : 0))
+      return valuesAndIndices.sort((a, b) =>
+        a[0] > b[0] ? -1
+        : a[0] < b[0] ? 1
+        : 0,
+      )
     }
     case SortDirection.none:
     default: {

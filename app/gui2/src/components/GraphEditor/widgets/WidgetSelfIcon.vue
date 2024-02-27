@@ -14,9 +14,9 @@ const icon = computed(() => tree.icon)
 export const widgetDefinition = defineWidget(WidgetInput.isAst, {
   priority: 1,
   score: (props, _db) =>
-    props.input.value.id === injectWidgetTree().connectedSelfArgumentId
-      ? Score.Perfect
-      : Score.Mismatch,
+    props.input.value.id === injectWidgetTree().connectedSelfArgumentId ?
+      Score.Perfect
+    : Score.Mismatch,
 })
 </script>
 
