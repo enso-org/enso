@@ -51,9 +51,20 @@ type Decimal
     new : Text | Integer | Float -> Math_Context -> Decimal | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         case x of
-            _ : Text -> Decimal.from_text x mc
-            _ : Integer -> Decimal.from_integer x mc
-            _ : Float -> Decimal.from_float x mc
+            _ : Text ->
+                IO.println "AAA D.new t"
+                IO.println x
+                Decimal.from_text x mc
+            _ : Integer ->
+                IO.println "AAA D.new i"
+                IO.println x
+                Decimal.from_integer x mc
+            _ : Float ->
+                r = Decimal.from_float x mc
+                IO.println "AAA D.new f"
+                IO.println x
+                IO.println r
+                r
 
     ## GROUP conversions
        Construct a `Decimal` from a `Text`.
@@ -138,7 +149,12 @@ type Decimal
         if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromEnsoFloat f mc.math_context
-                _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
+                _ : Nothing ->
+                    r = Decimal.Value (Decimal_Utils.fromEnsoFloat f)
+                    IO.println "AAA D.from_float"
+                    IO.println f
+                    IO.println r
+                    r
 
     ## ALIAS plus
        GROUP Operators
@@ -249,4 +265,9 @@ Comparable.from (_:Decimal) = Decimal_Comparator
 Comparable.from (_:Number) = Decimal_Comparator
 
 Decimal.from (that:Text) = Decimal.from_text that
-Decimal.from (that:Number) = Decimal.new that
+Decimal.from (that:Number) =
+    r = Decimal.new that
+    IO.println "AAA D from N"
+    IO.println that
+    IO.println r
+    r

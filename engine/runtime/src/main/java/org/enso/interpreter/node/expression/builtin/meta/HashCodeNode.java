@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import java.math.BigInteger;
 import com.google.common.base.Objects;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
@@ -105,8 +106,13 @@ public abstract class HashCodeNode extends Node {
   @Specialization
   long hashCodeForLong(long l) {
     // By casting long to double, we lose some precision on purpose
-    System.out.println("AAA old hashCodeForLong");
-    return hashCodeForDouble((double) l);
+    if (BigIntegerOps.fitsInLong((double) l)) {
+      System.out.println("AAA old hashCodeForLong d");
+      return hashCodeForDouble((double) l);
+    } else {
+      System.out.println("AAA old hashCodeForLong bi");
+      return BigInteger.valueOf(l).hashCode();
+    }
   }
 
   @Specialization
@@ -129,7 +135,7 @@ public abstract class HashCodeNode extends Node {
       return 456879;
     } else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
       // If d is not a whole number or d is a whole number that fits in long
-      System.out.println("AAA old Double.hashCode");
+    System.out.println("AAA old Double.hashCode");
       return Double.hashCode(d);
     } else {
       // If d is a whole number that does not fit in long

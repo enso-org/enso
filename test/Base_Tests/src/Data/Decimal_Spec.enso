@@ -188,7 +188,7 @@ add_specs suite_builder =
                 b.should_be_true
                 (Decimal.new "1") . should_equal 1
 
-            values = [["0", 0]]
+            values_ = [["0", 0]]
                 + [["1", 1]]
                 + [["-1", -1]]
                 + [["2", 2]]
@@ -226,8 +226,13 @@ add_specs suite_builder =
                 + [[Decimal.new 12000 (Math_Context.new 2), 1200]]
                 + [[Decimal.new 12000 (Math_Context.new 3), 12000]]
 
-            values_ = []
-                + [[9223372036854775806.0, 9223372036854775806.0]]
+            q0 = Decimal.from_float -9223372036854775809.0
+            q1 = Decimal.from_float -92233720368547758090.0
+            IO.println "GGG"
+            IO.println q0
+            IO.println q1
+            values = []
+                + [[-922337203685477580900.0, -9223372036854775809.0]]
 
             values.map_with_index i-> pr->
                 IO.println i

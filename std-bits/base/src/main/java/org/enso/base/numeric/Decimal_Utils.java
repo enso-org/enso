@@ -53,6 +53,7 @@ public class Decimal_Utils {
   }
 
   public static BigDecimal fromEnsoFloat(Double d) {
+    System.out.println("AAA fromEnsoFloat " + d + " " + BigDecimal.valueOf(d));
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
@@ -60,6 +61,7 @@ public class Decimal_Utils {
   }
 
   public static ConversionResult fromEnsoFloat(Double d, MathContext mc) {
+    System.out.println("AAA fromEnsoFloat mc");
     BigDecimal bd = new BigDecimal(d, mc);
     BigDecimal withoutMC = new BigDecimal(d);
     double backToDouble = bd.doubleValue();
@@ -67,7 +69,7 @@ public class Decimal_Utils {
   }
 
   public static boolean fitsInLong(BigDecimal bigDecimal) {
-    return bigDecimal.compareTo(MIN_LONG_BIGDECIMAL) >= 0 && bigDecimal.compareTo(MAX_LONG_BIGDECIMAL) < 0;
+    return bigDecimal.compareTo(new BigDecimal("-9223372036854775000.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854775000.0")) <= 0;
   }
 
   public static int hashCodeOf(BigDecimal bd) {
