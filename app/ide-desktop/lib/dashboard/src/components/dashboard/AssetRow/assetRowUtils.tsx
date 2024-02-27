@@ -1,5 +1,5 @@
 /** @file Utilities related to `AssetRow`s. */
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import type * as assetsTable from '#/layouts/AssetsTable'
 
 import * as set from '#/utilities/set'
 
