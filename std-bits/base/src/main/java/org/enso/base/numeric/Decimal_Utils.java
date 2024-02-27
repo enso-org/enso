@@ -53,12 +53,12 @@ public class Decimal_Utils {
   }
 
   public static Double floatId(Double d) {
-    System.out.println("Decimal_Utils.floatId " + d);
+    //System.out.println("Decimal_Utils.floatId " + d);
     return d;
   }
 
   public static BigDecimal fromEnsoFloat(Double d) {
-    System.out.println("AAA fromEnsoFloat " + d + " " + BigDecimal.valueOf(d));
+    //System.out.println("AAA fromEnsoFloat " + d + " " + BigDecimal.valueOf(d));
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
@@ -66,7 +66,7 @@ public class Decimal_Utils {
   }
 
   public static ConversionResult fromEnsoFloat(Double d, MathContext mc) {
-    System.out.println("AAA fromEnsoFloat mc");
+    //System.out.println("AAA fromEnsoFloat mc");
     BigDecimal bd = new BigDecimal(d, mc);
     BigDecimal withoutMC = new BigDecimal(d);
     double backToDouble = bd.doubleValue();
@@ -81,17 +81,14 @@ public class Decimal_Utils {
   public static int hashCodeOf(BigDecimal bd) {
     boolean isFractional = bd.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) != 0;
     boolean fitsInLong = fitsInLong(bd);
-    //System.out.println("BD hash " + bd + " " + isFractional + " " + fitsInLong);
-    //System.out.println("" + bd + " " + MIN_LONG_BIGDECIMAL + " " + MAX_LONG_BIGDECIMAL);
-    //System.out.println("" + Double.hashCode(bd.doubleValue()) + " " + bd.toBigIntegerExact().hashCode());
     if (isFractional || fitsInLong) {
-      System.out.println("AAA new Double.hashCode");
+      //System.out.println("AAA new Double.hashCode");
       double d = bd.doubleValue();
       assert d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY;
       return Double.hashCode(d);
     } else {
       // Will not throw ArithmeticException since the value has a 0 fractional part.
-      System.out.println("AAA new hash as bi");
+      //System.out.println("AAA new hash as bi");
       return bd.toBigIntegerExact().hashCode();
     }
   }

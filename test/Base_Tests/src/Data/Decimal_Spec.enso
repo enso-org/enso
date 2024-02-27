@@ -289,12 +289,6 @@ add_specs suite_builder =
                 d = case arg of
                     _ : Decimal -> arg
                     _ -> Decimal.new arg
-                b = d == expected
-                IO.println 'GGG'
-                IO.println i
-                IO.println pr
-                IO.println d
-                IO.println b
                 d . should_equal expected
                 (d == expected) . should_be_true
 

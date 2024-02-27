@@ -52,18 +52,18 @@ type Decimal
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         case x of
             _ : Text ->
-                IO.println "AAA D.new t"
-                IO.println x
+                #IO.println "AAA D.new t"
+                #IO.println x
                 Decimal.from_text x mc
             _ : Integer ->
-                IO.println "AAA D.new i"
-                IO.println x
+                #IO.println "AAA D.new i"
+                #IO.println x
                 Decimal.from_integer x mc
             _ : Float ->
                 r = Decimal.from_float x mc
-                IO.println "AAA D.new f"
-                IO.println x
-                IO.println r
+                #IO.println "AAA D.new f"
+                #IO.println x
+                #IO.println r
                 r
 
     ## GROUP conversions
@@ -151,17 +151,17 @@ type Decimal
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromEnsoFloat f mc.math_context
                 _ : Nothing ->
                     r = Decimal.Value (Decimal_Utils.fromEnsoFloat f)
-                    IO.println "AAA D.from_float"
-                    IO.println f
-                    IO.println r
+                    #IO.println "AAA D.from_float"
+                    #IO.println f
+                    #IO.println r
                     r
 
     float_id : Float -> Float
     float_id f =
         r = Decimal_Utils.floatId f
-        IO.println "AAA float_id"
-        IO.println f
-        IO.println r
+        #IO.println "AAA float_id"
+        #IO.println f
+        #IO.println r
         r
 
     ## ALIAS plus
@@ -275,7 +275,7 @@ Comparable.from (_:Number) = Decimal_Comparator
 Decimal.from (that:Text) = Decimal.from_text that
 Decimal.from (that:Number) =
     r = Decimal.new that
-    IO.println "AAA D from N"
-    IO.println that
-    IO.println r
+    #IO.println "AAA D from N"
+    #IO.println that
+    #IO.println r
     r

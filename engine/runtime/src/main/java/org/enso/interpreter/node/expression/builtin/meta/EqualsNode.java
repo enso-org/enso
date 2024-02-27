@@ -284,8 +284,12 @@ public final class EqualsNode extends Node {
     private boolean assertHashCodeIsTheSame(Object self, Object converted) {
       var selfHash = HashCodeNode.getUncached().execute(self);
       var convertedHash = HashCodeNode.getUncached().execute(converted);
+      /*
       System.out.println("ASHITS " + self + " " + self.getClass() + " hash " + Long.toHexString(selfHash));
       System.out.println("ASHITS " + converted + " " + converted.getClass() + " hash " + Long.toHexString(convertedHash));
+      */
+
+/*
       {
         lolo(-9223372036854776000.0);
         lolo(-9223372036854775808.0);
@@ -293,6 +297,7 @@ public final class EqualsNode extends Node {
         lolo(-9223372036854775001.0);
         lolo(-9223372036854775000.0);
       }
+*/
 
       /*
       lala(9223372036854776000.0);
