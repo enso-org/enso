@@ -24,6 +24,7 @@ jobs:
         with:
           repository: enso-org/engine-benchmark-results
           path: engine-benchmark-results
+          token: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
       - name: Install dependencies
         run: |
           sudo apt-get update
