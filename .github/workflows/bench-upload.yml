@@ -39,6 +39,10 @@ jobs:
           git config --global user.name "enso-bench-bot"
           cd ${{ github.workspace }}/engine-benchmark-results
           git remote set-url origin https://x-access-token:${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}@github.com/enso-org/engine-benchmark-results
+          echo "Hello world" > hello.txt
+          git add hello.txt
+          git commit -m "Add hello.txt"
+          git push origin
       #- name: Upload benchmarks
         #run: |
           #cd enso/tools/performance/engine-benchmarks
