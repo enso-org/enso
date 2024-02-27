@@ -69,7 +69,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-settings-header">
       <div className="flex gap-2.5 font-bold text-xl h-9.5 px-4.75">
         <span className="py-0.5">Settings for </span>
         <div className="rounded-full leading-snug bg-frame h-9 px-2.25 pt-0.5 pb-1.25">
@@ -78,7 +78,7 @@ export default function Settings() {
             : organization.organization_name ?? 'your organization'}
         </div>
       </div>
-      <div className="flex gap-8 pl-3">
+      <div className="flex gap-settings px-3">
         <SettingsSidebar settingsTab={settingsTab} setSettingsTab={setSettingsTab} />
         {content}
       </div>

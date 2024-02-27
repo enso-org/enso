@@ -157,13 +157,15 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 h-0 lg:h-auto">
-      <div className="flex flex-col gap-8 w-120">
-        <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col lg:flex-row flex-0 gap-settings-section h-0 lg:h-auto">
+      <div className="flex flex-col gap-settings-subsection w-settings-main-section">
+        <div className="flex flex-col gap-settings-section-header">
           <h3 className="font-bold text-xl h-9.5 py-0.5">Organization</h3>
           <div className="flex flex-col">
-            <div className="flex h-row gap-4.75">
-              <span className="w-40 text my-auto">Organization display name</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="w-organization-settings-label text my-auto">
+                Organization display name
+              </span>
               <span className="grow font-bold text my-auto">
                 <input
                   ref={nameRef}
@@ -179,8 +181,8 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </span>
             </div>
-            <div className="flex h-row gap-4.75">
-              <span className="w-40 text my-auto">Email</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="w-organization-settings-label text my-auto">Email</span>
               <span className="grow font-bold text my-auto">
                 <input
                   ref={emailRef}
@@ -207,8 +209,8 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </span>
             </div>
-            <div className="flex h-row gap-4.75">
-              <span className="w-40 text my-auto">Website</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="w-organization-settings-label text my-auto">Website</span>
               <span className="grow font-bold text my-auto">
                 <input
                   ref={websiteRef}
@@ -224,8 +226,8 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </span>
             </div>
-            <div className="flex h-row gap-4.75">
-              <span className="w-40 text my-auto">Location</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="w-organization-settings-label text my-auto">Location</span>
               <span className="grow font-bold text my-auto">
                 <input
                   ref={locationRef}
@@ -244,7 +246,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-settings-section-header">
         <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
           <input
@@ -260,7 +262,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
             className="pointer-events-none"
           />
         </label>
-        <span className="py-1 w-64">
+        <span className="py-1 w-profile-picture-caption">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
           should not be a default image provided by Enso.
         </span>

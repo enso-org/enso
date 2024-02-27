@@ -16,7 +16,7 @@ export default function ColorPicker(props: ColorPickerProps) {
       {backend.COLORS.map((currentColor, i) => (
         <label
           key={i}
-          className="cursor-pointer rounded-full w-4 h-4"
+          className="flex cursor-pointer rounded-full w-radio-button h-radio-button"
           onClick={event => {
             event.stopPropagation()
             setColor(currentColor)
@@ -25,12 +25,10 @@ export default function ColorPicker(props: ColorPickerProps) {
           <input type="radio" name="new-label-color" className="peer hidden" />
           <button
             type="button"
-            className="group pointer-events-none rounded-full p-1 w-4 h-4"
-            style={{
-              backgroundColor: backend.lChColorToCssColor(currentColor),
-            }}
+            className="group pointer-events-none rounded-full p-radio-button-dot w-radio-button h-radio-button"
+            style={{ backgroundColor: backend.lChColorToCssColor(currentColor) }}
           >
-            <div className="hidden peer-checked:group-[]:block bg-selected-frame rounded-full w-2 h-2" />
+            <div className="hidden peer-checked:group-[]:block bg-selected-frame rounded-full w-radio-button-dot h-radio-button-dot" />
           </button>
         </label>
       ))}

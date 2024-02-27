@@ -33,6 +33,31 @@
   --selected-frame-color: rgb(255 255 255 / 70%);
   --selection-brush-color: rgb(171 171 171 / 50%);
 
+  --radio-button-size: 1rem;
+  --radio-button-dot-size: 0.5rem;
+  --radio-button-dot-padding: calc(
+    var(--radio-button-size) / 2 - var(--radio-button-dot-size) / 2
+  );
+
+  /* The horizontal gap between the settings sidebar and main content. */
+  --settings-gap: 2rem;
+  /* The vertical gap between the settings heading and everything else. */
+  --settings-header-gap: 2rem;
+  /* The horizontal gap between horizontally stacked settings sections. */
+  --settings-section-gap: 2rem;
+  /* The vertical gap between vertically stacked settings subsections. */
+  --settings-subsection-gap: var(--settings-section-gap);
+  /* The gap between the header and contents of a section in a settings page. */
+  --settings-section-header-gap: 0.625rem;
+  /* The gap between the label and value of a settings entry. */
+  --settings-entry-gap: 1.1875rem;
+  /* The width of the main section of the settings page, if there are multiple sections stacked
+   * horizontally. */
+  --settings-main-section-width: 32rem;
+  --user-account-settings-label-width: 3rem;
+  --change-password-settings-label-width: 9rem;
+  --organization-settings-label-width: 10rem;
+
   /* Variables specific to pages in the authentication flow. */
 
   /* The vertical gap between elements in an auth form. */
@@ -158,6 +183,10 @@ body::before {
 
     .text {
       @apply leading-cozy h-text py-px;
+    }
+
+    .settings-value {
+      @apply leading-cozy h-text py-px px-2;
     }
 
     .clip-path-top {

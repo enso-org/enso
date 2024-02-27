@@ -67,7 +67,7 @@ function Input(props: InternalInputProps) {
 
   const input = (
     <input
-      className="rounded-full font-bold leading-cozy w-full h-6 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
+      className="settings-value rounded-full font-bold w-full bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
       type={isShowingPassword ? 'text' : type}
       size={1}
       defaultValue={originalValue}
@@ -156,28 +156,30 @@ export default function AccountSettingsTab() {
   }
 
   return (
-    <div className="flex gap-8">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col lg:flex-row gap-settings-section h-0 lg:h-auto">
+      <div className="flex flex-col gap-settings-subsection w-settings-main-section">
+        <div className="flex flex-col gap-settings-section-header">
           <h3 className="font-bold text-xl h-9.5 py-0.5">User Account</h3>
           <div className="flex flex-col">
-            <div className="flex h-row gap-4.75">
-              <span className="w-12 text my-auto">Name</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="w-user-account-settings-label text my-auto">Name</span>
               <span className="grow font-bold text my-auto">
                 <Input originalValue={user?.name ?? ''} onSubmit={doUpdateName} />
               </span>
             </div>
-            <div className="flex h-row gap-4.75">
-              <span className="w-12 text my-auto">Email</span>
-              <span className="grow font-bold px-2 text my-auto">{user?.email ?? ''}</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="w-user-account-settings-label text my-auto">Email</span>
+              <span className="settings-value grow font-bold my-auto">{user?.email ?? ''}</span>
             </div>
           </div>
         </div>
         {canChangePassword && (
           <div key={passwordFormKey}>
             <h3 className="font-bold text-xl h-9.5 py-0.5">Change Password</h3>
-            <div className="flex h-row gap-4.75">
-              <span className="leading-cozy w-36 h-row py-1.25">Current Password</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="w-change-password-settings-label text my-auto">
+                Current Password
+              </span>
               <span className="grow font-bold text my-auto">
                 <Input
                   type="password"
@@ -189,8 +191,8 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex h-row gap-4.75">
-              <span className="leading-cozy w-36 h-row py-1.25">New Password</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="w-change-password-settings-label text my-auto">New Password</span>
               <span className="grow font-bold text my-auto">
                 <Input
                   type="password"
@@ -208,8 +210,10 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex h-row gap-4.75">
-              <span className="leading-cozy w-36 h-row py-1.25">Confirm New Password</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="w-change-password-settings-label text my-auto">
+                Confirm New Password
+              </span>
               <span className="grow font-bold text my-auto">
                 <Input
                   type="password"
@@ -235,7 +239,7 @@ export default function AccountSettingsTab() {
                   !validation.PASSWORD_REGEX.test(newPassword)
                 }
                 type="submit"
-                className="text-white bg-invite font-medium rounded-full text px-2 -my-px disabled:opacity-disabled"
+                className="settings-value text-white bg-invite font-medium rounded-full -my-px disabled:opacity-disabled"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -248,7 +252,7 @@ export default function AccountSettingsTab() {
               </button>
               <button
                 type="button"
-                className="bg-selected-frame font-medium rounded-full text px-2 -my-px"
+                className="settings-value bg-selected-frame font-medium rounded-full -my-px"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -261,7 +265,7 @@ export default function AccountSettingsTab() {
             </div>
           </div>
         )}
-        <div className="flex flex-col items-centergap-2.5 rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
+        <div className="flex flex-col items-center gap-settings-section-header rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
           <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">Danger Zone</h3>
           <div className="flex gap-2">
             <button
@@ -287,7 +291,7 @@ export default function AccountSettingsTab() {
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-settings-section-header">
         <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-profile-picture-large w-profile-picture-large hover:bg-frame transition-colors">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
