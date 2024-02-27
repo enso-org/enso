@@ -206,7 +206,8 @@ add_specs suite_builder =
 
             vs.map v->
                 IO.println "======== "+v.to_text
-                r = Decimal.float_id v
+                #r = Decimal.float_id v
+                r = identity v
                 IO.println "float_id "+v.to_text+" "+r.to_text
 
         values_ = [["0", 0]]
