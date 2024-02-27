@@ -31,15 +31,10 @@ public class CodeGenerator {
   private final Random random = new Random(SEED);
   private int identifierCnt = 0;
 
-  /**
-   * Creates a new empty code generator.
-   */
-  public CodeGenerator() {
-
-  }
+  /** Creates a new empty code generator. */
+  public CodeGenerator() {}
 
   /**
-   *
    * @param identifiers Collection of already defined identifiers, like arguments to a function.
    */
   public CodeGenerator(Collection<String> identifiers) {
@@ -179,7 +174,7 @@ public class CodeGenerator {
         }
         yield sb.toString();
       }
-      // Method call or binary operator
+        // Method call or binary operator
       case 2 -> {
         var sb = new StringBuilder();
         var shouldCallMethod = random.nextBoolean();
