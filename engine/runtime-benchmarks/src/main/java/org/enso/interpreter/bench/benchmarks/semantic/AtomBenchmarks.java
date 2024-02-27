@@ -64,6 +64,19 @@ public class AtomBenchmarks {
           res = generator List.Nil length
           res
       """;
+
+  private static final String GENERATE_LIST_AUTOSCOPING_CODE =
+      """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+      import Standard.Base.Data.Numbers.Integer
+
+      main = length ->
+          generator acc:List i:Integer = if i == 0 then acc else @Tail_Call generator (~Cons i acc) (i - 1)
+
+          res = generator ~Nil length
+          res
+      """;
   private static final String REVERSE_LIST_CODE =
       """
       import Standard.Base.Data.List.List
@@ -174,6 +187,7 @@ public class AtomBenchmarks {
   private Value millionElementsList;
   private Value generateList;
   private Value generateListQualified;
+  private Value generateListAutoscoping;
   private Value reverseList;
   private Value reverseListMethods;
   private Value sumList;
@@ -201,6 +215,7 @@ public class AtomBenchmarks {
     this.millionElementsList = millionElemListMethod.execute();
     this.generateList = Utils.getMainMethod(context, GENERATE_LIST_CODE);
     this.generateListQualified = Utils.getMainMethod(context, GENERATE_LIST_QUALIFIED_CODE);
+    this.generateListAutoscoping = Utils.getMainMethod(context, GENERATE_LIST_AUTOSCOPING_CODE);
     this.reverseList = Utils.getMainMethod(context, REVERSE_LIST_CODE);
     this.reverseListMethods = Utils.getMainMethod(context, REVERSE_LIST_METHODS_CODE);
     this.sumList = Utils.getMainMethod(context, SUM_LIST_CODE);
@@ -220,6 +235,12 @@ public class AtomBenchmarks {
   @Benchmark
   public void benchGenerateListQualified(Blackhole bh) {
     var res = generateListQualified.execute(MILLION);
+    bh.consume(res);
+  }
+
+  @Benchmark
+  public void benchGenerateListAutoscoping(Blackhole bh) {
+    var res = generateListAutoscoping.execute(MILLION);
     bh.consume(res);
   }
 
