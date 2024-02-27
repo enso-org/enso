@@ -247,9 +247,9 @@ add_specs suite_builder =
             + [["-34.56", -34.56]]
             + [["2.0", 2.0]]
             + [["2.00", 2.0]]
-            + [[Decimal.new 12000 (Math_Context.new 0), 1200]]
-            + [[Decimal.new 12000 (Math_Context.new 1), 1200]]
-            + [[Decimal.new 12000 (Math_Context.new 2), 1200]]
+            + [[Decimal.new 12000 (Math_Context.new 0), 12000]]
+            + [[Decimal.new 12000 (Math_Context.new 1), 10000]]
+            + [[Decimal.new 12000 (Math_Context.new 2), 12000]]
             + [[Decimal.new 12000 (Math_Context.new 3), 12000]]
 
         problematic_values = []
@@ -284,13 +284,19 @@ add_specs suite_builder =
 
         values.map_with_index i-> pr->
             group_builder.specify "should add Decimals correctly "+i.to_text <|
-                IO.println i
-                IO.println pr
                 arg = pr.at 0
                 expected = pr.at 1
-                b = (Decimal.new arg) == expected
-                b.should_be_true
-                Decimal.new arg . should_equal expected
+                d = case arg of
+                    _ : Decimal -> arg
+                    _ -> Decimal.new arg
+                b = d == expected
+                IO.println 'GGG'
+                IO.println i
+                IO.println pr
+                IO.println d
+                IO.println b
+                d . should_equal expected
+                (d == expected) . should_be_true
 
 main =
     suite = Test.build suite_builder->
