@@ -3,6 +3,7 @@ import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
 from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
 
 import project.Data.Data_Formatter.Data_Formatter
@@ -80,6 +81,18 @@ type Delimited_Format
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : Writable_File -> Delimited_Format | Nothing
     for_file_write file = Delimited_Format.for_read file
+
+    ## PRIVATE
+       Helper that parses the datalink JSON definition of this format.
+    parse_datalink_format : JS_Object -> Delimited_Format
+    parse_datalink_format (json : JS_Object) =
+        delimiter = get_required_field "delimiter" json
+        encoding_name = json.get "encoding"
+        encoding = encoding_name
+            . if_not_nothing (Encoding.from_name encoding_name)
+            . if_nothing Encoding.utf_8
+        headers = json.get "headers" . if_nothing Infer
+        Delimited_Format.Delimited delimiter=delimiter encoding=encoding headers=headers
 
     ## PRIVATE
        ADVANCED

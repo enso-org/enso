@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Json.JS_Object
 import project.Data.Json.Json
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
@@ -212,6 +213,13 @@ type JSON_Format
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : Writable_File -> JSON_Format | Nothing
     for_file_write file = JSON_Format.for_read file
+
+    ## PRIVATE
+       Helper that parses the datalink JSON definition of this format.
+    parse_datalink_format : JS_Object -> JSON_Format
+    parse_datalink_format (json : JS_Object) =
+        _ = json
+        JSON_Format
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`

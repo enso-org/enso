@@ -18,6 +18,7 @@ import project.System.Input_Stream.Input_Stream
 from project.Enso_Cloud.Public_Utils import get_required_field
 
 polyglot java import org.enso.base.enso_cloud.DataLinkSPI
+polyglot java import org.enso.base.file_format.FileFormatSPI
 
 ## PRIVATE
    A file format for reading data links.
@@ -81,21 +82,12 @@ parse_secure_value (json : Text | JS_Object) -> Text | Enso_Secret =
 ## PRIVATE
 parse_format json = case json of
     Nothing -> Auto_Detect
-    _ : JS_Object ->
-        # TODO allow to register custom formats with the SPI
-        case get_required_field "subType" json of
-            "default" -> Auto_Detect
-            "json" -> JSON_Format
-            "delimited" ->
-                delimiter = get_required_field "delimiter" json
-                encoding_name = get_required_field "encoding" json
-                encoding = encoding_name
-                    . if_not_nothing (Encoding.from_name encoding_name)
-                    . if_nothing Encoding.utf_8
-                headers = get_required_field "headers" json
-                    . if_nothing Infer
-                _ = [delimiter, encoding, headers]
-                Unimplemented.throw "Reading delimited files is not implemented yet."
-            other ->
-                Error.throw (Illegal_State.Error "Unknown format inside of a datalink: "+other.to_display_text+".")
+    _ : JS_Object -> case get_required_field "subType" json of
+        "default" -> Auto_Detect
+        sub_type : Text ->
+            format = FileFormatSPI.findFormatForDataLinkSubType sub_type
+            if format.is_nothing then Error.throw (Illegal_State.Error "Unknown format inside of a datalink: "+sub_type+". Perhaps the library providing that format needs to be imported?") else
+                format.parse_datalink_format json
+        other ->
+            Error.throw (Illegal_State.Error "Expected `subType` to be a string, but got: "+other.to_display_text+".")
     other -> Error.throw (Illegal_State.Error "Unexpected value inside of a data-link `format` field: "+other.to_display_text+".")
