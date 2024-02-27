@@ -41,13 +41,13 @@ public class LazyConstructorTest extends TestBase {
           ctx.eval(
                   "enso",
                   """
-              type N
-                  False
+                  type N
+                      False
 
-                  materialize v:N = v.to_text
+                      materialize v:N = v.to_text
 
-              create n = N.materialize (~False)
-              """)
+                  create n = N.materialize (~False)
+                  """)
               .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
       assertTrue("Can evaluate", create.canExecute());
       assertEquals("False", create.execute(42).asString());
@@ -64,17 +64,39 @@ public class LazyConstructorTest extends TestBase {
           ctx.eval(
                   "enso",
                   """
-              type M
-                  Construct value
+                  type M
+                      Construct value
 
-                  materialize v:M = v.value
+                      materialize v:M = v.value
 
-              create n = M.materialize (~Construct n)
-              """)
+                  create n = M.materialize (~Construct n)
+                  """)
               .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
       assertTrue("Can evaluate", create.canExecute());
       assertEquals("42", create.execute(42).toString());
 
+    } catch (PolyglotException e) {
+      fail(e.getMessage() + " for \n" + out.toString());
+    }
+  }
+
+  @Test
+  public void lazyConstructorWithTwoArgs() {
+    try {
+      var create =
+          ctx.eval(
+                  "enso",
+                  """
+                  type M
+                      Construct v1 v2
+
+                      materialize v:M = [v.v1, v.v2]
+
+                  create a b = M.materialize (~Construct a b)
+                  """)
+              .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+      assertTrue("Can evaluate", create.canExecute());
+      assertEquals("[6, 7]", create.execute(6, 7).toString());
     } catch (PolyglotException e) {
       fail(e.getMessage() + " for \n" + out.toString());
     }
@@ -87,13 +109,13 @@ public class LazyConstructorTest extends TestBase {
           ctx.eval(
                   "enso",
                   """
-              type N
-                  False
+                  type N
+                      False
 
-                  materialize v:N = v.to_text
+                      materialize v:N = v.to_text
 
-              create n = N.materialize (~True)
-              """)
+                  create n = N.materialize (~True)
+                  """)
               .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
       assertTrue("Can evaluate", create.canExecute());
       var r = create.execute(42);
