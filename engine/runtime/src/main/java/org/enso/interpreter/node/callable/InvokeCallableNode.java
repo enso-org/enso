@@ -238,9 +238,9 @@ public abstract class InvokeCallableNode extends BaseNode {
   }
 
   @Specialization
-  public Object invokeDynamicName(
+  public Object invokeDynamicConstructor(
       UnresolvedConstructor symbol, VirtualFrame callerFrame, State state, Object[] arguments) {
-    return symbol.withArguments(arguments);
+    return symbol.withArguments(invokeFunctionNode.getSchema(), arguments);
   }
 
   @Specialization

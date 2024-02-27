@@ -24,6 +24,7 @@ import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -263,7 +264,11 @@ public abstract class ReadArgumentCheckNode extends Node {
       if (c != null) {
         var ctx = EnsoContext.get(this);
         var fn = c.getConstructorFunction();
-        var n = InvokeFunctionNode.buildWithArity(unresolved.getArgs().length);
+        var n =
+            InvokeFunctionNode.build(
+                unresolved.getDescs(),
+                DefaultsExecutionMode.EXECUTE,
+                ArgumentsExecutionMode.EXECUTE);
         var state = State.create(ctx);
         var r = n.execute(fn, frame, state, unresolved.getArgs());
         return r;
