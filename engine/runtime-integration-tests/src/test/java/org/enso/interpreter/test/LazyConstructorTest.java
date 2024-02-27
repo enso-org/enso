@@ -103,6 +103,32 @@ public class LazyConstructorTest extends TestBase {
   }
 
   @Test
+  public void lazyConstructorWithTwoArgsCurried() {
+    try {
+      var create =
+          ctx.eval(
+                  "enso",
+                  """
+                  type M
+                      Construct v1 v2
+
+                      materialize v:M = [v.v1, v.v2]
+
+                  create a b =
+                      v0 = ~Construct
+                      v1 = v0 a
+                      v2 = v1 b
+                      M.materialize v2
+                  """)
+              .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+      assertTrue("Can evaluate", create.canExecute());
+      assertEquals("[7, 6]", create.execute(7, 6).toString());
+    } catch (PolyglotException e) {
+      fail(e.getMessage() + " for \n" + out.toString());
+    }
+  }
+
+  @Test
   public void wrongConstructorNameYieldsTypeError() {
     try {
       var create =
