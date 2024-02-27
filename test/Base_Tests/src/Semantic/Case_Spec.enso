@@ -302,7 +302,7 @@ add_specs suite_builder = suite_builder.group "Pattern Matches" group_builder->
         u = v.map foo
         u.should_equal ["text", "array", "array"]
 
-    group_builder.specify "should correctly pattern match on strings from JS" <|
+    group_builder.specify "should correctly pattern match strings from JS" <|
         json = """
             {"x": "foo"}
         js_txt = json.parse_json.get "x"
@@ -311,7 +311,7 @@ add_specs suite_builder = suite_builder.group "Pattern Matches" group_builder->
             other -> "not ok: "+other.to_text
         r.should_equal "OK"
 
-    group_builder.specify "should correctly pattern match on strings from Java" <|
+    group_builder.specify "should correctly pattern match strings from Java" <|
         sb = Java_StringBuilder.new
         sb.append "b"
         sb.append "ar"
