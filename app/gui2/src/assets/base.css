@@ -47,6 +47,7 @@
   --color-frame-bg: rgba(255 255 255 / 0.3);
   --color-frame-selected-bg: rgba(255 255 255 / 0.7);
   --color-widget: rgba(255 255 255 / 0.12);
+  --color-widget-focus: rgba(255 255 255 / 0.25);
   --color-widget-selected: rgba(255 255 255 / 0.58);
   --color-port-connected: rgba(255 255 255 / 0.15);
 }

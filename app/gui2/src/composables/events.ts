@@ -2,7 +2,7 @@
 
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
-import type { VueInstance } from '@vueuse/core'
+import { type VueInstance } from '@vueuse/core'
 import {
   computed,
   onScopeDispose,
@@ -13,6 +13,7 @@ import {
   watch,
   watchEffect,
   type Ref,
+  type ShallowRef,
   type WatchSource,
 } from 'vue'
 
@@ -139,6 +140,46 @@ function unrefElement(
   return (plain as VueInstance)?.$el ?? plain
 }
 
+interface ResizeObserverData {
+  refCount: number
+  boundRectUsers: number
+  contentRect: ShallowRef<Vec2>
+  boundRect: ShallowRef<Vec2>
+}
+
+const resizeObserverData = new WeakMap<Element, ResizeObserverData>()
+function getOrCreateObserverData(element: Element): ResizeObserverData {
+  const existingData = resizeObserverData.get(element)
+  if (existingData) return existingData
+  const data: ResizeObserverData = {
+    refCount: 0,
+    boundRectUsers: 0,
+    contentRect: shallowRef<Vec2>(Vec2.Zero),
+    boundRect: shallowRef<Vec2>(Vec2.Zero),
+  }
+  resizeObserverData.set(element, data)
+  return data
+}
+
+const sharedResizeObserver: ResizeObserver | undefined =
+  typeof ResizeObserver === 'undefined'
+    ? undefined
+    : new ResizeObserver((entries) => {
+        console.log('entries', entries)
+        for (const entry of entries) {
+          const data = resizeObserverData.get(entry.target)
+          if (data != null) {
+            if (entry.contentRect != null) {
+              data.contentRect.value = new Vec2(entry.contentRect.width, entry.contentRect.height)
+            }
+            if (data.boundRectUsers > 0) {
+              const rect = entry.target.getBoundingClientRect()
+              data.boundRect.value = new Vec2(rect.width, rect.height)
+            }
+          }
+        }
+      })
+
 /**
  * Get DOM node size and keep it up to date.
  *
@@ -153,8 +194,8 @@ export function useResizeObserver(
   elementRef: Ref<Element | undefined | null | VueInstance>,
   useContentRect = true,
 ): Ref<Vec2> {
-  const sizeRef = shallowRef<Vec2>(Vec2.Zero)
-  if (typeof ResizeObserver === 'undefined') {
+  if (!sharedResizeObserver) {
+    const sizeRef = shallowRef<Vec2>(Vec2.Zero)
     // Fallback implementation for browsers/test environment that do not support ResizeObserver:
     // Grab the size of the element every time the ref is assigned, or when the page is resized.
     function refreshSize() {
@@ -168,36 +209,30 @@ export function useResizeObserver(
     useEvent(window, 'resize', refreshSize)
     return sizeRef
   }
-  const observer = new ResizeObserver((entries) => {
-    let rect: { width: number; height: number } | null = null
-    const target = unrefElement(elementRef)
-    for (const entry of entries) {
-      if (entry.target === target) {
-        if (useContentRect) {
-          rect = entry.contentRect
-        } else {
-          rect = entry.target.getBoundingClientRect()
-        }
-      }
-    }
-    if (rect != null) {
-      sizeRef.value = new Vec2(rect.width, rect.height)
-    }
-  })
-
+  const observer = sharedResizeObserver
   watchEffect((onCleanup) => {
     const element = unrefElement(elementRef)
     if (element != null) {
-      observer.observe(element)
+      const data = getOrCreateObserverData(element)
+      if (data.refCount === 0) observer.observe(element)
+      data.refCount += 1
+      if (useContentRect) data.boundRectUsers += 1
       onCleanup(() => {
         if (elementRef.value != null) {
-          observer.unobserve(element)
+          data.refCount -= 1
+          if (useContentRect) data.boundRectUsers -= 1
+          if (data.refCount === 0) observer.unobserve(element)
         }
       })
     }
   })
 
-  return sizeRef
+  return computed(() => {
+    const element = unrefElement(elementRef)
+    if (element == null) return Vec2.Zero
+    const data = getOrCreateObserverData(element)
+    return useContentRect ? data.contentRect.value : data.boundRect.value
+  })
 }
 
 export interface EventPosition {

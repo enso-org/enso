@@ -17,7 +17,6 @@ import { uuidv4 } from 'lib0/random'
 import { isUuid } from 'shared/yjsModel'
 import {
   computed,
-  markRaw,
   nextTick,
   onUpdated,
   proxyRefs,
