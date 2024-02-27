@@ -36,9 +36,10 @@ jobs:
           sudo apt-get install -y gh
       - name: Set up git
         run: |
+          cd ${{ github.workspace }}/engine-benchmark-results
           git config --global user.email "actions@github.org"
           git config --global user.name "enso-bench-bot"
-          cd ${{ github.workspace }}/engine-benchmark-results
+          git config --unset-all http.https://github.com/.extraheader
           git remote set-url origin https://x-access-token:${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}@github.com/enso-org/engine-benchmark-results
           echo "Hello world" > hello.txt
           git add hello.txt
