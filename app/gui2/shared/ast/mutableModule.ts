@@ -1,15 +1,7 @@
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
-import {
-  Token,
-  asOwned,
-  isTokenId,
-  newExternalId,
-  subtreeRoots,
-  type AstId,
-  type Owned,
-  type SyncTokenId,
-} from '.'
+import type { AstId, NodeChild, Owned, RawNodeChild, SyncTokenId } from '.'
+import { Token, asOwned, isTokenId, newExternalId, subtreeRoots } from '.'
 import { assert, assertDefined } from '../util/assert'
 import type { SourceRangeEdit } from '../util/data/text'
 import { defaultLocalOrigin, tryAsOrigin, type ExternalId, type Origin } from '../yjsModel'
@@ -38,6 +30,7 @@ export interface Module {
   getToken(token: SyncTokenId): Token
   getToken(token: SyncTokenId | undefined): Token | undefined
   getAny(node: AstId | SyncTokenId): Ast | Token
+  getConcrete(child: RawNodeChild): NodeChild<Ast> | NodeChild<Token>
   has(id: AstId): boolean
 }
 
@@ -320,6 +313,12 @@ export class MutableModule implements Module {
 
   getAny(node: AstId | SyncTokenId): MutableAst | Token {
     return isTokenId(node) ? this.getToken(node) : this.get(node)
+  }
+
+  getConcrete(child: RawNodeChild): NodeChild<Ast> | NodeChild<Token> {
+    if (isTokenId(child.node))
+      return { whitespace: child.whitespace, node: this.getToken(child.node) }
+    else return { whitespace: child.whitespace, node: this.get(child.node) }
   }
 
   /** @internal Copy a node into the module, if it is bound to a different module. */
