@@ -1,10 +1,9 @@
 package org.enso.base.enso_cloud;
 
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
-
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 public abstract class DataLinkSPI {
   private static final ServiceLoader<DataLinkSPI> loader =
@@ -15,14 +14,23 @@ public abstract class DataLinkSPI {
   }
 
   public static Value findDataLinkType(String name) {
-    var providers = loader.stream().filter(provider -> provider.get().getLinkTypeName().equals(name)).toList();
+    var providers =
+        loader.stream().filter(provider -> provider.get().getLinkTypeName().equals(name)).toList();
     if (providers.isEmpty()) {
       return null;
     }
 
     if (providers.size() > 1) {
-      var modules = providers.stream().map(provider -> provider.get().getModuleName()).collect(Collectors.joining(", "));
-      throw new IllegalStateException("Error: Multiple Data Link providers found for type: " + name + ". The clashing definitions are in the following modules: " + modules + ".");
+      var modules =
+          providers.stream()
+              .map(provider -> provider.get().getModuleName())
+              .collect(Collectors.joining(", "));
+      throw new IllegalStateException(
+          "Error: Multiple Data Link providers found for type: "
+              + name
+              + ". The clashing definitions are in the following modules: "
+              + modules
+              + ".");
     }
 
     return providers.get(0).get().getTypeObject();
