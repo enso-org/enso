@@ -87,151 +87,185 @@ export function constantValueToSchema(value: unknown): object | null {
 // === constantValue ===
 // =====================
 
-const CONSTANT_VALUE = new WeakMap<object, [] | [NonNullable<unknown> | null]>()
-const PARTIAL_CONSTANT_VALUE = new WeakMap<object, [] | [NonNullable<unknown> | null]>()
+const CONSTANT_VALUE = new WeakMap<object, readonly [] | readonly [NonNullable<unknown> | null]>()
+const PARTIAL_CONSTANT_VALUE = new WeakMap<
+  object,
+  readonly [] | readonly [NonNullable<unknown> | null]
+>()
+const SINGLETON_NULL = Object.freeze([null] as const)
+const EMPTY_ARRAY = Object.freeze([] as const)
 
+// FIXME: Adjust to allow `type` and `anyOf` and `allOf` and `$ref` to all be present
 /** The value of the schema, if it can only have one possible value. */
 function constantValueHelper(
   defs: Record<string, object>,
   schema: object,
   partial = false
-): [] | [NonNullable<unknown> | null] {
-  let result: [] | [NonNullable<unknown> | null]
+): readonly [] | readonly [NonNullable<unknown> | null] {
   if ('const' in schema) {
-    result = [schema.const ?? null]
-  } else if ('type' in schema) {
-    switch (schema.type) {
-      case 'string':
-      case 'number':
-      case 'integer':
-      case 'boolean': {
-        // These should already be covered by the `const` check above.
-        result = []
-        if (partial) {
-          switch (schema.type) {
-            case 'string': {
-              result = ['']
-              break
-            }
-            case 'number':
-            case 'integer': {
-              result = [0]
-              break
-            }
-            case 'boolean': {
-              result = [false]
-              break
-            }
-          }
-        }
-        break
-      }
-      case 'null': {
-        result = [null]
-        break
-      }
-      case 'object': {
-        const propertiesObject =
-          'properties' in schema ? objectModule.asObject(schema.properties) ?? {} : {}
-        const required = new Set(
-          'required' in schema && Array.isArray(schema.required) ? schema.required.map(String) : []
-        )
-        const object: Record<string, unknown> = {}
-        result = [object]
-        for (const [key, child] of Object.entries(propertiesObject)) {
-          const childSchema = objectModule.asObject(child)
-          if (childSchema == null || (partial && !required.has(key))) {
-            continue
-          }
-          const value = constantValue(defs, childSchema, partial)
-          if (value.length === 0 && !partial) {
-            // eslint-disable-next-line no-restricted-syntax
-            result = []
-            break
-          } else {
-            Object.defineProperty(object, key, { value: value[0] ?? null, enumerable: true })
-          }
-        }
-        break
-      }
-      case 'array': {
-        if (!partial && (!('items' in schema) || schema.items !== false)) {
-          // This array may contain extra items.
-          result = []
-          break
-        } else if (!('prefixItems' in schema) || !Array.isArray(schema.prefixItems)) {
-          result = [[]]
-          break
-        } else {
-          const array: unknown[] = []
-          result = [array]
-          for (const childSchema of schema.prefixItems) {
-            const childSchemaObject = objectModule.asObject(childSchema)
-            const childValue =
-              childSchemaObject == null ? [] : constantValue(defs, childSchemaObject, partial)
-            if (childValue.length === 0 && !partial) {
-              result = []
-              break
-            }
-            array.push(childValue[0] ?? null)
-          }
-          break
-        }
-      }
-      default: {
-        result = []
-        break
-      }
-    }
-  } else if ('$ref' in schema) {
-    const referencedSchema = lookupDef(defs, schema)
-    result = referencedSchema == null ? [] : constantValue(defs, referencedSchema, partial)
-  } else if ('anyOf' in schema) {
-    if (!Array.isArray(schema.anyOf) || (!partial && schema.anyOf.length !== 1)) {
-      result = []
-    } else {
-      const firstMember = objectModule.asObject(schema.anyOf[0])
-      result = firstMember == null ? [] : constantValue(defs, firstMember, partial)
-    }
-  } else if ('allOf' in schema) {
-    if (!Array.isArray(schema.allOf) || schema.allOf.length === 0) {
-      result = []
-    } else {
-      const firstMember = objectModule.asObject(schema.allOf[0])
-      const firstValue = firstMember == null ? [] : constantValue(defs, firstMember, partial)
-      if (firstValue.length === 0) {
-        result = []
-      } else {
-        const intersection = firstValue[0]
-        result = [intersection]
-        for (const child of schema.allOf.slice(1)) {
-          const childSchema = objectModule.asObject(child)
-          if (childSchema == null) {
-            continue
-          }
-          const value = constantValue(defs, childSchema, partial)
-          if (value.length === 0 && !partial) {
-            result = []
-            break
-          } else if (typeof intersection !== 'object' || intersection == null) {
-            if (intersection !== value[0] && !partial) {
-              result = []
-              break
-            }
-          } else {
-            if (value[0] == null || (typeof intersection !== typeof value[0] && !partial)) {
-              result = []
-              break
-            }
-            Object.assign(intersection, value[0])
-          }
-        }
-      }
-    }
+    return [schema.const ?? null]
   } else {
-    result = []
+    const invalid: readonly [] | readonly [NonNullable<unknown> | null] = partial
+      ? SINGLETON_NULL
+      : EMPTY_ARRAY
+    const results: (NonNullable<unknown> | null)[] = []
+    if ('type' in schema) {
+      switch (schema.type) {
+        case 'null': {
+          results.push(null)
+          break
+        }
+        case 'object': {
+          const propertiesObject =
+            'properties' in schema ? objectModule.asObject(schema.properties) ?? {} : {}
+          const required = new Set(
+            'required' in schema && Array.isArray(schema.required)
+              ? schema.required.map(String)
+              : []
+          )
+          const object: Record<string, unknown> = {}
+          results.push(object)
+          for (const [key, child] of Object.entries(propertiesObject)) {
+            const childSchema = objectModule.asObject(child)
+            if (childSchema == null || (partial && !required.has(key))) {
+              continue
+            }
+            const value = constantValue(defs, childSchema, partial)
+            if (value.length === 0 && !partial) {
+              // eslint-disable-next-line no-restricted-syntax
+              return invalid
+            } else {
+              Object.defineProperty(object, key, { value: value[0] ?? null, enumerable: true })
+            }
+          }
+          break
+        }
+        case 'array': {
+          if (!partial && (!('items' in schema) || schema.items !== false)) {
+            // This array may contain extra items.
+            // eslint-disable-next-line no-restricted-syntax
+            return invalid
+          } else if (!('prefixItems' in schema) || !Array.isArray(schema.prefixItems)) {
+            results.push([])
+            break
+          } else {
+            const array: unknown[] = []
+            results.push(array)
+            for (const childSchema of schema.prefixItems) {
+              const childSchemaObject = objectModule.asObject(childSchema)
+              const childValue =
+                childSchemaObject == null ? [] : constantValue(defs, childSchemaObject, partial)
+              if (childValue.length === 0 && !partial) {
+                // eslint-disable-next-line no-restricted-syntax
+                return invalid
+              }
+              array.push(childValue[0] ?? null)
+            }
+            break
+          }
+        }
+      }
+    } else if ('$ref' in schema) {
+      const referencedSchema = lookupDef(defs, schema)
+      if (referencedSchema == null) {
+        // eslint-disable-next-line no-restricted-syntax
+        return invalid
+      } else {
+        results.push(constantValue(defs, referencedSchema, partial))
+      }
+    } else if ('anyOf' in schema) {
+      if (!Array.isArray(schema.anyOf) || (!partial && schema.anyOf.length !== 1)) {
+        // eslint-disable-next-line no-restricted-syntax
+        return invalid
+      } else {
+        const firstMember = objectModule.asObject(schema.anyOf[0])
+        if (firstMember == null) {
+          // eslint-disable-next-line no-restricted-syntax
+          return invalid
+        } else {
+          results.push(constantValue(defs, firstMember, partial))
+        }
+      }
+    }
+    if ('allOf' in schema && Array.isArray(schema.allOf)) {
+      if (schema.allOf.length === 0) {
+        return invalid
+      } else {
+        const newResults = schema.allOf.map(childSchema => {
+          const schemaObject = objectModule.asObject(childSchema)
+          return schemaObject == null ? [] : constantValue(defs, schemaObject, partial)
+        })
+        if (newResults.every(result => result.length === 1)) {
+          results.push(...newResults.flat())
+        }
+      }
+    }
+    if (partial && results.length === 0) {
+      if ('type' in schema) {
+        switch (schema.type) {
+          case 'string': {
+            return ['']
+          }
+          case 'number':
+          case 'integer': {
+            return [0]
+          }
+          case 'boolean': {
+            return [true]
+          }
+          default: {
+            return SINGLETON_NULL
+          }
+        }
+      } else {
+        return SINGLETON_NULL
+      }
+    } else {
+      const result = results[0] ?? null
+      let resultArray: readonly [] | readonly [NonNullable<unknown> | null] = [result]
+      for (const child of results.slice(1)) {
+        const childSchema = objectModule.asObject(child)
+        if (childSchema == null) {
+          continue
+        }
+        const value = constantValue(defs, childSchema, partial)
+        if (value.length === 0 && !partial) {
+          resultArray = []
+          break
+        } else if (typeof result !== 'object' || result == null) {
+          if (result !== value[0] && !partial) {
+            resultArray = []
+            break
+          }
+        } else {
+          if (value[0] == null || (typeof result !== typeof value[0] && !partial)) {
+            resultArray = []
+            break
+          }
+          Object.assign(result, value[0])
+        }
+      }
+      if (partial && 'type' in schema) {
+        switch (schema.type) {
+          case 'string':
+          case 'number':
+          case 'boolean': {
+            return typeof resultArray[0] === schema.type ? resultArray : invalid
+          }
+          case 'integer': {
+            return typeof resultArray[0] === 'number' && Number.isInteger(resultArray[0])
+              ? resultArray
+              : invalid
+          }
+          default: {
+            return resultArray
+          }
+        }
+      } else {
+        return resultArray
+      }
+    }
   }
-  return partial && result.length === 0 ? [null] : result
 }
 
 /** The value of the schema, if it can only have one possible value.

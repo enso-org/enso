@@ -11,10 +11,10 @@ import * as backendProvider from '#/providers/BackendProvider'
 import type * as assetEvent from '#/events/assetEvent'
 
 import type Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import DataLinkInput from '#/layouts/dashboard/DataLinkInput'
 
 import Button from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
+import DataLinkInput from '#/components/dashboard/DataLinkInput'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
