@@ -65,8 +65,7 @@ public class XML_Utils {
     documentBuilder.setErrorHandler(
         new ErrorHandler() {
           @Override
-          public void warning(SAXParseException e) throws SAXException {
-            ;
+          public void warning(SAXParseException e) {
           }
 
           @Override
