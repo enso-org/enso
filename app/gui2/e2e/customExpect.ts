@@ -11,3 +11,9 @@ export function toExist(locator: Locator) {
 export function toBeSelected(locator: Locator) {
   return expect(locator).toHaveClass(/(?<=^| )selected(?=$| )/)
 }
+
+export module not {
+  export function toBeSelected(locator: Locator) {
+    return expect(locator).not.toHaveClass(/(?<=^| )selected(?=$| )/)
+  }
+}
