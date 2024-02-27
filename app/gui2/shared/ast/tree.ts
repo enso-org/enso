@@ -1222,10 +1222,35 @@ export class TextLiteral extends Ast {
     yield* elements
     if (close) yield close
   }
+
+  get textContents(): string {
+    return (
+      this.fields
+        .get('elements')
+        ?.map((element) => this.module.getAny(element.node).code())
+        ?.join() ?? ''
+    )
+  }
+
+  get open(): Token | undefined {
+    return this.module.getToken(this.fields.get('open')?.node)
+  }
+
+  get close(): Token | undefined {
+    return this.module.getToken(this.fields.get('open')?.node)
+  }
 }
 export class MutableTextLiteral extends TextLiteral implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & TextLiteralFields>
+
+  setTextContents(rawText: string) {
+    const elements = [unspaced(Token.new(escape(rawText)))]
+    this.fields.set(
+      'elements',
+      elements.map((elem) => concreteChild(this.module, elem, this.id)),
+    )
+  }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableAst {}
 applyMixins(MutableTextLiteral, [MutableAst])
@@ -1920,38 +1945,38 @@ applyMixins(MutableWildcard, [MutableAst])
 export type Mutable<T extends Ast = Ast> = T extends App
   ? MutableApp
   : T extends Assignment
-  ? MutableAssignment
-  : T extends BodyBlock
-  ? MutableBodyBlock
-  : T extends Documented
-  ? MutableDocumented
-  : T extends Function
-  ? MutableFunction
-  : T extends Generic
-  ? MutableGeneric
-  : T extends Group
-  ? MutableGroup
-  : T extends Ident
-  ? MutableIdent
-  : T extends Import
-  ? MutableImport
-  : T extends Invalid
-  ? MutableInvalid
-  : T extends NegationApp
-  ? MutableNegationApp
-  : T extends NumericLiteral
-  ? MutableNumericLiteral
-  : T extends OprApp
-  ? MutableOprApp
-  : T extends PropertyAccess
-  ? MutablePropertyAccess
-  : T extends TextLiteral
-  ? MutableTextLiteral
-  : T extends UnaryOprApp
-  ? MutableUnaryOprApp
-  : T extends Wildcard
-  ? MutableWildcard
-  : MutableAst
+    ? MutableAssignment
+    : T extends BodyBlock
+      ? MutableBodyBlock
+      : T extends Documented
+        ? MutableDocumented
+        : T extends Function
+          ? MutableFunction
+          : T extends Generic
+            ? MutableGeneric
+            : T extends Group
+              ? MutableGroup
+              : T extends Ident
+                ? MutableIdent
+                : T extends Import
+                  ? MutableImport
+                  : T extends Invalid
+                    ? MutableInvalid
+                    : T extends NegationApp
+                      ? MutableNegationApp
+                      : T extends NumericLiteral
+                        ? MutableNumericLiteral
+                        : T extends OprApp
+                          ? MutableOprApp
+                          : T extends PropertyAccess
+                            ? MutablePropertyAccess
+                            : T extends TextLiteral
+                              ? MutableTextLiteral
+                              : T extends UnaryOprApp
+                                ? MutableUnaryOprApp
+                                : T extends Wildcard
+                                  ? MutableWildcard
+                                  : MutableAst
 
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
   const type = fields.get('type')

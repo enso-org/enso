@@ -1,21 +1,40 @@
 <script setup lang="ts">
-import EnsoTextInputWidget from '@/components/widgets/EnsoTextInputWidget.vue'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import { MutableModule } from '@/util/ast/abstract'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const value = computed({
+const graph = useGraphStore()
+
+const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
+  if (props.input instanceof Ast.TextLiteral) return props.input
+  const valueStr = WidgetInput.valueRepr(props.input)
+  const parsed = valueStr != null ? Ast.parse(valueStr) : undefined
+  if (parsed instanceof Ast.TextLiteral) return parsed
+  return undefined
+})
+
+const textContents = computed({
   get() {
-    const valueStr = WidgetInput.valueRepr(props.input)
-    return typeof valueStr === 'string' && Ast.parse(valueStr) instanceof Ast.TextLiteral
-      ? valueStr
-      : ''
+    return inputTextLiteral.value?.textContents ?? ''
   },
   set(value) {
-    props.onUpdate({
-      portUpdate: { value: value.toString(), origin: props.input.portId },
-    })
+    if (props.input.value instanceof Ast.TextLiteral) {
+      const edit = graph.startEdit()
+      edit.getVersion(props.input.value).setTextContents(value)
+      props.onUpdate({ edit })
+    } else {
+      props.onUpdate({
+        portUpdate: {
+          value: Ast.TextLiteral.new(value, MutableModule.Transient()).code(),
+          origin: props.input.portId,
+        },
+      })
+    }
   },
 })
 </script>
@@ -34,13 +53,31 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown -->
-  <EnsoTextInputWidget v-model="value" class="WidgetText r-24" @pointerdown.stop />
+  <label class="WidgetText r-24" @pointerdown.stop>
+    <NodeWidget v-if="inputTextLiteral?.open" :input="WidgetInput.FromAst(inputTextLiteral.open)" />
+    <AutoSizedInput v-model.lazy="textContents" />
+    <NodeWidget
+      v-if="inputTextLiteral?.close"
+      :input="WidgetInput.FromAst(inputTextLiteral.close)"
+    />
+  </label>
 </template>
 
 <style scoped>
 .WidgetText {
-  display: inline-block;
+  display: inline-flex;
   vertical-align: middle;
+  background: var(--color-widget);
+  border-radius: var(--radius-full);
+  position: relative;
+  user-select: none;
+  border-radius: var(--radius-full);
+  padding: 0px 4px;
+  justify-content: center;
+
+  &:has(> .AutoSizedInput:focus) {
+    outline: none;
+    background: var(--color-widget-focus);
+  }
 }
 </style>
