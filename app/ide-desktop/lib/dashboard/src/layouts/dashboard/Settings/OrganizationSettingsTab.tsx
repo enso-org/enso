@@ -162,9 +162,9 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
         <div className="flex flex-col gap-2.5">
           <h3 className="font-bold text-xl h-9.5 py-0.5">Organization</h3>
           <div className="flex flex-col">
-            <div className="flex gap-4.75">
-              <span className="leading-cozy w-40 h-row py-1.25">Organization display name</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">
+            <div className="flex h-row gap-4.75">
+              <span className="w-40 text my-auto">Organization display name</span>
+              <span className="grow font-bold text my-auto">
                 <input
                   ref={nameRef}
                   className="rounded-full font-bold leading-cozy w-full h-row -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors"
@@ -179,26 +179,9 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-cozy w-40 h-row py-1.25">Organization display name</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">
-                <input
-                  ref={nameRef}
-                  className="rounded-full font-bold leading-cozy w-full h-row -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors"
-                  key={organization.organization_name}
-                  type="text"
-                  size={1}
-                  defaultValue={organization.organization_name ?? ''}
-                  onBlur={doUpdateName}
-                  onKeyDown={event => {
-                    onKeyDown(event, organization.organization_name ?? '')
-                  }}
-                />
-              </span>
-            </div>
-            <div className="flex gap-4.75">
-              <span className="leading-cozy w-40 h-row py-1.25">Email</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">
+            <div className="flex h-row gap-4.75">
+              <span className="w-40 text my-auto">Email</span>
+              <span className="grow font-bold text my-auto">
                 <input
                   ref={emailRef}
                   className="rounded-full font-bold leading-cozy w-full h-row -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors invalid:border invalid:border-red-700"
@@ -224,9 +207,9 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-cozy w-40 h-row py-1.25">Website</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">
+            <div className="flex h-row gap-4.75">
+              <span className="w-40 text my-auto">Website</span>
+              <span className="grow font-bold text my-auto">
                 <input
                   ref={websiteRef}
                   className="rounded-full font-bold leading-cozy w-full h-row -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors"
@@ -241,9 +224,9 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-cozy w-40 h-row py-1.25">Location</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">
+            <div className="flex h-row gap-4.75">
+              <span className="w-40 text my-auto">Location</span>
+              <span className="grow font-bold text my-auto">
                 <input
                   ref={locationRef}
                   className="rounded-full font-bold leading-cozy w-full h-row -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors"

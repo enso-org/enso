@@ -2382,7 +2382,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }}
     >
-      <table className="assets-table__table rounded-rows table-fixed border-collapse">
+      <table className="rounded-rows table-fixed border-collapse">
         <thead>{headerRow}</thead>
         <tbody ref={bodyRef}>
           {itemRows}
@@ -2393,7 +2393,6 @@ export default function AssetsTable(props: AssetsTableProps) {
           </tr>
         </tbody>
       </table>
-
       <div
         className="grow"
         onClick={() => {
@@ -2430,7 +2429,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <div ref={scrollContainerRef} className="assets-table container-size flex-1 overflow-auto">
+    <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
       {!hidden && (
         <SelectionBrush
           onDrag={onSelectionDrag}
@@ -2438,11 +2437,11 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="assets-table__container flex flex-col w-min min-w-full h-full">
+      <div className="flex flex-col w-min min-w-full h-full">
         {isCloud && (
-          <div className="assets-table__extra-columns-container-2 sticky top-0 h-0 flex flex-col">
-            <div className="assets-table__extra-columns-container block sticky right-0 self-end px-2 py-2.25">
-              <div className="assets-table__extra-columns inline-flex gap-icons">
+          <div className="sticky top-0 h-0 flex flex-col">
+            <div className="block sticky right-0 self-end px-2 py-2.25">
+              <div className="inline-flex gap-icons">
                 {columnUtils.EXTRA_COLUMNS.map(column => (
                   <Button
                     key={column}

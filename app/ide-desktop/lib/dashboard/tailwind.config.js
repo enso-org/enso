@@ -108,6 +108,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         140: '35rem',
         155: '38.75rem',
         '10lh': '10lh',
+        'profile-picture-large': 'var(--profile-picture-large-size)',
+      },
+      width: {
+        'profile-picture-caption': 'var(--profile-picture-caption-width)',
+        container: '100cqw',
       },
       height: {
         row: 'var(--row-height)',
@@ -117,9 +122,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       minHeight: {
         '5lh': '5lh',
-      },
-      width: {
-        container: '100cqw',
       },
       minWidth: {
         31.5: '7.875rem',

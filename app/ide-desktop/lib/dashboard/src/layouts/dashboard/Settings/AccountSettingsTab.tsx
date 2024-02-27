@@ -161,26 +161,24 @@ export default function AccountSettingsTab() {
         <div className="flex flex-col gap-2.5">
           <h3 className="font-bold text-xl h-9.5 py-0.5">User Account</h3>
           <div className="flex flex-col">
-            <div className="flex gap-4.75">
-              <span className="leading-cozy w-12 h-row py-1.25">Name</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">
+            <div className="flex h-row gap-4.75">
+              <span className="w-12 text my-auto">Name</span>
+              <span className="grow font-bold text my-auto">
                 <Input originalValue={user?.name ?? ''} onSubmit={doUpdateName} />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-cozy w-12 h-row py-1.25">Email</span>
-              <span className="grow font-bold leading-cozy h-row px-2 py-1.25">
-                {user?.email ?? ''}
-              </span>
+            <div className="flex h-row gap-4.75">
+              <span className="w-12 text my-auto">Email</span>
+              <span className="grow font-bold px-2 text my-auto">{user?.email ?? ''}</span>
             </div>
           </div>
         </div>
         {canChangePassword && (
           <div key={passwordFormKey}>
             <h3 className="font-bold text-xl h-9.5 py-0.5">Change Password</h3>
-            <div className="flex gap-4.75">
+            <div className="flex h-row gap-4.75">
               <span className="leading-cozy w-36 h-row py-1.25">Current Password</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">
+              <span className="grow font-bold text my-auto">
                 <Input
                   type="password"
                   originalValue=""
@@ -191,9 +189,9 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
+            <div className="flex h-row gap-4.75">
               <span className="leading-cozy w-36 h-row py-1.25">New Password</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">
+              <span className="grow font-bold text my-auto">
                 <Input
                   type="password"
                   originalValue=""
@@ -210,9 +208,9 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
+            <div className="flex h-row gap-4.75">
               <span className="leading-cozy w-36 h-row py-1.25">Confirm New Password</span>
-              <span className="grow font-bold leading-cozy h-row py-1.25">
+              <span className="grow font-bold text my-auto">
                 <Input
                   type="password"
                   originalValue=""
@@ -227,7 +225,7 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center h-row gap-2">
               <button
                 disabled={
                   currentPassword === '' ||
@@ -263,7 +261,7 @@ export default function AccountSettingsTab() {
             </div>
           </div>
         )}
-        <div className="flex flex-col gap-2.5 rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
+        <div className="flex flex-col items-centergap-2.5 rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
           <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">Danger Zone</h3>
           <div className="flex gap-2">
             <button
@@ -283,7 +281,7 @@ export default function AccountSettingsTab() {
             >
               <span className="inline-block text">Delete this user account</span>
             </button>
-            <span className="leading-cozy h-row py-1.25">
+            <span className="text my-auto">
               Once deleted, it will be gone forever. Please be certain.
             </span>
           </div>
@@ -291,7 +289,7 @@ export default function AccountSettingsTab() {
       </div>
       <div className="flex flex-col gap-2.5">
         <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
-        <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
+        <label className="flex items-center cursor-pointer rounded-full overflow-clip h-profile-picture-large w-profile-picture-large hover:bg-frame transition-colors">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
           <img
             src={user?.profilePicture ?? DefaultUserIcon}
@@ -300,7 +298,7 @@ export default function AccountSettingsTab() {
             className="pointer-events-none"
           />
         </label>
-        <span className="py-1 w-64">
+        <span className="py-1 w-profile-picture-caption">
           Your profile picture should not be irrelevant, abusive or vulgar. It should not be a
           default image provided by Enso.
         </span>
