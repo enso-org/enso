@@ -23,21 +23,19 @@ const SLIDER_INPUT_THRESHOLD = 4.0
 const dragPointer = usePointer(
   (position, event, eventType) => {
     const slider = event.target
-    if (!(slider instanceof HTMLElement)) {
-      return
-    }
+    if (!(slider instanceof HTMLElement)) return false
 
     if (eventType === 'stop' && Math.abs(position.relative.x) < SLIDER_INPUT_THRESHOLD) {
-      inputComponent.value?.focus()
-      return
+      event.stopImmediatePropagation()
+      return false
     }
 
     if (eventType === 'start') {
       event.stopImmediatePropagation()
-      return
+      return false
     }
 
-    if (inputFieldActive.value || props.limits == null) return
+    if (inputFieldActive.value || props.limits == null) return false
 
     const { min, max } = props.limits
     const rect = slider.getBoundingClientRect()
@@ -45,9 +43,7 @@ const dragPointer = usePointer(
     const fraction = Math.max(0, Math.min(1, fractionRaw))
     const newValue = min + Math.round(fraction * (max - min))
     editedValue.value = `${newValue}`
-    if (eventType === 'stop') {
-      emit('update:modelValue', editedValue.value)
-    }
+    if (eventType === 'stop') emitUpdate()
   },
   PointerButtonMask.Main,
   (event) => !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey,
@@ -62,7 +58,7 @@ const sliderWidth = computed(() => {
 })
 
 const inputComponent = ref<ComponentInstance<typeof AutoSizedInput>>()
-const MIN_WIDTH = 56
+const MIN_CONTENT_WIDTH = 56
 
 const inputStyle = computed<StyleValue>(() => {
   const value = `${editedValue.value}`
@@ -72,7 +68,7 @@ const inputStyle = computed<StyleValue>(() => {
     const { inputWidth, getTextWidth } = inputComponent.value
     const textBefore = value.slice(0, dotIdx)
     const textAfter = value.slice(dotIdx + 1)
-    const availableWidth = Math.max(inputWidth, MIN_WIDTH)
+    const availableWidth = Math.max(inputWidth, MIN_CONTENT_WIDTH)
     const beforeDot = getTextWidth(textBefore)
     const afterDot = getTextWidth(textAfter)
     const blankSpace = Math.max(availableWidth - inputWidth, 0)
@@ -80,33 +76,36 @@ const inputStyle = computed<StyleValue>(() => {
   }
   return {
     textIndent: `${indent}px`,
-    minWidth: `${MIN_WIDTH}px`,
+    // Note: The input element here uses `box-sizing: content-box;`.
+    minWidth: `${MIN_CONTENT_WIDTH}px`,
   }
 })
 
+function emitUpdate() {
+  if (`${props.modelValue}` !== editedValue.value) {
+    emit('update:modelValue', editedValue.value)
+  }
+}
+
 function blur() {
   inputFieldActive.value = false
-  emit('update:modelValue', editedValue.value)
+  emitUpdate()
 }
 
 function focus() {
-  inputComponent.value?.select()
   inputFieldActive.value = true
 }
 </script>
 
 <template>
-  <label
-    class="NumericInputWidget"
-    v-on="dragPointer.events"
-    @keydown.backspace.stop
-    @keydown.delete.stop
-  >
+  <label class="NumericInputWidget">
     <div v-if="props.limits != null" class="slider" :style="{ width: sliderWidth }"></div>
     <AutoSizedInput
       ref="inputComponent"
       v-model="editedValue"
+      autoSelect
       :style="inputStyle"
+      v-on="dragPointer.events"
       @blur="blur"
       @focus="focus"
     />
@@ -116,13 +115,14 @@ function focus() {
 <style scoped>
 .NumericInputWidget {
   position: relative;
+}
+.AutoSizedInput {
   user-select: none;
-  justify-content: space-around;
   background: var(--color-widget);
   border-radius: var(--radius-full);
   overflow: clip;
   padding: 0px 4px;
-  &:has(> .AutoSizedInput:focus) {
+  &:focus {
     background: var(--color-widget-focus);
   }
 }

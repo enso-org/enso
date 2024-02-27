@@ -280,7 +280,7 @@ export const enum PointerButtonMask {
  * @returns
  */
 export function usePointer(
-  handler: (pos: EventPosition, event: PointerEvent, eventType: PointerEventType) => void,
+  handler: (pos: EventPosition, event: PointerEvent, eventType: PointerEventType) => void | boolean,
   requiredButtonMask: number = PointerButtonMask.Main,
   predicate?: (e: PointerEvent) => boolean,
 ) {
@@ -297,7 +297,10 @@ export function usePointer(
     }
 
     if (trackedElement != null && initialGrabPos != null && lastPos != null) {
-      handler(computePosition(e, initialGrabPos, lastPos), e, 'stop')
+      if (handler(computePosition(e, initialGrabPos, lastPos), e, 'stop') !== false) {
+        e.preventDefault()
+      }
+
       lastPos = null
       trackedElement = null
     }
@@ -306,7 +309,9 @@ export function usePointer(
 
   function doMove(e: PointerEvent) {
     if (trackedElement != null && initialGrabPos != null && lastPos != null) {
-      handler(computePosition(e, initialGrabPos, lastPos), e, 'move')
+      if (handler(computePosition(e, initialGrabPos, lastPos), e, 'move') !== false) {
+        e.preventDefault()
+      }
       lastPos = new Vec2(e.clientX, e.clientY)
     }
   }
@@ -319,7 +324,6 @@ export function usePointer(
       }
 
       if (trackedPointer.value == null && e.currentTarget instanceof Element) {
-        e.preventDefault()
         trackedPointer.value = e.pointerId
         // This is mostly SAFE, as virtually all `Element`s also extend `GlobalEventHandlers`.
         trackedElement = e.currentTarget as Element & GlobalEventHandlers
@@ -327,21 +331,21 @@ export function usePointer(
         trackedElement.setPointerCapture?.(e.pointerId)
         initialGrabPos = new Vec2(e.clientX, e.clientY)
         lastPos = initialGrabPos
-        handler(computePosition(e, initialGrabPos, lastPos), e, 'start')
+        if (handler(computePosition(e, initialGrabPos, lastPos), e, 'start') !== false) {
+          e.preventDefault()
+        }
       }
     },
     pointerup(e: PointerEvent) {
       if (trackedPointer.value !== e.pointerId) {
         return
       }
-      e.preventDefault()
       doStop(e)
     },
     pointermove(e: PointerEvent) {
       if (trackedPointer.value !== e.pointerId) {
         return
       }
-      e.preventDefault()
       // handle release of all masked buttons as stop
       if ((e.buttons & requiredButtonMask) !== 0) {
         doMove(e)
