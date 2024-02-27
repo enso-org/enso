@@ -109,9 +109,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         140: '35rem',
         155: '38.75rem',
         '10lh': '10lh',
+        'profile-picture': 'var(--profile-picture-size)',
         'profile-picture-large': 'var(--profile-picture-large-size)',
         'radio-button': 'var(--radio-button-size)',
         'radio-button-dot': 'var(--radio-button-dot-size)',
+        'extended-editor-menu': 'var(--extended-editor-menu-size)',
       },
       width: {
         container: '100cqw',
@@ -177,8 +179,10 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         sidebar: 'var(--sidebar-padding)',
         'radio-button-dot': 'var(--radio-button-dot-padding)',
         'button-x': 'var(--button-padding-x)',
+        'icons-x': 'var(--icons-padding-x)',
         'selector-x': 'var(--selector-padding-x)',
         'selector-y': 'var(--selector-padding-y)',
+        'profile-picture': 'var(--profile-picture-padding)',
       },
       lineHeight: {
         snug: 'var(--snug-line-height)',

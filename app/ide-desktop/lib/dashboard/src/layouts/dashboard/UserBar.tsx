@@ -56,12 +56,12 @@ export default function UserBar(props: UserBarProps) {
   const shouldShowInviteButton =
     sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
+
   return (
     <div
-      className={
-        'flex shrink-0 items-center bg-frame backdrop-blur-default rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto' +
-        (shouldMakeSpaceForExtendedEditorMenu ? ' mr-10' : '')
-      }
+      className={`flex shrink-0 items-center bg-frame backdrop-blur-default rounded-full gap-icons h-row px-icons-x pr-profile-picture cursor-default pointer-events-auto ${
+        shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''
+      }`}
     >
       <Button
         active={isHelpChatOpen}
@@ -101,7 +101,7 @@ export default function UserBar(props: UserBarProps) {
         </button>
       )}
       <button
-        className="flex items-center select-none rounded-full overflow-clip size-7.25"
+        className="flex items-center select-none rounded-full overflow-clip size-profile-picture"
         onClick={event => {
           event.stopPropagation()
           updateModal(oldModal =>

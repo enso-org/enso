@@ -236,11 +236,17 @@ const RESTRICTED_SYNTAXES = [
     {
         // TODO [sb]: `z-3` should be eliminated, but is currently still required.
         // TODO: this does not work for template strings and nested strings
-        selector: `[value.raw=/\\b(?:w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px)/]`,
-        message: 'Fixed values for Tailwind `w-`, `h-`, `p-`, `m-` are not allowed',
+        selector: `:matches(\
+            [value.raw=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px)/],\
+            [raw=/\\b(?:w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px)/]\
+        )`,
+        message: 'Fixed values for Tailwind `size-`, `w-`, `h-`, `p-`, `m-` are not allowed',
     },
     {
-        selector: `[value.raw=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-\\d/]`,
+        selector: `:matches(\
+            [value.raw=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-\\d/],\
+            [value=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-\\d/]\
+        )`,
         message:
             'Fixed values for Tailwind `opacity-`, `rounded-`, `leading-`, `duration-` and `grid-cols-fill` are not allowed',
     },
