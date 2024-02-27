@@ -3,7 +3,7 @@ import type { ExternalId } from '../yjsModel'
 import type { Module } from './mutableModule'
 import type { SyncTokenId } from './token'
 import type { AstId } from './tree'
-import { Ast, MutableAst } from './tree'
+import { App, Ast, Group, MutableAst, OprApp, Wildcard } from './tree'
 
 export * from './mutableModule'
 export * from './parse'
@@ -67,4 +67,37 @@ export function subtreeRoots(module: Module, ids: Set<AstId>): Set<AstId> {
     if (!hasParentInSet) roots.add(id)
   }
   return roots
+}
+
+function unwrapGroups(ast: Ast) {
+  while (ast instanceof Group && ast.expression) ast = ast.expression
+  return ast
+}
+
+/** Tries to recognize inputs that are semantically-equivalent to a sequence of `App`s, and returns the arguments
+ *  identified and LHS of the analyzable chain.
+ *
+ *  In particular, this function currently recognizes syntax used in visualization-preprocessor expressions.
+ */
+export function analyzeAppLike(ast: Ast): { func: Ast; args: Ast[] } {
+  const deferredOperands = new Array<Ast>()
+  while (
+    ast instanceof OprApp &&
+    ast.operator.ok &&
+    ast.operator.value.code() === '<|' &&
+    ast.lhs &&
+    ast.rhs
+  ) {
+    deferredOperands.push(unwrapGroups(ast.rhs))
+    ast = unwrapGroups(ast.lhs)
+  }
+  deferredOperands.reverse()
+  const args = new Array<Ast>()
+  while (ast instanceof App) {
+    const deferredOperand = ast.argument instanceof Wildcard ? deferredOperands.pop() : undefined
+    args.push(deferredOperand ?? unwrapGroups(ast.argument))
+    ast = ast.function
+  }
+  args.reverse()
+  return { func: ast, args }
 }
