@@ -42,11 +42,8 @@ export const graphBindings = defineKeybinds('graph-editor', {
 export const visualizationBindings = defineKeybinds('visualization', {
   nextType: ['Mod+Space'],
   toggleFullscreen: ['Shift+Space'],
-})
-
-export const fullscreenVisualizationBindings = defineKeybinds('visualizationFullscreen', {
   exitFullscreen: ['Escape'],
-}) 
+})
 
 export const selectionMouseBindings = defineKeybinds('selection', {
   replace: ['PointerMain'],

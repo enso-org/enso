@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { fullscreenVisualizationBindings, visualizationBindings } from '@/bindings'
+import { visualizationBindings } from '@/bindings'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
-import { focusIsIn, unrefElement, useEvent } from '@/composables/events'
+import { focusIsIn, useEvent } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
@@ -21,7 +21,7 @@ import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
 import { debouncedGetter } from '@/util/reactivity'
-import { computedAsync, type VueInstance } from '@vueuse/core'
+import { computedAsync } from '@vueuse/core'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
@@ -32,7 +32,6 @@ import {
   watch,
   watchEffect,
   type ShallowRef,
-type Ref,
 nextTick,
 } from 'vue'
 
@@ -231,6 +230,8 @@ watchEffect(() =>
 
 onUnmounted(() => emit('update:rect', undefined))
 
+const allTypes = computed(() => Array.from(visualizationStore.types(props.typename)))
+
 provideVisualizationConfig({
   get isFocused() {
     return props.isFocused
@@ -263,7 +264,7 @@ provideVisualizationConfig({
     isBelowToolbar.value = value
   },
   get types() {
-    return Array.from(visualizationStore.types(props.typename))
+    return allTypes.value
   },
   get isCircularMenuVisible() {
     return props.isCircularMenuVisible
@@ -300,27 +301,21 @@ const root = ref<HTMLElement>()
 const keydownHandler = visualizationBindings.handler({
   nextType: () => {
     if (props.isFocused || focusIsIn(root.value)) {
-      const allTypes = Array.from(visualizationStore.types(props.typename))
-      const currentIndex = allTypes.findIndex((type) => visIdentifierEquals(type, currentType.value))
-      const nextIndex = (currentIndex + 1) % allTypes.length
-      emit('update:id', allTypes[nextIndex]!)
+      const currentIndex = allTypes.value.findIndex((type) => visIdentifierEquals(type, currentType.value))
+      const nextIndex = (currentIndex + 1) % allTypes.value.length
+      emit('update:id', allTypes.value[nextIndex]!)
     } else {
       return false
     }
   },
   toggleFullscreen: () => {
-    console.log('toggle fullscreen', document.activeElement, focusIsIn(root.value))
     if (props.isFocused || focusIsIn(root.value)) {
-      console.log('toggle fullscreen')
       emit('update:fullscreen', !props.isFullscreen)
     } else {
       return false
     }
-  }
-})
-const fullscreenHandler = fullscreenVisualizationBindings.handler({
+  },
   exitFullscreen: () => {
-    console.log('exit fullscreen', props.isFullscreen, document.activeElement)
     if (props.isFullscreen) {
       emit('update:fullscreen', false)
     } else {
@@ -331,7 +326,6 @@ const fullscreenHandler = fullscreenVisualizationBindings.handler({
 
 
 useEvent(window, 'keydown', (event) => keydownHandler(event))
-useEvent(window, 'keydown', (event) => fullscreenHandler(event))
 
 watch(() => props.isFullscreen, (f) => { f && nextTick(() => root.value?.focus()) })
 </script>

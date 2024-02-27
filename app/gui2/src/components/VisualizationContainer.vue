@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import { visualizationBindings, fullscreenVisualizationBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import {
   PointerButtonMask,
-  focusIsIn,
   isTriggeredByKeyboard,
-  useEvent,
   usePointer,
 } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
-import { visIdentifierEquals } from 'shared/yjsModel'
-import { nextTick, onMounted, ref, watch, watchEffect } from 'vue'
+import { onMounted, ref, watchEffect } from 'vue'
 
 const props = defineProps<{
   /** If true, the visualization should be `overflow: visible` instead of `overflow: hidden`. */
@@ -96,42 +92,6 @@ const resizeBottomRight = usePointer((pos, _, type) => {
     config.height = Math.max(0, height)
   }
 }, PointerButtonMask.Main)
-
-// const fullscreenHandler = fullscreenVisualizationBindings.handler({
-//   exitFullscreen: () => {
-//     console.log('exit fullscreen', config.fullscreen, document.activeElement)
-//     if (config.fullscreen) {
-//       config.fullscreen = false
-//     } else {
-//       return false
-//     }
-//   }
-// })
-
-// const keydownHandler = visualizationBindings.handler({
-//   nextType: () => {
-//     if (config.isFocused || focusIsIn(rootNode.value)) {
-//       const allTypes = Array.from(config.types)
-//       const currentIndex = allTypes.findIndex((type) => visIdentifierEquals(type, config.currentType))
-//       const nextIndex = (currentIndex + 1) % allTypes.length
-//       config.updateType(allTypes[nextIndex]!)
-//     } else {
-//       return false
-//     }
-//   },
-//   toggleFullscreen: () => {
-//     console.log('toggle fullscreen', document.activeElement, focusIsIn(rootNode.value))
-//     if (config.isFocused || focusIsIn(rootNode.value)) {
-//       console.log('toggle fullscreen')
-//       config.fullscreen = !config.fullscreen
-//     } else {
-//       return false
-//     }
-//   }
-// })
-//
-// useEvent(window, 'keydown', (event) => keydownHandler(event))
-// useEvent(window, 'keydown', (event) => fullscreenHandler(event))
 </script>
 
 <template>
