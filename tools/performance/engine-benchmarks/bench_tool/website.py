@@ -60,6 +60,7 @@ async def generate_bench_website(
         bench_datas=template_bench_datas,
         bench_source=bench_source,
         branches=[BRANCH_DEVELOP],
+        timestamp=datetime.now()
     )
     _logger.debug(f"Rendering HTML to {generated_html}")
     render_html(jinja_data, generated_html)

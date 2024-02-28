@@ -213,6 +213,8 @@ class JinjaData:
     until: datetime
     display_since: datetime
     """ The date from which all the datapoints are first displayed """
+    timestamp: datetime
+    """ The time when the website was generated """
 
 
 

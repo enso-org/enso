@@ -275,6 +275,7 @@ async def main():
         bench_datas=template_bench_datas,
         bench_source=bench_source,
         branches=branches,
+        timestamp=datetime.now()
     )
 
     # Render Jinja template with jinja_data
