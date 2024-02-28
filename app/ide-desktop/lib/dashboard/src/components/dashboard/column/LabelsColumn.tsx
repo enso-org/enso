@@ -74,7 +74,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             negated={temporarilyRemovedLabels.has(label)}
             className={
               temporarilyRemovedLabels.has(label)
-                ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
+                ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset before:w-full before:h-full'
                 : ''
             }
             onContextMenu={event => {

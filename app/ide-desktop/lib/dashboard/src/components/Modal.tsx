@@ -35,7 +35,7 @@ export default function Modal(props: ModalProps) {
       {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
       style={style}
       // This MUST be z-3, unlike all other elements, because it MUST show above the IDE.
-      className={`inset-0 z-3 ${centered ? 'fixed size-screen grid place-items-center' : ''} ${
+      className={`inset z-3 ${centered ? 'fixed size-screen grid place-items-center' : ''} ${
         className ?? ''
       }`}
       onClick={

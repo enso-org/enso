@@ -108,17 +108,15 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-sample">
       <button
-        className="relative h-sample cursor-pointer before:absolute before:inset-0 before:bg-frame before:rounded-default before:w-full before:h-full before:opacity-60"
+        className="relative h-sample cursor-pointer before:absolute before:inset before:bg-frame before:rounded-default before:w-full before:h-full before:opacity-new-empty-project"
         onClick={onClick}
       >
         <div className="relative flex rounded-default size-full">
-          <div className="flex flex-col text-center items-center gap-3 m-auto">
+          <div className="flex flex-col text-center items-center gap-new-empty-project m-auto">
             {spinnerState != null ? (
-              <div className="p-2">
-                <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
-              </div>
+              <Spinner size={SPINNER_SIZE_PX} padding={2} state={spinnerState} />
             ) : (
               <img src={ProjectIcon} />
             )}
@@ -169,7 +167,7 @@ function ProjectTile(props: InternalProjectTileProps) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-sample">
       <button
         key={title}
         className="relative flex flex-col grow cursor-pointer text-left h-sample"
