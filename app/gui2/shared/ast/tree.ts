@@ -1164,7 +1164,7 @@ export interface MutableImport extends Import, MutableAst {
 }
 applyMixins(MutableImport, [MutableAst])
 
-const escapePairs = [
+const interpolationMap = [
   ['\0', '\\0'],
   ['\b', '\\b'],
   ['\f', '\\f'],
@@ -1176,8 +1176,8 @@ const escapePairs = [
   ['`', '``'],
 ] as const
 
-const escapeMapping = Object.fromEntries(escapePairs)
-const unescapeMapping = Object.fromEntries(escapePairs.map(([k, v]) => [v, k]))
+const escapeMapping = Object.fromEntries(interpolationMap)
+const applyMapping = Object.fromEntries(interpolationMap.map(([k, v]) => [v, k]))
 
 /** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
  * NOT USABLE to insert into raw strings. Does not include double-quotes (`"`). */
@@ -1187,7 +1187,7 @@ export function escapeInterpolation(string: string) {
 
 /** Interpret all escaped characters from an interpolated (`''`) Enso string. */
 export function applyInterpolation(string: string) {
-  return string.replace(/\\[0bfnrtv']|``/g, (match) => unescapeMapping[match]!)
+  return string.replace(/\\[0bfnrtv']|``/g, (match) => applyMapping[match]!)
 }
 
 interface TextLiteralFields {
