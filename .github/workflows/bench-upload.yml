@@ -42,12 +42,7 @@ jobs:
           echo "Hello world" > hello.txt
           git add hello.txt
           git commit -m "Add hello.txt"
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          directory: engine-benchmark-results
-          github_token: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
-          repository: enso-org/engine-benchmark-results
+          git push
 
       #- name: Upload benchmarks
         #run: |
