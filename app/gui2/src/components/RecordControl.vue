@@ -28,12 +28,12 @@ const emit = defineEmits<{ recordOnce: []; 'update:recordMode': [enabled: boolea
   user-select: none;
   display: flex;
   place-items: center;
-  backdrop-filter: var(--blur-app-bg);
   gap: 1px;
 }
 
 .control {
   background: var(--color-frame-bg);
+  backdrop-filter: var(--blur-app-bg);
   padding: 8px 8px;
   width: 42px;
   cursor: pointer;

@@ -37,26 +37,26 @@ import org.graalvm.polyglot.Value;
 public final class DoubleStorage extends NumericStorage<Double>
     implements DoubleArrayAdapter, ColumnStorageWithNothingMap {
   private final long[] data;
-  private final BitSet isMissing;
+  private final BitSet isNothing;
   private final int size;
   private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
    * @param size the number of items stored
-   * @param isMissing a bit set denoting at index {@code i} whether the value at index {@code i} is
-   *     missing.
+   * @param isNothing a bit set denoting at index {@code i} whether the value at index {@code i} is
+   *     Nothing.
    */
-  public DoubleStorage(long[] data, int size, BitSet isMissing) {
+  public DoubleStorage(long[] data, int size, BitSet isNothing) {
     this.data = data;
-    this.isMissing = isMissing;
+    this.isNothing = isNothing;
     this.size = size;
   }
 
   public static DoubleStorage makeEmpty(int size) {
-    BitSet isMissing = new BitSet(size);
-    isMissing.set(0, size);
-    return new DoubleStorage(new long[0], size, isMissing);
+    BitSet isNothing = new BitSet(size);
+    isNothing.set(0, size);
+    return new DoubleStorage(new long[0], size, isNothing);
   }
 
   /**
@@ -77,7 +77,7 @@ public final class DoubleStorage extends NumericStorage<Double>
 
   @Override
   public Double getItemBoxed(int idx) {
-    return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
+    return isNothing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
   /**
@@ -92,18 +92,13 @@ public final class DoubleStorage extends NumericStorage<Double>
    * @inheritDoc
    */
   @Override
-  public boolean isNa(long idx) {
-    return isMissing.get((int) idx);
+  public boolean isNothing(long idx) {
+    return isNothing.get((int) idx);
   }
 
   @Override
   public double getItemAsDouble(int i) {
     return Double.longBitsToDouble(data[i]);
-  }
-
-  @Override
-  public boolean isNa(int i) {
-    return isMissing.get(i);
   }
 
   @Override
@@ -142,7 +137,7 @@ public final class DoubleStorage extends NumericStorage<Double>
     long rawArg = Double.doubleToRawLongBits(arg);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      if (isMissing.get(i)) {
+      if (isNothing.get(i)) {
         builder.appendRawNoGrow(rawArg);
       } else {
         builder.appendRawNoGrow(data[i]);
@@ -158,7 +153,7 @@ public final class DoubleStorage extends NumericStorage<Double>
     final var builder = NumericBuilder.createDoubleBuilder(size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      if (isMissing.get(i)) {
+      if (isNothing.get(i)) {
         builder.appendBigInteger(arg);
       } else {
         builder.appendRawNoGrow(data[i]);
@@ -174,7 +169,7 @@ public final class DoubleStorage extends NumericStorage<Double>
     final var builder = NumericBuilder.createDoubleBuilder(size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      if (isMissing.get(i)) {
+      if (isNothing.get(i)) {
         builder.appendLong(arg);
       } else {
         builder.appendRawNoGrow(data[i]);
@@ -210,18 +205,18 @@ public final class DoubleStorage extends NumericStorage<Double>
 
     int n = size();
     long[] newData = new long[n];
-    BitSet newMissing = new BitSet();
+    BitSet newIsNothing = new BitSet();
     long previousValueRaw = 0;
     boolean hasPrevious = false;
 
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      boolean isCurrentMissing = isNa(i);
+      boolean isCurrentMissing = isNothing(i);
       if (isCurrentMissing) {
         if (hasPrevious) {
           newData[i] = previousValueRaw;
         } else {
-          newMissing.set(i);
+          newIsNothing.set(i);
         }
       } else {
         long currentValueRaw = data[i];
@@ -233,19 +228,19 @@ public final class DoubleStorage extends NumericStorage<Double>
       context.safepoint();
     }
 
-    return new DoubleStorage(newData, n, newMissing);
+    return new DoubleStorage(newData, n, newIsNothing);
   }
 
   @Override
   public Storage<Double> applyFilter(BitSet filterMask, int newLength) {
-    BitSet newMissing = new BitSet();
+    BitSet newIsNothing = new BitSet();
     long[] newData = new long[newLength];
     int resIx = 0;
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (filterMask.get(i)) {
-        if (isMissing.get(i)) {
-          newMissing.set(resIx++);
+        if (isNothing.get(i)) {
+          newIsNothing.set(resIx++);
         } else {
           newData[resIx++] = data[i];
         }
@@ -253,29 +248,25 @@ public final class DoubleStorage extends NumericStorage<Double>
 
       context.safepoint();
     }
-    return new DoubleStorage(newData, newLength, newMissing);
+    return new DoubleStorage(newData, newLength, newIsNothing);
   }
 
   @Override
   public Storage<Double> applyMask(OrderMask mask) {
     long[] newData = new long[mask.length()];
-    BitSet newMissing = new BitSet();
+    BitSet newIsNothing = new BitSet();
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Storage.NOT_FOUND_INDEX || isMissing.get(position)) {
-        newMissing.set(i);
+      if (position == Storage.NOT_FOUND_INDEX || isNothing.get(position)) {
+        newIsNothing.set(i);
       } else {
         newData[i] = data[position];
       }
 
       context.safepoint();
     }
-    return new DoubleStorage(newData, newData.length, newMissing);
-  }
-
-  public BitSet getIsMissing() {
-    return isMissing;
+    return new DoubleStorage(newData, newData.length, newIsNothing);
   }
 
   public long[] getRawData() {
@@ -305,38 +296,38 @@ public final class DoubleStorage extends NumericStorage<Double>
     int newSize = Math.min(size - offset, limit);
     long[] newData = new long[newSize];
     System.arraycopy(data, offset, newData, 0, newSize);
-    BitSet newMask = isMissing.get(offset, offset + limit);
+    BitSet newMask = isNothing.get(offset, offset + limit);
     return new DoubleStorage(newData, newSize, newMask);
   }
 
   @Override
   public DoubleStorage appendNulls(int count) {
-    BitSet newMissing = BitSets.makeDuplicate(isMissing);
-    newMissing.set(size, size + count);
+    BitSet newIsNothing = BitSets.makeDuplicate(isNothing);
+    newIsNothing.set(size, size + count);
 
     long[] newData = new long[size + count];
     System.arraycopy(data, 0, newData, 0, size);
-    return new DoubleStorage(newData, size + count, newMissing);
+    return new DoubleStorage(newData, size + count, newIsNothing);
   }
 
   @Override
   public Storage<Double> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
     long[] newData = new long[newSize];
-    BitSet newMissing = new BitSet(newSize);
+    BitSet newIsNothing = new BitSet(newSize);
     int offset = 0;
     Context context = Context.getCurrent();
     for (SliceRange range : ranges) {
       int length = range.end() - range.start();
       System.arraycopy(data, range.start(), newData, offset, length);
       for (int i = 0; i < length; ++i) {
-        newMissing.set(offset + i, isMissing.get(range.start() + i));
+        newIsNothing.set(offset + i, isNothing.get(range.start() + i));
         context.safepoint();
       }
       offset += length;
     }
 
-    return new DoubleStorage(newData, newSize, newMissing);
+    return new DoubleStorage(newData, newSize, newIsNothing);
   }
 
   private StorageType inferredType = null;
@@ -347,7 +338,7 @@ public final class DoubleStorage extends NumericStorage<Double>
       boolean areAllIntegers = true;
       int visitedNumbers = 0;
       for (int i = 0; i < size; i++) {
-        if (isMissing.get(i)) {
+        if (isNothing.get(i)) {
           continue;
         }
 
@@ -388,7 +379,7 @@ public final class DoubleStorage extends NumericStorage<Double>
         new ComputedNullableLongStorage(size) {
           @Override
           protected Long computeItem(int idx) {
-            if (parent.isNa(idx)) {
+            if (parent.isNothing(idx)) {
               return null;
             }
 
@@ -405,6 +396,6 @@ public final class DoubleStorage extends NumericStorage<Double>
 
   @Override
   public BitSet getIsNothingMap() {
-    return isMissing;
+    return isNothing;
   }
 }

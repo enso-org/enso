@@ -116,7 +116,7 @@ export const toggleFullscreenButton = or(enterFullscreenButton, exitFullscreenBu
 // === Nodes ===
 
 declare const nodeLocatorBrand: unique symbol
-type Node = Locator & { [nodeLocatorBrand]: never }
+export type Node = Locator & { [nodeLocatorBrand]: never }
 
 export function graphNode(page: Page | Locator): Node {
   return page.locator('.GraphNode') as Node

@@ -531,6 +531,13 @@ export class App extends Ast {
     )
   }
 
+  static PositionalSequence(func: Owned, args: Owned[]): Owned {
+    return args.reduce(
+      (expression, argument) => App.new(func.module, expression, undefined, argument),
+      func,
+    )
+  }
+
   get function(): Ast {
     return this.module.get(this.fields.get('function').node)
   }
@@ -763,10 +770,12 @@ export class OprApp extends Ast {
   static new(
     module: MutableModule,
     lhs: Owned | undefined,
-    operator: Token,
+    operator: Token | string,
     rhs: Owned | undefined,
   ) {
-    return OprApp.concrete(module, unspaced(lhs), [autospaced(operator)], autospaced(rhs))
+    const operatorToken =
+      operator instanceof Token ? operator : Token.new(operator, RawAst.Token.Type.Operator)
+    return OprApp.concrete(module, unspaced(lhs), [autospaced(operatorToken)], autospaced(rhs))
   }
 
   get lhs(): Ast | undefined {
