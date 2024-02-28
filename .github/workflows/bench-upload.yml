@@ -38,12 +38,11 @@ jobs:
         run: |
           git config --global user.email "ci@enso.org"
           git config --global user.name "Enso CI Bot"
-
-      #- name: Upload benchmarks
-        #run: |
-          #cd enso/tools/performance/engine-benchmarks
-          #python3 website_regen.py \
-          #  -v \
-          #  --local-repo  ${{ github.workspace }}/engine-benchmark-results
-        #env:
-        #  GITHUB_TOKEN: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
+      - name: Upload benchmarks
+        run: |
+          cd enso/tools/performance/engine-benchmarks
+          python3 website_regen.py \
+            -v \
+            --local-repo  ${{ github.workspace }}/engine-benchmark-results
+        env:
+          GITHUB_TOKEN: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
