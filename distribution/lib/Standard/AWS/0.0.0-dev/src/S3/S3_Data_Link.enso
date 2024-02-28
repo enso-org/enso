@@ -9,16 +9,13 @@ import project.S3.S3_File.S3_File
 ## PRIVATE
 type S3_Data_Link
     ## PRIVATE
-    Value uri format (credentials : AWS_Credential | Nothing)
+    Value (uri : Text) format (credentials : AWS_Credential | Nothing)
 
     ## PRIVATE
     parse json -> S3_Data_Link =
         uri = get_required_field "uri" json
-        auth = get_required_field "auth" json |> parse_aws_auth
-        format_json = json.get "format" Nothing
-        format = format_json
-            . if_not_nothing (parse_format format_json)
-            . if_nothing Auto_Detect
+        auth = parse_aws_auth (get_required_field "auth" json)
+        format = parse_format (json.get "format" Nothing)
         S3_Data_Link.Value uri format auth
 
     ## PRIVATE

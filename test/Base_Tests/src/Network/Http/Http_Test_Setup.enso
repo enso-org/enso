@@ -1,3 +1,5 @@
+from Standard.Base import all
+
 base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
 pending_has_url = if base_url != Nothing then Nothing else
     "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"

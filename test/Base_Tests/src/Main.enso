@@ -112,6 +112,7 @@ main filter=Nothing =
         Http_Request_Spec.add_specs suite_builder
         Http_Spec.add_specs suite_builder
         Http_Auto_Parse_Spec.add_specs suite_builder
+        Http_Data_Link_Spec.add_specs suite_builder
         Enso_Cloud_Main.add_specs suite_builder
         Import_Loop_Spec.add_specs suite_builder
         Interval_Spec.add_specs suite_builder
