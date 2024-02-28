@@ -42,13 +42,13 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
-import * as inputBindingsModule from '#/configurations/inputBindings'
+import type * as inputBindingsModule from '#/configurations/inputBindings'
 
 import * as navigateHooks from '#/hooks/navigateHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
-import InputBindingsProvider from '#/providers/InputBindingsProvider'
+import InputBindingsProvider, * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
@@ -186,7 +186,7 @@ function AppRouter(props: AppProps) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
   }
-  const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
+  const inputBindingsRaw = inputBindingsProvider.useInputBindings()
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
     for (const k in savedInputBindings) {
