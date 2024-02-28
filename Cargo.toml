@@ -7,30 +7,26 @@ resolver = "2"
 # path, e.g. `lib/rust/ensogl/examples`, or `app/gui/view/examples`; this is used to optimize the application for
 # loading the IDE.
 members = [
-  "app/gui",
-  "app/gui/language/parser",
-  "app/gui/enso-profiler-enso-data",
-  "app/gui2/rust-ffi",
-  "build/cli",
-  "build/macros/proc-macro",
-  "build/ci-gen",
-  "build/cli",
-  "build/intellij-run-config-gen",
-  "build/deprecated/rust-scripts",
-  "build/shader-tools",
-  "lib/rust/*",
-  "lib/rust/parser/doc-parser",
-  "lib/rust/parser/src/syntax/tree/visitor",
-  "lib/rust/parser/jni",
-  "lib/rust/parser/generate-java",
-  "lib/rust/parser/schema",
-  "lib/rust/parser/debug",
-  "lib/rust/ensogl/pack",
-  "lib/rust/profiler/data",
-  "lib/rust/profiler/demo-data",
-  "integration-test",
-  "tools/language-server/logstat",
-  "tools/language-server/wstest",
+    "app/gui2/rust-ffi",
+    "build/cli",
+    "build/macros/proc-macro",
+    "build/ci-gen",
+    "build/cli",
+    "build/intellij-run-config-gen",
+    "build/deprecated/rust-scripts",
+    "build/shader-tools",
+    "lib/rust/*",
+    "lib/rust/parser/doc-parser",
+    "lib/rust/parser/src/syntax/tree/visitor",
+    "lib/rust/parser/jni",
+    "lib/rust/parser/generate-java",
+    "lib/rust/parser/schema",
+    "lib/rust/parser/debug",
+    "lib/rust/ensogl/pack",
+    "lib/rust/profiler/data",
+    "lib/rust/profiler/demo-data",
+    "tools/language-server/logstat",
+    "tools/language-server/wstest",
 ]
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
@@ -88,7 +84,7 @@ console-subscriber = "0.1.8"
 dirs = { version = "5.0.1" }
 nix = { version = "0.27.1" }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
-  "rustls",
+    "rustls",
 ] }
 platforms = { version = "3.2.0", features = ["serde"] }
 portpicker = { version = "0.1.1" }
@@ -131,25 +127,25 @@ bytes = { version = "1.1.0" }
 matches = { version = "0.1" }
 console_error_panic_hook = { version = "0.1.6" }
 reqwest = { version = "0.11.5", default-features = false, features = [
-  "rustls-tls",
-  "stream"
+    "rustls-tls",
+    "stream"
 ] }
 proc-macro2 = { version = "1.0.50" }
 syn = { version = "2.0", features = [
-  "full",
-  "extra-traits",
-  "printing",
-  "parsing",
-  "visit",
-  "visit-mut",
+    "full",
+    "extra-traits",
+    "printing",
+    "parsing",
+    "visit",
+    "visit-mut",
 ] }
 syn_1 = { package = "syn", version = "1.0", features = [
-  "full",
-  "extra-traits",
-  "printing",
-  "parsing",
-  "visit",
-  "visit-mut",
+    "full",
+    "extra-traits",
+    "printing",
+    "parsing",
+    "visit",
+    "visit-mut",
 ] }
 quote = { version = "1.0.23" }
 semver = { version = "1.0.0", features = ["serde"] }

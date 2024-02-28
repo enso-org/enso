@@ -48,14 +48,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "analytics"
-version = "0.1.0"
-dependencies = [
- "js-sys",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -75,15 +67,6 @@ name = "approx"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f2a05fd1bd10b2527e20a2cd32d8873d115b8b39fe219ee25f42a8aca6ba278"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "approx"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
 dependencies = [
  "num-traits",
 ]
@@ -109,35 +92,6 @@ name = "assert_approx_eq"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c07dab4369547dbe5114677b33fbbf724971019f3818172d59a97a61c774ffd"
-
-[[package]]
-name = "ast"
-version = "0.1.0"
-dependencies = [
- "ast-macros",
- "derive_more",
- "enso-data-structures",
- "enso-prelude",
- "enso-profiler",
- "enso-shapely",
- "enso-text",
- "failure",
- "lazy_static",
- "regex",
- "serde",
- "uuid 0.8.2",
-]
-
-[[package]]
-name = "ast-macros"
-version = "0.1.0"
-dependencies = [
- "Inflector",
- "enso-macro-utils",
- "proc-macro2",
- "quote",
- "syn 1.0.107",
-]
 
 [[package]]
 name = "async-channel"
@@ -631,7 +585,7 @@ dependencies = [
  "aws-smithy-http",
  "aws-smithy-types",
  "http",
- "rustc_version 0.4.0",
+ "rustc_version",
  "tracing",
  "zeroize",
 ]
@@ -644,7 +598,7 @@ checksum = "233d376d6d185f2a3093e58f283f60f880315b6c60075b01f36b3b85154564ca"
 dependencies = [
  "addr2line",
  "cc",
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "miniz_oxide",
  "object",
@@ -662,15 +616,6 @@ name = "base64"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
-
-[[package]]
-name = "bimap"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "783204f24fd7724ea274d327619cfa6a6018047bb0561a68aadff6f56787591b"
-dependencies = [
- "cfg-if 0.1.10",
-]
 
 [[package]]
 name = "bincode"
@@ -720,32 +665,11 @@ checksum = "24a6904aef64d73cf10ab17ebace7befb918b82164785cb89907993be7f83813"
 
 [[package]]
 name = "block-buffer"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0940dc441f31689269e10ac70eb1002a3a1d3ad1390e030043662eb7fe4688b"
-dependencies = [
- "block-padding",
- "byte-tools",
- "byteorder",
- "generic-array 0.12.4",
-]
-
-[[package]]
-name = "block-buffer"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69cce20737498f97b993470a6e536b8523f0af7892a4f928cceb1ac5e52ebe7e"
 dependencies = [
- "generic-array 0.14.6",
-]
-
-[[package]]
-name = "block-padding"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa79dedbb091f449f1f39e53edf88d5dbe95f895dae6135a8d7b881fb5af73f5"
-dependencies = [
- "byte-tools",
+ "generic-array",
 ]
 
 [[package]]
@@ -803,12 +727,6 @@ name = "bumpalo"
 version = "3.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c6ed94e98ecff0c12dd1b04c15ec0d7d9458ca8fe806cea6f12954efe74c63b"
-
-[[package]]
-name = "byte-tools"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3b5ca7a04898ad4bcd41c90c5285445ff5b791899bb1b0abdd2a2aa791211d7"
 
 [[package]]
 name = "byte-unit"
@@ -885,12 +803,6 @@ name = "cesu8"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6d43a04d8753f35258c91f8ec639f792891f748a1edbd759cf1dcea3382ad83c"
-
-[[package]]
-name = "cfg-if"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
 name = "cfg-if"
@@ -1028,7 +940,7 @@ name = "console_error_panic_hook"
 version = "0.1.7"
 source = "git+https://github.com/enso-org/console_error_panic_hook#cdd73b81709475104b9ebfe6271c6914ff71b7b2"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "wasm-bindgen",
 ]
 
@@ -1098,7 +1010,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3dfea2db42e9927a3845fb268a10a72faed6d416065f77873f05e411457c363e"
 dependencies = [
- "rustc_version 0.4.0",
+ "rustc_version",
 ]
 
 [[package]]
@@ -1107,7 +1019,7 @@ version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b540bd8bc810d3885c6ea91e2018302f68baba2129ab3e88f32389ee9370880d"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
 ]
 
 [[package]]
@@ -1152,7 +1064,7 @@ version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2dd04ddaf88237dc3b8d8f9a3c1004b506b54b3313403944054d23c0870c521"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "crossbeam-utils",
 ]
 
@@ -1162,7 +1074,7 @@ version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "715e8152b692bba2d374b53d4875445368fdf21a94751410af607a5ac677d1fc"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "crossbeam-epoch",
  "crossbeam-utils",
 ]
@@ -1174,7 +1086,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01a9af1f4c2ef74bb8aa1f7e19706bc72d03598c8a570bb5de72243c7a9d9d5a"
 dependencies = [
  "autocfg",
- "cfg-if 1.0.0",
+ "cfg-if",
  "crossbeam-utils",
  "memoffset",
  "scopeguard",
@@ -1186,7 +1098,7 @@ version = "0.8.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fb766fa798726286dbbb842f174001dab8abc7b627a1dd86e0b7222a95d929f"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
 ]
 
 [[package]]
@@ -1195,7 +1107,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bfb12502f3fc46cca1bb51ac28df9d618d813cdc3d2f25b9fe775a34af26bb3"
 dependencies = [
- "generic-array 0.14.6",
+ "generic-array",
  "typenum",
 ]
 
@@ -1328,128 +1240,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaa37046cc0f6c3cc6090fbdbf73ef0b8ef4cfcc37f6befc0020f63e8cf121e1"
 
 [[package]]
-name = "debug-scene-component-list-panel-view"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-profiler",
- "ensogl-core",
- "ensogl-grid-view",
- "ensogl-hardcoded-theme",
- "ensogl-icons",
- "ensogl-selector",
- "ensogl-text",
- "ensogl-text-msdf",
- "ensogl-tooltip",
- "ide-view-component-list-panel",
- "ide-view-documentation",
- "js-sys",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "debug-scene-documentation"
-version = "0.1.0"
-dependencies = [
- "enso-doc-parser",
- "enso-suggestion-database",
- "ensogl",
- "ensogl-hardcoded-theme",
- "ensogl-text-msdf",
- "ide-view-documentation",
- "ide-view-graph-editor",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "debug-scene-graph-editor-edges"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl",
- "ensogl-hardcoded-theme",
- "ide-view-graph-editor",
- "nalgebra",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "debug-scene-icons"
-version = "0.1.0"
-dependencies = [
- "convert_case 0.6.0",
- "ensogl",
- "ensogl-hardcoded-theme",
- "ensogl-icons",
- "ensogl-text-msdf",
- "ensogl-tooltip",
- "ide-view-component-list-panel-grid",
- "ide-view-graph-editor",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "debug-scene-interface"
-version = "0.1.0"
-dependencies = [
- "ast",
- "enso-frp",
- "ensogl",
- "ensogl-hardcoded-theme",
- "ensogl-text-msdf",
- "ide-view",
- "ide-view-execution-environment-selector",
- "parser",
- "span-tree",
- "uuid 0.8.2",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "debug-scene-project-view-top-bar"
-version = "0.1.0"
-dependencies = [
- "ensogl",
- "ensogl-hardcoded-theme",
- "ensogl-text-msdf",
- "ide-view-execution-environment-selector",
- "ide-view-project-view-top-bar",
-]
-
-[[package]]
-name = "debug-scene-text-grid-visualization"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl",
- "ensogl-grid-view",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-text-msdf",
- "ide-view",
- "js-sys",
- "nalgebra",
- "serde_json",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "debug-scene-visualization"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl",
- "ensogl-hardcoded-theme",
- "ensogl-text-msdf",
- "ide-view",
- "js-sys",
- "nalgebra",
- "serde_json",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "dependency_runner"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1490,7 +1280,7 @@ dependencies = [
  "convert_case 0.4.0",
  "proc-macro2",
  "quote",
- "rustc_version 0.4.0",
+ "rustc_version",
  "syn 1.0.107",
 ]
 
@@ -1507,27 +1297,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
-name = "difference"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "524cbf6897b527295dff137cec09ecf3a05f4fddffd7dfcd1585403449e74198"
-
-[[package]]
-name = "digest"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3d0c8c8752312f9713efd397ff63acb9f85585afbf179282e720e7704954dd5"
-dependencies = [
- "generic-array 0.12.4",
-]
-
-[[package]]
 name = "digest"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8168378f4e5023e7218c89c891c0fd8ecdb5e5e4f18cb78f38cf245dd021e76f"
 dependencies = [
- "block-buffer 0.10.3",
+ "block-buffer",
  "crypto-common",
 ]
 
@@ -1559,32 +1334,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 
 [[package]]
-name = "double-representation"
-version = "0.1.0"
-dependencies = [
- "ast",
- "const_format",
- "engine-protocol",
- "enso-data-structures",
- "enso-prelude",
- "enso-profiler",
- "enso-text",
- "failure",
- "itertools",
- "parser",
- "regex",
- "serde",
- "uuid 0.8.2",
- "wasm-bindgen-test",
-]
-
-[[package]]
-name = "downcast"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bb454f0228b18c7f4c3b0ebbee346ed9c52e7443b0999cd543ff3571205701d"
-
-[[package]]
 name = "either"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1602,38 +1351,7 @@ version = "0.8.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9852635589dc9f9ea1b6fe9f05b50ef208c85c834a562f0c6abb1c475736ec2b"
 dependencies = [
- "cfg-if 1.0.0",
-]
-
-[[package]]
-name = "engine-protocol"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "chrono",
- "enso-build-utilities",
- "enso-data-structures",
- "enso-prelude",
- "enso-shapely",
- "enso-text",
- "enso-web",
- "failure",
- "flatbuffers",
- "flatc-rust",
- "futures",
- "hex",
- "json-rpc",
- "mockall",
- "reqwest",
- "serde",
- "serde_json",
- "sha3",
- "strum",
- "strum_macros",
- "tokio",
- "uuid 0.8.2",
- "wasm-bindgen-test",
- "zip",
+ "cfg-if",
 ]
 
 [[package]]
@@ -1685,7 +1403,7 @@ dependencies = [
  "regex",
  "reqwest",
  "scopeguard",
- "semver 1.0.16",
+ "semver",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -1696,7 +1414,7 @@ dependencies = [
  "toml",
  "tracing",
  "url",
- "uuid 1.2.2",
+ "uuid",
  "walkdir",
  "zip",
 ]
@@ -1802,18 +1520,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-config"
-version = "0.1.0"
-dependencies = [
- "config-reader",
- "enso-json-to-struct",
- "enso-prelude",
- "ensogl",
- "semver 1.0.16",
- "thiserror",
-]
-
-[[package]]
 name = "enso-data-structures"
 version = "0.2.0"
 dependencies = [
@@ -1836,20 +1542,6 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
  "web-sys",
-]
-
-[[package]]
-name = "enso-debug-scene"
-version = "0.1.0"
-dependencies = [
- "debug-scene-component-list-panel-view",
- "debug-scene-documentation",
- "debug-scene-graph-editor-edges",
- "debug-scene-icons",
- "debug-scene-interface",
- "debug-scene-project-view-top-bar",
- "debug-scene-text-grid-visualization",
- "debug-scene-visualization",
 ]
 
 [[package]]
@@ -1930,7 +1622,7 @@ dependencies = [
  "enso-frp",
  "enso-generics",
  "enso-prelude",
- "smallvec 1.10.0",
+ "smallvec",
 ]
 
 [[package]]
@@ -1942,85 +1634,6 @@ dependencies = [
  "nalgebra",
  "paste",
  "serde",
-]
-
-[[package]]
-name = "enso-gui"
-version = "0.1.0"
-dependencies = [
- "analytics",
- "ast",
- "bimap",
- "console_error_panic_hook",
- "const_format",
- "convert_case 0.6.0",
- "double-representation",
- "engine-protocol",
- "enso-callback",
- "enso-config",
- "enso-data-structures",
- "enso-debug-api",
- "enso-debug-scene",
- "enso-doc-parser",
- "enso-executor",
- "enso-frp",
- "enso-notification",
- "enso-prelude",
- "enso-profiler",
- "enso-shapely",
- "enso-suggestion-database",
- "enso-text",
- "enso-web",
- "ensogl",
- "ensogl-breadcrumbs",
- "ensogl-component",
- "ensogl-drop-manager",
- "ensogl-dynamic-assets",
- "ensogl-examples",
- "ensogl-hardcoded-theme",
- "ensogl-icons",
- "ensogl-text-msdf",
- "failure",
- "flo_stream",
- "futures",
- "fuzzly",
- "ide-view",
- "itertools",
- "js-sys",
- "json-rpc",
- "mockall",
- "nalgebra",
- "ordered-float",
- "parser",
- "regex",
- "semver 1.0.16",
- "serde",
- "serde_json",
- "sha3",
- "span-tree",
- "superslice",
- "uuid 0.8.2",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test",
- "web-sys",
-]
-
-[[package]]
-name = "enso-integration-test"
-version = "0.1.0"
-dependencies = [
- "approx 0.5.1",
- "engine-protocol",
- "enso-executor",
- "enso-frp",
- "enso-gui",
- "enso-prelude",
- "enso-shortcuts",
- "enso-web",
- "ensogl",
- "wasm-bindgen",
- "wasm-bindgen-test",
 ]
 
 [[package]]
@@ -2112,7 +1725,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "serde_json",
- "uuid 1.2.2",
+ "uuid",
  "wasm-bindgen-test",
 ]
 
@@ -2194,7 +1807,7 @@ dependencies = [
  "paste",
  "serde",
  "serde_json",
- "smallvec 1.10.0",
+ "smallvec",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "weak-table",
@@ -2230,28 +1843,6 @@ name = "enso-profiler-demo-data"
 version = "0.1.0"
 dependencies = [
  "enso-profiler",
- "futures",
-]
-
-[[package]]
-name = "enso-profiler-enso-data"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "csv",
- "enso-profiler",
- "enso-profiler-data",
- "ensogl-core",
- "json-rpc",
- "serde",
-]
-
-[[package]]
-name = "enso-profiler-flame-graph"
-version = "0.1.0"
-dependencies = [
- "enso-profiler",
- "enso-profiler-data",
  "futures",
 ]
 
@@ -2326,32 +1917,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-suggestion-database"
-version = "0.1.0"
-dependencies = [
- "ast",
- "convert_case 0.6.0",
- "double-representation",
- "engine-protocol",
- "enso-data-structures",
- "enso-doc-parser",
- "enso-executor",
- "enso-notification",
- "enso-prelude",
- "enso-profiler",
- "enso-text",
- "ensogl-icons",
- "failure",
- "flo_stream",
- "futures",
- "parser",
- "serde",
- "serde_json",
- "span-tree",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "enso-text"
 version = "0.1.0"
 dependencies = [
@@ -2410,53 +1975,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-breadcrumbs"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-derive-theme",
- "ensogl-grid-view",
- "ensogl-hardcoded-theme",
- "ensogl-icons",
- "ensogl-text",
-]
-
-[[package]]
-name = "ensogl-button"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
-]
-
-[[package]]
-name = "ensogl-component"
-version = "0.1.0"
-dependencies = [
- "ensogl-breadcrumbs",
- "ensogl-button",
- "ensogl-drop-down",
- "ensogl-drop-down-menu",
- "ensogl-drop-manager",
- "ensogl-dynamic-assets",
- "ensogl-file-browser",
- "ensogl-flame-graph",
- "ensogl-grid-view",
- "ensogl-label",
- "ensogl-list-editor",
- "ensogl-list-view",
- "ensogl-scroll-area",
- "ensogl-scrollbar",
- "ensogl-selector",
- "ensogl-shadow",
- "ensogl-spinner",
- "ensogl-text",
- "ensogl-toggle-button",
- "ensogl-tooltip",
-]
-
-[[package]]
 name = "ensogl-core"
 version = "0.1.0"
 dependencies = [
@@ -2492,9 +2010,9 @@ dependencies = [
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "rustc-hash",
- "semver 1.0.16",
+ "semver",
  "serde",
- "smallvec 1.10.0",
+ "smallvec",
  "typenum",
  "wasm-bindgen",
  "wasm-bindgen-test",
@@ -2521,457 +2039,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-drop-down"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-grid-view",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-text",
-]
-
-[[package]]
-name = "ensogl-drop-down-menu"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-text",
-]
-
-[[package]]
-name = "ensogl-drop-manager"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-prelude",
- "enso-types",
- "enso-web",
- "ensogl-core",
- "js-sys",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "ensogl-dynamic-assets"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "enso-bitmap",
- "enso-prelude",
- "enso-shapely",
- "ensogl-core",
- "ensogl-text",
- "js-sys",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-animation"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-prelude",
- "ensogl-core",
- "ensogl-text-msdf",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-auto-layout"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-built-in-shapes"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-cached-shape"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "js-sys",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-complex-shape-system"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-custom-shape-system"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-profiler",
- "ensogl-core",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-dom-symbols"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "nalgebra",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-drop-down"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-drop-down",
- "ensogl-grid-view",
- "ensogl-hardcoded-theme",
- "ensogl-text-msdf",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-drop-manager"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-prelude",
- "ensogl-core",
- "ensogl-drop-manager",
- "wasm-bindgen",
- "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "ensogl-example-easing-animator"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "js-sys",
- "nalgebra",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "ensogl-example-focus-management"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-grid-view"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-text",
- "ensogl-core",
- "ensogl-grid-view",
- "ensogl-hardcoded-theme",
- "ensogl-text-msdf",
- "itertools",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-instance-ordering"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "getrandom 0.2.8",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "rand_distr",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-list-editor"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-list-editor",
- "ensogl-slider",
- "ensogl-text-msdf",
-]
-
-[[package]]
-name = "ensogl-example-list-view"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-text",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-text-msdf",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-mouse-events"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-text-msdf",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-profiling-run-graph"
-version = "0.1.0"
-dependencies = [
- "enso-debug-api",
- "enso-frp",
- "enso-profiler-data",
- "enso-profiler-demo-data",
- "enso-profiler-enso-data",
- "enso-profiler-flame-graph",
- "enso-web",
- "ensogl-core",
- "ensogl-flame-graph",
- "ensogl-hardcoded-theme",
- "ensogl-sequence-diagram",
- "ensogl-text",
- "ensogl-text-msdf",
- "ensogl-tooltip",
- "futures",
- "qstring",
- "serde",
- "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "ensogl-example-render-profile-flamegraph"
-version = "0.1.0"
-dependencies = [
- "enso-debug-api",
- "enso-frp",
- "enso-profiler-data",
- "enso-profiler-demo-data",
- "enso-profiler-flame-graph",
- "enso-web",
- "ensogl-core",
- "ensogl-flame-graph",
- "ensogl-hardcoded-theme",
- "ensogl-text",
- "ensogl-text-msdf",
- "ensogl-tooltip",
- "futures",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "ensogl-example-scroll-area"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-scroll-area",
- "ensogl-text-msdf",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-slider"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-slider",
- "ensogl-text-msdf",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-sprite-system"
-version = "0.1.0"
-dependencies = [
- "enso-web",
- "ensogl-core",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-sprite-system-benchmark"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "nalgebra",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-text-area"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-text",
- "ensogl-text-embedded-fonts",
- "ensogl-text-msdf",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-examples"
-version = "0.1.0"
-dependencies = [
- "ensogl-example-animation",
- "ensogl-example-auto-layout",
- "ensogl-example-built-in-shapes",
- "ensogl-example-cached-shape",
- "ensogl-example-complex-shape-system",
- "ensogl-example-custom-shape-system",
- "ensogl-example-dom-symbols",
- "ensogl-example-drop-down",
- "ensogl-example-drop-manager",
- "ensogl-example-easing-animator",
- "ensogl-example-focus-management",
- "ensogl-example-grid-view",
- "ensogl-example-instance-ordering",
- "ensogl-example-list-editor",
- "ensogl-example-list-view",
- "ensogl-example-mouse-events",
- "ensogl-example-profiling-run-graph",
- "ensogl-example-render-profile-flamegraph",
- "ensogl-example-scroll-area",
- "ensogl-example-slider",
- "ensogl-example-sprite-system",
- "ensogl-example-sprite-system-benchmark",
- "ensogl-example-text-area",
-]
-
-[[package]]
-name = "ensogl-file-browser"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
-]
-
-[[package]]
-name = "ensogl-flame-graph"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-profiler",
- "enso-profiler-flame-graph",
- "ensogl",
- "ensogl-core",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-text",
-]
-
-[[package]]
-name = "ensogl-grid-view"
-version = "0.1.0"
-dependencies = [
- "approx 0.5.1",
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-scroll-area",
- "ensogl-shadow",
- "ensogl-text",
- "itertools",
- "segment-tree",
-]
-
-[[package]]
-name = "ensogl-gui-component"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "float_eq",
- "wasm-bindgen-test",
-]
-
-[[package]]
-name = "ensogl-hardcoded-theme"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
- "enso-shapely",
- "ensogl-core",
- "ensogl-text",
-]
-
-[[package]]
-name = "ensogl-icons"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "failure",
-]
-
-[[package]]
-name = "ensogl-label"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-shadow",
- "ensogl-text",
-]
-
-[[package]]
-name = "ensogl-list-editor"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-text",
-]
-
-[[package]]
-name = "ensogl-list-view"
-version = "0.1.0"
-dependencies = [
- "approx 0.5.1",
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-shadow",
- "ensogl-text",
-]
-
-[[package]]
 name = "ensogl-pack"
 version = "0.1.0"
 dependencies = [
@@ -2983,86 +2050,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "walkdir",
-]
-
-[[package]]
-name = "ensogl-scroll-area"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-scrollbar",
-]
-
-[[package]]
-name = "ensogl-scrollbar"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-selector",
-]
-
-[[package]]
-name = "ensogl-selector"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-shadow",
- "ensogl-text",
- "ensogl-toggle-button",
- "float_eq",
-]
-
-[[package]]
-name = "ensogl-sequence-diagram"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-profiler",
- "enso-profiler-data",
- "enso-profiler-enso-data",
- "enso-profiler-flame-graph",
- "ensogl",
- "ensogl-core",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-text",
- "ensogl-tooltip",
-]
-
-[[package]]
-name = "ensogl-shadow"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "ensogl-hardcoded-theme",
-]
-
-[[package]]
-name = "ensogl-slider"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-text",
- "ensogl-tooltip",
-]
-
-[[package]]
-name = "ensogl-spinner"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-prelude",
- "enso-shapely",
- "enso-types",
- "ensogl-core",
 ]
 
 [[package]]
@@ -3128,25 +2115,6 @@ dependencies = [
  "tokio",
  "wasm-bindgen",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "ensogl-toggle-button"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
-]
-
-[[package]]
-name = "ensogl-tooltip"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-label",
 ]
 
 [[package]]
@@ -3225,28 +2193,10 @@ version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e884668cd0c7480504233e951174ddc3b382f7c2666e3b7310b5c4e7b0c37f9"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "redox_syscall",
  "windows-sys 0.42.0",
-]
-
-[[package]]
-name = "flatbuffers"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea0c34f669be9911826facafe996adfda978aeee67285a13556869e2d8b8331f"
-dependencies = [
- "smallvec 0.6.14",
-]
-
-[[package]]
-name = "flatc-rust"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdce2ac68e3bccc405e0255e9b56d7841c06f6c7d36a8aa8b2966fbb3995bd9a"
-dependencies = [
- "log",
 ]
 
 [[package]]
@@ -3266,23 +2216,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b02e0d3667b27514149c1ac9b372d700f3e6df4bbaf6b7c5df12915de2996049"
 dependencies = [
  "futures",
- "smallvec 1.10.0",
+ "smallvec",
 ]
-
-[[package]]
-name = "float-cmp"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1267f4ac4f343772758f7b1bdcbe767c218bbab93bb432acbf5162bbf85a6c4"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "float_eq"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb23b6902f3cdc0544f9916b4c092f46f4ff984e219d5a0c538b6b3539885af3"
 
 [[package]]
 name = "flume"
@@ -3338,21 +2273,6 @@ dependencies = [
  "matches",
  "percent-encoding",
 ]
-
-[[package]]
-name = "fragile"
-version = "1.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7464c5c4a3f014d9b2ec4073650e5c06596f385060af740fc45ad5a19f959e8"
-dependencies = [
- "fragile 2.0.0",
-]
-
-[[package]]
-name = "fragile"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c2141d6d6c8512188a7891b4b01590a45f6dac67afb4f255c4124dbb86d4eaa"
 
 [[package]]
 name = "fs-err"
@@ -3494,15 +2414,6 @@ checksum = "1668ac3c7b8cc5f1e31565ed509d8d70aa1a81bd7f508b620725b78c6e1d7049"
 
 [[package]]
 name = "generic-array"
-version = "0.12.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffdf9f34f1447443d37393cc6c2b8313aebddcd96906caf34e54c68d8e57d7bd"
-dependencies = [
- "typenum",
-]
-
-[[package]]
-name = "generic-array"
 version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bff49e947297f3312447abdca79f45f4738097cc82b06e72054d2223f601f1b9"
@@ -3526,7 +2437,7 @@ version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fc3cb4d91f53b50155bdcfd23f6a4c39ae1969c2ae85982b135750cccaf5fce"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "wasi 0.9.0+wasi-snapshot-preview1",
 ]
@@ -3537,7 +2448,7 @@ version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "js-sys",
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
@@ -3566,19 +2477,6 @@ dependencies = [
  "futures-core",
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "gloo-utils"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "037fcb07216cb3a30f7292bd0176b050b7b9a052ba830ef7d5d65f6dc64ba58e"
-dependencies = [
- "js-sys",
- "serde",
- "serde_json",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -3683,12 +2581,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "horrorshow"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8371fb981840150b1a54f7cb117bf6699f7466a1d4861daac33bc6fe2b5abea0"
 
 [[package]]
 name = "html_parser"
@@ -3914,7 +2806,7 @@ dependencies = [
  "rand 0.8.5",
  "regex",
  "reqwest",
- "semver 1.0.16",
+ "semver",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3931,198 +2823,12 @@ dependencies = [
  "tracing-subscriber",
  "unicase",
  "url",
- "uuid 1.2.2",
+ "uuid",
  "walkdir",
  "warp",
  "which",
  "wiremock",
  "zip",
-]
-
-[[package]]
-name = "ide-view"
-version = "0.1.0"
-dependencies = [
- "ast",
- "engine-protocol",
- "enso-config",
- "enso-frp",
- "enso-prelude",
- "enso-shapely",
- "ensogl",
- "ensogl-component",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-text",
- "ensogl-text-msdf",
- "gloo-utils",
- "ide-view-component-browser",
- "ide-view-documentation",
- "ide-view-execution-environment-selector",
- "ide-view-graph-editor",
- "ide-view-project-view-top-bar",
- "js-sys",
- "multi-map",
- "nalgebra",
- "ordered-float",
- "parser",
- "serde",
- "serde_json",
- "span-tree",
- "strum",
- "uuid 0.8.2",
- "wasm-bindgen",
- "wasm-bindgen-test",
- "web-sys",
- "welcome-screen",
-]
-
-[[package]]
-name = "ide-view-component-browser"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-prelude",
- "ensogl",
- "ensogl-breadcrumbs",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-text",
- "ide-view-component-list-panel",
- "ide-view-documentation",
- "ide-view-graph-editor",
-]
-
-[[package]]
-name = "ide-view-component-list-panel"
-version = "0.1.0"
-dependencies = [
- "approx 0.5.1",
- "enso-frp",
- "ensogl-core",
- "ensogl-grid-view",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-icons",
- "ensogl-scroll-area",
- "ensogl-selector",
- "ensogl-text",
- "ensogl-toggle-button",
- "ensogl-tooltip",
- "ide-view-component-list-panel-grid",
- "ordered-float",
-]
-
-[[package]]
-name = "ide-view-component-list-panel-grid"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-grid-view",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-icons",
- "ensogl-shadow",
- "ensogl-text",
- "ensogl-toggle-button",
- "failure",
- "num_enum",
-]
-
-[[package]]
-name = "ide-view-documentation"
-version = "0.1.0"
-dependencies = [
- "double-representation",
- "enso-doc-parser",
- "enso-frp",
- "enso-prelude",
- "enso-profiler",
- "enso-suggestion-database",
- "ensogl",
- "ensogl-breadcrumbs",
- "ensogl-component",
- "ensogl-hardcoded-theme",
- "horrorshow",
- "ide-ci",
- "ide-view-graph-editor",
- "serde_json",
- "tokio",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "ide-view-execution-environment-selector"
-version = "0.1.0"
-dependencies = [
- "engine-protocol",
- "enso-frp",
- "enso-prelude",
- "ensogl",
- "ensogl-drop-down-menu",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
-]
-
-[[package]]
-name = "ide-view-graph-editor"
-version = "0.1.0"
-dependencies = [
- "analytics",
- "ast",
- "base64 0.13.1",
- "bimap",
- "bitflags 2.2.1",
- "derivative",
- "engine-protocol",
- "enso-config",
- "enso-frp",
- "enso-prelude",
- "enso-shapely",
- "enso-text",
- "ensogl",
- "ensogl-component",
- "ensogl-derive-theme",
- "ensogl-drop-manager",
- "ensogl-hardcoded-theme",
- "ensogl-icons",
- "ensogl-text-msdf",
- "failure",
- "ide-view-execution-environment-selector",
- "indexmap",
- "js-sys",
- "nalgebra",
- "ordered-float",
- "parser",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
- "sourcemap",
- "span-tree",
- "uuid 0.8.2",
- "wasm-bindgen",
- "wasm-bindgen-test",
- "web-sys",
-]
-
-[[package]]
-name = "ide-view-project-view-top-bar"
-version = "0.1.0"
-dependencies = [
- "ast",
- "engine-protocol",
- "enso-config",
- "enso-frp",
- "enso-prelude",
- "ensogl",
- "ensogl-component",
- "ensogl-hardcoded-theme",
- "ide-view-execution-environment-selector",
- "parser",
- "uuid 0.8.2",
 ]
 
 [[package]]
@@ -4135,12 +2841,6 @@ dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
-
-[[package]]
-name = "if_chain"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb56e1aa765b4b4f3aadfab769793b7087bb03a4ea4920644a6d238e2df5b9ed"
 
 [[package]]
 name = "indexmap"
@@ -4178,7 +2878,7 @@ version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
 ]
 
 [[package]]
@@ -4284,15 +2984,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "keccak"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3afef3b6eff9ce9d8ff9b3601125eec7f0c8cbac7abd14f355d053fa56c98768"
-dependencies = [
- "cpufeatures",
-]
-
-[[package]]
 name = "keyboard-types"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4394,7 +3085,7 @@ version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "value-bag",
 ]
 
@@ -4448,18 +3139,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "maybe-uninit"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
-
-[[package]]
 name = "md-5"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6365506850d44bff6e2fbcb5176cf63650e48bd45ef2fe2665ae1570e0f4b9ca"
 dependencies = [
- "digest 0.10.6",
+ "digest",
 ]
 
 [[package]]
@@ -4515,33 +3200,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mockall"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01458f8a19b10cb28195290942e3149161c75acf67ebc8fbf714ab67a2b943bc"
-dependencies = [
- "cfg-if 0.1.10",
- "downcast",
- "fragile 1.2.2",
- "lazy_static",
- "mockall_derive",
- "predicates",
- "predicates-tree",
-]
-
-[[package]]
-name = "mockall_derive"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a673cb441f78cd9af4f5919c28576a3cc325fb6b54e42f7047dacce3c718c17b"
-dependencies = [
- "cfg-if 0.1.10",
- "proc-macro2",
- "quote",
- "syn 1.0.107",
-]
-
-[[package]]
 name = "msvc-demangler"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4549,12 +3207,6 @@ checksum = "bfb67c6dd0fa9b00619c41c5700b6f92d5f418be49b45ddb9970fbd4569df3c8"
 dependencies = [
  "bitflags 1.3.2",
 ]
-
-[[package]]
-name = "multi-map"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bba551d6d795f74a01767577ea8339560bf0a65354e0417b7e915ed608443d46"
 
 [[package]]
 name = "multimap"
@@ -4589,7 +3241,7 @@ version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "476d1d59fe02fe54c86356e91650cd892f392782a1cb9fc524ec84f7aa9e1d06"
 dependencies = [
- "approx 0.4.0",
+ "approx",
  "matrixmultiply",
  "num-complex",
  "num-rational",
@@ -4650,12 +3302,6 @@ checksum = "ae01545c9c7fc4486ab7debaf2aad7003ac19431791868fb2e8066df97fad2f8"
 dependencies = [
  "memchr",
 ]
-
-[[package]]
-name = "normalize-line-endings"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61807f77802ff30975e01f4f071c8ba10c022052f98b3294119f3e615d13e5be"
 
 [[package]]
 name = "ntapi"
@@ -4783,7 +3429,7 @@ dependencies = [
  "async-trait",
  "base64 0.13.1",
  "bytes",
- "cfg-if 1.0.0",
+ "cfg-if",
  "chrono",
  "hyperx",
  "jsonwebtoken",
@@ -4810,19 +3456,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
-name = "opaque-debug"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
-
-[[package]]
 name = "openssl"
 version = "0.10.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b102428fd03bc5edf97f62620f7298614c45cedf287c271e7ed450bbaf83f2e1"
 dependencies = [
  "bitflags 1.3.2",
- "cfg-if 1.0.0",
+ "cfg-if",
  "foreign-types",
  "libc",
  "once_cell",
@@ -4918,26 +3558,11 @@ version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba1ef8814b5c993410bb3adfad7a5ed269563e4a2f90c41f5d85be7fb47133bf"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "redox_syscall",
- "smallvec 1.10.0",
+ "smallvec",
  "windows-sys 0.42.0",
-]
-
-[[package]]
-name = "parser"
-version = "0.1.0"
-dependencies = [
- "ast",
- "enso-parser",
- "enso-prelude",
- "enso-profiler",
- "enso-text",
- "failure",
- "serde",
- "serde_json",
- "uuid 0.8.2",
 ]
 
 [[package]]
@@ -5136,7 +3761,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22122d5ec4f9fe1b3916419b76be1e80bcb93f618d071d2edf841b137b2a2bd6"
 dependencies = [
  "autocfg",
- "cfg-if 1.0.0",
+ "cfg-if",
  "libc",
  "log",
  "wepoll-ffi",
@@ -5169,35 +3794,6 @@ name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
-
-[[package]]
-name = "predicates"
-version = "1.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f49cfaf7fdaa3bfacc6fa3e7054e65148878354a5cfddcf661df4c851f8021df"
-dependencies = [
- "difference",
- "float-cmp",
- "normalize-line-endings",
- "predicates-core",
- "regex",
-]
-
-[[package]]
-name = "predicates-core"
-version = "1.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72f883590242d3c6fc5bf50299011695fa6590c2c70eac95ee1bdb9a733ad1a2"
-
-[[package]]
-name = "predicates-tree"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54ff541861505aabf6ea722d2131ee980b8276e10a1297b94e896dd8b621850d"
-dependencies = [
- "predicates-core",
- "termtree",
-]
 
 [[package]]
 name = "pretty_assertions"
@@ -5268,15 +3864,6 @@ dependencies = [
  "getopts",
  "memchr",
  "unicase",
-]
-
-[[package]]
-name = "qstring"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d464fae65fff2680baf48019211ce37aaec0c78e9264c84a3e484717f965104e"
-dependencies = [
- "percent-encoding",
 ]
 
 [[package]]
@@ -5554,20 +4141,11 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc_version"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
-dependencies = [
- "semver 0.9.0",
-]
-
-[[package]]
-name = "rustc_version"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
 dependencies = [
- "semver 1.0.16",
+ "semver",
 ]
 
 [[package]]
@@ -5653,7 +4231,7 @@ checksum = "a617c811f5c9a7060fe511d35d13bf5b9f0463ce36d63ce666d05779df2b4eba"
 dependencies = [
  "bitflags 1.3.2",
  "bytemuck",
- "smallvec 1.10.0",
+ "smallvec",
  "ttf-parser",
  "unicode-bidi-mirroring",
  "unicode-ccc",
@@ -5762,21 +4340,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "segment-tree"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f7dbd0d32cabaa6c7c3286d756268247538d613b621227bfe59237d7bbb271a"
-
-[[package]]
-name = "semver"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
-dependencies = [
- "semver-parser",
-]
-
-[[package]]
 name = "semver"
 version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5786,29 +4349,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "semver-parser"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
-
-[[package]]
 name = "serde"
 version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb7d1f0d3021d347a83e556fc4683dea2ea09d87bccdf88ff5c12545d89d5efb"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde-wasm-bindgen"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3b4c031cd0d9014307d82b8abf653c0290fbdaeb4c02d00c63cf52f728628bf"
-dependencies = [
- "js-sys",
- "serde",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -5894,9 +4440,9 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f5058ada175748e33390e40e872bd0fe59a19f265d0158daa551c5a88a76009c"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "cpufeatures",
- "digest 0.10.6",
+ "digest",
 ]
 
 [[package]]
@@ -5914,9 +4460,9 @@ version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f04293dc80c3993519f2d7f6f511707ee7094fe0c6d3406feb330cdb3540eba3"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "cpufeatures",
- "digest 0.10.6",
+ "digest",
 ]
 
 [[package]]
@@ -5931,22 +4477,9 @@ version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "82e6b795fe2e3b1e845bafcb27aa35405c4d47cdfc92af5fc8d3002f76cebdc0"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "cpufeatures",
- "digest 0.10.6",
-]
-
-[[package]]
-name = "sha3"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd26bc0e7a2e3a7c959bc494caf58b72ee0c71d67704e9520f736ca7e4853ecf"
-dependencies = [
- "block-buffer 0.7.3",
- "byte-tools",
- "digest 0.8.1",
- "keccak",
- "opaque-debug",
+ "digest",
 ]
 
 [[package]]
@@ -5973,7 +4506,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5132a955559188f3d13c9ba831e77c802ddc8782783f050ed0c52f5988b95f4c"
 dependencies = [
- "approx 0.4.0",
+ "approx",
  "num-complex",
  "num-traits",
  "paste",
@@ -5998,15 +4531,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4614a76b2a8be0058caa9dbbaf66d988527d86d003c11a94fbd335d7661edcef"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "smallvec"
-version = "0.6.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b97fcaeba89edba30f044a10c6a3cc39df9c3f17d7cd829dd1446cab35f890e0"
-dependencies = [
- "maybe-uninit",
 ]
 
 [[package]]
@@ -6046,36 +4570,6 @@ checksum = "02e2d2db9033d13a1567121ddd7a095ee144db4e1ca1b1bda3419bc0da294ebd"
 dependencies = [
  "libc",
  "winapi",
-]
-
-[[package]]
-name = "sourcemap"
-version = "6.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aebe057d110ddba043708da3fb010bf562ff6e9d4d60c9ee92860527bcbeccd6"
-dependencies = [
- "base64 0.13.1",
- "if_chain",
- "rustc_version 0.2.3",
- "serde",
- "serde_json",
- "unicode-id",
- "url",
-]
-
-[[package]]
-name = "span-tree"
-version = "0.1.0"
-dependencies = [
- "ast",
- "enso-data-structures",
- "enso-prelude",
- "enso-profiler",
- "enso-text",
- "failure",
- "parser",
- "pretty_assertions",
- "wasm-bindgen-test",
 ]
 
 [[package]]
@@ -6120,12 +4614,6 @@ dependencies = [
  "rustversion",
  "syn 1.0.107",
 ]
-
-[[package]]
-name = "superslice"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab16ced94dbd8a46c82fd81e3ed9a8727dac2977ea869d217bcc4ea1f122e81f"
 
 [[package]]
 name = "symlink"
@@ -6173,7 +4661,7 @@ version = "0.29.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a18d114d420ada3a891e6bc8e96a2023402203296a47cdd65083377dad18ba5"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "core-foundation-sys",
  "libc",
  "ntapi",
@@ -6199,7 +4687,7 @@ version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5cdb1ef4eaeeaddc8fbd371e5017057064af0911902ef36b39801f67cc6d79e4"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "fastrand",
  "libc",
  "redox_syscall",
@@ -6225,12 +4713,6 @@ dependencies = [
  "rustix",
  "windows-sys 0.42.0",
 ]
-
-[[package]]
-name = "termtree"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95059e91184749cb66be6dc994f67f182b6d897cb3df74a5bf66b5e709295fd8"
 
 [[package]]
 name = "textwrap"
@@ -6507,7 +4989,7 @@ version = "0.1.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "log",
  "pin-project-lite",
  "tracing-attributes",
@@ -6557,7 +5039,7 @@ dependencies = [
  "once_cell",
  "regex",
  "sharded-slab",
- "smallvec 1.10.0",
+ "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
@@ -6650,12 +5132,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07547e3ee45e28326cc23faac56d44f58f16ab23e413db526debce3b0bfd2742"
 
 [[package]]
-name = "unicode-id"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d70b6494226b36008c8366c288d77190b3fad2eb4c10533139c1c1f461127f1a"
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6735,16 +5211,6 @@ name = "utf8-width"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5190c9442dcdaf0ddd50f37420417d219ae5261bbf5db120d0f9bab996c9cba1"
-
-[[package]]
-name = "uuid"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-dependencies = [
- "getrandom 0.2.8",
- "serde",
-]
 
 [[package]]
 name = "uuid"
@@ -6872,7 +5338,7 @@ version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7706a72ab36d8cb1f80ffbf0e071533974a60d0a308d01a5d0375bf60499a342"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "wasm-bindgen-macro",
 ]
 
@@ -6897,7 +5363,7 @@ version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f219e0d211ba40266969f6dbdd90636da12f75bee4fc9d6c23d1260dadb51454"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "js-sys",
  "wasm-bindgen",
  "web-sys",
@@ -7045,16 +5511,6 @@ dependencies = [
  "tokio-util",
  "url",
  "websocket-codec",
-]
-
-[[package]]
-name = "welcome-screen"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
