@@ -197,7 +197,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       document.removeEventListener('keydown', onKeyDown)
       document.removeEventListener('keyup', onKeyUp)
     }
-  }, [setQuery])
+  }, [setQuery, /* should never change */ modalRef])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {
