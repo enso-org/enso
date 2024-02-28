@@ -130,10 +130,7 @@ interaction.setWhen(showDropdownWidget, {
     showDropdownWidget.value = false
   },
   click: (e: PointerEvent) => {
-    if (targetIsOutside(e, widgetRoot)) {
-      showDropdownWidget.value = false
-      return true
-    }
+    if (targetIsOutside(e, widgetRoot)) showDropdownWidget.value = false
     return false
   },
 })
