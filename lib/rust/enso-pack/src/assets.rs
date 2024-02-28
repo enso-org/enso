@@ -21,7 +21,6 @@ use ide_ci::programs::spirv_cross::SpirvCross;
 use std::hash::Hasher;
 
 
-
 // =============
 // === Build ===
 // =============
@@ -39,12 +38,11 @@ pub async fn build(paths: &Paths) -> Result<()> {
     let sources = survey_asset_sources(paths)?;
     let assets = update_assets(paths, &sources).await?;
     let manifest = serde_json::to_string(&assets)?;
-    ide_ci::fs::tokio::write(&paths.target.ensogl_pack.dist.dynamic_assets.manifest, manifest)
+    ide_ci::fs::tokio::write(&paths.target.enso_pack.dist.dynamic_assets.manifest, manifest)
         .await?;
     gc_assets(paths, &assets)?;
     Ok(())
 }
-
 
 
 // ===============
@@ -77,6 +75,7 @@ impl Builder {
         }
     }
 }
+
 impl TryFrom<&str> for Builder {
     type Error = anyhow::Error;
     fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
@@ -87,6 +86,7 @@ impl TryFrom<&str> for Builder {
         }
     }
 }
+
 impl From<Builder> for &'static str {
     fn from(value: Builder) -> Self {
         match value {
@@ -97,14 +97,13 @@ impl From<Builder> for &'static str {
 }
 
 
-
 // ====================
 // === Build Inputs ===
 // ====================
 
 /// The inputs to a builder.
 struct AssetSources {
-    asset_key:   String,
+    asset_key: String,
     input_files: Vec<String>,
     inputs_hash: u64,
 }
@@ -119,7 +118,6 @@ impl AssetSources {
 }
 
 
-
 // =====================
 // === Build Outputs ===
 // =====================
@@ -127,13 +125,12 @@ impl AssetSources {
 /// The outputs of a builder.
 #[derive(Serialize)]
 struct Asset {
-    dir:   String,
+    dir: String,
     files: Vec<String>,
 }
 
 /// The outputs of all builders.
 type AssetManifest = BTreeMap<Builder, BTreeMap<String, Asset>>;
-
 
 
 // ================
@@ -146,7 +143,7 @@ type AssetManifest = BTreeMap<Builder, BTreeMap<String, Asset>>;
 /// [`AssetSources`] object identifying the asset key (i.e. the name of its directory), its input
 /// files, and a hash covering all its input files.
 fn survey_asset_sources(paths: &Paths) -> Result<HashMap<Builder, Vec<AssetSources>>> {
-    let dir = ide_ci::fs::read_dir(&paths.target.ensogl_pack.dynamic_assets)?;
+    let dir = ide_ci::fs::read_dir(&paths.target.enso_pack.dynamic_assets)?;
     let mut asset_sources: HashMap<_, Vec<_>> = HashMap::new();
     let mut buf = Vec::new();
     for entry in dir {
@@ -192,7 +189,7 @@ async fn update_assets(
     paths: &Paths,
     sources: &HashMap<Builder, Vec<AssetSources>>,
 ) -> Result<AssetManifest> {
-    let out = &paths.target.ensogl_pack.dist.dynamic_assets;
+    let out = &paths.target.enso_pack.dist.dynamic_assets;
     ide_ci::fs::create_dir_if_missing(out)?;
     let mut assets: AssetManifest = BTreeMap::new();
     let mut deferred_assets: BTreeMap<Builder, Vec<_>> = BTreeMap::new();
@@ -242,13 +239,13 @@ async fn build_asset(
 ) -> Result<Asset> {
     let input_dir = paths
         .target
-        .ensogl_pack
+        .enso_pack
         .dynamic_assets
         .join(builder.dir_name())
         .join(&source_specification.asset_key);
     let tmp_output_dir = paths
         .target
-        .ensogl_pack
+        .enso_pack
         .dist
         .dynamic_assets
         .join(builder.dir_name())
@@ -256,7 +253,7 @@ async fn build_asset(
     tokio::fs::create_dir(&tmp_output_dir).await?;
     let work_path = paths
         .target
-        .ensogl_pack
+        .enso_pack
         .dynamic_assets
         .join(builder.dir_name())
         .join(format!("{}.work", source_specification.asset_key));
@@ -265,7 +262,7 @@ async fn build_asset(
         .await?;
     let output_dir = paths
         .target
-        .ensogl_pack
+        .enso_pack
         .dist
         .dynamic_assets
         .join(builder.dir_name())
@@ -281,7 +278,7 @@ fn survey_asset(
     source_specification: &AssetSources,
 ) -> Result<Asset> {
     let dir = source_specification.dir_name();
-    let path = paths.target.ensogl_pack.dist.dynamic_assets.join(builder.dir_name()).join(&dir);
+    let path = paths.target.enso_pack.dist.dynamic_assets.join(builder.dir_name()).join(&dir);
     let mut files = Vec::new();
     for entry in ide_ci::fs::read_dir(&path)? {
         files.push(entry?.file_name().to_string_lossy().to_string());
@@ -294,10 +291,10 @@ fn gc_assets(paths: &Paths, assets: &AssetManifest) -> Result<()> {
     let is_not_manifest = |entry: &std::io::Result<std::fs::DirEntry>| {
         entry
             .as_ref()
-            .map(|entry| entry.path() != paths.target.ensogl_pack.dist.dynamic_assets.manifest)
+            .map(|entry| entry.path() != paths.target.enso_pack.dist.dynamic_assets.manifest)
             .unwrap_or(true)
     };
-    for entry in paths.target.ensogl_pack.dist.dynamic_assets.read_dir()?.filter(is_not_manifest) {
+    for entry in paths.target.enso_pack.dist.dynamic_assets.read_dir()?.filter(is_not_manifest) {
         let entry = entry?;
         let path = entry.path();
         let builder = Builder::try_from(entry.file_name().to_string_lossy().as_ref()).ok();
@@ -324,7 +321,6 @@ fn gc_assets(paths: &Paths, assets: &AssetManifest) -> Result<()> {
 }
 
 
-
 // =============
 // === Fonts ===
 // =============
@@ -335,7 +331,6 @@ async fn build_font(input_dir: &Path, input_files: &[String], output_dir: &Path)
     }
     Ok(())
 }
-
 
 
 // ===============

@@ -36,7 +36,6 @@ pub mod env;
 pub mod test;
 
 
-
 pub const BINARYEN_VERSION_TO_INSTALL: u32 = 108;
 
 pub const DEFAULT_INTEGRATION_TESTS_WASM_TIMEOUT: Duration = Duration::from_secs(300);
@@ -51,15 +50,15 @@ pub const WASM_ARTIFACT_NAME: &str = "gui_wasm";
 pub const DEFAULT_TARGET_CRATE: &str = "app/gui";
 
 #[derive(
-    clap::ArgEnum,
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    strum::Display,
-    strum::EnumString,
-    PartialEq,
-    Eq
+clap::ArgEnum,
+Clone,
+Copy,
+Debug,
+Default,
+strum::Display,
+strum::EnumString,
+PartialEq,
+Eq
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum ProfilingLevel {
@@ -71,15 +70,15 @@ pub enum ProfilingLevel {
 }
 
 #[derive(
-    clap::ArgEnum,
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    strum::Display,
-    strum::EnumString,
-    PartialEq,
-    Eq
+clap::ArgEnum,
+Clone,
+Copy,
+Debug,
+Default,
+strum::Display,
+strum::EnumString,
+PartialEq,
+Eq
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum LogLevel {
@@ -144,16 +143,16 @@ impl Profile {
 #[derivative(Debug)]
 pub struct BuildInput {
     /// Path to the crate to be compiled to WAM. Relative to the repository root.
-    pub crate_path:            PathBuf,
-    pub wasm_opt_options:      Vec<String>,
-    pub skip_wasm_opt:         bool,
-    pub extra_cargo_options:   Vec<String>,
-    pub profile:               Profile,
-    pub profiling_level:       Option<ProfilingLevel>,
-    pub log_level:             LogLevel,
+    pub crate_path: PathBuf,
+    pub wasm_opt_options: Vec<String>,
+    pub skip_wasm_opt: bool,
+    pub extra_cargo_options: Vec<String>,
+    pub profile: Profile,
+    pub profiling_level: Option<ProfilingLevel>,
+    pub log_level: LogLevel,
     pub uncollapsed_log_level: LogLevel,
-    pub wasm_size_limit:       Option<byte_unit::Byte>,
-    pub system_shader_tools:   bool,
+    pub wasm_size_limit: Option<byte_unit::Byte>,
+    pub system_shader_tools: bool,
 }
 
 impl BuildInput {
@@ -250,9 +249,9 @@ impl IsTarget for Wasm {
             let temp_dir = tempdir()?;
             let temp_dist = RepoRootDistWasm::new_root(temp_dir.path());
             crate::web::install(&repo_root).await?;
-            ensogl_pack::build(
-                ensogl_pack::WasmPackOutputs {
-                    out_dir:  temp_dist.path.clone(),
+            enso_pack::build(
+                enso_pack::WasmPackOutputs {
+                    out_dir: temp_dist.path.clone(),
                     out_name: OUTPUT_NAME.into(),
                 },
                 |args| {
@@ -279,7 +278,7 @@ impl IsTarget for Wasm {
                     Ok(command)
                 },
             )
-            .await?;
+                .await?;
 
             Self::finalize_wasm(wasm_opt_options, *skip_wasm_opt, *profile, &temp_dist).await?;
 
@@ -289,11 +288,10 @@ impl IsTarget for Wasm {
             inner.perhaps_check_size(&ret.pkg_opt_wasm).await?;
             Ok(Artifact(ret))
         }
-        .instrument(span)
-        .boxed()
+            .instrument(span)
+            .boxed()
     }
 }
-
 
 
 #[derive(Clone, Derivative)]
@@ -339,10 +337,10 @@ impl IsWatchable for Wasm {
             let WatchTargetJob {
                 watch_input: WatchInput { cargo_watch_options: cargo_watch_flags },
                 build:
-                    WithDestination {
-                        inner: BuildSource { input, should_upload_artifact: _ },
-                        destination,
-                    },
+                WithDestination {
+                    inner: BuildSource { input, should_upload_artifact: _ },
+                    destination,
+                },
             } = job;
             let BuildInput {
                 crate_path,
@@ -430,11 +428,10 @@ impl IsWatchable for Wasm {
             );
             Ok(Self::Watcher { artifact, watch_process })
         }
-        .instrument(span.exit())
-        .boxed()
+            .instrument(span.exit())
+            .boxed()
     }
 }
-
 
 
 #[derive(Clone, Debug, Display, PartialEq, Eq)]
@@ -487,7 +484,7 @@ impl Wasm {
     }
 
     pub async fn test(&self, repo_root: PathBuf, wasm: &[test::Browser], native: bool) -> Result {
-        async fn maybe_run<Fut: Future<Output = Result>>(
+        async fn maybe_run<Fut: Future<Output=Result>>(
             name: &str,
             enabled: bool,
             f: impl (FnOnce() -> Fut),
@@ -514,7 +511,7 @@ impl Wasm {
                 .run_ok()
                 .await
         })
-        .await?;
+            .await?;
 
         maybe_run("wasm", !wasm.is_empty(), || test::test_all(repo_root.clone(), wasm)).await?;
         Ok(())

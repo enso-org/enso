@@ -137,7 +137,6 @@ pub mod assets;
 pub use ide_ci::prelude;
 
 
-
 // =================
 // === Hot Fixes ===
 // =================
@@ -154,7 +153,6 @@ pub fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -
 }
 
 
-
 // =============
 // === Paths ===
 // =============
@@ -164,9 +162,9 @@ pub fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 pub struct Paths {
-    pub workspace:  PathBuf,
+    pub workspace: PathBuf,
     pub this_crate: paths::ThisCrate,
-    pub target:     paths::Target,
+    pub target: paths::Target,
 }
 
 macro_rules! define_paths {
@@ -220,7 +218,7 @@ pub mod paths {
         }
 
         Target {
-            ensogl_pack: TargetEnsoglPack,
+            enso_pack: TargetEnsoglPack,
         }
 
         TargetEnsoglPack {
@@ -268,28 +266,28 @@ impl Paths {
         p.this_crate.js.wasm_pack_bundle.index = p.this_crate.js.wasm_pack_bundle.join("index.ts");
         p.workspace = workspace_dir().await?;
         p.target.root = p.workspace.join("target");
-        p.target.ensogl_pack.root = p.target.join("ensogl-pack");
-        p.target.ensogl_pack.wasm_pack.root = p.target.ensogl_pack.join("wasm-pack");
+        p.target.enso_pack.root = p.target.join("ensogl-pack");
+        p.target.enso_pack.wasm_pack.root = p.target.enso_pack.join("wasm-pack");
         let pkg_wasm = format!("{WASM_PACK_OUT_NAME}_bg.wasm");
         let pkg_js = format!("{WASM_PACK_OUT_NAME}.js");
-        p.target.ensogl_pack.wasm_pack.index = p.target.ensogl_pack.wasm_pack.join("index.ts");
-        p.target.ensogl_pack.wasm_pack.pkg_bg = p.target.ensogl_pack.wasm_pack.join(pkg_wasm);
-        p.target.ensogl_pack.wasm_pack.pkg_js = p.target.ensogl_pack.wasm_pack.join(pkg_js);
-        p.target.ensogl_pack.wasm_pack.runtime_libs =
-            p.target.ensogl_pack.wasm_pack.join("runtime-libs.js");
-        p.target.ensogl_pack.dynamic_assets = p.target.ensogl_pack.join("dynamic-assets");
-        p.target.ensogl_pack.runtime_libs.root = p.target.ensogl_pack.join("runtime-libs");
-        p.target.ensogl_pack.runtime_libs.runtime_libs =
-            p.target.ensogl_pack.runtime_libs.join("runtime-libs.js");
-        p.target.ensogl_pack.dist.root = p.target.ensogl_pack.join("dist");
-        p.target.ensogl_pack.dist.asset_extractor =
-            p.target.ensogl_pack.dist.join("asset-extractor.cjs");
-        p.target.ensogl_pack.dist.pkg_js = p.target.ensogl_pack.dist.join("pkg.js");
-        p.target.ensogl_pack.dist.main_wasm = p.target.ensogl_pack.dist.join("pkg.wasm");
-        p.target.ensogl_pack.dist.dynamic_assets.root =
-            p.target.ensogl_pack.dist.join("dynamic-assets");
-        p.target.ensogl_pack.dist.dynamic_assets.manifest =
-            p.target.ensogl_pack.dist.dynamic_assets.join("manifest.json");
+        p.target.enso_pack.wasm_pack.index = p.target.enso_pack.wasm_pack.join("index.ts");
+        p.target.enso_pack.wasm_pack.pkg_bg = p.target.enso_pack.wasm_pack.join(pkg_wasm);
+        p.target.enso_pack.wasm_pack.pkg_js = p.target.enso_pack.wasm_pack.join(pkg_js);
+        p.target.enso_pack.wasm_pack.runtime_libs =
+            p.target.enso_pack.wasm_pack.join("runtime-libs.js");
+        p.target.enso_pack.dynamic_assets = p.target.enso_pack.join("dynamic-assets");
+        p.target.enso_pack.runtime_libs.root = p.target.enso_pack.join("runtime-libs");
+        p.target.enso_pack.runtime_libs.runtime_libs =
+            p.target.enso_pack.runtime_libs.join("runtime-libs.js");
+        p.target.enso_pack.dist.root = p.target.enso_pack.join("dist");
+        p.target.enso_pack.dist.asset_extractor =
+            p.target.enso_pack.dist.join("asset-extractor.cjs");
+        p.target.enso_pack.dist.pkg_js = p.target.enso_pack.dist.join("pkg.js");
+        p.target.enso_pack.dist.main_wasm = p.target.enso_pack.dist.join("pkg.wasm");
+        p.target.enso_pack.dist.dynamic_assets.root =
+            p.target.enso_pack.dist.join("dynamic-assets");
+        p.target.enso_pack.dist.dynamic_assets.manifest =
+            p.target.enso_pack.dist.dynamic_assets.join("manifest.json");
         Ok(p)
     }
 }
@@ -311,7 +309,6 @@ pub async fn workspace_dir() -> Result<PathBuf> {
 }
 
 
-
 // =============
 // === Build ===
 // =============
@@ -319,7 +316,7 @@ pub async fn workspace_dir() -> Result<PathBuf> {
 /// The arguments to `wasm-pack build` that `ensogl-pack` wants to customize.
 pub struct WasmPackOutputs {
     /// Value to passed as `--out-dir` to `wasm-pack`.
-    pub out_dir:  PathBuf,
+    pub out_dir: PathBuf,
     /// Value to passed as `--out-name` to `wasm-pack`.
     pub out_name: String,
 }
@@ -338,7 +335,7 @@ fn check_if_ts_needs_rebuild(paths: &Paths) -> Result<bool> {
             newest_mod_time = Some(newest_mod_time.map_or(mod_time, |t| t.max(mod_time)));
         }
     }
-    if let Ok(app_js_metadata) = std::fs::metadata(&paths.target.ensogl_pack.dist.asset_extractor) {
+    if let Ok(app_js_metadata) = std::fs::metadata(&paths.target.enso_pack.dist.asset_extractor) {
         let app_js_mod_time = app_js_metadata.modified()?;
         Ok(newest_mod_time.map_or(true, |t| t > app_js_mod_time))
     } else {
@@ -365,10 +362,10 @@ pub async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
         run_script("lint", &EMPTY_ARGS).await?;
 
         info!("Building TypeScript sources.");
-        let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
+        let args = ["--", &format!("--out-dir={}", paths.target.enso_pack.dist.display())];
         run_script("build-asset-extractor", &args).await?;
         println!("BUILD build-runtime-libs");
-        let args = ["--", &format!("--outdir={}", paths.target.ensogl_pack.runtime_libs.display())];
+        let args = ["--", &format!("--outdir={}", paths.target.enso_pack.runtime_libs.display())];
         run_script("build-runtime-libs", &args).await?;
     } else {
         println!("NO BUILD");
@@ -384,27 +381,27 @@ pub async fn run_wasm_pack(
 ) -> Result<()> {
     info!("Obtaining and running the wasm-pack command.");
     let replaced_args = WasmPackOutputs {
-        out_dir:  paths.target.ensogl_pack.wasm_pack.root.clone(),
+        out_dir: paths.target.enso_pack.wasm_pack.root.clone(),
         out_name: WASM_PACK_OUT_NAME.to_string(),
     };
     let mut command = provider(replaced_args).context("Failed to obtain wasm-pack command.")?;
     command.run_ok().await?;
 
-    copy(&paths.this_crate.js.wasm_pack_bundle.index, &paths.target.ensogl_pack.wasm_pack.index)?;
+    copy(&paths.this_crate.js.wasm_pack_bundle.index, &paths.target.enso_pack.wasm_pack.index)?;
     copy(
-        &paths.target.ensogl_pack.runtime_libs.runtime_libs,
-        &paths.target.ensogl_pack.wasm_pack.runtime_libs,
+        &paths.target.enso_pack.runtime_libs.runtime_libs,
+        &paths.target.enso_pack.wasm_pack.runtime_libs,
     )?;
 
     compile_wasm_pack_artifacts(
-        &paths.target.ensogl_pack.wasm_pack,
-        &paths.target.ensogl_pack.wasm_pack.index,
-        &paths.target.ensogl_pack.dist.pkg_js,
+        &paths.target.enso_pack.wasm_pack,
+        &paths.target.enso_pack.wasm_pack.index,
+        &paths.target.enso_pack.dist.pkg_js,
     )
-    .await?;
+        .await?;
     ide_ci::fs::copy(
-        &paths.target.ensogl_pack.wasm_pack.pkg_bg,
-        &paths.target.ensogl_pack.dist.main_wasm,
+        &paths.target.enso_pack.wasm_pack.pkg_bg,
+        &paths.target.enso_pack.dist.main_wasm,
     )
 }
 
@@ -433,9 +430,9 @@ async fn extract_assets(paths: &Paths) -> Result<()> {
     info!("Extracting asset sources from generated WASM file.");
     ide_ci::programs::Node
         .cmd()?
-        .arg(&paths.target.ensogl_pack.dist.asset_extractor)
+        .arg(&paths.target.enso_pack.dist.asset_extractor)
         .arg("--out-dir")
-        .arg(&paths.target.ensogl_pack.dynamic_assets)
+        .arg(&paths.target.enso_pack.dynamic_assets)
         .run_ok()
         .await
 }
@@ -462,5 +459,5 @@ pub async fn build(
     extract_assets(&paths).await?;
     assets::build(&paths).await?;
     let out_dir = Path::new(&outputs.out_dir);
-    ide_ci::fs::copy(&paths.target.ensogl_pack.dist, out_dir)
+    ide_ci::fs::copy(&paths.target.enso_pack.dist, out_dir)
 }

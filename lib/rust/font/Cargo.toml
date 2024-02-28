@@ -1,0 +1,12 @@
+[package]
+name = "enso-font"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+owned_ttf_parser = { workspace = true }
+derive_more = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
