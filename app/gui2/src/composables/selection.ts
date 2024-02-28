@@ -2,7 +2,6 @@
 
 import { selectionMouseBindings } from '@/bindings'
 import { useEvent, usePointer } from '@/composables/events'
-import type { NavigatorComposable } from '@/composables/navigator'
 import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
@@ -11,7 +10,7 @@ import { computed, proxyRefs, ref, shallowReactive, shallowRef } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
-  navigator: NavigatorComposable,
+  navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
   margin: number,
   callbacks: {
@@ -128,13 +127,16 @@ export function useSelection<T>(
   const pointer = usePointer((_pos, event, eventType) => {
     if (eventType === 'start') {
       readInitiallySelected()
-    } else if (pointer.dragging && anchor.value == null) {
-      anchor.value = navigator.sceneMousePos?.copy()
-    }
-
-    selectionEventHandler(event)
-
-    if (eventType === 'stop') {
+    } else if (pointer.dragging) {
+      if (anchor.value == null) {
+        anchor.value = navigator.sceneMousePos?.copy()
+      }
+      selectionEventHandler(event)
+    } else if (eventType === 'stop') {
+      if (anchor.value == null) {
+        // If there was no drag, we want to handle "clicking-off" selected nodes.
+        selectionEventHandler(event)
+      }
       anchor.value = undefined
       initiallySelected.clear()
     }
@@ -159,6 +161,20 @@ export function useSelection<T>(
 
 function countCommonInSets(a: Set<unknown>, b: Set<unknown>): number {
   let count = 0
-  for (const item in a) count += +b.has(item)
+  for (const item of a) count += +b.has(item)
   return count
+}
+
+if (import.meta.vitest) {
+  const { test, expect } = import.meta.vitest
+  test.each`
+    left         | right        | expected
+    ${[]}        | ${[]}        | ${0}
+    ${[3]}       | ${[]}        | ${0}
+    ${[]}        | ${[3]}       | ${0}
+    ${[3]}       | ${[3]}       | ${1}
+    ${[1, 2, 3]} | ${[2, 3, 4]} | ${2}
+  `('Count common in sets $left and $right', ({ left, right, expected }) => {
+    expect(countCommonInSets(new Set(left), new Set(right))).toBe(expected)
+  })
 }
