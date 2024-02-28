@@ -59,7 +59,7 @@ const outputPortsSet = computed(() => {
 })
 
 const widthOverridePx = ref<number>()
-const nodeId = computed(() => asNodeId(props.node.rootSpanId))
+const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
 const externalId = computed(() => props.node.innerExpr.externalId)
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
@@ -126,15 +126,16 @@ watchEffect(() => {
 })
 
 const bgStyleVariables = computed(() => {
+  const { x: width, y: height } = nodeSize.value
   return {
-    '--node-width': `${nodeSize.value.x}px`,
-    '--node-height': `${nodeSize.value.y}px`,
+    '--node-width': `${width}px`,
+    '--node-height': `${height}px`,
   }
 })
 
 const transform = computed(() => {
-  let pos = props.node.position
-  return `translate(${pos.x}px, ${pos.y}px)`
+  const { x, y } = props.node.position
+  return `translate(${x}px, ${y}px)`
 })
 
 const startEpochMs = ref(0)
@@ -176,16 +177,16 @@ const dragPointer = usePointer((pos, event, type) => {
 
 const isRecordingOverridden = computed({
   get() {
+    console.log('get rec', props.node.prefixes.enableRecording)
     return props.node.prefixes.enableRecording != null
   },
   set(shouldOverride) {
-    const edit = props.node.innerExpr.module.edit()
+    const edit = props.node.rootSpan.module.edit()
     const replacement =
       shouldOverride && !projectStore.isRecordingEnabled
         ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
         : undefined
-    console.log('...', shouldOverride, replacement)
-    prefixes.modify(edit.getVersion(props.node.innerExpr), { enableRecording: replacement })
+    prefixes.modify(edit.getVersion(props.node.rootSpan), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
 })

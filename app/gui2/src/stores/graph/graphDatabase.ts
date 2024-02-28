@@ -6,7 +6,7 @@ import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
+import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
@@ -346,7 +346,7 @@ export class GraphDb {
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
       if (!newNode) continue
-      const nodeId = asNodeId(newNode.rootSpanId)
+      const nodeId = asNodeId(newNode.rootSpan.id)
       const node = this.nodeIdToNode.get(nodeId)
       const nodeMeta = (node ?? newNode).innerExpr.nodeMetadata
       currentNodeIds.add(nodeId)
@@ -359,27 +359,23 @@ export class GraphDb {
           newNode.vis = nodeMeta.get('visualization')
         }
         this.nodeIdToNode.set(nodeId, newNode)
+        console.log('new', { ...newNode })
       } else {
+        console.log('change', { ...node }, { ...newNode })
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
         if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
         if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
-        if (node.rootSpanId !== newNode.rootSpanId) node.rootSpanId = newNode.rootSpanId
-        if (differentOrDirty(node.innerExpr, newNode.innerExpr)) {
-          node.innerExpr = newNode.innerExpr
-          const primarySubject = primaryApplicationSubject(newNode.innerExpr)
-          if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
-        }
-        console.log(
-          ':(',
-          node.prefixes,
-          newNode.prefixes,
-          JSON.stringify(node.prefixes),
-          JSON.stringify(newNode.prefixes),
+        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) node.innerExpr = newNode.rootSpan
+        if (differentOrDirty(node.innerExpr, newNode.innerExpr)) node.innerExpr = newNode.innerExpr
+        if (node.primarySubject !== newNode.primarySubject)
+          node.primarySubject = newNode.primarySubject
+        if (
+          Object.entries(node.prefixes).some(
+            ([k, v]) => newNode.prefixes[k as keyof typeof node.prefixes] !== v,
+          )
         )
-        if (JSON.stringify(node.prefixes) !== JSON.stringify(newNode.prefixes)) {
           node.prefixes = newNode.prefixes
-        }
       }
     }
     for (const nodeId of this.nodeIdToNode.keys()) {
@@ -449,8 +445,8 @@ export class GraphDb {
     const node: Node = {
       ...baseMockNode,
       outerExprId: id,
-      rootSpanId: id,
       pattern,
+      rootSpan: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
     }
     const bindingId = pattern.id
@@ -468,8 +464,8 @@ export function asNodeId(id: Ast.AstId): NodeId {
 
 export interface Node {
   outerExprId: Ast.AstId
-  rootSpanId: Ast.AstId
   pattern: Ast.Ast | undefined
+  rootSpan: Ast.Ast
   innerExpr: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
@@ -491,8 +487,8 @@ export function mockNode(exprId?: Ast.AstId): Node {
   return {
     ...baseMockNode,
     outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
-    rootSpanId: random.uuidv4() as Ast.AstId,
     pattern: undefined,
+    rootSpan: Ast.parse('0'),
     innerExpr: Ast.parse('0'),
   }
 }

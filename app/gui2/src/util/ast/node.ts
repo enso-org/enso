@@ -13,15 +13,16 @@ export function nodeFromAst(ast: Ast.Ast): Node | undefined {
   if (!nodeCode) return
   const pattern = nodeCode instanceof Ast.Assignment ? nodeCode.pattern : undefined
   const rootSpan = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode
-  const matches = prefixes.extractMatches(rootSpan)
+  const { innerExpr, matches } = prefixes.extractMatches(rootSpan)
   return {
     outerExprId: ast.id,
-    pattern,
     rootSpanId: rootSpan.id,
-    innerExpr: matches.innerExpr,
+    pattern,
+    rootSpan,
+    innerExpr,
     position: Vec2.Zero,
     vis: undefined,
-    prefixes: matches.matches,
+    prefixes: matches,
     primarySubject: primaryApplicationSubject(rootSpan),
   }
 }
