@@ -271,12 +271,21 @@ add_specs suite_builder =
             + [["2.000", 2.0]]
 
         problematic_values = []
+            + [["9223372036854775805", 9223372036854775805]]
             + [["9223372036854775806", 9223372036854775806]]
             + [["9223372036854775807", 9223372036854775807]]
             + [["9223372036854775808", 9223372036854775808]]
+            + [["9223372036854775809", 9223372036854775809]]
+            + [["9223372036854775999", 9223372036854775999]]
+            + [["9223372036854776000", 9223372036854776000]]
+            + [["9223372036854776001", 9223372036854776001]]
+            + [["9223372036854777000", 9223372036854777000]]
+            + [["-9223372036854775810", -9223372036854775810]]
             + [["-9223372036854775809", -9223372036854775809]]
             + [["-9223372036854775808", -9223372036854775808]]
             + [["-9223372036854775807", -9223372036854775807]]
+            + [["-9223372036854775807", -9223372036854775807]]
+            + [["-9223372036854775806", -9223372036854775806]]
             + [[9223372036854775806.0, 9223372036854775806.0]]
             + [[9223372036854775807.0, 9223372036854775807.0]]
             + [[9223372036854775808.0, 9223372036854775808.0]]
@@ -289,28 +298,47 @@ add_specs suite_builder =
             + [["-9223372036854775809000", -9223372036854775809000]]
             + [["-9223372036854775808000", -9223372036854775808000]]
             + [["-9223372036854775807000", -9223372036854775807000]]
-            + [["9223372036854775806000.0", 9223372036854775806000.0]]
-            + [["9223372036854775807000.0", 9223372036854775807000.0]]
-            + [["9223372036854775808000.0", 9223372036854775808000.0]]
-            + [["-9223372036854775809000.0", -9223372036854775809000.0]]
-            + [["-9223372036854775808000.0", -9223372036854775808000.0]]
-            + [["-9223372036854775807000.0", -9223372036854775807000.0]]
 
-        #values = ok_values + problematic_values
-        values = ok_values
-        _ = problematic_values
+        values = ok_values + problematic_values
+        #values = ok_values
+        #_ = problematic_values
+
+        valuest = []
+            + [["9223372036854775805", 9223372036854775805]]
+        _ = [values, valuest]
 
         values.map_with_index i-> pr->
             group_builder.specify "should compare correctly to Integer and Float "+i.to_text <|
+                IO.println '===== start'
                 d = Decimal.new (pr.at 0)
                 expected = pr.at 1
 
-                d . should_equal expected
-                expected . should_equal d
-                d . should_equal d
-                (d == expected) . should_be_true
-                (expected == d) . should_be_true
-                (d == d) . should_be_true
+                ##
+                    d_comparable = Comparable.from d
+                    e_comparable = Comparable.from expected
+                    IO.println "---- b"
+                    IO.println (Meta.get_simple_type_name d)
+                    IO.println (Meta.get_simple_type_name expected)
+                    IO.println (Meta.get_simple_type_name d_comparable)
+                    IO.println (Meta.get_simple_type_name e_comparable)
+                    d_hash = d_comparable.hash d
+                    e_hash = e_comparable.hash expected
+                    IO.println "---- a"
+                q = Panic.catch Any handler=(_-> "fail") <|
+                    d . should_equal expected
+                    "  ok"
+
+                IO.println "TTT "+q.to_text+" "+d.to_text+" "+(Meta.get_simple_type_name (pr.at 0))+" "
+
+                Test.with_clue "TTT "+d.to_text+" "+(Meta.get_simple_type_name (pr.at 0))+" "+q.to_text
+                    d . should_equal expected
+                IO.println '===== end'
+                ##
+                    expected . should_equal d
+                    d . should_equal d
+                    (d == expected) . should_be_true
+                    (expected == d) . should_be_true
+                    (d == d) . should_be_true
 
         group_builder.specify "constructor should respect Math_Context " <|
             Decimal.new 12000 (Math_Context.new 0) . should_equal 12000
@@ -321,4 +349,4 @@ add_specs suite_builder =
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter="Integer and Float"

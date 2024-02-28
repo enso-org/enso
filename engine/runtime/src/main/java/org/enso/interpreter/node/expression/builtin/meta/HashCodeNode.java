@@ -93,31 +93,35 @@ public abstract class HashCodeNode extends Node {
   /** Specializations for primitive values * */
   @Specialization
   long hashCodeForShort(short s) {
-    //System.out.println("AAA old hashCodeForShort");
+    System.out.println("AAA old hashCodeForShort");
     return s;
   }
 
   @Specialization
   long hashCodeForByte(byte b) {
-    //System.out.println("AAA old hashCodeForByte");
+    System.out.println("AAA old hashCodeForByte");
     return b;
   }
 
   @Specialization
   long hashCodeForLong(long l) {
     // By casting long to double, we lose some precision on purpose
-    return hashCodeForDouble((double) l);
+    if (l >= -100 && l <= 100) {
+      return hashCodeForDouble((double) l);
+    } else {
+      return BigDecimal.valueOf(l).hashCode();
+    }
   }
 
   @Specialization
   long hashCodeForInt(int i) {
-    //System.out.println("AAA old hashCodeForInt");
+    System.out.println("AAA old hashCodeForInt");
     return hashCodeForLong(i);
   }
 
   @Specialization
   long hashCodeForFloat(float f) {
-    //System.out.println("AAA old hashCodeForFloat");
+    System.out.println("AAA old hashCodeForFloat");
     return Float.hashCode(f);
   }
 
@@ -125,15 +129,16 @@ public abstract class HashCodeNode extends Node {
   long hashCodeForDouble(double d) {
     if (Double.isNaN(d)) {
       // NaN is Incomparable, just return a "random" constant
-      //System.out.println("AAA old hash as nan");
+      System.out.println("AAA old hash as nan");
       return 456879;
-    } else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
+    //} else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
+    } else if (BigIntegerOps.fitsInLong(d)) {
       // If d is not a whole number or d is a whole number that fits in long
-      //System.out.println("AAA old Double.hashCode");
+      System.out.println("AAA old Double.hashCode");
       return Double.hashCode(d);
     } else {
       // If d is a whole number that does not fit in long
-      //System.out.println("AAA old hash as bd");
+      System.out.println("AAA old hash as bd");
       return bigDoubleHash(d);
     }
   }
@@ -141,7 +146,8 @@ public abstract class HashCodeNode extends Node {
   @TruffleBoundary
   private static long bigDoubleHash(double d) {
     try {
-      return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
+      //return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
+      return BigDecimal.valueOf(d).hashCode();
     } catch (ArithmeticException e) {
       throw EnsoContext.get(null).raiseAssertionPanic(null, null, e);
     }
@@ -150,8 +156,9 @@ public abstract class HashCodeNode extends Node {
   @Specialization
   @TruffleBoundary
   long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
-    //System.out.println("AAA old hash as bi");
-    return bigInteger.getValue().hashCode();
+    System.out.println("AAA old hash as bd");
+    //return bigInteger.getValue().hashCode();
+    return new BigDecimal(bigInteger.getValue()).hashCode();
   }
 
   @Specialization(guards = {"!interop.fitsInLong(v)", "interop.fitsInBigInteger(v)"})
@@ -159,7 +166,7 @@ public abstract class HashCodeNode extends Node {
   long hashCodeForBigInteger(
       Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-     //System.out.println("AAA old hash as bi 2");
+     System.out.println("AAA old hash as bi 2");
       return interop.asBigInteger(v).hashCode();
     } catch (UnsupportedMessageException ex) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, "Expecting BigInteger", ex);

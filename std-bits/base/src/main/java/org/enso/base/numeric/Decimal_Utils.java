@@ -74,22 +74,37 @@ public class Decimal_Utils {
   }
 
   public static boolean fitsInLong(BigDecimal bigDecimal) {
-    return bigDecimal.compareTo(MIN_LONG_BIGDECIMAL) >= 0 && bigDecimal.compareTo(MAX_LONG_BIGDECIMAL) <= 0;
+    //return bigDecimal.compareTo(MIN_LONG_BIGDECIMAL) >= 0 && bigDecimal.compareTo(MAX_LONG_BIGDECIMAL) <= 0;
+    return bigDecimal.compareTo(new BigDecimal(-100)) >= 0 && bigDecimal.compareTo(new BigDecimal(100)) <= 0;
+    //return bigDecimal.compareTo(new BigDecimal("-9223372036854776000.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854776000.0")) <= 0;
     //return bigDecimal.compareTo(new BigDecimal("-9223372036854775000.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854775000.0")) <= 0;
+    //return bigDecimal.compareTo(new BigDecimal("-9223372036854775808.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854775807.0")) <= 0;
   }
 
   public static int hashCodeOf(BigDecimal bd) {
-    boolean isFractional = bd.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) != 0;
+    /*
+    for (int i = 4990; i < 6010; ++i) {
+      String s = "922337203685477" + i;
+      BigDecimal qbd = new BigDecimal(s);
+      double d = qbd.doubleValue();
+      System.out.println("CCC " + i + " " + qbd + " " + d);
+    }
+    */
+
+    //boolean isFractional = bd.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) != 0;
     boolean fitsInLong = fitsInLong(bd);
-    if (isFractional || fitsInLong) {
-      //System.out.println("AAA new Double.hashCode");
+    //if (isFractional || fitsInLong) {
+    if (fitsInLong) {
+      System.out.println("AAA new Double.hashCode");
       double d = bd.doubleValue();
       assert d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY;
       return Double.hashCode(d);
     } else {
       // Will not throw ArithmeticException since the value has a 0 fractional part.
       //System.out.println("AAA new hash as bi");
-      return bd.toBigIntegerExact().hashCode();
+      //return bd.toBigIntegerExact().hashCode();
+      System.out.println("AAA new hash as bd");
+      return bd.hashCode();
     }
   }
 }
