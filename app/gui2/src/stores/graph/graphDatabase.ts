@@ -363,9 +363,9 @@ export class GraphDb {
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
         if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
-        if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
-        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) node.innerExpr = newNode.rootSpan
+        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) node.rootSpan = newNode.rootSpan
         if (differentOrDirty(node.innerExpr, newNode.innerExpr)) node.innerExpr = newNode.innerExpr
+        if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
         if (node.primarySubject !== newNode.primarySubject)
           node.primarySubject = newNode.primarySubject
         if (

@@ -196,7 +196,7 @@ export function performCollapse(
 
   // Insert a new function.
   const collapsedNodeIds = collapsed
-    .map((ast) => asNodeId(nodeFromAst(ast)?.rootSpanId ?? ast.id))
+    .map((ast) => asNodeId(nodeFromAst(ast)?.rootSpan.id ?? ast.id))
     .reverse()
   let outputNodeId: NodeId | undefined
   const outputIdentifier = info.extracted.output?.identifier
