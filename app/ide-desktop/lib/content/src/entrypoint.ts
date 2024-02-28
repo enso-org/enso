@@ -13,7 +13,7 @@ import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as remoteLog from './remoteLog'
-import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
+import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 

@@ -34,7 +34,7 @@ import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
 import * as utils from '../../../utils'
 
-import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
+import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 
