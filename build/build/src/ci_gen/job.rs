@@ -116,10 +116,13 @@ pub fn plain_job(
 ///
 /// ```
 /// use enso_build::ci_gen::job::sbt_command;
-/// assert_eq!(sbt_command("verifyLicensePackages"), "backend sbt -- -- verifyLicensePackages");
+/// assert_eq!(sbt_command("verifyLicensePackages"), "backend sbt '--' verifyLicensePackages");
 /// ```
 pub fn sbt_command(command: impl AsRef<str>) -> String {
-    format!("backend sbt -- -- {}", command.as_ref())
+    // Note that we put -- in quotes to avoid issues with powershell (which is default on Windows).
+    // Otherwise, pwsh would handle `--` by itself, rather than passing it to build script's args.
+    // See: https://stackoverflow.com/questions/15780174/powershell-command-line-parameters-and
+    format!("backend sbt '--' {}", command.as_ref())
 }
 
 #[derive(Clone, Copy, Debug)]
