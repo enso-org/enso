@@ -160,17 +160,7 @@ class SyncRemoteCache(RemoteCache):
                 _logger.debug("Untracked files: %s", status.untracked)
                 await git.add(self._repo_root_dir, status.untracked)
             await git.commit(self._repo_root_dir, f"Add {len(status.untracked)} new reports")
-            head_commit_sha = await git.head_commit(self._repo_root_dir)
-            # Push the changes to the remote. Do not use `git push`, as that
-            # does not use authentication via GH_TOKEN
-            ret = await gh.invoke_gh_api(BENCH_REPO,
-                             "/merges",
-                             fields={
-                                 "base": "main",
-                                 "head": head_commit_sha
-                             },
-                             method="POST")
-            _logger.debug(f"Successfully merged the changes: {ret.__dict__}")
+            await git.push(self._repo_root_dir)
 
 
 def _is_benchrun_id(name: str) -> bool:
