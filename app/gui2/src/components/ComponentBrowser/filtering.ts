@@ -71,7 +71,7 @@ class FilteringWithPattern {
       // - The unmatched part up to the next matched letter
       const regex = pattern
         .split('')
-        .map((c) => `(${c})`)
+        .map((c) => `(${escapeStringRegexp(c)})`)
         .join('([^_]*?_)')
       this.initialsMatchRegex = new RegExp('(^|.*?_)' + regex + '(.*)', 'i')
     }

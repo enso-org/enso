@@ -1,3 +1,4 @@
+import { swapKeysAndValues } from '@/util/record'
 import type {
   Identifier,
   IdentifierOrOperatorIdentifier,
@@ -1164,22 +1165,30 @@ export interface MutableImport extends Import, MutableAst {
 }
 applyMixins(MutableImport, [MutableAst])
 
-const mapping: Record<string, string> = {
-  '\b': '\\b',
-  '\f': '\\f',
-  '\n': '\\n',
-  '\r': '\\r',
-  '\t': '\\t',
-  '\v': '\\v',
-  '"': '\\"',
-  "'": "\\'",
-  '`': '``',
-}
+const escapePairs = [
+  ['\0', '\\0'],
+  ['\b', '\\b'],
+  ['\f', '\\f'],
+  ['\n', '\\n'],
+  ['\r', '\\r'],
+  ['\t', '\\t'],
+  ['\v', '\\v'],
+  ["'", "\\'"],
+  ['`', '``'],
+] as const
+
+const escapeMapping = Object.fromEntries(escapePairs)
+const unescapeMapping = Object.fromEntries(escapePairs.map(([k, v]) => [v, k]))
 
 /** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
- * NOT USABLE to insert into raw strings. Does not include quotes. */
-function escape(string: string) {
-  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
+ * NOT USABLE to insert into raw strings. Does not include double-quotes (`"`). */
+export function escapeInterpolation(string: string) {
+  return string.replace(/[\0\b\f\n\r\t\v'`]/g, (match) => escapeMapping[match]!)
+}
+
+/** Interpret all escaped characters from an interpolated (`''`) Enso string. */
+export function applyInterpolation(string: string) {
+  return string.replace(/\\[0bfnrtv']|``/g, (match) => unescapeMapping[match]!)
 }
 
 interface TextLiteralFields {
@@ -1219,7 +1228,7 @@ export class TextLiteral extends Ast {
 
   static new(rawText: string, module: MutableModule) {
     const open = unspaced(Token.new("'"))
-    const elements = [unspaced(Token.new(escape(rawText)))]
+    const elements = [unspaced(Token.new(escapeInterpolation(rawText)))]
     const close = unspaced(Token.new("'"))
     return this.concrete(module, open, undefined, elements, close)
   }
@@ -1232,13 +1241,23 @@ export class TextLiteral extends Ast {
     if (close) yield close
   }
 
+  boundaryTokenVariant(): string | undefined {
+    return (this.open || this.close)?.code()
+  }
+
+  isInterpolated(): boolean {
+    const token = this.boundaryTokenVariant()
+    return token === "'" || token === "'''"
+  }
+
   get textContents(): string {
-    return (
+    const combinedCode =
       this.fields
         .get('elements')
         ?.map((element) => this.module.getAny(element.node).code())
-        ?.join() ?? ''
-    )
+        ?.join('') ?? ''
+    const isInterpolated = this.isInterpolated()
+    return isInterpolated ? applyInterpolation(combinedCode) : combinedCode
   }
 
   get open(): Token | undefined {
@@ -1253,12 +1272,22 @@ export class MutableTextLiteral extends TextLiteral implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & TextLiteralFields>
 
+  setBoundaries(code: string) {
+    this.fields.set('open', unspaced(Token.new(code)))
+    this.fields.set('close', unspaced(Token.new(code)))
+  }
+
   setTextContents(rawText: string) {
-    const elements = [unspaced(Token.new(escape(rawText)))]
-    this.fields.set(
-      'elements',
-      elements.map((elem) => concreteChild(this.module, elem, this.id)),
-    )
+    const isInterpolated = this.isInterpolated()
+    const token = this.boundaryTokenVariant()
+    const mustBecomeInterpolated = !isInterpolated && (!token || rawText.includes(token))
+    const doEscape = isInterpolated || mustBecomeInterpolated
+
+    if (mustBecomeInterpolated) this.setBoundaries(token === '"""' ? "'''" : "'")
+
+    const codeText = doEscape ? escapeInterpolation(rawText) : rawText
+    const newElement = concreteChild(this.module, unspaced(Token.new(codeText)), this.id)
+    this.fields.set('elements', [newElement])
   }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableAst {}
