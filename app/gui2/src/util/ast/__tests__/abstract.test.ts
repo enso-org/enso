@@ -3,7 +3,6 @@ import { Ast } from '@/util/ast'
 import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 import { MutableModule, type Identifier } from '../abstract'
-import { escape, unescape } from '../text'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
@@ -508,23 +507,6 @@ test('Construct app', () => {
   expect(namedApp.code()).toBe('func name=arg')
 })
 
-test.each([
-  ['Hello, World!', 'Hello, World!'],
-  ['Hello\t\tWorld!', 'Hello\\t\\tWorld!'],
-  ['He\nllo, W\rorld!', 'He\\nllo, W\\rorld!'],
-  ['Hello,\vWorld!', 'Hello,\\vWorld!'],
-  ['Hello, \\World!', 'Hello, \\World!'],
-  ['Hello, `World!`', 'Hello, ``World!``'],
-  ["'Hello, World!'", "\\'Hello, World!\\'"],
-  ['"Hello, World!"', '\\"Hello, World!\\"'],
-  ['Hello, \fWorld!', 'Hello, \\fWorld!'],
-  ['Hello, \bWorld!', 'Hello, \\bWorld!'],
-])('Text literals escaping and unescaping', (original, expectedEscaped) => {
-  const escaped = escape(original)
-  expect(escaped).toBe(expectedEscaped)
-  expect(unescape(escaped)).toBe(original)
-})
-
 test('Automatic parenthesis', () => {
   const block = Ast.parseBlock('main = func arg1 arg2')
   let arg1: Ast.MutableAst | undefined
@@ -788,4 +770,11 @@ test('Code edit merging', () => {
   module.applyEdit(editA)
   module.applyEdit(editB)
   expect(module.root()?.code()).toBe('a = 10\nb = 20')
+})
+
+test('Analyze app-like', () => {
+  const appLike = Ast.parse('(Preprocessor.default_preprocessor 3 _ 5 _ <| 4) <| 6')
+  const { func, args } = Ast.analyzeAppLike(appLike)
+  expect(func.code()).toBe('Preprocessor.default_preprocessor')
+  expect(args.map((ast) => ast.code())).toEqual(['3', '4', '5', '6'])
 })

@@ -34,7 +34,7 @@ public abstract class StringStringOp
       String[] newVals = new String[size];
       Context context = Context.getCurrent();
       for (int i = 0; i < size; i++) {
-        if (storage.isNa(i)) {
+        if (storage.isNothing(i)) {
           newVals[i] = null;
         } else {
           newVals[i] = doString(storage.getItem(i), argString);
@@ -61,7 +61,7 @@ public abstract class StringStringOp
       String[] newVals = new String[size];
       Context context = Context.getCurrent();
       for (int i = 0; i < size; i++) {
-        if (storage.isNa(i) || v.isNa(i)) {
+        if (storage.isNothing(i) || v.isNothing(i)) {
           newVals[i] = null;
         } else {
           newVals[i] = doString(storage.getItem(i), v.getItem(i));

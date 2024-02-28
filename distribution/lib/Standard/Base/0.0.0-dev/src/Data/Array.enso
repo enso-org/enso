@@ -306,7 +306,8 @@ type Array
     to_list : List
     to_list self = Array_Like_Helpers.to_list self
 
-    ## GROUP Selections
+    ## ALIAS unique, deduplicate
+       GROUP Selections
        ICON preparation
        Keeps only unique elements within the array, removing any duplicates.
 

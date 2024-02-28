@@ -175,10 +175,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** The query to clean the repo. */
   private def cleanQuery: DBIO[Unit] = {
-    for {
-      _ <- Suggestions.delete
-      _ <- SuggestionsVersion.delete
-    } yield ()
+    DBIO.seq(Suggestions.delete, SuggestionsVersion.delete)
   }
 
   /** The query to get all suggestions.

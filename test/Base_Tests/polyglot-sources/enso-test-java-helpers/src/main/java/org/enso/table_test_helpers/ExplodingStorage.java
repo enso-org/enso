@@ -35,17 +35,12 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public int countMissing() {
-    return 0;
-  }
-
-  @Override
   public StorageType getType() {
     return IntegerType.INT_64;
   }
 
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     checkIndex(idx);
     return false;
   }

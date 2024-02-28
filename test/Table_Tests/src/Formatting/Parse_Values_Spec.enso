@@ -630,6 +630,13 @@ add_specs suite_builder =
             c1 = Column.from_vector "A" ["1", "2", "3"]
             c1.parse type=Nothing . should_fail_with Illegal_Argument
 
+        group_builder.specify "should return unchanged if all are Nothing or no rows" <|
+            c1 = Column.from_vector "A" [Nothing, Nothing, Nothing] Value_Type.Char
+            c1.parse.value_type . should_equal Value_Type.Char
+
+            c2 = Column.from_vector "A" [] Value_Type.Char
+            c2.parse.value_type . should_equal Value_Type.Char
+
         group_builder.specify "should error if the input column is not text" <|
             c1 = Column.from_vector "A" [1, 2, 3]
             r1 = c1.parse
