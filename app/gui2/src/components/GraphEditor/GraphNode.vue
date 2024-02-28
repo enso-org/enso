@@ -194,8 +194,6 @@ const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknow
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
-// FIXME [sb]: https://github.com/enso-org/enso/issues/8442
-// This does not take into account `displayedExpression`.
 const icon = computed(() => {
   return displayedIconOf(
     suggestionEntry.value,
