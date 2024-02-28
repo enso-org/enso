@@ -3,8 +3,6 @@
 
 name: Benchmarks upload
 on:
-  pull_request:
-    branches: ["*"]
   workflow_run:
     workflows: ["Benchmark Engine", "Benchmark Standard Libraries"]
     types:
