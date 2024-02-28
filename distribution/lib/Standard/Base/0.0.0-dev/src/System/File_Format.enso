@@ -215,13 +215,6 @@ type JSON_Format
     for_file_write file = JSON_Format.for_read file
 
     ## PRIVATE
-       Helper that parses the datalink JSON definition of this format.
-    parse_datalink_format : JS_Object -> JSON_Format
-    parse_datalink_format (json : JS_Object) =
-        _ = json
-        JSON_Format
-
-    ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
@@ -236,6 +229,11 @@ type JSON_Format
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
         _ = metadata
         Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . parse_json
+
+## PRIVATE
+JSON_Format.from (that : JS_Object) =
+    _ = that
+    JSON_Format
 
 ## A setting to infer the default behaviour of some option.
 type Infer

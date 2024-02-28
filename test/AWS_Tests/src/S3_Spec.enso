@@ -559,8 +559,8 @@ add_specs suite_builder =
                 Panic.with_finalizer secret_key_value.delete <| with_retries <|
                     (enso_project.data / "credentials-with-secrets.datalink") . read . should_equal "Hello WORLD!"
 
-        group_builder.specify "should be able to read a data link with custom a custom file format set" <|
-            r = (enso_project.data / "formatted.datalink") . read
+        group_builder.specify "should be able to read a data link with a custom file format set" <|
+            r = (enso_project.data / "format-delimited.datalink") . read
             # The datalink itself is configured to interpret the data as a Table delimited by space
             r.should_be_a Table
             r.column_names . should_equal ["Column 1", "Column 2"]

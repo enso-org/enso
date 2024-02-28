@@ -85,9 +85,9 @@ parse_format json = case json of
     _ : JS_Object -> case get_required_field "subType" json of
         "default" -> Auto_Detect
         sub_type : Text ->
-            format = FileFormatSPI.findFormatForDataLinkSubType sub_type
-            if format.is_nothing then Error.throw (Illegal_State.Error "Unknown format inside of a datalink: "+sub_type+". Perhaps the library providing that format needs to be imported?") else
-                format.parse_datalink_format json
+            format_type = FileFormatSPI.findFormatForDataLinkSubType sub_type
+            if format_type.is_nothing then Error.throw (Illegal_State.Error "Unknown format inside of a datalink: "+sub_type+". Perhaps the library providing that format needs to be imported?") else
+                format_type.from json
         other ->
             Error.throw (Illegal_State.Error "Expected `subType` to be a string, but got: "+other.to_display_text+".")
     other -> Error.throw (Illegal_State.Error "Unexpected value inside of a data-link `format` field: "+other.to_display_text+".")

@@ -59,9 +59,9 @@ public abstract class FileFormatSPI {
    * If a format overrides this method to return a non-null format name
    * (corresponding to the "subType" field in a data-link format entry,
    * see `dataLinkSchema.json` for more details), then the corresponding Enso
-   * type should provide a `parse_datalink_format` static method, which will
-   * parse the format description from JSON (as defined in the schema) and
-   * return the configured format instance.
+   * type should provide a `from` conversion, which will be able to construct
+   * a configured format instance from its JSON representation (which should be
+   * consistent with the schema).
    */
   protected String getDataLinkFormatName() {
     return null;

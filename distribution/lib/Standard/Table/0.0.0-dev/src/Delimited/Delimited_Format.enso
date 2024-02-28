@@ -1,9 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
-from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
 from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
 
 import project.Data.Data_Formatter.Data_Formatter
@@ -83,18 +83,6 @@ type Delimited_Format
     for_file_write file = Delimited_Format.for_read file
 
     ## PRIVATE
-       Helper that parses the datalink JSON definition of this format.
-    parse_datalink_format : JS_Object -> Delimited_Format
-    parse_datalink_format (json : JS_Object) =
-        delimiter = get_required_field "delimiter" json
-        encoding_name = json.get "encoding"
-        encoding = encoding_name
-            . if_not_nothing (Encoding.from_name encoding_name)
-            . if_nothing Encoding.utf_8
-        headers = json.get "headers" . if_nothing Infer
-        Delimited_Format.Delimited delimiter=delimiter encoding=encoding headers=headers
-
-    ## PRIVATE
        ADVANCED
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -167,3 +155,23 @@ type Delimited_Format
     without_comments : Delimited_Format
     without_comments self =
         self.clone comment_character=Nothing
+
+## PRIVATE
+   Constructs a `Delimited` instance from JSON.
+Delimited_Format.from (that : JS_Object) =
+    delimiter = that.get "delimiter" if_missing=(Error.throw (Illegal_Argument.Error "The `delimiter` field is required."))
+    encoding_name = that.get "encoding"
+    encoding = encoding_name
+        . if_not_nothing (Encoding.from_name encoding_name)
+        . if_nothing Encoding.utf_8
+    headers = that.get "headers" . if_nothing Infer
+    skip_rows = that.get "skip_rows" . if_nothing 0
+    row_limit = that.get "row_limit"
+    keep_invalid_rows = that.get "keep_invalid_rows" . if_nothing True
+
+    unsupported_fields = ["quote_style", "value_formatter", "line_endings", "comment_character"]
+    case unsupported_fields.find that.contains_key if_missing=Nothing of
+        Nothing ->
+            Delimited_Format.Delimited delimiter=delimiter encoding=encoding headers=headers skip_rows=skip_rows row_limit=row_limit keep_invalid_rows=keep_invalid_rows
+        field ->
+            Error.throw (Illegal_Argument.Error ("The field `" ++ field ++ "` is currently not supported when deserializing the Delimited format from JSON."))
