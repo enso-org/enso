@@ -334,7 +334,10 @@
     <div id="benchmarks-container" class="container-fluid">
       {% for bench_data in bench_datas %}
       <div class="bench-container card">
-        <h3 class="card-header text-center">{{ bench_data.id }}</h3>
+        <a name="{{ bench_data.id }}"></a>
+        <h3 class="card-header text-center">
+          <a href="#{{ bench_data.id }}">{{ bench_data.id }}</a>
+        </h3>
         <!-- This is a placeholder div for a bench chart -->
         <div id="{{ bench_data.id }}" class="bench-chart"></div>
         <!-- selection-info div will be shown once user selects a point in the chart -->
