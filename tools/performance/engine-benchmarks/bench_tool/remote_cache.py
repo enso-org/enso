@@ -153,13 +153,17 @@ class SyncRemoteCache(RemoteCache):
         is_repo_dirty = len(status.modified) > 0 or len(status.added) > 0
         if is_repo_dirty:
             _logger.info("Untracked or modified files found in the repo: %s", self._repo_root_dir)
+            commit_msg = "Regenerate websites"
             if len(status.modified) > 0:
                 _logger.debug("Modified files: %s", status.modified)
                 await git.add(self._repo_root_dir, status.modified)
             if len(status.untracked) > 0:
                 _logger.debug("Untracked files: %s", status.untracked)
                 await git.add(self._repo_root_dir, status.untracked)
-            await git.commit(self._repo_root_dir, f"Add {len(status.untracked)} new reports")
+                commit_msg += f" - Add {len(status.untracked)} new reports."
+            else:
+                commit_msg += "."
+            await git.commit(self._repo_root_dir, commit_msg)
             await git.push(self._repo_root_dir)
 
 
