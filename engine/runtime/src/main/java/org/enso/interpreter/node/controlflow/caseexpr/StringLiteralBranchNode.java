@@ -55,8 +55,6 @@ public abstract class StringLiteralBranchNode extends BranchNode {
         accept(frame, state, new Object[0]);
       }
     } catch (UnsupportedMessageException e) {
-      // `UnsupportedMessageException` should only be thrown if `isString` returned false, but we
-      // just checked it to be true
       throw CompilerDirectives.shouldNotReachHere(e);
     }
   }
