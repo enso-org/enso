@@ -2625,21 +2625,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "json-rpc"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
- "enso-profiler",
- "enso-profiler-data",
- "enso-shapely",
- "enso-web",
- "failure",
- "futures",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "jsonwebtoken"
 version = "8.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
