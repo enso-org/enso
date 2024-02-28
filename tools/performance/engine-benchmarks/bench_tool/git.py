@@ -50,9 +50,10 @@ async def status(repo: Path) -> GitStatus:
     modified: Set[str] = set()
     added: Set[str] = set()
     for line in lines:
+        line = line.strip()
         if line.startswith("??"):
             untracked.add(line.split()[1])
-        elif line.startswith(" M"):
+        elif line.startswith("M "):
             modified.add(line.split()[1])
         elif line.startswith("A "):
             added.add(line.split()[1])
