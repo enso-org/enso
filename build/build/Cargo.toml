@@ -22,8 +22,6 @@ futures-util = "0.3.17"
 glob = "0.3.0"
 handlebars = "4.3.5"
 enso-build-base = { path = "../base" }
-enso-enso-font = { path = "../../lib/rust/enso-font" }
-enso-font = { path = "../../lib/rust/font" }
 enso-pack = { path = "../../lib/rust/enso-pack" }
 ide-ci = { path = "../ci_utils" }
 mime = "0.3.16"

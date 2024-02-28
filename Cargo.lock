@@ -1354,8 +1354,6 @@ dependencies = [
  "dirs",
  "enso-build-base",
  "enso-build-macros-lib",
- "enso-enso-font",
- "enso-font",
  "enso-pack",
  "futures",
  "futures-util",
@@ -1521,59 +1519,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-enso-font"
-version = "0.1.0"
-dependencies = [
- "enso-font",
- "ide-ci",
- "owned_ttf_parser",
-]
-
-[[package]]
-name = "enso-font"
-version = "0.1.0"
-dependencies = [
- "derive_more",
- "owned_ttf_parser",
-]
-
-[[package]]
 name = "enso-formatter"
 version = "0.1.0"
 dependencies = [
  "ide-ci",
  "regex",
  "tokio",
-]
-
-[[package]]
-name = "enso-frp"
-version = "0.1.0"
-dependencies = [
- "Inflector",
- "enso-callback",
- "enso-generics",
- "enso-prelude",
- "enso-profiler",
- "enso-web",
- "keyboard-types",
- "nalgebra",
- "percent-encoding",
- "unicode-segmentation",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "enso-frp2"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "enso-data-structures",
- "enso-frp",
- "enso-generics",
- "enso-prelude",
- "smallvec",
 ]
 
 [[package]]
@@ -1853,22 +1804,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.107",
-]
-
-[[package]]
-name = "enso-shortcuts"
-version = "0.1.0"
-dependencies = [
- "enso-automata",
- "enso-frp",
- "enso-prelude",
- "enso-web",
- "js-sys",
- "nalgebra",
- "serde",
- "serde_json",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -2766,17 +2701,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "keyboard-types"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a989afac88279b0482f402d234b5fbd405bf1ad051308595b58de4e6de22346b"
-dependencies = [
- "bitflags",
- "serde",
- "unicode-segmentation",
-]
-
-[[package]]
 name = "kv-log-macro"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3269,15 +3193,6 @@ name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
-
-[[package]]
-name = "owned_ttf_parser"
-version = "0.15.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05e6affeb1632d6ff6a23d2cd40ffed138e82f1532571a26f527c8a284bb2fbb"
-dependencies = [
- "ttf-parser",
-]
 
 [[package]]
 name = "parking"
@@ -4745,12 +4660,6 @@ name = "try-lock"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3528ecfd12c466c6f163363caf2d02a71161dd5e1cc6ae7b34207ea2d42d81ed"
-
-[[package]]
-name = "ttf-parser"
-version = "0.15.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b3e06c9b9d80ed6b745c7159c40b311ad2916abb34a49e9be2653b90db0d8dd"
 
 [[package]]
 name = "tungstenite"
