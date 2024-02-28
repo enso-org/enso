@@ -36,13 +36,8 @@ jobs:
           sudo apt-get install -y gh
       - name: Set up git
         run: |
-          cd ${{ github.workspace }}/engine-benchmark-results
           git config --global user.email "ci@enso.org"
           git config --global user.name "Enso CI Bot"
-          echo "Hello world" > hello.txt
-          git add hello.txt
-          git commit -m "Add hello.txt"
-          git push
 
       #- name: Upload benchmarks
         #run: |
