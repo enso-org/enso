@@ -42,13 +42,6 @@ public abstract class StringLiteralBranchNode extends BranchNode {
     }
   }
 
-  @Specialization
-  void doJavaString(VirtualFrame frame, Object state, String target) {
-    if (textProfile.profile(equalStrings(literal, target))) {
-      accept(frame, state, new Object[0]);
-    }
-  }
-
   @Specialization(
       guards = {"targetInterop.isString(target)"},
       limit = "3")
