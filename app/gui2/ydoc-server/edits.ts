@@ -140,12 +140,10 @@ export function applyDiffAsTextEdits(
   oldString: string,
   newString: string,
 ): TextEdit[] {
-  if (oldString.length + newString.length <= 50000) console.log('comparing: ', oldString, newString)
   const changes =
     oldString.length + newString.length > 50000
       ? stupidDiff(oldString, newString)
       : diff(oldString, newString)
-  console.log('Changes:', changes)
   let newIndex = 0
   let lineNum = lineOffset
   let lineStartIdx = 0
