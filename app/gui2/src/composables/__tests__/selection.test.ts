@@ -100,11 +100,11 @@ test.each`
 })
 
 class MockPointerEvent extends MouseEvent {
-  // currentTarget: EventTarget | null
+  currentTarget: EventTarget | null
   pointerId: number
   constructor(type: string, options: MouseEventInit & { currentTarget?: Element | undefined }) {
     super(type, options)
-    // this.currentTarget = options.currentTarget ?? null
+    this.currentTarget = options.currentTarget ?? null
     this.pointerId = 4
   }
 }
