@@ -17,6 +17,7 @@ import {
 } from '@/stores/suggestionDatabase/entry.ts'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
+import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import { asNot } from '@/util/data/types.ts'
@@ -129,12 +130,11 @@ interaction.setWhen(showDropdownWidget, {
     showDropdownWidget.value = false
   },
   click: (e: PointerEvent) => {
-    if (widgetRoot.value && e.target instanceof Element && !widgetRoot.value.contains(e.target)) {
+    if (targetIsOutside(e, widgetRoot)) {
       showDropdownWidget.value = false
       return true
-    } else {
-      return false
     }
+    return false
   },
 })
 

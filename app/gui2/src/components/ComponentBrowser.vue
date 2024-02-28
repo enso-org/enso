@@ -18,6 +18,7 @@ import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
+import { targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
@@ -54,16 +55,14 @@ const cbOpen: Interaction = {
     emit('canceled')
   },
   click: (e: PointerEvent) => {
-    if (cbRoot.value && e.target instanceof Element && !cbRoot.value.contains(e.target)) {
+    if (targetIsOutside(e, cbRoot)) {
       if (input.anyChange.value) {
         acceptInput()
       } else {
         interaction.cancel(cbOpen)
       }
-      return true
-    } else {
-      return false
     }
+    return false
   },
 }
 
