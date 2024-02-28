@@ -12,6 +12,55 @@ export function lookupDef(defs: Record<string, object>, schema: object) {
   return name == null ? null : objectModule.asObject(defs[name])
 }
 
+// =====================
+// === getSchemaName ===
+// =====================
+
+const SCHEMA_NAMES = new WeakMap<object, string>()
+
+/** Return a human-readable name representing a schema. */
+function getSchemaNameHelper(defs: Record<string, object>, schema: object): string {
+  if ('title' in schema) {
+    return String(schema.title)
+  } else if ('type' in schema) {
+    return String(schema.type)
+  } else if ('$ref' in schema) {
+    const referencedSchema = lookupDef(defs, schema)
+    return referencedSchema == null ? '(unknown)' : getSchemaName(defs, referencedSchema)
+  } else if ('anyOf' in schema) {
+    const members = Array.isArray(schema.anyOf) ? schema.anyOf : []
+    return (
+      members
+        .flatMap(objectModule.singletonObjectOrNull)
+        .map(childSchema => getSchemaName(defs, childSchema))
+        .join(' | ') || '(unknown)'
+    )
+  } else if ('allOf' in schema) {
+    const members = Array.isArray(schema.allOf) ? schema.allOf : []
+    return (
+      members
+        .flatMap(objectModule.singletonObjectOrNull)
+        .map(childSchema => getSchemaName(defs, childSchema))
+        .join(' & ') || '(unknown)'
+    )
+  } else {
+    return '(unknown)'
+  }
+}
+
+/** Return a human-readable name representing a schema.
+ * This function is a memoized version of {@link getSchemaNameHelper}. */
+export function getSchemaName(defs: Record<string, object>, schema: object) {
+  const cached = SCHEMA_NAMES.get(schema)
+  if (cached != null) {
+    return cached
+  } else {
+    const name = getSchemaNameHelper(defs, schema)
+    SCHEMA_NAMES.set(schema, name)
+    return name
+  }
+}
+
 // =============================
 // === constantValueToSchema ===
 // =============================
