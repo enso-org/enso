@@ -866,13 +866,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "code-builder"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
-]
-
-[[package]]
 name = "codespan-reporting"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -899,15 +892,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c278839b831783b70278b14df4d45e1beb1aad306c07bb796637de9a0e323e8e"
 dependencies = [
  "crossbeam-utils",
-]
-
-[[package]]
-name = "config-reader"
-version = "0.1.0"
-dependencies = [
- "Inflector",
- "serde",
- "serde_yaml",
 ]
 
 [[package]]
@@ -1323,13 +1307,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-bitmap"
-version = "0.1.0"
-dependencies = [
- "thiserror",
-]
-
-[[package]]
 name = "enso-build"
 version = "0.1.0"
 dependencies = [
@@ -1462,13 +1439,6 @@ dependencies = [
  "regex",
  "tempfile",
  "tokio",
-]
-
-[[package]]
-name = "enso-callback"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
 ]
 
 [[package]]
