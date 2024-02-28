@@ -59,7 +59,9 @@ class FilteringWithPattern {
     // - The unmatched rest of the word, up to, but excluding, the next underscore
     // - The unmatched words before the next matched word, including any underscores
     this.wordMatchRegex = new RegExp(
-      '(^|.*?_)(' + escapeStringRegexp(pattern).replace(/_/g, ')([^_]*)(.*?)(_') + ')([^_]*)(.*)',
+      '(^|.*?_)(' +
+        escapeStringRegexp(pattern).replace(/_/g, ')([^_]*)(.*?)([_ ]') +
+        ')([^_]*)(.*)',
       'i',
     )
     if (pattern.length > 1 && !/_/.test(pattern)) {
@@ -72,7 +74,7 @@ class FilteringWithPattern {
       const regex = pattern
         .split('')
         .map((c) => `(${c})`)
-        .join('([^_]*?_)')
+        .join('([^_]*?[_ ])')
       this.initialsMatchRegex = new RegExp('(^|.*?_)' + regex + '(.*)', 'i')
     }
   }
