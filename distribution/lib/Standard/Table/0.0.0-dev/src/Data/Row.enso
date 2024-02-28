@@ -10,6 +10,7 @@ type Row
     Value (table:Table) (index:Integer)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the set of column column_names
     column_names : Vector Text
     column_names self = self.table.column_names
@@ -20,6 +21,7 @@ type Row
     length self = self.table.columns.length
 
     ## GROUP Standard.Base.Selections
+       ICON select_row
        Gets the value of the specified column.
 
        Arguments:
@@ -42,11 +44,13 @@ type Row
             _ -> table_column.at self.index
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Gets the row as a Vector.
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
 
     ## GROUP Standard.Base.Conversions
+       ICON convert
        Gets the row as a Map.
     to_map : Map
     to_map self =

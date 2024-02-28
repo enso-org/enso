@@ -3,7 +3,7 @@ import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Time_Error.Time_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 import project.Data.Time.Date_Part_Spec
@@ -838,8 +838,8 @@ java_parse date_text_raw pattern=Nothing =
       formatter = DateTimeFormatter.ofPattern(pattern)
       Panic.catch Any (maybe_parse_java_zoned date_text formatter) (cause -> parse_java_local cause.payload date_text pattern)
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

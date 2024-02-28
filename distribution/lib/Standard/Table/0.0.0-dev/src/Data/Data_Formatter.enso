@@ -171,7 +171,7 @@ type Data_Formatter
             if formats.length != 2 then Error.throw (Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`, for example: 'Yes|No'.") else
                 self.with_boolean_values true_values=[formats.at 0] false_values=[formats.at 1]
         Auto ->
-            Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Auto`.")
+            Error.throw (Illegal_Argument.Error "Specify a `type` to use a custom format.")
         _ : Value_Type ->
             Error.throw (Illegal_Argument.Error "Cannot specify a `format` for type `"+type.to_text+"`.")
 

@@ -1,13 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Dry_Run_Operation
-import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 from Standard.Base.Runtime import assert
 
-import Standard.Table.Data.Table.Table as In_Memory_Table
+import Standard.Table.Data.Table.Table
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 from Standard.Table.Errors import all
@@ -17,7 +16,7 @@ import project.Data.Column_Constraint.Column_Constraint
 import project.Data.Column_Description.Column_Description
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
-import project.Data.Table.Table as Database_Table
+import project.Data.DB_Table.DB_Table
 import project.Data.Update_Action.Update_Action
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
@@ -53,7 +52,7 @@ create_table_implementation connection table_name structure primary_key temporar
                     internal_create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
                 if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
                     created_table = connection.base_connection.internal_allocate_dry_run_table created_table_name
-                    warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+") instead of the actual one."
+                    warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+").  Press the Record Once button ❙⬤❙ to create the actual one."
                     Warning.attach warning created_table
 
 ## PRIVATE
@@ -77,8 +76,8 @@ internal_create_table_structure connection table_name structure primary_key temp
 
    Arguments:
    - source_table: the table to be uploaded.
-     If it's a `Database_Table`, the query will be materialized as a new table.
-     If it's an `In_Memory_Table`, the data will be uploaded to the newly created table.
+     If it's a `DB_Table`, the query will be materialized as a new table.
+     If it's an In Memmory `Table`, the data will be uploaded to the newly created table.
    - connection: the connection to the database.
    - table_name: the name of the table to be created.
    - primary_key: the primary key of the table to be created. Can be `Nothing` to set no key.
@@ -86,12 +85,12 @@ internal_create_table_structure connection table_name structure primary_key temp
    - structure_hint: If set, it can be used to hint what types should be used for the columns of the table. Useful if the types slightly differ from the in-memory source types.
    - on_problems: the behavior to be used when reporting problems.
    - row_limit: if set, only the first `row_limit` rows will be uploaded.
-internal_upload_table : Database_Table | In_Memory_Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Vector Column_Description ->  Problem_Behavior -> Integer|Nothing -> Database_Table
+internal_upload_table : DB_Table | Table -> Connection -> Text -> Nothing | Vector Text -> Boolean -> Vector Column_Description ->  Problem_Behavior -> Integer|Nothing -> DB_Table
 internal_upload_table source_table connection table_name primary_key temporary structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=Nothing =
     case source_table of
-        _ : In_Memory_Table ->
+        _ : Table ->
             internal_upload_in_memory_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit
-        _ : Database_Table ->
+        _ : DB_Table ->
             internal_upload_database_table source_table connection table_name primary_key temporary structure_hint on_problems row_limit
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
@@ -120,7 +119,7 @@ select_into_table_implementation source_table connection table_name primary_key 
                                 connection.drop_table tmp_table_name if_exists=True
                                 internal_upload_table source_table connection tmp_table_name primary_key temporary=True on_problems=on_problems row_limit=dry_run_row_limit
                             temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name
-                            warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data."
+                            warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data.  Press the Record Once button ❙⬤❙ to write to the actual table."
                             Warning.attach warning temporary_table
 
 ## PRIVATE
@@ -228,8 +227,8 @@ type Non_Unique_Key_Recipe
    Creates a `Non_Unique_Key` error containing information about an
    example group violating the uniqueness constraint.
 raise_duplicated_primary_key_error source_table primary_key original_panic =
-    agg = source_table.aggregate [Aggregate_Column.Count]+(primary_key.map Aggregate_Column.Group_By)
-    filtered = agg.filter column=0 (Filter_Condition.Greater than=1)
+    agg = source_table.aggregate primary_key [Aggregate_Column.Count]
+    filtered = agg.filter column=-1 (Filter_Condition.Greater than=1)
     materialized = filtered.read max_rows=1 warn_if_more_rows=False
     case materialized.row_count == 0 of
         ## If we couldn't find a duplicated key, we give up the translation and
@@ -239,16 +238,16 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
         True -> Panic.throw original_panic
         False ->
             row = materialized.first_row.to_vector
-            example_count = row.first
-            example_entry = row.drop 1
+            example_count = row.last
+            example_entry = row.drop (Last 1)
             Error.throw (Non_Unique_Key.Error primary_key example_entry example_count)
 
 ## PRIVATE
-align_structure : Connection | Any -> Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
+align_structure : Connection | Any -> DB_Table | Table | Vector Column_Description -> Vector Column_Description
 align_structure connection table_or_columns = case table_or_columns of
     vector : Vector         -> align_vector_structure vector
-    table : Database_Table  -> structure_from_existing_table connection table
-    table : In_Memory_Table -> structure_from_existing_table connection table
+    table : DB_Table  -> structure_from_existing_table connection table
+    table : Table -> structure_from_existing_table connection table
 
 ## PRIVATE
 align_vector_structure vector =
@@ -290,8 +289,8 @@ validate_structure column_naming_helper structure ~action =
    Used to provide the default value for `primary_key` in `create_table`.
 first_column_name_in_structure structure = case structure of
     vector : Vector -> align_vector_structure vector . first . name
-    table : Database_Table  -> table.column_names.first
-    table : In_Memory_Table -> table.column_names.first
+    table : DB_Table  -> table.column_names.first
+    table : Table -> table.column_names.first
 
 ## PRIVATE
    Creates a statement that will create a table with structure determined by the
@@ -325,7 +324,7 @@ make_batched_insert_template connection table_name column_names =
     template
 
 ## PRIVATE
-common_update_table (source_table : Database_Table | In_Memory_Table) (target_table : Database_Table) update_action key_columns error_on_missing_columns on_problems =
+common_update_table (source_table : DB_Table | Table) (target_table : DB_Table) update_action key_columns error_on_missing_columns on_problems =
     check_target_table_for_update target_table <|
         connection = target_table.connection
         Panic.recover SQL_Error <| handle_upload_errors <|
@@ -346,13 +345,13 @@ common_update_table (source_table : Database_Table | In_Memory_Table) (target_ta
                                above fails, the whole transaction will be rolled back.
                             connection.drop_table tmp_table.name
                             if dry_run.not then resulting_table else
-                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged."
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_rows` was performed - the target table has been returned unchanged.  Press the Record Once button ❙⬤❙ to update the actual table."
                                 Warning.attach warning resulting_table
 
 ## PRIVATE
 check_target_table_for_update target_table ~action = case target_table of
-    _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
-    _ : Database_Table -> if target_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
+    _ : Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
+    _ : DB_Table -> if target_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
         action
 
 ## PRIVATE
@@ -490,7 +489,7 @@ check_update_arguments_structure_match source_table target_table key_columns upd
                             on_problems.attach_problems_before problems action
 
 ## PRIVATE
-default_key_columns (table : Database_Table | In_Memory_Table) =
+default_key_columns (table : DB_Table | Table) =
     check_target_table_for_update table <|
         table.get_primary_key
 
@@ -551,7 +550,7 @@ common_delete_rows target_table key_values_to_delete key_columns allow_duplicate
                         source.drop_temporary_table connection
                         if dry_run.not then affected_row_count else
                             suffix = source.dry_run_message_suffix
-                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed."+suffix
+                            warning = Dry_Run_Operation.Warning "Only a dry run of `delete_rows` was performed - the target table has not been changed. Press the Record Once button ❙⬤❙ to update the actual table."+suffix
                             Warning.attach warning affected_row_count
 
 ## PRIVATE
@@ -561,7 +560,7 @@ common_delete_rows target_table key_values_to_delete key_columns allow_duplicate
    In dry-run mode, if the table is an SQL query, it is kept as is to avoid copying data.
    In real mode, the table is copied into a temporary table to simplify the DELETE FROM query.
    If the source table is in-memory, it is uploaded in either mode, but in dry-run mode only a sample of the rows is processed.
-prepare_source_table_for_delete_matching (key_values_to_delete : Database_Table | In_Memory_Table) connection key_columns dry_run =
+prepare_source_table_for_delete_matching (key_values_to_delete : DB_Table | Table) connection key_columns dry_run =
     ## We select only the key columns and discard anything else.
        We also call distinct to ensure that we will not have primary-key
        duplicate issues when uploading the temporary table.
@@ -569,9 +568,9 @@ prepare_source_table_for_delete_matching (key_values_to_delete : Database_Table 
     case dry_run of
         True ->
             case prepared_table of
-                _ : Database_Table ->
+                _ : DB_Table ->
                     Delete_Rows_Source.Value prepared_table Nothing
-                _ : In_Memory_Table ->
+                _ : Table ->
                     tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-keys-table-"
                     uploaded_table = internal_upload_in_memory_table prepared_table connection tmp_table_name primary_key=key_columns temporary=True structure_hint=Nothing on_problems=Problem_Behavior.Report_Error row_limit=dry_run_row_limit
 
@@ -589,7 +588,7 @@ prepare_source_table_for_delete_matching (key_values_to_delete : Database_Table 
 ## PRIVATE
 type Delete_Rows_Source
     ## PRIVATE
-    Value (db_table : Database_Table) (tmp_table_name : Nothing | Text) (dry_run_message_suffix : Text = "")
+    Value (db_table : DB_Table) (tmp_table_name : Nothing | Text) (dry_run_message_suffix : Text = "")
 
     ## PRIVATE
        Drops a temporarily created table, if there was one.
@@ -619,15 +618,15 @@ check_duplicate_key_matches_for_delete target_table tmp_table key_columns allow_
    Checks if any rows identified by `key_columns` have more than one match between two tables.
 check_multiple_rows_match left_table right_table key_columns ~continuation =
     joined = left_table.join right_table on=key_columns join_kind=Join_Kind.Inner
-    counted = joined.aggregate [Aggregate_Column.Count]+(key_columns.map (Aggregate_Column.Group_By _))
-    duplicates = counted.filter 0 (Filter_Condition.Greater than=1)
+    counted = joined.aggregate key_columns [Aggregate_Column.Count]
+    duplicates = counted.filter -1 (Filter_Condition.Greater than=1)
     example = duplicates.read max_rows=1 warn_if_more_rows=False
     case example.row_count == 0 of
         True -> continuation
         False ->
             row = example.first_row . to_vector
-            offending_key = row.drop 1
-            count = row.first
+            offending_key = row.drop (Last 1)
+            count = row.last
             Error.throw (Multiple_Target_Rows_Matched_For_Update.Error offending_key count)
 
 ## PRIVATE

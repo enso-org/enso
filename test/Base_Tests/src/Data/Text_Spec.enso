@@ -11,7 +11,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range import all
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 type Auto
@@ -1662,8 +1662,8 @@ add_specs suite_builder =
         group_builder.specify "should error if start index is larger than string"
             "Hello World!".substring 20 5 . should_fail_with Index_Out_Of_Bounds
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

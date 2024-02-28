@@ -8,6 +8,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
+import project.Errors.Empty_Error.Empty_Error
 import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
@@ -144,11 +145,12 @@ type List
 
              example_fold = Examples.list.reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error.Error) = case self of
+    reduce self function ~if_empty=(Error.throw (Empty_Error.Error List)) = case self of
         Nil -> if_empty
         Cons x xs -> xs.fold x function
 
     ## GROUP Logical
+       ICON preparation
        Checks whether any element of the list matches the given condition.
 
        Arguments:
@@ -179,6 +181,7 @@ type List
         res
 
     ## GROUP Logical
+       ICON preparation
        Checks whether a condition holds for all elements in this list.
 
        Arguments:
@@ -204,6 +207,7 @@ type List
         self . any (predicate >> .not) . not
 
     ## GROUP Logical
+       ICON preparation
        Checks whether this list contains a given value as an element.
 
        Arguments:
@@ -219,6 +223,7 @@ type List
     contains self elem = self.any (== elem)
 
     ## GROUP Logical
+       ICON metadata
        Checks if this list is empty.
 
        > Example
@@ -233,6 +238,7 @@ type List
         Cons _ _ -> False
 
     ## GROUP Logical
+       ICON metadata
        Checks if the list is not empty.
 
        > Example
@@ -549,7 +555,7 @@ type List
 
              example_first = Examples.list.find (> 2)
     find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=(Error.throw Not_Found) =
+    find self condition (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         predicate = unify_condition_or_predicate condition
         case start.signum of
             -1 ->
@@ -577,7 +583,7 @@ type List
 
              [1, 2, 3, 4, 5].find (> 3)
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 = case start.signum of
+    index_of self condition (start : Integer = 0) = case start.signum of
         -1 ->
             node_and_index = find_node_from_end self start
             found = node_and_index.first.index_of condition 0
@@ -605,7 +611,7 @@ type List
 
              [1, 2, 3, 4, 5].find (> 3)
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 = case self of
+    last_index_of self condition (start : Integer = -1) = case self of
         Nil -> if start == -1 || start == 0 then Nothing else Error.throw (Index_Out_Of_Bounds.Error start 0)
         Cons _ _ ->
             length = self.length
@@ -618,17 +624,6 @@ type List
                         new_match = if predicate x then idx else last_match
                         @Tail_Call loop xs idx+1 new_match
                 loop self 0 Nothing
-
-## An error representing that the list is empty.
-type Empty_Error
-    ## PRIVATE
-    Error
-
-    ## PRIVATE
-
-       Pretty prints the empty error.
-    to_display_text : Text
-    to_display_text self = "The List is empty."
 
 ## PRIVATE
    Given a positive index and a list, returns the node.

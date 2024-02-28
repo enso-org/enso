@@ -14,8 +14,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import AssetContextMenu from '#/layouts/AssetContextMenu'
+import type * as assetsTable from '#/layouts/AssetsTable'
 
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
@@ -40,10 +40,11 @@ import Visibility, * as visibilityModule from '#/utilities/visibility'
 // === Constants ===
 // =================
 
+/** The height of the header row. */
+const HEADER_HEIGHT_PX = 34
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
-
 /** Placeholder row for directories that are empty. */
 const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
 
@@ -70,7 +71,8 @@ export interface AssetRowProps
   readonly columns: columnUtils.Column[]
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelectedItem: boolean
+  readonly isSoleSelected: boolean
+  readonly isKeyboardSelected: boolean
   readonly allowContextMenu: boolean
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly onContextMenu?: (
@@ -81,12 +83,13 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelectedItem, setSelected } = props
-  const { allowContextMenu, onContextMenu, state, columns, onClick } = props
+  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
+  const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef } = state
 
-  const { organization, user } = authProvider.useNonPartialUserSession()
+  const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
@@ -130,13 +133,13 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
+            permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
         const copiedAsset = await backend.copyAsset(
           asset.id,
-          newParentId ?? organization?.rootDirectoryId ?? backendModule.DirectoryId(''),
+          newParentId ?? user?.rootDirectoryId ?? backendModule.DirectoryId(''),
           asset.title,
           null
         )
@@ -149,16 +152,13 @@ export default function AssetRow(props: AssetRowProps) {
       } catch (error) {
         toastAndLog(`Could not copy '${asset.title}'`, error)
         // Delete the new component representing the asset that failed to insert.
-        dispatchAssetListEvent({
-          type: AssetListEventType.delete,
-          key: item.key,
-        })
+        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       }
     },
     [
       backend,
-      organization,
       user,
+      userInfo,
       asset,
       item.key,
       /* should never change */ setAsset,
@@ -172,7 +172,7 @@ export default function AssetRow(props: AssetRowProps) {
       newParentKey: backendModule.AssetId | null,
       newParentId: backendModule.DirectoryId | null
     ) => {
-      const rootDirectoryId = organization?.rootDirectoryId ?? backendModule.DirectoryId('')
+      const rootDirectoryId = user?.rootDirectoryId ?? backendModule.DirectoryId('')
       const nonNullNewParentKey = newParentKey ?? rootDirectoryId
       const nonNullNewParentId = newParentId ?? rootDirectoryId
       try {
@@ -184,11 +184,9 @@ export default function AssetRow(props: AssetRowProps) {
           item: asset,
         })
         setItem(oldItem =>
-          oldItem.with({
-            directoryKey: nonNullNewParentKey,
-            directoryId: nonNullNewParentId,
-          })
+          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
         )
+        setAsset(object.merger({ parentId: nonNullNewParentId }))
         await backend.updateAsset(
           asset.id,
           { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
@@ -196,6 +194,7 @@ export default function AssetRow(props: AssetRowProps) {
         )
       } catch (error) {
         toastAndLog(`Could not move '${asset.title}'`, error)
+        setAsset(object.merger({ parentId: asset.parentId }))
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
@@ -211,21 +210,28 @@ export default function AssetRow(props: AssetRowProps) {
     },
     [
       backend,
-      organization,
+      user,
       asset,
       item.directoryId,
       item.directoryKey,
       item.key,
+      /* should never change */ setAsset,
       /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
 
   React.useEffect(() => {
-    if (isSoleSelectedItem) {
+    if (isSoleSelected) {
       setAssetPanelProps({ item, setItem })
+      setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [item, isSoleSelectedItem, /* should never change */ setAssetPanelProps])
+  }, [
+    item,
+    isSoleSelected,
+    /* should never change */ setAssetPanelProps,
+    /* should never change */ setIsAssetPanelTemporarilyVisible,
+  ])
 
   const doDelete = React.useCallback(async () => {
     setInsertionVisibility(Visibility.hidden)
@@ -239,10 +245,7 @@ export default function AssetRow(props: AssetRowProps) {
       })
     }
     try {
-      dispatchAssetListEvent({
-        type: AssetListEventType.willDelete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
       if (
         asset.type === backendModule.AssetType.project &&
         backend.type === backendModule.BackendType.local
@@ -260,10 +263,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
       }
       await backend.deleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(
@@ -284,10 +284,7 @@ export default function AssetRow(props: AssetRowProps) {
     setInsertionVisibility(Visibility.hidden)
     try {
       await backend.undoDeleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
@@ -306,11 +303,11 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.newProject:
       case AssetEventType.newFolder:
       case AssetEventType.uploadFiles:
+      case AssetEventType.newDataLink:
       case AssetEventType.newSecret:
       case AssetEventType.updateFiles:
       case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects: {
+      case AssetEventType.closeProject: {
         break
       }
       case AssetEventType.copy: {
@@ -382,7 +379,7 @@ export default function AssetRow(props: AssetRowProps) {
               try {
                 const details = await backend.getFileDetails(asset.id, asset.title)
                 const file = details.file
-                download.download(download.s3URLToHTTPURL(file.path), asset.title)
+                download.download(details.url ?? download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
                 toastAndLog('Could not download selected files', error)
               }
@@ -398,18 +395,15 @@ export default function AssetRow(props: AssetRowProps) {
       }
       case AssetEventType.removeSelf: {
         // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-        if (event.id === asset.id && user != null) {
+        if (event.id === asset.id && userInfo != null) {
           setInsertionVisibility(Visibility.hidden)
           try {
             await backend.createPermission({
               action: null,
               resourceId: asset.id,
-              userSubjects: [user.id],
+              userSubjects: [userInfo.id],
             })
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
             setInsertionVisibility(Visibility.visible)
             toastAndLog(null, error)
@@ -524,7 +518,10 @@ export default function AssetRow(props: AssetRowProps) {
     const directoryKey =
       item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
     const payload = drag.ASSET_ROWS.lookup(event)
-    if (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) {
+    if (
+      (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) ||
+      event.dataTransfer.types.includes('Files')
+    ) {
       event.preventDefault()
       if (item.item.type === backendModule.AssetType.directory) {
         setIsDraggedOver(true)
@@ -536,6 +533,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.directory:
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
+    case backendModule.AssetType.dataLink:
     case backendModule.AssetType.secret: {
       const innerProps: AssetRowInnerProps = {
         key,
@@ -551,9 +549,25 @@ export default function AssetRow(props: AssetRowProps) {
             <tr
               draggable
               tabIndex={-1}
-              className={`h-8 transition duration-300 ease-in-out ${
+              ref={element => {
+                if (isSoleSelected && element != null && scrollContainerRef.current != null) {
+                  const rect = element.getBoundingClientRect()
+                  const scrollRect = scrollContainerRef.current.getBoundingClientRect()
+                  const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
+                  const scrollDown = rect.bottom - scrollRect.bottom
+                  if (scrollUp < 0 || scrollDown > 0) {
+                    scrollContainerRef.current.scrollBy({
+                      top: scrollUp < 0 ? scrollUp : scrollDown,
+                      behavior: 'smooth',
+                    })
+                  }
+                }
+              }}
+              className={`h-8 transition duration-300 ease-in-out rounded-full outline-2 -outline-offset-2 outline-prmary ${
                 visibilityModule.CLASS_NAME[visibility]
-              } ${isDraggedOver || selected ? 'selected' : ''}`}
+              } ${isKeyboardSelected ? 'outline' : ''} ${
+                isDraggedOver || selected ? 'selected' : ''
+              }`}
               onClick={event => {
                 unsetModal()
                 onClick(innerProps, event)
@@ -628,7 +642,10 @@ export default function AssetRow(props: AssetRowProps) {
                 ) {
                   window.clearTimeout(dragOverTimeoutHandle.current)
                 }
-                if (event.currentTarget === event.target) {
+                if (
+                  event.relatedTarget instanceof Node &&
+                  !event.currentTarget.contains(event.relatedTarget)
+                ) {
                   clearDragState()
                 }
                 props.onDragLeave?.(event)
@@ -652,6 +669,19 @@ export default function AssetRow(props: AssetRowProps) {
                     newParentId: directoryId,
                     ids: new Set(payload.map(dragItem => dragItem.key)),
                   })
+                } else if (event.dataTransfer.types.includes('Files')) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                  dispatchAssetListEvent({
+                    type: AssetListEventType.uploadFiles,
+                    // This is SAFE, as it is guarded by the condition above:
+                    // `item.item.type === backendModule.AssetType.directory`
+                    // eslint-disable-next-line no-restricted-syntax
+                    parentKey: directoryKey as backendModule.DirectoryId,
+                    parentId: directoryId,
+                    files: Array.from(event.dataTransfer.files),
+                  })
                 }
               }}
             >
@@ -667,7 +697,7 @@ export default function AssetRow(props: AssetRowProps) {
                       setItem={setItem}
                       selected={selected}
                       setSelected={setSelected}
-                      isSoleSelectedItem={isSoleSelectedItem}
+                      isSoleSelected={isSoleSelected}
                       state={state}
                       rowState={rowState}
                       setRowState={setRowState}
@@ -707,7 +737,7 @@ export default function AssetRow(props: AssetRowProps) {
         <tr>
           <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
             <div
-              className={`flex justify-center rounded-full h-8 py-1 ${indent.indentClass(
+              className={`flex justify-center rounded-full h-8 py-1 w-container ${indent.indentClass(
                 item.depth
               )}`}
             >

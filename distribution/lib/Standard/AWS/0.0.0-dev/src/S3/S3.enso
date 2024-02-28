@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.No_Such_Key.No_Such_Key
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -9,17 +8,22 @@ import project.AWS_Credential.AWS_Credential
 import project.Errors.AWS_SDK_Error
 import project.Errors.More_Records_Available
 import project.Errors.S3_Bucket_Not_Found
+import project.Errors.S3_Key_Not_Found
 import project.Errors.S3_Error
+import project.Internal.Request_Body
 
 polyglot java import java.io.IOException
 polyglot java import org.enso.aws.ClientBuilder
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
+polyglot java import software.amazon.awssdk.services.s3.model.CopyObjectRequest
+polyglot java import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 polyglot java import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchBucketException
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
+polyglot java import software.amazon.awssdk.services.s3.model.PutObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
@@ -52,6 +56,12 @@ list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max
 ## PRIVATE
    Reads an S3 bucket returning a pair of vectors, one with common prefixes and
    one with object keys.
+
+   Arguments:
+   - bucket: The name of the bucket.
+   - prefix: The prefix to use when searching for keys to return.
+   - credentials: The credentials for the AWS resource.
+   - delimiter: The delimiter used to deduce common prefixes.
 @credentials AWS_Credential.default_widget
 read_bucket : Text -> Text -> AWS_Credential | Nothing -> Integer -> Text -> Pair Vector Vector ! S3_Error
 read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
@@ -87,17 +97,27 @@ read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing deli
      be used.
 head : Text -> Text -> AWS_Credential | Nothing -> Map Text Any ! S3_Error
 head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing =
+    response = raw_head bucket key credentials
+    pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
+    Map.from_vector pairs
+
+## PRIVATE
+   Gets the raw metadata of a bucket or object.
+
+   Arguments:
+   - bucket: the name of the bucket.
+   - key: the key of the object.
+   - credentials: AWS credentials.
+raw_head : Text -> Text -> AWS_Credential | Nothing -> Map Text Any ! S3_Error
+raw_head bucket key credentials =
     client = make_client credentials
-    response = case key == "" of
+    case key == "" of
         True ->
             request = HeadBucketRequest.builder.bucket bucket . build
             handle_s3_errors bucket=bucket <| client.headBucket request
         False ->
             request = HeadObjectRequest.builder.bucket bucket . key key . build
             handle_s3_errors bucket=bucket key=key <| client.headObject request
-
-    pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
-    Map.from_vector pairs
 
 ## ADVANCED
    Gets an object from an S3 bucket.
@@ -108,40 +128,60 @@ head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing =
    - key: the key of the object.
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
-get_object : Text -> Text -> AWS_Credential | Nothing -> Any ! S3_Error
-get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
+   - delimiter: The delimiter to use for deducing the filename from the path.
+get_object : Text -> Text -> AWS_Credential | Nothing -> Response_Body ! S3_Error
+get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" = handle_s3_errors bucket=bucket key=key <|
     request = GetObjectRequest.builder.bucket bucket . key key . build
 
     client = make_client credentials
     response = client.getObject request
 
     inner_response = response.response
-    s3_uri = URI.parse ("s3://" + bucket + "/" + key)
+    s3_uri = URI.parse (uri_prefix + bucket + "/") / key
     content_type = inner_response.contentType
     name = filename_from_content_disposition inner_response.contentDisposition . if_nothing <|
-        key.split "/" . last
+        key.split delimiter . last
     metadata = File_Format_Metadata.Value path=key name=name content_type=content_type
 
     input_stream = Input_Stream.new response (handle_io_errors s3_uri)
     Response_Body.Raw_Stream input_stream metadata s3_uri
 
 ## PRIVATE
-   Splits a S3 URI into bucket and key.
-parse_uri : Text -> Pair Text Text | Nothing
-parse_uri uri =
-    if uri.starts_with "s3://" . not then Nothing else
-        no_prefix = uri.drop 5
-        index_of = no_prefix.index_of "/"
-        if index_of == 0 then Nothing else
-            if index_of.is_nothing then Pair.new no_prefix "" else
-                Pair.new (no_prefix.take index_of) (no_prefix.drop index_of+1)
+put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing request_body = handle_s3_errors bucket=bucket key=key <|
+    client = make_client credentials
+    request = PutObjectRequest.builder.bucket bucket . key key . build
+    client.putObject request request_body . if_not_error Nothing
 
 ## PRIVATE
-handle_s3_errors : Text -> Text -> Function -> Any ! S3_Error | AWS_SDK_Error
+upload_file (local_file : File) (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
+    request_body = Request_Body.from_local_file local_file
+    put_object bucket key credentials request_body
+
+## PRIVATE
+   Deletes the object.
+   It will not raise any errors if the object does not exist.
+delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
+    client = make_client credentials
+    request = DeleteObjectRequest.builder . bucket bucket . key key . build
+    client.deleteObject request . if_not_error Nothing
+
+## PRIVATE
+copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=source_bucket key=source_key <|
+    client = make_client credentials
+    request = CopyObjectRequest.builder
+        . destinationBucket target_bucket
+        . destinationKey target_key
+        . sourceBucket source_bucket
+        . sourceKey source_key
+        . build
+    client.copyObject request . if_not_error Nothing
+
+## PRIVATE
+handle_s3_errors : Any -> Text -> Text -> Any ! S3_Error | AWS_SDK_Error
 handle_s3_errors ~action bucket="" key="" =
     s3_inner_handler caught_panic =
         error = if bucket!="" && caught_panic.payload.is_a NoSuchBucketException then S3_Bucket_Not_Found.Error bucket else
-            if bucket!="" && key!="" && caught_panic.payload.is_a NoSuchKeyException then No_Such_Key.Error bucket key else
+            if bucket!="" && key!="" && caught_panic.payload.is_a NoSuchKeyException then S3_Key_Not_Found.Error bucket key else
                 aws_error = caught_panic.payload.awsErrorDetails
                 S3_Error.Error aws_error.errorMessage aws_error.errorCode
         Error.throw error
@@ -159,3 +199,9 @@ make_client credentials:(AWS_Credential | Nothing) =
 handle_io_errors uri:URI ~action =
     Panic.catch IOException action caught_panic->
         Error.throw (S3_Error.Error ("An IO error has occurred: " + caught_panic.payload.to_text) uri.to_text)
+
+## PRIVATE
+scheme = "s3"
+
+## PRIVATE
+uri_prefix = scheme + "://"

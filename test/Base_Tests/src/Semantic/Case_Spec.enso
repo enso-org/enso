@@ -11,7 +11,7 @@ polyglot java import java.util.AbstractList
 polyglot java import java.util.ArrayList
 polyglot java import java.util.List as Java_List
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder = suite_builder.group "Pattern Matches" group_builder->
@@ -327,8 +327,8 @@ add_specs suite_builder = suite_builder.group "Pattern Matches" group_builder->
             _ : Function -> Nothing
             _ -> Test.fail "Expected to match on Function type."
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

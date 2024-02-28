@@ -1,14 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 add_specs suite_builder =
@@ -181,8 +182,10 @@ add_specs suite_builder =
                 Test.expect_panic_with (r.last_index_of invalid_arg) Type_Error
 
                 reducer x y = if x > y then x else y
-                # Catch+to_text to fix Empty_Error equality.
-                r.reduce reducer . catch . to_text . should_equal (r.to_vector.reduce reducer . catch . to_text)
+
+                case r.length of
+                    0 -> r.reduce reducer . should_fail_with (Empty_Error.Error Date_Range)
+                    _ -> r.reduce reducer . should_equal (r.to_vector.reduce reducer)
 
         group_builder.specify "should define friendly text representations" <|
             r1 = (Date.new 2020 02 28).up_to (Date.new 2020 03 02)

@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Time_Error.Time_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.time.ZoneId
@@ -74,8 +74,8 @@ add_specs suite_builder =
             zone = ZoneId.systemDefault
             Meta.type_of zone . should_equal_type Time_Zone
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

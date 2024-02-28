@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.time.LocalTime
@@ -305,10 +305,10 @@ python_parse time_text pattern=Date_Time_Formatter.iso_time =
     t = Time_Of_Day.parse time_text pattern
     python_time t.hour t.minute t.second t.nanosecond
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 foreign python python_time_impl hour minute second nanoOfSecond = """

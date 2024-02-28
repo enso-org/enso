@@ -210,39 +210,30 @@ object UpsertVisualizationJob {
     */
   def upsertVisualization(
     visualization: Visualization
-  )(implicit ctx: RuntimeContext): Unit =
-    visualization match {
-      case visualization: Visualization.AttachedVisualization =>
-        val visualizationConfig = visualization.config
-        val expressionId        = visualization.expressionId
-        val visualizationId     = visualization.id
-        val maybeCallable =
-          evaluateVisualizationExpression(
-            visualizationConfig.visualizationModule,
-            visualizationConfig.expression
-          )
+  )(implicit ctx: RuntimeContext): Unit = {
+    val visualizationConfig = visualization.config
+    val expressionId        = visualization.expressionId
+    val visualizationId     = visualization.id
+    val maybeCallable =
+      evaluateVisualizationExpression(
+        visualizationConfig.visualizationModule,
+        visualizationConfig.expression
+      )
 
-        maybeCallable.foreach { result =>
-          updateAttachedVisualization(
-            visualizationId,
-            expressionId,
-            result.module,
-            visualizationConfig,
-            result.callback,
-            result.arguments
-          )
-          val stack =
-            ctx.contextManager.getStack(visualizationConfig.executionContextId)
-          requireVisualizationSynchronization(stack, expressionId)
-        }
-
-      case visualization: Visualization.OneshotExpression =>
-        ctx.contextManager.upsertVisualization(
-          visualization.executionContextId,
-          visualization
-        )
-
+    maybeCallable.foreach { result =>
+      updateAttachedVisualization(
+        visualizationId,
+        expressionId,
+        result.module,
+        visualizationConfig,
+        result.callback,
+        result.arguments
+      )
+      val stack =
+        ctx.contextManager.getStack(visualizationConfig.executionContextId)
+      requireVisualizationSynchronization(stack, expressionId)
     }
+  }
 
   /** Find module by name.
     *
@@ -369,7 +360,7 @@ object UpsertVisualizationJob {
     Either
       .catchNonFatal {
         expression match {
-          case Api.VisualizationExpression.Text(_, expression) =>
+          case Api.VisualizationExpression.Text(_, expression, _) =>
             ctx.locking.assertWriteCompilationLock()
             ctx.executionService.evaluateExpression(
               expressionModule,
@@ -509,7 +500,7 @@ object UpsertVisualizationJob {
     val visualizationExpressionId =
       findVisualizationExpressionId(module, visualizationConfig.expression)
     val visualization =
-      Visualization.AttachedVisualization(
+      Visualization(
         visualizationId,
         expressionId,
         new RuntimeCache(),
@@ -603,19 +594,16 @@ object UpsertVisualizationJob {
     *
     * @param visualization the visualization to update
     */
-  private def setCacheWeights(visualization: Visualization): Unit =
-    visualization match {
-      case visualization: Visualization.AttachedVisualization =>
-        visualization.module.getIr
-          .getMetadata(CachePreferenceAnalysis)
-          .foreach { metadata =>
-            CacheInvalidation.runVisualizations(
-              Seq(visualization),
-              CacheInvalidation.Command.SetMetadata(metadata)
-            )
-          }
-      case _: Visualization.OneshotExpression =>
-    }
+  private def setCacheWeights(visualization: Visualization): Unit = {
+    visualization.module.getIr
+      .getMetadata(CachePreferenceAnalysis)
+      .foreach { metadata =>
+        CacheInvalidation.runVisualizations(
+          Seq(visualization),
+          CacheInvalidation.Command.SetMetadata(metadata)
+        )
+      }
+  }
 
   /** Invalidate the first cached dependent node of the provided expression.
     *

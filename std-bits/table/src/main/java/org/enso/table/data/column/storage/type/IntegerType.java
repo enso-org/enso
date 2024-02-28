@@ -17,6 +17,21 @@ public record IntegerType(Bits bits) implements StorageType {
     };
   }
 
+  @Override
+  public boolean isNumeric() {
+    return true;
+  }
+
+  @Override
+  public boolean hasDate() {
+    return false;
+  }
+
+  @Override
+  public boolean hasTime() {
+    return false;
+  }
+
   public long getMaxValue() {
     return switch (bits) {
       case BITS_8 -> Byte.MAX_VALUE;

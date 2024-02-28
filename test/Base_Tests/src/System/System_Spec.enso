@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder = suite_builder.group "System" group_builder->
@@ -13,8 +13,8 @@ add_specs suite_builder = suite_builder.group "System" group_builder->
             result = System.create_process "echo" ["foo", "bar"] "" False False False
             result.exit_code . should_equal 0
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -7,7 +7,7 @@ import Standard.Base.Metadata.Display
 
 import Standard.Visualization.Widgets
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder =
@@ -32,8 +32,8 @@ add_specs suite_builder =
             labels.should_contain "After"
             labels.should_contain "Before_Last"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

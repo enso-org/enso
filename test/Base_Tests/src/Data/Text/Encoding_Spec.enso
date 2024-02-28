@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.lang.String as Java_String
@@ -191,8 +191,8 @@ add_specs suite_builder =
             problems = [Encoding_Error.Error "Encoding issues at 16."]
             Problems.test_problem_handling action problems tester
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

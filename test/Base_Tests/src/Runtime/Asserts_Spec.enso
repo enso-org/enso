@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Base.Errors.Common import Assertion_Error
 from Standard.Base.Errors.Common import Type_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 foreign js js_check = """
@@ -34,8 +34,8 @@ add_specs suite_builder = suite_builder.group "Asserts" group_builder->
         Meta.type_of p.payload . should_be_a Type_Error
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

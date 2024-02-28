@@ -624,17 +624,23 @@ object Runtime {
         *
         * @param module a qualified module name containing the expression
         * @param expression an expression that creates a visualization
+        * @param positionalArgumentsExpressions the list of arguments that will
+        * be passed to the method
         */
-      case class Text(module: String, expression: String)
-          extends VisualizationExpression {
-
-        override val positionalArgumentsExpressions: Vector[String] =
-          Vector()
+      case class Text(
+        module: String,
+        expression: String,
+        positionalArgumentsExpressions: Vector[String]
+      ) extends VisualizationExpression {
 
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           s"Text(module=$module" +
-          s",expression=$expression" +
+          ",expression=" +
+          (if (shouldMask) STUB else expression) +
+          ",positionalArgumentsExpressions=" +
+          (if (shouldMask) STUB
+           else positionalArgumentsExpressions.mkString("[", ",", "]")) +
           ")"
       }
 
@@ -656,7 +662,8 @@ object Runtime {
         override def toLogString(shouldMask: Boolean): String =
           s"ModuleMethod(methodPointer=$methodPointer," +
           "positionalArgumentsExpressions=" +
-          positionalArgumentsExpressions.mkString("[", ",", "]") +
+          (if (shouldMask) STUB
+           else positionalArgumentsExpressions.mkString("[", ",", "]")) +
           ")"
       }
     }

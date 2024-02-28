@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 import project.Data.Time.Duration_Spec
@@ -24,8 +24,8 @@ add_specs suite_builder =
     Time_Zone_Spec.add_specs suite_builder
     Day_Of_Week_Spec.add_specs suite_builder
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -1,13 +1,13 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Examples_Spec
 import project.Python_Examples_Spec
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         Examples_Spec.add_specs suite_builder
         Python_Examples_Spec.add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

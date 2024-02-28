@@ -6,11 +6,11 @@ from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Common_Table_Operations.Util import all
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~data

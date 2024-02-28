@@ -6,7 +6,7 @@ from Standard.Table import Table, Data_Formatter, Column
 from Standard.Table.Data.Type.Value_Type import Value_Type, Auto
 from Standard.Table.Errors import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Util
 
@@ -630,6 +630,13 @@ add_specs suite_builder =
             c1 = Column.from_vector "A" ["1", "2", "3"]
             c1.parse type=Nothing . should_fail_with Illegal_Argument
 
+        group_builder.specify "should return unchanged if all are Nothing or no rows" <|
+            c1 = Column.from_vector "A" [Nothing, Nothing, Nothing] Value_Type.Char
+            c1.parse.value_type . should_equal Value_Type.Char
+
+            c2 = Column.from_vector "A" [] Value_Type.Char
+            c2.parse.value_type . should_equal Value_Type.Char
+
         group_builder.specify "should error if the input column is not text" <|
             c1 = Column.from_vector "A" [1, 2, 3]
             r1 = c1.parse
@@ -638,8 +645,8 @@ add_specs suite_builder =
             r1.catch.expected . should_equal "Char"
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -5,15 +5,16 @@ import org.enso.editions.DefaultEnsoVersion
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{ErrorChannel, Exec}
+import org.enso.projectmanager.control.effect.{ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectCreate
-import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failureMapper
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
+
+import java.io.File
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -24,7 +25,9 @@ import scala.concurrent.duration.FiniteDuration
   * @param requestTimeout a request timeout
   * @param timeoutRetries a number of timeouts to wait until a failure is reported
   */
-class ProjectCreateHandler[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
+class ProjectCreateHandler[
+  F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel: Sync
+](
   configurationService: GlobalConfigServiceApi[F],
   projectService: ProjectServiceApi[F],
   requestTimeout: FiniteDuration,
@@ -57,12 +60,16 @@ class ProjectCreateHandler[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
             )
           }
         _ = logger.trace(s"Creating project using engine $actualVersion")
+        projectsDirectory <- Sync[F].effect(
+          params.projectsDirectory.map(new File(_))
+        )
         project <- projectService.createUserProject(
           progressTracker        = self,
           name                   = params.name,
           engineVersion          = actualVersion,
           projectTemplate        = params.projectTemplate,
-          missingComponentAction = missingComponentAction
+          missingComponentAction = missingComponentAction,
+          projectsDirectory      = projectsDirectory
         )
         _ = logger.trace(
           s"Created requested project ${params.name} with real " +
@@ -82,7 +89,7 @@ object ProjectCreateHandler {
     * @param timeoutRetries a number of timeouts to wait until a failure is reported
     * @return a configuration object
     */
-  def props[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
+  def props[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel: Sync](
     configurationService: GlobalConfigServiceApi[F],
     projectService: ProjectServiceApi[F],
     requestTimeout: FiniteDuration,

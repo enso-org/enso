@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.math.BigInteger as Java_Big_Integer
@@ -279,8 +279,8 @@ add_specs suite_builder =
             y = js_map 10 5
             x==y . should_be_true
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

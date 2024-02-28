@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder =
@@ -50,8 +50,8 @@ add_specs suite_builder =
             Period.new years=2 days=3 . to_display_text . should_equal "2Y 0M 3D"
             Period.new days=18 . to_display_text . should_equal "18D"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

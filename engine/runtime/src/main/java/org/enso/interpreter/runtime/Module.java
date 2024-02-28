@@ -27,6 +27,7 @@ import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
@@ -60,7 +61,7 @@ public final class Module implements EnsoObject {
   private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
   private QualifiedName name;
-  private final ModuleCache cache;
+  private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
   private final boolean synthetic;
 
@@ -86,7 +87,7 @@ public final class Module implements EnsoObject {
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = false;
   }
@@ -103,7 +104,7 @@ public final class Module implements EnsoObject {
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
@@ -121,7 +122,7 @@ public final class Module implements EnsoObject {
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.pkg = pkg;
     this.name = name;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.patchedValues = new PatchedModuleValues(this);
     this.synthetic = false;
@@ -142,7 +143,7 @@ public final class Module implements EnsoObject {
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
     this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
-    this.cache = new ModuleCache(this);
+    this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = synthetic;
   }
@@ -522,7 +523,7 @@ public final class Module implements EnsoObject {
   /**
    * @return the cache for this module
    */
-  public ModuleCache getCache() {
+  public Cache<ModuleCache.CachedModule, ModuleCache.Metadata> getCache() {
     return cache;
   }
 

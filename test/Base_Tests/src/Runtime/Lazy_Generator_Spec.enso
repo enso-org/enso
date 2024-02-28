@@ -1,4 +1,5 @@
-from Standard.Test_New import all
+from Standard.Base import all
+from Standard.Test import all
 
 
 type Generator
@@ -17,8 +18,8 @@ add_specs suite_builder = suite_builder.group "Lazy Generator" group_builder->
         four = three.next
         four.n . should_equal 4
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

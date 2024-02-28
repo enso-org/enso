@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
-import Standard.Test_New.Test_Environment
+from Standard.Test import all
+import Standard.Test.Test_Environment
 
 
 
@@ -33,8 +33,8 @@ add_specs suite_builder = suite_builder.group "Environment" group_builder->
             x
         result_3 . should_equal ["2", "3", "4"]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

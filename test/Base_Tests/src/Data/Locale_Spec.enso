@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Base.Metadata.Choice import Option
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.util.Locale as JavaLocale
@@ -80,8 +80,8 @@ add_specs suite_builder =
         locale_names = Locale.widget_options.map x-> case x of Option locale_name _ _ _ -> locale_name
         locale_names . should_equal ['Bangladesh', 'Brazil', 'Canada English', 'Canada French', 'China', 'France', 'Germany', 'India English', 'India Hindi', 'Indonesia', 'Italy', 'Japan', 'Mexico', 'Nigeria', 'Pakistan English', 'Pakistan Urdu', 'Poland', 'Russia', 'South Korea', 'UK', 'US']
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

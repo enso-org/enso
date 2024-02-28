@@ -4,7 +4,7 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
 from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Invalid_Value_Type, No_Common_Type, Loss_Of_Integer_Precision
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 
@@ -15,10 +15,10 @@ polyglot java import java.lang.Long as Java_Long
 
 polyglot java import org.enso.table_test_helpers.PolyglotHelpers
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 add_specs suite_builder =

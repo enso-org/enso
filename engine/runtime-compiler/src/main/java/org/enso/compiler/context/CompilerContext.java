@@ -104,9 +104,12 @@ public interface CompilerContext extends CompilerStub {
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
 
   Future<Boolean> serializeModule(
-      Compiler compiler, Module module, boolean useGlobalCacheLocations);
+      Compiler compiler, Module module, boolean useGlobalCacheLocations, boolean usePool);
 
   boolean deserializeModule(Compiler compiler, Module module);
+
+  scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(LibraryName libraryName)
+      throws InterruptedException;
 
   void shutdown(boolean waitForPendingJobCompletion);
 

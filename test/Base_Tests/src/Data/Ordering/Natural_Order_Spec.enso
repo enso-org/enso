@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder = suite_builder.group "Natural Order" group_builder->
@@ -59,8 +59,8 @@ add_specs suite_builder = suite_builder.group "Natural Order" group_builder->
 
         ["1.0002", "1.0001", "1.01", "1.1", "1.10", "1.2", "2", "0", "1.20"].sort by=Natural_Order.compare . should_equal ["0", "1.0001", "1.01", "1.1", "1.0002", "1.2", "1.10", "1.20", "2"]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

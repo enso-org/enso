@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Random.Random_Generator
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder = suite_builder.group "Random" group_builder->
@@ -153,8 +153,8 @@ add_specs suite_builder = suite_builder.group "Random" group_builder->
         Random.new_generator 12345 . float . should_equal 0.3618031071604718 epsilon=0.00000001
         Random.new_generator 12345 . gaussian . should_equal -0.187808989658912 epsilon=0.00000001
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

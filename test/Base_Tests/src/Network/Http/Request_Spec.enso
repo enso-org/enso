@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder =
@@ -47,8 +47,8 @@ add_specs suite_builder =
             req.body.should_equal (Request_Body.Form_Data body_form)
             req.headers.should_equal [Header.application_x_www_form_urlencoded]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

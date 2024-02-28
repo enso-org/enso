@@ -1,8 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 Array.method self = 0
@@ -42,6 +43,12 @@ add_specs suite_builder =
             arr . should_equal [3, 1, 2]
             new_arr . should_equal [1, 2, 3]
 
+        group_builder.specify "should be able to be reduced" <|
+            make_enso_array [1, 2, 3, 4, 5] . reduce (+) . should_equal 15
+            make_enso_array [1, 3, 5] . reduce (+) . should_equal 9
+            make_enso_array [] . reduce (+) . should_fail_with (Empty_Error.Error Array)
+            make_enso_array [] . reduce (+) 0 . should_equal 0
+
     suite_builder.group "Compare functionality with Vector" group_builder->
         group_builder.specify "compare methods" <|
             vector_methods = Meta.meta Vector . methods . sort
@@ -66,8 +73,8 @@ add_specs suite_builder =
             sorted.to_text . should_equal "[10, 32, 46, 98, 101, 106, 106, 115, 117, 117]"
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

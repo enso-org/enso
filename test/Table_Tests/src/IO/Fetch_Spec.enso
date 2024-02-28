@@ -7,14 +7,14 @@ import Standard.Base.Runtime.Context
 from Standard.Table import all
 import Standard.Table.Errors.Invalid_JSON_Format
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Util
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 add_specs suite_builder =

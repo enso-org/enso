@@ -66,7 +66,7 @@ class ImportResolver(compiler: Compiler) {
                 u.invalidateCache()
               }
             )
-            compiler.ensureParsed(current)
+            compiler.ensureParsed(current, false)
             return analyzeModule(current)
         }
       // put the list of resolved imports in the module metadata
@@ -123,18 +123,14 @@ class ImportResolver(compiler: Compiler) {
             // - no - ensure they are parsed (load them from cache) and add them to the import/export resolution
             compiler.importExportBindings(current) match {
               case Some(bindings) =>
-                val converted = bindings
-                  .toConcrete(compiler.packageRepository.getModuleMap)
-                  .map { concreteBindings =>
-                    compiler.context.updateModule(
-                      current,
-                      { u =>
-                        u.bindingsMap(concreteBindings)
-                        u.loadedFromCache(true)
-                      }
-                    )
-                    concreteBindings
+                compiler.context.updateModule(
+                  current,
+                  u => {
+                    u.ir(bindings)
+                    u.loadedFromCache(true)
                   }
+                )
+                val converted = Option(current.getBindingsMap())
                 (
                   converted
                     .map(
@@ -183,7 +179,7 @@ class ImportResolver(compiler: Compiler) {
             u.compilationStage(CompilationStage.INITIAL)
           }
         )
-        compiler.ensureParsed(mod)
+        compiler.ensureParsed(mod, false)
         b = mod.getBindingsMap()
       }
 

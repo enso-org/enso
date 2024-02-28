@@ -3,6 +3,7 @@ import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata import make_single_choice
 
 import project.Data.Match_Columns.Match_Columns
@@ -85,18 +86,25 @@ Text.parse_to_table self (pattern : Text | Regex) case_sensitivity=Case_Sensitiv
     - match_columns: How to match columns between the table and the file.
       Not used for JSON.
     - on_problems: What to do if there are problems reading the file.
-JSON_Format.write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
-JSON_Format.write_table self file table on_existing_file match_columns on_problems =
-    _ = [match_columns, on_problems]
+JSON_Format.write_table : Writable_File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
+JSON_Format.write_table self file:Writable_File table on_existing_file match_columns on_problems =
+    _ = match_columns
     if file.exists.not then table.to_json.write file else
         case on_existing_file of
             Existing_File_Behavior.Append ->
-                ## Special handling - Need to remove the closing bracket and append.
-                old_text = file.read_text.trim
-                case old_text.ends_with "]" && old_text.starts_with "[" of
-                    True ->
-                        new_text = old_text.drop (Last 1) + "," + table.to_json.drop (First 1)
-                        new_text.write file on_existing_file=Existing_File_Behavior.Overwrite on_problems=on_problems
-                    False ->
-                        Error.throw (Invalid_JSON_Format.Error old_text "File already exists and is not a JSON array.")
+                if file.is_local then append_to_json_table file.file table on_problems else
+                    file.write_requiring_local_file Existing_File_Behavior.Append local_temp_file->
+                        append_to_json_table local_temp_file table on_problems
             _ -> table.to_json.write file on_existing_file=on_existing_file on_problems=on_problems
+
+## PRIVATE
+   Handles appending to a file containing a JSON table by removing the closing bracket and appending to it.
+append_to_json_table file:File table on_problems =
+    old_text = file.read_text.trim
+    case old_text.ends_with "]" && old_text.starts_with "[" of
+        True ->
+            ## Here we read in the whole table. We could actually just read from the back and rely on `seek` to be more efficient for large files.
+            new_text = old_text.drop (Last 1) + "," + table.to_json.drop (First 1)
+            new_text.write file on_existing_file=Existing_File_Behavior.Overwrite on_problems=on_problems
+        False ->
+            Error.throw (Invalid_JSON_Format.Error old_text "File already exists and is not a JSON array.")

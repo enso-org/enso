@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder =
@@ -62,8 +62,8 @@ add_specs suite_builder =
             (s1 == s1) . should_be_true
             (s1 == s3) . should_be_false
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

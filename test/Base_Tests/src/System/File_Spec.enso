@@ -6,10 +6,11 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 set_writable file writable =
@@ -264,7 +265,7 @@ add_specs suite_builder =
                 r1 = f.read
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Access_Denied
-                r1.catch.file . should_equal f
+                r1.catch.file.path . should_equal f.path
                 r1.catch.to_display_text.should_contain "Insufficient permissions"
 
                 Process.run "chmod" ["0744", f.absolute.path] . exit_code . should_equal Exit_Code.Success
@@ -415,6 +416,13 @@ add_specs suite_builder =
             f.exists.should_be_false
             [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument
             [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument
+
+        group_builder.specify "should not write if Output is disabled" <|
+            f = transient / "write_bytes_disabled.txt"
+            f.delete_if_exists
+            Context.Output.with_disabled <|
+                [1,2,3].write_bytes f . should_fail_with Forbidden_Operation
+                f.exists.should_be_false
 
         group_builder.specify "should not change the file when trying to write an invalid byte vector" <|
             f = transient / "work.txt"
@@ -640,7 +648,7 @@ add_specs suite_builder =
             [bak_file, new_file].each .delete_if_exists
 
             result = Panic.catch Illegal_State handler=(caught_panic-> caught_panic.payload.message) <|
-                Existing_File_Behavior.Backup.write f output_stream->
+                (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State.Error "baz")
                     output_stream.write_bytes "bar".utf_8
@@ -654,7 +662,7 @@ add_specs suite_builder =
             f.delete
 
             result2 = Panic.catch Illegal_State handler=(caught_panic-> caught_panic.payload.message) <|
-                Existing_File_Behavior.Backup.write f output_stream->
+                (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State.Error "baz")
                     output_stream.write_bytes "bar".utf_8
@@ -670,7 +678,7 @@ add_specs suite_builder =
             f.delete
 
             "OLD".write f on_existing_file=Existing_File_Behavior.Overwrite
-            result3 = Existing_File_Behavior.Backup.write f output_stream->
+            result3 = (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                 output_stream.write_bytes "foo".utf_8
                 Error.throw (Illegal_State.Error "HMM...")
             result3.should_fail_with Illegal_State
@@ -682,7 +690,7 @@ add_specs suite_builder =
                 Test.fail "The temporary file should have been cleaned up."
             f.delete
 
-            result4 = Existing_File_Behavior.Backup.write f output_stream->
+            result4 = (f : Writable_File).write Existing_File_Behavior.Backup output_stream->
                 output_stream.write_bytes "foo".utf_8
                 Error.throw (Illegal_State.Error "HMM...")
             result4.should_fail_with Illegal_State
@@ -736,7 +744,7 @@ add_specs suite_builder =
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Not_Found
             # The write fails because the _parent_ directory did not exist.
-            r1.catch.file . should_equal parent
+            r1.catch.file.path . should_equal parent.path
 
             r2 = [65, 67].write_bytes f
             r2.should_fail_with File_Error
@@ -833,8 +841,7 @@ add_specs suite_builder =
             filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
             filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
-
+    suite.run_with_filter filter

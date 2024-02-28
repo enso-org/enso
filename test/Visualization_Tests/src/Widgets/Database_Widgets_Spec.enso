@@ -10,7 +10,7 @@ from Standard.AWS import all
 
 import Standard.Visualization.Widgets
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder =
@@ -42,7 +42,7 @@ add_specs suite_builder =
             Widgets.get_widget_json mock_table .at ["selector"] . should_equal expect
 
         group_builder.specify "works for `filter`" <|
-            choices = mock_table.column_names . map n-> Choice.Option n n.pretty
+            choices = [Choice.Option "<Expression>" "(expr '[A]')"] + mock_table.column_names . map n-> Choice.Option n n.pretty
             expect = [["column", Widget.Single_Choice choices Nothing Display.Always]] . to_json
             Widgets.get_widget_json mock_table .filter ["column"] . should_equal expect
 
@@ -53,8 +53,8 @@ add_specs suite_builder =
             result.should_contain "Postgres"
             result.should_contain "Redshift"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

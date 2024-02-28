@@ -4,7 +4,7 @@ from Standard.Table import Table, Column
 
 import Standard.Visualization.Scatter_Plot
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 import project
@@ -123,8 +123,8 @@ add_specs suite_builder =
             value = 2.up_to 5
             expect value no_labels '[{"x":0,"y":2},{"x":1,"y":3},{"x":2,"y":4}]'
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

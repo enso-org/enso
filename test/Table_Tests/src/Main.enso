@@ -1,6 +1,6 @@
 from Standard.Base import all hiding IO
 
-from Standard.Test_New import Test
+from Standard.Test import Test
 
 import project.Database
 import project.Formatting

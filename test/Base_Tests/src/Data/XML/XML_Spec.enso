@@ -3,11 +3,11 @@ import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.File_Error.File_Error
 from Standard.Base.Runtime import assert
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 type Test_Data
     Value ~data
-    
+
     test_file self = self.data.at 0
     document self = self.data.at 1
     root self = self.data.at 2
@@ -236,8 +236,8 @@ add_specs suite_builder =
             js = root.to_js_object
             js.should_equal expected
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

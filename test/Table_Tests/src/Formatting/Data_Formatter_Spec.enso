@@ -6,7 +6,7 @@ from Standard.Base.Data.Time.Errors import Date_Time_Format_Parse_Error, Suspici
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Value_Type
 from Standard.Table.Errors import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 type Custom_Type
     Value field
@@ -356,8 +356,8 @@ add_specs suite_builder =
             formatter_3.true_values . should_equal []
             formatter_3.false_values . should_equal []
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

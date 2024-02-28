@@ -12,6 +12,7 @@ from project.Function import const
 @Builtin_Type
 type Nothing
     ## GROUP Logical
+       ICON metadata
        Checks if the type is an instance of `Nothing`.
 
        > Example

@@ -1,0 +1,6 @@
+private
+
+## PRIVATE
+type DB_Wrapped_Error
+    ## PRIVATE
+    Value value

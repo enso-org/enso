@@ -32,10 +32,11 @@ import type {
   ExplicitCall,
   ExpressionId,
   ExpressionUpdate,
+  MethodPointer,
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
-import { DistributedProject, type ExternalId, type Uuid } from 'shared/yjsModel'
+import { DistributedProject, localOrigins, type ExternalId, type Uuid } from 'shared/yjsModel'
 import {
   computed,
   markRaw,
@@ -499,6 +500,7 @@ export const useProjectStore = defineStore('project', () => {
     return tryQualifiedName(`${fullName.value}.${withDotSeparators}`)
   })
 
+  let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
     if (lsUrls.rpcUrl.startsWith('mock://')) {
       doc.load()
@@ -510,16 +512,14 @@ export const useProjectStore = defineStore('project', () => {
     const socketUrl = new URL(location.origin)
     socketUrl.protocol = location.protocol.replace(/^http/, 'ws')
     socketUrl.pathname = '/project'
-    const provider = attachProvider(
+    yDocsProvider = attachProvider(
       socketUrl.href,
       'index',
       { ls: lsUrls.rpcUrl },
       doc,
       awareness.internal,
     )
-    onCleanup(() => {
-      provider.dispose()
-    })
+    onCleanup(disposeYDocsProvider)
   })
 
   const projectModel = new DistributedProject(doc)
@@ -545,16 +545,19 @@ export const useProjectStore = defineStore('project', () => {
     const moduleName = projectModel.findModuleByDocId(guid)
     if (moduleName == null) return null
     const mod = await projectModel.openModule(moduleName)
-    mod?.undoManager.addTrackedOrigin('local')
+    for (const origin of localOrigins) mod?.undoManager.addTrackedOrigin(origin)
     return mod
   })
 
-  function createExecutionContextForMain(): ExecutionContext {
+  const entryPoint = computed<MethodPointer>(() => {
     const projectName = fullName.value
     const mainModule = `${projectName}.Main`
-    const entryPoint = { module: mainModule, definedOnType: mainModule, name: 'main' }
+    return { module: mainModule, definedOnType: mainModule, name: 'main' }
+  })
+
+  function createExecutionContextForMain(): ExecutionContext {
     return new ExecutionContext(lsRpcConnection, {
-      methodPointer: entryPoint,
+      methodPointer: entryPoint.value,
       positionalArgumentsExpressions: [],
     })
   }
@@ -574,7 +577,7 @@ export const useProjectStore = defineStore('project', () => {
   const visualizationDataRegistry = new VisualizationDataRegistry(executionContext, dataConnection)
   const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
 
-  const diagnostics = ref<Diagnostic[]>([])
+  const diagnostics = shallowRef<Diagnostic[]>([])
   executionContext.on('executionStatus', (newDiagnostics) => {
     diagnostics.value = newDiagnostics
   })
@@ -590,7 +593,9 @@ export const useProjectStore = defineStore('project', () => {
         executionContext.setVisualization(id, config)
         onCleanup(() => executionContext.setVisualization(id, null))
       },
-      { immediate: true },
+      // Make sure to flush this watch in 'post', otherwise it might cause operations on stale
+      // ASTs just before the widget tree renders and cleans up the associated widget instances.
+      { immediate: true, flush: 'post' },
     )
 
     return shallowRef(
@@ -675,6 +680,20 @@ export const useProjectStore = defineStore('project', () => {
 
   const { executionMode } = setupSettings(projectModel)
 
+  function disposeYDocsProvider() {
+    yDocsProvider?.dispose()
+    yDocsProvider = undefined
+  }
+
+  const recordMode = computed({
+    get() {
+      return executionMode.value === 'live'
+    },
+    set(value) {
+      executionMode.value = value ? 'live' : 'design'
+    },
+  })
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -687,6 +706,7 @@ export const useProjectStore = defineStore('project', () => {
     diagnostics,
     module,
     modulePath,
+    entryPoint,
     projectModel,
     contentRoots,
     awareness: markRaw(awareness),
@@ -697,8 +717,10 @@ export const useProjectStore = defineStore('project', () => {
     isOutputContextEnabled,
     stopCapturingUndo,
     executionMode,
+    recordMode,
     dataflowErrors,
     executeExpression,
+    disposeYDocsProvider,
   }
 })
 

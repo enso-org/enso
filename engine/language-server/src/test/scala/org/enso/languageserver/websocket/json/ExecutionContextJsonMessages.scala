@@ -136,7 +136,7 @@ object ExecutionContextJsonMessages {
     configuration: VisualizationConfiguration
   ) = {
     configuration.expression match {
-      case VisualizationExpression.Text(module, expression) =>
+      case VisualizationExpression.Text(module, expression, Vector()) =>
         json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/attachVisualization",
@@ -148,6 +148,23 @@ object ExecutionContextJsonMessages {
                 "executionContextId": ${configuration.executionContextId},
                 "visualizationModule": $module,
                 "expression": $expression
+              }
+            }
+          }
+          """
+      case VisualizationExpression.Text(module, expression, arguments) =>
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/attachVisualization",
+            "id": $reqId,
+            "params": {
+              "visualizationId": $visualizationId,
+              "expressionId": $expressionId,
+              "visualizationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "visualizationModule": $module,
+                "expression": $expression,
+                "positionalArgumentsExpressions": $arguments
               }
             }
           }
@@ -182,7 +199,7 @@ object ExecutionContextJsonMessages {
               "expressionId": $expressionId,
               "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
-                "visualizationModule": ${methodPointer.module},
+                "visualizationModule": ${configuration.visualizationModule},
                 "expression": {
                   "module": ${methodPointer.module},
                   "definedOnType": ${methodPointer.definedOnType},
@@ -265,7 +282,7 @@ object ExecutionContextJsonMessages {
     configuration: VisualizationConfiguration
   ) = {
     configuration.expression match {
-      case VisualizationExpression.Text(module, expression) =>
+      case VisualizationExpression.Text(module, expression, Vector()) =>
         json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/modifyVisualization",
@@ -280,6 +297,22 @@ object ExecutionContextJsonMessages {
             }
           }
           """
+      case VisualizationExpression.Text(module, expression, arguments) =>
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/modifyVisualization",
+            "id": $reqId,
+            "params": {
+              "visualizationId": $visualizationId,
+              "visualizationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "visualizationModule": $module,
+                "expression": $expression,
+                "positionalArgumentsExpressions": $arguments
+              }
+            }
+          }
+          """
       case VisualizationExpression.ModuleMethod(methodPointer, Vector()) =>
         json"""
           { "jsonrpc": "2.0",
@@ -289,6 +322,7 @@ object ExecutionContextJsonMessages {
               "visualizationId": $visualizationId,
               "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
+                "visualizationModule": ${configuration.visualizationModule},
                 "expression": {
                   "module": ${methodPointer.module},
                   "definedOnType": ${methodPointer.definedOnType},
@@ -307,6 +341,7 @@ object ExecutionContextJsonMessages {
               "visualizationId": $visualizationId,
               "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
+                "visualizationModule": ${configuration.visualizationModule},
                 "expression": {
                   "module": ${methodPointer.module},
                   "definedOnType": ${methodPointer.definedOnType},

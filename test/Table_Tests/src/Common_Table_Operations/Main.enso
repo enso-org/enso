@@ -100,7 +100,7 @@ type Test_Selection
        - date_time: Specifies if the backend supports date/time operations.
        - fixed_length_text_columns: Specifies if the backend supports fixed
          length text columns.
-       - length_restricted_text_columns: Specifies if the backend supports 
+       - length_restricted_text_columns: Specifies if the backend supports
          length restrictions for text columns.
        - removes_trailing_whitespace_casting_from_char_to_varchar: if
          SELECT concat('X', CAST(CAST('   ' AS CHAR(3)) AS VARCHAR(3)), 'X')
@@ -149,4 +149,4 @@ add_specs suite_builder setup =
     Temp_Column_Spec.add_specs suite_builder setup
     Nothing_Spec.add_specs suite_builder setup
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter

@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Examples
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 # While we're lacking the ability to run the documentation examples
@@ -119,8 +119,8 @@ add_specs suite_builder = suite_builder.group "Examples" group_builder->
         match.groups.length . should_equal 5
         match.named_groups.size . should_equal 2
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -54,14 +54,15 @@ type Output_Stream
        Writes an Input_Stream into this stream at the current position.
 
        Arguments:
-       - contents: An Input_Stream to write to this stream.
+       - input_stream: An Input_Stream to write to this stream.
     write_stream : Input_Stream -> Nothing
-    write_stream self contents = self.stream_resource . with java_stream->
-        self.error_handler <|
-            contents.with_java_stream contents_stream->
-                contents_stream.transferTo java_stream
-                java_stream.flush
-                Nothing
+    write_stream self input_stream:Input_Stream =
+        self.stream_resource . with java_output_stream->
+            self.error_handler <|
+                input_stream.with_java_stream java_input_stream->
+                    java_input_stream.transferTo java_output_stream
+                    java_output_stream.flush
+                    Nothing
 
     ## PRIVATE
        ADVANCED

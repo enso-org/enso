@@ -11,7 +11,7 @@ from Standard.Table import Table, Match_Columns, Excel, Excel_Range, Data_Format
 
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 import Standard.Examples
@@ -1027,8 +1027,8 @@ add_specs suite_builder =
     spec_write suite_builder "xlsx" 'TestSheet.xlsx'
     spec_write suite_builder "xls" 'TestSheetOld.xls'
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter spec_filter="should write a table to non-existent file as a new sheet with headers; and return the file object on success"
+    suite.run_with_filter filter
 

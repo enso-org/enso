@@ -114,6 +114,9 @@ impl Program for Docker {
 impl Docker {
     pub async fn build(&self, options: BuildOptions) -> Result<ImageId> {
         let mut command = self.cmd()?;
+        if options.buildx {
+            command.arg("buildx");
+        }
         command.arg("build").args(options.args());
         debug!("{:?}", command);
         let output = command.output_ok().await?;
@@ -279,21 +282,27 @@ impl Docker {
 
 #[derive(Clone, Debug)]
 pub struct BuildOptions {
-    pub context:    PathBuf,
-    pub target:     Option<OsString>,
-    pub tags:       Vec<String>,
-    pub build_args: HashMap<String, Option<String>>,
-    pub file:       Option<PathBuf>,
+    /// Whether the `buildx` (extended build capabilities with BuildKit) should be used.
+    pub buildx:        bool,
+    pub context:       PathBuf,
+    pub target:        Option<OsString>,
+    pub tags:          Vec<String>,
+    pub build_args:    HashMap<String, Option<String>>,
+    ///Named build contexts. Available only for buildx.
+    pub build_context: HashMap<String, String>,
+    pub file:          Option<PathBuf>,
 }
 
 impl BuildOptions {
     pub fn new(context_path: impl Into<PathBuf>) -> Self {
         Self {
-            context:    context_path.into(),
-            target:     default(),
-            tags:       default(),
-            build_args: default(),
-            file:       default(),
+            buildx:        false,
+            context:       context_path.into(),
+            target:        default(),
+            tags:          default(),
+            build_args:    default(),
+            build_context: default(),
+            file:          default(),
         }
     }
 
@@ -342,19 +351,26 @@ impl BuildOptions {
         Ok(())
     }
 
+    pub fn add_build_context_local(&mut self, name: impl Into<String>, path: impl AsRef<Path>) {
+        self.buildx = true;
+        self.build_context.insert(name.into(), path.as_ref().as_str().to_string());
+    }
+
     pub fn args(&self) -> Vec<OsString> {
+        let Self { buildx: _, context, target, tags, build_args, build_context, file } = self;
+
         let mut ret = Vec::new();
-        ret.push(self.context.clone().into());
+        ret.push(context.clone().into());
         ret.push("--quiet".into());
-        if let Some(target) = self.target.as_ref() {
+        if let Some(target) = target.as_ref() {
             ret.push("--target".into());
             ret.push(target.clone());
         }
-        for tag in &self.tags {
+        for tag in tags {
             ret.push("--tag".into());
             ret.push(tag.into());
         }
-        for (name, value) in &self.build_args {
+        for (name, value) in build_args {
             ret.push("--build-arg".into());
             if let Some(value) = value {
                 ret.push(format!("{name}={value}").into());
@@ -362,7 +378,11 @@ impl BuildOptions {
                 ret.push(name.into());
             }
         }
-        if let Some(file) = self.file.as_ref() {
+        for (name, value) in build_context {
+            ret.push("--build-context".into());
+            ret.push(format!("{name}={value}").into());
+        }
+        if let Some(file) = file.as_ref() {
             ret.push("--file".into());
             // Docker can't handle verbatim Dockerfile path. It would fail like:
             // `unable to prepare context: unable to get relative Dockerfile path: Rel: can't make

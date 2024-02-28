@@ -40,6 +40,8 @@ object NativeImage {
     "ch.qos.logback"
   )
 
+  val NATIVE_IMAGE_ARG_FILE = "native-image-args.txt"
+
   /** Creates a task that builds a native image for the current project.
     *
     * This task must be setup in such a way that the assembly JAR is built
@@ -193,9 +195,7 @@ object NativeImage {
 
       val verboseOpt = if (verbose) Seq("--verbose") else Seq()
 
-      var cmd: Seq[String] =
-        Seq(nativeImagePath) ++
-        verboseOpt ++
+      var args: Seq[String] =
         Seq("-cp", cpStr) ++
         quickBuildOption ++
         debugParameters ++ staticParameters ++ configs ++
@@ -208,29 +208,49 @@ object NativeImage {
         additionalOptions ++
         Seq("-o", artifactName)
 
-      cmd = mainClass match {
+      args = mainClass match {
         case Some(main) =>
-          cmd ++
+          args ++
           Seq(main)
         case None =>
-          cmd ++
+          args ++
           Seq("-jar", pathToJAR.toString)
       }
 
+      val targetDir = (Compile / target).value
+      val argFile   = targetDir.toPath.resolve(NATIVE_IMAGE_ARG_FILE)
+      IO.writeLines(argFile.toFile, args, append = false)
+
       val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
       val newPath   = pathParts.mkString(File.pathSeparator)
+
+      val cmd =
+        Seq(nativeImagePath) ++
+        verboseOpt ++
+        Seq("@" + argFile.toAbsolutePath.toString)
 
       log.debug(s"""PATH="$newPath" ${cmd.mkString(" ")}""")
 
       val process =
         Process(cmd, None, "PATH" -> newPath)
 
-      if (process.! != 0) {
-        log.error("Native Image build failed.")
+      // All the output from native-image is redirected into a StringBuilder, and printed
+      // at the end of the build. This mitigates the problem when there are multiple sbt
+      // commands running in parallel and the output is intertwined.
+      val sb = new StringBuilder
+      val processLogger = ProcessLogger(str => {
+        sb.append(str + System.lineSeparator())
+      })
+      log.info(
+        s"Started building $artifactName native image. The output is captured."
+      )
+      val retCode = process.!(processLogger)
+      if (retCode != 0) {
+        log.error("Native Image build failed, with output: ")
+        println(sb.toString())
         throw new RuntimeException("Native Image build failed")
       }
-
-      log.info("Native Image build successful.")
+      log.info(s"$artifactName native image build successful.")
     }
     .dependsOn(Compile / compile)
 

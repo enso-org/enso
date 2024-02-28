@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { asNot } from '@/util/data/types.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
 const value = computed({
   get() {
     const valueStr = WidgetInput.valueRepr(props.input)
@@ -54,7 +52,14 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <NumericInputWidget v-model="value" class="WidgetNumber r-24" :limits="limits" />
+  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
+  <NumericInputWidget
+    v-model="value"
+    class="WidgetNumber r-24"
+    :limits="limits"
+    @pointerdown.stop
+    @pointerup.stop
+  />
 </template>
 
 <style scoped>

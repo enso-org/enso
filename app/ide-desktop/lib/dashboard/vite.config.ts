@@ -5,8 +5,6 @@ import vitePluginYaml from '@modyfi/vite-plugin-yaml'
 import vitePluginReact from '@vitejs/plugin-react'
 import * as vite from 'vite'
 
-import * as common from 'enso-common'
-
 // =================
 // === Constants ===
 // =================
@@ -20,8 +18,16 @@ const SERVER_PORT = 8080
 /* eslint-disable @typescript-eslint/naming-convention */
 
 export default vite.defineConfig({
-  server: { port: SERVER_PORT, headers: Object.fromEntries(common.COOP_COEP_CORP_HEADERS) },
-  plugins: [vitePluginReact({ include: '**/*.tsx' }), vitePluginYaml()],
+  server: { port: SERVER_PORT },
+  plugins: [
+    vitePluginReact({
+      include: '**/*.tsx',
+      babel: {
+        plugins: ['@babel/plugin-syntax-import-assertions'],
+      },
+    }),
+    vitePluginYaml(),
+  ],
   resolve: {
     alias: {
       '#': url.fileURLToPath(new URL('./src', import.meta.url)),

@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Vector",
+    type = "Array_Like_Helpers",
     name = "flatten",
     description = "Flattens a vector of vectors into a single vector.",
     autoRegister = false)
@@ -25,15 +25,15 @@ public abstract class FlattenVectorNode extends Node {
     return FlattenVectorNodeGen.create();
   }
 
-  abstract EnsoObject execute(Object self);
+  abstract EnsoObject execute(Object vector);
 
   @Specialization
   EnsoObject flattenAnything(
-      Object self,
+      Object vector,
       @Cached ArrayLikeCopyToArrayNode copyNode,
       @Cached ArrayLikeLengthNode lengthNode,
       @Cached ArrayLikeAtNode atNode) {
-    return flatten(self, copyNode, lengthNode, atNode);
+    return flatten(vector, copyNode, lengthNode, atNode);
   }
 
   private EnsoObject flatten(

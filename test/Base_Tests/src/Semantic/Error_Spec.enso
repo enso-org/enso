@@ -4,6 +4,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Wrapped_Error.Wrapped_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 
 import Standard.Base.Runtime.Ref.Ref
 
@@ -13,8 +14,7 @@ polyglot java import java.lang.Exception as JException
 polyglot java import java.util.ArrayList
 polyglot java import java.util.Random as Java_Random
 
-from Standard.Test_New import all
-
+from Standard.Test import all
 
 type My_Type
     Value foo
@@ -465,13 +465,27 @@ add_specs suite_builder =
             not_wrapped = Illegal_Argument.Error "abc"
             Error.unwrap not_wrapped . should_equal not_wrapped
 
+    suite_builder.group "Empty errors" group_builder->
+        group_builder.specify "should implement to_display_text for List" <|
+            err = (Empty_Error.Error List)
+            err.to_display_text . should_equal "The List is empty."
+        group_builder.specify "should implement to_display_text for Vector" <|
+            err = (Empty_Error.Error Vector)
+            err.to_display_text . should_equal "The Vector is empty."
+        group_builder.specify "should implement to_display_text for Range" <|
+            err = (Empty_Error.Error Range)
+            err.to_display_text . should_equal "The Range is empty."
+        group_builder.specify "should implement to_display_text for Date_Range" <|
+            err = (Empty_Error.Error Date_Range)
+            err.to_display_text . should_equal "The Date_Range is empty."
+
 type C
     Baz x
 
 C.to_num self a b c = a+b+c
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

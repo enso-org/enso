@@ -5,19 +5,19 @@ import Standard.Base.Errors.Common.Incomparable_Values
 from Standard.Table import Sort_Column
 from Standard.Table.Errors import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~data
 
     connection self = self.data.at 0
     table self = self.data.at 1
-    
+
     setup create_connection_fn table_builder = Data.Value <|
         connection = create_connection_fn Nothing
         mk_table =
@@ -70,7 +70,7 @@ add_specs suite_builder setup =
             t2.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
             t2.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
 
-            t3 = data.table.order_by [Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive]
+            t3 = data.table.order_by [Sort_Column.Select_By_Name "a.*".to_regex case_sensitivity=Case_Sensitivity.Insensitive]
             t3.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
 
         group_builder.specify "should work with single column name" <|
@@ -96,11 +96,11 @@ add_specs suite_builder setup =
             t4.at "gamma" . to_vector . should_equal [1, 2, 3, 4]
 
         group_builder.specify "should allow the selector to mix regex and case insensitive matching" <|
-            t4 = data.table.order_by [Sort_Column.Select_By_Name "A.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive]
+            t4 = data.table.order_by [Sort_Column.Select_By_Name "A.*".to_regex case_sensitivity=Case_Sensitivity.Insensitive]
             t4.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
 
         group_builder.specify "should correctly handle regexes matching multiple names" <|
-            t1 = data.table.order_by [Sort_Column.Select_By_Name ".*ta" Sort_Direction.Descending use_regex=True]
+            t1 = data.table.order_by [Sort_Column.Select_By_Name ".*ta".to_regex Sort_Direction.Descending]
             t1.at "beta" . to_vector . should_equal ["b", "b", "a", "a"]
             t1.at "delta" . to_vector . should_equal ["a1", "a03", "a2", "a10"]
             t1.at "gamma" . to_vector . should_equal [2, 4, 3, 1]
@@ -142,7 +142,7 @@ add_specs suite_builder setup =
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
         group_builder.specify "should correctly handle edge-cases: duplicate matches due to regexes" <|
-            selector = [Sort_Column.Select_By_Name "a.*" use_regex=True, Sort_Column.Select_By_Name "alpha" Sort_Direction.Descending]
+            selector = [Sort_Column.Select_By_Name "a.*".to_regex, Sort_Column.Select_By_Name "alpha" Sort_Direction.Descending]
             t1 = data.table.order_by selector
             Problems.assume_no_problems t1
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
@@ -154,7 +154,7 @@ add_specs suite_builder setup =
             t1.at "beta" . to_vector . should_equal ["b", "a", "b", "a"]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-            t2 = data.table.order_by [Sort_Column.Select_By_Name "a.*a" use_regex=True, Sort_Column.Index 1]
+            t2 = data.table.order_by [Sort_Column.Select_By_Name "a.*a".to_regex, Sort_Column.Index 1]
             t2.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t2.at "beta" . to_vector . should_equal ["b", "a", "b", "a"]
             t2.at "gamma" . to_vector . should_equal [4, 3, 2, 1]

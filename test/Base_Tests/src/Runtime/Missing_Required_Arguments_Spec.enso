@@ -4,7 +4,7 @@ import Standard.Base.Errors.Common.Not_Invokable
 
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 my_function (xyz : Integer = Missing_Required_Argument.ensure_present "xyz") (y : Integer = 100) =
@@ -84,8 +84,8 @@ add_specs suite_builder = suite_builder.group "Missing_Required_Argument" group_
         mf4.should_be_a Function
         (mf4 "Hello") . should_equal "Foo(44, 100): Hello"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

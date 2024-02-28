@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
 from Standard.Base.Data.Time.Errors import Date_Time_Format_Parse_Error, Suspicious_Date_Time_Format
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.time.format.DateTimeFormatter
@@ -370,8 +370,8 @@ add_specs suite_builder =
         group_builder.specify "should allow to parse even when some patterns are unused" <|
             "2020-01-02 14:55".parse_date "yyyy-MM-dd HH:mm" . should_equal (Date.new 2020 1 2)
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

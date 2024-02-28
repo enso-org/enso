@@ -6,7 +6,6 @@ import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
-import topLevelAwait from 'vite-plugin-top-level-await'
 // @ts-expect-error
 import * as tailwindConfig from '../ide-desktop/lib/dashboard/tailwind.config'
 import { createGatewayServer } from './ydoc-server'
@@ -18,7 +17,7 @@ const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
 // https://vitejs.dev/config/
 export default defineConfig({
   cacheDir: '../../node_modules/.cache/vite',
-  plugins: [vue(), gatewayServer(), topLevelAwait()],
+  plugins: [vue(), gatewayServer()],
   optimizeDeps: {
     entries: 'index.html',
   },

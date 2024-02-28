@@ -47,8 +47,8 @@ type Regex
          text before matching on it.
 
        If an empty regex is used, `compile` throws an Illegal_Argument error.
-    compile : Text -> Boolean | Nothing -> Regex ! Regex_Syntax_Error | Illegal_Argument
-    compile expression case_insensitive=False =
+    compile : Text -> Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
+    compile expression:Text case_insensitive:Boolean=False =
         if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
             options_string = if case_insensitive == True then "usgi" else "usg"
 
@@ -80,6 +80,7 @@ type Regex
     to_display_text self = "Regex /" + self.pattern + "/" + (if self.case_insensitive then "i" else "")
 
     ## GROUP Text
+       ICON preparation
        Returns `True` if the input matches against the pattern described by
        `self`, otherwise `False`.
 
@@ -92,6 +93,7 @@ type Regex
             m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
     ## GROUP Text
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Match` containing the matched text and its match groups, or
@@ -108,6 +110,7 @@ type Regex
                 Match_Iterator_Value.Last _ -> Nothing
 
     ## GROUP Text
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Vector Match` object, each containing the matched text
@@ -230,6 +233,7 @@ type Regex
         self.match_all input . map (build_tokenization_output_from_match self _)
 
     ## GROUP Text
+       ICON text
        Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
 
@@ -485,3 +489,14 @@ type Regex_Syntax_Error
        Provides a human-readable representation of the `Regex_Syntax_Error`.
     to_display_text : Text
     to_display_text self = "Regex Syntax Error:" + self.message
+
+## Shorthand to create a regular expression from a Text value.
+
+   If an empty regex is used, throws an Illegal_Argument error.
+
+   Arguments
+   - expression: The text representing the regular expression that you want to
+     compile. Must be non-empty.
+regex : Text -> Regex ! Regex_Syntax_Error | Illegal_Argument
+regex expression:Text = Regex.compile expression
+

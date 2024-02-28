@@ -4,7 +4,7 @@ from Standard.Table import Table, Column, Delimited, Data_Formatter
 import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Extensions.Table_Conversions import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 
@@ -68,8 +68,8 @@ add_specs suite_builder =
             delimited = Text.from test_table format=(Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

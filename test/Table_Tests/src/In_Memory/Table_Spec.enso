@@ -6,7 +6,6 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Blank_Selector
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
 import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Equality, Invalid_Value_Type, Row_Count_Mismatch
 
@@ -16,7 +15,7 @@ import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
 from Standard.Database import Database, SQLite, In_Memory
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 
@@ -656,19 +655,19 @@ add_specs suite_builder =
             objects = ["objects", [My.Data 0 1, My.Data 0 1, My.Data 2 2, My.Data 2 2]]
             table = Table.new [dates, texts, mixed, ints, floats, objects]
 
-            t1 = table.aggregate [Group_By "dates", Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
+            t1 = table.aggregate ["dates"] [Aggregate_Column.Shortest "texts", Aggregate_Column.First "texts", Aggregate_Column.First "objects", Aggregate_Column.First "ints", Aggregate_Column.Last "mixed"]
             t1.info.at "Column" . to_vector . should_equal ["dates", "Shortest texts", "First texts", "First objects", "First ints", "Last mixed"]
             t1.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Char, Value_Type.Char, Value_Type.Mixed, Value_Type.Integer, Value_Type.Mixed]
 
-            t2 = table.aggregate [Mode "dates", Count_Not_Nothing "objects", Count_Distinct "texts", Minimum "ints", Maximum "floats"]
+            t2 = table.aggregate [] [Aggregate_Column.Mode "dates", Aggregate_Column.Count_Not_Nothing "objects", Aggregate_Column.Count_Distinct "texts", Aggregate_Column.Minimum "ints", Aggregate_Column.Maximum "floats"]
             t2.info.at "Column" . to_vector . should_equal ["Mode dates", "Count Not Nothing objects", "Count Distinct texts", "Minimum ints", "Maximum floats"]
             t2.info.at "Value Type" . to_vector . should_equal [Value_Type.Date, Value_Type.Integer, Value_Type.Integer, Value_Type.Integer, Value_Type.Float]
 
-            t3 = table.aggregate [Group_By "texts", Group_By "ints", Aggregate_Column.Last "floats"]
+            t3 = table.aggregate ["texts", "ints"] [Aggregate_Column.Last "floats"]
             t3.info.at "Column" . to_vector . should_equal ["texts", "ints", "Last floats"]
             t3.info.at "Value Type" . to_vector . should_equal [Value_Type.Char, Value_Type.Integer, Value_Type.Float]
 
-            t4 = table.aggregate [Group_By "mixed", Sum "ints", Sum "floats"]
+            t4 = table.aggregate ["mixed"] [Aggregate_Column.Sum "ints", Aggregate_Column.Sum "floats"]
             t4.info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
             t4.info.at "Value Type" . to_vector . should_equal [Value_Type.Mixed, Value_Type.Float, Value_Type.Float]
 
@@ -676,20 +675,20 @@ add_specs suite_builder =
             texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]
             ints = ["ints", [1, 2, 4, 8, 16, 32]]
             table = Table.new [texts, ints]
-            r1 = table.aggregate [Group_By "texts", Sum "ints"] . order_by ([Sort_Column.Name "texts"])
+            r1 = table.aggregate ["texts"] [Aggregate_Column.Sum "ints"] . order_by ([Sort_Column.Name "texts"])
             r1.at "texts" . to_vector . should_equal ['sciana', 'ściana', 'łąka']
             r1.at "Sum ints" . to_vector . should_equal [32, 11, 20]
 
-            r2 = table.aggregate [Count_Distinct "texts"]
+            r2 = table.aggregate columns=[Aggregate_Column.Count_Distinct "texts"]
             r2.at "Count Distinct texts" . to_vector . should_equal [3]
 
         group_builder.specify "should be able to aggregate over enso Types" <|
             weekday_table  = Table.new [["days", [Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Monday, Day_Of_Week.Tuesday, Day_Of_Week.Sunday]], ["group", [1,1,2,1,2]]]
 
-            r1 = weekday_table.aggregate [Group_By "days"] . order_by "days"
+            r1 = weekday_table.aggregate ["days"] . order_by "days"
             r1.at "days" . to_vector . should_equal [Day_Of_Week.Sunday, Day_Of_Week.Monday, Day_Of_Week.Tuesday]
 
-            r2 = weekday_table.aggregate [Group_By "group", Minimum "days" "min", Maximum "days" "max"] . order_by "group"
+            r2 = weekday_table.aggregate ["group"] [Aggregate_Column.Minimum "days" "min", Aggregate_Column.Maximum "days" "max"] . order_by "group"
             r2.at "group" . to_vector . should_equal [1, 2]
             r2.at "min" . to_vector . should_equal [Day_Of_Week.Monday, Day_Of_Week.Sunday]
             r2.at "max" . to_vector . should_equal [Day_Of_Week.Tuesday, Day_Of_Week.Monday]
@@ -878,7 +877,7 @@ add_specs suite_builder =
                             Test.with_clue "("+column_vector.to_text+" Is_In "+in_vector.to_text+"): " <|
                                 t.filter "X" (Filter_Condition.Is_In in_vector) . at "X" . to_vector . should_equal expected_vector
                                 t.filter "X" (Filter_Condition.Is_In in_column) . at "X" . to_vector . should_equal expected_vector
-                                t2 = t.set (t.at "X" . not) new_name="Y"
+                                t2 = t.set (t.at "X" . not) as="Y"
                                 t2.filter "Y" (Filter_Condition.Is_In in_vector) . at "Y" . to_vector . should_equal expected_neg_vector
                                 t2.filter "Y" (Filter_Condition.Is_In in_column) . at "Y" . to_vector . should_equal expected_neg_vector
 
@@ -923,10 +922,10 @@ add_specs suite_builder =
             t.set (100.up_to 102) . should_fail_with Row_Count_Mismatch
             t.set ((Date.new 2020 1 1).up_to (Date.new 2020 1 3)) . should_fail_with Row_Count_Mismatch
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 ## JS indexes months form 0, so we need to subtract 1.

@@ -8,8 +8,7 @@ from Standard.Base.Data.Index_Sub_Range import normalize_ranges, resolve_ranges,
 
 from Standard.Table import Set_Mode
 
-import project.Data.Column.Column
-import project.Data.Table.Table
+import project.Data.DB_Table.DB_Table
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
@@ -22,7 +21,7 @@ type Take_Drop
 
 ## PRIVATE
    Apply `take` or `drop` to a table, returning the specified by the selector.
-take_drop_helper : Take_Drop -> Table -> (Index_Sub_Range | Range | Integer) -> Table
+take_drop_helper : Take_Drop -> DB_Table -> (Index_Sub_Range | Range | Integer) -> DB_Table
 take_drop_helper take_drop table selector =
     check_supported selector <|
         length = table.row_count
@@ -75,7 +74,7 @@ cleanup_ranges ranges:(Vector Range) =
 
 ## PRIVATE
    Filter a table with a single range. Returns only those rows whose row column fall within the range.
-generate_subquery : Table -> Text -> Range -> Table
+generate_subquery : DB_Table -> Text -> Range -> DB_Table
 generate_subquery table row_column_name range =
     case range.step of
         1 ->

@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Not_Found
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 type_spec suite_builder name ctor = suite_builder.group name group_builder->
@@ -114,8 +114,8 @@ add_specs suite_builder =
 foreign js js_pair a b = """
     return [a, b]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -1,10 +1,10 @@
 from Standard.Base import all
-import Standard.Base.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
+import Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import Standard.Base.Errors.Common.Syntax_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Request.Request
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from project.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
@@ -330,10 +330,10 @@ add_specs suite_builder =
                     r1.should_fail_with Illegal_Argument
                     r1.catch.to_display_text . should_contain "Secrets are not allowed in HTTP connections, use HTTPS instead."
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 decode_query_params : Json -> Vector (Pair Text Text)

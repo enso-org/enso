@@ -6,7 +6,6 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.data.ProjectMetadata
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectList
-import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failureMapper
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
@@ -16,8 +15,7 @@ import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `project/list` commands.
   *
-  * @param clientId the requester id
-  * @param service a project service
+  * @param projectService a project service
   * @param requestTimeout a request timeout
   * @param timeoutRetries a number of timeouts to wait until a failure is reported
   */
@@ -51,7 +49,6 @@ object ProjectListHandler {
 
   /** Creates a configuration object used to create a [[ProjectListHandler]].
     *
-    * @param clientId the requester id
     * @param service a project service
     * @param requestTimeout a request timeout
     * @param timeoutRetries a number of timeouts to wait until a failure is reported

@@ -1,13 +1,20 @@
 package org.enso.interpreter.runtime;
 
+import static org.enso.interpreter.util.ScalaConversions.cons;
+import static org.enso.interpreter.util.ScalaConversions.nil;
+
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -15,7 +22,10 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.context.ExportsBuilder;
+import org.enso.compiler.context.ExportsMap;
 import org.enso.compiler.context.FreshNameSupply;
+import org.enso.compiler.context.SuggestionBuilder;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
@@ -23,15 +33,18 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.caches.Cache;
+import org.enso.interpreter.caches.ImportExportCache;
+import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
 import org.enso.interpreter.caches.ModuleCache;
+import org.enso.interpreter.caches.SuggestionsCache;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.Suggestion;
 import org.enso.polyglot.data.TypeGraph;
-import scala.Option;
 
 final class TruffleCompilerContext implements CompilerContext {
 
@@ -39,13 +52,13 @@ final class TruffleCompilerContext implements CompilerContext {
   private final TruffleLogger loggerCompiler;
   private final TruffleLogger loggerSerializationManager;
   private final RuntimeStubsGenerator stubsGenerator;
-  private final SerializationManager serializationManager;
+  private final SerializationPool serializationPool;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
     this.loggerCompiler = context.getLogger(Compiler.class);
-    this.loggerSerializationManager = context.getLogger(SerializationManager.class);
-    this.serializationManager = new SerializationManager(this);
+    this.loggerSerializationManager = context.getLogger(SerializationPool.class);
+    this.serializationPool = new SerializationPool(this);
     this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
   }
 
@@ -72,10 +85,6 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public PackageRepository getPackageRepository() {
     return context.getPackageRepository();
-  }
-
-  final SerializationManager getSerializationManager() {
-    return serializationManager;
   }
 
   @Override
@@ -182,8 +191,8 @@ final class TruffleCompilerContext implements CompilerContext {
     return cache.load(context);
   }
 
-  public <T> Optional<TruffleFile> saveCache(
-      Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations) {
+  final <T> TruffleFile saveCache(Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations)
+      throws IOException {
     return cache.save(entry, context, useGlobalCacheLocations);
   }
 
@@ -205,10 +214,7 @@ final class TruffleCompilerContext implements CompilerContext {
       builtins.initializeBuiltinsSource();
 
       if (irCachingEnabled) {
-        if (serializationManager.deserialize(compiler, builtinsModule) instanceof Option<?> op
-            && op.isDefined()
-            && op.get() instanceof Boolean b
-            && b) {
+        if (deserializeModule(compiler, builtinsModule)) {
           // Ensure that builtins doesn't try and have codegen run on it.
           updateModule(builtinsModule, u -> u.compilationStage(CompilationStage.AFTER_CODEGEN));
         } else {
@@ -219,7 +225,7 @@ final class TruffleCompilerContext implements CompilerContext {
       }
 
       if (irCachingEnabled && !wasLoadedFromCache(builtinsModule)) {
-        serializationManager.serializeModule(compiler, builtinsModule, true, true);
+        serializeModule(compiler, builtinsModule, true, true);
       }
     }
   }
@@ -278,29 +284,359 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public Future<Boolean> serializeLibrary(
       Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
-    Object res =
-        serializationManager.serializeLibrary(compiler, libraryName, useGlobalCacheLocations);
-    return (Future<Boolean>) res;
+    logSerializationManager(Level.INFO, "Requesting serialization for library [{0}].", libraryName);
+
+    var task = doSerializeLibrary(compiler, libraryName, useGlobalCacheLocations);
+
+    return serializationPool.submitTask(
+        task, isCreateThreadAllowed(), toQualifiedName(libraryName));
   }
 
+  /**
+   * Requests that `module` be serialized.
+   *
+   * <p>This method will attempt to schedule the provided module and IR for serialization regardless
+   * of whether or not it is appropriate to do so. If there are preconditions needed for
+   * serialization, these should be checked before calling this method.
+   *
+   * <p>In addition, this method handles breaking links between modules contained in the IR to
+   * ensure safe serialization.
+   *
+   * <p>It is responsible for taking a "snapshot" of the relevant module state at the point at which
+   * serialization is requested. This is due to the fact that serialization happens in a separate
+   * thread and the module may be mutated beneath it.
+   *
+   * @param module the module to serialize
+   * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
+   * @param useThreadPool if true, will perform serialization asynchronously
+   * @return Future referencing the serialization task. On completion Future will return `true` if
+   *     `module` has been successfully serialized, `false` otherwise
+   */
   @SuppressWarnings("unchecked")
   @Override
   public Future<Boolean> serializeModule(
-      Compiler compiler, CompilerContext.Module module, boolean useGlobalCacheLocations) {
-    Object res =
-        serializationManager.serializeModule(compiler, module, useGlobalCacheLocations, true);
-    return (Future<Boolean>) res;
+      Compiler compiler,
+      CompilerContext.Module module,
+      boolean useGlobalCacheLocations,
+      boolean useThreadPool) {
+    if (module.isSynthetic()) {
+      throw new IllegalStateException(
+          "Cannot serialize synthetic module [" + module.getName() + "]");
+    }
+    logSerializationManager(
+        Level.FINE, "Requesting serialization for module [{0}].", module.getName());
+    var ir = module.getIr();
+    var dupl =
+        ir.duplicate(
+            ir.duplicate$default$1(), ir.duplicate$default$2(), ir.duplicate$default$3(), true);
+    var duplicatedIr = compiler.updateMetadata(ir, dupl);
+    Source src;
+    try {
+      src = module.getSource();
+    } catch (IOException ex) {
+      logSerializationManager(Level.WARNING, "Cannot get source for " + module.getName(), ex);
+      return CompletableFuture.failedFuture(ex);
+    }
+    var task =
+        doSerializeModule(
+            ((Module) module).getCache(),
+            duplicatedIr,
+            module.getCompilationStage(),
+            module.getName(),
+            src,
+            useGlobalCacheLocations);
+    return serializationPool.submitTask(task, useThreadPool, module.getName());
   }
+
+  /**
+   * Create the task that serializes the provided module IR when it is run.
+   *
+   * @param cache the cache manager for the module being serialized
+   * @param ir the IR for the module being serialized
+   * @param stage the compilation stage of the module
+   * @param name the name of the module being serialized
+   * @param source the source of the module being serialized
+   * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
+   * @return the task that serialies the provided `ir`
+   */
+  private Callable<Boolean> doSerializeModule(
+      Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache,
+      org.enso.compiler.core.ir.Module ir,
+      CompilationStage stage,
+      QualifiedName name,
+      Source source,
+      boolean useGlobalCacheLocations) {
+    return () -> {
+      var pool = serializationPool;
+      pool.waitWhileSerializing(name);
+
+      logSerializationManager(Level.FINE, "Running serialization for module [{0}].", name);
+      pool.startSerializing(name);
+      try {
+        var fixedStage =
+            stage.isAtLeast(CompilationStage.AFTER_STATIC_PASSES)
+                ? CompilationStage.AFTER_STATIC_PASSES
+                : stage;
+        var saved =
+            saveCache(
+                cache,
+                new ModuleCache.CachedModule(ir, fixedStage, source),
+                useGlobalCacheLocations);
+        return saved != null;
+      } catch (Throwable e) {
+        logSerializationManager(
+            e instanceof IOException ? Level.FINE : Level.SEVERE,
+            "Serialization of module `" + name + "` failed: " + e.getMessage(),
+            e);
+        throw e;
+      } finally {
+        pool.finishSerializing(name);
+      }
+    };
+  }
+
+  private final Map<LibraryName, MapToBindings> known = new HashMap<>();
 
   @Override
   public boolean deserializeModule(Compiler compiler, CompilerContext.Module module) {
-    var result = serializationManager.deserialize(compiler, module);
-    return result.nonEmpty();
+    if (module.getPackage() != null) {
+      var library = module.getPackage().libraryName();
+      var bindings = known.get(library);
+      if (bindings == null) {
+        try {
+          var cached = deserializeLibraryBindings(library);
+          if (cached.isDefined()) {
+            bindings = cached.get().bindings();
+            known.put(library, bindings);
+          }
+        } catch (InterruptedException ex) {
+          // proceed
+        }
+      }
+      if (bindings != null) {
+        var ir = bindings.findForModule(module.getName());
+        loggerSerializationManager.log(
+            Level.FINE,
+            "Deserializing module " + module.getName() + " from library: " + (ir != null));
+        if (ir != null) {
+          compiler
+              .context()
+              .updateModule(
+                  module,
+                  (u) -> {
+                    u.ir(ir);
+                    u.compilationStage(CompilationStage.AFTER_STATIC_PASSES);
+                    u.loadedFromCache(true);
+                  });
+          return true;
+        }
+      }
+    }
+    try {
+      var result = deserializeModuleDirect(module);
+      loggerSerializationManager.log(
+          Level.FINE, "Deserializing module " + module.getName() + " from IR file: " + result);
+      return result;
+    } catch (InterruptedException e) {
+      loggerSerializationManager.log(
+          Level.WARNING, "Deserializing module " + module.getName() + " from IR file", e);
+      return false;
+    }
+  }
+
+  /**
+   * Deserializes the requested module from the cache if possible.
+   *
+   * <p>If the requested module is currently being serialized it will wait for completion before
+   * loading. If the module is queued for serialization it will evict it and not load from the cache
+   * (this is usually indicative of a programming bug).
+   *
+   * @param module the module to deserialize from the cache.
+   * @return {@code true} if the deserialization succeeded
+   */
+  private boolean deserializeModuleDirect(CompilerContext.Module module)
+      throws InterruptedException {
+    var pool = serializationPool;
+    if (pool.isWaitingForSerialization(module.getName())) {
+      pool.abort(module.getName());
+      return false;
+    } else {
+      pool.waitWhileSerializing(module.getName());
+
+      var loaded = loadCache(((Module) module).getCache());
+      if (loaded.isPresent()) {
+        updateModule(
+            module,
+            (u) -> {
+              u.ir(loaded.get().moduleIR());
+              u.compilationStage(loaded.get().compilationStage());
+              u.loadedFromCache(true);
+            });
+        logSerializationManager(
+            Level.FINE,
+            "Restored IR from cache for module [{0}] at stage [{1}].",
+            module.getName(),
+            loaded.get().compilationStage());
+        return true;
+      } else {
+        logSerializationManager(
+            Level.FINE, "Unable to load a cache for module [{0}].", module.getName());
+        return false;
+      }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  Callable<Boolean> doSerializeLibrary(
+      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
+    return () -> {
+      var pool = serializationPool;
+      pool.waitWhileSerializing(toQualifiedName(libraryName));
+
+      logSerializationManager(Level.FINE, "Running serialization for bindings [{0}].", libraryName);
+      pool.startSerializing(toQualifiedName(libraryName));
+      var map = new HashMap<QualifiedName, org.enso.compiler.core.ir.Module>();
+      var it = context.getPackageRepository().getModulesForLibrary(libraryName);
+      while (it.nonEmpty()) {
+        var module = it.head();
+        map.put(module.getName(), module.getIr());
+        it =
+            (scala.collection.immutable.List<org.enso.compiler.context.CompilerContext.Module>)
+                it.tail();
+      }
+      var snd =
+          context
+              .getPackageRepository()
+              .getPackageForLibraryJava(libraryName)
+              .map(x -> x.listSourcesJava());
+
+      var bindingsCache =
+          new ImportExportCache.CachedBindings(
+              libraryName, new ImportExportCache.MapToBindings(map), snd);
+      try {
+        boolean result =
+            doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
+        try {
+          var cache = ImportExportCache.create(libraryName);
+          var file = saveCache(cache, bindingsCache, useGlobalCacheLocations);
+          result &= file != null;
+        } catch (Throwable e) {
+          logSerializationManager(
+              e instanceof IOException ? Level.WARNING : Level.SEVERE,
+              "Serialization of bindings `" + libraryName + "` failed: " + e.getMessage() + "`",
+              e);
+          throw e;
+        }
+        return result;
+      } finally {
+        pool.finishSerializing(toQualifiedName(libraryName));
+      }
+    };
+  }
+
+  private boolean doSerializeLibrarySuggestions(
+      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations)
+      throws IOException {
+    var exportsBuilder = new ExportsBuilder();
+    var exportsMap = new ExportsMap();
+    var suggestions = new java.util.ArrayList<Suggestion>();
+
+    try {
+      var libraryModules = context.getPackageRepository().getModulesForLibrary(libraryName);
+      libraryModules
+          .flatMap(
+              module -> {
+                var sug =
+                    SuggestionBuilder.apply(module, compiler)
+                        .build(module.getName(), module.getIr())
+                        .toVector()
+                        .filter(Suggestion::isGlobal);
+                var exports = exportsBuilder.build(module.getName(), module.getIr());
+                exportsMap.addAll(module.getName(), exports);
+                return sug;
+              })
+          .map(
+              suggestion -> {
+                var reexport = exportsMap.get(suggestion).map(s -> s.toString());
+                return suggestion.withReexport(reexport);
+              })
+          .foreach(suggestions::add);
+
+      var cachedSuggestions =
+          new SuggestionsCache.CachedSuggestions(
+              libraryName,
+              new SuggestionsCache.Suggestions(suggestions),
+              context
+                  .getPackageRepository()
+                  .getPackageForLibraryJava(libraryName)
+                  .map(p -> p.listSourcesJava()));
+      var cache = SuggestionsCache.create(libraryName);
+      var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
+      return file != null;
+    } catch (Throwable e) {
+      logSerializationManager(
+          e instanceof IOException ? Level.WARNING : Level.SEVERE,
+          "Serialization of suggestions `" + libraryName + "` failed: " + e.getMessage() + "`",
+          e);
+      throw e;
+    }
+  }
+
+  public scala.Option<List<org.enso.polyglot.Suggestion>> deserializeSuggestions(
+      LibraryName libraryName) throws InterruptedException {
+    var option = deserializeSuggestionsImpl(libraryName);
+    return option.map(s -> s.getSuggestions());
+  }
+
+  private scala.Option<SuggestionsCache.CachedSuggestions> deserializeSuggestionsImpl(
+      LibraryName libraryName) throws InterruptedException {
+    var pool = serializationPool;
+    if (pool.isWaitingForSerialization(toQualifiedName(libraryName))) {
+      pool.abort(toQualifiedName(libraryName));
+      return scala.Option.empty();
+    } else {
+      pool.waitWhileSerializing(toQualifiedName(libraryName));
+      var cache = SuggestionsCache.create(libraryName);
+      var loaded = loadCache(cache);
+      if (loaded.isPresent()) {
+        logSerializationManager(Level.FINE, "Restored suggestions for library [{0}].", libraryName);
+        return scala.Option.apply(loaded.get());
+      } else {
+        logSerializationManager(
+            Level.FINE, "Unable to load suggestions for library [{0}].", libraryName);
+        return scala.Option.empty();
+      }
+    }
+  }
+
+  scala.Option<ImportExportCache.CachedBindings> deserializeLibraryBindings(LibraryName libraryName)
+      throws InterruptedException {
+    var pool = serializationPool;
+    if (pool.isWaitingForSerialization(toQualifiedName(libraryName))) {
+      pool.abort(toQualifiedName(libraryName));
+      return scala.Option.empty();
+    } else {
+      pool.waitWhileSerializing(toQualifiedName(libraryName));
+      var cache = ImportExportCache.create(libraryName);
+      var loaded = loadCache(cache);
+      if (loaded.isPresent()) {
+        logSerializationManager(Level.FINE, "Restored bindings for library [{0}].", libraryName);
+        return scala.Option.apply(loaded.get());
+      } else {
+        logSerializationManager(
+            Level.FINEST, "Unable to load bindings for library [{0}].", libraryName);
+        return scala.Option.empty();
+      }
+    }
   }
 
   @Override
   public void shutdown(boolean waitForPendingJobCompletion) {
-    serializationManager.shutdown(waitForPendingJobCompletion);
+    try {
+      serializationPool.shutdown(waitForPendingJobCompletion);
+    } catch (InterruptedException ex) {
+      logSerializationManager(Level.WARNING, ex.getMessage(), ex);
+    }
   }
 
   private final class ModuleUpdater implements Updater, AutoCloseable {
@@ -435,7 +771,7 @@ final class TruffleCompilerContext implements CompilerContext {
       return module.getDirectModulesRefs();
     }
 
-    public ModuleCache getCache() {
+    public Cache<ModuleCache.CachedModule, ModuleCache.Metadata> getCache() {
       return module.getCache();
     }
 
@@ -492,4 +828,9 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   private static void emitIOException() throws IOException {}
+
+  private static QualifiedName toQualifiedName(LibraryName libraryName) {
+    var namespace = cons(libraryName.namespace(), nil());
+    return new QualifiedName(namespace, libraryName.name());
+  }
 }

@@ -13,6 +13,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Number_Builtins import all
+from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Long
@@ -32,6 +33,7 @@ polyglot java import org.enso.polyglot.common_utils.Core_Math_Utils
 type Number
     ## ALIAS add, plus
        GROUP Operators
+       ICON math
        Adds two arbitrary numbers.
 
        Arguments:
@@ -49,6 +51,7 @@ type Number
 
     ## ALIAS minus, subtract
        GROUP Operators
+       ICON math
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -63,6 +66,7 @@ type Number
 
     ## ALIAS multiply, product, times
        GROUP Operators
+       ICON math
        Multiply two arbitrary numbers.
 
        Arguments:
@@ -80,6 +84,7 @@ type Number
 
     ## ALIAS divide
        GROUP Operators
+       ICON math
        Divides an this by an arbitrary number.
 
        Arguments:
@@ -97,6 +102,7 @@ type Number
 
     ## ALIAS power
        GROUP Operators
+       ICON math
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -125,6 +131,7 @@ type Number
 
     ## ALIAS inverse cosine
        GROUP Trigonometry
+       ICON math
 
        Computes the inverse of the cosine function.
 
@@ -181,6 +188,7 @@ type Number
 
     ## ALIAS cosine
        GROUP Trigonometry
+       ICON math
 
        Computes the cosine function.
 
@@ -214,6 +222,7 @@ type Number
     sinh self = Math.sinh self.to_float
 
     ## GROUP Trigonometry
+       ICON math
        Computes the hyperbolic cosine function.
 
        > Example
@@ -286,6 +295,7 @@ type Number
     log self base = self.ln / base.ln
 
     ## GROUP Conversions
+       ICON convert
        Converts a numeric value to a string, using the Java DecimalFormat
        formatter.
 
@@ -296,14 +306,16 @@ type Number
          Convert the value 5000 to a string.
 
              5000.format "#,##0"
+    @format make_number_format_selector
     @locale Locale.default_widget
     format : Text -> Locale -> Text
-    format self format locale=Locale.default =
+    format self format:Text="" locale:Locale=Locale.default =
         symbols = DecimalFormatSymbols.new locale.java_locale
         formatter = DecimalFormat.new format symbols
         formatter.format self
 
     ## GROUP Logical
+       ICON operators
        Checks equality of numbers, using an `epsilon` value.
 
        ! Error Conditions
@@ -322,6 +334,7 @@ type Number
         (self == that) || ((self - that).abs <= epsilon)
 
     ## GROUP Math
+       ICON sigma
        Returns the smaller value of `self` and `that`.
 
        Arguments:
@@ -410,6 +423,7 @@ type Number
 type Float
     ## ALIAS add, plus
        GROUP Operators
+       ICON math
        Adds a float and an arbitrary number.
 
        Arguments:
@@ -426,6 +440,7 @@ type Float
 
     ## ALIAS minus, subtract
        GROUP Operators
+       ICON math
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -439,6 +454,7 @@ type Float
 
     ## ALIAS multiply, product, times
        GROUP Operators
+       ICON math
        Multiply a float by an arbitrary number.
 
        Arguments:
@@ -455,6 +471,7 @@ type Float
 
     ## ALIAS divide
        GROUP Operators
+       ICON math
        Divides a float by an arbitrary number.
 
        Arguments:
@@ -471,6 +488,7 @@ type Float
 
     ## ALIAS modulo, modulus
        GROUP Operators
+       ICON math
        Computes the remainder when dividing this by that.
 
        Arguments:
@@ -492,6 +510,7 @@ type Float
 
     ## ALIAS power
        GROUP Operators
+       ICON math
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -505,6 +524,7 @@ type Float
 
     ## ALIAS greater than
        GROUP Operators
+       ICON operators
        Checks if this is greater than that.
 
        Arguments:
@@ -518,6 +538,7 @@ type Float
 
     ## ALIAS greater than or equal
        GROUP Operators
+       ICON operators
        Checks if this is greater than or equal to that.
 
        Arguments:
@@ -531,6 +552,7 @@ type Float
 
     ## ALIAS less than
        GROUP Operators
+       ICON operators
        Checks if this is less than that.
 
        Arguments:
@@ -544,6 +566,7 @@ type Float
 
     ## ALIAS less than or equal
        GROUP Operators
+       ICON operators
        Checks if this is less than or equal to that.
 
        Arguments:
@@ -556,6 +579,7 @@ type Float
     <= self that:Number -> Boolean = float_less_equal self that
 
     ## GROUP Math
+       ICON math
        Computes the absolute value of this.
 
        The absolute value of a positive number is itself, while the absolute
@@ -568,6 +592,7 @@ type Float
     abs self -> Float = float_abs self
 
     ## GROUP Rounding
+       ICON math
        Computes the nearest integer above this number.
 
        This method provides a means of converting a Float to an Integer.
@@ -711,6 +736,7 @@ type Float
 type Integer
     ## ALIAS add, plus
        GROUP Operators
+       ICON math
        Adds an integer and an arbitrary number.
 
        Arguments:
@@ -727,6 +753,7 @@ type Integer
 
     ## ALIAS minus, subtract
        GROUP Operators
+       ICON math
        Subtract an arbitrary number from this.
 
        Arguments:
@@ -740,6 +767,7 @@ type Integer
 
     ## ALIAS multiply, product, times
        GROUP Operators
+       ICON math
        Multiply an integer by an arbitrary number.
 
        Arguments:
@@ -756,6 +784,7 @@ type Integer
 
     ## ALIAS divide
        GROUP Operators
+       ICON math
        Divides an integer by an arbitrary number.
 
        Arguments:
@@ -772,6 +801,7 @@ type Integer
 
     ## ALIAS modulo, modulus
        GROUP Operators
+       ICON math
        Computes the remainder when dividing this by that.
 
        Arguments:
@@ -790,6 +820,7 @@ type Integer
 
     ## ALIAS power
        GROUP Operators
+       ICON math
        Compute the result of raising this to the power that.
 
        Arguments:
@@ -803,6 +834,7 @@ type Integer
 
     ## ALIAS greater than
        GROUP Operators
+       ICON operators
        Checks if this is greater than that.
 
        Arguments:
@@ -816,6 +848,7 @@ type Integer
 
     ## ALIAS greater than or equal
        GROUP Operators
+       ICON operators
        Checks if this is greater than or equal to that.
 
        Arguments:
@@ -829,6 +862,7 @@ type Integer
 
     ## ALIAS less than
        GROUP Operators
+       ICON operators
        Checks if this is less than that.
 
        Arguments:
@@ -842,6 +876,7 @@ type Integer
 
     ## ALIAS less than or equal
        GROUP Operators
+       ICON operators
        Checks if this is less than or equal to that.
 
        Arguments:
@@ -854,6 +889,7 @@ type Integer
     <= self that:Number -> Boolean = integer_less_equal self that
 
     ## GROUP Math
+       ICON math
        Computes the absolute value of this.
 
        The absolute value of a positive number is itself, while the absolute
@@ -866,6 +902,7 @@ type Integer
     abs self -> Integer = integer_abs self
 
     ## GROUP Rounding
+       ICON math
        Computes the nearest integer above this integer.
 
        This is a no-op on integers but is provided for completeness of the Enso
@@ -878,6 +915,7 @@ type Integer
     ceil self -> Integer = integer_ceil self
 
     ## GROUP Math
+       ICON math
        Computes the integer division of this by that.
 
        Arguments:
@@ -907,12 +945,14 @@ type Integer
 
     ## ALIAS int
        GROUP Rounding
+       ICON math
 
        Truncate an `Integer` to an `Integer`, i.e. returns its argument. For
        compatibility with `Float.truncate`.
     truncate self -> Integer = self
 
     ## GROUP Rounding
+       ICON math
        Round to a specified number of decimal places.
 
        For integers, rounding to 0 or more decimal places simply returns the
@@ -963,6 +1003,7 @@ type Integer
                 round_integer_builtin self decimal_places use_bankers
 
     ## GROUP Operators
+       ICON operators
        Compute the negation of this.
 
        > Example
@@ -980,6 +1021,7 @@ type Integer
     to_float self -> Float = integer_to_float self
 
     ## GROUP Bitwise
+       ICON math
        Computes the bitwise and (conjunction) operation between this and
        that.
 
@@ -996,6 +1038,7 @@ type Integer
     bit_and self that:Integer -> Integer = integer_bit_and self that
 
     ## GROUP Bitwise
+       ICON math
        Computes the bitewise compliment of this.
 
        The bitwise compliment negates the value of each bit in the operand.
@@ -1007,6 +1050,7 @@ type Integer
     bit_not self -> Integer = integer_bit_not self
 
     ## GROUP Bitwise
+       ICON math
        Computes the bitwise or (disjunction) operation between this and
        that.
 
@@ -1023,6 +1067,7 @@ type Integer
     bit_or self that:Integer -> Integer = integer_bit_or self that
 
     ## GROUP Bitwise
+       ICON math
        Computes the bitwise exclusive or between this and that.
 
        Arguments:
@@ -1038,6 +1083,7 @@ type Integer
     bit_xor self that:Integer -> Integer = integer_bit_xor self that
 
     ## GROUP Bitwise
+       ICON math
        Shifts the bits of this by the amount that.
 
        Left-shifts fill the new bits with zeroes, while right-shifts perform
@@ -1058,6 +1104,7 @@ type Integer
     bit_shift self that:Integer -> Integer ! Arithmetic_Error = integer_bit_shift self that
 
     ## GROUP Bitwise
+       ICON math
        Performs a bitwise left-shift on the number.
 
        Left-shifts fill the new bits with zeroes, while right-shifts perform
@@ -1077,6 +1124,7 @@ type Integer
     bit_shift_l self that:Integer -> Integer ! Arithmetic_Error = self.bit_shift that
 
     ## GROUP Bitwise
+       ICON math
        Performs a bitwise right-shift on the number.
 
        Left-shifts fill the new bits with zeroes, while right-shifts perform
@@ -1097,6 +1145,7 @@ type Integer
 
     ## ALIAS from text
        GROUP Conversions
+       ICON convert
 
        Parses a textual representation of an integer into an integer number, returning
        a `Number_Parse_Error` if the text does not represent a valid integer.

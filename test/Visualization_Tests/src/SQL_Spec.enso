@@ -4,7 +4,7 @@ from Standard.Database import Database, SQLite, SQL_Query
 
 import Standard.Visualization.SQL.Visualization
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 type Data
     Value ~data

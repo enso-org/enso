@@ -4,11 +4,10 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Data.Type.Value_Type.Bits
-from Standard.Table import Table, Value_Type
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
+from Standard.Table import Table, Value_Type, Aggregate_Column, expr
 from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
-import Standard.Database.Data.Column.Column
+import Standard.Database.Data.DB_Column.DB_Column
 import Standard.Database.Data.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Postgres.Postgres_Entity_Naming_Properties
@@ -16,8 +15,8 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all
 
-from Standard.Test_New import all
-import Standard.Test_New.Test_Environment
+from Standard.Test import all
+import Standard.Test.Test_Environment
 
 import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec
@@ -231,7 +230,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Integer, Value_Type.Boolean, Value_Type.Float]
 
         group_builder.specify "should return Table information, also for aggregated results" <|
-            i = data.t.aggregate [Concatenate "strs", Sum "ints", Count_Distinct "bools"] . info
+            i = data.t.aggregate columns=[Aggregate_Column.Concatenate "strs", Aggregate_Column.Sum "ints", Aggregate_Column.Count_Distinct "bools"] . info
             i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
             i.at "Value Type" . to_vector . should_equal [default_text, Value_Type.Decimal, Value_Type.Integer]
@@ -277,19 +276,19 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             data.teardown
 
         group_builder.specify "Concatenate, Shortest and Longest" <|
-            r = data.t.aggregate [Concatenate "txt", Shortest "txt", Longest "txt"]
+            r = data.t.aggregate columns=[Aggregate_Column.Concatenate "txt", Aggregate_Column.Shortest "txt", Aggregate_Column.Longest "txt"]
             r.columns.at 0 . value_type . should_equal default_text
             r.columns.at 1 . value_type . should_equal default_text
             r.columns.at 2 . value_type . should_equal default_text
 
         group_builder.specify "Counts" <|
-            r = data.t.aggregate [Count, Count_Empty "txt", Count_Not_Empty "txt", Count_Distinct "i1", Count_Not_Nothing "i2", Count_Nothing "i3"]
+            r = data.t.aggregate columns=[Aggregate_Column.Count, Aggregate_Column.Count_Empty "txt", Aggregate_Column.Count_Not_Empty "txt", Aggregate_Column.Count_Distinct "i1", Aggregate_Column.Count_Not_Nothing "i2", Aggregate_Column.Count_Nothing "i3"]
             r.column_count . should_equal 6
             r.columns.each column->
                 column.value_type . should_equal Value_Type.Integer
 
         group_builder.specify "Sum" <|
-            r = data.t.aggregate [Sum "i1", Sum "i2", Sum "i3", Sum "i4", Sum "r1", Sum "r2"]
+            r = data.t.aggregate columns=[Aggregate_Column.Sum "i1", Aggregate_Column.Sum "i2", Aggregate_Column.Sum "i3", Aggregate_Column.Sum "i4", Aggregate_Column.Sum "r1", Aggregate_Column.Sum "r2"]
             r.columns.at 0 . value_type . should_equal Value_Type.Integer
             r.columns.at 1 . value_type . should_equal Value_Type.Integer
             r.columns.at 2 . value_type . should_equal Value_Type.Decimal
@@ -298,7 +297,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             r.columns.at 5 . value_type . should_equal (Value_Type.Float Bits.Bits_64)
 
         group_builder.specify "Average" <|
-            r = data.t.aggregate [Average "i1", Average "i2", Average "i3", Average "i4", Average "r1", Average "r2"]
+            r = data.t.aggregate columns=[Aggregate_Column.Average "i1", Aggregate_Column.Average "i2", Aggregate_Column.Average "i3", Aggregate_Column.Average "i4", Aggregate_Column.Average "r1", Aggregate_Column.Average "r2"]
             r.columns.at 0 . value_type . should_equal Value_Type.Decimal
             r.columns.at 1 . value_type . should_equal Value_Type.Decimal
             r.columns.at 2 . value_type . should_equal Value_Type.Decimal
@@ -394,7 +393,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             v1x.should_equal [10, x]
             v1x.each e-> Test.with_clue "("+e.to_text+"): " <| e.should_be_a Integer
 
-            t2 = t1.set "[X] + 10" "Y"
+            t2 = t1.set (expr "[X] + 10") "Y"
             t2.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
             t2.at "Y" . value_type . should_be_a (Value_Type.Decimal ...)
             # Unfortunately, performing operations on a Decimal column in postgres can lose information about it being an integer column.
@@ -645,7 +644,7 @@ supported_replace_params =
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
+    e4 = [Replace_Params.Value DB_Column Case_Sensitivity.Default False, Replace_Params.Value DB_Column Case_Sensitivity.Sensitive False]
     Set.from_vector <| e0 + e1 + e2 + e3 + e4
 
 add_table_specs suite_builder =
@@ -863,8 +862,8 @@ add_specs suite_builder =
     add_pgpass_specs suite_builder
     add_connection_setup_specs suite_builder
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

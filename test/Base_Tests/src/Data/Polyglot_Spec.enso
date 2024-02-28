@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.lang.Double
@@ -10,7 +10,7 @@ polyglot java import java.time.LocalDate
 polyglot java import java.util.function.Function as Java_Function
 polyglot java import org.enso.base_test_helpers.IntHolder
 
-spec = suite_builder.group "Polyglot" group_builder->
+add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
     group_builder.specify "should be able to invoke a polyglot method by name and pass arguments" <|
         poly_date = LocalDate.now
         date = Date.today.to_date_time
@@ -50,8 +50,8 @@ spec = suite_builder.group "Polyglot" group_builder->
 foreign js js_meaning = """
     return { meaning : 6 * 7 };
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

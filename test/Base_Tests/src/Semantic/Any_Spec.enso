@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Semantic.Definitions.Any_Types import all
 
@@ -109,8 +109,8 @@ add_specs suite_builder =
             Vector.is_empty [] . should_be_true
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

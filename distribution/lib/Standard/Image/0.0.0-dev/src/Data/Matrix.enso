@@ -242,6 +242,7 @@ type Matrix
     - self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch core_op_handler
 
     ## GROUP Standard.Base.Operators
+       ICON math
        Calculates the per-element product of two matrices or a matrix and a
        scalar.
 
@@ -285,6 +286,7 @@ type Matrix
     * self value = Panic.recover Any (core_op self.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch core_op_handler
 
     ## GROUP Standard.Base.Operators
+       ICON math
        Performs per-element division of two matrices or a matrix and a scalar.
 
        Arguments:

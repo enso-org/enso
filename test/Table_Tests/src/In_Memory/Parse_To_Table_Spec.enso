@@ -9,7 +9,7 @@ from Standard.Table import Table
 from Standard.Table.Data.Type.Value_Type import Bits, Value_Type
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, Missing_Input_Columns
 from Standard.Table.Extensions.Table_Conversions import all
-from Standard.Test_New import all
+from Standard.Test import all
 from project.Util import all
 
 add_specs suite_builder =
@@ -78,8 +78,8 @@ add_specs suite_builder =
         group_builder.specify "bad arg" <|
             Test.expect_panic_with (actual = "a 7 ab12 bt100 c12d20q 12".parse_to_table 12) Type_Error
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

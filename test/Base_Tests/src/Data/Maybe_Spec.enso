@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 add_specs suite_builder = suite_builder.group "Maybe" group_builder->
@@ -18,8 +18,8 @@ add_specs suite_builder = suite_builder.group "Maybe" group_builder->
         Maybe.None.is_none . should_be_true
         Maybe.Some 2 . is_none . should_be_false
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 # === Test Resources ===
@@ -232,8 +232,8 @@ add_specs suite_builder =
 
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

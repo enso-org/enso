@@ -24,7 +24,7 @@ import org.enso.compiler.core.ir.module.scope.Export
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.EnsoParser
-import org.enso.compiler.data.{BindingsMap, CompilerConfig}
+import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.exception.CompilationAbortedException
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
@@ -200,7 +200,11 @@ class Compiler(
     */
   def generateDocs(module: Module): Module = {
     initialize()
-    parseModule(module, isGenDocs = true)
+    parseModule(
+      module,
+      irCachingEnabled && !context.isInteractive(module),
+      isGenDocs = true
+    )
     module
   }
 
@@ -244,7 +248,7 @@ class Compiler(
     initialize()
     modules.foreach(m =>
       try {
-        parseModule(m)
+        parseModule(m, irCachingEnabled && !context.isInteractive(m))
       } catch {
         case e: Throwable =>
           context.log(
@@ -286,12 +290,12 @@ class Compiler(
           )
         )
         context.updateModule(module, _.invalidateCache())
-        parseModule(module)
+        parseModule(module, irCachingEnabled && !context.isInteractive(module))
         importedModules
           .filter(isLoadedFromSource)
           .map(m => {
             if (m.getBindingsMap() == null) {
-              parseModule(m)
+              parseModule(m, irCachingEnabled && !context.isInteractive(module))
             }
           })
         runImportsAndExportsResolution(module, generateCode)
@@ -302,7 +306,7 @@ class Compiler(
 
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
-        ensureParsed(module)
+        ensureParsed(module, !context.isInteractive(module))
       }
     }
     requiredModules.foreach { module =>
@@ -404,6 +408,7 @@ class Compiler(
 
         if (shouldCompileDependencies || isModuleInRootPackage(module)) {
           val shouldStoreCache =
+            generateCode &&
             irCachingEnabled && !context.wasLoadedFromCache(module)
           if (
             shouldStoreCache && !hasErrors(module) &&
@@ -415,7 +420,8 @@ class Compiler(
               context.serializeModule(
                 this,
                 module,
-                useGlobalCacheLocations
+                useGlobalCacheLocations,
+                true
               )
             }
           }
@@ -481,7 +487,7 @@ class Compiler(
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
     if (module.getBindingsMap() == null) {
-      ensureParsed(module)
+      ensureParsed(module, irCachingEnabled && !context.isInteractive(module))
     }
     if (context.isSynthetic(module)) {
       // Synthetic modules need to be import-analyzed
@@ -490,19 +496,10 @@ class Compiler(
       // TODO: consider generating IR for synthetic modules, if possible.
       importExportBindings(module) match {
         case Some(bindings) =>
-          val converted = bindings
-            .toConcrete(packageRepository.getModuleMap)
-            .map { concreteBindings =>
-              concreteBindings
-            }
-          ensureParsed(module)
-          val currentLocal = module.getBindingsMap()
-          currentLocal.resolvedImports =
-            converted.map(_.resolvedImports).getOrElse(Nil)
-          currentLocal.resolvedExports =
-            converted.map(_.resolvedExports).getOrElse(Nil)
-          currentLocal.exportedSymbols =
-            converted.map(_.exportedSymbols).getOrElse(Map.empty)
+          context.updateModule(
+            module,
+            _.ir(bindings)
+          )
         case _ =>
       }
     }
@@ -520,7 +517,7 @@ class Compiler(
     * @param module - the scope from which docs are generated.
     */
   def gatherImportStatements(module: Module): Array[String] = {
-    ensureParsed(module)
+    ensureParsed(module, irCachingEnabled && !context.isInteractive(module))
     val importedModules = context.getIr(module).imports.flatMap {
       case imp: Import.Module =>
         imp.name.parts.take(2).map(_.name) match {
@@ -543,6 +540,7 @@ class Compiler(
 
   private def parseModule(
     module: Module,
+    useCaches: Boolean,
     isGenDocs: Boolean = false
   ): Unit = {
     context.log(
@@ -552,7 +550,7 @@ class Compiler(
     )
     context.updateModule(module, _.resetScope())
 
-    if (irCachingEnabled && !context.isInteractive(module)) {
+    if (useCaches) {
       if (context.deserializeModule(this, module)) {
         return
       }
@@ -566,7 +564,7 @@ class Compiler(
     * @param module module which is conssidered
     * @return module's bindings, if available in libraries' bindings cache
     */
-  def importExportBindings(module: Module): Option[BindingsMap] = {
+  def importExportBindings(module: Module): Option[IRModule] = {
     if (irCachingEnabled && !context.isInteractive(module)) {
       val libraryName = Option(module.getPackage).map(_.libraryName)
       libraryName.flatMap(
@@ -646,6 +644,11 @@ class Compiler(
     * @param module the module to ensure is parsed.
     */
   def ensureParsed(module: Module): Unit = {
+    val useCaches = irCachingEnabled && !context.isInteractive(module)
+    ensureParsed(module, useCaches)
+  }
+
+  def ensureParsed(module: Module, useCaches: Boolean): Unit = {
     if (
       !context
         .getCompilationStage(module)
@@ -653,7 +656,7 @@ class Compiler(
           CompilationStage.AFTER_PARSING
         )
     ) {
-      parseModule(module)
+      parseModule(module, useCaches)
     }
   }
 

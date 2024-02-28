@@ -45,6 +45,7 @@ polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Text_Utils
 
 ## GROUP Text
+   ICON text
    Returns a new `Text` object with the characters in the reverse order of the input.
 
    ! What is a Character?
@@ -272,6 +273,7 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 
 ## ALIAS check matches
    GROUP Text
+   ICON preparation
 
    Checks if the whole text in `self` matches a provided `pattern`.
 
@@ -417,6 +419,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
 
 ## ALIAS replace text
    GROUP Text
+   ICON text
    Perform a text or regex replace.
 
    Returns the text with all matched elements replaced by the provided
@@ -581,6 +584,7 @@ Text.lines self keep_endings=False =
     Vector.from_polyglot_array (Text_Utils.split_on_lines self keep_endings)
 
 ## GROUP Text
+   ICON text_input
    Inserts text value at the specified index.
 
    Arguments:
@@ -614,6 +618,7 @@ Text.insert self index that =
                 pre + that + post
 
 ## GROUP Logical
+   ICON metadata
    Returns if a character from the text at the specified index (0-based) is a
    digit (0-9).
 
@@ -642,6 +647,7 @@ Text.is_digit self (index=0) =
     char>=48 && char<=57
 
 ## GROUP Logical
+   ICON metadata
    Checks if the text consists only of whitespace characters.
 
    > Example
@@ -787,6 +793,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
 
 ## ALIAS check prefix
    GROUP Text
+   ICON preparation
 
    Checks whether `self` starts with `prefix`.
 
@@ -821,6 +828,7 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
 
 ## ALIAS check suffix
    GROUP Text
+   ICON preparation
 
    Checks whether `self` ends with `suffix`.
 
@@ -850,6 +858,7 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
 
 ## ALIAS contains
    GROUP Logical
+   ICON preparation
 
    Checks whether `self` contains `sequence` as its substring.
    Returns: `True` if term is found within `self`. `False` otherwise.
@@ -892,6 +901,7 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
         Text_Utils.contains_case_insensitive self term locale.java_locale
 
 ## GROUP Operators
+   ICON text
    Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
 
@@ -982,6 +992,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
 
 ## ALIAS remove, skip
    GROUP Selections
+   ICON split_text
    Creates a new Text by removing the specified range of the input.
 
    This can select a section of text from the beginning, end, or middle of the
@@ -1036,6 +1047,7 @@ Text.drop self range=(Index_Sub_Range.First 1) =
 
 ## ALIAS lower, proper, title, upper
    GROUP Text
+   ICON text
    Converts each character in `self` to the specified case.
 
    Arguments:
@@ -1114,6 +1126,7 @@ Text.pad self length=0 with_pad=' ' at=Location.End = case at of
                         self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
 
 ## GROUP Text
+   ICON text
    This function removes the specified `trim_characters`, by default any
    whitespace, from the start, the end, or both ends of the input.
 
@@ -1169,6 +1182,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
 ## ALIAS position_of, span_of
    GROUP Text
+   ICON find
    Find the location of the `term` in the input.
    Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
@@ -1271,6 +1285,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
 
 ## ALIAS index_of_all, position_of_all, span_of_all
    GROUP Text
+   ICON find
    Finds all the locations of the `term` in the input.
    If not found, the function returns an empty Vector.
 
@@ -1375,7 +1390,7 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
          "Hello World!".index_of "J" == Nothing
          "Hello World!".index_of "o" == 4
 Text.index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
-Text.index_of self term="" start=0 case_sensitivity=Case_Sensitivity.Sensitive =
+Text.index_of self term="" (start : Integer = 0) case_sensitivity=Case_Sensitivity.Sensitive =
     used_start = if start < 0 then start+self.length else start
     if used_start < 0 || used_start > self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length+1) else
         used = if used_start == 0 then self else self.drop used_start

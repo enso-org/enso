@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Compile_Error
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.lang.Float as Java_Float
@@ -91,8 +91,8 @@ add_specs suite_builder =
             err.to_text . contains "NON_EXISTING" . should_be_true
             err.to_text . contains "is not visible in this scope" . should_be_true
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

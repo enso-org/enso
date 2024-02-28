@@ -18,6 +18,7 @@ type Boolean
 
     ## ALIAS and
        GROUP Logical
+       ICON operators
        Computes the logical and (conjunction) of two booleans.
 
        Arguments:
@@ -36,6 +37,7 @@ type Boolean
 
     ## ALIAS or
        GROUP Logical
+       ICON operators
        Computes the logical or (disjunction) of two booleans.
 
        Arguments:
@@ -53,6 +55,7 @@ type Boolean
     || self ~that = @Builtin_Method "Boolean.||"
 
     ## GROUP Logical
+       ICON operators
        Computes the logical negation of this.
 
        > Example

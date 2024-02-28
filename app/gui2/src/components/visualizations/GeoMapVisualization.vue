@@ -336,7 +336,7 @@ function extractVisualizationDataFromFullConfig(parsedData: RegularData | Layer)
 function extractVisualizationDataFromDataFrame(parsedData: DataFrame) {
   const newPoints: Location[] = []
   for (let i = 0; i < parsedData.df_latitude.length; i += 1) {
-    const latitude = parsedData.df_longitude[i]!
+    const latitude = parsedData.df_latitude[i]!
     const longitude = parsedData.df_longitude[i]!
     const label = parsedData.df_label?.[i]
     const color = parsedData.df_color?.[i]

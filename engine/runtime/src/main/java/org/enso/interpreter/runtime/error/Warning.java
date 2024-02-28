@@ -231,7 +231,7 @@ public final class Warning implements EnsoObject {
   public Warning reassign(Node location) {
     RootNode root = location.getRootNode();
     SourceSection section = location.getEncapsulatingSourceSection();
-    Reassignment reassignment = new Reassignment(root.getName(), section);
+    Reassignment reassignment = new Reassignment(root == null ? "" : root.getName(), section);
     return new Warning(value, origin, sequenceId, reassignments.prepend(reassignment));
   }
 

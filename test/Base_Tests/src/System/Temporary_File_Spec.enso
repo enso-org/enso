@@ -4,8 +4,8 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.System.File.Advanced.Temporary_File.Temporary_File
 import Standard.Base.System.Input_Stream.Input_Stream
 
-from Standard.Test_New import all
-from Standard.Test_New.Execution_Context_Helpers import run_with_and_without_output
+from Standard.Test import all
+from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 
 polyglot java import java.io.File as Java_File
@@ -13,10 +13,10 @@ polyglot java import java.io.ByteArrayInputStream
 polyglot java import java.io.FileInputStream
 polyglot java import java.io.InputStream
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 add_specs suite_builder =

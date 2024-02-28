@@ -1,0 +1,146 @@
+import project.Any.Any
+import project.Error.Error
+import project.Errors.Common.Forbidden_Operation
+import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_State.Illegal_State
+import project.Nothing.Nothing
+import project.Panic.Caught_Panic
+import project.Panic.Panic
+import project.System.File.File
+import project.System.File.File_Access.File_Access
+import project.System.Output_Stream.Output_Stream
+from project.Data.Boolean import Boolean, False, True
+from project.System.File.Generic.File_Write_Strategy import File_Write_Strategy, default_overwrite, default_append, default_raise_error
+
+## PRIVATE
+instance =
+    File_Write_Strategy.Value default_overwrite default_append default_raise_error moving_backup create_dry_run_file write_with_local_file copy_local_from_local
+
+## PRIVATE
+create_dry_run_file file copy_original =
+    file.create_dry_run_file copy_original
+
+## PRIVATE
+copy_local_from_local (source : File) (destination : File) = source.copy_to destination
+
+## PRIVATE
+   A `Backup` strategy that does the following:
+   1. If the file does not exist, we write to it.
+   2. If the file exists, write to a temporary file.
+     i. If the write fails, do nothing more. The original file is kept intact.
+     ii. If the write succeeds, we move the original file to a backup location,
+         and then move the temporary new file to the target location.
+
+   This strategy assumes that the `move` operation on a single filesystem is
+   cheap (it is a rename), and is optimized for that case.
+moving_backup file action = recover_io_and_not_found <|
+    handle_existing_file _ =
+        write_file_backing_up_old_one file action
+    handle_write_failure_dataflow caught_panic =
+        Error.throw caught_panic.payload.cause
+    handle_file_already_exists = catch_already_exists handle_existing_file
+    handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
+
+    ## We first attempt to write the file to the original
+       destination, but if that fails due to the file already
+       existing, we will run the alternative algorithm which uses a
+       temporary file and creates a backup.
+    handle_file_already_exists <| handle_internal_dataflow <|
+        Panic.rethrow <| file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
+            action output_stream . catch Any dataflow_error->
+                Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
+
+## PRIVATE
+write_file_backing_up_old_one file action = recover_io_and_not_found <|
+    parent = file.parent
+    bak_file = parent / file.name+".bak"
+    # The loop is looking for a name for a temporary file that is not yet taken.
+    go i =
+        new_name = file.name + ".new" + if i == 0 then "" else "." + i.to_text
+        new_file = parent / new_name
+        handle_existing_file _ = go i+1
+        handle_write_failure_panic panic =
+            ## Since we were already inside of the write operation,
+               the file must have been created, but since we failed, we need to clean it up.
+            new_file.delete
+            Panic.throw panic.payload.cause
+        handle_write_failure_dataflow caught_panic =
+            ## Since we were already inside of the write operation,
+               the file must have been created, but since we failed, we need to clean it up.
+            new_file.delete
+            Error.throw caught_panic.payload.cause
+        handle_file_already_exists = catch_already_exists handle_existing_file
+        handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
+        handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked handler=handle_write_failure_panic
+        handle_file_already_exists <| handle_internal_dataflow <| handle_internal_panic <|
+
+            ## First we write the temporary file, handling any failures.
+               If the write fails, we'll do nothing more.
+            result = Panic.rethrow <|
+                new_file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
+                    result = Panic.catch Any (action output_stream) caught_panic->
+                        Panic.throw (Internal_Write_Operation_Panicked.Panic caught_panic)
+                    result.catch Any dataflow_error->
+                        Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
+
+            ## After successful write to a temp file, we move the original file
+               to the backup location.
+               We ignore the file not found error, because it means that there
+               is no file to back-up. This may also be caused by someone
+               removing the original file during the time when we have been
+               writing the new one to the temporary location. There is nothing
+               to back-up anymore, but this is not a failure, so it can be
+               safely ignored.
+            not_found_handler caught_panic = case caught_panic.payload of
+                File_Error.Not_Found _ -> Nothing
+                _ -> Panic.throw caught_panic
+            Panic.catch File_Error handler=not_found_handler <|
+                Panic.rethrow <| file.move_to bak_file replace_existing=True
+
+            ## Lastly, we move the temporary new file to the destination, and
+               return the result.
+            Panic.rethrow <| new_file.move_to file
+            result
+
+    ## Here we manually check if the target file is writable. This is necessary,
+       because the `Backup` scenario would go around the original file not being
+       writable by moving it (which is permitted for read-only files too) and
+       then writing a new file and removing the old one (it is often possible to
+       delete a read-only file). So without this check, the `Backup` mode would
+       be able to replace contents of a read-only file, which is not desired.
+       Thus we add this additional check to ensure the operation will proceed
+       only if it is allowed. Other scenarios do not need this check, as they
+       write to the file directly and will fail if the file is not writable.
+    if parent.exists.not then Error.throw (File_Error.Not_Found file.parent) else
+        if file.is_writable.not then File_Error.access_denied file else
+            go 0
+
+## PRIVATE
+write_with_local_file file existing_file_behavior action =
+    _ = [file, existing_file_behavior, action]
+    Panic.throw (Illegal_State.Error "`write_requiring_local_file` should not be used with local files, instead the file should be written directly. This is a bug in an implementation of a write strategy.")
+
+type Internal_Write_Operation_Panicked
+    ## PRIVATE
+    Panic (cause : Caught_Panic)
+
+type Internal_Write_Operation_Errored
+    ## PRIVATE
+    Error (cause : Any)
+
+## PRIVATE
+catch_already_exists handler =
+    panic_handler caught_panic = case caught_panic.payload of
+        File_Error.Already_Exists _ -> handler caught_panic
+        _ -> Panic.throw caught_panic
+    Panic.catch File_Error handler=panic_handler
+
+## PRIVATE
+recover_io_and_not_found ~action =
+    panic_handler caught_panic = case caught_panic.payload of
+        File_Error.IO_Error _ _ -> caught_panic.convert_to_dataflow_error
+        File_Error.Not_Found _ -> caught_panic.convert_to_dataflow_error
+        _ -> Panic.throw caught_panic
+    Panic.catch File_Error handler=panic_handler <|
+        Panic.catch Forbidden_Operation handler=(.convert_to_dataflow_error) <|
+            action

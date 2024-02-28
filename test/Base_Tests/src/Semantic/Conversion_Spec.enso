@@ -6,7 +6,7 @@ import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
 import project.Semantic.Conversion_Use.Hello
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.lang.Object
@@ -234,6 +234,8 @@ add_specs suite_builder =
 
             # no conversions needed when calling `exchange` methods
             nine . should_equal one
+
+    suite_builder.group "MultiValue Conversions" group_builder->
 
         group_builder.specify "Requesting Text & Foo" <|
             check a (n : Text & Foo) = case a of
@@ -546,8 +548,8 @@ Hello.from (that:Any) suffix="?" = Hello.Say <| ("Any fallback:"+that.to_text) +
 Hello.from (that:Foo) suffix=" " = Hello.Say <| (that.foo.to_case Case.Upper) + suffix
 Hello.from (that:Bar) suffix="!" = Hello.Say <| (that.bar.to_case Case.Lower) + suffix
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

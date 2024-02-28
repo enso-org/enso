@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 type My_Type

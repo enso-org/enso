@@ -5,7 +5,7 @@ polyglot java import org.enso.base.ObjectComparator
 
 polyglot java import org.enso.base.CompareException
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 # === Test Resources ===
@@ -78,8 +78,8 @@ add_specs suite_builder = suite_builder.group "Object Comparator" group_builder-
         (default_comparator 1 True) . should_fail_with Incomparable_Values
         (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

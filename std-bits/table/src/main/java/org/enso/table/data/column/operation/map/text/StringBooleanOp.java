@@ -29,37 +29,37 @@ public abstract class StringBooleanOp
       MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
       BitSet newVals = new BitSet();
-      BitSet newMissing = new BitSet();
-      newMissing.set(0, storage.size());
-      return new BoolStorage(newVals, newMissing, storage.size(), false);
+      BitSet newIsNothing = new BitSet();
+      newIsNothing.set(0, storage.size());
+      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
     } else if (arg instanceof String argString) {
       BitSet newVals = new BitSet();
-      BitSet newMissing = new BitSet();
+      BitSet newIsNothing = new BitSet();
       Context context = Context.getCurrent();
       for (int i = 0; i < storage.size(); i++) {
-        if (storage.isNa(i)) {
-          newMissing.set(i);
+        if (storage.isNothing(i)) {
+          newIsNothing.set(i);
         } else if (doString(storage.getItem(i), argString)) {
           newVals.set(i);
         }
 
         context.safepoint();
       }
-      return new BoolStorage(newVals, newMissing, storage.size(), false);
+      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
     } else {
       BitSet newVals = new BitSet();
-      BitSet newMissing = new BitSet();
+      BitSet newIsNothing = new BitSet();
       Context context = Context.getCurrent();
       for (int i = 0; i < storage.size(); i++) {
-        if (storage.isNa(i)) {
-          newMissing.set(i);
+        if (storage.isNothing(i)) {
+          newIsNothing.set(i);
         } else if (doObject(storage.getItem(i), arg)) {
           newVals.set(i);
         }
 
         context.safepoint();
       }
-      return new BoolStorage(newVals, newMissing, storage.size(), false);
+      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
     }
   }
 
@@ -71,24 +71,24 @@ public abstract class StringBooleanOp
     Context context = Context.getCurrent();
     if (arg instanceof StringStorage v) {
       BitSet newVals = new BitSet();
-      BitSet newMissing = new BitSet();
+      BitSet newIsNothing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNa(i) && i < v.size() && !v.isNa(i)) {
+        if (!storage.isNothing(i) && i < v.size() && !v.isNothing(i)) {
           if (doString(storage.getItem(i), v.getItem(i))) {
             newVals.set(i);
           }
         } else {
-          newMissing.set(i);
+          newIsNothing.set(i);
         }
 
         context.safepoint();
       }
-      return new BoolStorage(newVals, newMissing, storage.size(), false);
+      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
     } else {
       BitSet newVals = new BitSet();
-      BitSet newMissing = new BitSet();
+      BitSet newIsNothing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNa(i) && i < arg.size() && !arg.isNa(i)) {
+        if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
           Object x = arg.getItemBoxed(i);
           if (x instanceof String) {
             if (doString(storage.getItem(i), (String) x)) {
@@ -100,12 +100,12 @@ public abstract class StringBooleanOp
             }
           }
         } else {
-          newMissing.set(i);
+          newIsNothing.set(i);
         }
 
         context.safepoint();
       }
-      return new BoolStorage(newVals, newMissing, storage.size(), false);
+      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
     }
   }
 }

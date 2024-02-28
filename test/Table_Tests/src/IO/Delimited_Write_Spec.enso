@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Match_Columns, Delimited
 from Standard.Table.Errors import all
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 from project.Util import all
 
@@ -601,8 +601,8 @@ add_specs suite_builder =
             f.read Plain_Text . should_equal "Initial Content"
             f.delete
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

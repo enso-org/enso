@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
-import Standard.Base.Data.Vector.Empty_Error
+import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Data.Vector.Map_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -15,7 +15,7 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Runtime.State
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
 
-from Standard.Test_New import all
+from Standard.Test import all
 
 
 polyglot java import java.util.ArrayList
@@ -155,8 +155,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
 
     group_builder.specify "should allow to reduce elements if it is non-empty" <|
         alter [1,2,3] . reduce (+) . should_equal 6
-        alter [] . reduce (+) . should_fail_with Empty_Error
-        alter [] . reduce (+) 0 . should_equal 0
+        empty_vec = alter []
+        empty_vec . reduce (+) . should_fail_with (Empty_Error.Error (Meta.type_of empty_vec))
+        empty_vec . reduce (+) 0 . should_equal 0
 
     group_builder.specify "should check any" <|
         vec = alter [1, 2, 3, 4, 5]
@@ -538,7 +539,7 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.slice 1 3 . should_equal [2, 3]
         vec.slice 1 1 . should_equal []
         vec.slice 0 100 . should_equal [1, 2, 3, 4, 5, 6]
-        Meta.is_same_object vec (vec.slice 0 100) . should_be_true
+
         Meta.get_qualified_type_name (vec.slice 1 1) . should_equal (Meta.meta Vector . qualified_name)
         Meta.get_simple_type_name (vec.slice 1 1) . should_equal "Vector"
 
@@ -1081,8 +1082,7 @@ type Fib
         start = Fib.Number 1 <| Fib.Number 1 (sum_two start)
         start
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
-
+    suite.run_with_filter filter
