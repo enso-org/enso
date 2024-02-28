@@ -3,7 +3,6 @@ package org.enso.base.file_format;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
-
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -22,7 +21,9 @@ public abstract class FileFormatSPI {
     Objects.requireNonNull(subType, "subType must not be null/Nothing.");
 
     var providers =
-        loader.stream().filter(provider -> subType.equals(provider.get().getDataLinkFormatName())).toList();
+        loader.stream()
+            .filter(provider -> subType.equals(provider.get().getDataLinkFormatName()))
+            .toList();
     if (providers.isEmpty()) {
       return null;
     }
@@ -53,15 +54,14 @@ public abstract class FileFormatSPI {
 
   protected abstract String getTypeName();
 
-  /** An optional method that allows this format to be parsed as a selected
-   * format in data-links.
-   * <p>
-   * If a format overrides this method to return a non-null format name
-   * (corresponding to the "subType" field in a data-link format entry,
-   * see `dataLinkSchema.json` for more details), then the corresponding Enso
-   * type should provide a `from` conversion, which will be able to construct
-   * a configured format instance from its JSON representation (which should be
-   * consistent with the schema).
+  /**
+   * An optional method that allows this format to be parsed as a selected format in data-links.
+   *
+   * <p>If a format overrides this method to return a non-null format name (corresponding to the
+   * "subType" field in a data-link format entry, see `dataLinkSchema.json` for more details), then
+   * the corresponding Enso type should provide a `from` conversion, which will be able to construct
+   * a configured format instance from its JSON representation (which should be consistent with the
+   * schema).
    */
   protected String getDataLinkFormatName() {
     return null;

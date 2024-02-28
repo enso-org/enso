@@ -5,10 +5,10 @@ import java.util.stream.Collectors;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
-/** An interface for data link parser providers.
- * A class providing this interface can register an Enso type that defines how
- * to `parse` a specific type of datalink. The `parse` method on that type
- * should return a configured datalink instance that can later be `read`.
+/**
+ * An interface for data link parser providers. A class providing this interface can register an
+ * Enso type that defines how to `parse` a specific type of datalink. The `parse` method on that
+ * type should return a configured datalink instance that can later be `read`.
  */
 public abstract class DataLinkSPI {
   private static final ServiceLoader<DataLinkSPI> loader =
