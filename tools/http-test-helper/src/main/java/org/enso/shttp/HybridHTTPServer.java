@@ -6,7 +6,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.Executor;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -18,18 +18,27 @@ public class HybridHTTPServer {
   private final HttpsServer sslServer;
   private final Path keyStorePath;
   private volatile boolean isStarted = false;
-  private final Semaphore stopNotification = new Semaphore(0, false);
 
-  public HybridHTTPServer(String hostname, int port, int sslPort, Path keyStorePath)
+  HybridHTTPServer(
+      String hostname,
+      int port,
+      int sslPort,
+      Path keyStorePath,
+      Executor executor,
+      boolean withSSLServer)
       throws IOException {
     this.keyStorePath = keyStorePath;
     InetSocketAddress address = new InetSocketAddress(hostname, port);
     server = HttpServer.create(address, 0);
-    server.setExecutor(null);
+    server.setExecutor(executor);
 
-    InetSocketAddress sslAddress = new InetSocketAddress(hostname, sslPort);
-    sslServer = HttpsServer.create(sslAddress, 0);
-    sslServer.setExecutor(null);
+    if (withSSLServer) {
+      InetSocketAddress sslAddress = new InetSocketAddress(hostname, sslPort);
+      sslServer = HttpsServer.create(sslAddress, 0);
+      sslServer.setExecutor(executor);
+    } else {
+      sslServer = null;
+    }
   }
 
   private static class SimpleHttpsConfigurator extends HttpsConfigurator {
@@ -109,37 +118,37 @@ public class HybridHTTPServer {
 
     isStarted = true;
 
-    try {
-      setupSSL();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    if (sslServer != null) {
+      try {
+        setupSSL();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
     server.start();
-    sslServer.start();
+    if (sslServer != null) {
+      sslServer.start();
+    }
 
     System.out.println("HTTP server started at " + server.getAddress());
-    System.out.println("HTTPS server started at " + sslServer.getAddress());
-
-    try {
-      stopNotification.acquire();
-    } catch (InterruptedException e) {
-      System.out.println("Server interrupted.");
-      e.printStackTrace();
-    } finally {
-      System.out.println("Finalizing HTTP server...");
-      server.stop(1);
-      System.out.println("Finalizing HTTPS server...");
-      sslServer.stop(1);
-      System.out.println("Server stopped.");
+    if (sslServer != null) {
+      System.out.println("HTTPS server started at " + sslServer.getAddress());
     }
   }
 
   public void stop() {
-    stopNotification.release();
+    System.out.println("Finalizing HTTP server...");
+    server.stop(1);
+    if (sslServer != null) {
+      System.out.println("Finalizing HTTPS server...");
+      sslServer.stop(1);
+    }
   }
 
   public void addHandler(String path, HttpHandler handler) {
     server.createContext(path, handler);
-    sslServer.createContext(path, handler);
+    if (sslServer != null) {
+      sslServer.createContext(path, handler);
+    }
   }
 }

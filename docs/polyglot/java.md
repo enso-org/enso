@@ -164,7 +164,7 @@ build tool_ - to download
 [google-analytics-data library](https://central.sonatype.com/artifact/com.google.analytics/google-analytics-data/0.44.0)
 library version `0.44.0` and all _its dependencies_ into your `polyglot/java`
 directory. Of course, _feel free to find different library_ on
-[Maven central](http://maven.apache.org) to download - edit `pom.xml`
+[Maven central](https://search.maven.org/) to download - edit `pom.xml`
 appropriately. Once your files are ready execute:
 
 ```bash

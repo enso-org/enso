@@ -1,27 +1,29 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.Node;
-import java.math.BigInteger;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.callable.InteropConversionCallNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoMultiValue;
-import org.enso.interpreter.runtime.data.atom.Atom;
-import org.enso.interpreter.runtime.data.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.polyglot.common_utils.Core_Text_Utils;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Any",
@@ -40,367 +42,252 @@ import org.enso.polyglot.common_utils.Core_Text_Utils;
       references point to the same object on the heap. Moreover, `Meta.is_same_object`
       implies `Any.==` for all object with the exception of `Number.nan`.
       """)
-@GenerateUncached
-public abstract class EqualsNode extends Node {
+public final class EqualsNode extends Node {
+  @Child private EqualsSimpleNode node;
+  @Child private TypeOfNode types;
+  @Child private WithConversionNode convert;
 
-  public static EqualsNode build() {
-    return EqualsNodeGen.create();
-  }
+  private static final EqualsNode UNCACHED =
+      new EqualsNode(EqualsSimpleNodeGen.getUncached(), TypeOfNode.getUncached(), true);
 
-  public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object right);
-
-  @Specialization
-  boolean equalsBoolBool(boolean self, boolean other) {
-    return self == other;
-  }
-
-  @Specialization
-  boolean equalsBoolDouble(boolean self, double other) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsBoolLong(boolean self, long other) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsBoolBigInt(boolean self, EnsoBigInteger other) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsBoolText(boolean self, Text other) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsBoolInterop(
-      boolean self,
-      Object other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
-    try {
-      return self == interop.asBoolean(other);
-    } catch (UnsupportedMessageException ex) {
-      return false;
+  private EqualsNode(EqualsSimpleNode node, TypeOfNode types, boolean uncached) {
+    this.node = node;
+    this.types = types;
+    if (uncached) {
+      convert = EqualsNodeFactory.WithConversionNodeGen.getUncached();
     }
   }
 
-  @Specialization
-  boolean equalsLongLong(long self, long other) {
-    return self == other;
+  @NeverDefault
+  static EqualsNode build() {
+    return create();
   }
 
-  @Specialization
-  boolean equalsLongBool(long self, boolean other) {
-    return false;
+  @NeverDefault
+  public static EqualsNode create() {
+    return new EqualsNode(EqualsSimpleNode.build(), TypeOfNode.build(), false);
   }
 
-  @Specialization
-  boolean equalsLongDouble(long self, double other) {
-    return (double) self == other;
+  @NeverDefault
+  public static EqualsNode getUncached() {
+    return UNCACHED;
   }
 
-  @Specialization
-  boolean equalsLongText(long self, Text other) {
-    return false;
-  }
-
-  @Specialization
-  @TruffleBoundary
-  boolean equalsLongBigInt(long self, EnsoBigInteger other) {
-    if (BigIntegerOps.fitsInLong(other.getValue())) {
-      return BigInteger.valueOf(self).compareTo(other.getValue()) == 0;
-    } else {
-      return false;
-    }
-  }
-
-  @Specialization
-  boolean equalsLongInterop(
-      long self,
-      Object other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
-    try {
-      return self == interop.asLong(other);
-    } catch (UnsupportedMessageException ex) {
-      return false;
-    }
-  }
-
-  @Specialization
-  boolean equalsDoubleDouble(double self, double other) {
-    if (Double.isNaN(self) || Double.isNaN(other)) {
-      return false;
-    } else {
-      return self == other;
-    }
-  }
-
-  @Specialization
-  boolean equalsDoubleLong(double self, long other) {
-    return self == (double) other;
-  }
-
-  @Specialization
-  boolean equalsDoubleBool(double self, boolean other) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsDoubleText(double self, Text other) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsDoubleInterop(
-      double self,
-      Object other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
-    try {
-      if (interop.fitsInDouble(other)) {
-        return self == interop.asDouble(other);
+  /**
+   * Compares two objects for equality. If the {@link EqualsSimpleNode simple check} fails, it tries
+   * to convert first argument to the second one and compare again.
+   *
+   * @param frame the stack frame we are executing at
+   * @param self the self object
+   * @param other the other object
+   * @return {@code true} if {@code self} and {@code that} seem equal
+   */
+  public boolean execute(
+      VirtualFrame frame, @AcceptsError Object self, @AcceptsError Object other) {
+    var areEqual = node.execute(frame, self, other);
+    if (!areEqual) {
+      var selfType = types.execute(self);
+      var otherType = types.execute(other);
+      if (selfType != otherType) {
+        if (convert == null) {
+          CompilerDirectives.transferToInterpreter();
+          convert = insert(WithConversionNode.create());
+        }
+        return convert.executeWithConversion(frame, other, self);
       }
-      var otherBig = interop.asBigInteger(other);
-      return self == asDouble(otherBig);
-    } catch (UnsupportedMessageException ex) {
-      return false;
     }
-  }
-
-  @TruffleBoundary
-  private static double asDouble(BigInteger big) {
-    return big.doubleValue();
-  }
-
-  @Specialization(guards = {"isBigInteger(iop, self)", "isBigInteger(iop, other)"})
-  @TruffleBoundary
-  boolean other(
-      Object self,
-      Object other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
-    return asBigInteger(iop, self).equals(asBigInteger(iop, other));
-  }
-
-  @Specialization(guards = "isBigInteger(iop, self)")
-  @TruffleBoundary
-  boolean equalsBigIntDouble(
-      Object self,
-      double other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
-    return asBigInteger(iop, self).doubleValue() == other;
-  }
-
-  @Specialization(guards = "isBigInteger(iop, self)")
-  @TruffleBoundary
-  boolean equalsBigIntLong(
-      Object self, long other, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
-    var v = asBigInteger(iop, self);
-    if (BigIntegerOps.fitsInLong(v)) {
-      return v.compareTo(BigInteger.valueOf(other)) == 0;
-    } else {
-      return false;
-    }
-  }
-
-  @Specialization
-  boolean equalsBigIntBool(EnsoBigInteger self, boolean other) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsBigIntText(EnsoBigInteger self, Text other) {
-    return false;
-  }
-
-  @TruffleBoundary
-  @Specialization(guards = {"isBigInteger(iop, self)", "!isPrimitiveValue(other)"})
-  boolean equalsBigIntInterop(
-      Object self,
-      Object other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary iop) {
-    try {
-      var otherBigInteger = InteropLibrary.getUncached().asBigInteger(other);
-      return asBigInteger(iop, self).equals(otherBigInteger);
-    } catch (UnsupportedMessageException ex) {
-      return false;
-    }
-  }
-
-  @Specialization(guards = {"selfText.is_normalized()", "otherText.is_normalized()"})
-  boolean equalsTextText(Text selfText, Text otherText) {
-    return selfText.toString().compareTo(otherText.toString()) == 0;
-  }
-
-  @Specialization
-  boolean equalsTextBool(Text self, boolean other) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsTextLong(Text selfText, long otherLong) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsTextDouble(Text selfText, double otherDouble) {
-    return false;
-  }
-
-  @Specialization
-  boolean equalsTextBigInt(Text self, EnsoBigInteger other) {
-    return false;
+    return areEqual;
   }
 
   /**
-   * Compares interop string with other object. If the other object doesn't support conversion to
-   * String, it is not equal. Otherwise the two strings are compared according to the
-   * lexicographical order, handling Unicode normalization. See {@code Text_Utils.compare_to}.
+   * A node that checks the type of {@code that} argument, performs conversion of {@code self} to
+   * {@code that} type, and executes equality check again.
    */
-  @TruffleBoundary
-  @Specialization(
-      guards = {"selfInterop.isString(selfString)"},
-      limit = "3")
-  boolean equalsStrings(
-      Object selfString,
-      Object otherString,
-      @CachedLibrary("selfString") InteropLibrary selfInterop,
-      @CachedLibrary("otherString") InteropLibrary otherInterop) {
-    String selfJavaString;
-    String otherJavaString;
-    try {
-      selfJavaString = selfInterop.asString(selfString);
-      otherJavaString = otherInterop.asString(otherString);
-    } catch (UnsupportedMessageException e) {
+  @GenerateUncached
+  abstract static class WithConversionNode extends Node {
+
+    @NeverDefault
+    static WithConversionNode create() {
+      return EqualsNodeFactory.WithConversionNodeGen.create();
+    }
+
+    /**
+     * @return {code false} if the conversion makes no sense or result of equality check after doing
+     *     the conversion
+     */
+    abstract boolean executeWithConversion(VirtualFrame frame, Object self, Object that);
+
+    static Type findType(TypeOfNode typeOfNode, Object obj) {
+      var rawType = typeOfNode.execute(obj);
+      return rawType instanceof Type type ? type : null;
+    }
+
+    static Type findTypeUncached(Object obj) {
+      return findType(TypeOfNode.getUncached(), obj);
+    }
+
+    private static boolean isDefinedIn(ModuleScope scope, Function fn) {
+      if (fn.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRoot) {
+        return ensoRoot.getModuleScope() == scope;
+      } else {
+        return false;
+      }
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private static Object convertor(EnsoContext ctx, Function convFn, Object value) {
+      var argSchema = new CallArgumentInfo[] {new CallArgumentInfo(), new CallArgumentInfo()};
+      var node =
+          InvokeFunctionNode.build(
+              argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
+      var state = State.create(ctx);
+      return node.execute(
+          convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
+    }
+
+    /**
+     * @return {@code null} if no conversion found
+     */
+    Boolean findConversions(Type selfType, Type thatType, Object self, Object that) {
+      if (selfType == null || thatType == null) {
+        return null;
+      }
+      var ctx = EnsoContext.get(this);
+
+      if (findConversionImpl(ctx, selfType, thatType, self, that)) {
+        return false;
+      } else {
+        if (findConversionImpl(ctx, thatType, selfType, that, self)) {
+          return true;
+        } else {
+          return null;
+        }
+      }
+    }
+
+    private static boolean findConversionImpl(
+        EnsoContext ctx, Type selfType, Type thatType, Object self, Object that) {
+      var selfScope = selfType.getDefinitionScope();
+      var comparableType = ctx.getBuiltins().comparable().getType();
+
+      var fromSelfType =
+          UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, selfType);
+      var fromThatType =
+          UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, thatType);
+      var betweenBoth = UnresolvedConversion.build(selfScope).resolveFor(ctx, selfType, thatType);
+
+      if (isDefinedIn(selfScope, fromSelfType)
+          && isDefinedIn(selfScope, fromThatType)
+          && convertor(ctx, fromSelfType, self) == convertor(ctx, fromThatType, that)
+          && betweenBoth != null) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    @Specialization(
+        limit = "10",
+        guards = {
+          "selfType != null",
+          "thatType != null",
+          "selfType == findType(typeOfNode, self)",
+          "thatType == findType(typeOfNode, that)"
+        })
+    final boolean doConversionCached(
+        VirtualFrame frame,
+        Object self,
+        Object that,
+        @Shared("typeOf") @Cached TypeOfNode typeOfNode,
+        @Cached(value = "findType(typeOfNode, self)", uncached = "findTypeUncached(self)")
+            Type selfType,
+        @Cached(value = "findType(typeOfNode, that)", uncached = "findTypeUncached(that)")
+            Type thatType,
+        @Cached("findConversions(selfType, thatType, self, that)") Boolean convert,
+        @Shared("convert") @Cached InteropConversionCallNode convertNode,
+        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
+      if (convert == null) {
+        return false;
+      }
+      if (convert) {
+        return doDispatch(frame, that, self, thatType, convertNode, equalityNode);
+      } else {
+        return doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+      }
+    }
+
+    @Specialization(replaces = "doConversionCached")
+    final boolean doConversionUncached(
+        VirtualFrame frame,
+        Object self,
+        Object that,
+        @Shared("typeOf") @Cached TypeOfNode typeOfNode,
+        @Shared("convert") @Cached InteropConversionCallNode convertNode,
+        @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
+      var selfType = findType(typeOfNode, self);
+      var thatType = findType(typeOfNode, that);
+      var conv = findConversions(selfType, thatType, self, that);
+      if (conv != null) {
+        var result =
+            conv
+                ? doDispatch(frame, that, self, thatType, convertNode, equalityNode)
+                : doDispatch(frame, self, that, selfType, convertNode, equalityNode);
+        return result;
+      }
       return false;
     }
-    return Core_Text_Utils.equals(selfJavaString, otherJavaString);
-  }
 
-  @Specialization(guards = "isPrimitive(self, interop) != isPrimitive(other, interop)")
-  boolean equalsDifferent(
-      Object self,
-      Object other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
-    return false;
-  }
+    private boolean doDispatch(
+        VirtualFrame frame,
+        Object self,
+        Object that,
+        Type selfType,
+        InteropConversionCallNode convertNode,
+        EqualsSimpleNode equalityNode)
+        throws PanicException {
+      var convert = UnresolvedConversion.build(selfType.getDefinitionScope());
 
-  /** Equals for Atoms and AtomConstructors */
-  @Specialization
-  boolean equalsAtomConstructors(AtomConstructor self, AtomConstructor other) {
-    return self == other;
-  }
-
-  @Specialization
-  boolean equalsAtoms(
-      Atom self,
-      Atom other,
-      @Cached EqualsAtomNode equalsAtomNode,
-      @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode) {
-    return isSameObjectNode.execute(self, other) || equalsAtomNode.execute(self, other);
-  }
-
-  @Specialization
-  boolean equalsReverseBoolean(
-      TruffleObject self,
-      boolean other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("reverse") @Cached EqualsNode reverse) {
-    return reverse.execute(other, self);
-  }
-
-  @Specialization
-  boolean equalsReverseLong(
-      TruffleObject self,
-      long other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("reverse") @Cached EqualsNode reverse) {
-    return reverse.execute(other, self);
-  }
-
-  @Specialization
-  boolean equalsReverseDouble(
-      TruffleObject self,
-      double other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("reverse") @Cached EqualsNode reverse) {
-    return reverse.execute(other, self);
-  }
-
-  @Specialization
-  boolean equalsReverseBigInt(
-      TruffleObject self,
-      EnsoBigInteger other,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("reverse") @Cached EqualsNode reverse) {
-    return reverse.execute(other, self);
-  }
-
-  @Specialization(guards = "isNotPrimitive(self, other, interop, warnings)")
-  boolean equalsComplex(
-      Object self,
-      Object other,
-      @Cached EqualsComplexNode equalsComplex,
-      @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode,
-      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "5") WarningsLibrary warnings) {
-    return isSameObjectNode.execute(self, other) || equalsComplex.execute(self, other);
-  }
-
-  static boolean isNotPrimitive(
-      Object a, Object b, InteropLibrary interop, WarningsLibrary warnings) {
-    if (a instanceof AtomConstructor && b instanceof AtomConstructor) {
-      return false;
-    }
-    if (a instanceof Atom && b instanceof Atom) {
-      return false;
-    }
-    if (warnings.hasWarnings(a) || warnings.hasWarnings(b)) {
-      return true;
-    }
-    if (a instanceof EnsoMultiValue || b instanceof EnsoMultiValue) {
-      return true;
-    }
-    return !isPrimitive(a, interop) && !isPrimitive(b, interop);
-  }
-
-  /**
-   * Return true iff object is a primitive value used in some specializations guard. By primitive
-   * value we mean any value that can be present in Enso, so, for example, not Integer, as that
-   * cannot be present in Enso. All the primitive types should be handled in their corresponding
-   * specializations. See {@link
-   * org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode}.
-   */
-  static boolean isPrimitive(Object object, InteropLibrary interop) {
-    return isPrimitiveValue(object)
-        || object instanceof EnsoBigInteger
-        || object instanceof Text
-        || interop.isString(object)
-        || interop.isNumber(object)
-        || interop.isBoolean(object);
-  }
-
-  static boolean isPrimitiveValue(Object object) {
-    return object instanceof Boolean || object instanceof Long || object instanceof Double;
-  }
-
-  static boolean isBigInteger(InteropLibrary iop, Object v) {
-    if (v instanceof EnsoBigInteger) {
-      return true;
-    } else {
-      return !iop.fitsInDouble(v) && !iop.fitsInLong(v) && iop.fitsInBigInteger(v);
-    }
-  }
-
-  BigInteger asBigInteger(InteropLibrary iop, Object v) {
-    if (v instanceof EnsoBigInteger big) {
-      return big.getValue();
-    } else {
+      var ctx = EnsoContext.get(this);
+      var state = State.create(ctx);
       try {
-        return iop.asBigInteger(v);
-      } catch (UnsupportedMessageException ex) {
-        throw EnsoContext.get(this).raiseAssertionPanic(this, "Expecting BigInteger", ex);
+        var thatAsSelf = convertNode.execute(convert, state, new Object[] {selfType, that});
+        var result = equalityNode.execute(frame, self, thatAsSelf);
+        assert !result || assertHashCodeIsTheSame(that, thatAsSelf);
+        return result;
+      } catch (ArityException ex) {
+        var assertsOn = false;
+        assert assertsOn = true;
+        if (assertsOn) {
+          throw new AssertionError("Unexpected arity exception", ex);
+        }
+        return false;
+      } catch (PanicException ex) {
+        if (ctx.getBuiltins().error().isNoSuchConversionError(ex.getPayload())) {
+          return false;
+        }
+        throw ex;
       }
+    }
+
+    private boolean assertHashCodeIsTheSame(Object self, Object converted) {
+      var selfHash = HashCodeNode.getUncached().execute(self);
+      var convertedHash = HashCodeNode.getUncached().execute(converted);
+      var ok = selfHash == convertedHash;
+      if (!ok) {
+        var msg =
+            "Different hash code! Original "
+                + self
+                + "[#"
+                + Long.toHexString(selfHash)
+                + "] got converted to "
+                + converted
+                + "[#"
+                + Long.toHexString(convertedHash)
+                + "]";
+        var ctx = EnsoContext.get(this);
+        throw ctx.raiseAssertionPanic(this, msg, new AssertionError(msg));
+      }
+      return ok;
     }
   }
 }

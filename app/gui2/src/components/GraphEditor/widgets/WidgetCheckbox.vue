@@ -1,46 +1,67 @@
 <script setup lang="ts">
+import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
+import { requiredImportsByFQN } from '@/stores/graph/imports'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
+import type { TokenId } from '@/util/ast/abstract'
+import { ArgumentInfoKey } from '@/util/callTree'
 import { asNot } from '@/util/data/types.ts'
-import { type Identifier, type QualifiedName } from '@/util/qualifiedName.ts'
+import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
+const suggestionDb = useSuggestionDbStore()
 
+const trueImport = computed(() =>
+  requiredImportsByFQN(
+    suggestionDb.entries,
+    'Standard.Base.Data.Boolean.Boolean.True' as QualifiedName,
+    true,
+  ),
+)
+const falseImport = computed(() =>
+  requiredImportsByFQN(
+    suggestionDb.entries,
+    'Standard.Base.Data.Boolean.Boolean.False' as QualifiedName,
+    true,
+  ),
+)
 const value = computed({
   get() {
     return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
     const edit = graph.startEdit()
+    const theImport = value ? trueImport.value : falseImport.value
     if (props.input.value instanceof Ast.Ast) {
-      setBoolNode(
+      const { requiresImport } = setBoolNode(
         edit.getVersion(props.input.value),
         value ? ('True' as Identifier) : ('False' as Identifier),
       )
+      if (requiresImport) graph.addMissingImports(edit, theImport)
       props.onUpdate({ edit })
     } else {
-      graph.addMissingImports(edit, [
-        {
-          kind: 'Unqualified',
-          from: 'Standard.Base.Data.Boolean' as QualifiedName,
-          import: 'Boolean' as Identifier,
-        },
-      ])
+      graph.addMissingImports(edit, theImport)
       props.onUpdate({
         edit,
         portUpdate: {
-          value: value ? 'Boolean.True' : 'Boolean.False',
+          value: value ? 'True' : 'False',
           origin: asNot<TokenId>(props.input.portId),
         },
       })
     }
   },
+})
+
+const primary = computed(() => props.nesting < 2)
+const argumentName = computed(() => {
+  if (ArgumentNameShownKey in props.input) return
+  return props.input[ArgumentInfoKey]?.info?.name
 })
 </script>
 
@@ -54,12 +75,14 @@ function isBoolNode(ast: Ast.Ast) {
       : undefined
   return candidate && ['True', 'False'].includes(candidate.code())
 }
-function setBoolNode(ast: Ast.Mutable, value: Identifier) {
+function setBoolNode(ast: Ast.Mutable, value: Identifier): { requiresImport: boolean } {
   if (ast instanceof Ast.MutablePropertyAccess) {
     ast.setRhs(value)
+    return { requiresImport: false }
   } else {
     assert(ast instanceof Ast.MutableIdent)
     ast.setToken(value)
+    return { requiresImport: true }
   }
 }
 
@@ -75,10 +98,29 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <CheckboxWidget
-    v-model="value"
-    class="WidgetCheckbox"
-    contenteditable="false"
-    @beforeinput.stop
-  />
+  <div class="CheckboxContainer" :class="{ primary }">
+    <span v-if="argumentName" class="name" v-text="argumentName" />
+    <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
+    <CheckboxWidget
+      v-model="value"
+      class="WidgetCheckbox"
+      contenteditable="false"
+      @beforeinput.stop
+      @pointerdown.stop
+      @pointerup.stop
+    />
+  </div>
 </template>
+
+<style scoped>
+.CheckboxContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.name {
+  color: rgb(255 255 255 / 0.5);
+  margin-right: 8px;
+}
+</style>

@@ -96,8 +96,8 @@ add_specs suite_builder = suite_builder.group "Lazy" group_builder->
         Test.expect_panic_with matcher=Illegal_Argument <|
             Lazy.new_eager (Panic.throw (Illegal_Argument.Error "FOO"))
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

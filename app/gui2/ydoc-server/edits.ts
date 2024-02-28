@@ -23,7 +23,7 @@ export function applyDocumentUpdates(
   synced: EnsoFileParts,
   update: ModuleUpdate,
 ): AppliedUpdates {
-  const codeChanged = update.fieldsUpdated.length !== 0
+  const codeChanged = update.nodesUpdated.size !== 0
   let idsChanged = false
   let metadataChanged = false
   for (const { changes } of update.metadataUpdated) {

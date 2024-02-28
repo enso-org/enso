@@ -304,6 +304,44 @@ the addition by invoking `Num.+`. This behavior allows one to write libraries
 that extend existing number types with `Complex_Number`, `Rational_Number` and
 make them behave as first class citizen numbers.
 
+### Custom Equality
+
+The `==` operator is special. A consistency with hash code is necessary to make
+any Enso object behave correctly and work effectively in `Set` and `Map`
+implementations. To guarantee such level of consistency there is a `Any.==`
+definition providing _universal equality_ that **shall not be overriden**.
+
+The `==` behavior is predefined for builtin types, atoms and other Enso objects.
+In addition to that it remains possible to define own _comparators_, including a
+comparator capable to work with already existing types. To create such
+comparator define:
+
+- conversion between existing type and the new type (as described in
+  [previous section](#type-ascriptions-and-operator-resolution))
+- comparator (see documentation of `Ordering` type)
+- define **two conversion method** that return the same comparator
+
+To extend the previous definition of `Num` also for equality one might do for
+example:
+
+```ruby
+type Num_Comparator
+    compare a:Num b:Num = # compare somehow
+    hash a:Num = # hash somehow
+
+Num.from (that:Integer) = # convert somehow
+Comparable.from (_:Num) = Num_Comparator
+Comparable.from (_:Integer) = Num_Comparator
+```
+
+with such a structure the internal implementation of `Any.==` performs necessary
+conversions of `Integer` argument in case the other argument is `Num` and
+invokes the `Num_Comparator.compare` to handle the comparision.
+
+A care must be taken to keep consistency between `hash` values of original and
+converted types - e.g. hash of `n:Integer` and hash of `Num.from n` must be the
+same (otherwise consistency required for `Set` and `Map` would be compromised).
+
 ### Precedence
 
 Operator precedence in Enso is a collection of rules that reflect conventions

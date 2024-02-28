@@ -296,7 +296,7 @@ Number.should_equal : Float -> Float -> Integer -> Spec_Result
 Number.should_equal self that epsilon=0 frames_to_skip=0 =
     matches = case that of
         _ : Number -> self.equals that epsilon
-        _ -> False
+        _ -> self==that
     case matches of
         True -> Spec_Result.Success
         False ->
@@ -519,7 +519,7 @@ Error.should_contain_the_same_elements_as self that frames_to_skip=0 =
 
    It checks that all elements from `self` are also present in `that`. It does
    not require that all elements of `that` are contained in `self`. Arities of
-   elements are not checked, so `self` may still contain more elements than 
+   elements are not checked, so `self` may still contain more elements than
    `that` by containing duplicates.
 
    It will work on any collection which supports the methods

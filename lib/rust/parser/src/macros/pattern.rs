@@ -57,6 +57,10 @@ pub enum PatternData {
     Expected(String, Pattern),
     /// Named pattern. Mainly used for splicing the code in the macro definition body.
     Named(String, Pattern),
+    /// Consume a block.
+    Block,
+    /// Consume any item except a block.
+    NotBlock,
 }
 
 /// Constructor.
@@ -101,6 +105,16 @@ pub fn expected(message: impl Into<String>, item: Pattern) -> Pattern {
 pub fn named(message: impl Into<String>, item: Pattern) -> Pattern {
     let matches_empty_input = item.matches_empty_input;
     Pattern::new(PatternData::Named(message.into(), item), matches_empty_input)
+}
+
+/// Matches a block.
+pub fn block() -> Pattern {
+    Pattern::new(PatternData::Block, false)
+}
+
+/// Matches anything except a block.
+pub fn not_block() -> Pattern {
+    Pattern::new(PatternData::NotBlock, false)
 }
 
 impl Pattern {
@@ -171,6 +185,7 @@ pub enum Match<'s> {
     Identifier(syntax::Item<'s>),
     Expected(String, Box<Match<'s>>),
     Named(String, Box<Match<'s>>),
+    Block(Vec<syntax::item::Line<'s>>),
     NotBlock(syntax::Item<'s>),
 }
 
@@ -208,6 +223,7 @@ impl<'s> Match<'s> {
         match self {
             Self::Nothing => (),
             Self::Identifier(item) | Self::NotBlock(item) => out.push(item),
+            Self::Block(lines) => out.push(syntax::Item::Block(lines)),
             Self::Everything(tokens) => out.extend(tokens),
             Self::Seq(fst, snd) => {
                 fst.get_tokens(out);
@@ -340,6 +356,23 @@ impl Pattern {
                         input.push_front(t);
                         Err(input)
                     },
+            },
+            PatternData::Block => match input.pop_front() {
+                None => Err(default()),
+                Some(syntax::Item::Block(lines)) =>
+                    Ok(MatchResult::new(Match::Block(lines), input)),
+                Some(t) => {
+                    input.push_front(t);
+                    Err(input)
+                }
+            },
+            PatternData::NotBlock => match input.pop_front() {
+                None => Err(default()),
+                Some(t @ syntax::Item::Block(_)) => {
+                    input.push_front(t);
+                    Err(input)
+                }
+                Some(t) => Ok(MatchResult::new(Match::NotBlock(t), input)),
             },
         }
     }

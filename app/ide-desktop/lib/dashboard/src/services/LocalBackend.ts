@@ -353,6 +353,21 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
+  /** Invalid operation. */
+  override getOrganization() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override updateOrganization() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override uploadOrganizationPicture() {
+    return this.invalidOperation()
+  }
+
   /** Do nothing. This function should never need to be called. */
   override inviteUser() {
     return Promise.resolve()
@@ -410,6 +425,21 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override createConnector() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getConnector() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deleteConnector() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override createSecret() {
     return this.invalidOperation()
   }
@@ -428,7 +458,6 @@ export default class LocalBackend extends Backend {
   override listSecrets() {
     return Promise.resolve([])
   }
-
   /** Invalid operation. */
   override createTag() {
     return this.invalidOperation()
@@ -447,5 +476,15 @@ export default class LocalBackend extends Backend {
   /** Do nothing. This function should never need to be called. */
   override deleteTag() {
     return Promise.resolve()
+  }
+
+  /** Invalid operation. */
+  override createCheckoutSession() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getCheckoutSession() {
+    return this.invalidOperation()
   }
 }

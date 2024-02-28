@@ -103,8 +103,8 @@ add_specs suite_builder =
             Interval.new 0 0 Interval_Type.Inclusive . not_empty . should_be_true
             Interval.new 10 0 Interval_Type.Inclusive . not_empty . should_be_false
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

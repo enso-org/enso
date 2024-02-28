@@ -21,9 +21,10 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
       s"""<html>
          |<head>
          |<meta charset="utf-8">
+         |<title>$title</title>
          |<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
          |<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-         |<title>$title</title>
+         |<link rel="stylesheet" href="https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css">
          |<style>
          |table, th, td {
          | border: solid 1px;
@@ -37,7 +38,10 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
          |$$( function() {
          |  $$( ".accordion" ).accordion({
          |    active: false,
-         |    collapsible: true
+         |    collapsible: true,
+         |    animate: {
+         |        duration: 100
+         |    }
          |  });
          |});
          |</script>
@@ -110,9 +114,12 @@ class HTMLWriter(bufferedWriter: BufferedWriter) {
     * @param elements sequence of functions that will be called to write each of
     *                 the list's elements; everything written inside of each
     *                 function will be part of its list element
+    * @param addBullets specifies if the list should include bullet points for each entry
     */
-  def writeList(elements: Seq[() => Unit]): Unit = {
-    writer.println("<ul>")
+  def writeList(elements: Seq[() => Unit], addBullets: Boolean = true): Unit = {
+    val opening =
+      if (addBullets) "<ul>" else "<ul style=\"list-style-type: none;\">"
+    writer.println(opening)
     for (elem <- elements) {
       writer.println("<li>")
       elem()

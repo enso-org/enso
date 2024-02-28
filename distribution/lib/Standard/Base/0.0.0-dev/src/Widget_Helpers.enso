@@ -1,17 +1,20 @@
 import project.Data.Locale.Locale
+import project.Data.Numbers.Number
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Meta
 import project.Metadata.Widget
+from project.Data.Boolean import Boolean, False, True
 from project.Metadata import make_single_choice
+from project.Metadata.Choice import Option
 
 ## PRIVATE
    Creates a Regex / Text Widget for search and replace.
 make_regex_text_widget : Widget
 make_regex_text_widget =
-    make_single_choice [["Text", '""'], ["Regular Expression", '(Regex.compile "^$")']]
+    make_single_choice [["<Text Value>", '""'], ["<Regular Expression>", '(regex "^$")']]
 
 ## PRIVATE
    Creates a Single_Choice Widget for delimiters.
@@ -23,7 +26,15 @@ make_delimiter_selector =
    Creates a Single_Choice Widget for file read delimiters.
 make_file_read_delimiter_selector : Widget
 make_file_read_delimiter_selector =
-        make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{none}', "''"], '_', ['Custom', "'?'"]]
+    make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{none}', "''"], '_', ['Custom', "'?'"]]
+
+## PRIVATE
+   Creates a Single_Choice Widget for formatting decimals.
+make_number_format_selector : Widget
+make_number_format_selector (value:Number=1234.564321) =
+    formats = ['0', '#,##0', '#,##0.00', '#,##0.00##', '#,##0.00;(#,##0.00)', '0.####', '0.######E0']
+    mapped_formats = formats.map f-> [f + " (e.g. " + (value.format f) + ")", f.pretty]
+    make_single_choice mapped_formats
 
 ## PRIVATE
    Creates a Single_Choice Widget for parsing dates.
@@ -34,8 +45,10 @@ make_date_format_selector (date:Date=(Date.new 2012 3 14)) =
     formats = ['d/M/yyyy', 'dd/MM/yyyy', 'd-MMM-yy', 'd MMMM yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'MMMM d, yyyy', 'yyyy-MM'].map f->
         [f + " (e.g. " + date.format f + ")", f.pretty]
     custom_locale_format =
-        format = Date_Time_Formatter.from 'd MMMM yyyy' locale=Locale.france
-        ['d MMMM yyyy - with custom Locale (e.g. ' + date.format format + ')', "(Date_Time_Formatter.from 'd MMMM yyyy' locale=Locale.france)"]
+        format = Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy' locale=Locale.france
+        label = 'd MMMM yyyy - with custom Locale (e.g. ' + date.format format + ')'
+        code = "(Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy' locale=Locale.france)"
+        Option label code [["pattern", make_single_choice formats], ["locale", Locale.default_widget]]
     week_date_formats = ['YYYY-ww-d', 'YYYY-ww', 'ddd, YYYY-ww'].map f->
         format = Date_Time_Formatter.from_iso_week_date_pattern f
         ["ISO Week-based Date: " + f + " (e.g. " + date.format format + ")", "("+fqn+".from_iso_week_date_pattern " + f.pretty + ")"]
@@ -59,8 +72,10 @@ make_date_time_format_selector (date_time:Date_Time=(Date_Time.new 2012 3 14 15 
     formats = ['yyyy-MM-dd HH:mm:ss.f', 'yyyy-MM-dd HH:mm:ss.f TT', 'd/M/yyyy h:mm a', 'dd/MM/yyyy HH:mm:ss', 'd-MMM-yy HH:mm:ss', 'd-MMM-yy h:mm:ss a', 'd MMMM yyyy h:mm a', 'M/d/yyyy h:mm:ss a', 'MM/dd/yyyy HH:mm:ss']
     mapped_formats = formats.map f-> [f + " (e.g. " + date_time.format f + ")", f.pretty]
     custom_locale_format =
-        format = Date_Time_Formatter.from 'd MMMM yyyy HH:mm' locale=Locale.france
-        ['d MMMM yyyy HH:mm - with custom Locale (e.g. ' + date_time.format format + ')', "(Date_Time_Formatter.from 'd MMMM yyyy HH:mm' locale=Locale.france)"]
+        format = Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy HH:mm' locale=Locale.france
+        label = 'd MMMM yyyy HH:mm - with custom Locale (e.g. ' + date_time.format format + ')'
+        code = "(Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy HH:mm' locale=Locale.france)"
+        Option label code [["pattern", make_single_choice mapped_formats], ["locale", Locale.default_widget]]
     week_date_formats = ['YYYY-ww-d HH:mm:ss.f'].map f->
         format = Date_Time_Formatter.from_iso_week_date_pattern f
         ["ISO Week-based Date-Time: " + f + " (e.g. " + date_time.format format + ")", "(Date_Time_Formatter.from_iso_week_date_pattern " + f.pretty + ")"]
@@ -77,3 +92,23 @@ make_time_format_selector (time:Time_Of_Day=(Time_Of_Day.new 13 30 55 123)) =
         [f + " (e.g. " + time.format f + ")", f.pretty]
 
     make_single_choice ([iso_format] + formats)
+
+## PRIVATE
+   Create a Single_Choice Widget for selecting a format value.
+make_format_chooser : Boolean -> Boolean -> Boolean -> Boolean -> Boolean -> Widget
+make_format_chooser include_number:Boolean=True include_date:Boolean=True include_date_time:Boolean=True include_time:Boolean=True include_boolean:Boolean=True =
+    numeric = if include_number.not then [] else
+        ['0', '#,##0', '#,##0.00', '#,##0.00;(#,##0.00)'].map f-> [f + " (e.g. " + (1234.5678.format f) + ")", f.pretty]
+    date = if include_date.not then [] else
+        ['d/M/yyyy', 'dd/MM/yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'd-MMM-yy', 'd MMMM yyyy'].map f-> [f + " (e.g. " + (Date.new 2012 3 14).format f + ")", f.pretty]
+    date_time = if include_date_time.not then [] else
+        ['yyyy-MM-dd HH:mm:ss.f', 'yyyy-MM-dd HH:mm:ss.f TT', 'd/M/yyyy h:mm a', 'dd/MM/yyyy HH:mm:ss', 'MM/dd/yyyy HH:mm:ss'].map f-> [f + " (e.g. " + (Date_Time.new 2012 3 14 15 9 26 123).format f + ")", f.pretty]
+    custom_locale_format =
+        format = Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy HH:mm' locale=Locale.france
+        label = 'd MMMM yyyy HH:mm - with custom Locale (e.g. ' + Date_Time.now.format format + ')'
+        code = "(Date_Time_Formatter.from_simple_pattern 'd MMMM yyyy HH:mm' locale=Locale.france)"
+        [Option label code [["pattern", make_single_choice (date+date_time)], ["locale", Locale.default_widget]]]
+    time = if include_time.not then [] else
+        ['HH:mm[:ss]', 'h:mm[:ss] a'].map f-> [f + " (e.g. " + (Time_Of_Day.new 13 30 55 123).format f + ")", f.pretty]
+    boolean = if include_boolean.not then [] else ['Yes|No', '1|0'].map f-> [f + " (Boolean)", f.pretty]
+    make_single_choice (numeric + date + date_time + time + custom_locale_format + boolean)

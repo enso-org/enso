@@ -2,7 +2,7 @@ package org.enso.projectmanager.service.versionmanagement
 
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.task.ProgressNotification
 import org.enso.distribution.ProgressAndLockNotificationForwarder
 import org.enso.runtimeversionmanager.components.{

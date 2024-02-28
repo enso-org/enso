@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
-import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
@@ -10,7 +9,7 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 
-import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 
@@ -19,8 +18,8 @@ import project.Data.Dialect.Dialect
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table as Database_Table_Module
-import project.Data.Table.Table as Database_Table
+import project.Data.DB_Table as DB_Table_Module
+import project.Data.DB_Table.DB_Table
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
@@ -153,7 +152,7 @@ type Connection
        - all_fields: Return all the fields in the metadata table.
     @types make_table_types_selector
     @schema make_schema_selector
-    tables : Text -> Text -> Text -> Vector Text | Text | Nothing -> Boolean -> Materialized_Table
+    tables : Text -> Text -> Text -> Vector Text | Text | Nothing -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.get_tables_advanced name_like=name_like database=database schema=schema types=types all_fields=all_fields include_hidden=False
 
@@ -211,7 +210,7 @@ type Connection
          - If provided with a `Table_Name` or a text short-hand and the table is
            not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : Text | SQL_Query -> Text -> Database_Table ! Table_Not_Found | SQL_Error
+    query : Text | SQL_Query -> Text -> DB_Table ! Table_Not_Found | SQL_Error
     query self query alias="" = case query of
         _ : Text ->
             result = self.query alias=alias <|
@@ -236,7 +235,7 @@ type Connection
                    will actually result in both columns `A` and `A 1` containing
                    the value 1; and value 2 being lost. That is why such queries
                    must fail.
-                r = Database_Table_Module.make_table self name columns ctx on_problems=Problem_Behavior.Report_Error
+                r = DB_Table_Module.make_table self name columns ctx on_problems=Problem_Behavior.Report_Error
                 r.catch Any error->
                     Error.throw (Illegal_Argument.Error "The provided custom SQL query is invalid and may suffer data corruption when being processed, especially if it contains aliased column names, it may not be interpreted correctly. Please ensure the names are unique. The original error was: "+error.to_display_text cause=error)
         SQL_Query.Table_Name name ->
@@ -266,7 +265,7 @@ type Connection
          `execute_update` for DML queries, or if they are supposed to return
          results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
-    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Materialized_Table ! Table_Not_Found
+    read : Text | SQL_Query -> Integer | Nothing -> Boolean -> Table ! Table_Not_Found
     read self query (limit : Integer | Nothing = 1000) (warn_if_more_rows : Boolean = True) =
         self.query query . read max_rows=limit warn_if_more_rows=warn_if_more_rows
 
@@ -312,8 +311,8 @@ type Connection
          (like missing columns) and if successful, return a temporary table with
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
-    create_table : Text  -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table : Text  -> Vector Column_Description | DB_Table | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | DB_Table | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
 
     ## PRIVATE
@@ -327,7 +326,7 @@ type Connection
          to ensure that default `ResultSet` metadata is used for these columns.
        - last_row_only: If set true, only the last row of the query is fetched.
          Defaults to false.
-    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Boolean -> Materialized_Table
+    read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Boolean -> Table
     read_statement self statement column_type_suggestions=Nothing last_row_only=False =
         type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
         statement_setter = self.dialect.get_statement_setter
@@ -356,7 +355,7 @@ type Connection
          representing the query to execute.
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
-        if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
+        Execution_Context.Output.if_enabled disabled_message="Executing update queries is forbidden as the Output context is disabled." panic=False <|
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
                 result = case self.supports_large_update.get of
@@ -433,7 +432,7 @@ type Connection
 
        Once all references to the table with this name are destroyed, the table
        will be marked for removal and dropped at the next maintenance.
-    internal_allocate_dry_run_table : Text -> Database_Table
+    internal_allocate_dry_run_table : Text -> DB_Table
     internal_allocate_dry_run_table self table_name =
         ref = self.hidden_table_registry.make_reference table_name
         make_table_for_name self table_name table_name ref
@@ -474,6 +473,6 @@ make_table_for_name connection name alias internal_temporary_keep_alive_referenc
            fix that - so we are good with just attaching the problems as a
            warning. We do not want to fail, as we do want to allow the user to
            access any table already present in the database.
-        Database_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Warning
+        DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Warning
     result.catch SQL_Error sql_error->
         Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")

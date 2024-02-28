@@ -17,7 +17,7 @@ import org.graalvm.polyglot.Context;
  * more precise type if all values have a common type, and will allow operations on this more
  * specific type.
  */
-public final class MixedStorage extends ObjectStorage {
+public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
   private StorageType inferredType = null;
 
   /**
@@ -119,7 +119,7 @@ public final class MixedStorage extends ObjectStorage {
     return specialized.inferPreciseTypeShrunk();
   }
 
-  private Storage<?> getInferredStorage() {
+  public Storage<?> getInferredStorage() {
     if (!hasSpecializedStorageBeenInferred) {
       StorageType inferredType = inferPreciseType();
       if (inferredType instanceof AnyObjectType) {
@@ -145,37 +145,6 @@ public final class MixedStorage extends ObjectStorage {
     NOT_AVAILABLE,
     AVAILABLE_IN_SPECIALIZED_STORAGE,
     AVAILABLE_IN_SUPER
-  }
-
-  /**
-   * The resolution depends on the following philosophy:
-   *
-   * <p>1. If the inferred storage is already cached, we prefer to use it since it will provide us
-   * with a more efficient implementation.
-   *
-   * <p>2. If it is not yet cached, we do not want to compute it (since it is costly) unless it is
-   * necessary - if our basic storage already provides the operation, we will use that
-   * implementation - even if it may not be as fast as a specialized one, the cost of computing the
-   * precise storage may just not be worth it. If our storage does not provide the operation, we now
-   * need to try getting the inferred storage, to check if it may provide it.
-   */
-  private VectorizedOperationAvailability resolveUnaryOp(String name) {
-    // Shortcut - if the storage is already specialized - we prefer it.
-    if (cachedInferredStorage != null && cachedInferredStorage.isUnaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-    }
-
-    // Otherwise, we try to avoid specializing if not yet necessary.
-    if (super.isUnaryOpVectorized(name)) {
-      return VectorizedOperationAvailability.AVAILABLE_IN_SUPER;
-    } else {
-      // But if our storage does not provide the operation, we have to try checking the other one.
-      if (getInferredStorage() != null && getInferredStorage().isUnaryOpVectorized(name)) {
-        return VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE;
-      } else {
-        return VectorizedOperationAvailability.NOT_AVAILABLE;
-      }
-    }
   }
 
   /** {@see resolveUnaryOp} for explanations. */
@@ -215,22 +184,6 @@ public final class MixedStorage extends ObjectStorage {
       } else {
         return VectorizedOperationAvailability.NOT_AVAILABLE;
       }
-    }
-  }
-
-  @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return resolveUnaryOp(name) != VectorizedOperationAvailability.NOT_AVAILABLE;
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    if (resolveUnaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedUnaryMap(name, problemAggregator);
-    } else {
-      // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedUnaryMap(name, problemAggregator);
     }
   }
 

@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "DataLink": {
+      "title": "Data Link",
+      "anyOf": [
+        { "$ref": "#/$defs/S3DataLink" },
+        { "$ref": "#/$defs/HttpFetchDataLink" }
+      ]
+    },
+    "SecureValue": {
+      "title": "Secure Value",
+      "anyOf": [
+        { "title": "Text", "type": "string" },
+        { "$ref": "#/$defs/EnsoSecret" }
+      ]
+    },
+    "EnsoSecret": {
+      "title": "Enso Secret",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "secret", "type": "string" },
+        "secretPath": {
+          "title": "Path",
+          "type": "string",
+          "format": "enso-secret"
+        }
+      },
+      "required": ["type", "secretPath"]
+    },
+
+    "AwsAuth": {
+      "title": "AWS Authentication",
+      "anyOf": [
+        { "$ref": "#/$defs/AwsDefaultAuth" },
+        { "$ref": "#/$defs/AwsProfileAuth" },
+        { "$ref": "#/$defs/AwsAccessKeyAuth" }
+      ]
+    },
+    "AwsDefaultAuth": {
+      "title": "AWS (Default)",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "aws_auth", "type": "string" },
+        "subType": { "title": "Subtype", "const": "default", "type": "string" }
+      },
+      "required": ["type", "subType"]
+    },
+    "AwsProfileAuth": {
+      "title": "AWS (Profile)",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "aws_auth", "type": "string" },
+        "subType": { "title": "Subtype", "const": "profile", "type": "string" },
+        "profile": {
+          "title": "Profile",
+          "description": "Must not be blank.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["type", "subType", "profile"]
+    },
+    "AwsAccessKeyAuth": {
+      "title": "AWS (Access Key)",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "aws_auth", "type": "string" },
+        "subType": {
+          "title": "Subtype",
+          "const": "access_key",
+          "type": "string"
+        },
+        "accessKeyId": {
+          "title": "Access Key ID",
+          "$ref": "#/$defs/SecureValue"
+        },
+        "secretAccessKey": {
+          "title": "Secret Access Key",
+          "$ref": "#/$defs/SecureValue"
+        }
+      },
+      "required": ["type", "subType", "accessKeyId", "secretAccessKey"]
+    },
+
+    "S3DataLink": {
+      "title": "S3",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "S3", "type": "string" },
+        "uri": {
+          "title": "URI",
+          "description": "Must start with \"s3://\".",
+          "type": "string",
+          "pattern": "^s3://[\\w.~-]+/[/\\w.~-]+$"
+        },
+        "auth": { "title": "Authentication", "$ref": "#/$defs/AwsAuth" },
+        "format": { "title": "Format", "$ref": "#/$defs/Format" }
+      },
+      "required": ["type", "uri", "auth"]
+    },
+    "HttpFetchDataLink": {
+      "$comment": "missing <headers with secrets> OR <query string with secrets>",
+      "title": "HTTP Fetch",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "HTTP", "type": "string" },
+        "uri": {
+          "title": "URI",
+          "description": "Must start with \"http://\" or \"https://\".",
+          "type": "string",
+          "pattern": "^https?://[\\w.~-]+/?.*$"
+        },
+        "method": { "title": "Method", "const": "GET", "type": "string" }
+      },
+      "required": ["type", "uri", "method"]
+    },
+
+    "Format": {
+      "title": "Format",
+      "anyOf": [
+        { "$ref": "#/$defs/DefaultFormat" },
+        { "$ref": "#/$defs/DelimitedFormat" },
+        { "$ref": "#/$defs/JsonFormat" }
+      ]
+    },
+    "DefaultFormat": {
+      "title": "Default",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "format", "type": "string" },
+        "subType": { "title": "Subtype", "const": "default", "type": "string" }
+      },
+      "required": ["type", "subType"]
+    },
+    "DelimitedFormat": {
+      "title": "Delimited",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "format", "type": "string" },
+        "subType": {
+          "title": "Subtype",
+          "const": "delimited",
+          "type": "string"
+        },
+        "delimiter": {
+          "title": "Delimiter",
+          "description": "Must not be blank.",
+          "type": "string",
+          "minLength": 1
+        },
+        "encoding": { "title": "Encoding", "const": "utf8", "type": "string" },
+        "headers": {
+          "title": "Headers",
+          "description": "Whether a header row containing column names is present.",
+          "type": "boolean"
+        }
+      },
+      "required": ["type", "subType", "delimiter"]
+    },
+    "JsonFormat": {
+      "title": "JSON",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "json", "type": "string" }
+      },
+      "required": ["type"]
+    }
+  }
+}

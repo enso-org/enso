@@ -116,8 +116,8 @@ add_specs suite_builder =
             txt = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'*100
             txt.to_display_text . should_equal ('\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'*78 + ' …')
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

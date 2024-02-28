@@ -224,6 +224,11 @@ the action.
    * If not provided, defaults to `Fail`.
    */
   missingComponentAction?: MissingComponentAction;
+
+  /**
+   * Custom directory with the user projects.
+   */
+  projectsDirectory?: string;
 }
 ```
 
@@ -399,6 +404,11 @@ interface ProjectCreateRequest {
    * If not provided, defaults to `Fail`.
    */
   missingComponentAction?: MissingComponentAction;
+
+  /**
+   * Custom directory with the user projects.
+   */
+  projectsDirectory?: string;
 }
 ```
 
@@ -445,7 +455,13 @@ This message requests the renaming of a project.
 ```typescript
 interface ProjectRenameRequest {
   projectId: UUID;
+
   name: String;
+
+  /**
+   * Custom directory with the user projects.
+   */
+  projectsDirectory?: string;
 }
 ```
 
@@ -482,6 +498,11 @@ This message requests the deletion of a project.
 ```typescript
 interface ProjectDeleteRequest {
   projectId: UUID;
+
+  /**
+   * Custom directory with the user projects.
+   */
+  projectsDirectory?: string;
 }
 ```
 

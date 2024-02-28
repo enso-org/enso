@@ -22,13 +22,14 @@ export interface InputProps extends controlledInput.ControlledInputProps {
 
 /** A styled input that includes an icon. */
 export default function Input(props: InputProps) {
-  const { allowShowingPassword = false, label, icon, footer, ...passthrough } = props
+  const { allowShowingPassword = false, label, icon, type, footer, ...passthrough } = props
   const [isShowingPassword, setIsShowingPassword] = React.useState(false)
+
   const input = (
     <div className="relative">
       <SvgIcon src={icon} />
-      <ControlledInput {...passthrough} type={isShowingPassword ? 'text' : props.type} />
-      {props.type === 'password' && allowShowingPassword && (
+      <ControlledInput {...passthrough} type={isShowingPassword ? 'text' : type} />
+      {type === 'password' && allowShowingPassword && (
         <SvgIcon
           src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
           className="cursor-pointer rounded-full"
@@ -40,13 +41,14 @@ export default function Input(props: InputProps) {
       )}
     </div>
   )
-  return label != null || footer != null ? (
+
+  return label == null && footer == null ? (
+    input
+  ) : (
     <label className="flex flex-col gap-1">
       {label}
       {input}
       {footer}
     </label>
-  ) : (
-    input
   )
 }

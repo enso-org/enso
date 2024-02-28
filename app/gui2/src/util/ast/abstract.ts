@@ -1,5 +1,4 @@
 import { parseEnso } from '@/util/ast'
-import { swapKeysAndValues, unsafeEntries } from '@/util/record'
 import type { AstId, MutableAst, NodeKey, Owned, TokenId, TokenKey } from 'shared/ast'
 import {
   Ast,
@@ -14,38 +13,13 @@ import {
 } from 'shared/ast'
 export * from 'shared/ast'
 
-const mapping: Record<string, string> = {
-  '\b': '\\b',
-  '\f': '\\f',
-  '\n': '\\n',
-  '\r': '\\r',
-  '\t': '\\t',
-  '\v': '\\v',
-  '"': '\\"',
-  "'": "\\'",
-  '`': '``',
-}
-
-const reverseMapping = swapKeysAndValues(mapping)
-
-/** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
- * NOT USABLE to insert into raw strings. Does not include quotes. */
-export function escape(string: string) {
-  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
-}
-
-/** The reverse of `escape`: transform the string into human-readable form, not suitable for interpolation. */
-export function unescape(string: string) {
-  return string.replace(/\\[0bfnrtv"']|``/g, (match) => reverseMapping[match]!)
-}
-
 export function deserialize(serialized: string): Owned {
   const parsed: SerializedPrintedSource = JSON.parse(serialized)
-  const nodes = new Map(unsafeEntries(parsed.info.nodes))
-  const tokens = new Map(unsafeEntries(parsed.info.tokens))
   const module = MutableModule.Transient()
   const tree = parseEnso(parsed.code)
   const ast = abstract(module, tree, parsed.code)
+  // const nodes = new Map(unsafeEntries(parsed.info.nodes))
+  // const tokens = new Map(unsafeEntries(parsed.info.tokens))
   // TODO: ast <- nodes,tokens
   return ast.root
 }
@@ -71,7 +45,7 @@ export function tokenTree(root: Ast): TokenTree {
     if (isTokenId(child.node)) {
       return module.getToken(child.node).code()
     } else {
-      const node = module.get(child.node)
+      const node = module.tryGet(child.node)
       return node ? tokenTree(node) : '<missing>'
     }
   })
@@ -85,7 +59,7 @@ export function tokenTreeWithIds(root: Ast): TokenTree {
       if (isTokenId(child.node)) {
         return module.getToken(child.node).code()
       } else {
-        const node = module.get(child.node)
+        const node = module.tryGet(child.node)
         return node ? tokenTreeWithIds(node) : ['<missing>']
       }
     }),

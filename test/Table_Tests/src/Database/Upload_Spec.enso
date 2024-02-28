@@ -27,11 +27,11 @@ polyglot java import org.enso.table_test_helpers.ExplodingStorage
 polyglot java import org.enso.table_test_helpers.ExplodingStoragePayload
 polyglot java import java.lang.Thread
 
-main =
+main filter=Nothing =
     create_connection_func _ = (Database.connect (SQLite In_Memory))
     suite = Test.build suite_builder->
         add_specs suite_builder  create_connection_func "SQLite In-Memory" persistent_connector=False
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 type Data
     Value ~data
@@ -488,8 +488,8 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
 
             db_table_1 = t1.select_into_database_table data.connection (Name_Generator.random_name "source-table-1") temporary=True primary_key=Nothing
 
-            db_table_2 = db_table_1.set "[Y] + 100 * [X]" "C1" . set '"constant_text"' "C2"
-            db_table_3 = db_table_1.aggregate [Aggregate_Column.Group_By "X", Aggregate_Column.Sum "[Y]*[Y]" "C3"] . set "[X] + 1" "X"
+            db_table_2 = db_table_1.set (expr "[Y] + 100 * [X]") "C1" . set "constant_text" "C2"
+            db_table_3 = db_table_1.aggregate ["X"] [Aggregate_Column.Sum (expr "[Y]*[Y]") "C3"] . set (expr "[X] + 1") "X"
 
             db_table_4 = db_table_2.join db_table_3 join_kind=Join_Kind.Left_Outer
             db_table_4.is_trivial_query . should_fail_with Table_Not_Found
@@ -514,7 +514,7 @@ add_specs suite_builder make_new_connection prefix persistent_connector=True =
             tmp_connection = make_new_connection Nothing
             t = Table.new [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
             db_table = t.select_into_database_table tmp_connection (Name_Generator.random_name "source-table") temporary=True
-            db_table_2 = db_table.set "[X] + 100 * [Y]" "computed"
+            db_table_2 = db_table.set (expr "[X] + 100 * [Y]") "computed"
 
             copied_table = db_table_2.select_into_database_table tmp_connection (Name_Generator.random_name "copied-table") temporary=True
             name = copied_table.name
@@ -921,7 +921,7 @@ test_table_append group_builder (data : Data) source_table_builder target_table_
         dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"] connection=data.connection
         t1 = source_table_builder [["Z", [10, 20]], ["Y", ['D', 'E']]] connection=data.connection
         t2 = source_table_builder [["Z", [20, 10]], ["X", [-99, 10]]] connection=data.connection
-        src = t1.join t2 on=["Z"] join_kind=Join_Kind.Inner . remove_columns "Z" . set "[X] + 100" "X"
+        src = t1.join t2 on=["Z"] join_kind=Join_Kind.Inner . remove_columns "Z" . set (expr "[X] + 100") "X"
         src.at "X" . to_vector . should_contain_the_same_elements_as [1, 110]
 
         r1 = dest.update_rows src key_columns=["X"]

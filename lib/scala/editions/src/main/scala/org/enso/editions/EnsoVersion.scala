@@ -2,7 +2,7 @@ package org.enso.editions
 
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder}
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 
 /** Represents the engine version that is associated with a project.
   */
@@ -39,14 +39,19 @@ object EnsoVersion {
       if (string == DefaultEnsoVersion.toString)
         Right(DefaultEnsoVersion)
       else
-        SemVer(string)
+        SemVer
+          .parse(string)
           .map(SemVerEnsoVersion)
-          .toRight(
-            DecodingFailure(
-              s"`$string` is not a valid version string. Possible values are " +
-              s"`default` or a semantic versioning string.",
-              json.history
-            )
+          .fold(
+            _ =>
+              Left(
+                DecodingFailure(
+                  s"`$string` is not a valid version string. Possible values are " +
+                  s"`default` or a semantic versioning string.",
+                  json.history
+                )
+              ),
+            v => Right(v)
           )
     }
   }

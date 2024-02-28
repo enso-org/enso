@@ -1,5 +1,6 @@
 /** @file Functions for manipulating Vue reactive objects. */
 
+import { defaultEquality } from '@/util/equals'
 import { nop } from 'lib0/function'
 import {
   callWithErrorHandling,
@@ -97,10 +98,6 @@ export class LazySyncEffectSet {
   stop() {
     this._scope.stop()
   }
-}
-
-function defaultEquality(a: unknown, b: unknown): boolean {
-  return a === b
 }
 
 /**

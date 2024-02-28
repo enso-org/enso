@@ -41,24 +41,24 @@ public class LikeOp extends StringBooleanOp {
       MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
       BitSet newVals = new BitSet();
-      BitSet newMissing = new BitSet();
-      newMissing.set(0, storage.size());
-      return new BoolStorage(newVals, newMissing, storage.size(), false);
+      BitSet newIsNothing = new BitSet();
+      newIsNothing.set(0, storage.size());
+      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
     } else if (arg instanceof String argString) {
       Pattern pattern = createRegexPatternFromSql(argString);
       BitSet newVals = new BitSet();
-      BitSet newMissing = new BitSet();
+      BitSet newIsNothing = new BitSet();
       Context context = Context.getCurrent();
       for (int i = 0; i < storage.size(); i++) {
-        if (storage.isNa(i)) {
-          newMissing.set(i);
+        if (storage.isNothing(i)) {
+          newIsNothing.set(i);
         } else if (pattern.matcher(storage.getItem(i)).matches()) {
           newVals.set(i);
         }
 
         context.safepoint();
       }
-      return new BoolStorage(newVals, newMissing, storage.size(), false);
+      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
     } else {
       throw new UnexpectedTypeException("a Text");
     }

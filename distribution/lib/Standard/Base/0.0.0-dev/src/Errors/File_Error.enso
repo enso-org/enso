@@ -1,15 +1,18 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Error.Error
+import project.Errors.Common.No_Such_Conversion
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.File
+import project.System.File.Generic.File_Like.File_Like
 import project.System.File_Format.File_Format
 import project.System.File_Format_Metadata.File_Format_Metadata
 
 polyglot java import java.io.FileNotFoundException
 polyglot java import java.io.IOException
+polyglot java import java.io.UncheckedIOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.nio.file.NoSuchFileException
@@ -20,32 +23,32 @@ type File_Error
 
        Arguments:
        - file: The file that doesn't exist.
-    Not_Found (file : File)
+    Not_Found (file : File_Like)
 
     ## Indicates that a destination file already exists.
-    Already_Exists (file : File)
+    Already_Exists (file : File_Like)
 
     ## Indicates that the user did not have the permission to complete the
        requested operation on the given file.
-    Access_Denied (file : File)
+    Access_Denied (file : File_Like)
 
     ## A generic IO error.
 
        Arguments:
        - file: The file that couldn't be read.
        - message: The message for the error.
-    IO_Error (file : File | Nothing) (message : Text)
+    IO_Error (file : File_Like | Nothing) (message : Text)
 
     ## Indicates that the given file's type is not supported.
     Unsupported_Type (file : File_Format_Metadata)
 
     ## Indicates that the given type cannot be serialized to the provided file
        format.
-    Unsupported_Output_Type (format : File_Format | File | Any) (data_type : Any)
+    Unsupported_Output_Type (format : File_Format | File_Like | Any) (data_type : Any)
 
     ## Indicates that the given file is corrupted, i.e. the data it contains
        is not in the expected format.
-    Corrupted_Format (file : File) (message : Text) (cause : Any | Nothing = Nothing)
+    Corrupted_Format (file : File_Like) (message : Text) (cause : Any | Nothing = Nothing)
 
     ## PRIVATE
        Convert the File error to a human-readable format.
@@ -57,11 +60,11 @@ type File_Error
             msg + suffix
         File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
         File_Error.Access_Denied file -> "Insufficient permissions to perform the desired operation on the file at "+file.path+"."
-        File_Error.Unsupported_Type file -> "The "+file.path+" has a type that is not supported."
+        File_Error.Unsupported_Type metadata -> "Could not recognize the type of file "+metadata.to_display_text+"."
         File_Error.Unsupported_Output_Type format data_type ->
-            format_name = case format of
-                file : File -> file.name
-                _ -> (Meta.meta format).constructor.name
+            name_from_constructor =
+                (Meta.meta format).constructor.name
+            format_name = Panic.catch No_Such_Conversion (File_Like.from format . name) (_->name_from_constructor)
             "Values of type "+data_type.to_text+" cannot be written as format "+format_name.to_text+"."
         File_Error.Corrupted_Format file msg _ -> "The file at " + file.path + " is corrupted: " + msg
 
@@ -69,8 +72,13 @@ type File_Error
 
        Utility method for running an action with Java exceptions mapping.
     handle_java_exceptions (file : File | Nothing) ~action =
-        Panic.catch IOException action caught_panic->
+        handle_io_exception caught_panic =
             File_Error.wrap_io_exception file caught_panic.payload
+        handle_unchecked_io_exception caught_panic =
+            File_Error.wrap_io_exception file caught_panic.payload.getCause
+        Panic.catch IOException handler=handle_io_exception <|
+            Panic.catch UncheckedIOException handler=handle_unchecked_io_exception <|
+                action
 
     ## PRIVATE
        Raises an error indicating that the user does not have permission to

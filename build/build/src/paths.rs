@@ -42,17 +42,16 @@ ide_ci::define_env_var! {
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";
 
-pub const LIBRARIES_TO_TEST: [&str; 7] = [
-    "Examples_Tests",
-    "Geo_Tests",
-    "Image_Tests",
-    // Temporarily disabled due to https://www.pivotaltracker.com/story/show/184042416
-    // "Meta_Test_Suite_Tests",
-    "Table_Tests",
-    "Base_Tests",
-    "AWS_Tests",
-    "Visualization_Tests",
-];
+/// Get paths of directories containing standard library test project.
+pub fn discover_standard_library_tests(repo_root: &generated::RepoRoot) -> Result<Vec<PathBuf>> {
+    // The glob pattern will discover paths like "H:\NBO\enso\test\AWS_Tests\package.yaml".
+    let glob_pattern = "**/*_Tests/package.yaml";
+    let glob_pattern = repo_root.test.join(glob_pattern);
+    glob::glob(glob_pattern.as_str())?
+        // Package manifest path -> Parent directory.
+        .map(|package_path_result| Result::Ok(package_path_result?.try_parent()?.to_path_buf()))
+        .try_collect_vec()
+}
 
 pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> generated::RepoRoot {
     generated::RepoRoot::new_root(

@@ -1,13 +1,11 @@
 package org.enso.projectmanager.protocol
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
-import org.enso.projectmanager.control.effect.{ErrorChannel, Exec}
+import org.enso.projectmanager.control.effect.{ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.event.ClientEvent.{
   ClientConnected,
   ClientDisconnected
@@ -22,6 +20,8 @@ import org.enso.projectmanager.service.{
 }
 import org.enso.projectmanager.util.UnhandledLogging
 
+import java.util.UUID
+
 import scala.annotation.unused
 import scala.concurrent.duration._
 
@@ -35,7 +35,7 @@ import scala.concurrent.duration._
   * @param loggingServiceDescriptor a logging service configuration descriptor
   * @param timeoutConfig a request timeout config
   */
-class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
+class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel: Sync](
   clientId: UUID,
   projectService: ProjectServiceApi[F],
   globalConfigService: GlobalConfigServiceApi[F],
@@ -149,7 +149,7 @@ object ClientController {
     * @param loggingServiceDescriptor a logging service configuration descriptor
     * @return a configuration object
     */
-  def props[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
+  def props[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel: Sync](
     clientId: UUID,
     projectService: ProjectServiceApi[F],
     globalConfigService: GlobalConfigServiceApi[F],

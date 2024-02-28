@@ -95,7 +95,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
       }
       _ <- Future {
         logger.info(
-          s"Started server at json:${config.interface}${config.rpcPort}, ${config.secureRpcPort
+          s"Started server at json:${config.interface}:${config.rpcPort}, ${config.secureRpcPort
             .map(p => s"secure-jsons:${config.interface}$p")
             .getOrElse("")}, " +
           s"binary:${config.interface}:${config.dataPort}${config.secureDataPort

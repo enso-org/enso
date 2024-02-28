@@ -1,6 +1,6 @@
 package org.enso.librarymanager
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
@@ -21,13 +21,13 @@ class LibraryResolverSpec
     val mainRepo = Repository("main", "https://example.com/main")
     val parentEdition = Editions.Resolved.Edition(
       parent        = None,
-      engineVersion = Some(SemVer(0, 0, 0)),
+      engineVersion = Some(SemVer.of(0, 0, 0)),
       repositories  = Map("main" -> mainRepo),
       libraries = Map(
         LibraryName("Standard", "Base") -> Editions.Resolved
           .PublishedLibrary(
             LibraryName("Standard", "Base"),
-            SemVer(4, 5, 6),
+            SemVer.of(4, 5, 6),
             mainRepo
           )
       )
@@ -41,13 +41,13 @@ class LibraryResolverSpec
         LibraryName("Foo", "Main") -> Editions.Resolved
           .PublishedLibrary(
             LibraryName("Foo", "Main"),
-            SemVer(1, 0, 0),
+            SemVer.of(1, 0, 0),
             mainRepo
           ),
         LibraryName("Foo", "My") -> Editions.Resolved
           .PublishedLibrary(
             LibraryName("Foo", "My"),
-            SemVer(2, 0, 0),
+            SemVer.of(2, 0, 0),
             customRepo
           ),
         LibraryName("Foo", "Local") -> Editions.Resolved.LocalLibrary(
@@ -88,7 +88,7 @@ class LibraryResolverSpec
           preferLocalLibraries = false
         )
         .rightValue shouldEqual
-      LibraryVersion.Published(SemVer(4, 5, 6), mainRepo)
+      LibraryVersion.Published(SemVer.of(4, 5, 6), mainRepo)
 
       resolver
         .resolveLibraryVersion(
@@ -97,7 +97,7 @@ class LibraryResolverSpec
           preferLocalLibraries = false
         )
         .rightValue shouldEqual
-      LibraryVersion.Published(SemVer(1, 0, 0), mainRepo)
+      LibraryVersion.Published(SemVer.of(1, 0, 0), mainRepo)
 
       resolver
         .resolveLibraryVersion(
@@ -106,7 +106,7 @@ class LibraryResolverSpec
           preferLocalLibraries = false
         )
         .rightValue shouldEqual
-      LibraryVersion.Published(SemVer(2, 0, 0), customRepo)
+      LibraryVersion.Published(SemVer.of(2, 0, 0), customRepo)
 
       resolver
         .resolveLibraryVersion(
@@ -135,7 +135,7 @@ class LibraryResolverSpec
           preferLocalLibraries = true
         )
         .rightValue shouldEqual
-      LibraryVersion.Published(SemVer(1, 0, 0), mainRepo)
+      LibraryVersion.Published(SemVer.of(1, 0, 0), mainRepo)
 
       resolver
         .resolveLibraryVersion(

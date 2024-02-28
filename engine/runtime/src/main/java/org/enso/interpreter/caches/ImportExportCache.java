@@ -65,7 +65,7 @@ public final class ImportExportCache
   public byte[] serialize(EnsoContext context, CachedBindings entry) throws IOException {
     var arr =
         Persistance.write(
-            entry.bindings(), CacheUtils.writeReplace(context.getCompiler().context()));
+            entry.bindings(), CacheUtils.writeReplace(context.getCompiler().context(), false));
     return arr;
   }
 

@@ -13,6 +13,7 @@ const CAPITALIZED_ASSET_TYPE: Readonly<Record<backend.AssetType, string>> = {
   [backend.AssetType.directory]: 'Folder',
   [backend.AssetType.project]: 'Project',
   [backend.AssetType.file]: 'File',
+  [backend.AssetType.dataLink]: 'Data Link',
   [backend.AssetType.secret]: 'Secret',
   // These assets should never be visible, since they don't have columns.
   [backend.AssetType.specialEmpty]: 'Empty asset',

@@ -1,7 +1,9 @@
 package org.enso.interpreter.runtime.data.vector;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import java.nio.ByteBuffer;
 import org.enso.interpreter.dsl.Builtin;
@@ -21,7 +23,19 @@ public final class ArrayLikeHelpers {
       name = "new_array_proxy_builtin",
       description = "Creates an array backed by a proxy object.")
   @Builtin.WrapException(from = IllegalArgumentException.class)
-  public static EnsoObject create(long length, Object at) throws IllegalArgumentException {
+  @Builtin.Specialize
+  public static EnsoObject create(
+      long length, Object at, @CachedLibrary(limit = "3") InteropLibrary interop)
+      throws IllegalArgumentException {
+    if (!interop.isExecutable(at)) {
+      CompilerDirectives.transferToInterpreter();
+      var msg = "Array_Proxy needs executable function.";
+      throw ArrayPanics.typeError(interop, at, msg);
+    }
+    if (length < 0) {
+      CompilerDirectives.transferToInterpreter();
+      throw new IllegalArgumentException("Array_Proxy length cannot be negative.");
+    }
     return ArrayProxy.create(length, at);
   }
 

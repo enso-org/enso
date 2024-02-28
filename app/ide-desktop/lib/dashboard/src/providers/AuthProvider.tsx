@@ -66,16 +66,16 @@ interface BaseUserSession<Type extends UserSessionType> {
  * Contains some fields from {@link FullUserSession} to allow destructuring. */
 export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
   readonly accessToken: null
-  readonly organization: null
   readonly user: null
+  readonly userInfo: null
 }
 
 /** The singleton instance of {@link OfflineUserSession}. Minimizes React re-renders. */
 const OFFLINE_USER_SESSION: Readonly<OfflineUserSession> = {
   type: UserSessionType.offline,
   accessToken: null,
-  organization: null,
   user: null,
+  userInfo: null,
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -89,8 +89,8 @@ export interface PartialUserSession extends BaseUserSession<UserSessionType.part
 /** Object containing the currently signed-in user's session data. */
 export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
   /** User's organization information. */
-  readonly organization: backendModule.UserOrOrganization
-  readonly user: backendModule.SimpleUser | null
+  readonly user: backendModule.User
+  readonly userInfo: backendModule.SimpleUser | null
 }
 
 /** A user session for a user that may be either fully registered,
@@ -128,7 +128,7 @@ interface AuthContextType {
    *
    * If the user has not signed in, the session will be `null`. */
   readonly session: UserSession | null
-  readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.UserOrOrganization>>
+  readonly setUser: React.Dispatch<React.SetStateAction<backendModule.User>>
 }
 
 // Eslint doesn't like headings.
@@ -191,27 +191,20 @@ export default function AuthProvider(props: AuthProviderProps) {
   const [userSession, setUserSession] = React.useState<UserSession | null>(null)
   const toastId = React.useId()
 
-  const setOrganization = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.UserOrOrganization>) => {
-      setUserSession(oldUserSession => {
-        if (
-          oldUserSession == null ||
-          !('organization' in oldUserSession) ||
-          oldUserSession.organization == null
-        ) {
-          return oldUserSession
-        } else {
-          return object.merge(oldUserSession, {
-            organization:
-              typeof valueOrUpdater !== 'function'
-                ? valueOrUpdater
-                : valueOrUpdater(oldUserSession.organization),
-          })
-        }
-      })
-    },
-    []
-  )
+  const setUser = React.useCallback((valueOrUpdater: React.SetStateAction<backendModule.User>) => {
+    setUserSession(oldUserSession => {
+      if (oldUserSession == null || !('user' in oldUserSession) || oldUserSession.user == null) {
+        return oldUserSession
+      } else {
+        return object.merge(oldUserSession, {
+          user:
+            typeof valueOrUpdater !== 'function'
+              ? valueOrUpdater
+              : valueOrUpdater(oldUserSession.user),
+        })
+      }
+    })
+  }, [])
 
   const goOfflineInternal = React.useCallback(() => {
     setInitialized(true)
@@ -311,20 +304,20 @@ export default function AuthProvider(props: AuthProviderProps) {
           setBackendWithoutSavingType(backend)
         }
         gtagEvent('cloud_open')
-        let organization: backendModule.UserOrOrganization | null
-        let user: backendModule.SimpleUser | null
+        let user: backendModule.User | null
+        let userInfo: backendModule.SimpleUser | null
         while (true) {
           try {
-            organization = await backend.usersMe()
+            user = await backend.usersMe()
             try {
-              user =
-                organization?.isEnabled === true
+              userInfo =
+                user?.isEnabled === true
                   ? (await backend.listUsers()).find(
-                      listedUser => listedUser.email === organization?.email
+                      listedUser => listedUser.email === user?.email
                     ) ?? null
                   : null
             } catch {
-              user = null
+              userInfo = null
             }
             break
           } catch (error) {
@@ -349,7 +342,7 @@ export default function AuthProvider(props: AuthProviderProps) {
           history.replaceState(null, '', url.toString())
         }
         let newUserSession: UserSession
-        if (organization == null) {
+        if (user == null) {
           sentry.setUser({ email: session.email })
           newUserSession = {
             type: UserSessionType.partial,
@@ -357,17 +350,17 @@ export default function AuthProvider(props: AuthProviderProps) {
           }
         } else {
           sentry.setUser({
-            id: organization.id,
-            email: organization.email,
-            username: organization.name,
+            id: user.id,
+            email: user.email,
+            username: user.name,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ip_address: '{{auto}}',
           })
           newUserSession = {
             type: UserSessionType.full,
             ...session,
-            organization,
             user,
+            userInfo,
           }
 
           // 34560000 is the recommended max cookie age.
@@ -507,7 +500,7 @@ export default function AuthProvider(props: AuthProviderProps) {
             userName: username,
             userEmail: backendModule.EmailAddress(email),
             organizationId:
-              organizationId != null ? backendModule.UserOrOrganizationId(organizationId) : null,
+              organizationId != null ? backendModule.OrganizationId(organizationId) : null,
           }),
           {
             success: 'Your username has been set!',
@@ -606,7 +599,7 @@ export default function AuthProvider(props: AuthProviderProps) {
     changePassword: withLoadingToast(changePassword),
     signOut,
     session: userSession,
-    setOrganization,
+    setUser,
   }
 
   return (

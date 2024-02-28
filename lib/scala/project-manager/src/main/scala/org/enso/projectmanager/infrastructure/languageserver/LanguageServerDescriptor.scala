@@ -1,6 +1,6 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.runner.JVMSettings

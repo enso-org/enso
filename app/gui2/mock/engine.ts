@@ -1,4 +1,5 @@
 import * as random from 'lib0/random'
+import * as Ast from 'shared/ast'
 import {
   Builder,
   EnsoUUID,
@@ -196,6 +197,7 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
             {
               type: 'Widget',
               constructor: 'Vector_Editor',
+              /* eslint-disable camelcase */
               item_default: 'Aggregate_Column.Group_By',
               item_editor: {
                 type: 'Widget',
@@ -278,6 +280,7 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                 ],
                 display: { type: 'Display', constructor: 'Always' },
               },
+              /* eslint-enable camelcase */
               display: { type: 'Display', constructor: 'Always' },
             },
           ],
@@ -401,6 +404,25 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       }
       visualizations.set(data_.visualizationId, data_.visualizationConfig)
       sendVizData(data_.visualizationId, data_.visualizationConfig)
+      return
+    }
+    case 'executionContext/executeExpression': {
+      const data_ = data as {
+        executionContextId: ContextId
+        visualizationId: Uuid
+        expressionId: ExpressionId
+        expression: string
+      }
+      const { func, args } = Ast.analyzeAppLike(Ast.parse(data_.expression))
+      if (!(func instanceof Ast.PropertyAccess && func.lhs)) return
+      const visualizationConfig: VisualizationConfiguration = {
+        executionContextId: data_.executionContextId,
+        visualizationModule: func.lhs.code(),
+        expression: func.rhs.code(),
+        positionalArgumentsExpressions: args.map((ast) => ast.code()),
+      }
+      visualizationExprIds.set(data_.visualizationId, data_.expressionId)
+      sendVizData(data_.visualizationId, visualizationConfig)
       return
     }
     case 'search/getSuggestionsDatabase':

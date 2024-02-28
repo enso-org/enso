@@ -133,7 +133,7 @@ export interface WidgetProps<T> {
 /**
  * Information about widget update.
  *
- * When widget want's to change its value, it should emit this with `portUpdate` set (as their
+ * When widget wants to change its value, it should emit this with `portUpdate` set (as their
  * port may not represent any existing AST node) with `edit` containing any additional modifications
  * (like inserting necessary imports).
  *

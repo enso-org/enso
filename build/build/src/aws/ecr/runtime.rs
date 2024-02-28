@@ -23,10 +23,10 @@ pub async fn build_runtime_image(
     engine_package_root: generated::EnginePackage,
     tag: String,
 ) -> Result<ImageId> {
-    ide_ci::fs::copy_to(dockerfile.docker_entrypoint_sh, &engine_package_root.bin)?;
     let mut opts = BuildOptions::new(&engine_package_root);
     opts.file = Some(dockerfile.dockerfile.to_path_buf());
     opts.tags.push(tag);
+    opts.add_build_context_local("docker-tools", &dockerfile);
     let id = Docker.build(opts).await?;
     Ok(id)
 }

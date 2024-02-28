@@ -473,8 +473,8 @@ add_specs suite_builder =
             Delimited ',' comment_character='#' . without_comments . should_equal (Delimited ',' comment_character=Nothing)
             Delimited ',' . with_line_endings Line_Ending_Style.Unix . should_equal (Delimited ',' line_endings=Line_Ending_Style.Unix)
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

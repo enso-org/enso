@@ -6,7 +6,7 @@ import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { nodeFromAst } from '@/util/ast/node'
+import { nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
@@ -140,13 +140,13 @@ export class GraphDb {
 
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
-    if (entry.pattern) entry.pattern.visitRecursiveAst((ast) => exprs.push(ast.id))
+    if (entry.pattern) entry.pattern.visitRecursiveAst((ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
   private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
-    entry.rootSpan.visitRecursiveAst((ast) => exprs.push(ast.id))
+    entry.rootSpan.visitRecursiveAst((ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
@@ -325,6 +325,10 @@ export class GraphDb {
     }
   }
 
+  /**
+   * Note that the `dirtyNodes` are visited and updated in the order that they appear in the module AST, irrespective of
+   * the iteration order of the `dirtyNodes` set.
+   **/
   readFunctionAst(
     functionAst_: Ast.Function,
     rawFunction: RawAst.Tree.Function,
@@ -333,6 +337,8 @@ export class GraphDb {
     dirtyNodes: Set<AstId>,
   ) {
     const functionChanged = functionAst_.id !== this.currentFunction
+    // Note: `subtrees` returns a set that has the iteration order of all `Ast.ID`s in the order they appear in the
+    // module AST. This is important to ensure that nodes are updated in the correct order.
     const knownDirtySubtrees = functionChanged ? null : subtrees(functionAst_.module, dirtyNodes)
     const subtreeDirty = (id: AstId) => !knownDirtySubtrees || knownDirtySubtrees.has(id)
     this.currentFunction = functionAst_.id
@@ -358,7 +364,11 @@ export class GraphDb {
           a?.id !== b?.id || (a && subtreeDirty(a.id))
         if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
         if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
-        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) node.rootSpan = newNode.rootSpan
+        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) {
+          node.rootSpan = newNode.rootSpan
+          const primarySubject = primaryApplicationSubject(newNode.rootSpan)
+          if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
+        }
       }
     }
     for (const nodeId of this.nodeIdToNode.keys()) {
@@ -426,11 +436,10 @@ export class GraphDb {
   mockNode(binding: string, id: Ast.AstId, code?: string): Node {
     const pattern = Ast.parse(binding)
     const node: Node = {
+      ...baseMockNode,
       outerExprId: id,
       pattern,
       rootSpan: Ast.parse(code ?? '0'),
-      position: Vec2.Zero,
-      vis: undefined,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(asNodeId(id), node)
@@ -451,17 +460,24 @@ export interface Node {
   rootSpan: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
+  /** A child AST in a syntactic position to be a self-argument input to the node. */
+  primarySubject: Ast.AstId | undefined
+}
+
+const baseMockNode = {
+  position: Vec2.Zero,
+  vis: undefined,
+  primarySubject: undefined,
 }
 
 /** This should only be used for supplying as initial props when testing.
  * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
 export function mockNode(exprId?: Ast.AstId): Node {
   return {
+    ...baseMockNode,
     outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
     pattern: undefined,
     rootSpan: Ast.parse('0'),
-    position: Vec2.Zero,
-    vis: undefined,
   }
 }
 

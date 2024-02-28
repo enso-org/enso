@@ -27,11 +27,6 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public int countMissing() {
-    return underlyingStorage.countMissing();
-  }
-
-  @Override
   public StorageType getType() {
     return AnyObjectType.INSTANCE;
   }
@@ -47,24 +42,13 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public boolean isNa(long idx) {
-    return underlyingStorage.isNa(idx);
+  public boolean isNothing(long idx) {
+    return underlyingStorage.isNothing(idx);
   }
 
   @Override
   public Object getItemBoxed(int idx) {
     return underlyingStorage.getItemBoxed(idx);
-  }
-
-  @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return underlyingStorage.isUnaryOpVectorized(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    return underlyingStorage.runVectorizedUnaryMap(name, problemAggregator);
   }
 
   @Override
@@ -91,20 +75,14 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public Storage<Object> mask(BitSet mask, int cardinality) {
-    Storage<?> newStorage = underlyingStorage.mask(mask, cardinality);
+  public Storage<Object> applyFilter(BitSet filterMask, int newLength) {
+    Storage<?> newStorage = underlyingStorage.applyFilter(filterMask, newLength);
     return new MixedStorageFacade(newStorage);
   }
 
   @Override
   public Storage<Object> applyMask(OrderMask mask) {
     Storage<?> newStorage = underlyingStorage.applyMask(mask);
-    return new MixedStorageFacade(newStorage);
-  }
-
-  @Override
-  public Storage<Object> countMask(int[] counts, int total) {
-    Storage<?> newStorage = underlyingStorage.countMask(counts, total);
     return new MixedStorageFacade(newStorage);
   }
 

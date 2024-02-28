@@ -5,9 +5,12 @@ body {
   overflow: hidden;
   height: 100vh;
   margin: 0;
+  background-blend-mode: lighten;
+}
+
+body:not(.vibrancy) {
   background: url("enso-assets/background.jpg") 0 0;
   background-size: cover;
-  background-blend-mode: lighten;
 }
 
 body::before {
@@ -49,7 +52,7 @@ body::before {
 
 .enso-dashboard *:focus,
 .enso-chat *:focus {
-  outline: none !important;
+  outline: none;
 }
 
 /* Must be kept in sync with app/gui/view/graph-editor/src/builtin/visualization/java_script/helpers/scrollable.js. */
@@ -110,15 +113,21 @@ body::before {
     }
 
     .dasharray-5 {
+      /* FF does not support `calc()` in `stroke-dasharray`. */
+      stroke-dasharray: 3.76992 75.3984;
       stroke-dasharray: calc(12 * 0.05 * 6.2832) calc(12 * 6.2832);
     }
 
     .dasharray-75 {
+      /* FF does not support `calc()` in `stroke-dasharray`. */
+      stroke-dasharray: 56.5488 75.3984;
       stroke-dasharray: calc(12 * 0.75 * 6.2832) calc(12 * 6.2832);
       transition-duration: 90s;
     }
 
     .dasharray-100 {
+      /* FF does not support `calc()` in `stroke-dasharray`. */
+      stroke-dasharray: 75.3984 0;
       stroke-dasharray: calc(12 * 6.2832) 0;
     }
 

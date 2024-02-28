@@ -5,6 +5,7 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
@@ -29,8 +30,8 @@ type XML_Format
 
     ## PRIVATE
        If this File_Format should be used for writing to that file, return a configured instance.
-    for_file_write : File -> XML_Format | Nothing
-    for_file_write file:File =
+    for_file_write : Writable_File -> XML_Format | Nothing
+    for_file_write file:Writable_File =
         _ = [file]
         Nothing
 

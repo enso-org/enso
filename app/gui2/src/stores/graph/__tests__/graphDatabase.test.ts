@@ -1,8 +1,11 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast, RawAst } from '@/util/ast'
 import assert from 'assert'
+import { initializeFFI } from 'shared/ast/ffi'
 import { IdMap, type ExternalId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
+
+await initializeFFI()
 
 /**
  * Create a predictable fake UUID which contains given number in decimal at the end.

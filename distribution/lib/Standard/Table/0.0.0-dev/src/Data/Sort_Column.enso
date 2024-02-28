@@ -8,7 +8,7 @@ type Sort_Column
     Name name:Text direction:Sort_Direction=Sort_Direction.Ascending
 
     ## A column to sort by, selected by its index.
-    Index index:Integer direction:Sort_Direction=Sort_Direction.Ascending
+    Index index:Integer=0 direction:Sort_Direction=Sort_Direction.Ascending
 
     ## A selector allowing to match columns by their name.
 
@@ -17,4 +17,4 @@ type Sort_Column
        matched columns will be placed in the ORDER BY clause at the position of
        this selector. Their relative order between each other will be the same
        as in the table.
-    Select_By_Name name:Text direction:Sort_Direction=Sort_Direction.Ascending case_sensitivity:Case_Sensitivity=Case_Sensitivity.Insensitive use_regex:Boolean=False
+    Select_By_Name name:Text|Regex direction:Sort_Direction=Sort_Direction.Ascending case_sensitivity:Case_Sensitivity=Case_Sensitivity.Insensitive

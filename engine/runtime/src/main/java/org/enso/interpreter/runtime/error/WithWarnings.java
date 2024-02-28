@@ -106,6 +106,20 @@ public final class WithWarnings implements EnsoObject {
         value, ctx.getWarningsLimit(), warnings, newWarnings.toArray(Warning[]::new));
   }
 
+  // Ignore the warnings cache in .value and re-fetch them using the WarningsLibrary.
+  // This is only used for shouldWrap=true.
+  private Warning[] getWarningsNoCache(WarningsLibrary warningsLibrary) {
+    if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
+      try {
+        return warningsLibrary.getWarnings(value, null, true);
+      } catch (UnsupportedMessageException e) {
+        throw EnsoContext.get(warningsLibrary).raiseAssertionPanic(warningsLibrary, null, e);
+      }
+    } else {
+      return Warning.fromSetToArray(warnings);
+    }
+  }
+
   public Warning[] getWarningsArray(WarningsLibrary warningsLibrary, boolean shouldWrap) {
     Warning[] allWarnings;
     if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
@@ -182,7 +196,13 @@ public final class WithWarnings implements EnsoObject {
     if (location != null) {
       return getReassignedWarnings(location, shouldWrap, warningsLibrary);
     } else {
-      return Warning.fromSetToArray(warnings);
+      if (shouldWrap) {
+        // In the wrapping case, we don't use the local cache in .values, since
+        // it contains unwrapped warnings. Instead, we fetch them again.
+        return getWarningsNoCache(warningsLibrary);
+      } else {
+        return Warning.fromSetToArray(warnings);
+      }
     }
   }
 

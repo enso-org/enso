@@ -8,4 +8,19 @@ public record FloatType(Bits bits) implements StorageType {
       throw new IllegalArgumentException("Only 64-bit floats are currently supported.");
     }
   }
+
+  @Override
+  public boolean isNumeric() {
+    return true;
+  }
+
+  @Override
+  public boolean hasDate() {
+    return false;
+  }
+
+  @Override
+  public boolean hasTime() {
+    return false;
+  }
 }

@@ -1,13 +1,26 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const tree = injectWidgetTree()
 
 const spanClass = computed(() => props.input.value.typeName())
-const children = computed(() => [...props.input.value.children()])
+const children = computed(() => {
+  if (
+    props.input.value instanceof Ast.PropertyAccess &&
+    tree.connectedSelfArgumentId &&
+    props.input.value.lhs?.id === tree.connectedSelfArgumentId
+  ) {
+    // When a self argument is rendered as an icon, omit the property access operator.
+    return [props.input.value.lhs, props.input.value.rhs]
+  } else {
+    return [...props.input.value.children()]
+  }
+})
 
 function transformChild(child: Ast.Ast | Ast.Token) {
   const childInput = WidgetInput.FromAst(child)

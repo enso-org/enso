@@ -52,6 +52,7 @@ new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_bui
 @Builtin_Type
 type Time_Of_Day
     ## GROUP DateTime
+       ICON date_and_time
        Obtains the current time from the system clock in the default time-zone.
 
        > Example
@@ -64,6 +65,7 @@ type Time_Of_Day
     now = @Builtin_Method "Time_Of_Day.now"
 
     ## GROUP DateTime
+       ICON date_and_time
        Obtains an instance of `Time_Of_Day` from an hour, minute, second
        and nanosecond.
 
@@ -97,6 +99,7 @@ type Time_Of_Day
             Error.throw (Time_Error.Error caught_panic.payload.getMessage)
 
     ## GROUP Conversions
+       ICON convert
        Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
        Arguments:
@@ -175,6 +178,7 @@ type Time_Of_Day
         format.parse_time text
 
     ## GROUP Metadata
+       ICON metadata
        Get the hour portion of the time of day.
 
        > Example
@@ -187,7 +191,7 @@ type Time_Of_Day
     hour self = @Builtin_Method "Time_Of_Day.hour"
 
     ## GROUP Metadata
-       ICON date_and_time
+       ICON metadata
        Get the minute portion of the time of day.
 
        > Example
@@ -200,6 +204,7 @@ type Time_Of_Day
     minute self = @Builtin_Method "Time_Of_Day.minute"
 
     ## GROUP Metadata
+       ICON metadata
        Get the second portion of the time of day.
 
        > Example
@@ -212,6 +217,7 @@ type Time_Of_Day
     second self = @Builtin_Method "Time_Of_Day.second"
 
     ## GROUP Metadata
+       ICON metadata
        Get the millisecond portion of the time of day.
 
        > Example
@@ -224,6 +230,7 @@ type Time_Of_Day
     millisecond self = @Builtin_Method "Time_Of_Day.millisecond"
 
     ## GROUP Metadata
+       ICON metadata
        Get the microsecond portion of the time of day.
 
        > Example
@@ -236,6 +243,7 @@ type Time_Of_Day
     microsecond self = @Builtin_Method "Time_Of_Day.microsecond"
 
     ## GROUP Metadata
+       ICON metadata
        Get the nanosecond portion of the time of day.
 
        Arguments:
@@ -254,6 +262,7 @@ type Time_Of_Day
         self.nanosecond_builtin include_milliseconds
 
     ## GROUP DateTime
+       ICON date_and_time
        Returns the first time within the `Time_Period` containing self.
     start_of : Time_Period -> Time_Of_Day
     start_of self period=Time_Period.Day = period.adjust_start self
@@ -265,6 +274,7 @@ type Time_Of_Day
     end_of self period=Time_Period.Day = period.adjust_end self
 
     ## GROUP Conversions
+       ICON convert
        Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
 
        > Example
@@ -277,6 +287,7 @@ type Time_Of_Day
     to_seconds self = @Builtin_Method "Time_Of_Day.to_seconds"
 
     ## GROUP Conversions
+       ICON convert
        Combine this time of day with a date to create a point in time.
 
        Arguments:
@@ -421,6 +432,7 @@ type Time_Of_Day
             self.format "HH:mm:ss.ffffff"
 
     ## GROUP Conversions
+       ICON convert
        Format this time of day using the provided formatter pattern.
 
        Arguments:

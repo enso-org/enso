@@ -32,12 +32,11 @@ add_specs suite_builder =
             input.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.uk) . should_equal expected_gb
             input.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.france) . should_equal expected_fr
 
-        group_builder.specify "Empty/Nothing format" <|
+        group_builder.specify "Empty format" <|
             input = Column.from_vector "values" [Date.new 2020 12 21, Date.new 2023 4 25]
             expected = Column.from_vector "values" ['2020-12-21', '2023-04-25']
             input.format . should_equal expected
             input.format "" . should_equal expected
-            input.format Nothing . should_equal expected
 
         group_builder.specify "Bad format" <|
             input = Column.from_vector "values" [Date.new 2020 6 21, Date.new 2023 4 25]
@@ -106,13 +105,12 @@ add_specs suite_builder =
             # If I provide a locale argument, it overrides what is already in the formatter:
             input.format formatter Locale.poland . should_equal expected_pl
 
-        group_builder.specify "Empty/Nothing format" <|
+        group_builder.specify "Empty format" <|
             zone = Time_Zone.parse "US/Hawaii"
             input = Column.from_vector "values" [Date_Time.new 2020 12 21 8 10 20 zone=zone, Date_Time.new 2023 4 25 14 25 2 zone=zone]
             expected = Column.from_vector "values" ['2020-12-21 08:10:20-10:00[US/Hawaii]', '2023-04-25 14:25:02-10:00[US/Hawaii]']
             input.format . should_equal expected
             input.format "" . should_equal expected
-            input.format Nothing . should_equal expected
 
         group_builder.specify "Bad format" <|
             input = Column.from_vector "values" [Date_Time.new 2020 6 21 8 10 20, Date_Time.new 2023 4 25 14 25 2]
@@ -170,12 +168,11 @@ add_specs suite_builder =
             input.format "HH.mm.ss" (Locale.default) . should_equal expected
             input.format "HH.mm.ss" (Locale.new "gb") . should_equal expected
 
-        group_builder.specify "Empty/Nothing format" <|
+        group_builder.specify "Empty format" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
             expected = Column.from_vector "values" ['08:10:20', '14:25:02']
             input.format . should_equal expected
             input.format "" . should_equal expected
-            input.format Nothing . should_equal expected
 
         group_builder.specify "Bad format" <|
             input = Column.from_vector "values" [Time_Of_Day.new 8 10 20, Time_Of_Day.new 14 25 2]
@@ -228,12 +225,11 @@ add_specs suite_builder =
             actual = input.format "t|f"
             actual . should_equal expected
 
-        group_builder.specify "Empty/Nothing format" <|
+        group_builder.specify "Empty format" <|
             input = Column.from_vector "values" [True, False]
             expected = Column.from_vector "values" ["True", "False"]
             input.format . should_equal expected
             input.format "" . should_equal expected
-            input.format Nothing . should_equal expected
 
         group_builder.specify "Bad format" <|
             input = Column.from_vector "values" [True, False]
@@ -267,20 +263,18 @@ add_specs suite_builder =
             expected = Column.from_vector "values" ["100,000,000.00", "2,222.00", "3.00"]
             input.format "#,##0.00" . should_equal expected
 
-    suite_builder.group "Numeric, empty/Nothing" group_builder->
+    suite_builder.group "Numeric format, empty" group_builder->
         group_builder.specify "Integer" <|
             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
             expected = Column.from_vector "values" ["100000000", "2222", "3"]
             input.format . should_equal expected
             input.format "" . should_equal expected
-            input.format Nothing . should_equal expected
 
         group_builder.specify "Float" <|
             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Float Bits.Bits_64)
             expected = Column.from_vector "values" ['1.0E8', '2222.0', '3.0']
             input.format . should_equal expected
             input.format "" . should_equal expected
-            input.format Nothing . should_equal expected
 
         group_builder.specify "Integer, with format Column" <|
             input = Column.from_vector "values" ["100000000", "2222", "3"] . parse (Value_Type.Integer Bits.Bits_64)
@@ -344,8 +338,8 @@ spec_with_numeric_type suite_builder name numeric_type =
             formats = Column.from_vector "formats" ["#,##0.00", "#.##0,00", "0"]
             input.format formats . should_fail_with Illegal_Argument
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

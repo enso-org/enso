@@ -171,6 +171,10 @@ Every `Persistance` class has a unique identifier. In order to keep definitions
 consistent one should not attempt to use smaller `id`s than previously assigned.
 One should also not delete any `Persistance` classes.
 
+Additionally, `PerMap.serialVersionUID` version provides a seed to the version
+stamp calculated from all `Persistance` classes. Increasing the
+`serialVersionUID` will invalidate all caches.
+
 ## Loading the IR
 
 Loading the IR is a multi-stage process that involves performing integrity

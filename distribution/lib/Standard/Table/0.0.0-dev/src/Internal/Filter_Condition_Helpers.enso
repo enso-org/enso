@@ -81,14 +81,16 @@ make_filter_column source_column filter_condition on_problems =
         ## We need to fill in the Nothing values and then negate the result.
         (base_column.fill_nothing False).not
 
-## Attach a warning if the provided value is `Nothing`.
+## PRIVATE
+   Attach a warning if the provided value is `Nothing`.
 warn_on_nothing_in_comparison : Filter_Condition -> Any -> Any -> Any
 warn_on_nothing_in_comparison filter_condition value ~action =
     case value of
         Nothing -> Warning.attach (Nothing_Value_In_Filter_Condition.Error filter_condition) action
         _ -> action
 
-## Attach a warning if the provided value is a `Vector` that contains `Nothing`.
+## PRIVATE
+   Attach a warning if the provided value is a `Vector` that contains `Nothing`.
 warn_on_nothing_in_comparison_vector : Filter_Condition -> Vector Any -> Any -> Any
 warn_on_nothing_in_comparison_vector filter_condition values ~action =
     case values of

@@ -3,17 +3,18 @@ package org.enso.projectmanager.boot
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
-
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
   FailureExitCode,
   SuccessExitCode
 }
+import org.enso.projectmanager.boot.command.{CommandHandler, ProjectListCommand}
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
   ProjectManagerConfig
 }
+import org.enso.projectmanager.protocol.JsonRpcProtocolFactory
 import org.enso.version.VersionDescription
 import org.slf4j.event.Level
 import pureconfig.ConfigSource
@@ -40,6 +41,10 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       .withFallback(ConfigSource.systemProperties)
       .at(ConfigNamespace)
       .loadOrThrow[ProjectManagerConfig]
+
+  private lazy val commandHandler = new CommandHandler(
+    new JsonRpcProtocolFactory().getProtocol()
+  )
 
   val computeThreadPool = new ScheduledThreadPoolExecutor(
     java.lang.Runtime.getRuntime.availableProcessors()
@@ -204,6 +209,19 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
+    } else if (options.hasOption(Cli.PROJECT_LIST)) {
+      val projectsPathOpt =
+        Option(options.getOptionValue(Cli.PROJECTS_DIRECTORY))
+          .map(Paths.get(_).toFile)
+      val limitOpt = Option(
+        options
+          .getParsedOptionValue(Cli.PROJECT_LIST)
+          .asInstanceOf[java.lang.Number]
+      )
+        .map(_.intValue())
+      val projectListCommand =
+        ProjectListCommand[ZIO[ZAny, +*, +*]](config, projectsPathOpt, limitOpt)
+      commandHandler.printJson(projectListCommand.run)
     } else {
       val verbosity  = options.getOptions.count(_ == Cli.option.verbose)
       val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
@@ -280,5 +298,4 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         3.seconds
       )
     }
-
 }

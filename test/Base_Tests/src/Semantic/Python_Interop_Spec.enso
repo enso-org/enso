@@ -211,9 +211,9 @@ add_specs suite_builder =
             error = Error.throw 42
             my_method error 0 . should_fail_with Integer
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
