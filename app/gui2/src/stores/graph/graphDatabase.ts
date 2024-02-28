@@ -193,8 +193,8 @@ export class GraphDb {
     return Array.from(ports, (port) => [id, port])
   })
 
-  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
-    const expressionInfo = this.getExpressionInfo(id)
+  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+    const expressionInfo = this.getExpressionInfo(entry.innerExpr.id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(method)
@@ -359,9 +359,7 @@ export class GraphDb {
           newNode.vis = nodeMeta.get('visualization')
         }
         this.nodeIdToNode.set(nodeId, newNode)
-        console.log('new', { ...newNode })
       } else {
-        console.log('change', { ...node }, { ...newNode })
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
         if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern

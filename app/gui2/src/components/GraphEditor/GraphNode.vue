@@ -60,7 +60,6 @@ const outputPortsSet = computed(() => {
 
 const widthOverridePx = ref<number>()
 const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
-const externalId = computed(() => props.node.innerExpr.externalId)
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
   props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject)
@@ -185,17 +184,12 @@ const isRecordingOverridden = computed({
       shouldOverride && !projectStore.isRecordingEnabled
         ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
         : undefined
-    console.log(
-      props.node.rootSpan.id,
-      props.node.rootSpan.module.nodes._map.has(props.node.rootSpan.id),
-      props.node.rootSpan.module,
-    )
     prefixes.modify(edit.getVersion(props.node.rootSpan), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
 })
 
-const expressionInfo = computed(() => graph.db.getExpressionInfo(externalId.value))
+const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
 const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
@@ -203,10 +197,9 @@ const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 // FIXME [sb]: https://github.com/enso-org/enso/issues/8442
 // This does not take into account `displayedExpression`.
 const icon = computed(() => {
-  const expressionInfo = graph.db.getExpressionInfo(externalId.value)
   return displayedIconOf(
     suggestionEntry.value,
-    expressionInfo?.methodCall?.methodPointer,
+    expressionInfo.value?.methodCall?.methodPointer,
     outputPortLabel.value,
   )
 })
@@ -382,8 +375,8 @@ function openFullMenu() {
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
-      :currentType="node.vis?.identifier"
-      :dataSource="{ type: 'node', nodeId: externalId }"
+      :currentType="props.node.vis?.identifier"
+      :dataSource="{ type: 'node', nodeId: props.node.rootSpan.externalId }"
       :typename="expressionInfo?.typename"
       @update:rect="
         emit('update:visualizationRect', $event),
