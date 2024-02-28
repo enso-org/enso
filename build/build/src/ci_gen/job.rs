@@ -110,6 +110,18 @@ pub fn plain_job(
     RunStepsBuilder::new(command_line).build_job(name, runs_on)
 }
 
+/// Pretty print arguments to `./run` that will invoke SBT with the given command.
+///
+/// Meant to be used together with [`RunStepsBuilder::new`].
+///
+/// ```
+/// use enso_build::ci_gen::job::sbt_command;
+/// assert_eq!(sbt_command("verifyLicensePackages"), "backend sbt -- -- verifyLicensePackages");
+/// ```
+pub fn sbt_command(command: impl AsRef<str>) -> String {
+    format!("backend sbt -- -- {}", command.as_ref())
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct CancelWorkflow;
 impl JobArchetype for CancelWorkflow {
@@ -128,6 +140,15 @@ impl JobArchetype for CancelWorkflow {
         // Necessary permission to cancel a run, as per:
         // https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#cancel-a-workflow-run
         .with_permission(Permission::Actions, Access::Write)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct VerifyLicensePackages;
+impl JobArchetype for VerifyLicensePackages {
+    fn job(&self, target: Target) -> Job {
+        RunStepsBuilder::new(sbt_command("verifyLicensePackages"))
+            .build_job("Verify License Packages", target)
     }
 }
 

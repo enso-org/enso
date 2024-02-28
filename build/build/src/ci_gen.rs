@@ -620,6 +620,7 @@ pub fn backend() -> Result<Workflow> {
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
     for target in CHECKED_TARGETS {
         workflow.add(target, job::CiCheckBackend);
+        workflow.add(target, job::VerifyLicensePackages);
     }
     Ok(workflow)
 }

@@ -108,6 +108,7 @@ impl RunContext {
 
     /// Check that required programs are present (if not, installs them, if supported). Set
     /// environment variables for the build to follow.
+    #[instrument(skip(self))]
     pub async fn prepare_build_env(&self) -> Result {
         // Building native images with Graal on Windows requires Microsoft Visual C++ Build Tools
         // available in the environment. If it is not visible, we need to add it.
@@ -559,13 +560,6 @@ impl RunContext {
             runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
         }
 
-        // Verify the status of the License Review Report
-        if TARGET_OS != OS::Windows {
-            // FIXME [mwu] apparently this is broken on Windows because of the line endings
-            // mismatch
-            sbt.call_arg("verifyLicensePackages").await?;
-        }
-
         // Verify Integrity of Generated License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
@@ -658,6 +652,14 @@ impl RunContext {
                         DEFAULT_SHELL.run_shell()?.current_dir(&self.paths.repo_root).spawn()?;
                     shell.wait_ok().await?;
                 }
+            }
+            Operation::Sbt(args) => {
+                self.prepare_build_env().await?;
+                let sbt = engine::sbt::Context {
+                    repo_root:         self.paths.repo_root.path.clone(),
+                    system_properties: default(),
+                };
+                sbt.call_args(args).await?;
             }
             Operation::Build => {
                 self.build().boxed().await?;

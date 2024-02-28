@@ -253,6 +253,7 @@ impl RunOperation {}
 pub enum Operation {
     Release(ReleaseOperation),
     Run(RunOperation),
+    Sbt(Vec<String>),
     Build,
 }
 
