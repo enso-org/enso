@@ -1388,7 +1388,7 @@ dependencies = [
  "enso-build-macros-lib",
  "enso-enso-font",
  "enso-font",
- "ensogl-pack",
+ "enso-pack",
  "futures",
  "futures-util",
  "glob",
@@ -1704,6 +1704,20 @@ dependencies = [
  "enso-prelude",
  "flo_stream",
  "futures",
+]
+
+[[package]]
+name = "enso-pack"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "futures",
+ "ide-ci",
+ "manifest-dir-macros",
+ "serde",
+ "serde_json",
+ "tokio",
+ "walkdir",
 ]
 
 [[package]]
@@ -2036,20 +2050,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.107",
-]
-
-[[package]]
-name = "ensogl-pack"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
- "futures",
- "ide-ci",
- "manifest-dir-macros",
- "serde",
- "serde_json",
- "tokio",
- "walkdir",
 ]
 
 [[package]]

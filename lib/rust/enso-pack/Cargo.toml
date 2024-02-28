@@ -1,5 +1,5 @@
 [package]
-name = "ensogl-pack"
+name = "enso-pack"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
@@ -9,10 +9,10 @@ crate-type = ["rlib"]
 
 [dependencies]
 futures = { version = "0.3" }
-ide-ci = { path = "../../../../build/ci_utils" }
+ide-ci = { path = "../../../build/ci_utils" }
 manifest-dir-macros = "0.1.16"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 walkdir = "2"
-enso-prelude = { path = "../../prelude" }
+enso-prelude = { path = "../prelude" }

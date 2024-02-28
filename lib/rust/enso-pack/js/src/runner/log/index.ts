@@ -1,7 +1,7 @@
 /** @file Logging utilities. */
 
-export * from './logger.js'
-export * from './router.js'
+export * from './logger'
+export * from './router'
 
 /** Panics with the provided message.
  * @throws Will throw an error. Use it only if there is no other option. */

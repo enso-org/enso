@@ -2,7 +2,7 @@
  * Also, it allows redirecting logs to different outputs, so you can plug in external sinks for the
  * logs. */
 
-import host from '../host.js'
+import host from '../host'
 
 // =============
 // === Utils ===
@@ -29,27 +29,35 @@ class Colors {
     static magentaCode = '\x1b[35m'
     static cyanCode = '\x1b[36m'
     static whiteCode = '\x1b[37m'
+
     static black(text: string): string {
         return Colors.blackCode + text + Colors.resetCode
     }
+
     static red(text: string): string {
         return Colors.redCode + text + Colors.resetCode
     }
+
     static green(text: string): string {
         return Colors.greenCode + text + Colors.resetCode
     }
+
     static yellow(text: string): string {
         return Colors.yellowCode + text + Colors.resetCode
     }
+
     static boldStart(): string {
         return '\x1b[1m'
     }
+
     static reset(): string {
         return Colors.resetCode
     }
+
     static level(level: number, text: string): string {
         return Colors.levelStart(level) + text + Colors.resetCode
     }
+
     static levelStart(level: number): string {
         switch (level) {
             case 0:
@@ -317,6 +325,7 @@ export class Console extends Consumer {
 export class Task {
     startTime = 0
     endTime = 0
+
     constructor(public message: string) {}
 
     private startBody() {
