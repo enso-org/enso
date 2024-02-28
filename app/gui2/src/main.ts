@@ -104,6 +104,7 @@ function main() {
   }
 
   const config = configValue(mergeConfig(baseConfig, urlParams()))
+  const supportsVibrancy = config.window.vibrancy
   const shouldUseAuthentication = config.authentication.enabled
   const projectManagerUrl = config.engine.projectManagerUrl || PROJECT_MANAGER_URL
   const initialProjectName = config.startup.project || null
@@ -111,6 +112,7 @@ function main() {
   dashboard.run({
     appRunner,
     logger: console,
+    vibrancy: supportsVibrancy,
     supportsLocalBackend: !IS_CLOUD_BUILD,
     supportsDeepLinks: !isDevMode && !isOnLinux(),
     projectManagerUrl,
