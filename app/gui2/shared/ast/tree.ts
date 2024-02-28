@@ -1402,7 +1402,8 @@ export class Documented extends Ast {
 
   /** Return the string value of the documentation. */
   documentation(): string {
-    return uninterpolatedText(this.fields.get('elements'), this.module)
+    const raw = uninterpolatedText(this.fields.get('elements'), this.module)
+    return raw.startsWith(' ') ? raw.slice(1) : raw
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {

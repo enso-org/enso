@@ -44,8 +44,8 @@ if (import.meta.vitest) {
     line                               | pattern      | rootSpan   | documentation
     ${'2 + 2'}                         | ${undefined} | ${'2 + 2'} | ${undefined}
     ${'foo = bar'}                     | ${'foo'}     | ${'bar'}   | ${undefined}
-    ${'## Documentation\n2 + 2'}       | ${undefined} | ${'2 + 2'} | ${' Documentation'}
-    ${'## Documentation\nfoo = 2 + 2'} | ${'foo'}     | ${'2 + 2'} | ${' Documentation'}
+    ${'## Documentation\n2 + 2'}       | ${undefined} | ${'2 + 2'} | ${'Documentation'}
+    ${'## Documentation\nfoo = 2 + 2'} | ${'foo'}     | ${'2 + 2'} | ${'Documentation'}
   `('Node information from AST $line line', ({ line, pattern, rootSpan, documentation }) => {
     const ast = Ast.Ast.parse(line)
     const node = nodeFromAst(ast)
