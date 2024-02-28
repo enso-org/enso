@@ -5,10 +5,10 @@ name: Benchmarks upload
 on:
   pull_request:
     branches: ["*"]
-  schedule:
-    # Run every day at 5:30 AM. At midnight, benchmarks run, and we want this job to be
-    # scheduled after all the benchmarks are finished, so that we have the newest results.
-    - cron: 30 5 * * *
+  workflow_run:
+    workflows: ["Benchmark Engine", "Benchmark Standard Libraries"]
+    types:
+      - completed
 jobs:
   upload-benchmarks:
     name: Upload benchmarks
