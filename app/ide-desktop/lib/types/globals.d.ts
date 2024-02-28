@@ -120,6 +120,8 @@ declare global {
             readonly ENSO_CLOUD_AMPLIFY_DOMAIN?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_AMPLIFY_REGION?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_SUPPORTS_VIBRANCY?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
