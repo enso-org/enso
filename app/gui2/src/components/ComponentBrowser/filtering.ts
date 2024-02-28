@@ -98,7 +98,7 @@ class FilteringWithPattern {
 
   private firstMatchingAlias(entry: SuggestionEntry) {
     for (const alias of entry.aliases) {
-      const match = this.wordMatchRegex.exec(alias) ?? this.initialsMatchRegex?.exec(alias)
+      const match = this.wordMatchRegex.exec(alias)
       if (match != null) return { alias, match }
     }
     return null
