@@ -13,7 +13,6 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
   applySuggestion: ['Tab'],
   acceptSuggestion: ['Enter'],
   acceptInput: ['Mod+Enter'],
-  cancelEditing: ['Escape'],
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],
 })

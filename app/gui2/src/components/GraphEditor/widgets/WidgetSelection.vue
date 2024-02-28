@@ -2,7 +2,8 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { injectInteractionHandler } from '@/providers/interactionHandler'
+import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   singleChoiceConfiguration,
   type ArgumentWidgetConfiguration,
@@ -24,11 +25,15 @@ import {
   tryQualifiedName,
   type IdentifierOrOperatorIdentifier,
 } from '@/util/qualifiedName'
+import { defineKeybinds } from '@/util/shortcuts'
+import * as random from 'lib0/random'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
+const interaction = injectInteractionHandler()
+const widgetRoot = ref<HTMLElement>()
 
 interface Tag {
   /** If not set, the label is same as expression */
@@ -119,6 +124,23 @@ const innerWidgetInput = computed(() => {
   return { ...props.input, dynamicConfig: singleChoiceConfiguration(config) }
 })
 const showDropdownWidget = ref(false)
+interaction.setWhen(showDropdownWidget, {
+  cancel: () => {
+    showDropdownWidget.value = false
+  },
+  click: (e: PointerEvent) => {
+    if (widgetRoot.value && e.target instanceof Element && !widgetRoot.value.contains(e.target)) {
+      showDropdownWidget.value = false
+      return true
+    } else {
+      return false
+    }
+  },
+})
+
+const handleClick = defineKeybinds(`dropdown-${random.uint53()}`, {
+  toggleDropdownWidget: ['PointerMain'],
+}).handler({ toggleDropdownWidget })
 
 function toggleDropdownWidget() {
   showDropdownWidget.value = !showDropdownWidget.value
@@ -172,7 +194,13 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 
 <template>
   <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
-  <div class="WidgetSelection" @pointerdown.stop @pointerup.stop @click.stop="toggleDropdownWidget">
+  <div
+    ref="widgetRoot"
+    class="WidgetSelection"
+    @pointerdown.stop="handleClick"
+    @pointerup.stop
+    @click.stop
+  >
     <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
     <SvgIcon name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
