@@ -204,8 +204,9 @@ class Abstractor {
       }
       case RawAst.Tree.Type.OprApp: {
         const lhs = tree.lhs ? this.abstractTree(tree.lhs) : undefined
-        const opr = tree.opr.ok
-          ? [this.abstractToken(tree.opr.value)]
+        const opr =
+          tree.opr.ok ?
+            [this.abstractToken(tree.opr.value)]
           : Array.from(tree.opr.error.payload.operators, this.abstractToken.bind(this))
         const rhs = tree.rhs ? this.abstractTree(tree.rhs) : undefined
         const soleOpr = tryGetSoleValue(opr)
@@ -756,9 +757,9 @@ function calculateCorrespondence(
     for (const partAfter of partsAfter) {
       const astBefore = partAfterToAstBefore.get(sourceRangeKey(partAfter))!
       if (astBefore.typeName() === astAfter.typeName()) {
-        ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter)
-          ? toSync
-          : candidates
+        ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter) ?
+          toSync
+        : candidates
         ).set(astBefore.id, astAfter)
         break
       }
@@ -857,9 +858,9 @@ function syncTree(
     const editAst = edit.getVersion(ast)
     if (syncFieldsFrom) {
       const originalAssignmentExpression =
-        ast instanceof Assignment
-          ? metadataSource.get(ast.fields.get('expression').node)
-          : undefined
+        ast instanceof Assignment ?
+          metadataSource.get(ast.fields.get('expression').node)
+        : undefined
       syncFields(edit.getVersion(ast), syncFieldsFrom, childReplacerFor(ast.id))
       if (editAst instanceof MutableAssignment && originalAssignmentExpression) {
         if (editAst.expression.externalId !== originalAssignmentExpression.externalId)

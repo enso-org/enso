@@ -11,7 +11,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 
 const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
-  if (props.input instanceof Ast.TextLiteral) return props.input
+  if (props.input.value instanceof Ast.TextLiteral) return props.input.value
   const valueStr = WidgetInput.valueRepr(props.input)
   const parsed = valueStr != null ? Ast.parse(valueStr) : undefined
   if (parsed instanceof Ast.TextLiteral) return parsed

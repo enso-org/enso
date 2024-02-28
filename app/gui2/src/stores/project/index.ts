@@ -45,7 +45,6 @@ import {
   shallowRef,
   watch,
   watchEffect,
-  type ShallowRef,
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'

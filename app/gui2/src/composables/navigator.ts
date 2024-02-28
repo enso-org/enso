@@ -4,7 +4,7 @@ import { useApproach } from '@/composables/animation'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, ref as shallowRef, type Ref } from 'vue'
+import { computed, proxyRefs, shallowRef, type Ref } from 'vue'
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element) {

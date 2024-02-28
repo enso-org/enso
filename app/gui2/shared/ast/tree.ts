@@ -1246,7 +1246,7 @@ export class TextLiteral extends Ast {
   }
 
   get close(): Token | undefined {
-    return this.module.getToken(this.fields.get('open')?.node)
+    return this.module.getToken(this.fields.get('close')?.node)
   }
 }
 export class MutableTextLiteral extends TextLiteral implements MutableAst {

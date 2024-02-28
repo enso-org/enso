@@ -146,9 +146,9 @@ export function applyDiffAsTextEdits(
       }
       const numLineBreaks = (text.match(/\n/g) ?? []).length
       const character =
-        numLineBreaks > 0
-          ? text.length - (text.lastIndexOf('\n') + 1)
-          : newIndex - lineStartIdx + text.length
+        numLineBreaks > 0 ?
+          text.length - (text.lastIndexOf('\n') + 1)
+        : newIndex - lineStartIdx + text.length
       const end = {
         character,
         line: lineNum + numLineBreaks,
