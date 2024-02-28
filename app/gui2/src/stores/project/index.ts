@@ -608,18 +608,21 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
-    if (info.payload.type !== 'DataflowError') return
-    const data = useVisualizationData(
-      ref({
-        expressionId: id,
-        visualizationModule: 'Standard.Visualization.Preprocessor',
-        expression: {
-          module: 'Standard.Visualization.Preprocessor',
-          definedOnType: 'Standard.Visualization.Preprocessor',
-          name: 'error_preprocessor',
-        },
-      }),
+    console.log('Updating ', id)
+    const config = computed(() =>
+      info.payload.type === 'DataflowError'
+        ? {
+            expressionId: id,
+            visualizationModule: 'Standard.Visualization.Preprocessor',
+            expression: {
+              module: 'Standard.Visualization.Preprocessor',
+              definedOnType: 'Standard.Visualization.Preprocessor',
+              name: 'error_preprocessor',
+            },
+          }
+        : null,
     )
+    const data = useVisualizationData(config)
     return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
       const visResult = data.value
       if (!visResult) return

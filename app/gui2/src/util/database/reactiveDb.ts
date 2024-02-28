@@ -327,6 +327,7 @@ export class ReactiveMapping<K, V, M> {
   constructor(db: ReactiveDb<K, V>, indexer: Mapper<K, V, M>, debugOptions?: DebuggerOptions) {
     this.computed = reactive(map.create())
     db.on('entryAdded', (key, value, onDelete) => {
+      console.log('blah: ', key)
       const scope = effectScope()
       const mappedValue = scope.run(() =>
         computed(() => scope.run(() => indexer(key, value)), debugOptions),
