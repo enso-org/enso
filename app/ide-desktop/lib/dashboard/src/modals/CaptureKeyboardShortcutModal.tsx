@@ -68,7 +68,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         onKeyDown={event => {
           if (event.key === 'Escape' && key === 'Escape') {
             // Ignore.
-          } else if (event.key === 'Enter' && key === 'Enter') {
+          } else if (event.key === 'Enter' && key != null) {
             event.currentTarget.requestSubmit()
           } else {
             event.stopPropagation()
