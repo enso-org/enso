@@ -86,16 +86,19 @@ function rejectPermissionRequests() {
  * This is because the resources are fingerprinted and the fingerprint changes every time the
  * resources are updated. Additionally, Stripe.js may choose to add more resources in the future. */
 function addMissingCorsHeaders() {
-    void electron.app.whenReady().then(() => {
-        electron.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-            details.responseHeaders = details.responseHeaders ?? {}
-            if (details.url.includes('https://js.stripe.com/v3/')) {
-                details.responseHeaders['Cross-Origin-Resource-Policy'] = ['cross-origin']
-                details.responseHeaders['Cross-Origin-Embedder-Policy'] = ['require-corp']
-            }
-            callback({ responseHeaders: details.responseHeaders })
-        })
-    })
+    void electron.app.whenReady().then(
+        () => {
+            electron.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+                details.responseHeaders = details.responseHeaders ?? {}
+                if (details.url.includes('https://js.stripe.com/v3/')) {
+                    details.responseHeaders['Cross-Origin-Resource-Policy'] = ['cross-origin']
+                    details.responseHeaders['Cross-Origin-Embedder-Policy'] = ['require-corp']
+                }
+                callback({ responseHeaders: details.responseHeaders })
+            })
+        },
+        () => {}
+    )
 }
 
 /** A WebView created in a renderer process that does not have Node.js integration enabled will not

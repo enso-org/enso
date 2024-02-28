@@ -150,12 +150,13 @@ function constantValueHelper(
         break
       }
       case 'array': {
-        if (!('items' in schema) || schema.items !== false) {
-          // This array may contain extra items.
-          result = []
-          break
-        } else if (!('prefixItems' in schema) || !Array.isArray(schema.prefixItems)) {
-          // Invalid format.
+        if (
+          !('items' in schema) ||
+          schema.items !== false ||
+          !('prefixItems' in schema) ||
+          !Array.isArray(schema.prefixItems)
+        ) {
+          // This array may contain extra items, or the schema has an invalid format.
           result = []
           break
         } else {
@@ -286,21 +287,15 @@ export function isMatch(
         } else if (partial && value === '') {
           result = true
         } else if (
-          'minLength' in schema &&
-          typeof schema.minLength === 'number' &&
-          value.length < schema.minLength
-        ) {
-          result = false
-        } else if (
-          'maxLength' in schema &&
-          typeof schema.maxLength === 'number' &&
-          value.length > schema.maxLength
-        ) {
-          result = false
-        } else if (
-          'pattern' in schema &&
-          typeof schema.pattern === 'string' &&
-          !tryRegExp(schema.pattern).test(value)
+          ('minLength' in schema &&
+            typeof schema.minLength === 'number' &&
+            value.length < schema.minLength) ||
+          ('maxLength' in schema &&
+            typeof schema.maxLength === 'number' &&
+            value.length > schema.maxLength) ||
+          ('pattern' in schema &&
+            typeof schema.pattern === 'string' &&
+            !tryRegExp(schema.pattern).test(value))
         ) {
           result = false
         } else {
@@ -326,40 +321,23 @@ export function isMatch(
           result = false
         } else if (partial && value === 0) {
           result = true
-        } else if (schema.type === 'integer' && !Number.isInteger(value)) {
-          result = false
         } else if (
-          'multipleOf' in schema &&
-          typeof schema.multipleOf === 'number' &&
-          value !== 0 &&
-          value % schema.multipleOf !== 0 &&
-          // Should be mostly equivalent to `%`, except more robust for multiple detection
-          // in some cases like`1 % 0.01`.
-          value - schema.multipleOf * Math.round(value / schema.multipleOf) !== 0
-        ) {
-          result = false
-        } else if (
-          'minimum' in schema &&
-          typeof schema.minimum === 'number' &&
-          value < schema.minimum
-        ) {
-          result = false
-        } else if (
-          'exclusiveMinimum' in schema &&
-          typeof schema.exclusiveMinimum === 'number' &&
-          value <= schema.exclusiveMinimum
-        ) {
-          result = false
-        } else if (
-          'maximum' in schema &&
-          typeof schema.maximum === 'number' &&
-          value > schema.maximum
-        ) {
-          result = false
-        } else if (
-          'exclusiveMaximum' in schema &&
-          typeof schema.exclusiveMaximum === 'number' &&
-          value >= schema.exclusiveMaximum
+          (schema.type === 'integer' && !Number.isInteger(value)) ||
+          ('multipleOf' in schema &&
+            typeof schema.multipleOf === 'number' &&
+            value !== 0 &&
+            value % schema.multipleOf !== 0 &&
+            // Should be mostly equivalent to `%`, except more robust for multiple detection
+            // in some cases like`1 % 0.01`.
+            value - schema.multipleOf * Math.round(value / schema.multipleOf) !== 0) ||
+          ('minimum' in schema && typeof schema.minimum === 'number' && value < schema.minimum) ||
+          ('exclusiveMinimum' in schema &&
+            typeof schema.exclusiveMinimum === 'number' &&
+            value <= schema.exclusiveMinimum) ||
+          ('maximum' in schema && typeof schema.maximum === 'number' && value > schema.maximum) ||
+          ('exclusiveMaximum' in schema &&
+            typeof schema.exclusiveMaximum === 'number' &&
+            value >= schema.exclusiveMaximum)
         ) {
           result = false
         } else {
@@ -424,17 +402,13 @@ export function isMatch(
           }
           return result
         }
-        if (!Array.isArray(value)) {
-          result = false
-          break
-        } else if (
-          'prefixItems' in schema &&
-          Array.isArray(schema.prefixItems) &&
-          !doPrefixItemsMatch(schema.prefixItems, value)
+        if (
+          !Array.isArray(value) ||
+          ('prefixItems' in schema &&
+            Array.isArray(schema.prefixItems) &&
+            !doPrefixItemsMatch(schema.prefixItems, value)) ||
+          ('items' in schema && schema.items === false && startIndex !== value.length)
         ) {
-          result = false
-          break
-        } else if ('items' in schema && schema.items === false && startIndex !== value.length) {
           result = false
           break
         } else if ('items' in schema && typeof schema.items === 'object' && schema.items != null) {

@@ -71,11 +71,16 @@ export default function Subscribe() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   if (stripePromise == null) {
-    stripePromise = load.loadScript('https://js.stripe.com/v3/').then(async script => {
-      const innerStripe = await stripe.loadStripe(stripeKey)
-      script.remove()
-      return innerStripe
-    })
+    stripePromise = load.loadScript('https://js.stripe.com/v3/').then(
+      async script => {
+        const innerStripe = await stripe.loadStripe(stripeKey)
+        script.remove()
+        return innerStripe
+      },
+      error => {
+        throw error
+      }
+    )
   }
 
   React.useEffect(() => {

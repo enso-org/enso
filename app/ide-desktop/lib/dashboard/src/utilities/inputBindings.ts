@@ -562,9 +562,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
           }
         }
       }
-      if (handle == null) {
-        return false
-      } else if (handle(event) === false) {
+      if (handle == null || handle(event) === false) {
         return false
       } else {
         if (innerStopAndPrevent) {
