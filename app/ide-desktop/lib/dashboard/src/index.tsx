@@ -34,7 +34,7 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax
 function run(props: app.AppProps) {
-  const { logger, supportsDeepLinks } = props
+  const { logger, vibrancy, supportsDeepLinks } = props
   logger.log('Starting authentication/dashboard UI.')
   if (
     !detect.IS_DEV_MODE &&
@@ -61,6 +61,10 @@ function run(props: app.AppProps) {
       replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
       replaysOnErrorSampleRate: 1.0,
     })
+  }
+
+  if (vibrancy) {
+    document.body.classList.add('vibrancy')
   }
 
   /** The root element into which the authentication/dashboard app will be rendered. */
