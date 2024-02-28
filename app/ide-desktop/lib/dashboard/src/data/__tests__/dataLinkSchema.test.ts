@@ -16,6 +16,13 @@ function loadDataLinkFile(path: string): object {
   return JSON.parse(text)
 }
 
+function testSchema(json: object, fileName: string): void {
+  const validate = validateDataLink.validateDataLink;
+  if (!validate(json)) {
+    v.assert.fail(`Failed to validate ${fileName}:\n${JSON.stringify(validate.errors, null, 2)}`)
+  }
+}
+
 // We need to go up from `app/ide-desktop/lib/dashboard/` to the root of the repo
 const repoRoot = '../../../../'
 
@@ -30,7 +37,7 @@ v.test('correctly validates example HTTP .datalink files with the schema', () =>
 
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(baseDatalinksRoot, schema))
-    v.expect(validateDataLink.validateDataLink(json)).toBe(true)
+    testSchema(json, schema)
   }
 })
 
@@ -40,6 +47,6 @@ v.test('correctly validates example S3 .datalink files with the schema', () => {
 
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(s3datalinksRoot, schema))
-    v.expect(validateDataLink.validateDataLink(json)).toBe(true)
+    testSchema(json, schema)
   }
 })
