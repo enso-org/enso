@@ -3,18 +3,10 @@
   "$defs": {
     "DataLink": {
       "title": "Data Link",
-      "type": "object",
       "anyOf": [
         { "$ref": "#/$defs/S3DataLink" },
         { "$ref": "#/$defs/HttpFetchDataLink" }
-      ],
-      "properties": {
-        "libraryName": {
-          "type": "string",
-          "description": "Name of the library that provides the data link."
-        }
-      },
-      "required": ["type", "libraryName"]
+      ]
     },
     "SecureValue": {
       "title": "Secure Value",
