@@ -431,8 +431,8 @@ export default function Dashboard(props: DashboardProps) {
         }`}
       >
         <div
-          className={`flex flex-col grow container-size gap-2 overflow-hidden relative select-none h-screen ${
-            page === pageSwitcher.Page.home ? 'pb-1' : 'pb-2'
+          className={`flex flex-col grow container-size overflow-hidden relative select-none h-screen ${
+            page === pageSwitcher.Page.home ? 'pb-1' : 'pb-2 gap-4'
           }`}
           onContextMenu={event => {
             event.preventDefault()
@@ -514,10 +514,10 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </div>
         <div
-          className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
+          className={`flex flex-col duration-side-panel transition-min-width ease-in-out overflow-hidden ${
             (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && assetPanelProps != null
-              ? 'min-w-120'
-              : 'min-w-0 invisible'
+              ? 'min-w-side-panel'
+              : 'min-w invisible'
           }`}
         >
           {assetPanelProps && (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && (

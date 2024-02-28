@@ -27,11 +27,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
     <div className="flex shrink-0 gap-px">
       <button
         disabled={backend.type === backendModule.BackendType.remote}
-        className={`rounded-l-full px-selector-x py-selector-y ${
-          backend.type === backendModule.BackendType.remote
-            ? 'bg-selected-frame text-cloud'
-            : 'bg-frame text-black'
-        }`}
+        className="flex flex-col items-start first:rounded-l-full last:rounded-r-full px-selector-x py-selector-y w-backend-switcher-option bg-frame text-black disabled:bg-selected-frame disabled:text-cloud"
         onClick={() => {
           setBackendType(backendModule.BackendType.remote)
         }}
@@ -47,11 +43,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       </button>
       <button
         disabled={backend.type === backendModule.BackendType.local}
-        className={`rounded-r-full px-selector-x py-selector-y ${
-          backend.type === backendModule.BackendType.local
-            ? 'bg-selected-frame text-cloud'
-            : 'bg-frame text-black'
-        }`}
+        className="flex flex-col items-start first:rounded-l-full last:rounded-r-full px-selector-x py-selector-y w-backend-switcher-option bg-frame text-black disabled:bg-selected-frame disabled:text-cloud"
         onClick={() => {
           setBackendType(backendModule.BackendType.local)
         }}

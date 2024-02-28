@@ -50,11 +50,7 @@ export default function TopBar(props: TopBarProps) {
   const { isAssetPanelVisible, setIsAssetPanelVisible, doRemoveSelf, onSignOut } = props
 
   return (
-    <div
-      className={`relative flex m-2.25 h-row gap-4.5 z-3 ${
-        page !== pageSwitcher.Page.home ? 'mb' : ''
-      }`}
-    >
+    <div className="relative flex m-top-bar mb h-row gap-top-bar z-3">
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
         <BackendSwitcher setBackendType={setBackendType} />
@@ -73,12 +69,14 @@ export default function TopBar(props: TopBarProps) {
         </div>
       )}
       {!isAssetPanelVisible && (
-        <div className="flex gap-2">
-          <AssetInfoBar
-            canToggleAssetPanel={canToggleAssetPanel}
-            isAssetPanelVisible={isAssetPanelVisible}
-            setIsAssetPanelVisible={setIsAssetPanelVisible}
-          />
+        <div className="flex gap-top-bar-right">
+          {page === pageSwitcher.Page.drive && (
+            <AssetInfoBar
+              canToggleAssetPanel={canToggleAssetPanel}
+              isAssetPanelVisible={isAssetPanelVisible}
+              setIsAssetPanelVisible={setIsAssetPanelVisible}
+            />
+          )}
           <UserBar
             supportsLocalBackend={supportsLocalBackend}
             page={page}

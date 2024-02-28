@@ -59,7 +59,7 @@ export default function UserBar(props: UserBarProps) {
 
   return (
     <div
-      className={`flex shrink-0 items-center bg-frame backdrop-blur-default rounded-full gap-icons h-row px-icons-x pr-profile-picture cursor-default pointer-events-auto ${
+      className={`flex shrink-0 items-center bg-frame backdrop-blur-default rounded-full gap-user-bar h-row px-icons-x pr-profile-picture cursor-default pointer-events-auto ${
         shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''
       }`}
     >

@@ -124,6 +124,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'user-account-settings-label': 'var(--user-account-settings-label-width)',
         'change-password-settings-label': 'var(--change-password-settings-label-width)',
         'organization-settings-label': 'var(--organization-settings-label-width)',
+        'backend-switcher-option': 'var(--backend-switcher-option-width)',
+        'side-panel': 'var(--side-panel-width)',
       },
       height: {
         row: 'var(--row-height)',
@@ -135,7 +137,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       minHeight: {
         '5lh': '5lh',
       },
-      minWidth: {
+      minWidth: ({ theme }) => ({
+        .../** @type {{}}*/ (theme('width')),
         31.5: '7.875rem',
         32: '8rem',
         33.25: '8.3125rem',
@@ -143,12 +146,12 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         61.25: '15.3125rem',
         80: '20rem',
         96: '24rem',
-        120: '30rem',
-      },
-      maxWidth: {
+      }),
+      maxWidth: ({ theme }) => ({
+        .../** @type {{}}*/ (theme('width')),
         98.25: '24.5625rem',
         'screen-1/3': '33.333333vw',
-      },
+      }),
       opacity: {
         '1/3': '.33333333',
         disabled: 'var(--disabled-opacity)',
@@ -160,6 +163,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         icons: 'var(--icons-gap)',
         'icon-with-text': 'var(--icon-with-text-gap)',
         'selector-icon-with-text': 'var(--selector-icon-with-text-gap)',
+        'user-bar': 'var(--user-bar-gap)',
+        'top-bar': 'var(--top-bar-gap)',
+        'top-bar-right': 'var(--top-bar-right-gap)',
         pages: 'var(--pages-gap)',
         auth: 'var(--auth-gap)',
         'auth-link': 'var(--auth-link-gap)',
@@ -187,6 +193,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'menu-entry': 'var(--menu-entry-padding)',
         'context-menu-entry-x': 'var(--context-menu-entry-padding-x)',
         'profile-picture': 'var(--profile-picture-padding)',
+      },
+      margin: {
+        'top-bar': 'var(--top-bar-margin)',
       },
       lineHeight: {
         snug: 'var(--snug-line-height)',
@@ -221,6 +230,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         5000: '5000ms',
         90000: '90000ms',
         auth: 'var(--auth-transition-duration)',
+        'side-panel': 'var(--side-panel-transition-duration)',
       },
       gridTemplateRows: {
         '0fr': '0fr',
