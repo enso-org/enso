@@ -13,6 +13,11 @@ export async function goToGraph(page: Page) {
   await expect(page.locator('.App')).toBeVisible()
   // Wait until nodes are loaded.
   await customExpect.toExist(locate.graphNode(page))
+  // Wait for position initialization
+  await expect(locate.graphNode(page).first()).toHaveCSS(
+    'transform',
+    'matrix(1, 0, 0, 1, -16, -16)',
+  )
 }
 
 // =================
