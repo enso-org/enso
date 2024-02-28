@@ -71,6 +71,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           } else if (event.key === 'Enter' && key != null) {
             event.currentTarget.requestSubmit()
           } else {
+            event.preventDefault()
             event.stopPropagation()
             const newShortcut = eventToPartialShortcut(event)
             if (event.key === 'Tab' && newShortcut.key == null) {

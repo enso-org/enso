@@ -484,9 +484,12 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       Object.entries(bindingsAsRecord).map(kv => {
         const [name, info] = kv
         if (Array.isArray(info)) {
-          return [name, { name: string.camelCaseToTitleCase(name), bindings: info }]
+          return [
+            name,
+            { name: string.camelCaseToTitleCase(name), bindings: structuredClone(info) },
+          ]
         } else {
-          return [name, info]
+          return [name, structuredClone(info)]
         }
       })
     ) as Record<BindingKey, KeybindsWithMetadata>
