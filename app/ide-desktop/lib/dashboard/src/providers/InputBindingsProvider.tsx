@@ -12,7 +12,7 @@ import * as inputBindingsModule from '#/configurations/inputBindings'
 export interface InputBindingsContextType extends inputBindingsModule.DashboardBindingNamespace {}
 
 const InputBindingsContext = React.createContext<InputBindingsContextType>(
-  inputBindingsModule.createBindings()
+  inputBindingsModule.createBindings(false)
 )
 
 /** Props for a {@link InputBindingsProvider}. */
@@ -28,11 +28,18 @@ export interface InputBindingsProviderProps extends React.PropsWithChildren<obje
 export default function InputBindingsProvider(props: InputBindingsProviderProps) {
   const { inputBindings: inputBindingsRaw, children } = props
   const [inputBindings, setInputBindings] = React.useState(
-    () => inputBindingsRaw ?? inputBindingsModule.createBindings()
+    () => inputBindingsRaw ?? inputBindingsModule.createBindings(false)
   )
 
   React.useEffect(() => {
-    setInputBindings(inputBindingsRaw ?? inputBindingsModule.createBindings())
+    inputBindings.register()
+  }, [inputBindings])
+
+  React.useEffect(() => {
+    setInputBindings(oldBindings => {
+      oldBindings.unregister()
+      return inputBindingsRaw ?? inputBindingsModule.createBindings(false)
+    })
   }, [inputBindingsRaw])
 
   return (
@@ -40,7 +47,8 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
   )
 }
 
-/** Exposes a property to get the input bindings namespace. */
+/** Exposes a property to get the input bindings namespace.
+ * @throws {Error} when used outside of its context. */
 export function useInputBindings() {
   return React.useContext(InputBindingsContext)
 }

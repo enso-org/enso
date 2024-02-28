@@ -390,7 +390,12 @@ type Keybinds<T extends Record<keyof T, KeybindValue>> = never extends T
     }
   : T
 
-const DEFINED_NAMESPACES = new Set<string>()
+const DEFINED_NAMESPACES = new Map<
+  string,
+  // This is SAFE, as the value is only beings stored for bookkeeping purposes.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ReturnType<typeof defineBindingNamespace<Record<any, any>>>
+>()
 
 export const DEFAULT_HANDLER = Symbol('default handler')
 
@@ -452,16 +457,11 @@ export const DEFAULT_HANDLER = Symbol('default handler')
  */
 export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   namespace: string,
-  originalBindings: Keybinds<T>
+  originalBindings: Keybinds<T>,
+  register = true
 ) {
   /** The name of a binding in this set of keybinds. */
   type BindingKey = string & keyof T
-  if (DEFINED_NAMESPACES.has(namespace)) {
-    // eslint-disable-next-line no-restricted-properties
-    console.warn(`The keybind namespace '${namespace}' has already been defined.`)
-  } else {
-    DEFINED_NAMESPACES.add(namespace)
-  }
   let keyboardShortcuts: Partial<Record<KeyName, Partial<Record<ModifierFlags, Set<BindingKey>>>>> =
     {}
   let mouseShortcuts: Partial<
@@ -635,7 +635,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     }
   }
 
-  return {
+  const result = {
     /** Return an event handler that handles a native keyboard, mouse or pointer event. */
     handler,
     /** Attach an event listener to an {@link EventTarget} and return a function to detach the
@@ -651,7 +651,33 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     get metadata() {
       return metadata
     },
+    /** Add this namespace to the global lookup. */
+    register: () => {
+      if (DEFINED_NAMESPACES.has(namespace)) {
+        // eslint-disable-next-line no-restricted-properties
+        console.warn(
+          `Overriding the keybind namespace '${namespace}', which has already been defined.`
+        )
+        // eslint-disable-next-line no-restricted-properties
+        console.trace()
+      }
+      DEFINED_NAMESPACES.set(namespace, result)
+    },
+    /** Remove this namespace from the global lookup. */
+    unregister: () => {
+      const cached = DEFINED_NAMESPACES.get(namespace)
+      if (cached !== result) {
+        return false
+      } else {
+        DEFINED_NAMESPACES.delete(namespace)
+        return true
+      }
+    },
   } as const
+  if (register) {
+    result.register()
+  }
+  return result
 }
 
 /** A function to define a bindings object that can be passed to {@link defineBindingNamespace}.

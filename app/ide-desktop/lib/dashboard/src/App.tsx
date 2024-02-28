@@ -42,13 +42,13 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
-import type * as inputBindingsModule from '#/configurations/inputBindings'
+import * as inputBindingsModule from '#/configurations/inputBindings'
 
 import * as navigateHooks from '#/hooks/navigateHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
-import InputBindingsProvider, * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
@@ -186,7 +186,7 @@ function AppRouter(props: AppProps) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
   }
-  const inputBindingsRaw = inputBindingsProvider.useInputBindings()
+  const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings(false))
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
     for (const k in savedInputBindings) {
@@ -217,11 +217,11 @@ function AppRouter(props: AppProps) {
     return {
       /** Transparently pass through `handler()`. */
       get handler() {
-        return inputBindingsRaw.handler
+        return inputBindingsRaw.handler.bind(inputBindingsRaw)
       },
       /** Transparently pass through `attach()`. */
       get attach() {
-        return inputBindingsRaw.attach
+        return inputBindingsRaw.attach.bind(inputBindingsRaw)
       },
       reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
         inputBindingsRaw.reset(bindingKey)
@@ -238,6 +238,14 @@ function AppRouter(props: AppProps) {
       /** Transparently pass through `metadata`. */
       get metadata() {
         return inputBindingsRaw.metadata
+      },
+      /** Transparently pass through `register()`. */
+      get register() {
+        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
+      },
+      /** Transparently pass through `unregister()`. */
+      get unregister() {
+        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
       },
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
