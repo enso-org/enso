@@ -114,7 +114,8 @@
           "type": "string",
           "pattern": "^https?://[\\w.~-]+/?.*$"
         },
-        "method": { "title": "Method", "const": "GET", "type": "string" }
+        "method": { "title": "Method", "const": "GET", "type": "string" },
+        "format": { "title": "Format", "$ref": "#/$defs/Format" }
       },
       "required": ["type", "libraryName", "uri", "method"]
     },
@@ -166,9 +167,10 @@
       "title": "JSON",
       "type": "object",
       "properties": {
-        "type": { "title": "Type", "const": "json", "type": "string" }
+        "type": { "title": "Type", "const": "format", "type": "string" },
+        "subType": { "title": "Type", "const": "json", "type": "string" }
       },
-      "required": ["type"]
+      "required": ["type", "subType"]
     }
   }
 }

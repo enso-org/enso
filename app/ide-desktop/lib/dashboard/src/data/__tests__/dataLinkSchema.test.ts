@@ -17,7 +17,7 @@ function loadDataLinkFile(path: string): object {
 }
 
 function testSchema(json: object, fileName: string): void {
-  const validate = validateDataLink.validateDataLink;
+  const validate = validateDataLink.validateDataLink
   if (!validate(json)) {
     v.assert.fail(`Failed to validate ${fileName}:\n${JSON.stringify(validate.errors, null, 2)}`)
   }
@@ -25,26 +25,32 @@ function testSchema(json: object, fileName: string): void {
 
 // We need to go up from `app/ide-desktop/lib/dashboard/` to the root of the repo
 const repoRoot = '../../../../'
+const baseDatalinksRoot = path.resolve(repoRoot, 'test/Base_Tests/data/datalinks/')
+const s3datalinksRoot = path.resolve(repoRoot, 'test/AWS_Tests/data/')
 
 v.test('correctly validates example HTTP .datalink files with the schema', () => {
-  const baseDatalinksRoot = path.resolve(repoRoot, 'test/Base_Tests/data/datalinks/')
   const schemas = [
     'example-http.datalink',
     'example-http-format-explicit-default.datalink',
     'example-http-format-delimited.datalink',
     'example-http-format-json.datalink',
   ]
-
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(baseDatalinksRoot, schema))
     testSchema(json, schema)
   }
 })
 
-v.test('correctly validates example S3 .datalink files with the schema', () => {
-  const s3datalinksRoot = path.resolve(repoRoot, 'test/AWS_Tests/data/')
-  const schemas = ['simple.datalink', 'credentials-with-secrets.datalink', 'formatted.datalink']
+v.test('rejects invalid schemas (Base)', () => {
+  const invalidSchemas = ['example-http-format-invalid.datalink']
+  for (const schema of invalidSchemas) {
+    const json = loadDataLinkFile(path.resolve(baseDatalinksRoot, schema))
+    v.expect(validateDataLink.validateDataLink(json)).toBe(false)
+  }
+})
 
+v.test('correctly validates example S3 .datalink files with the schema', () => {
+  const schemas = ['simple.datalink', 'credentials-with-secrets.datalink', 'formatted.datalink']
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(s3datalinksRoot, schema))
     testSchema(json, schema)
