@@ -47,6 +47,7 @@ jobs:
         with:
           directory: engine-benchmark-results
           github_token: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
+          repository: enso-org/engine-benchmark-results
 
       #- name: Upload benchmarks
         #run: |
