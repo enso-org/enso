@@ -2,5 +2,5 @@
     "type": "HTTP",
     "libraryName": "Standard.Base",
     "method": "GET",
-    "uri": "http://example.com/"
+    "uri": "http://http-test-helper.local/testfiles/js.txt"
 }

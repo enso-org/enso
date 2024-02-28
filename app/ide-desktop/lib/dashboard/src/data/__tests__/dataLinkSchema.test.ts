@@ -20,23 +20,26 @@ function loadDataLinkFile(path: string): object {
 const repoRoot = '../../../../'
 
 v.test('correctly validates example HTTP .datalink files with the schema', () => {
-  const baseDatalinksRoot = path.resolve(repoRoot, 'test/Base_Tests/data/')
+  const baseDatalinksRoot = path.resolve(repoRoot, 'test/Base_Tests/data/datalinks/')
+  const schemas = [
+    'example-http.datalink',
+    'example-http-format-explicit-default.datalink',
+    'example-http-format-delimited.datalink',
+    'example-http-format-json.datalink',
+  ]
 
-  const example = loadDataLinkFile(path.resolve(baseDatalinksRoot, 'example-http.datalink'))
-  v.expect(validateDataLink.validateDataLink(example)).toBe(true)
+  for (const schema of schemas) {
+    const json = loadDataLinkFile(path.resolve(baseDatalinksRoot, schema))
+    v.expect(validateDataLink.validateDataLink(json)).toBe(true)
+  }
 })
 
 v.test('correctly validates example S3 .datalink files with the schema', () => {
   const s3datalinksRoot = path.resolve(repoRoot, 'test/AWS_Tests/data/')
+  const schemas = ['simple.datalink', 'credentials-with-secrets.datalink', 'formatted.datalink']
 
-  const simple = loadDataLinkFile(path.resolve(s3datalinksRoot, 'simple.datalink'))
-  v.expect(validateDataLink.validateDataLink(simple)).toBe(true)
-
-  const credentialsWithSecrets = loadDataLinkFile(
-    path.resolve(s3datalinksRoot, 'credentials-with-secrets.datalink')
-  )
-  v.expect(validateDataLink.validateDataLink(credentialsWithSecrets)).toBe(true)
-
-  const formatted = loadDataLinkFile(path.resolve(s3datalinksRoot, 'formatted.datalink'))
-  v.expect(validateDataLink.validateDataLink(formatted)).toBe(true)
+  for (const schema of schemas) {
+    const json = loadDataLinkFile(path.resolve(s3datalinksRoot, schema))
+    v.expect(validateDataLink.validateDataLink(json)).toBe(true)
+  }
 })
