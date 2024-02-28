@@ -23,6 +23,7 @@ function makeNewLiteral(value: string) {
 }
 
 const emptyTextLiteral = makeNewLiteral('')
+const shownLiteral = computed(() => inputTextLiteral.value ?? emptyTextLiteral)
 
 const textContents = computed({
   get() {
@@ -60,9 +61,9 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 
 <template>
   <label class="WidgetText r-24" @pointerdown.stop>
-    <NodeWidget :input="WidgetInput.FromAst(inputTextLiteral?.open ?? emptyTextLiteral.open!)" />
+    <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
     <AutoSizedInput v-model.lazy="textContents" />
-    <NodeWidget :input="WidgetInput.FromAst(inputTextLiteral?.close ?? emptyTextLiteral.close!)" />
+    <NodeWidget v-if="shownLiteral.close" :input="WidgetInput.FromAst(shownLiteral.close)" />
   </label>
 </template>
 

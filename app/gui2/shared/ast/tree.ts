@@ -1,4 +1,3 @@
-import { swapKeysAndValues } from '@/util/record'
 import type {
   Identifier,
   IdentifierOrOperatorIdentifier,
