@@ -56,7 +56,7 @@ export default function UserMenu(props: UserMenuProps) {
         {user != null ? (
           <>
             <div className="flex items-center gap-icons px-1">
-              <div className="flex items-center rounded-full overflow-clip size-7.25">
+              <div className="flex items-center rounded-full overflow-clip size-profile-picture">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
                   height={28}
@@ -70,7 +70,6 @@ export default function UserMenu(props: UserMenuProps) {
               {!supportsLocalBackend && (
                 <MenuEntry
                   action={shortcutManager.KeyboardAction.downloadApp}
-                  paddingClassName="p-1"
                   doAction={async () => {
                     unsetModal()
                     const downloadUrl = await github.getDownloadUrl()
@@ -84,7 +83,6 @@ export default function UserMenu(props: UserMenuProps) {
               )}
               <MenuEntry
                 action={shortcutManager.KeyboardAction.settings}
-                paddingClassName="p-1"
                 doAction={() => {
                   unsetModal()
                   setPage(pageSwitcher.Page.settings)
@@ -92,7 +90,6 @@ export default function UserMenu(props: UserMenuProps) {
               />
               <MenuEntry
                 action={shortcutManager.KeyboardAction.signOut}
-                paddingClassName="p-1"
                 doAction={() => {
                   onSignOut()
                   // Wait until React has switched back to drive view, before signing out.
@@ -111,7 +108,6 @@ export default function UserMenu(props: UserMenuProps) {
             <div className="flex flex-col">
               <MenuEntry
                 action={shortcutManager.KeyboardAction.signIn}
-                paddingClassName="p-1"
                 doAction={() => {
                   navigate(appUtils.LOGIN_PATH)
                 }}

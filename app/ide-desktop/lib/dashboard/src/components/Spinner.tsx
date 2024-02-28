@@ -25,17 +25,19 @@ export const SPINNER_CSS_CLASSES: Readonly<Record<SpinnerState, string>> = {
 
 /** Props for a {@link Spinner}. */
 export interface SpinnerProps {
-  readonly size: number
+  readonly size?: number
+  readonly className?: string
   readonly state: SpinnerState
 }
 
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
 export default function Spinner(props: SpinnerProps) {
-  const { size, state } = props
+  const { size, className, state } = props
   return (
     <svg
       width={size}
       height={size}
+      className={className}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

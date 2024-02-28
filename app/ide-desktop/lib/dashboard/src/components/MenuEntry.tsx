@@ -6,7 +6,7 @@ import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
 import SvgMask from '#/components/SvgMask'
 
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import type * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // =================
 // === MenuEntry ===
@@ -19,13 +19,14 @@ export interface MenuEntryProps {
   /** When true, the button is not clickable. */
   readonly disabled?: boolean
   readonly title?: string
-  readonly paddingClassName?: string
+  readonly isContextMenuEntry?: boolean
   readonly doAction: () => void
 }
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
-  const { hidden = false, action, disabled = false, title, paddingClassName, doAction } = props
+  const { hidden = false, action, disabled = false, title, isContextMenuEntry = false } = props
+  const { doAction } = props
   const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
   const info = shortcutManager.keyboardShortcutInfo[action]
   React.useEffect(() => {
@@ -42,8 +43,8 @@ export default function MenuEntry(props: MenuEntryProps) {
     <button
       disabled={disabled}
       title={title}
-      className={`flex items-center place-content-between h-row disabled:bg-transparent rounded-lg text-left disabled:opacity-disabled hover:bg-black/10 ${
-        paddingClassName ?? 'px-3 py-1'
+      className={`flex items-center place-content-between h-row disabled:bg-transparent rounded-lg text-left disabled:opacity-disabled hover:bg-black/10 p-menu-entry ${
+        isContextMenuEntry ? 'px-context-menu-entry-x' : ''
       }`}
       onClick={event => {
         event.stopPropagation()
@@ -51,14 +52,7 @@ export default function MenuEntry(props: MenuEntryProps) {
       }}
     >
       <div className="flex items-center gap-menu-entry">
-        <SvgMask
-          style={{
-            width: shortcutManagerModule.ICON_SIZE_PX,
-            height: shortcutManagerModule.ICON_SIZE_PX,
-          }}
-          src={info.icon}
-          className={info.colorClass}
-        />
+        <SvgMask src={info.icon} className={`size-icon ${info.colorClass}`} />
         {info.name}
       </div>
       <KeyboardShortcut action={action} />

@@ -16,6 +16,8 @@
   --subheading-gap: 1rem;
   /* The horizontal padding of the entire horizontal list of icons. */
   --icons-padding-x: 0.5rem;
+  --icon-size: 1rem;
+  --project-icon-size: 1.5rem;
   /* The gap between each icon in a horizontal list of icons. */
   --icons-gap: 0.75rem;
   /* The gap between an icon and its associated text. */
@@ -43,6 +45,9 @@
   --selector-padding-y: 0.25rem;
 
   --extended-editor-menu-size: 2.5rem;
+
+  --context-menu-entry-padding-x: 0.75rem;
+  --menu-entry-padding: 0.25rem;
 
   --frame-color: rgb(255 255 255 / 40%);
   --selected-frame-color: rgb(255 255 255 / 70%);

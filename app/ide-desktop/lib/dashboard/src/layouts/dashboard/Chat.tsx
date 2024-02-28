@@ -211,7 +211,7 @@ function ChatMessage(props: ChatMessageProps) {
         />
       )}
       {message.isStaffMessage && !shouldShowReactionBar && isHovered && (
-        <div className="relative h-0 py-1 -my-1">
+        <div className="relative h py-1 -my-1">
           <ReactionBar
             doReact={doReact}
             doRemoveReaction={doRemoveReaction}
@@ -333,7 +333,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
-          <div className="min-h-0 max-h-70 overflow-y-auto">
+          <div className="min-h max-h-70 overflow-y-auto">
             {threads.map(thread => (
               <div
                 key={thread.id}

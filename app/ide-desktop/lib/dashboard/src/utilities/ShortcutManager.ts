@@ -28,13 +28,6 @@ import TrashIcon from 'enso-assets/trash.svg'
 import UntrashIcon from 'enso-assets/untrash.svg'
 import * as detect from 'enso-common/src/detect'
 
-// =================
-// === Constants ===
-// =================
-
-/** The size (both width and height) of icons. */
-export const ICON_SIZE_PX = 16
-
 // =============
 // === Types ===
 // =============

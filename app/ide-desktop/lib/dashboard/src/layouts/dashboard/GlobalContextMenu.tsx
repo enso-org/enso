@@ -12,7 +12,7 @@ import UpsertDataLinkModal from '#/layouts/dashboard/UpsertDataLinkModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import ContextMenu from '#/components/ContextMenu'
-import MenuEntry from '#/components/MenuEntry'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 
 import * as backendModule from '#/services/Backend'
 
@@ -67,7 +67,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           }}
         />
       )}
-      <MenuEntry
+      <ContextMenuEntry
         hidden={hidden}
         action={
           backend.type === backendModule.BackendType.local
@@ -99,7 +99,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         }}
       />
       {isCloud && (
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           action={shortcutManager.KeyboardAction.newProject}
           doAction={() => {
@@ -116,7 +116,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         />
       )}
       {isCloud && (
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           action={shortcutManager.KeyboardAction.newFolder}
           doAction={() => {
@@ -130,7 +130,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         />
       )}
       {isCloud && (
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           action={shortcutManager.KeyboardAction.newSecret}
           doAction={() => {
@@ -153,7 +153,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         />
       )}
       {isCloud && (
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           action={shortcutManager.KeyboardAction.newDataLink}
           doAction={() => {
@@ -174,7 +174,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
         />
       )}
       {isCloud && directoryKey == null && hasCopyData && (
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           action={shortcutManager.KeyboardAction.paste}
           doAction={() => {

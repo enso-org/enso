@@ -2439,7 +2439,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       )}
       <div className="flex flex-col w-min min-size-full">
         {isCloud && (
-          <div className="sticky top h-0 flex flex-col">
+          <div className="sticky top h flex flex-col">
             <div className="block sticky right self-end px-2 py-2.25">
               <div className="inline-flex gap-icons">
                 {columnUtils.EXTRA_COLUMNS.map(column => (

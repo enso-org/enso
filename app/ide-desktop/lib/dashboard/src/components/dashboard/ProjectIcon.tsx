@@ -337,7 +337,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closed:
       return (
         <button
-          className="size-6 disabled:opacity-disabled"
+          className="size-project-icon disabled:opacity-disabled"
           onClick={clickEvent => {
             clickEvent.stopPropagation()
             unsetModal()
@@ -355,14 +355,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <button
           disabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="size-6 disabled:opacity-disabled"
+          className="size-project-icon disabled:opacity-disabled"
           onClick={async clickEvent => {
             clickEvent.stopPropagation()
             unsetModal()
             await closeProject(!isRunningInBackground)
           }}
         >
-          <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
+          <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
             <Spinner size={ICON_SIZE_PX} state={spinnerState} />
           </div>
           <SvgMask
@@ -378,15 +378,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <button
             disabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="size-6 disabled:opacity-disabled"
+            className="size-project-icon disabled:opacity-disabled"
             onClick={async clickEvent => {
               clickEvent.stopPropagation()
               unsetModal()
               await closeProject(!isRunningInBackground)
             }}
           >
-            <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
-              <Spinner size={24} state={spinnerState} />
+            <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+              <Spinner className="size-project-icon" state={spinnerState} />
             </div>
             <SvgMask
               alt="Stop execution"
@@ -396,7 +396,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           </button>
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <button
-              className="size-6"
+              className="size-project-icon"
               onClick={clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()

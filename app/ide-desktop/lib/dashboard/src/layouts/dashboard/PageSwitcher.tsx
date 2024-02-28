@@ -53,7 +53,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
   return (
     <div
       className={`cursor-default pointer-events-auto flex items-center rounded-full shrink-0 gap-pages ${
-        page === Page.editor ? 'bg-frame backdrop-blur-default px-3 -mx-3' : ''
+        page === Page.editor ? 'bg-frame backdrop-blur-default px-3 -mx-3' : 'px-1.5'
       }`}
     >
       {PAGE_DATA.map(pageData => {

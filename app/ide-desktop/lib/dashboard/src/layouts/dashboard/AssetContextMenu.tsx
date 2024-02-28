@@ -20,11 +20,11 @@ import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import ContextMenu from '#/components/ContextMenu'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
 import ContextMenuSeparator from '#/components/ContextMenuSeparator'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
-import MenuEntry from '#/components/MenuEntry'
 
 import * as backendModule from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
@@ -102,7 +102,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
         <ContextMenu hidden={hidden}>
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.restoreFromTrash}
             doAction={() => {
@@ -123,7 +123,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           canExecute &&
           !isRunningProject &&
           !isOtherUserUsingProject && (
-            <MenuEntry
+            <ContextMenuEntry
               hidden={hidden}
               action={shortcutManager.KeyboardAction.open}
               doAction={() => {
@@ -138,7 +138,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             />
           )}
         {asset.type === backendModule.AssetType.project && isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.run}
             doAction={() => {
@@ -156,7 +156,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           canExecute &&
           isRunningProject &&
           !isOtherUserUsingProject && (
-            <MenuEntry
+            <ContextMenuEntry
               hidden={hidden}
               action={shortcutManager.KeyboardAction.close}
               doAction={() => {
@@ -169,7 +169,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             />
           )}
         {asset.type === backendModule.AssetType.project && !isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.uploadToCloud}
             doAction={async () => {
@@ -205,7 +205,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             disabled={
               asset.type !== backendModule.AssetType.project &&
@@ -219,7 +219,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {asset.type === backendModule.AssetType.secret && canEditThisAsset && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.edit}
             doAction={() => {
@@ -240,7 +240,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             disabled
             action={shortcutManager.KeyboardAction.snapshot}
@@ -250,7 +250,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={
               backend.type === backendModule.BackendType.local
@@ -274,7 +274,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         {isCloud && <ContextMenuSeparator hidden={hidden} />}
         {isCloud && managesThisAsset && self != null && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.share}
             doAction={() => {
@@ -296,7 +296,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.label}
             doAction={() => {
@@ -313,7 +313,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && managesThisAsset && self != null && <ContextMenuSeparator hidden={hidden} />}
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           disabled={!isCloud}
           action={shortcutManager.KeyboardAction.duplicate}
@@ -328,16 +328,20 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           }}
         />
         {isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.copy}
             doAction={doCopy}
           />
         )}
         {isCloud && !isOtherUserUsingProject && (
-          <MenuEntry hidden={hidden} action={shortcutManager.KeyboardAction.cut} doAction={doCut} />
+          <ContextMenuEntry
+            hidden={hidden}
+            action={shortcutManager.KeyboardAction.cut}
+            doAction={doCut}
+          />
         )}
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           disabled={isCloud && asset.type !== backendModule.AssetType.file}
           action={shortcutManager.KeyboardAction.download}
@@ -350,7 +354,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           }}
         />
         {hasPasteData && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.paste}
             doAction={() => {

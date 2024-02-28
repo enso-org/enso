@@ -157,7 +157,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   }
 
   return (
-    <div className="flex flex-col lg:flex-row flex-0 gap-settings-section h-0 lg:h-auto">
+    <div className="flex flex-col lg:flex-row flex-0 gap-settings-section h lg:h-auto">
       <div className="flex flex-col gap-settings-subsection w-settings-main-section">
         <div className="flex flex-col gap-settings-section-header">
           <h3 className="font-bold text-xl h-9.5 py-0.5">Organization</h3>

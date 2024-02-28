@@ -51,8 +51,8 @@ export default function TopBar(props: TopBarProps) {
 
   return (
     <div
-      className={`relative flex ml-4.75 mr-2.25 h-row gap-6 z-3 ${
-        page !== pageSwitcher.Page.home ? 'mt-2.25' : 'my-2.25'
+      className={`relative flex m-2.25 h-row gap-4.5 z-3 ${
+        page !== pageSwitcher.Page.home ? 'mb' : ''
       }`}
     >
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />

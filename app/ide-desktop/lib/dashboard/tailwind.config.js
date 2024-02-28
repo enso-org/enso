@@ -109,6 +109,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         140: '35rem',
         155: '38.75rem',
         '10lh': '10lh',
+        icon: 'var(--icon-size)',
+        'project-icon': 'var(--project-icon-size)',
         'profile-picture': 'var(--profile-picture-size)',
         'profile-picture-large': 'var(--profile-picture-large-size)',
         'radio-button': 'var(--radio-button-size)',
@@ -182,6 +184,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'icons-x': 'var(--icons-padding-x)',
         'selector-x': 'var(--selector-padding-x)',
         'selector-y': 'var(--selector-padding-y)',
+        'menu-entry': 'var(--menu-entry-padding)',
+        'context-menu-entry-x': 'var(--context-menu-entry-padding-x)',
         'profile-picture': 'var(--profile-picture-padding)',
       },
       lineHeight: {

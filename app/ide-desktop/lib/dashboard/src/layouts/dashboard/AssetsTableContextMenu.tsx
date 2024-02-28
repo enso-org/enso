@@ -14,9 +14,9 @@ import Category from '#/layouts/dashboard/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/dashboard/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
 import ConfirmDeleteModal from '#/components/dashboard/ConfirmDeleteModal'
-import MenuEntry from '#/components/MenuEntry'
 
 import * as backendModule from '#/services/Backend'
 
@@ -119,7 +119,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     ) : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         <ContextMenu hidden={hidden}>
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action={shortcutManager.KeyboardAction.restoreAllFromTrash}
             doAction={doRestoreAll}
@@ -138,24 +138,24 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         {selectedKeys.size !== 0 && (
           <ContextMenu hidden={hidden}>
             {ownsAllSelectedAssets && (
-              <MenuEntry hidden={hidden} action={deleteAction} doAction={doDeleteAll} />
+              <ContextMenuEntry hidden={hidden} action={deleteAction} doAction={doDeleteAll} />
             )}
             {isCloud && (
-              <MenuEntry
+              <ContextMenuEntry
                 hidden={hidden}
                 action={shortcutManager.KeyboardAction.copyAll}
                 doAction={doCopy}
               />
             )}
             {isCloud && ownsAllSelectedAssets && (
-              <MenuEntry
+              <ContextMenuEntry
                 hidden={hidden}
                 action={shortcutManager.KeyboardAction.cutAll}
                 doAction={doCut}
               />
             )}
             {pasteData != null && pasteData.data.size > 0 && (
-              <MenuEntry
+              <ContextMenuEntry
                 hidden={hidden}
                 action={shortcutManager.KeyboardAction.pasteAll}
                 doAction={() => {
