@@ -67,15 +67,6 @@ const connectedSelfArgumentId = computed(() =>
     : undefined,
 )
 
-watchEffect(() => {
-  console.log(
-    'aaa',
-    props.node.rootSpan.code(),
-    potentialSelfArgumentId.value,
-    connectedSelfArgumentId.value,
-  )
-})
-
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
 const rootNode = ref<HTMLElement>()
@@ -83,7 +74,7 @@ const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const baseNodeSize = computed(() => new Vec2(contentNode.value?.scrollWidth ?? 0, nodeSize.value.y))
 
-/// Menu can be full, partial or off
+/** The menu can be full, partial or off */
 enum MenuState {
   Full,
   Partial,
