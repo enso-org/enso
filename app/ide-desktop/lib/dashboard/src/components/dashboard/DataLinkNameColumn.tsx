@@ -8,7 +8,7 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -21,7 +21,6 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import Visibility from '#/utilities/visibility'
 
 // =====================
@@ -39,7 +38,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
   const { assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.dataLink) {
     // eslint-disable-next-line no-restricted-syntax
@@ -111,6 +110,12 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
     }
   })
 
+  const handleClick = inputBindings.handler({
+    editName: () => {
+      setRowState(object.merger({ isEditingName: true }))
+    },
+  })
+
   return (
     <div
       className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
@@ -122,11 +127,9 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         }
       }}
       onClick={event => {
-        if (
-          eventModule.isSingleClick(event) &&
-          (selected ||
-            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
-        ) {
+        if (handleClick(event)) {
+          // Already handled.
+        } else if (eventModule.isSingleClick(event) && selected) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()

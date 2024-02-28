@@ -139,9 +139,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       },
       minWidth: ({ theme }) => ({
         .../** @type {{}}*/ (theme('width')),
+        4: '1rem',
         31.5: '7.875rem',
         32: '8rem',
         33.25: '8.3125rem',
+        36: '9rem',
         40: '10rem',
         61.25: '15.3125rem',
         80: '20rem',

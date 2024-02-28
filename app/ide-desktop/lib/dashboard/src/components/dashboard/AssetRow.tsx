@@ -14,8 +14,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import AssetContextMenu from '#/layouts/AssetContextMenu'
+import type * as assetsTable from '#/layouts/AssetsTable'
 
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
@@ -403,10 +403,7 @@ export default function AssetRow(props: AssetRowProps) {
               resourceId: asset.id,
               userSubjects: [userInfo.id],
             })
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
             setInsertionVisibility(Visibility.visible)
             toastAndLog(null, error)
