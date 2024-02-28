@@ -2114,16 +2114,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fuzzly"
-version = "0.1.0"
-dependencies = [
- "derivative",
- "enso-text",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
-]
-
-[[package]]
 name = "gen-iter"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
