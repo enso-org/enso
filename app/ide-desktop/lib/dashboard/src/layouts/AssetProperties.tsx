@@ -118,8 +118,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
   return (
     <>
-      <div className="flex flex-col items-start gap-1">
-        <span className="flex items-center gap-2 text-lg leading-snug h-7 py-px">
+      <div className="flex flex-col items-start gap-side-panel">
+        <span className="flex items-center gap-side-panel-section text-lg leading-snug h-side-panel-heading py-px">
           Description
           {ownsThisAsset && !isEditingDescription && (
             <Button
@@ -172,8 +172,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           )}
         </div>
       </div>
-      <div className="flex flex-col items-start gap-2">
-        <span className="text-lg leading-snug h-7 py-px">Settings</span>
+      <div className="flex flex-col items-start gap-side-panel-section">
+        <h2 className="text-lg leading-snug h-side-panel-heading py-px">Settings</h2>
         <table>
           <tbody>
             <tr data-testid="asset-panel-permissions">
@@ -192,8 +192,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         </table>
       </div>
       {isDataLink && (
-        <div className="flex flex-col items-start gap-1">
-          <span className="flex items-center gap-2 text-lg leading-snug h-7 py-px">Data Link</span>
+        <div className="flex flex-col items-start gap-side-panel-section">
+          <h2 className="text-lg leading-snug h-side-panel-heading py-px">Data Link</h2>
           {!isDataLinkFetched ? (
             <div className="grid self-stretch place-items-center">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />

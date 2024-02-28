@@ -56,12 +56,19 @@
   --new-empty-project-gap: 0.75rem;
   --new-empty-project-opacity: 60%;
   --new-empty-project-spinner-padding: 0.5rem;
-  --spinner-fast-transition-duraton: 1s;
-  --spinner-medium-transition-duraton: 5s;
-  --spinner-slow-transition-duraton: 90s;
+  --spinner-fast-transition-duration: 1s;
+  --spinner-medium-transition-duration: 5s;
+  --spinner-slow-transition-duration: 90s;
+  --modifiers-gap: 0.1875rem;
+  --macos-modifiers-gap: 0.125rem;
 
   --side-panel-transition-duration: 500ms;
   --side-panel-width: 30rem;
+  /* The gap between sections in the side panel. */
+  --side-panel-gap: 0.25rem;
+  --side-panel-heading-height: 1.75rem;
+  /* The vertical gap between a heading and its content in the side panel. */
+  --side-panel-section-gap: 0.5rem;
 
   --extended-editor-menu-size: 2.5rem;
 
@@ -77,6 +84,11 @@
   --radio-button-dot-padding: calc(
     var(--radio-button-size) / 2 - var(--radio-button-dot-size) / 2
   );
+
+  /********\
+  * Modals *
+  \********/
+  --manage-labels-modal-width: 15rem;
 
   /****************\
   * Settings pages *

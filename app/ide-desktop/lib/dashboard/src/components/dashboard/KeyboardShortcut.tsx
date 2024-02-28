@@ -85,7 +85,11 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       .sort(inputBindingsModule.compareModifiers)
       .map(inputBindingsModule.toModifierKey)
     return (
-      <div className={`flex items-center h-6 ${detect.isOnMacOS() ? 'gap-0.5' : 'gap-0.75'}`}>
+      <div
+        className={`flex items-center h-text ${
+          detect.isOnMacOS() ? 'gap-macos-modifiers' : 'gap-modifiers'
+        }`}
+      >
         {modifiers.map(
           modifier =>
             MODIFIER_MAPPINGS[detect.platform()][modifier] ?? (

@@ -123,7 +123,7 @@ export default function ManageLabelsModal<
                 }
               : {}
           }
-          className="sticky w-60"
+          className="sticky w-manage-labels-modal"
           onClick={mouseEvent => {
             mouseEvent.stopPropagation()
           }}
@@ -179,7 +179,7 @@ export default function ManageLabelsModal<
                 autoFocus
                 type="text"
                 placeholder="Type labels to search"
-                className="grow bg-transparent leading-cozy h-6 px-1 py-px"
+                className="text grow bg-transparent px-1"
                 onChange={event => {
                   setQuery(event.currentTarget.value)
                 }}

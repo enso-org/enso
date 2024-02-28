@@ -126,6 +126,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'organization-settings-label': 'var(--organization-settings-label-width)',
         'backend-switcher-option': 'var(--backend-switcher-option-width)',
         'side-panel': 'var(--side-panel-width)',
+        'manage-labels-modal': 'var(--manage-labels-modal-width)',
       },
       height: {
         row: 'var(--row-height)',
@@ -133,6 +134,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'news-item': 'var(--news-item-height)',
         sample: 'var(--sample-height)',
         'sample-info': 'var(--sample-info-height)',
+        'side-panel-heading': 'var(--side-panel-heading-height)',
       },
       minHeight: {
         '5lh': '5lh',
@@ -188,6 +190,10 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'settings-entry': 'var(--settings-entry-gap)',
         banner: 'var(--banner-gap)',
         'new-empty-project': 'var(--new-empty-project-gap)',
+        modifiers: 'var(--modifiers-gap)',
+        'macos-modifiers': 'var(--macos-modifiers-gap)',
+        'side-panel': 'var(--side-panel-gap)',
+        'side-panel-section': 'var(--side-panel-section-gap)',
       },
       padding: {
         auth: 'var(--auth-padding)',
