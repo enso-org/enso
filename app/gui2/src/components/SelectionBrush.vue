@@ -40,7 +40,11 @@ const brushStyle = computed(() => {
 </script>
 
 <template>
-  <div class="SelectionBrush" :class="{ hidden }" :style="brushStyle"></div>
+  <div
+    class="SelectionBrush"
+    :class="{ cursor: props.anchor == null, hidden }"
+    :style="brushStyle"
+  ></div>
 </template>
 
 <style scoped>

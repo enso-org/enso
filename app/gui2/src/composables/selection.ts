@@ -127,18 +127,19 @@ export function useSelection<T>(
   const pointer = usePointer((_pos, event, eventType) => {
     if (eventType === 'start') {
       readInitiallySelected()
+    } else if (eventType === 'stop') {
+      if (anchor.value == null) {
+        // If there was no drag, we want to handle "clicking-off" selected nodes.
+        selectionEventHandler(event)
+      } else {
+        anchor.value = undefined
+      }
+      initiallySelected.clear()
     } else if (pointer.dragging) {
       if (anchor.value == null) {
         anchor.value = navigator.sceneMousePos?.copy()
       }
       selectionEventHandler(event)
-    } else if (eventType === 'stop') {
-      if (anchor.value == null) {
-        // If there was no drag, we want to handle "clicking-off" selected nodes.
-        selectionEventHandler(event)
-      }
-      anchor.value = undefined
-      initiallySelected.clear()
     }
   })
 
