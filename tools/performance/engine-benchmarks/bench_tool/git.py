@@ -74,7 +74,7 @@ async def add(repo: Path, files: Set[str]) -> None:
 async def commit(repo: Path, msg: str) -> None:
     _logger.debug("Committing %s with message '%s'", repo, msg)
     stat = await status(repo)
-    assert len(stat.added) > 0
+    assert len(stat.added) > 0 or len(stat.modified) > 0
     args = ["commit", "-m", msg]
     proc = await asyncio.create_subprocess_exec("git", *args, cwd=repo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = await proc.wait()
