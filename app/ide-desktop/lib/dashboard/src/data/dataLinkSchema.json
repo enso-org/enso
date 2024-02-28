@@ -6,7 +6,8 @@
       "anyOf": [
         { "$ref": "#/$defs/S3DataLink" },
         { "$ref": "#/$defs/HttpFetchDataLink" }
-      ]
+      ],
+      "$comment": "The fields `type` and `libraryName` are required for all data link types, but we currently don't add a top-level `required` setting to the schema, because it was confusing the code that is generating the modal."
     },
     "SecureValue": {
       "title": "Secure Value",
@@ -98,7 +99,7 @@
         "auth": { "title": "Authentication", "$ref": "#/$defs/AwsAuth" },
         "format": { "title": "Format", "$ref": "#/$defs/Format" }
       },
-      "required": ["type", "uri", "auth"]
+      "required": ["type", "libraryName", "uri", "auth"]
     },
     "HttpFetchDataLink": {
       "$comment": "missing <headers with secrets> and <query string with secrets>",
@@ -115,7 +116,7 @@
         },
         "method": { "title": "Method", "const": "GET", "type": "string" }
       },
-      "required": ["type", "uri", "method"]
+      "required": ["type", "libraryName", "uri", "method"]
     },
 
     "Format": {
