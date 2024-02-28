@@ -41,9 +41,7 @@ const emit = defineEmits<{
       icon="record"
       class="icon-container button slot7"
       :class="{ 'output-context-overridden': props.isRecordingOverridden }"
-      :alt="`${
-        props.isRecordingEnabledGlobally != props.isRecordingOverridden ? 'Disable' : 'Enable'
-      } output context`"
+      :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
       :modelValue="props.isRecordingOverridden"
       @update:modelValue="emit('update:isRecordingOverridden', $event)"
     />

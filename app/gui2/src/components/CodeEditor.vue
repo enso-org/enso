@@ -110,7 +110,7 @@ watchEffect(() => {
           const astSpan = ast.span()
           let foundNode: NodeId | undefined
           for (const [id, node] of graphStore.db.nodeIdToNode.entries()) {
-            const rootSpan = graphStore.moduleSource.getSpan(node.rootSpanId)
+            const rootSpan = graphStore.moduleSource.getSpan(node.rootSpan.id)
             if (rootSpan && rangeEncloses(rootSpan, astSpan)) {
               foundNode = id
               break

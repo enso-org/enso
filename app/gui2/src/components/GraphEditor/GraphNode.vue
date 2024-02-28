@@ -177,7 +177,6 @@ const dragPointer = usePointer((pos, event, type) => {
 
 const isRecordingOverridden = computed({
   get() {
-    console.log('get rec', props.node.prefixes.enableRecording)
     return props.node.prefixes.enableRecording != null
   },
   set(shouldOverride) {
@@ -186,6 +185,11 @@ const isRecordingOverridden = computed({
       shouldOverride && !projectStore.isRecordingEnabled
         ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
         : undefined
+    console.log(
+      props.node.rootSpan.id,
+      props.node.rootSpan.module.nodes._map.has(props.node.rootSpan.id),
+      props.node.rootSpan.module,
+    )
     prefixes.modify(edit.getVersion(props.node.rootSpan), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
@@ -220,7 +224,7 @@ const nodeEditHandler = nodeEditBindings.handler({
 })
 
 function startEditingNode(position: Vec2 | undefined) {
-  let sourceOffset = props.node.innerExpr.code().length
+  let sourceOffset = props.node.rootSpan.code().length
   if (position != null) {
     let domNode, domOffset
     if ((document as any).caretPositionFromPoint) {

@@ -35,10 +35,10 @@ const pattern = computed(() => Ast.parse(nodeBinding.value))
 const node = computed((): Node => {
   return {
     outerExprId: '' as any,
-    rootSpanId: '' as any,
     pattern: pattern.value,
     position: position.value,
     prefixes: { enableRecording: undefined },
+    rootSpan: innerExpr.value,
     innerExpr: innerExpr.value,
     primarySubject: undefined,
     vis: undefined,
