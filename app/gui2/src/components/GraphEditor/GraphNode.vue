@@ -62,10 +62,19 @@ const widthOverridePx = ref<number>()
 const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
-  props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject)
-    ? props.node.primarySubject
+  potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value)
+    ? potentialSelfArgumentId.value
     : undefined,
 )
+
+watchEffect(() => {
+  console.log(
+    'aaa',
+    props.node.rootSpan.code(),
+    potentialSelfArgumentId.value,
+    connectedSelfArgumentId.value,
+  )
+})
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 
