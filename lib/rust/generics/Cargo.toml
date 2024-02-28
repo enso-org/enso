@@ -17,6 +17,5 @@ publish = true
 [dependencies]
 enso-zst = { path = "../zst" }
 serde = { workspace = true }
-nalgebra = { workspace = true }
 paste = { workspace = true }
 derivative = { workspace = true }
