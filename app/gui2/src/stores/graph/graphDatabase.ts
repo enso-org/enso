@@ -1,3 +1,4 @@
+import type { Node, NodeAstData, NodeMetadataData } from '@/stores/graph'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -6,11 +7,10 @@ import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
-import { nodeFromAst, primaryApplicationSubject } from '@/util/ast/node'
+import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
-import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import * as random from 'lib0/random'
@@ -22,7 +22,6 @@ import {
   visMetadataEquals,
   type ExternalId,
   type SourceRange,
-  type VisualizationMetadata,
 } from 'shared/yjsModel'
 import { reactive, ref, type Ref } from 'vue'
 
@@ -351,24 +350,37 @@ export class GraphDb {
       const nodeMeta = (node ?? newNode).rootSpan.nodeMetadata
       currentNodeIds.add(nodeId)
       if (node == null) {
+        let metadataFields: NodeMetadataData = {
+          position: new Vec2(0, 0),
+          vis: undefined,
+        }
         // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
         // when we switch to a different function.
         if (functionChanged) {
           const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
-          newNode.position = new Vec2(pos.x, pos.y)
-          newNode.vis = nodeMeta.get('visualization')
+          metadataFields = {
+            position: new Vec2(pos.x, pos.y),
+            vis: nodeMeta.get('visualization'),
+          }
         }
-        this.nodeIdToNode.set(nodeId, newNode)
+        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields })
       } else {
+        const { outerExprId, pattern, rootSpan, primarySubject, documentation } = newNode
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
-        if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
-        if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
-        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) {
-          node.rootSpan = newNode.rootSpan
-          const primarySubject = primaryApplicationSubject(newNode.rootSpan)
-          if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
-        }
+        if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
+        if (differentOrDirty(node.rootSpan, rootSpan)) node.rootSpan = rootSpan
+        if (node.outerExprId !== outerExprId) node.outerExprId = outerExprId
+        if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
+        if (node.documentation !== documentation) node.documentation = documentation
+        // Ensure new fields can't be added to `NodeAstData` without this code being updated.
+        const _allFieldsHandled = {
+          outerExprId,
+          pattern,
+          rootSpan,
+          primarySubject,
+          documentation,
+        } satisfies NodeAstData
       }
     }
     for (const nodeId of this.nodeIdToNode.keys()) {
@@ -452,17 +464,6 @@ declare const brandNodeId: unique symbol
 export type NodeId = AstId & { [brandNodeId]: never }
 export function asNodeId(id: Ast.AstId): NodeId {
   return id as NodeId
-}
-
-export interface Node {
-  outerExprId: Ast.AstId
-  pattern: Ast.Ast | undefined
-  rootSpan: Ast.Ast
-  position: Vec2
-  vis: Opt<VisualizationMetadata>
-  /** A child AST in a syntactic position to be a self-argument input to the node. */
-  primarySubject: Ast.AstId | undefined
-  documentation: string | undefined
 }
 
 const baseMockNode = {

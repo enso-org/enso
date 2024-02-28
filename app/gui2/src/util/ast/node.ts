@@ -1,8 +1,7 @@
-import type { Node } from '@/stores/graph'
+import type { NodeAstData } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { Vec2 } from '@/util/data/vec2'
 
-export function nodeFromAst(ast: Ast.Ast): Node | undefined {
+export function nodeFromAst(ast: Ast.Ast): NodeAstData | undefined {
   const { nodeCode, documentation } =
     ast instanceof Ast.Documented
       ? { nodeCode: ast.expression, documentation: ast.documentation() }
@@ -14,8 +13,6 @@ export function nodeFromAst(ast: Ast.Ast): Node | undefined {
     outerExprId: ast.id,
     pattern,
     rootSpan,
-    position: Vec2.Zero,
-    vis: undefined,
     primarySubject: primaryApplicationSubject(rootSpan),
     documentation,
   }
