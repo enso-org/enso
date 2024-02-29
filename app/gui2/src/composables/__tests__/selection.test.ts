@@ -1,8 +1,8 @@
+import { useSelection } from '@/composables/selection'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { expect, test } from 'vitest'
 import { proxyRefs, ref, type Ref } from 'vue'
-import { useSelection } from '../selection'
 
 function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
   const rects = new Map()
@@ -10,16 +10,13 @@ function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
   rects.set(2, Rect.FromBounds(20, 1, 30, 10))
   rects.set(3, Rect.FromBounds(1, 20, 10, 30))
   rects.set(4, Rect.FromBounds(20, 20, 30, 30))
-  const selection = useSelection(
-    proxyRefs({ sceneMousePos: sceneMousePos ?? ref(Vec2.Zero), scale: 1 }),
-    rects,
-    0,
-  )
+  const navigator = proxyRefs({ sceneMousePos: sceneMousePos ?? ref(Vec2.Zero), scale: 1 })
+  const selection = useSelection(navigator, rects, 0)
   selection.setSelection(new Set([1, 2]))
   return selection
 }
 
-// TODO[ao]: We should read the modifiers from bindings.ts, but I don't know how yet.
+// TODO[ao]: We should read the modifiers from `bindings.ts`, but I don't know how yet.
 
 test.each`
   click | modifiers                  | expected

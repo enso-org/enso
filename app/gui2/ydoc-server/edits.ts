@@ -266,7 +266,7 @@ export function prettyPrintDiff(from: string, to: string): string {
 }
 
 if (import.meta.vitest) {
-  const { test, expect, bench, describe } = import.meta.vitest
+  const { test, expect } = import.meta.vitest
 
   test.each`
     oldStr     | newStr      | expected
