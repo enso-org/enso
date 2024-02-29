@@ -778,3 +778,41 @@ test('Analyze app-like', () => {
   expect(func.code()).toBe('Preprocessor.default_preprocessor')
   expect(args.map((ast) => ast.code())).toEqual(['3', '4', '5', '6'])
 })
+
+const docEditCases = [
+  { code: '## Simple\nnode', documentation: 'Simple' },
+  {
+    code: '## Preferred indent\n   2nd line\n   3rd line\nnode',
+    documentation: 'Preferred indent\n2nd line\n3rd line',
+  },
+  {
+    code: '## Extra-indented child\n 2nd line\n   3rd line\nnode',
+    documentation: 'Extra-indented child\n2nd line\n3rd line',
+    normalized: '## Extra-indented child\n   2nd line\n   3rd line\nnode',
+  },
+  {
+    code: '## Extra-indented child, beyond 4th column\n 2nd line\n        3rd line\nnode',
+    documentation: 'Extra-indented child, beyond 4th column\n2nd line\n    3rd line',
+    normalized: '## Extra-indented child, beyond 4th column\n   2nd line\n       3rd line\nnode',
+  },
+  {
+    code: '##Preferred indent, no initial space\n  2nd line\n  3rd line\nnode',
+    documentation: 'Preferred indent, no initial space\n2nd line\n3rd line',
+    normalized: '## Preferred indent, no initial space\n   2nd line\n   3rd line\nnode',
+  },
+  {
+    code: '## Minimum indent\n 2nd line\n 3rd line\nnode',
+    documentation: 'Minimum indent\n2nd line\n3rd line',
+    normalized: '## Minimum indent\n   2nd line\n   3rd line\nnode',
+  },
+]
+test.each(docEditCases)('Documentation edit round trip: $code', (docCase) => {
+  const { code, documentation } = docCase
+  const parsed = Ast.Documented.tryParse(code)
+  assert(parsed != null)
+  const parsedDocumentation = parsed.documentation()
+  expect(parsedDocumentation).toBe(documentation)
+  const edited = MutableModule.Transient().copy(parsed)
+  edited.setDocumentationText(parsedDocumentation)
+  expect(edited.code()).toBe(docCase.normalized ?? code)
+})
