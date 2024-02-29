@@ -342,7 +342,6 @@ export class GraphDb {
       if (!newNode) continue
       const nodeId = asNodeId(newNode.rootSpan.id)
       const node = this.nodeIdToNode.get(nodeId)
-      const nodeMeta = (node ?? newNode).rootSpan.nodeMetadata
       currentNodeIds.add(nodeId)
       if (node == null) {
         let metadataFields: NodeDataFromMetadata = {
@@ -352,6 +351,7 @@ export class GraphDb {
         // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
         // when we switch to a different function.
         if (functionChanged) {
+          const nodeMeta = newNode.rootSpan.nodeMetadata
           const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
           metadataFields = {
             position: new Vec2(pos.x, pos.y),
