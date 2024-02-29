@@ -2,10 +2,19 @@ import type { NodeDataFromAst } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
 
-export const prefixes = Prefixes.FromLines({
-  enableRecording:
-    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
-})
+export let prefixes!: ReturnType<typeof makePrefixes>
+
+function makePrefixes() {
+  return Prefixes.FromLines({
+    enableRecording:
+      'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
+  })
+}
+
+/** MUST be called after `initializeFFI`. */
+export function initializePrefixes() {
+  prefixes = makePrefixes()
+}
 
 export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
   const { nodeCode, documentation } =
@@ -45,6 +54,7 @@ if (import.meta.vitest) {
   const { test, expect } = await import('vitest')
   const { initializeFFI } = await import('shared/ast/ffi')
   await initializeFFI()
+  initializePrefixes()
 
   test.each`
     line                               | pattern      | rootExpr   | documentation

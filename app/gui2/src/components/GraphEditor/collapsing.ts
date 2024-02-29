@@ -241,7 +241,9 @@ function findInsertionPos(topLevel: Ast.BodyBlock, currentMethodName: string): n
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest
   const { initializeFFI } = await import('shared/ast/ffi')
+  const { initializePrefixes } = await import('@/util/ast/node')
   await initializeFFI()
+  initializePrefixes()
 
   function setupGraphDb(code: string, graphDb: GraphDb) {
     const { root, toRaw, getSpan } = Ast.parseExtended(code)
