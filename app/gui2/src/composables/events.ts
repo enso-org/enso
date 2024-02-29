@@ -14,7 +14,6 @@ import {
   watchEffect,
   type Ref,
   type WatchSource,
-  type Component,
 } from 'vue'
 
 export function isTriggeredByKeyboard(e: MouseEvent | PointerEvent) {

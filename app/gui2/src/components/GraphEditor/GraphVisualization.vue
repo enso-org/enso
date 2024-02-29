@@ -22,10 +22,11 @@ import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
 import { debouncedGetter } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
-import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import { isIdentifier } from 'shared/ast'
+import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
+  nextTick,
   onErrorCaptured,
   onUnmounted,
   ref,
@@ -33,7 +34,6 @@ import {
   watch,
   watchEffect,
   type ShallowRef,
-nextTick,
 } from 'vue'
 
 const TOP_WITHOUT_TOOLBAR_PX = 36
@@ -317,7 +317,9 @@ const root = ref<HTMLElement>()
 const keydownHandler = visualizationBindings.handler({
   nextType: () => {
     if (props.isFocused || focusIsIn(root.value)) {
-      const currentIndex = allTypes.value.findIndex((type) => visIdentifierEquals(type, currentType.value))
+      const currentIndex = allTypes.value.findIndex((type) =>
+        visIdentifierEquals(type, currentType.value),
+      )
       const nextIndex = (currentIndex + 1) % allTypes.value.length
       emit('update:id', allTypes.value[nextIndex]!)
     } else {
@@ -337,17 +339,21 @@ const keydownHandler = visualizationBindings.handler({
     } else {
       return false
     }
-  }
+  },
 })
-
 
 useEvent(window, 'keydown', (event) => keydownHandler(event))
 
-watch(() => props.isFullscreen, (f) => { f && nextTick(() => root.value?.focus()) })
+watch(
+  () => props.isFullscreen,
+  (f) => {
+    f && nextTick(() => root.value?.focus())
+  },
+)
 </script>
 
 <template>
-  <div class="GraphVisualization" ref="root" tabindex="-1">
+  <div ref="root" class="GraphVisualization" tabindex="-1">
     <Suspense>
       <template #fallback><LoadingVisualization :data="{}" /></template>
       <component
