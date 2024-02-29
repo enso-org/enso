@@ -24,9 +24,7 @@ import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
@@ -259,21 +257,13 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
 
     @Specialization
-    Object doUnresolvedName(VirtualFrame frame, UnresolvedConstructor unresolved) {
-      var c = expectedType.getConstructors().get(unresolved.getName());
-      if (c != null) {
-        var ctx = EnsoContext.get(this);
-        var fn = c.getConstructorFunction();
-        var n =
-            InvokeFunctionNode.build(
-                unresolved.getDescs(),
-                DefaultsExecutionMode.EXECUTE,
-                ArgumentsExecutionMode.EXECUTE);
-        var state = State.create(ctx);
-        var r = n.execute(fn, frame, state, unresolved.getArgs());
-        return r;
-      }
-      return null;
+    Object doUnresolvedConstructor(
+        VirtualFrame frame,
+        UnresolvedConstructor unresolved,
+        @Cached UnresolvedConstructor.ConstructNode construct) {
+      var ctx = EnsoContext.get(this);
+      var state = State.create(ctx);
+      return construct.execute(frame, state, expectedType, unresolved);
     }
 
     @Specialization(rewriteOn = InvalidAssumptionException.class)
