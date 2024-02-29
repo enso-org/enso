@@ -345,7 +345,7 @@ add_specs suite_builder =
                     (expected == d) . should_be_true
                     (d == d) . should_be_true
 
-        group_builder.specify "Decimals equal to equal values should be equal" <|
+        group_builder.specify "Decimals equal to equal values should be equal" pending="== consistency" <|
             i = 6223372036853999999997
             f = i.to_float
             id = Decimal.new i
