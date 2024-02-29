@@ -1,0 +1,92 @@
+package org.enso.compiler.benchmarks.inline;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.TimeUnit;
+import org.enso.compiler.Compiler;
+import org.enso.compiler.benchmarks.Utils;
+import org.enso.compiler.context.InlineContext;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.Context;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
+
+/**
+ * Measures the inline compilation, that is the compilation that is requested inside a method.
+ * Simulates a scenario where there is an existing method and we are trying to insert a new
+ * expression into it.
+ * <p>
+ * There is just a single `main` method that contains {@link #LOCAL_VARS_CNT} local variables.
+ * One benchmark measures the time it takes to inline compile a long expression that uses all the
+ * local variables. The other benchmark measures the time it takes to inline compile an expression
+ * that contains some undefined identifiers and thus, should fail to compile.
+ */
+@BenchmarkMode(Mode.AverageTime)
+@Fork(1)
+@Warmup(iterations = 6)
+@Measurement(iterations = 4)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@State(Scope.Benchmark)
+public class InlineCompilerBenchmark {
+  /**
+   * How many variables should be declared in the main method.
+   */
+  private static final int LOCAL_VARS_CNT = 40;
+  private static final int LONG_EXPR_SIZE = 5;
+
+  private final OutputStream out = new ByteArrayOutputStream();
+  private Compiler compiler;
+  private Context ctx;
+  private InlineContext mainInlineContext;
+  private String longExpression;
+
+  @Setup
+  public void setup() throws IOException {
+    ctx = Utils.createDefaultContextBuilder()
+        .out(out)
+        .err(out)
+        .logHandler(out)
+        .build();
+    var ensoCtx = Utils.leakEnsoContext(ctx);
+    compiler = ensoCtx.getCompiler();
+
+    var inlineSource = InlineContextUtils.createMainMethodWithLocalVars(ctx, LOCAL_VARS_CNT);
+    mainInlineContext = inlineSource.mainInlineContext();
+    longExpression = InlineContextUtils.createLongExpression(inlineSource.localVarNames(), LONG_EXPR_SIZE);
+  }
+
+  @TearDown
+  public void tearDown() {
+    ctx.close();
+    try {
+      if (!out.toString().isEmpty()) {
+        throw new AssertionError("Unexpected output from the compiler: " + out);
+      }
+      out.close();
+    } catch (IOException e) {
+      throw new AssertionError("Failed to close the output stream", e);
+    }
+  }
+
+  @Benchmark
+  public void longExpression(Blackhole blackhole) {
+    var tuppleOpt = compiler.runInline(longExpression, mainInlineContext);
+    if (tuppleOpt.isEmpty()) {
+      throw new AssertionError("Unexpected: inline compilation should succeed");
+    }
+    blackhole.consume(tuppleOpt);
+  }
+
+
+}
