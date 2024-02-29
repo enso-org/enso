@@ -470,6 +470,7 @@ export interface Node {
   prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
+  documentation: string | undefined
 }
 
 const baseMockNode = {
@@ -477,6 +478,7 @@ const baseMockNode = {
   vis: undefined,
   prefixes: { enableRecording: undefined },
   primarySubject: undefined,
+  documentation: undefined,
 } satisfies Partial<Node>
 
 /** This should only be used for supplying as initial props when testing.

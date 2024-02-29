@@ -9,7 +9,10 @@ export const prefixes = Prefixes.FromLines({
 })
 
 export function nodeFromAst(ast: Ast.Ast): Node | undefined {
-  const nodeCode = ast instanceof Ast.Documented ? ast.expression : ast
+  const { nodeCode, documentation } =
+    ast instanceof Ast.Documented
+      ? { nodeCode: ast.expression, documentation: ast.documentation() }
+      : { nodeCode: ast, documentation: undefined }
   if (!nodeCode) return
   const pattern = nodeCode instanceof Ast.Assignment ? nodeCode.pattern : undefined
   const rootSpan = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode
@@ -23,6 +26,7 @@ export function nodeFromAst(ast: Ast.Ast): Node | undefined {
     vis: undefined,
     prefixes: matches,
     primarySubject: primaryApplicationSubject(innerExpr),
+    documentation,
   }
 }
 
@@ -46,17 +50,19 @@ if (import.meta.vitest) {
   await initializeFFI()
 
   test.each`
-    line                               | pattern      | rootSpan
-    ${'2 + 2'}                         | ${undefined} | ${'2 + 2'}
-    ${'foo = bar'}                     | ${'foo'}     | ${'bar'}
-    ${'## Documentation\n2 + 2'}       | ${undefined} | ${'2 + 2'}
-    ${'## Documentation\nfoo = 2 + 2'} | ${'foo'}     | ${'2 + 2'}
-  `('Node information from AST $line line', ({ line, pattern, rootSpan }) => {
+    line                               | pattern      | rootSpan   | documentation
+    ${'2 + 2'}                         | ${undefined} | ${'2 + 2'} | ${undefined}
+    ${'foo = bar'}                     | ${'foo'}     | ${'bar'}   | ${undefined}
+    ${'## Documentation\n2 + 2'}       | ${undefined} | ${'2 + 2'} | ${'Documentation'}
+    ${'## Documentation\nfoo = 2 + 2'} | ${'foo'}     | ${'2 + 2'} | ${'Documentation'}
+  `('Node information from AST $line line', ({ line, pattern, rootSpan, documentation }) => {
     const ast = Ast.Ast.parse(line)
     const node = nodeFromAst(ast)
     expect(node?.outerExprId).toBe(ast.id)
     expect(node?.pattern?.code()).toBe(pattern)
+    expect(node?.rootSpan.code()).toBe(rootSpan)
     expect(node?.innerExpr.code()).toBe(rootSpan)
+    expect(node?.documentation).toBe(documentation)
   })
 
   test.each(['## Documentation only'])("'%s' should not be a node", (line) => {
