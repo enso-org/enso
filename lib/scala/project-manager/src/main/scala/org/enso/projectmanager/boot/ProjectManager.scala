@@ -9,6 +9,7 @@ import org.enso.projectmanager.boot.Globals.{
   FailureExitCode,
   SuccessExitCode
 }
+import org.enso.projectmanager.boot.command.filesystem.FileSystemListCommand
 import org.enso.projectmanager.boot.command.{CommandHandler, ProjectListCommand}
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
@@ -209,6 +210,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
+    } else if (options.hasOption(Cli.FILESYSTEM_LIST)) {
+      val directory = Paths.get(options.getOptionValue(Cli.FILESYSTEM_LIST))
+      val fileSystemListCommand =
+        FileSystemListCommand[ZIO[ZAny, +*, +*]](config, directory.toFile)
+      commandHandler.printJson(fileSystemListCommand.run)
     } else if (options.hasOption(Cli.PROJECT_LIST)) {
       val projectsPathOpt =
         Option(options.getOptionValue(Cli.PROJECTS_DIRECTORY))

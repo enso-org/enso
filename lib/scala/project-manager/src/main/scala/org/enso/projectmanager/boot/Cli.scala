@@ -17,6 +17,8 @@ object Cli {
   val PROJECTS_DIRECTORY = "projects-directory"
   val PROJECT_LIST       = "project-list"
 
+  val FILESYSTEM_LIST = "filesystem-list"
+
   object option {
 
     val help: cli.Option = cli.Option
@@ -82,6 +84,14 @@ object Cli {
       .longOpt(PROJECT_LIST)
       .desc("List user projects.")
       .build()
+
+    val filesystemList: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_LIST)
+      .desc("List directory.")
+      .build()
   }
 
   val options: cli.Options =
@@ -95,6 +105,7 @@ object Cli {
       .addOption(option.profilingTime)
       .addOption(option.projectsDirectory)
       .addOption(option.projectList)
+      .addOption(option.filesystemList)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {
