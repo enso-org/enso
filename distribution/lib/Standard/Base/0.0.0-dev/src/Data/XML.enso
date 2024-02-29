@@ -18,6 +18,7 @@ import project.System.File.File_Access.File_Access
 import project.System.Input_Stream.Input_Stream
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
+from project.Metadata import make_single_choice, Widget
 
 polyglot java import java.io.StringReader
 polyglot java import java.lang.Exception as JException
@@ -100,6 +101,10 @@ type XML_Document
         XML_Utils.setCustomErrorHandler document_builder
         XML_Document.Value (document_builder.parse input_source)
 
+    ## PRIVATE
+    Value (java_document:Document)
+
+
     ## GROUP Metadata
        Get the root element of the document.
 
@@ -114,6 +119,126 @@ type XML_Document
             java_element = self.java_document.getDocumentElement
             XML_Element.new java_element
 
+    ## GROUP Metadata
+       Gets the tag of the root XML element.
+
+       > Example
+         Get the tag of an XML document's root element.
+
+             XML_Document.from_text '<foo>hello</foo>' . name
+             # => "foo"
+    name : Text ! XML_Error
+    name self = self.root_element.name
+
+    ## GROUP Selections
+       Gets a child of an XML document.
+
+       Arguments:
+       - key: If an `Integer`, returns the element at position `at` in its list
+         of children. If a `Text`, treats `key` starts with `"@"`, returns the
+         attribute with the given name otherwise returns the first child element
+         with the given name.
+
+       > Example
+         Get the first child of the document (the root element).
+
+             XML_Document.from_text '<foo><baz>hello</baz></foo>' . get 0
+             # => XML_Document.from_text "<foo><baz>hello</baz></foo>" . root_element
+
+       > Example
+         Get the child of the document (the root element) by name.
+
+             root = XML_Document.from_text '<foo bar="one">hello</foo>' . get "foo"
+             # => XML_Document.from_text "<foo><baz>hello</baz></foo>" . root_element
+    @key child_selector
+    get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
+    get self key:(Text | Integer)="." ~if_missing=Nothing = case key of
+        _ : Integer -> if key == 0 then self.root_element else if_missing
+        _ : Text -> if key == self.root_element.name then self.root_element else if_missing
+
+    ## GROUP Selections
+       Gets a child or attribute of an XML document.
+
+       Arguments:
+       - key: If an `Integer`, returns the element at position `at` in its list
+         of children. If a `Text`, treats `key` starts with `"@"`, returns the
+         attribute with the given name otherwise returns the first child element
+         with the given name.
+       - if_missing: The value returned if the key does not exist.
+
+       > Example
+         Get the first child of the document (the root element).
+
+             XML_Document.from_text '<foo><baz>hello</baz></foo>' . at 0
+             # => XML_Document.from_text "<foo><baz>hello</baz></foo>" . root_element
+
+       > Example
+         Get the child of the document (the root element) by name.
+
+             root = XML_Document.from_text '<foo bar="one">hello</foo>' . get "foo"
+             # => XML_Document.from_text "<foo><baz>hello</baz></foo>" . root_element
+    @key child_selector
+    at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
+    at self key:(Text | Integer)="." =
+        if_missing = case key of
+            _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.child_count)
+            _ : Text -> Error.throw (No_Such_Key.Error self key)
+        self.get key if_missing
+
+    ## Gets the raw XML of the document (including tag, attributes and contents).
+
+       > Example
+         Get the outer XML of the document.
+
+             XML_Document.from_text '<foo>hello</foo>' . outer_xml
+             # => '<foo>hello</foo>'
+    outer_xml : Text ! XML_Error
+    outer_xml self =
+        XML_Error.handle_java_exceptions <|
+            XML_Utils.outerXML self.java_document
+
+    ## Gets the raw XML of the contents of the document, not including the
+       outermost tag and attributes.
+
+       > Example
+         Get the inner XML of the document.
+
+             XML_Document.from_text '<foo><bar>hello</bar></foo>' . inner_xml
+             # => '<foo><bar>hello</bar></foo>'
+    inner_xml : Text ! XML_Error
+    inner_xml self =
+        XML_Error.handle_java_exceptions <|
+            XML_Utils.innerXML self.java_document
+
+    ## GROUP Selections
+       Gets the child elements of an XML document.
+
+       > Example
+             XML_Document.from_text '<foo><baz>hello</baz></foo>' . children
+             # => [XML_Element'<foo><baz>hello</baz></foo>']
+    children : Vector (XML_Element | Text) ! XML_Error
+    children self = [self.root_element]
+
+    ## GROUP Metadata
+       Gets the number children of an XML document.
+
+       `child_count` only counts child elements and child text nodes that are
+       not 100% whitespace. Other node types, such as comments, are not included
+       in the count.
+
+       > Example
+         Get the number of children of an element.
+
+             XML_Document.from_text '<foo> <bar>hello</bar> <bar>hello2</bar>< </foo>' . child_count
+             # => 1
+    child_count : Integer
+    child_count self = 1
+
+    ## GROUP Metadata
+       Gets the unique set of child names of an XML document.
+    child_names : Vector Text ! XML_Error
+    child_names self = [self.root_element.name]
+
     ## PRIVATE
        Convert to a JavaScript Object representing this XML_Document.
     to_js_object : JS_Object
@@ -123,9 +248,6 @@ type XML_Document
        Convert to a display representation of this XML_Document.
     to_display_text : Text
     to_display_text self = "XML_Document (" + self.root_element.to_display_text + ")"
-
-    ## PRIVATE
-    Value (java_document:Document)
 
 type XML_Element
     ## GROUP Metadata
@@ -146,9 +268,9 @@ type XML_Element
 
        Arguments:
        - key: If an `Integer`, returns the element at position `at` in its list
-         of children. If a `Text`, treats `key` as an XPath specifier, and
-         returns the elements it points to. If a `Text` that starts with `"@"`,
-         returns the attribute with the given name.
+         of children. If a `Text`, treats `key` starts with `"@"`, returns the
+         attribute with the given name otherwise returns the first child element
+         with the given name.
 
        > Example
            XML_Document.from_text '<foo><baz>hello</baz></foo>' . root_element . get 0
@@ -157,14 +279,14 @@ type XML_Element
        > Example
          Get a tag attribute.
 
-             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
-             root.get "@bar"
+             root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element . get "@bar"
              # => "one"
+    @key child_selector
     get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
-    get self key:(Text | Integer) ~if_missing=Nothing =
-        case key of
+    get self key:(Text | Integer)="." ~if_missing=Nothing = case key of
             _ : Integer -> self.children_cache.get key if_missing
-            _ : Text -> if is_attribute_key key then self.get_xpath key . get 0 if_missing else self.get_xpath key
+            _ : Text -> if key.starts_with "@" then self.attribute (key.drop 1) else
+                self.children.find (c-> c.name == key) . if_nothing if_missing
 
     ## GROUP Selections
        Gets a child or attribute of an XML element.
@@ -187,29 +309,13 @@ type XML_Element
              root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
              root.at "@bar"
              # => "one"
+    @key child_selector
     at : Text | Integer -> Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
-    at self key:(Text | Integer) =
+    at self key:(Text | Integer)="." =
         if_missing = case key of
             _ : Integer -> Error.throw (Index_Out_Of_Bounds.Error key self.child_count)
             _ : Text -> Error.throw (No_Such_Key.Error self key)
         self.get key if_missing
-
-    ## Get elements denoted by the given XPath key.
-
-       Arguments:
-       - key: The XPath string to use to search for elements.
-
-       > Example
-         Get an element by xpath.
-
-             root = XML_Document.from_file test_file . root_element
-             root.at "/class/teacher[1]/firstname"
-             # => [XML_Document.from_text "<firstname>Alice</firstname>" . root_element]
-    get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
-    get_xpath self key:Text =
-        XML_Error.handle_java_exceptions <|
-            xpath = XPathFactory.newInstance.newXPath
-            only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
 
     ## GROUP Selections
        Gets the child elements of an XML element.
@@ -238,6 +344,13 @@ type XML_Element
     child_count : Integer ! XML_Error
     child_count self = self.children_cache.length
 
+    ## GROUP Metadata
+       Gets the unique set of child names of an XML element.
+    child_names : Vector Text ! XML_Error
+    child_names self =
+        XML_Error.handle_java_exceptions <|
+            self.children_cache.map _.name . distinct
+
     ## GROUP Selections
        Get an attribute of an XML element.
 
@@ -251,11 +364,19 @@ type XML_Element
              root = XML_Document.from_text '<foo bar="one">hello</foo>' . root_element
              root.attribute "bar"
              # => "one"
+    @name (e-> make_single_choice e.attribute_names)
     attribute : Text -> Any -> Text | Any ! XML_Error
     attribute self name:Text ~if_missing=(Error.throw (No_Such_Key.Error self name)) =
         XML_Error.handle_java_exceptions <|
             attr = self.java_element.getAttributeNode name
             if attr.is_nothing then if_missing else attr.getValue
+
+    ## PRIVATE
+       Gets a set of the attributes of an XML element.
+    attribute_names : Vector Text ! XML_Error
+    attribute_names self = XML_Error.handle_java_exceptions <|
+        named_node_map = self.java_element.getAttributes
+        Vector.new named_node_map.getLength i-> named_node_map.item i . getNodeName
 
     ## GROUP Selections
        Gets a map containing of the attributes of an XML element.
@@ -310,6 +431,23 @@ type XML_Element
     inner_xml self =
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
+
+    ## Get elements denoted by the given XPath key.
+
+       Arguments:
+       - key: The XPath string to use to search for elements.
+
+       > Example
+         Get an element by xpath.
+
+             root = XML_Document.from_file test_file . root_element
+             root.at "/class/teacher[1]/firstname"
+             # => [XML_Document.from_text "<firstname>Alice</firstname>" . root_element]
+    get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
+    get_xpath self key:Text =
+        XML_Error.handle_java_exceptions <|
+            xpath = XPathFactory.newInstance.newXPath
+            only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
 
     ## Gets elements matching a given tag name.
 
@@ -416,6 +554,10 @@ build_child_list java_element =
         only_wanted_nodes java_element.getChildNodes
 
 ## PRIVATE
-   Returns true if `key` starts with "@".
-is_attribute_key : Text -> Boolean
-is_attribute_key s:Text = s.starts_with "@"
+   Create the element selector for an XML document or element.
+child_selector : XML_Element | XML_Document -> Widget
+child_selector node:(XML_Element|XML_Document) =
+    attributes = case node of
+        _ : XML_Element -> node.attribute_names.map (n->"@"+n)
+        _ -> []
+    make_single_choice attributes+node.child_names
