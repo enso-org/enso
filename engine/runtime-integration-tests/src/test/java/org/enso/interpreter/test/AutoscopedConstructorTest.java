@@ -13,11 +13,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class LazyConstructorTest extends TestBase {
+public class AutoscopedConstructorTest extends TestBase {
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
   private static Context ctx;
 
-  public LazyConstructorTest() {}
+  public AutoscopedConstructorTest() {}
 
   @BeforeClass
   public static void prepareCtx() {
