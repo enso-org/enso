@@ -666,7 +666,7 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
   position: absolute;
   bottom: 100%;
   left: 60px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .afterNode {

@@ -15,11 +15,11 @@ const paragraphs = computed(() => props.modelValue.split('\n\n'))
 <style scoped>
 .GraphNodeComment {
   padding: 1px 8px;
-  font-weight: 800;
+  font-weight: 400;
   white-space: nowrap;
   border-radius: var(--radius-full);
-  color: var(--color-text);
+  color: var(--color-text-inversed);
   line-height: 20px;
-  background-color: white;
+  background-color: var(--node-color-no-type);
 }
 </style>

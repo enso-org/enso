@@ -1,4 +1,3 @@
-import type { Node, NodeAstData, NodeMetadataData } from '@/stores/graph'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb, groupColorStyle, type Group } from '@/stores/suggestionDatabase'
 import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -16,13 +15,9 @@ import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reac
 import * as random from 'lib0/random'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
-import {
-  isUuid,
-  sourceRangeKey,
-  visMetadataEquals,
-  type ExternalId,
-  type SourceRange,
-} from 'shared/yjsModel'
+import type { Opt } from 'shared/util/data/opt'
+import type { ExternalId, SourceRange, VisualizationMetadata } from 'shared/yjsModel'
+import { isUuid, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { reactive, ref, type Ref } from 'vue'
 
 export interface BindingInfo {
@@ -350,7 +345,7 @@ export class GraphDb {
       const nodeMeta = (node ?? newNode).rootSpan.nodeMetadata
       currentNodeIds.add(nodeId)
       if (node == null) {
-        let metadataFields: NodeMetadataData = {
+        let metadataFields: NodeDataFromMetadata = {
           position: new Vec2(0, 0),
           vis: undefined,
         }
@@ -380,7 +375,7 @@ export class GraphDb {
           rootSpan,
           primarySubject,
           documentation,
-        } satisfies NodeAstData
+        } satisfies NodeDataFromAst
       }
     }
     for (const nodeId of this.nodeIdToNode.keys()) {
@@ -465,6 +460,22 @@ export type NodeId = AstId & { [brandNodeId]: never }
 export function asNodeId(id: Ast.AstId): NodeId {
   return id as NodeId
 }
+
+export interface NodeDataFromAst {
+  outerExprId: Ast.AstId
+  pattern: Ast.Ast | undefined
+  rootSpan: Ast.Ast
+  /** A child AST in a syntactic position to be a self-argument input to the node. */
+  primarySubject: Ast.AstId | undefined
+  documentation: string | undefined
+}
+
+export interface NodeDataFromMetadata {
+  position: Vec2
+  vis: Opt<VisualizationMetadata>
+}
+
+export interface Node extends NodeDataFromAst, NodeDataFromMetadata {}
 
 const baseMockNode = {
   position: Vec2.Zero,

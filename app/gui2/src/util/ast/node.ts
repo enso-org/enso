@@ -1,7 +1,7 @@
-import type { NodeAstData } from '@/stores/graph'
+import type { NodeDataFromAst } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 
-export function nodeFromAst(ast: Ast.Ast): NodeAstData | undefined {
+export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
   const { nodeCode, documentation } =
     ast instanceof Ast.Documented
       ? { nodeCode: ast.expression, documentation: ast.documentation() }

@@ -38,23 +38,12 @@ import type {
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch, type ShallowRef } from 'vue'
 
-export { type NodeId } from '@/stores/graph/graphDatabase'
-
-export interface NodeAstData {
-  outerExprId: Ast.AstId
-  pattern: Ast.Ast | undefined
-  rootSpan: Ast.Ast
-  /** A child AST in a syntactic position to be a self-argument input to the node. */
-  primarySubject: Ast.AstId | undefined
-  documentation: string | undefined
-}
-
-export interface NodeMetadataData {
-  position: Vec2
-  vis: Opt<VisualizationMetadata>
-}
-
-export interface Node extends NodeAstData, NodeMetadataData {}
+export type {
+  Node,
+  NodeDataFromAst,
+  NodeDataFromMetadata,
+  NodeId,
+} from '@/stores/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: NodeId
