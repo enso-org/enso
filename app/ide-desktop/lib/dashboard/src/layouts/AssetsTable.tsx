@@ -819,18 +819,24 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [pasteData])
 
   React.useEffect(() => {
-    return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      cancelCut: () => {
-        if (pasteDataRef.current == null) {
-          return false
-        } else {
-          dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
-          setPasteData(null)
-          return
-        }
-      },
-    })
-  }, [/* should never change */ inputBindings, /* should never change */ dispatchAssetEvent])
+    if (!hidden) {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        cancelCut: () => {
+          if (pasteDataRef.current == null) {
+            return false
+          } else {
+            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
+            setPasteData(null)
+            return
+          }
+        },
+      })
+    }
+  }, [
+    hidden,
+    /* should never change */ inputBindings,
+    /* should never change */ dispatchAssetEvent,
+  ])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -2180,7 +2186,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           columns={columns}
           item={item}
           state={state}
-          hidden={visibilities.get(item.key) === Visibility.hidden}
+          hidden={hidden || visibilities.get(item.key) === Visibility.hidden}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
@@ -2456,7 +2462,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             </div>
           </div>
         )}
-        {hiddenContextMenu}
+        {!hidden && hiddenContextMenu}
         {table}
       </div>
     </div>

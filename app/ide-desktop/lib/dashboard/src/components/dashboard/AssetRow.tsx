@@ -707,7 +707,7 @@ export default function AssetRow(props: AssetRowProps) {
               })}
             </tr>
           )}
-          {selected && allowContextMenu && insertionVisibility !== Visibility.hidden && (
+          {selected && allowContextMenu && !hidden && (
             // This is a copy of the context menu, since the context menu registers keyboard
             // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
             // the entire context menu (once for the keyboard actions, once for the JSX).
