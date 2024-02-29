@@ -1,0 +1,22 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
+from Standard.Base.Enso_Cloud.Data_Link import parse_secure_value
+
+## PRIVATE
+   Decodes the JSON representation of `AWS_Credential` as defined in `dataLinkSchema.json#/$defs/AwsAuth`.
+decode_aws_credential json -> AWS_Credential | Nothing =
+    case get_required_field "type" json of
+        "aws_auth" -> case get_required_field "subType" json of
+            "default" -> Nothing
+            "profile" ->
+                profile = get_required_field "profile" json
+                AWS_Credential.Profile profile
+            "access_key" ->
+                access_key_id = get_required_field "accessKeyId" json |> parse_secure_value
+                secret_access_key = get_required_field "secretAccessKey" json |> parse_secure_value
+                AWS_Credential.Access_Key access_key_id secret_access_key
+            unexpected -> Error.throw (Illegal_State.Error "Unexpected subType inside of `auth` field of a datalink: "+unexpected.to_text)
+        unexpected -> Error.throw (Illegal_State.Error "Unexpected type inside of `auth` field of a datalink: "+unexpected.to_text)
