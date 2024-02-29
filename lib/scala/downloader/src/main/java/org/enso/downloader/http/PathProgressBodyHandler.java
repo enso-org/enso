@@ -86,7 +86,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
         for (ByteBuffer item : items) {
           var len = item.remaining();
           downloaded += len;
-          progress.reportProgress(downloaded, total == null ? Option.empty() : Some.apply(total));
+          progress.reportProgress(downloaded, Option.apply(total));
           destChannel.write(item);
         }
         subscription.request(1);

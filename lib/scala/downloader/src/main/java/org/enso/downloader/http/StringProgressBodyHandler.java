@@ -65,7 +65,7 @@ public class StringProgressBodyHandler implements HttpResponse.BodyHandler<Strin
       for (ByteBuffer item : items) {
         var len = item.remaining();
         downloaded += len;
-        progress.reportProgress(downloaded, total == null ? Option.empty() : Some.apply(total));
+        progress.reportProgress(downloaded, Option.apply(total));
         byte[] bytes = new byte[len];
         item.get(bytes);
         destination.write(bytes, 0, bytes.length);
