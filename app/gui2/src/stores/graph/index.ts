@@ -38,7 +38,12 @@ import type {
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch, type ShallowRef } from 'vue'
 
-export { type Node, type NodeId } from '@/stores/graph/graphDatabase'
+export type {
+  Node,
+  NodeDataFromAst,
+  NodeDataFromMetadata,
+  NodeId,
+} from '@/stores/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: NodeId

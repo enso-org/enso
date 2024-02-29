@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
@@ -362,6 +363,8 @@ function openFullMenu() {
   }
   menuVisible.value = MenuState.Full
 }
+
+const documentation = computed<string | undefined>(() => props.node.documentation)
 </script>
 
 <template>
@@ -417,6 +420,7 @@ function openFullMenu() {
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
     />
+    <GraphNodeComment v-if="documentation" v-model="documentation" class="beforeNode" />
     <div
       ref="contentNode"
       class="node"
@@ -434,10 +438,10 @@ function openFullMenu() {
         @openFullMenu="openFullMenu"
       />
     </div>
-    <GraphNodeError v-if="error" class="message" :message="error" type="error" />
+    <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
     <GraphNodeError
       v-if="warning && (nodeHovered || isSelected)"
-      class="message warning"
+      class="afterNode warning"
       :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
       :message="warning"
       type="warning"
@@ -658,7 +662,14 @@ function openFullMenu() {
   z-index: 1;
 }
 
-.message {
+.beforeNode {
+  position: absolute;
+  bottom: 100%;
+  left: 60px;
+  margin-bottom: 2px;
+}
+
+.afterNode {
   position: absolute;
   top: 100%;
   margin-top: 4px;
