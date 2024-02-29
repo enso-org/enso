@@ -6,7 +6,6 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodySubscriber;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -15,12 +14,13 @@ import org.enso.cli.task.TaskProgressImplementation;
 import scala.Option;
 import scala.Some;
 
-/** A {@link HttpResponse} body handler for {@link Path} that keeps track of the progress. */
+/** A {@link HttpResponse} body handler for {@link String} that keeps track of the progress. */
 public class StringProgressBodyHandler implements HttpResponse.BodyHandler<String> {
   private final ByteArrayOutputStream destination = new ByteArrayOutputStream();
   private final TaskProgressImplementation<?> progress;
   private final Charset encoding;
   private Long total;
+  private long downloaded;
 
   private StringProgressBodyHandler(
       TaskProgressImplementation<?> progress, Charset encoding, Long total) {
@@ -64,7 +64,8 @@ public class StringProgressBodyHandler implements HttpResponse.BodyHandler<Strin
     public void onNext(List<ByteBuffer> items) {
       for (ByteBuffer item : items) {
         var len = item.remaining();
-        progress.reportProgress(len, total == null ? Option.empty() : Some.apply(total));
+        downloaded += len;
+        progress.reportProgress(downloaded, total == null ? Option.empty() : Some.apply(total));
         byte[] bytes = new byte[len];
         item.get(bytes);
         destination.write(bytes, 0, bytes.length);
