@@ -1,8 +1,13 @@
 private
 
-import project.Enso_Cloud.Enso_File.Enso_File
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Enso_Cloud.Enso_File.Enso_File
+import project.Enso_Cloud.Enso_User.Enso_User
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Unimplemented.Unimplemented
 import project.Nothing.Nothing
 from project.Data.Text.Extensions import all
 
@@ -12,17 +17,16 @@ from project.Data.Text.Extensions import all
    It will be replaced once the backend resolver is implemented: https://github.com/enso-org/cloud-v2/issues/899
 type Enso_Path
     ## PRIVATE
-    Value organization_name:Text path_segments:Text (asset_name : Text | Nothing)
+    Value (organization_name : Text) (path_segments : Vector Text) (asset_name : Text | Nothing)
 
     ## PRIVATE
-    parse (path : Text) -> Enso_Path
-    parse path =
+    parse (path : Text) -> Enso_Path =
         prefix = "enso://"
         if path.starts_with prefix . not then Error.throw (Illegal_Argument.Error "Invalid path - it should start with `enso://`.") else
             raw_segments = path.drop prefix.length . split "/"
             if raw_segments.is_empty then Error.throw (Illegal_Argument.Error "Invalid path - it should contain at least one segment.") else
                 organization_name = raw_segments.first
-                segments = raw_segments.drop 1
+                segments = raw_segments.drop 1 . filter s-> s.is_empty.not
                 if organization_name != Enso_User.current.name then Error.throw (Unimplemented.throw "Currently only resolving paths for the current user is supported.") else
                     if segments.is_empty then Enso_Path.Value organization_name [] Nothing else
                         asset_name = segments.last
