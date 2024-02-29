@@ -27,7 +27,7 @@ public final class ArrowFixedArrayDate implements TruffleObject {
   public ArrowFixedArrayDate(int size, DateUnit unit) {
     this.size = size;
     this.unit = unit;
-    this.buffer = allocateBuffer(size * unit.sizeInBytes(), size);
+    this.buffer = ByteBufferDirect.forSize(size, unit);
   }
 
   public ArrowFixedArrayDate(ByteBufferDirect buffer, DateUnit unit)
@@ -205,11 +205,6 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     public ZoneId asTimeZone() {
       return dateTime.getZone();
     }
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private static ByteBufferDirect allocateBuffer(int sizeInBytes, int size) {
-    return new ByteBufferDirect(sizeInBytes, size);
   }
 
   @CompilerDirectives.TruffleBoundary

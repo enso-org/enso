@@ -13,10 +13,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import org.enso.interpreter.arrow.LogicalLayout;
-import org.enso.interpreter.arrow.util.MemoryUtil;
 
 @ExportLibrary(InteropLibrary.class)
 public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
@@ -114,20 +111,16 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
             new Object[] {args[0]}, "Size of allocated memory is invalid");
       }
 
-      var size = interop.asInt(args[1]);
-      var targetSize = size * unit.sizeInBytes();
-      ByteBuffer buffer = MemoryUtil.directBuffer(interop.asLong(args[0]), targetSize);
-      buffer.order(ByteOrder.LITTLE_ENDIAN);
+      var capacity = interop.asInt(args[1]);
       if (args.length == 3) {
         if (!interop.isNumber(args[2]) || !interop.fitsInLong(args[2])) {
           throw UnsupportedTypeException.create(
               new Object[] {args[2]}, "Address of non-null bitmap is invalid");
         }
-        ByteBuffer validityMap =
-            MemoryUtil.directBuffer(interop.asLong(args[2]), (int) Math.ceil(size / 8) + 1);
-        return new ByteBufferDirect(buffer, validityMap);
+        return ByteBufferDirect.fromAddress(
+            interop.asLong(args[0]), interop.asLong(args[2]), capacity, unit);
       } else {
-        return new ByteBufferDirect(buffer, size);
+        return ByteBufferDirect.fromAddress(interop.asLong(args[0]), capacity, unit);
       }
     }
 

@@ -1,6 +1,5 @@
 package org.enso.interpreter.arrow.runtime;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -22,7 +21,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   public ArrowFixedArrayInt(int size, IntUnit unit) {
     this.size = size;
     this.unit = unit;
-    this.buffer = allocateBuffer(size * this.unit.sizeInBytes(), size);
+    this.buffer = ByteBufferDirect.forSize(size, unit);
   }
 
   public ArrowFixedArrayInt(ByteBufferDirect buffer, IntUnit unit)
@@ -198,11 +197,6 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   @ExportMessage
   boolean isArrayElementInsertable(long index) {
     return index >= 0 && index < size;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private ByteBufferDirect allocateBuffer(int sizeInBytes, int size) {
-    return new ByteBufferDirect(sizeInBytes, size);
   }
 
   private static int typeAdjustedIndex(long index, SizeInBytes unit) {
