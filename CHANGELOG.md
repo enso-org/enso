@@ -620,6 +620,7 @@
 - [Allow `copy_to` and `move_to` to work between local and S3 files.][9054]
 - [Adjusted expression handling and new `Simple_Expression` type.][9128]
 - [Allow reading Data Links configured locally or in the Cloud.][9215]
+- [Allow using `enso://` paths in `Data.read` and other places.][9225]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -896,6 +897,7 @@
 [9054]: https://github.com/enso-org/enso/pull/9054
 [9128]: https://github.com/enso-org/enso/pull/9128
 [9215]: https://github.com/enso-org/enso/pull/9215
+[9225]: https://github.com/enso-org/enso/pull/9225
 
 #### Enso Compiler
 
