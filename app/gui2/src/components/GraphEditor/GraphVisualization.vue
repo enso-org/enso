@@ -4,7 +4,6 @@ import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorV
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { focusIsIn, useEvent } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
-import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
@@ -13,6 +12,7 @@ import {
   type VisualizationDataSource,
 } from '@/stores/visualization'
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
+import { Ast } from '@/util/ast'
 import { toError } from '@/util/data/error'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -23,6 +23,7 @@ import type { Icon } from '@/util/iconName'
 import { debouncedGetter } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
+import { isIdentifier } from 'shared/ast'
 import {
   computed,
   onErrorCaptured,
@@ -38,6 +39,9 @@ nextTick,
 const TOP_WITHOUT_TOOLBAR_PX = 36
 const TOP_WITH_TOOLBAR_PX = 72
 
+// Used for testing.
+type RawDataSource = { type: 'raw'; data: any }
+
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
@@ -48,8 +52,7 @@ const props = defineProps<{
   isFocused: boolean
   isFullscreen: boolean
   typename?: string | undefined
-  dataSource?: VisualizationDataSource | undefined
-  data?: any | undefined
+  dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
   'update:rect': [rect: Rect | undefined]
@@ -63,15 +66,7 @@ const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 const vueError = ref<Error>()
 
 const projectStore = useProjectStore()
-const graphStore = useGraphStore()
 const visualizationStore = useVisualizationStore()
-
-const expressionInfo = computed(() =>
-  props.dataSource?.type === 'node'
-    ? graphStore.db.getExpressionInfo(props.dataSource.nodeId)
-    : undefined,
-)
-const typeName = computed(() => expressionInfo.value?.typename ?? 'Any')
 
 const configForGettingDefaultVisualization = computed<NodeVisualizationConfiguration | undefined>(
   () => {
@@ -89,22 +84,25 @@ const defaultVisualizationRaw = projectStore.useVisualizationData(
   configForGettingDefaultVisualization,
 ) as ShallowRef<Result<{ library: { name: string } | null; name: string } | undefined>>
 
-const defaultVisualization = computed<VisualizationIdentifier | undefined>(() => {
-  const raw = defaultVisualizationRaw.value
-  if (!raw?.ok || !raw.value) return
-  return {
-    name: raw.value.name,
-    module:
-      raw.value.library == null
-        ? { kind: 'Builtin' }
-        : { kind: 'Library', name: raw.value.library.name },
-  }
-})
+const defaultVisualizationForCurrentNodeSource = computed<VisualizationIdentifier | undefined>(
+  () => {
+    const raw = defaultVisualizationRaw.value
+    if (!raw?.ok || !raw.value) return
+    return {
+      name: raw.value.name,
+      module:
+        raw.value.library == null
+          ? { kind: 'Builtin' }
+          : { kind: 'Library', name: raw.value.library.name },
+    }
+  },
+)
 
 const currentType = computed(() => {
   if (props.currentType) return props.currentType
-  if (defaultVisualization.value) return defaultVisualization.value
-  const [id] = visualizationStore.types(typeName.value)
+  if (defaultVisualizationForCurrentNodeSource.value)
+    return defaultVisualizationForCurrentNodeSource.value
+  const [id] = visualizationStore.types(props.typename)
   return id
 })
 
@@ -116,36 +114,49 @@ onErrorCaptured((error) => {
   return false
 })
 
-const visualizationData = projectStore.useVisualizationData(() => {
-  return props.data == null && props.dataSource?.type === 'node'
-    ? {
-        ...visPreprocessor.value,
-        expressionId: props.dataSource.nodeId,
-      }
-    : null
+const nodeVisualizationData = projectStore.useVisualizationData(() => {
+  if (props.dataSource?.type !== 'node') return
+  return {
+    ...visPreprocessor.value,
+    expressionId: props.dataSource.nodeId,
+  }
 })
 
 const expressionVisualizationData = computedAsync(() => {
   if (props.dataSource?.type !== 'expression') return
+  if (preprocessorLoading.value) return
   const preprocessor = visPreprocessor.value
   const args = preprocessor.positionalArgumentsExpressions
-  const argsCode = args.length ? `(${args.join(') (')})` : ''
+  const tempModule = Ast.MutableModule.Transient()
+  const preprocessorModule = Ast.parse(preprocessor.visualizationModule, tempModule)
   // TODO[ao]: it work with builtin visualization, but does not work in general case.
   // Tracked in https://github.com/orgs/enso-org/discussions/6832#discussioncomment-7754474.
-  const preprocessorCode = `${preprocessor.visualizationModule}.${preprocessor.expression} _ ${argsCode}`
-  const expression = `${preprocessorCode} <| ${props.dataSource.expression}`
-  return projectStore.executeExpression(props.dataSource.contextId, expression)
+  if (!isIdentifier(preprocessor.expression)) {
+    console.error(`Unsupported visualization preprocessor definition`, preprocessor)
+    return
+  }
+  const preprocessorQn = Ast.PropertyAccess.new(
+    tempModule,
+    preprocessorModule,
+    preprocessor.expression,
+  )
+  const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
+    Ast.Wildcard.new(tempModule),
+    ...args.map((arg) => Ast.Group.new(tempModule, Ast.parse(arg, tempModule))),
+  ])
+  const rhs = Ast.parse(props.dataSource.expression, tempModule)
+  const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+  return projectStore.executeExpression(props.dataSource.contextId, expression.code())
 })
 
 const effectiveVisualizationData = computed(() => {
   const name = currentType.value?.name
-  if (props.data) return props.data
+  if (props.dataSource?.type === 'raw') return props.dataSource.data
   if (vueError.value) return { name, error: vueError.value }
-  if (visualizationData.value && !visualizationData.value.ok)
-    return { name, error: new Error(visualizationData.value.error.payload) }
-  if (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
-    return { name, error: new Error(expressionVisualizationData.value.error.payload) }
-  return visualizationData.value?.value ?? expressionVisualizationData.value?.value
+  const visualizationData = nodeVisualizationData.value ?? expressionVisualizationData.value
+  if (!visualizationData) return
+  if (visualizationData.ok) return visualizationData.value
+  else return { name, error: new Error(visualizationData.error.payload) }
 })
 
 function updatePreprocessor(
@@ -167,7 +178,11 @@ watch(
   () => (vueError.value = undefined),
 )
 
+// Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
+// prepared asynchronously.
+const preprocessorLoading = ref(false)
 watchEffect(async () => {
+  preprocessorLoading.value = true
   if (currentType.value == null) return
   visualization.value = undefined
   icon.value = undefined
@@ -206,6 +221,7 @@ watchEffect(async () => {
   } catch (caughtError) {
     vueError.value = toError(caughtError)
   }
+  preprocessorLoading.value = false
 })
 
 const isBelowToolbar = ref(false)
@@ -285,7 +301,7 @@ provideVisualizationConfig({
 const effectiveVisualization = computed(() => {
   if (
     vueError.value ||
-    (visualizationData.value && !visualizationData.value.ok) ||
+    (nodeVisualizationData.value && !nodeVisualizationData.value.ok) ||
     (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
   ) {
     return LoadingErrorVisualization

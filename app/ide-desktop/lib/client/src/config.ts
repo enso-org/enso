@@ -119,12 +119,6 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                         value: WindowSize.default().pretty(),
                         description: `Set the initial window size.`,
                     }),
-                    vibrancy: new contentConfig.Option({
-                        passToWebApplication: false,
-                        value: false,
-                        description: `Enable the vibrancy effect.`,
-                        primary: false,
-                    }),
                     closeToQuit: new contentConfig.Option({
                         passToWebApplication: false,
                         value: process.platform !== 'darwin',
