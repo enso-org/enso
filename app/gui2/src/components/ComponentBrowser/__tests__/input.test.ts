@@ -4,7 +4,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
-  makeCon,
+  makeConstructor,
   makeFunction,
   makeLocal,
   makeMethod,
@@ -184,7 +184,7 @@ const baseCases: ApplySuggestionCase[] = [
   },
   {
     code: '',
-    suggestion: makeCon('local.Project.Main.Option.Some'),
+    suggestion: makeConstructor('local.Project.Main.Option.Some'),
     expected: 'Option.Some ',
   },
   {
@@ -350,7 +350,7 @@ test.each([
     const db = new SuggestionDb()
     db.set(1, makeModule('Standard.Base'))
     db.set(2, makeType('Standard.Base.Table'))
-    db.set(3, makeCon('Standard.Base.Table.new'))
+    db.set(3, makeConstructor('Standard.Base.Table.new'))
     const graphMock = GraphDb.Mock(undefined, db)
     const input = useComponentBrowserInput(graphMock, db)
     input.code.value = initialCode
