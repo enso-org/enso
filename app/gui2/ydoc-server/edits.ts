@@ -12,6 +12,29 @@ import { assert } from '../shared/util/assert'
 import { IdMap, ModuleDoc, type VisualizationMetadata } from '../shared/yjsModel'
 import * as fileFormat from './fileFormat'
 
+/**
+ * The simulated metadata of this size takes c.a. 1 second on my machine. It should be quite
+ * bearable, even on slower machines.
+ *
+ * Full benchmark results (from edits.bench.ts):
+ *   name                hz        min        max       mean        p75        p99       p995       p999      rme  samples
+ * · Diffing 10000   8.7370     108.66     132.93     114.46     111.73     132.93     132.93     132.93  ±11.28%        5
+ * · Diffing 15000   4.0483     239.82     257.99     247.02     257.99     257.99     257.99     257.99   ±9.71%        3
+ * · Diffing 20000   2.1577     462.40     464.52     463.46     464.52     464.52     464.52     464.52   ±2.90%        2
+ * · Diffing 25000   1.3744     727.61     727.61     727.61     727.61     727.61     727.61     727.61   ±0.00%        1
+ * · Diffing 30000   0.9850   1,015.25   1,015.25   1,015.25   1,015.25   1,015.25   1,015.25   1,015.25   ±0.00%        1
+ * · Diffing 35000   0.6934   1,442.27   1,442.27   1,442.27   1,442.27   1,442.27   1,442.27   1,442.27   ±0.00%        1
+ * · Diffing 40000   0.5141   1,945.24   1,945.24   1,945.24   1,945.24   1,945.24   1,945.24   1,945.24   ±0.00%        1
+ * · Diffing 50000   0.3315   3,016.59   3,016.59   3,016.59   3,016.59   3,016.59   3,016.59   3,016.59   ±0.00%        1
+ * · Diffing 60000   0.2270   4,405.46   4,405.46   4,405.46   4,405.46   4,405.46   4,405.46   4,405.46   ±0.00%        1
+ * · Diffing 70000   0.1602   6,240.52   6,240.52   6,240.52   6,240.52   6,240.52   6,240.52   6,240.52   ±0.00%        1
+ * · Diffing 80000   0.1233   8,110.54   8,110.54   8,110.54   8,110.54   8,110.54   8,110.54   8,110.54   ±0.00%        1
+ * · Diffing 90000   0.0954  10,481.47  10,481.47  10,481.47  10,481.47  10,481.47  10,481.47  10,481.47   ±0.00%        1
+ * · Diffing 100000  0.0788  12,683.46  12,683.46  12,683.46  12,683.46  12,683.46  12,683.46  12,683.46   ±0.00%        1
+ * · Diffing 250000  0.0107  93,253.97  93,253.97  93,253.97  93,253.97  93,253.97  93,253.97  93,253.97   ±0.00%        1
+ */
+const MAX_SIZE_FOR_NORMAL_DIFF = 30000
+
 interface AppliedUpdates {
   newCode: string | undefined
   newIdMap: IdMap | undefined
@@ -116,12 +139,45 @@ export function translateVisualizationFromFile(
   }
 }
 
+/**
+ * A simplified diff algorithm.
+ *
+ * The `fast-diff` package uses Myers' https://neil.fraser.name/writing/diff/myers.pdf with some
+ * optimizations to generate minimal diff. Unfortunately, event this algorithm is still to slow
+ * for our metadata. Therefore we need to use faster algorithm which will not produce theoretically
+ * minimal diff.
+ *
+ * This is quick implementation making diff which just replaces entire string except common prefix
+ * and suffix.
+ */
+export function stupidFastDiff(oldString: string, newString: string): diff.Diff[] {
+  const minLength = Math.min(oldString.length, newString.length)
+  let commonPrefixLen, commonSuffixLen
+  for (commonPrefixLen = 0; commonPrefixLen < minLength; ++commonPrefixLen)
+    if (oldString[commonPrefixLen] !== newString[commonPrefixLen]) break
+  if (oldString.length === newString.length && oldString.length === commonPrefixLen)
+    return [[0, oldString]]
+  for (commonSuffixLen = 0; commonSuffixLen < minLength - commonPrefixLen; ++commonSuffixLen)
+    if (oldString.at(-1 - commonSuffixLen) !== newString.at(-1 - commonSuffixLen)) break
+  const commonPrefix = oldString.substring(0, commonPrefixLen)
+  const removed = oldString.substring(commonPrefixLen, oldString.length - commonSuffixLen)
+  const added = newString.substring(commonPrefixLen, newString.length - commonSuffixLen)
+  const commonSuffix = oldString.substring(oldString.length - commonSuffixLen, oldString.length)
+  return (commonPrefix ? ([[0, commonPrefix]] as diff.Diff[]) : [])
+    .concat(removed ? [[-1, removed]] : [])
+    .concat(added ? [[1, added]] : [])
+    .concat(commonSuffix ? [[0, commonSuffix]] : [])
+}
+
 export function applyDiffAsTextEdits(
   lineOffset: number,
   oldString: string,
   newString: string,
 ): TextEdit[] {
-  const changes = diff(oldString, newString)
+  const changes =
+    oldString.length + newString.length > MAX_SIZE_FOR_NORMAL_DIFF
+      ? stupidFastDiff(oldString, newString)
+      : diff(oldString, newString)
   let newIndex = 0
   let lineNum = lineOffset
   let lineStartIdx = 0
@@ -171,7 +227,8 @@ export function prettyPrintDiff(from: string, to: string): string {
   const colRed = '\x1b[31m'
   const colGreen = '\x1b[32m'
 
-  const diffs = diff(from, to)
+  const diffs =
+    from.length + to.length > MAX_SIZE_FOR_NORMAL_DIFF ? stupidFastDiff(from, to) : diff(from, to)
   if (diffs.length === 1 && diffs[0]![0] === 0) return 'No changes'
   let content = ''
   for (let i = 0; i < diffs.length; i++) {
@@ -200,4 +257,23 @@ export function prettyPrintDiff(from: string, to: string): string {
   }
   content += colReset
   return content
+}
+
+if (import.meta.vitest) {
+  const { test, expect, bench, describe } = import.meta.vitest
+
+  test.each`
+    oldStr     | newStr      | expected
+    ${''}      | ${'foo'}    | ${[[1, 'foo']]}
+    ${'foo'}   | ${''}       | ${[[-1, 'foo']]}
+    ${'foo'}   | ${'foo'}    | ${[[0, 'foo']]}
+    ${'foo'}   | ${'bar'}    | ${[[-1, 'foo'], [1, 'bar']]}
+    ${'ababx'} | ${'acacx'}  | ${[[0, 'a'], [-1, 'bab'], [1, 'cac'], [0, 'x']]}
+    ${'ax'}    | ${'acacx'}  | ${[[0, 'a'], [1, 'cac'], [0, 'x']]}
+    ${'ababx'} | ${'ax'}     | ${[[0, 'a'], [-1, 'bab'], [0, 'x']]}
+    ${'ababx'} | ${'abacax'} | ${[[0, 'aba'], [-1, 'b'], [1, 'ca'], [0, 'x']]}
+    ${'axxxa'} | ${'a'}      | ${[[0, 'a'], [-1, 'xxxa']]}
+  `('Stupid diff of $oldStr and $newStr', ({ oldStr, newStr, expected }) => {
+    expect(stupidFastDiff(oldStr, newStr)).toEqual(expected)
+  })
 }
