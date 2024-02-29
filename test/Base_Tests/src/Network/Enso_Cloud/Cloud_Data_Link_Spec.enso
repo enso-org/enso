@@ -18,8 +18,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             datalink.should_be_a Enso_File
             datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
 
-            # We assume that the datalink links to some HTML website
-            datalink.read.should_contain "<head>"
+            # We assume that the datalink points to https://raw.githubusercontent.com/enso-org/enso/develop/test/Base_Tests/data/sample.txt
+            r = datalink.read
+            r.should_be_a Text
+            r.should_contain "Cupcake"
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
