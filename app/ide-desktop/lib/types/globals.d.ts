@@ -92,9 +92,4 @@ declare global {
     const IS_VITE: boolean
     // eslint-disable-next-line no-restricted-syntax
     const CLOUD_ENV: 'npekin' | 'pbuchu' | 'production' | undefined
-    /* eslint-disable @typescript-eslint/naming-convention */
-    /** Only exists in development mode. */
-    // This is a function.
-    // eslint-disable-next-line no-restricted-syntax
-    const assert: (invariant: boolean, message: string) => void
 }
