@@ -345,6 +345,20 @@ add_specs suite_builder =
                     (expected == d) . should_be_true
                     (d == d) . should_be_true
 
+        group_builder.specify "Decimals equal to equal values should be equal" <|
+            i = 6223372036853999999997
+            f = i.to_float
+            id = Decimal.new i
+            fd = Decimal.new f
+            i . should_equal f
+            f . should_equal i
+            i . should_equal id
+            id . should_equal i
+            f . should_equal fd
+            fd . should_equal f
+            id . should_equal fd
+            fd . should_equal id
+
         group_builder.specify "constructor should respect Math_Context " <|
             Decimal.new 12000 (Math_Context.new 0) . should_equal 12000
             Decimal.new 12000 (Math_Context.new 1) . should_equal 10000
@@ -354,4 +368,4 @@ add_specs suite_builder =
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter filter="Integer and Float"
+    suite.run_with_filter
