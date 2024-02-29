@@ -62,28 +62,32 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   private BoolStorage run(BoolStorage storage, boolean hadNull, boolean hadTrue, boolean hadFalse) {
     int size = storage.size();
     ImmutableBitSet values = new ImmutableBitSet(storage.getValues(), size);
-    ImmutableBitSet missing = new ImmutableBitSet(storage.getIsMissing(), size);
+    ImmutableBitSet isNothing = new ImmutableBitSet(storage.getIsNothingMap(), size);
     boolean negated = storage.isNegated();
 
     ImmutableBitSet newValues;
-    ImmutableBitSet newMissing;
+    ImmutableBitSet newIsNothing;
 
     if (hadTrue && !hadFalse) {
-      newValues = storage.isNegated() ? missing.notAndNot(values) : missing.notAnd(values);
-      newMissing =
-          hadNull ? (storage.isNegated() ? missing.or(values) : missing.orNot(values)) : missing;
+      newValues = storage.isNegated() ? isNothing.notAndNot(values) : isNothing.notAnd(values);
+      newIsNothing =
+          hadNull
+              ? (storage.isNegated() ? isNothing.or(values) : isNothing.orNot(values))
+              : isNothing;
     } else if (!hadTrue && hadFalse) {
-      newValues = storage.isNegated() ? missing.notAnd(values) : missing.notAndNot(values);
-      newMissing =
-          hadNull ? (storage.isNegated() ? missing.orNot(values) : missing.or(values)) : missing;
-    } else if (hadTrue && hadFalse) {
-      newValues = missing.not();
-      newMissing = missing;
+      newValues = storage.isNegated() ? isNothing.notAnd(values) : isNothing.notAndNot(values);
+      newIsNothing =
+          hadNull
+              ? (storage.isNegated() ? isNothing.orNot(values) : isNothing.or(values))
+              : isNothing;
+    } else if (hadTrue) {
+      newValues = isNothing.not();
+      newIsNothing = isNothing;
     } else {
       newValues = ImmutableBitSet.allFalse(size);
-      newMissing = hadNull ? ImmutableBitSet.allTrue(size) : ImmutableBitSet.allFalse(size);
+      newIsNothing = hadNull ? ImmutableBitSet.allTrue(size) : ImmutableBitSet.allFalse(size);
     }
 
-    return new BoolStorage(newValues.toBitSet(), newMissing.toBitSet(), size, false);
+    return new BoolStorage(newValues.toBitSet(), newIsNothing.toBitSet(), size, false);
   }
 }

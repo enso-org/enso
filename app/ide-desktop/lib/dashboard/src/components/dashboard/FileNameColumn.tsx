@@ -6,7 +6,7 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -21,7 +21,6 @@ import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import Visibility from '#/utilities/visibility'
 
 // ================
@@ -39,7 +38,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const { nodeMap, assetEvents, dispatchAssetListEvent } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
@@ -62,7 +61,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:
@@ -91,11 +89,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           rowState.setVisibility(Visibility.faded)
           try {
             const createdFile = await backend.uploadFile(
-              {
-                fileId,
-                fileName: asset.title,
-                parentDirectoryId: asset.parentId,
-              },
+              { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
               file
             )
             rowState.setVisibility(Visibility.visible)
@@ -103,15 +97,12 @@ export default function FileNameColumn(props: FileNameColumnProps) {
           } catch (error) {
             switch (event.type) {
               case AssetEventType.uploadFiles: {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.delete,
-                  key: item.key,
-                })
-                toastAndLog('Could not upload file', error)
+                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+                toastAndLog(null, error)
                 break
               }
               case AssetEventType.updateFiles: {
-                toastAndLog('Could not update file', error)
+                toastAndLog(null, error)
                 break
               }
             }
@@ -120,6 +111,12 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         break
       }
     }
+  })
+
+  const handleClick = inputBindings.handler({
+    editName: () => {
+      setRowState(object.merger({ isEditingName: true }))
+    },
   })
 
   return (
@@ -133,11 +130,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
       onClick={event => {
-        if (
-          eventModule.isSingleClick(event) &&
-          (selected ||
-            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
-        ) {
+        if (handleClick(event)) {
+          // Already handled.
+        } else if (eventModule.isSingleClick(event) && selected) {
           setRowState(object.merger({ isEditingName: true }))
         }
       }}

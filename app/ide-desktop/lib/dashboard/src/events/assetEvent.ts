@@ -33,7 +33,6 @@ interface AssetEvents {
   readonly newSecret: AssetNewSecretEvent
   readonly openProject: AssetOpenProjectEvent
   readonly closeProject: AssetCloseProjectEvent
-  readonly cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
   readonly copy: AssetCopyEvent
   readonly cut: AssetCutEvent
   readonly cancelCut: AssetCancelCutEvent
@@ -105,10 +104,6 @@ export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.ope
 export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.closeProject> {
   readonly id: backendModule.ProjectId
 }
-
-/** A signal to cancel automatically opening any project that is currently opening. */
-export interface AssetCancelOpeningAllProjectsEvent
-  extends AssetBaseEvent<AssetEventType.cancelOpeningAllProjects> {}
 
 /** A signal that multiple assets should be copied. `ids` are the `Id`s of the newly created
  * placeholder items. */

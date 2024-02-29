@@ -33,10 +33,10 @@ export default function AssetIcon(props: AssetIconProps) {
       return <SvgMask src={fileIcon.fileIcon()} className={className} />
     }
     case backend.AssetType.dataLink: {
-      return <SvgMask src={KeyIcon} className={className} />
+      return <SvgMask src={ConnectorIcon} className={className} />
     }
     case backend.AssetType.secret: {
-      return <SvgMask src={ConnectorIcon} className={className} />
+      return <SvgMask src={KeyIcon} className={className} />
     }
     case backend.AssetType.specialLoading:
     case backend.AssetType.specialEmpty: {

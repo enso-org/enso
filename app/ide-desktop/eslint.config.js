@@ -228,6 +228,11 @@ const RESTRICTED_SYNTAXES = [
         selector: 'CallExpression[callee.name=toastAndLog][arguments.0.value=/\\.$/]',
         message: '`toastAndLog` already includes a trailing `.`',
     },
+    {
+        selector:
+            'JSXElement[closingElement!=null]:not(:has(.children:matches(JSXText[raw=/\\S/], :not(JSXText))))',
+        message: 'Use self-closing tags (`<tag />`) for tags without children.',
+    },
 ]
 
 // ============================

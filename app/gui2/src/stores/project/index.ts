@@ -32,6 +32,7 @@ import type {
   ExplicitCall,
   ExpressionId,
   ExpressionUpdate,
+  MethodPointer,
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
@@ -548,12 +549,15 @@ export const useProjectStore = defineStore('project', () => {
     return mod
   })
 
-  function createExecutionContextForMain(): ExecutionContext {
+  const entryPoint = computed<MethodPointer>(() => {
     const projectName = fullName.value
     const mainModule = `${projectName}.Main`
-    const entryPoint = { module: mainModule, definedOnType: mainModule, name: 'main' }
+    return { module: mainModule, definedOnType: mainModule, name: 'main' }
+  })
+
+  function createExecutionContextForMain(): ExecutionContext {
     return new ExecutionContext(lsRpcConnection, {
-      methodPointer: entryPoint,
+      methodPointer: entryPoint.value,
       positionalArgumentsExpressions: [],
     })
   }
@@ -681,6 +685,15 @@ export const useProjectStore = defineStore('project', () => {
     yDocsProvider = undefined
   }
 
+  const recordMode = computed({
+    get() {
+      return executionMode.value === 'live'
+    },
+    set(value) {
+      executionMode.value = value ? 'live' : 'design'
+    },
+  })
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -693,6 +706,7 @@ export const useProjectStore = defineStore('project', () => {
     diagnostics,
     module,
     modulePath,
+    entryPoint,
     projectModel,
     contentRoots,
     awareness: markRaw(awareness),
@@ -703,6 +717,7 @@ export const useProjectStore = defineStore('project', () => {
     isOutputContextEnabled,
     stopCapturingUndo,
     executionMode,
+    recordMode,
     dataflowErrors,
     executeExpression,
     disposeYDocsProvider,

@@ -23,7 +23,8 @@ import { allRanges } from '@/util/data/range'
 import { Vec2 } from '@/util/data/vec2'
 import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import { computed, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, onMounted, reactive, ref, watch, type Ref } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -256,23 +257,43 @@ function selectWithoutScrolling(index: number) {
 
 // === Preview ===
 
-const previewedExpression = debouncedGetter(() => {
-  if (selectedSuggestion.value == null) return input.code.value
-  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
+type PreviewState = { expression: string; suggestionId?: SuggestionId }
+const previewed = debouncedGetter<PreviewState>(() => {
+  if (selectedSuggestionId.value == null || selectedSuggestion.value == null)
+    return { expression: input.code.value }
+  else
+    return {
+      expression: input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode,
+      suggestionId: selectedSuggestionId.value,
+    }
 }, 200)
 
-const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
-  if (!previewedExpression.value.trim()) return
+const previewedSuggestionReturnType = computed(() => {
+  const id = previewed.value.suggestionId
+  if (id == null) return
+  return suggestionDbStore.entries.get(id)?.returnType
+})
+
+const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
+  if (!previewed.value.expression.trim()) return
   if (!graphStore.methodAst) return
   const body = graphStore.methodAst.body
   if (!body) return
 
   return {
     type: 'expression',
-    expression: previewedExpression.value,
+    expression: previewed.value.expression,
     contextId: body.externalId,
   }
 })
+
+const visualizationSelections = reactive(new Map<SuggestionId | null, VisualizationIdentifier>())
+const previewedVisualizationId = computed(() => {
+  return visualizationSelections.get(previewed.value.suggestionId ?? null)
+})
+function setVisualization(visualization: VisualizationIdentifier) {
+  visualizationSelections.set(previewed.value.suggestionId ?? null, visualization)
+}
 
 // === Scrolling ===
 
@@ -419,10 +440,7 @@ const handler = componentBrowserBindings.handler({
                   :style="{ color: componentColor(item.component) }"
                 />
                 <span>
-                  <span
-                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
-                    v-text="item.component.label"
-                  ></span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
                     v-for="range in allRanges(
                       item.component.matchedRanges,
@@ -450,10 +468,7 @@ const handler = componentBrowserBindings.handler({
               >
                 <SvgIcon :name="item.component.icon" />
                 <span>
-                  <span
-                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
-                    v-text="item.component.label"
-                  ></span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
                     v-for="range in allRanges(
                       item.component.matchedRanges,
@@ -483,6 +498,9 @@ const handler = componentBrowserBindings.handler({
         :scale="1"
         :isCircularMenuVisible="false"
         :dataSource="previewDataSource"
+        :typename="previewedSuggestionReturnType"
+        :currentType="previewedVisualizationId"
+        @update:id="setVisualization($event)"
       />
       <div ref="inputElement" class="CBInput">
         <input

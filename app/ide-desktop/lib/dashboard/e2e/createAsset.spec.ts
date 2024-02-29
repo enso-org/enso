@@ -32,13 +32,7 @@ test.test('upload file', async ({ page }) => {
   const fileChooser = await fileChooserPromise
   const name = 'foo.txt'
   const content = 'hello world'
-  await fileChooser.setFiles([
-    {
-      name,
-      buffer: Buffer.from(content),
-      mimeType: 'text/plain',
-    },
-  ])
+  await fileChooser.setFiles([{ name, buffer: Buffer.from(content), mimeType: 'text/plain' }])
 
   await test.expect(assetRows).toHaveCount(1)
   await test.expect(assetRows.nth(0)).toBeVisible()

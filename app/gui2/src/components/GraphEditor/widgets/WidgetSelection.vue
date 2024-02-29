@@ -124,9 +124,9 @@ function toggleDropdownWidget() {
   showDropdownWidget.value = !showDropdownWidget.value
 }
 
-function onClick(index: number) {
+function onClick(index: number, keepOpen: boolean) {
   selectedIndex.value = index
-  showDropdownWidget.value = false
+  showDropdownWidget.value = keepOpen
 }
 
 // When the selected index changes, we update the expression content.
@@ -181,7 +181,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       :color="'var(--node-color-primary)'"
       :values="tagLabels"
       :selectedValue="selectedLabel"
-      @click="onClick($event)"
+      @click="onClick"
     />
   </div>
 </template>
