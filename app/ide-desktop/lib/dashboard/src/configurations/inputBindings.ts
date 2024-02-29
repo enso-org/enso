@@ -41,8 +41,8 @@ export interface DashboardBindingNamespace extends ReturnType<typeof createBindi
 export type DashboardBindingKey = keyof typeof BINDINGS
 
 /** Create a keybind and mousebind namespace. */
-export function createBindings(register = true) {
-  return inputBindings.defineBindingNamespace('dashboard', BINDINGS, register)
+export function createBindings() {
+  return inputBindings.defineBindingNamespace('dashboard', BINDINGS)
 }
 
 export const BINDINGS = inputBindings.defineBindings({

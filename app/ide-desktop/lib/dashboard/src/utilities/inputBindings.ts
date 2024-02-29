@@ -457,8 +457,7 @@ export const DEFAULT_HANDLER = Symbol('default handler')
  */
 export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   namespace: string,
-  originalBindings: Keybinds<T>,
-  register = true
+  originalBindings: Keybinds<T>
 ) {
   /** The name of a binding in this set of keybinds. */
   type BindingKey = string & keyof T
@@ -677,9 +676,6 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
       }
     },
   } as const
-  if (register) {
-    result.register()
-  }
   return result
 }
 

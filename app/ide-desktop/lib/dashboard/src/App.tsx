@@ -186,7 +186,7 @@ function AppRouter(props: AppProps) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
   }
-  const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings(false))
+  const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
     for (const k in savedInputBindings) {
