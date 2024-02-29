@@ -1,3 +1,5 @@
+/** @file Tests ensuring consistency of example data-link files with the schema. */
+
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
@@ -11,11 +13,13 @@ v.test('correctly rejects invalid values as not matching the schema', () => {
   v.expect(validateDataLink.validateDataLink({ foo: 'BAR' })).toBe(false)
 })
 
-function loadDataLinkFile(path: string): object {
-  const text: string = fs.readFileSync(path, { encoding: 'utf-8' })
+/** Load and parse a data-link description. */
+function loadDataLinkFile(dataLinkPath: string): object {
+  const text: string = fs.readFileSync(dataLinkPath, { encoding: 'utf-8' })
   return JSON.parse(text)
 }
 
+/** Check if the given data-link description matches the schema, reporting any errors. */
 function testSchema(json: object, fileName: string): void {
   const validate = validateDataLink.validateDataLink
   if (!validate(json)) {
@@ -24,9 +28,9 @@ function testSchema(json: object, fileName: string): void {
 }
 
 // We need to go up from `app/ide-desktop/lib/dashboard/` to the root of the repo
-const repoRoot = '../../../../'
-const baseDatalinksRoot = path.resolve(repoRoot, 'test/Base_Tests/data/datalinks/')
-const s3datalinksRoot = path.resolve(repoRoot, 'test/AWS_Tests/data/')
+const REPO_ROOT = '../../../../'
+const BASE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Base_Tests/data/datalinks/')
+const S3_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/AWS_Tests/data/')
 
 v.test('correctly validates example HTTP .datalink files with the schema', () => {
   const schemas = [
@@ -36,7 +40,7 @@ v.test('correctly validates example HTTP .datalink files with the schema', () =>
     'example-http-format-json.datalink',
   ]
   for (const schema of schemas) {
-    const json = loadDataLinkFile(path.resolve(baseDatalinksRoot, schema))
+    const json = loadDataLinkFile(path.resolve(BASE_DATA_LINKS_ROOT, schema))
     testSchema(json, schema)
   }
 })
@@ -44,7 +48,7 @@ v.test('correctly validates example HTTP .datalink files with the schema', () =>
 v.test('rejects invalid schemas (Base)', () => {
   const invalidSchemas = ['example-http-format-invalid.datalink']
   for (const schema of invalidSchemas) {
-    const json = loadDataLinkFile(path.resolve(baseDatalinksRoot, schema))
+    const json = loadDataLinkFile(path.resolve(BASE_DATA_LINKS_ROOT, schema))
     v.expect(validateDataLink.validateDataLink(json)).toBe(false)
   }
 })
@@ -52,7 +56,7 @@ v.test('rejects invalid schemas (Base)', () => {
 v.test('correctly validates example S3 .datalink files with the schema', () => {
   const schemas = ['simple.datalink', 'credentials-with-secrets.datalink', 'formatted.datalink']
   for (const schema of schemas) {
-    const json = loadDataLinkFile(path.resolve(s3datalinksRoot, schema))
+    const json = loadDataLinkFile(path.resolve(S3_DATA_LINKS_ROOT, schema))
     testSchema(json, schema)
   }
 })
