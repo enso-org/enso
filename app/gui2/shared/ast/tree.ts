@@ -1335,8 +1335,11 @@ export class TextLiteral extends Ast {
     return parsed
   }
 
-  /** Return the value of the string, interpreted except for any interpolated expressions. */
-  get contentUninterpolated(): string {
+  /**
+   * Return the literal value of the string with all escape sequences applied, but without
+   * evaluating any interpolated expressions.
+   */
+  get rawTextContent(): string {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
@@ -1385,7 +1388,11 @@ export class MutableTextLiteral extends TextLiteral implements MutableAst {
     )
   }
 
-  setContentUninterpolated(rawText: string) {
+  /**
+   * Set literal value of the string. The code representation of assigned text will be automatically
+   * transformed to use escape sequences when necessary.
+   */
+  setRawTextContent(rawText: string) {
     let boundary = this.boundaryTokenCode()
     const isInterpolated = this.isInterpolated()
     const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.includes(boundary))

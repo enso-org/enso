@@ -28,12 +28,12 @@ const closeToken = computed(() => shownLiteral.value.close ?? shownLiteral.value
 
 const textContents = computed({
   get() {
-    return shownLiteral.value.contentUninterpolated
+    return shownLiteral.value.rawTextContent
   },
   set(value) {
     if (props.input.value instanceof Ast.TextLiteral) {
       const edit = graph.startEdit()
-      edit.getVersion(props.input.value).setContentUninterpolated(value)
+      edit.getVersion(props.input.value).setRawTextContent(value)
       props.onUpdate({ edit })
     } else {
       props.onUpdate({

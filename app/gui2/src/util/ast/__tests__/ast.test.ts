@@ -255,17 +255,17 @@ test.prop({ rawText: sometimesUnicodeString })('Text interpolation roundtrip', (
 
 test.prop({ rawText: sometimesUnicodeString })('AST text literal new', ({ rawText }) => {
   const literal = TextLiteral.new(rawText)
-  expect(literal.contentUninterpolated).toBe(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
 })
 
 test.prop({
   boundary: fc.constantFrom('"', "'"),
   rawText: sometimesUnicodeString,
-})('AST text literal setContentUninterpolated', ({ boundary, rawText }) => {
+})('AST text literal rawTextContent', ({ boundary, rawText }) => {
   const literal = TextLiteral.new('')
   literal.setBoundaries(boundary)
-  literal.setContentUninterpolated(rawText)
-  expect(literal.contentUninterpolated).toBe(rawText)
+  literal.setRawTextContent(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
   const expectInterpolated = rawText.includes('"') || boundary === "'"
   const expectedCode = expectInterpolated ? `'${escapeTextLiteral(rawText)}'` : `"${rawText}"`
   expect(literal.code()).toBe(expectedCode)
