@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
 import project.Enso_Cloud.Internal.Utils
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.JS_Object
@@ -36,6 +37,14 @@ from project.System.File.Generic.File_Write_Strategy import generic_copy
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 
 type Enso_File
+    ## Resolves an `enso://` path to a file.
+    new : Text -> Enso_File
+    new (path : Text) =
+        parsed = Enso_Path.parse path
+        parent = parsed.resolve_parent
+        if parsed.asset_name == Nothing then parent else
+            parent / parsed.asset_name
+
     ## PRIVATE
        Represents a file or folder within the Enso cloud.
     Value name:Text id:Text organization:Text asset_type:Enso_Asset_Type
