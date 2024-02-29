@@ -1,5 +1,5 @@
 import * as map from 'lib0/map'
-import type { AstId, Module, NodeChild, Owned } from '.'
+import type { AstId, Module, NodeChild, Owned, OwnedRefs, TextElement, TextToken } from '.'
 import {
   Token,
   asOwned,
@@ -255,20 +255,16 @@ class Abstractor {
       case RawAst.Tree.Type.TextLiteral: {
         const open = tree.open ? this.abstractToken(tree.open) : undefined
         const newline = tree.newline ? this.abstractToken(tree.newline) : undefined
-        const elements = []
-        for (const e of tree.elements) {
-          elements.push(...this.abstractChildren(e))
-        }
+        const elements = Array.from(tree.elements, (raw) => this.abstractTextElement(raw))
         const close = tree.close ? this.abstractToken(tree.close) : undefined
         node = TextLiteral.concrete(this.module, open, newline, elements, close)
         break
       }
       case RawAst.Tree.Type.Documented: {
         const open = this.abstractToken(tree.documentation.open)
-        const elements = []
-        for (const e of tree.documentation.elements) {
-          elements.push(...this.abstractChildren(e))
-        }
+        const elements = Array.from(tree.documentation.elements, (raw) =>
+          this.abstractTextToken(raw),
+        )
         const newlines = Array.from(tree.documentation.newlines, this.abstractToken.bind(this))
         const expression = tree.expression ? this.abstractTree(tree.expression) : undefined
         node = Documented.concrete(this.module, open, elements, newlines, expression)
@@ -315,8 +311,8 @@ class Abstractor {
     return { whitespace, node }
   }
 
-  private abstractChildren(tree: LazyObject): NodeChild<Owned | Token>[] {
-    const children: NodeChild<Owned | Token>[] = []
+  private abstractChildren(tree: LazyObject): (NodeChild<Owned> | NodeChild<Token>)[] {
+    const children: (NodeChild<Owned> | NodeChild<Token>)[] = []
     const visitor = (child: LazyObject) => {
       if (RawAst.Tree.isInstance(child)) {
         children.push(this.abstractTree(child))
@@ -328,6 +324,42 @@ class Abstractor {
     }
     tree.visitChildren(visitor)
     return children
+  }
+
+  private abstractTextElement(raw: RawAst.TextElement): TextElement<OwnedRefs> {
+    switch (raw.type) {
+      case RawAst.TextElement.Type.Newline:
+      case RawAst.TextElement.Type.Escape:
+      case RawAst.TextElement.Type.Section:
+        return this.abstractTextToken(raw)
+      case RawAst.TextElement.Type.Splice:
+        return {
+          type: 'splice',
+          open: this.abstractToken(raw.open),
+          expression: raw.expression && this.abstractTree(raw.expression),
+          close: this.abstractToken(raw.close),
+        }
+    }
+  }
+
+  private abstractTextToken(raw: RawAst.TextElement): TextToken<OwnedRefs> {
+    switch (raw.type) {
+      case RawAst.TextElement.Type.Newline:
+        return { type: 'token', token: this.abstractToken(raw.newline) }
+      case RawAst.TextElement.Type.Escape: {
+        const negativeOneU32 = 4294967295
+        return {
+          type: 'token',
+          token: this.abstractToken(raw.token),
+          interpreted:
+            raw.token.value !== negativeOneU32 ? String.fromCodePoint(raw.token.value) : undefined,
+        }
+      }
+      case RawAst.TextElement.Type.Section:
+        return { type: 'token', token: this.abstractToken(raw.text) }
+      case RawAst.TextElement.Type.Splice:
+        throw new Error('Unreachable: Splice in non-interpolated text field')
+    }
   }
 }
 

@@ -7,12 +7,12 @@ import org.enso.table.problems.ProblemAggregator;
 
 /** A common base for numeric builders. */
 public abstract class NumericBuilder extends TypedBuilder {
-  protected BitSet isMissing;
+  protected BitSet isNothing;
   protected long[] data;
   protected int currentSize;
 
-  NumericBuilder(BitSet isMissing, long[] data, int currentSize) {
-    this.isMissing = isMissing;
+  NumericBuilder(BitSet isNothing, long[] data, int currentSize) {
+    this.isNothing = isNothing;
     this.data = data;
     this.currentSize = currentSize;
   }
@@ -38,7 +38,7 @@ public abstract class NumericBuilder extends TypedBuilder {
 
   @Override
   public void appendNulls(int count) {
-    isMissing.set(currentSize, currentSize + count);
+    isNothing.set(currentSize, currentSize + count);
     currentSize += count;
   }
 

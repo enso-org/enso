@@ -14,7 +14,6 @@ enum AssetEventType {
   newSecret = 'new-secret',
   openProject = 'open-project',
   closeProject = 'close-project',
-  cancelOpeningAllProjects = 'cancel-opening-all-projects',
   copy = 'copy',
   cut = 'cut',
   cancelCut = 'cancel-cut',

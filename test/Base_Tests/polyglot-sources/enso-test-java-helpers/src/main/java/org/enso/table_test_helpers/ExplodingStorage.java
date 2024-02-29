@@ -40,7 +40,7 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     checkIndex(idx);
     return false;
   }

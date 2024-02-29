@@ -23,8 +23,8 @@ import org.enso.table.util.BitSets;
 /** A builder for floating point columns. */
 public class DoubleBuilder extends NumericBuilder {
   DoubleBuilder(
-      BitSet isMissing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
-    super(isMissing, data, currentSize);
+      BitSet isNothing, long[] data, int currentSize, ProblemAggregator problemAggregator) {
+    super(isNothing, data, currentSize);
     precisionLossAggregator = new PrecisionLossAggregator(problemAggregator);
   }
 
@@ -55,7 +55,7 @@ public class DoubleBuilder extends NumericBuilder {
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {
-      isMissing.set(currentSize++);
+      isNothing.set(currentSize++);
     } else if (NumericConverter.isFloatLike(o)) {
       double value = NumericConverter.coerceToDouble(o);
       data[currentSize++] = Double.doubleToRawLongBits(value);
@@ -83,7 +83,7 @@ public class DoubleBuilder extends NumericBuilder {
         int n = doubleStorage.size();
         ensureFreeSpaceFor(n);
         System.arraycopy(doubleStorage.getRawData(), 0, data, currentSize, n);
-        BitSets.copy(doubleStorage.getIsMissing(), isMissing, currentSize, n);
+        BitSets.copy(doubleStorage.getIsNothingMap(), isNothing, currentSize, n);
         currentSize += n;
       } else {
         throw new IllegalStateException(
@@ -94,7 +94,7 @@ public class DoubleBuilder extends NumericBuilder {
     } else if (storage.getType() instanceof IntegerType) {
       if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
-        BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
+        BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
         for (int i = 0; i < n; i++) {
           long item = longStorage.getItem(i);
           double converted = convertIntegerToDouble(item);
@@ -112,7 +112,7 @@ public class DoubleBuilder extends NumericBuilder {
         for (int i = 0; i < n; i++) {
           BigInteger item = bigIntegerStorage.getItem(i);
           if (item == null) {
-            isMissing.set(currentSize++);
+            isNothing.set(currentSize++);
           } else {
             double converted = convertBigIntegerToDouble(item);
             data[currentSize++] = Double.doubleToRawLongBits(converted);
@@ -128,8 +128,8 @@ public class DoubleBuilder extends NumericBuilder {
       if (storage instanceof BoolStorage boolStorage) {
         int n = boolStorage.size();
         for (int i = 0; i < n; i++) {
-          if (boolStorage.isNa(i)) {
-            isMissing.set(currentSize++);
+          if (boolStorage.isNothing(i)) {
+            isNothing.set(currentSize++);
           } else {
             double x = ToFloatStorageConverter.booleanAsDouble(boolStorage.getItem(i));
             data[currentSize++] = Double.doubleToRawLongBits(x);
@@ -183,7 +183,7 @@ public class DoubleBuilder extends NumericBuilder {
 
   @Override
   public Storage<Double> seal() {
-    return new DoubleStorage(data, currentSize, isMissing);
+    return new DoubleStorage(data, currentSize, isNothing);
   }
 
   /**

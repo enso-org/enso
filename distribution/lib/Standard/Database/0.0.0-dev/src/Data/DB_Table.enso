@@ -2782,7 +2782,7 @@ display_dataframe df indices_count all_rows_count format_terminal =
     display_rows = df.row_count
     rows = Vector.new display_rows row_num->
         col_vals.map col->
-            if col.isNa row_num then "Nothing" else get_item_string col row_num
+            if col.isNothing row_num then "Nothing" else get_item_string col row_num
     table = print_table col_names rows indices_count format_terminal
     if display_rows == all_rows_count then table else
         missing_rows_count = all_rows_count - display_rows

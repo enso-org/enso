@@ -14,8 +14,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import AssetContextMenu from '#/layouts/AssetContextMenu'
+import type * as assetsTable from '#/layouts/AssetsTable'
 
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
@@ -40,10 +40,11 @@ import Visibility, * as visibilityModule from '#/utilities/visibility'
 // === Constants ===
 // =================
 
+/** The height of the header row. */
+const HEADER_HEIGHT_PX = 34
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
-
 /** Placeholder row for directories that are empty. */
 const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
 
@@ -70,7 +71,8 @@ export interface AssetRowProps
   readonly columns: columnUtils.Column[]
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelectedItem: boolean
+  readonly isSoleSelected: boolean
+  readonly isKeyboardSelected: boolean
   readonly allowContextMenu: boolean
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly onContextMenu?: (
@@ -81,10 +83,11 @@ export interface AssetRowProps
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelectedItem, setSelected } = props
-  const { allowContextMenu, onContextMenu, state, columns, onClick } = props
+  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
+  const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef } = state
 
   const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -149,10 +152,7 @@ export default function AssetRow(props: AssetRowProps) {
       } catch (error) {
         toastAndLog(`Could not copy '${asset.title}'`, error)
         // Delete the new component representing the asset that failed to insert.
-        dispatchAssetListEvent({
-          type: AssetListEventType.delete,
-          key: item.key,
-        })
+        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       }
     },
     [
@@ -184,10 +184,7 @@ export default function AssetRow(props: AssetRowProps) {
           item: asset,
         })
         setItem(oldItem =>
-          oldItem.with({
-            directoryKey: nonNullNewParentKey,
-            directoryId: nonNullNewParentId,
-          })
+          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
         )
         setAsset(object.merger({ parentId: nonNullNewParentId }))
         await backend.updateAsset(
@@ -225,10 +222,16 @@ export default function AssetRow(props: AssetRowProps) {
   )
 
   React.useEffect(() => {
-    if (isSoleSelectedItem) {
+    if (isSoleSelected) {
       setAssetPanelProps({ item, setItem })
+      setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [item, isSoleSelectedItem, /* should never change */ setAssetPanelProps])
+  }, [
+    item,
+    isSoleSelected,
+    /* should never change */ setAssetPanelProps,
+    /* should never change */ setIsAssetPanelTemporarilyVisible,
+  ])
 
   const doDelete = React.useCallback(async () => {
     setInsertionVisibility(Visibility.hidden)
@@ -242,10 +245,7 @@ export default function AssetRow(props: AssetRowProps) {
       })
     }
     try {
-      dispatchAssetListEvent({
-        type: AssetListEventType.willDelete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
       if (
         asset.type === backendModule.AssetType.project &&
         backend.type === backendModule.BackendType.local
@@ -263,10 +263,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
       }
       await backend.deleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(
@@ -287,10 +284,7 @@ export default function AssetRow(props: AssetRowProps) {
     setInsertionVisibility(Visibility.hidden)
     try {
       await backend.undoDeleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
@@ -313,8 +307,7 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.newSecret:
       case AssetEventType.updateFiles:
       case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects: {
+      case AssetEventType.closeProject: {
         break
       }
       case AssetEventType.copy: {
@@ -386,7 +379,7 @@ export default function AssetRow(props: AssetRowProps) {
               try {
                 const details = await backend.getFileDetails(asset.id, asset.title)
                 const file = details.file
-                download.download(download.s3URLToHTTPURL(file.path), asset.title)
+                download.download(details.url ?? download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
                 toastAndLog('Could not download selected files', error)
               }
@@ -410,10 +403,7 @@ export default function AssetRow(props: AssetRowProps) {
               resourceId: asset.id,
               userSubjects: [userInfo.id],
             })
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
             setInsertionVisibility(Visibility.visible)
             toastAndLog(null, error)
@@ -559,9 +549,25 @@ export default function AssetRow(props: AssetRowProps) {
             <tr
               draggable
               tabIndex={-1}
-              className={`h-8 transition duration-300 ease-in-out ${
+              ref={element => {
+                if (isSoleSelected && element != null && scrollContainerRef.current != null) {
+                  const rect = element.getBoundingClientRect()
+                  const scrollRect = scrollContainerRef.current.getBoundingClientRect()
+                  const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
+                  const scrollDown = rect.bottom - scrollRect.bottom
+                  if (scrollUp < 0 || scrollDown > 0) {
+                    scrollContainerRef.current.scrollBy({
+                      top: scrollUp < 0 ? scrollUp : scrollDown,
+                      behavior: 'smooth',
+                    })
+                  }
+                }
+              }}
+              className={`h-8 transition duration-300 ease-in-out rounded-full outline-2 -outline-offset-2 outline-prmary ${
                 visibilityModule.CLASS_NAME[visibility]
-              } ${isDraggedOver || selected ? 'selected' : ''}`}
+              } ${isKeyboardSelected ? 'outline' : ''} ${
+                isDraggedOver || selected ? 'selected' : ''
+              }`}
               onClick={event => {
                 unsetModal()
                 onClick(innerProps, event)
@@ -691,7 +697,7 @@ export default function AssetRow(props: AssetRowProps) {
                       setItem={setItem}
                       selected={selected}
                       setSelected={setSelected}
-                      isSoleSelectedItem={isSoleSelectedItem}
+                      isSoleSelected={isSoleSelected}
                       state={state}
                       rowState={rowState}
                       setRowState={setRowState}

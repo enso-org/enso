@@ -185,7 +185,7 @@ type Table
         display_rows = num_rows.min show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->
-                if col.isNa row_num then "Nothing" else get_item_string col row_num
+                if col.isNothing row_num then "Nothing" else get_item_string col row_num
             [row_num.to_text] + cols
         table = print_table col_names rows 1 format_terminal
         if num_rows - display_rows <= 0 then table else
