@@ -162,6 +162,9 @@ public class HttpDownloaderTest {
     task.addProgressListener(progressListener);
     var resp = task.force();
     assertThat(resp.content(), containsString("Hello"));
+    assertThat("Done was called exactly once", doneCalls[0], is(1));
+    assertThat(
+        "Progress reported was called at least once", progressUpdateCalls[0], greaterThan(0));
   }
 
   private static class TextHandler extends SimpleHttpHandler {
@@ -188,9 +191,9 @@ public class HttpDownloaderTest {
   }
 
   private static class BigFileHandler extends SimpleHttpHandler {
-    private static final long BIG_FILE_SIZE = 10 * 1024;
-    private static final byte[] BIG_FILE_BYTES = new byte[Math.toIntExact(BIG_FILE_SIZE)];
     private static final int CHUNK_SIZE = 1024;
+    private static final long BIG_FILE_SIZE = 10 * CHUNK_SIZE;
+    private static final byte[] BIG_FILE_BYTES = new byte[Math.toIntExact(BIG_FILE_SIZE)];
 
     static {
       var rnd = new Random(42);

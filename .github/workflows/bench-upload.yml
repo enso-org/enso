@@ -1,0 +1,46 @@
+# This file is manually managed. It is used to upload benchmarks to to the
+# https://github.com/enso-org/engine-benchmark-results repository.
+
+name: Benchmarks upload
+on:
+  workflow_run:
+    workflows: ["Benchmark Engine", "Benchmark Standard Libraries"]
+    types:
+      - completed
+jobs:
+  upload-benchmarks:
+    name: Upload benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout enso repository
+        uses: actions/checkout@v4
+        with:
+          repository: enso-org/enso
+          path: enso
+      - name: Checkout engine-benchmark-results repository
+        uses: actions/checkout@v4
+        with:
+          repository: enso-org/engine-benchmark-results
+          path: engine-benchmark-results
+          token: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3 \
+            python3-jinja2 \
+            python3-numpy \
+            python3-pandas
+          sudo apt-get install -y gh
+      - name: Set up git
+        run: |
+          git config --global user.email "ci@enso.org"
+          git config --global user.name "Enso CI Bot"
+      - name: Upload benchmarks
+        run: |
+          cd enso/tools/performance/engine-benchmarks
+          python3 website_regen.py \
+            -v \
+            --local-repo  ${{ github.workspace }}/engine-benchmark-results
+        env:
+          GITHUB_TOKEN: ${{ secrets.ENSO_BENCHMARK_RESULTS_TOKEN }}
