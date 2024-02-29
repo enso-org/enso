@@ -423,7 +423,7 @@ const documentation = computed<string | undefined>({
       v-model:isDocsVisible="isDocsVisible"
       :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
       :isVisualizationVisible="isVisualizationVisible"
-      :isFullMenuVisible="menuVisible === MenuState.Full"
+      :isFullMenuVisible="true"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"

@@ -1405,9 +1405,7 @@ export class Documented extends Ast {
     const fields = composeFieldData(base, {
       open: open ?? unspaced(Token.new('##', RawAst.Token.Type.Operator)),
       elements: elements.map((e) => mapRefs(e, ownedToRaw(module, id_))),
-      newlines: newlines?.length
-        ? newlines
-        : [unspaced(Token.new('\n', RawAst.Token.Type.Newline))],
+      newlines: newlines ?? [unspaced(Token.new('\n', RawAst.Token.Type.Newline))],
       expression: concreteChild(module, expression, id_),
     })
     return asOwned(new MutableDocumented(module, fields))
