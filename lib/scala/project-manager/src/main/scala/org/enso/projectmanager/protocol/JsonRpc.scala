@@ -39,6 +39,8 @@ object JsonRpc {
       .registerRequest(LoggingServiceGetEndpoint)
       .registerRequest(FileSystemList)
       .registerRequest(FileSystemCreateDirectory)
+      .registerRequest(FileSystemDeleteDirectory)
+      .registerRequest(FileSystemMoveDirectory)
       .finalized()
 
 }

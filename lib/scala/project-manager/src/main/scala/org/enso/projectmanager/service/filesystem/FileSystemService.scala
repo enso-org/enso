@@ -48,6 +48,12 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
         FileSystemServiceFailure.FileSystem("Failed to delete directory")
       )
 
+  /** @inheritdoc */
+  override def move(from: File, to: File): F[FileSystemServiceFailure, Unit] =
+    fileSystem
+      .move(from, to)
+      .mapError(_ => FileSystemServiceFailure.FileSystem("Failed to move path"))
+
   private def toFileSystemEntry(
     file: File
   ): F[FileSystemServiceFailure, Option[FileSystemEntry]] = {

@@ -63,4 +63,24 @@ object FileSystemManagementApi {
         type Result = Unused.type
       }
   }
+
+  case object FileSystemMoveDirectory
+      extends Method("filesystem/moveDirectory") {
+
+    case class Params(from: File, to: File)
+
+    type Result = Unused.type
+    val Result = Unused
+
+    implicit val hasParams
+      : HasParams.Aux[this.type, FileSystemMoveDirectory.Params] =
+      new HasParams[this.type] {
+        type Params = FileSystemMoveDirectory.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
+  }
 }

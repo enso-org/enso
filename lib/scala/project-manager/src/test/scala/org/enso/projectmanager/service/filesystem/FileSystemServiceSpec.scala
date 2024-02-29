@@ -120,5 +120,49 @@ class FileSystemServiceSpec
       Files.exists(directoryPath.toPath) shouldEqual false
     }
 
+    "move file" in {
+      val testDir = testStorageConfig.userProjectsPath
+
+      val targetFileName      = "target_move_file.txt"
+      val destinationFileName = "destination_move_file.txt"
+      val targetFilePath      = new File(testDir, targetFileName)
+      val destinationFilePath = new File(testDir, destinationFileName)
+
+      FileUtils.forceMkdirParent(targetFilePath)
+      FileUtils.touch(targetFilePath)
+
+      fileSystemService
+        .move(targetFilePath, destinationFilePath)
+        .unsafeRunSync()
+
+      Files.exists(targetFilePath.toPath) shouldEqual false
+      Files.exists(destinationFilePath.toPath) shouldEqual true
+
+      // cleanup
+      FileUtils.deleteQuietly(destinationFilePath)
+    }
+
+    "move directory" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+
+      val testDir = testStorageConfig.userProjectsPath
+
+      val projectName = "New_Project_3"
+      createProject(projectName)
+
+      val directoryPath = new File(testDir, projectName)
+      val targetPath    = new File(testDir, "Target_Move_Directory")
+
+      fileSystemService
+        .move(directoryPath, targetPath)
+        .unsafeRunSync()
+
+      Files.exists(directoryPath.toPath) shouldEqual false
+      Files.isDirectory(targetPath.toPath) shouldEqual true
+
+      // cleanup
+      FileUtils.deleteQuietly(targetPath)
+    }
+
   }
 }

@@ -22,4 +22,11 @@ trait FileSystemServiceApi[F[+_, +_]] {
     * @param path the directory to delete
     */
   def deleteDirectory(path: File): F[FileSystemServiceFailure, Unit]
+
+  /** Moves a file or directory recursively.
+    *
+    * @param from the target path
+    * @param to the destination path
+    */
+  def move(from: File, to: File): F[FileSystemServiceFailure, Unit]
 }

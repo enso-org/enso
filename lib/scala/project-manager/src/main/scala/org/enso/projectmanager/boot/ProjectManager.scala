@@ -12,7 +12,8 @@ import org.enso.projectmanager.boot.Globals.{
 import org.enso.projectmanager.boot.command.filesystem.{
   FileSystemCreateDirectoryCommand,
   FileSystemDeleteDirectoryCommand,
-  FileSystemListCommand
+  FileSystemListCommand,
+  FileSystemMoveDirectoryCommand
 }
 import org.enso.projectmanager.boot.command.{CommandHandler, ProjectListCommand}
 import org.enso.projectmanager.boot.configuration.{
@@ -237,6 +238,16 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           directory.toFile
         )
       commandHandler.printJson(fileSystemDeleteDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_MOVE_FROM)) {
+      val from = Paths.get(options.getOptionValue(Cli.FILESYSTEM_MOVE_FROM))
+      val to   = Paths.get(options.getOptionValue(Cli.FILESYSTEM_MOVE_TO))
+      val fileSystemMoveDirectoryCommand =
+        FileSystemMoveDirectoryCommand[ZIO[ZAny, +*, +*]](
+          config,
+          from.toFile,
+          to.toFile
+        )
+      commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
     } else if (options.hasOption(Cli.PROJECT_LIST)) {
       val projectsPathOpt =
         Option(options.getOptionValue(Cli.PROJECTS_DIRECTORY))
