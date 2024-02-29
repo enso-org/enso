@@ -4,6 +4,12 @@ This directory contains a python script `bench_download.py` for downloading
 Engine and stdlib benchmark results from GitHub, and `Engine_Benchs` Enso
 project for analysing the downloaded data.
 
+Note that for convenience, there is `bench_tool` directory that is a Python
+package. The `bench_download.py` script uses this package.
+
+To run all the Python tests for that package, run `python -m unittest` in this
+directory.
+
 Dependencies for `bench_download.py`:
 
 - python >= 3.7
