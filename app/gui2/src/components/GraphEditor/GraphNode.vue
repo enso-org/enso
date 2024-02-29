@@ -55,6 +55,8 @@ const emit = defineEmits<{
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationVisible': [visible: boolean]
+  'update:visualizationFullscreen': [fullscreen: boolean]
+  'update:visualizationWidth': [width: number]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -119,6 +121,7 @@ const warning = computed(() => {
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+const isOnlyOneSelected = computed(() => isSelected.value && nodeSelection?.selected.size === 1)
 watch(isSelected, (selected) => {
   if (!selected) {
     menuVisible.value = MenuState.Off
@@ -126,7 +129,9 @@ watch(isSelected, (selected) => {
 })
 
 const isDocsVisible = ref(false)
+const visualizationWidth = computed(() => props.node.vis?.width ?? null)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
+const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -411,14 +416,19 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       :currentType="node.vis?.identifier"
+      :isFullscreen="isVisualizationFullscreen"
       :dataSource="{ type: 'node', nodeId: externalId }"
       :typename="expressionInfo?.typename"
+      :width="visualizationWidth"
+      :isFocused="isOnlyOneSelected"
       @update:rect="
         emit('update:visualizationRect', $event),
           (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
       "
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
+      @update:fullscreen="emit('update:visualizationFullscreen', $event)"
+      @update:width="emit('update:visualizationWidth', $event)"
     />
     <GraphNodeComment v-if="documentation" v-model="documentation" class="beforeNode" />
     <div

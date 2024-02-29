@@ -49,7 +49,7 @@ function blur(event: Event) {
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 
-onMounted(() => (config.width = Math.max(config.nodeSize.x, MIN_WIDTH_PX)))
+onMounted(() => (config.width = Math.max(config.width ?? config.nodeSize.x, MIN_WIDTH_PX)))
 
 function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
@@ -226,7 +226,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen.below-toolbar {
-  padding-top: 78px;
+  padding-top: 40px;
 }
 
 .toolbars {
@@ -256,7 +256,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen .toolbars {
-  top: 40px;
+  top: 4px;
 }
 
 .toolbar {

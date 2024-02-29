@@ -14,6 +14,8 @@ export type VisualizationMetadata = z.infer<typeof visualizationMetadata>
 const visualizationMetadata = z
   .object({
     show: z.boolean().default(true),
+    width: z.number().optional(),
+    fullscreen: z.boolean().optional(),
     project: visualizationProject.optional(),
     name: z.string().optional(),
   })

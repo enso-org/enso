@@ -21,6 +21,8 @@ export interface VisualizationIdentifier {
 export interface VisualizationMetadata {
   identifier: VisualizationIdentifier | null
   visible: boolean
+  fullscreen: boolean
+  width: number | null
 }
 
 export function visMetadataEquals(
@@ -29,7 +31,12 @@ export function visMetadataEquals(
 ) {
   return (
     (!a && !b) ||
-    (a && b && a.visible === b.visible && visIdentifierEquals(a.identifier, b.identifier))
+    (a &&
+      b &&
+      a.visible === b.visible &&
+      a.fullscreen == b.fullscreen &&
+      a.width == b.width &&
+      visIdentifierEquals(a.identifier, b.identifier))
   )
 }
 
