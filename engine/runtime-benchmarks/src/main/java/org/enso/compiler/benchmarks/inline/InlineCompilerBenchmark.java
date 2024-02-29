@@ -7,7 +7,6 @@ import java.util.concurrent.TimeUnit;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.compiler.context.InlineContext;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -26,8 +25,8 @@ import org.openjdk.jmh.infra.Blackhole;
  * Measures the inline compilation, that is the compilation that is requested inside a method.
  * Simulates a scenario where there is an existing method and we are trying to insert a new
  * expression into it.
- * <p>
- * There is just a single `main` method that contains {@link #LOCAL_VARS_CNT} local variables.
+ *
+ * <p>There is just a single `main` method that contains {@link #LOCAL_VARS_CNT} local variables.
  * One benchmark measures the time it takes to inline compile a long expression that uses all the
  * local variables. The other benchmark measures the time it takes to inline compile an expression
  * that contains some undefined identifiers and thus, should fail to compile.
@@ -39,10 +38,9 @@ import org.openjdk.jmh.infra.Blackhole;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class InlineCompilerBenchmark {
-  /**
-   * How many variables should be declared in the main method.
-   */
+  /** How many variables should be declared in the main method. */
   private static final int LOCAL_VARS_CNT = 40;
+
   private static final int LONG_EXPR_SIZE = 5;
 
   private final OutputStream out = new ByteArrayOutputStream();
@@ -53,17 +51,14 @@ public class InlineCompilerBenchmark {
 
   @Setup
   public void setup() throws IOException {
-    ctx = Utils.createDefaultContextBuilder()
-        .out(out)
-        .err(out)
-        .logHandler(out)
-        .build();
+    ctx = Utils.createDefaultContextBuilder().out(out).err(out).logHandler(out).build();
     var ensoCtx = Utils.leakEnsoContext(ctx);
     compiler = ensoCtx.getCompiler();
 
     var inlineSource = InlineContextUtils.createMainMethodWithLocalVars(ctx, LOCAL_VARS_CNT);
     mainInlineContext = inlineSource.mainInlineContext();
-    longExpression = InlineContextUtils.createLongExpression(inlineSource.localVarNames(), LONG_EXPR_SIZE);
+    longExpression =
+        InlineContextUtils.createLongExpression(inlineSource.localVarNames(), LONG_EXPR_SIZE);
   }
 
   @TearDown
@@ -87,6 +82,4 @@ public class InlineCompilerBenchmark {
     }
     blackhole.consume(tuppleOpt);
   }
-
-
 }

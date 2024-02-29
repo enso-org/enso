@@ -69,8 +69,7 @@ public class ManyLocalVarsBenchmark {
     var sb = new StringBuilder();
     var codeGen = new CodeGenerator();
 
-    sb.append("main =")
-      .append(System.lineSeparator());
+    sb.append("main =").append(System.lineSeparator());
     for (int i = 0; i < IDENTIFIERS_CNT; i++) {
       int exprSize = random.nextInt(0, MAX_EXPR_SIZE);
       var assignmentExpr = codeGen.defineNewVariable(exprSize);

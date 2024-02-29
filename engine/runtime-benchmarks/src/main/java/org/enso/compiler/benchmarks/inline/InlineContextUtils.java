@@ -23,7 +23,8 @@ class InlineContextUtils {
    * @param localVarsCnt How many local variables should be initialized in the main method
    * @return Body of the main method
    */
-  static InlineSource createMainMethodWithLocalVars(Context ctx, int localVarsCnt) throws IOException {
+  static InlineSource createMainMethodWithLocalVars(Context ctx, int localVarsCnt)
+      throws IOException {
     var sb = new StringBuilder();
     sb.append("main = ").append(System.lineSeparator());
     var codeGen = new CodeGenerator();
@@ -54,17 +55,14 @@ class InlineContextUtils {
     var mainFuncRootNode = (MethodRootNode) mainFunc.getCallTarget().getRootNode();
     var mainLocalScope = mainFuncRootNode.getLocalScope();
     var compiler = ensoCtx.getCompiler();
-    var mainInlineContext = InlineContext.fromJava(
-        mainLocalScope,
-        moduleScope.getModule().asCompilerModule(),
-        scala.Option.apply(false),
-        ensoCtx.getCompilerConfig(),
-        scala.Option.apply(compiler.packageRepository()));
-    return new InlineSource(
-        sb.toString(),
-        mainInlineContext,
-        localVarNames
-    );
+    var mainInlineContext =
+        InlineContext.fromJava(
+            mainLocalScope,
+            moduleScope.getModule().asCompilerModule(),
+            scala.Option.apply(false),
+            ensoCtx.getCompilerConfig(),
+            scala.Option.apply(compiler.packageRepository()));
+    return new InlineSource(sb.toString(), mainInlineContext, localVarNames);
   }
 
   static String createLongExpression(Set<String> localVars, int exprSize) {

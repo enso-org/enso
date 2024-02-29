@@ -8,5 +8,4 @@ record InlineSource(
     // InlineContext for the main method
     InlineContext mainInlineContext,
     // Local variables in main method
-    Set<String> localVarNames
-) {}
+    Set<String> localVarNames) {}
