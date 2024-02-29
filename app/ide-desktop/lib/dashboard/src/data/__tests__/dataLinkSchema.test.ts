@@ -14,13 +14,13 @@ v.test('correctly rejects invalid values as not matching the schema', () => {
 })
 
 /** Load and parse a data-link description. */
-function loadDataLinkFile(dataLinkPath: string): object {
+function loadDataLinkFile(dataLinkPath: string): unknown {
   const text: string = fs.readFileSync(dataLinkPath, { encoding: 'utf-8' })
   return JSON.parse(text)
 }
 
 /** Check if the given data-link description matches the schema, reporting any errors. */
-function testSchema(json: object, fileName: string): void {
+function testSchema(json: unknown, fileName: string): void {
   const validate = validateDataLink.validateDataLink
   if (!validate(json)) {
     v.assert.fail(`Failed to validate ${fileName}:\n${JSON.stringify(validate.errors, null, 2)}`)
