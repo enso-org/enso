@@ -18,8 +18,4 @@ public class HostAccessFactory {
         .allowAccessInheritance(true)
         .build();
   }
-
-  private boolean longInSafeDoubleRange(Long v, Long max) {
-    return v >= -max && v <= max;
-  }
 }
