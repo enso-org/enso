@@ -13,7 +13,7 @@ test.test('delete and restore', async ({ page }) => {
   await test.expect(assetRows).toHaveCount(1)
 
   await assetRows.nth(0).click({ button: 'right' })
-  await actions.locateMoveToTrashButton(contextMenu).click()
+  await actions.locateDeleteButton(contextMenu).click()
 
   await actions.expectPlaceholderRow(page)
 

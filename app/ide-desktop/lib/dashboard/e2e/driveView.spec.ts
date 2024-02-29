@@ -13,11 +13,12 @@ test.test('drive view', async ({ page }) => {
   await actions.expectPlaceholderRow(page)
   // Assets table with one asset
   await actions.locateNewProjectButton(page).click()
+  await actions.locateDrivePageIcon(page).click()
   // The placeholder row becomes hidden.
   await test.expect(assetRows).toHaveCount(1)
   await test.expect(actions.locateAssetsTable(page)).toBeVisible()
-  await actions.locateDrivePageIcon(page).click()
   await actions.locateNewProjectButton(page).click()
+  await actions.locateDrivePageIcon(page).click()
   await test.expect(assetRows).toHaveCount(2)
   await actions.locateDrivePageIcon(page).click()
   // The last opened project needs to be stopped, to remove the toast notification notifying the
@@ -28,6 +29,6 @@ test.test('drive view', async ({ page }) => {
   await assetRows.nth(0).click({ button: 'right' })
   const contextMenu = actions.locateContextMenus(page)
   await test.expect(contextMenu).toBeVisible()
-  await actions.locateMoveToTrashButton(contextMenu).click()
+  await actions.locateDeleteButton(contextMenu).click()
   await test.expect(assetRows).toHaveCount(1)
 })

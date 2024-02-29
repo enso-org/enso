@@ -145,7 +145,7 @@ export function locateSetUsernameButton(page: test.Locator | test.Page) {
 
 /** Find a "delete" button (if any). */
 export function locateDeleteButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Delete' }).getByText('Delete')
+  return page.getByRole('button', { name: 'Delete' }).getByText('Delete').first()
 }
 
 /** Find a button to delete something (if any). */
