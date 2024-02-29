@@ -2,7 +2,6 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
