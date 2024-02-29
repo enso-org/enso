@@ -15,12 +15,12 @@ export function nodeFromAst(ast: Ast.Ast): Node | undefined {
       : { nodeCode: ast, documentation: undefined }
   if (!nodeCode) return
   const pattern = nodeCode instanceof Ast.Assignment ? nodeCode.pattern : undefined
-  const rootSpan = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode
-  const { innerExpr, matches } = prefixes.extractMatches(rootSpan)
+  const rootExpr = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode
+  const { innerExpr, matches } = prefixes.extractMatches(rootExpr)
   return {
     outerExprId: ast.id,
     pattern,
-    rootSpan,
+    rootExpr,
     innerExpr,
     position: Vec2.Zero,
     vis: undefined,
@@ -50,18 +50,18 @@ if (import.meta.vitest) {
   await initializeFFI()
 
   test.each`
-    line                               | pattern      | rootSpan   | documentation
+    line                               | pattern      | rootExpr   | documentation
     ${'2 + 2'}                         | ${undefined} | ${'2 + 2'} | ${undefined}
     ${'foo = bar'}                     | ${'foo'}     | ${'bar'}   | ${undefined}
     ${'## Documentation\n2 + 2'}       | ${undefined} | ${'2 + 2'} | ${'Documentation'}
     ${'## Documentation\nfoo = 2 + 2'} | ${'foo'}     | ${'2 + 2'} | ${'Documentation'}
-  `('Node information from AST $line line', ({ line, pattern, rootSpan, documentation }) => {
+  `('Node information from AST $line line', ({ line, pattern, rootExpr, documentation }) => {
     const ast = Ast.Ast.parse(line)
     const node = nodeFromAst(ast)
     expect(node?.outerExprId).toBe(ast.id)
     expect(node?.pattern?.code()).toBe(pattern)
-    expect(node?.rootSpan.code()).toBe(rootSpan)
-    expect(node?.innerExpr.code()).toBe(rootSpan)
+    expect(node?.rootExpr.code()).toBe(rootExpr)
+    expect(node?.innerExpr.code()).toBe(rootExpr)
     expect(node?.documentation).toBe(documentation)
   })
 

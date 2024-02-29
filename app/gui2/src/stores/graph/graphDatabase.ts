@@ -346,7 +346,7 @@ export class GraphDb {
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
       if (!newNode) continue
-      const nodeId = asNodeId(newNode.rootSpan.id)
+      const nodeId = asNodeId(newNode.rootExpr.id)
       const node = this.nodeIdToNode.get(nodeId)
       const nodeMeta = (node ?? newNode).innerExpr.nodeMetadata
       currentNodeIds.add(nodeId)
@@ -363,7 +363,7 @@ export class GraphDb {
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
         if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
-        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) node.rootSpan = newNode.rootSpan
+        if (differentOrDirty(node.rootExpr, newNode.rootExpr)) node.rootExpr = newNode.rootExpr
         if (differentOrDirty(node.innerExpr, newNode.innerExpr)) node.innerExpr = newNode.innerExpr
         if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
         if (node.primarySubject !== newNode.primarySubject)
@@ -444,7 +444,7 @@ export class GraphDb {
       ...baseMockNode,
       outerExprId: id,
       pattern,
-      rootSpan: Ast.parse(code ?? '0'),
+      rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
     }
     const bindingId = pattern.id
@@ -461,12 +461,20 @@ export function asNodeId(id: Ast.AstId): NodeId {
 }
 
 export interface Node {
+  /** The ID of the outer expression. Usually this is an assignment expression (`a = b`). */
   outerExprId: Ast.AstId
+  /** The left side of the assignment experssion, if `outerExpr` is an assignment expression. */
   pattern: Ast.Ast | undefined
-  rootSpan: Ast.Ast
+  /** The value of the node. The right side of the assignment, if `outerExpr` is an assignment
+   * expression, else the entire `outerExpr`. */
+  rootExpr: Ast.Ast
+  /** The expression displayed by the node. This is `rootExpr`, minus the prefixes, which are in
+   * `prefixes`. */
   innerExpr: Ast.Ast
   position: Vec2
   vis: Opt<VisualizationMetadata>
+  /** Prefixes that are present in `rootExpr` but omitted in `innerExpr` to ensure a clean output.
+   */
   prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
@@ -488,7 +496,7 @@ export function mockNode(exprId?: Ast.AstId): Node {
     ...baseMockNode,
     outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
     pattern: undefined,
-    rootSpan: Ast.parse('0'),
+    rootExpr: Ast.parse('0'),
     innerExpr: Ast.parse('0'),
   }
 }

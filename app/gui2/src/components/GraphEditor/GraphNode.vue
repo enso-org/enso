@@ -59,7 +59,7 @@ const outputPortsSet = computed(() => {
 })
 
 const widthOverridePx = ref<number>()
-const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
+const nodeId = computed(() => asNodeId(props.node.rootExpr.id))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
   potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value)
@@ -179,12 +179,12 @@ const isRecordingOverridden = computed({
     return props.node.prefixes.enableRecording != null
   },
   set(shouldOverride) {
-    const edit = props.node.rootSpan.module.edit()
+    const edit = props.node.rootExpr.module.edit()
     const replacement =
       shouldOverride && !projectStore.isRecordingEnabled
         ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
         : undefined
-    prefixes.modify(edit.getVersion(props.node.rootSpan), { enableRecording: replacement })
+    prefixes.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
 })
@@ -215,7 +215,7 @@ const nodeEditHandler = nodeEditBindings.handler({
 })
 
 function startEditingNode(position: Vec2 | undefined) {
-  let sourceOffset = props.node.rootSpan.code().length
+  let sourceOffset = props.node.rootExpr.code().length
   if (position != null) {
     let domNode, domOffset
     if ((document as any).caretPositionFromPoint) {
@@ -374,7 +374,7 @@ function openFullMenu() {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       :currentType="props.node.vis?.identifier"
-      :dataSource="{ type: 'node', nodeId: props.node.rootSpan.externalId }"
+      :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
       :typename="expressionInfo?.typename"
       @update:rect="
         emit('update:visualizationRect', $event),

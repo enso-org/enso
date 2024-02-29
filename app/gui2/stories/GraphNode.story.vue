@@ -38,10 +38,11 @@ const node = computed((): Node => {
     pattern: pattern.value,
     position: position.value,
     prefixes: { enableRecording: undefined },
-    rootSpan: innerExpr.value,
+    rootExpr: innerExpr.value,
     innerExpr: innerExpr.value,
     primarySubject: undefined,
     vis: undefined,
+    documentation: undefined,
   }
 })
 

@@ -513,7 +513,7 @@ function copyNodeContent() {
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
   const content = node.innerExpr.code()
-  const nodeMetadata = node.rootSpan.nodeMetadata
+  const nodeMetadata = node.rootExpr.nodeMetadata
   const metadata = {
     position: nodeMetadata.get('position'),
     visualization: nodeMetadata.get('visualization'),
