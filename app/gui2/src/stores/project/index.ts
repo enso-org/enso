@@ -608,7 +608,6 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
-    console.log('Updating ', id)
     const config = computed(() =>
       info.payload.type === 'DataflowError'
         ? {

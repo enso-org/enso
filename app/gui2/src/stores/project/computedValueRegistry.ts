@@ -46,7 +46,6 @@ export class ComputedValueRegistry {
       const info = this.db.get(update.expressionId)
       if (info) updateInfo(info, update)
       else this.db.set(update.expressionId, combineInfo(undefined, update))
-      // this.db.set(update.expressionId, newInfo)
     }
   }
 
