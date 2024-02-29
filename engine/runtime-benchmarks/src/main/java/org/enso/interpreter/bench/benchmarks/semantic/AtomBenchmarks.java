@@ -59,9 +59,10 @@ public class AtomBenchmarks {
       import Standard.Base.Data.Numbers
 
       main = length ->
-          generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
+          qualified_generator = acc -> i -> if i == 0 then acc else
+              @Tail_Call qualified_generator (List.Cons i acc) (i - 1)
 
-          res = generator List.Nil length
+          res = qualified_generator List.Nil length
           res
       """;
 
@@ -72,9 +73,14 @@ public class AtomBenchmarks {
       import Standard.Base.Data.Numbers.Integer
 
       main = length ->
-          generator acc:List i:Integer = if i == 0 then acc else @Tail_Call generator (~Cons i acc) (i - 1)
+          autoscoped_generator x i:Integer =
+              acc = x:List
+              if i == 0 then acc else
+                c = ~Cons i acc
+                i1 = i - 1
+                @Tail_Call autoscoped_generator c i1
 
-          res = generator ~Nil length
+          res = autoscoped_generator ~Nil length
           res
       """;
   private static final String REVERSE_LIST_CODE =
@@ -211,10 +217,11 @@ public class AtomBenchmarks {
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .build();
 
+    var millionElemListMethod = mainMethod(context, "millionElementList", MILLION_ELEMENT_LIST);
+    this.millionElementsList = millionElemListMethod.execute();
+
     var lastDot = params.getBenchmark().lastIndexOf('.');
     var name = params.getBenchmark().substring(lastDot + 1);
-    var millionElemListMethod = mainMethod(context, name, MILLION_ELEMENT_LIST);
-    this.millionElementsList = millionElemListMethod.execute();
     switch (name) {
       case "benchGenerateList" -> {
         this.generateList = mainMethod(context, name, GENERATE_LIST_CODE);
