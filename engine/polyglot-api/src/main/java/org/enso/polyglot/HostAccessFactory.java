@@ -21,11 +21,6 @@ public class HostAccessFactory {
         .allowIteratorAccess(true)
         .allowMapAccess(true)
         .allowAccessInheritance(true)
-        .targetTypeMapping(
-            Long.class,
-            Double.class,
-            (v) -> v != null && !longInSafeDoubleRange(v, LONG_MAX_SAFE_DOUBLE),
-            (v) -> Double.longBitsToDouble(v))
         .build();
   }
 

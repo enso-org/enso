@@ -12,6 +12,7 @@ import project.Data.Round_Spec
 
 polyglot java import java.math.BigInteger
 polyglot java import java.math.BigDecimal
+polyglot java import org.enso.base.numeric.Number_Utils
 
 Integer.is_even self = self % 2 == 0
 
@@ -38,6 +39,10 @@ type Complex_Comparator
 
 Comparable.from (_:Complex) = Complex_Comparator
 Comparable.from (_:Number) = Complex_Comparator
+
+float_id : Float -> Float
+float_id f =
+    Number_Utils.floatId f
 
 
 add_specs suite_builder =
@@ -700,6 +705,66 @@ add_specs suite_builder =
             [x, y, z, w].each a->
                 [x, y, z, w].each b->
                     a+b . should_equal 20
+
+    suite_builder.group "arithmetic" group_builder->
+        group_builder.specify "should be able to pass a Float to Java" <|
+            vs = []
+                + [92233720368547758080.0]
+                + [9223372036854777000.0]
+                + [9223372036854776001.0]
+                + [9223372036854776000.0]
+                + [9223372036854775808.0]
+                + [9223372036854775000.0]
+                + [9223372036854774000.0]
+                + [9223372036854700000.0]
+                + [9223372036854000000.0]
+                + [9223372000000000000.0]
+                + [922337203685470000.0]
+                + [92233720368547000.0]
+                + [9223372036854700.0]
+                + [922337203685470.0]
+                + [92233720368547.0]
+                + [9223372036854.0]
+                + [922337203685.0]
+                + [92233720368.0]
+                + [9223372036.0]
+                + [922337203.0]
+                + [92233720.0]
+                + [9223372.0]
+                + [922337.0]
+                + [92233.0]
+                + [9223.0]
+                + [922.0]
+                + [-92233720368547758080.0]
+                + [-9223372036854777000.0]
+                + [-9223372036854776001.0]
+                + [-9223372036854776000.0]
+                + [-9223372036854775808.0]
+                + [-9223372036854775000.0]
+                + [-9223372036854774000.0]
+                + [-9223372036854700000.0]
+                + [-9223372036854000000.0]
+                + [-9223372000000000000.0]
+                + [-922337203685470000.0]
+                + [-92233720368547000.0]
+                + [-9223372036854700.0]
+                + [-922337203685470.0]
+                + [-92233720368547.0]
+                + [-9223372036854.0]
+                + [-922337203685.0]
+                + [-92233720368.0]
+                + [-9223372036.0]
+                + [-922337203.0]
+                + [-92233720.0]
+                + [-9223372.0]
+                + [-922337.0]
+                + [-92233.0]
+                + [-9223.0]
+                + [-922.0]
+
+            vs.map v->
+                r = float_id v
+                r . should_equal v
 
 main filter=Nothing =
     suite = Test.build suite_builder->
