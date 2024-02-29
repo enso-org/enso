@@ -1,13 +1,10 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import org.enso.polyglot.RuntimeOptions;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -205,17 +202,7 @@ public class AtomBenchmarks {
 
   @Setup
   public void initializeBenchmarks(BenchmarkParams params) throws IOException {
-    this.context =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
+    this.context = SrcUtil.newContextBuilder().build();
 
     var millionElemListMethod = mainMethod(context, "millionElementList", MILLION_ELEMENT_LIST);
     this.millionElementsList = millionElemListMethod.execute();
