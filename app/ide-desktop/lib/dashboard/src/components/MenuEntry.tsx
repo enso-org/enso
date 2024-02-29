@@ -1,13 +1,17 @@
 /** @file An entry in a menu. */
 import * as React from 'react'
 
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import BlankIcon from 'enso-assets/blank.svg'
+
+import type * as inputBindings from '#/configurations/inputBindings'
+
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import KeyboardShortcut from '#/components/dashboard/keyboardShortcut'
+import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
 
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // =================
 // === MenuEntry ===
@@ -16,7 +20,9 @@ import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps {
   readonly hidden?: boolean
-  readonly action: shortcutManagerModule.KeyboardAction
+  readonly action: inputBindings.DashboardBindingKey
+  /** Overrides the text for the menu entry. */
+  readonly label?: string
   /** When true, the button is not clickable. */
   readonly disabled?: boolean
   readonly title?: string
@@ -26,20 +32,23 @@ export interface MenuEntryProps {
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
-  const { hidden = false, action, disabled = false, title, paddingClassName, doAction } = props
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const { hidden = false, action, label, disabled = false, title, paddingClassName } = props
+  const { doAction } = props
   const { getText } = textProvider.useText()
-  const info = shortcutManager.keyboardShortcutInfo[action]
+  const inputBindings = inputBindingsProvider.useInputBindings()
+  const info = inputBindings.metadata[action]
   React.useEffect(() => {
-    // This is slower than registering every shortcut in the context menu at once.
-    if (!disabled) {
-      return shortcutManager.registerKeyboardHandlers({
+    // This is slower (but more convenient) than registering every shortcut in the context menu
+    // at once.
+    if (disabled) {
+      return
+    } else {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         [action]: doAction,
       })
-    } else {
-      return
     }
-  }, [disabled, shortcutManager, action, doAction])
+  }, [disabled, inputBindings, action, doAction])
+
   return hidden ? null : (
     <button
       disabled={disabled}
@@ -53,15 +62,8 @@ export default function MenuEntry(props: MenuEntryProps) {
       }}
     >
       <div className="flex items-center gap-3">
-        <SvgMask
-          style={{
-            width: shortcutManagerModule.ICON_SIZE_PX,
-            height: shortcutManagerModule.ICON_SIZE_PX,
-          }}
-          src={info.icon}
-          className={info.colorClass}
-        />
-        {getText(`${action}Shortcut`)}
+        <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="w-4 h-4" />
+        {label ?? getText(`${action}Shortcut`)}
       </div>
       <KeyboardShortcut action={action} />
     </button>

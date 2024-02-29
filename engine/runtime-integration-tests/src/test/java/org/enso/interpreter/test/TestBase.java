@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.polyglot.MethodNames.Module;
@@ -45,6 +46,7 @@ public abstract class TestBase {
         .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
         .logHandler(System.err)
         .option(RuntimeOptions.STRICT_ERRORS, "true")
         .option(
@@ -152,8 +154,15 @@ public abstract class TestBase {
    * #insertChildren(Node...)}.
    */
   static class TestRootNode extends RootNode {
+    private final Function<VirtualFrame, Object> callback;
+
     TestRootNode() {
+      this(null);
+    }
+
+    TestRootNode(Function<VirtualFrame, Object> callback) {
       super(EnsoLanguage.get(null));
+      this.callback = callback;
     }
 
     void insertChildren(Node... children) {
@@ -165,7 +174,11 @@ public abstract class TestBase {
     /** In the tests, do not execute this root node, but execute directly the child nodes. */
     @Override
     public Object execute(VirtualFrame frame) {
-      throw new AssertionError("should not reach here");
+      if (callback == null) {
+        throw new AssertionError("should not reach here");
+      } else {
+        return callback.apply(frame);
+      }
     }
   }
 

@@ -399,7 +399,7 @@ type Range
              1.up_to 100 . find (Filter_Condition.Greater than=10)
     @condition range_default_filter_condition_widget
     find : (Filter_Condition | (Integer -> Boolean)) -> Integer -> Any -> Any
-    find self condition start=0 ~if_missing=Nothing =
+    find self condition (start : Integer = 0) ~if_missing=Nothing =
         predicate = unify_condition_or_predicate condition
         check_start_valid start self used_start->
             result = find_internal self used_start predicate
@@ -444,7 +444,7 @@ type Range
              0.up_to 100 . with_step 5 . index_of (>10) == 3
     @condition range_default_filter_condition_widget
     index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self condition start=0 =
+    index_of self condition (start : Integer = 0) =
         check_start_valid start self used_start->
             case condition of
                 element : Integer -> get_index self used_start self.length-1 element
@@ -471,7 +471,7 @@ type Range
              Pair.new 2 2 . last_index_of 2 == 1
     @condition range_default_filter_condition_widget
     last_index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self condition start=-1 =
+    last_index_of self condition (start : Integer = -1) =
         if self.is_empty && (start==-1 || start==0) then Nothing else
             check_start_valid start self include_end=False used_start->
                 case condition of

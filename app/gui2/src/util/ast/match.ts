@@ -36,7 +36,7 @@ export class Pattern {
   /** Create a new concrete example of the pattern, with the placeholders replaced with the given subtrees. */
   instantiate(edit: MutableModule, subtrees: Ast.Owned[]): Ast.Owned {
     const template = edit.copy(this.template)
-    const placeholders = findPlaceholders(template, this.placeholder).map((ast) => edit.get(ast))
+    const placeholders = findPlaceholders(template, this.placeholder).map((ast) => edit.tryGet(ast))
     for (const [placeholder, replacement] of zipLongest(placeholders, subtrees)) {
       assertDefined(placeholder)
       assertDefined(replacement)

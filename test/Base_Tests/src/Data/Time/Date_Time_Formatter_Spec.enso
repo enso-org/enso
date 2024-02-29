@@ -370,8 +370,8 @@ add_specs suite_builder =
         group_builder.specify "should allow to parse even when some patterns are unused" <|
             "2020-01-02 14:55".parse_date "yyyy-MM-dd HH:mm" . should_equal (Date.new 2020 1 2)
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

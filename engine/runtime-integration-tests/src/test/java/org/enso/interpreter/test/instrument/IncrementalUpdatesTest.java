@@ -263,7 +263,7 @@ public class IncrementalUpdatesTest {
                     new Vector1<>(new String[] {"0"})))));
 
     assertSameElements(
-        context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
+        context.receiveNIgnorePendingExpressionUpdates(4, 60, emptySet()),
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
         TestMessages.update(
             contextId,
@@ -286,7 +286,7 @@ public class IncrementalUpdatesTest {
             new Runtime$Api$PushContextRequest(
                 contextId, new Runtime$Api$StackItem$LocalCall(mainFoo))));
     assertSameElements(
-        context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
+        context.receiveNIgnorePendingExpressionUpdates(4, 60, emptySet()),
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
         TestMessages.update(contextId, fooX, exprType),
         TestMessages.update(contextId, fooRes, exprType),
@@ -327,7 +327,7 @@ public class IncrementalUpdatesTest {
                             new model.Position(3, 8 + originalText.length())),
                         newText)),
                 true)));
-    return context.receiveNIgnorePendingExpressionUpdates(1, 10, emptySet());
+    return context.receiveNIgnorePendingExpressionUpdates(1, 60, emptySet());
   }
 
   private List<Runtime$Api$Response> sendExpressionValue(String originalText, String newText) {
@@ -344,7 +344,7 @@ public class IncrementalUpdatesTest {
                         newText)),
                 UUID.randomUUID(),
                 newText)));
-    return context.receiveNIgnoreExpressionUpdates(1, 10);
+    return context.receiveNIgnoreExpressionUpdates(1, 60);
   }
 
   private <T extends Node> T findLiteralNode(

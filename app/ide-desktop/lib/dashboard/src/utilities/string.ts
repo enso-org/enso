@@ -23,3 +23,9 @@ export function isWhitespaceOnly(string: string) {
 export function isPrintableASCIIOnly(string: string) {
   return /^[ -~]*$/.test(string)
 }
+
+/** Inserts spaces between every word, and capitalizes the first word.
+ * DOES NOT make particles lowercase. */
+export function camelCaseToTitleCase(string: string) {
+  return string.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase())
+}

@@ -12,7 +12,6 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Dry_Run_Operation
-import project.Errors.Common.Forbidden_Operation
 import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -119,7 +118,7 @@ type File
                         temp.delete_if_exists
 
             ## Attach a warning to the file that it is a dry run
-            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file."
+            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file.  Press the Record Once button ❙⬤❙ to write the actual file."
             Warning.attach warning temp
 
     ## ALIAS current directory
@@ -188,7 +187,7 @@ type File
                 _ -> stream
             Output_Stream.new wrapped (File_Error.handle_java_exceptions self)
 
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File writing is forbidden as the Output context is disabled.") else
+        Context.Output.if_enabled disabled_message="File writing is forbidden as the Output context is disabled." panic=False <|
             Managed_Resource.bracket (new_output_stream self open_options) (_.close) action
 
     ## PRIVATE
@@ -489,7 +488,7 @@ type File
                 (Examples.data_dir / "my_directory") . create_directory
     create_directory : Nothing
     create_directory self =
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Directory creation is forbidden as the Output context is disabled.") else
+        Context.Output.if_enabled disabled_message="Directory creation is forbidden as the Output context is disabled." panic=False <|
             self.create_directory_builtin
 
 
@@ -627,7 +626,7 @@ type File
                  file.delete
     delete : Nothing ! File_Error
     delete self =
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File deleting is forbidden as the Output context is disabled.") else
+        Context.Output.if_enabled disabled_message="File deleting is forbidden as the Output context is disabled." panic=False <|
             File_Error.handle_java_exceptions self self.delete_builtin
 
     ## Copies the file to the specified destination.
@@ -636,14 +635,12 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    copy_to : File -> Boolean -> Nothing ! File_Error
-    copy_to self destination replace_existing=False =
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File copying is forbidden as the Output context is disabled.") else
-            File_Error.handle_java_exceptions self <| case replace_existing of
-                True ->
-                  copy_options = [StandardCopyOption.REPLACE_EXISTING]
-                  self.copy_builtin destination copy_options
-                False -> self.copy_builtin destination []
+    copy_to : Writable_File -> Boolean -> Nothing ! File_Error
+    copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
+        Context.Output.if_enabled disabled_message="File copying is forbidden as the Output context is disabled." panic=False <|
+            case destination.file of
+                _ : File -> local_file_copy self destination.file replace_existing
+                _ -> destination.copy_from_local self replace_existing
 
     ## Moves the file to the specified destination.
 
@@ -651,14 +648,15 @@ type File
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
-    move_to : File -> Boolean -> Nothing ! File_Error
-    move_to self destination replace_existing=False =
-        if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
-            File_Error.handle_java_exceptions self <| case replace_existing of
-                True ->
-                  copy_options = [StandardCopyOption.REPLACE_EXISTING]
-                  self.move_builtin destination copy_options
-                False -> self.move_builtin destination []
+    move_to : Writable_File -> Boolean -> Nothing ! File_Error
+    move_to self (destination : Writable_File) (replace_existing : Boolean = False) =
+        Context.Output.if_enabled disabled_message="File moving is forbidden as the Output context is disabled." panic=False <|
+            case destination.file of
+                _ : File -> local_file_move self destination.file replace_existing
+                _ ->
+                    r = destination.copy_from_local self replace_existing
+                    r.if_not_error <|
+                        self.delete . if_not_error r
 
     ## Deletes the file if it exists on disk.
 
@@ -843,3 +841,17 @@ File_Like.from (that : File) = File_Like.Value that
 ## PRIVATE
 Writable_File.from (that : File) =
     Writable_File.Value that.absolute.normalize Local_File_Write_Strategy.instance
+
+## PRIVATE
+local_file_copy : File -> File -> Boolean -> Nothing ! File_Error
+local_file_copy source destination replace_existing =
+    File_Error.handle_java_exceptions source <|
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        source.copy_builtin destination copy_options
+
+## PRIVATE
+local_file_move : File -> File -> Boolean -> Nothing ! File_Error
+local_file_move source destination replace_existing =
+    File_Error.handle_java_exceptions source <|
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        source.move_builtin destination copy_options

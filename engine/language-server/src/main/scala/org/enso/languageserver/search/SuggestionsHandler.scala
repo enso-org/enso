@@ -315,6 +315,7 @@ final class SuggestionsHandler(
       )
 
     case Api.BackgroundJobsStartedNotification() =>
+      self ! SuggestionLoadingCompleted
       context.become(
         initialized(
           projectName,
@@ -329,7 +330,7 @@ final class SuggestionsHandler(
         .map(GetSuggestionsDatabaseVersionResult)
         .pipeTo(sender())
 
-    case CleanSuggestionsDatabase =>
+    case ClearSuggestionsDatabase =>
       if (state.isSuggestionLoadingRunning) stash()
       else {
         context.become(
@@ -344,7 +345,7 @@ final class SuggestionsHandler(
           _ <- suggestionsRepo.clean
         } yield {
           logger.trace(
-            "CleanSuggestionsDatabase [{}].",
+            "ClearSuggestionsDatabase [{}].",
             state.suggestionLoadingQueue
           )
           state.suggestionLoadingQueue.clear()

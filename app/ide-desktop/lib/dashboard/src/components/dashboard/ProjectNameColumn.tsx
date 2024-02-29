@@ -9,7 +9,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
@@ -26,7 +26,6 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/visibility'
@@ -43,13 +42,13 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
-  const { numberOfSelectedItems, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenManually, doOpenIde, doCloseIde } = state
+  const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
@@ -64,7 +63,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const projectState = asset.projectState ?? {
     type: backendModule.ProjectState.closed,
   }
-  const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
+  const isRunning = backendModule.IS_OPENING_OR_OPENED[projectState.type]
   const canExecute =
     backend.type === backendModule.BackendType.local ||
     (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
@@ -100,7 +99,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       case AssetEventType.newSecret:
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:
@@ -226,6 +224,28 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     }
   })
 
+  const handleClick = inputBindings.handler({
+    open: () => {
+      dispatchAssetEvent({
+        type: AssetEventType.openProject,
+        id: asset.id,
+        shouldAutomaticallySwitchPage: true,
+        runInBackground: false,
+      })
+    },
+    run: () => {
+      dispatchAssetEvent({
+        type: AssetEventType.openProject,
+        id: asset.id,
+        shouldAutomaticallySwitchPage: false,
+        runInBackground: true,
+      })
+    },
+    editName: () => {
+      setRowState(object.merger({ isEditingName: true }))
+    },
+  })
+
   return (
     <div
       className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
@@ -239,30 +259,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       onClick={event => {
         if (rowState.isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
-        } else if (
-          shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.open, event)
-        ) {
-          // It is a double click; open the project.
-          dispatchAssetEvent({
-            type: AssetEventType.openProject,
-            id: asset.id,
-            shouldAutomaticallySwitchPage: true,
-            runInBackground: false,
-          })
-        } else if (
-          shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.run, event)
-        ) {
-          dispatchAssetEvent({
-            type: AssetEventType.openProject,
-            id: asset.id,
-            shouldAutomaticallySwitchPage: false,
-            runInBackground: true,
-          })
+        } else if (handleClick(event)) {
+          // Already handled.
         } else if (
           !isRunning &&
           eventModule.isSingleClick(event) &&
-          ((selected && numberOfSelectedItems === 1) ||
-            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
+          selected &&
+          selectedKeys.current.size === 1
         ) {
           setRowState(object.merger({ isEditingName: true }))
         }
@@ -279,11 +282,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setItem={setAsset}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
-          openIde={switchPage => {
-            doOpenIde(asset, setAsset, switchPage)
+          doOpenEditor={switchPage => {
+            doOpenEditor(asset, setAsset, switchPage)
           }}
-          onClose={() => {
-            doCloseIde(asset)
+          doCloseEditor={() => {
+            doCloseEditor(asset)
           }}
         />
       )}

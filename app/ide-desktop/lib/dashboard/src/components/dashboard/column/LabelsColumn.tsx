@@ -10,8 +10,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import ManageLabelsModal from '#/layouts/dashboard/ManageLabelsModal'
+import Category from '#/layouts/CategorySwitcher/Category'
 
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenus from '#/components/ContextMenus'
@@ -20,12 +19,13 @@ import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
 
+import ManageLabelsModal from '#/modals/ManageLabelsModal'
+
 import type * as backendModule from '#/services/Backend'
 
 import * as assetQuery from '#/utilities/AssetQuery'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as shortcutManager from '#/utilities/ShortcutManager'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // ====================
@@ -104,7 +104,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               setModal(
                 <ContextMenus key={`label-${label}`} event={event}>
                   <ContextMenu>
-                    <MenuEntry action={shortcutManager.KeyboardAction.delete} doAction={doDelete} />
+                    <MenuEntry action="delete" doAction={doDelete} />
                   </ContextMenu>
                 </ContextMenus>
               )

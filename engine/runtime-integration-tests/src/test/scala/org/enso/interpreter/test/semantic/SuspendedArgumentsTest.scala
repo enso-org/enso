@@ -11,7 +11,8 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "work in basic expressions" in {
       val code =
-        """
+        """import Standard.Base.Data.Numbers
+          |
           |main =
           |    lazyId : Suspended -> a
           |    lazyId = x -> x
@@ -38,6 +39,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
       val code =
         """
           |import Standard.Base.Any.Any
+          |import Standard.Base.Data.Numbers
           |
           |main =
           |    ifTest = c -> ~ifT -> ~ifF -> if c == 0 then ifT else ifF
@@ -49,7 +51,9 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "work in non-tail positions" in {
       val code =
-        """
+        """import Standard.Base.Data.Numbers
+          |import Standard.Base.Data.Numbers.Number
+          |
           |main =
           |    suspInc : Suspended -> Number
           |    suspInc = ~x -> 1 + x

@@ -369,7 +369,7 @@ public final class EnsoMultiValue implements EnsoObject {
       try {
         var members = iop.getMembers(values[i]);
         var len = iop.getArraySize(members);
-        for (var j = 0L; j < len; i++) {
+        for (var j = 0L; j < len; j++) {
           var name = iop.readArrayElement(members, j);
           names.add(iop.asString(name));
         }

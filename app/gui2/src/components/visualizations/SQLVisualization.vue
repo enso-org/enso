@@ -1,7 +1,8 @@
 <script lang="ts">
 export const name = 'SQL Query'
 export const icon = 'braces'
-export const inputType = 'Standard.Database.Data.Table.Table | Standard.Database.Data.Column.Column'
+export const inputType =
+  'Standard.Database.Data.DB_Table.DB_Table | Standard.Database.Data.DB_Column.DB_Column'
 export const defaultPreprocessor = [
   'Standard.Visualization.SQL.Visualization',
   'prepare_visualization',

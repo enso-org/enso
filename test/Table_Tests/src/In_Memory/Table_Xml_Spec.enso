@@ -4,9 +4,9 @@ from Standard.Test import all
 from Standard.Table.Errors import all
 import Standard.Base.Errors.Common.Type_Error
 
-# pretty printed xml actually makes the tests less pretty 
+# pretty printed xml actually makes the tests less pretty
 # so all but one tests depretty the xml before comparing
-depretty xmlText = 
+depretty xmlText =
     xmlText.replace (Regex.compile "\n\s*") ""
 
 type Data
@@ -25,16 +25,16 @@ type Data
             price = ["Price", [9.99, 5.99, 6.99, 7.99]]
             year = ["Year", [1859, 1925, 1951, 1939]]
             last_borrowed = ["Last Borrowed", [Date_Time.new 1999 1 2 3 40 (zone = Time_Zone.utc), Date_Time.new 2000 2 3 4 50 (zone = Time_Zone.utc), Date_Time.new 2001 3 4 5 25 (zone = Time_Zone.utc), Date_Time.new 2002 4 5 6 15 (zone = Time_Zone.utc)]]
-           
+
             Table.new [title, author, price, year, last_borrowed]
         Data.Value make_table
 
 add_specs suite_builder =
     suite_builder.group "to_xml" group_builder->
-        data = Data.setup  
+        data = Data.setup
         group_builder.specify "table with no rows should become empty Table element" <|
             t = data.table . take 0
-            r = t.to_xml 
+            r = t.to_xml
             e = "<Table/>"
             (depretty r).should_equal (depretty e)
         group_builder.specify "if no columns are specified all fields become child elements" <|
@@ -200,7 +200,7 @@ add_specs suite_builder =
             r.should_fail_with (Unexpected_Extra_Columns.Warning ["Last Borrowed"])
         group_builder.specify "Will error if configured with a element column that is not in the table" <|
             t = data.table
-            r = t.to_xml ["Author", "Price", "Not In Table"] ["Year"] "Title" 
+            r = t.to_xml ["Author", "Price", "Not In Table"] ["Year"] "Title"
             r.should_fail_with (Missing_Input_Columns.Error ["Not In Table"])
         group_builder.specify "Will error if configured with a attribute column that is not in the table" <|
             t = data.table
@@ -211,7 +211,7 @@ add_specs suite_builder =
             r = t.to_xml ["Author", "Price"] ["Year"] "Not In Table"
             r.should_fail_with (No_Such_Column.Error "Not In Table")
         group_builder.specify "XML should be pretty printed" <|
-            # pretty printed xml actually makes the tests less pretty 
+            # pretty printed xml actually makes the tests less pretty
             # so all the other tests depretty the xml before comparing
             # this one makes sure it actually is pretty printed for users
             t = data.table . take 2
@@ -226,7 +226,7 @@ add_specs suite_builder =
                 + '        <Year>1925</Year>\n'
                 + '    </Row>\n'
                 + '</Table>\n'
-            r . should_equal e 
+            r . should_equal e
         group_builder.specify "Illegal xml names are cleaned up in root_name and row_name" <|
             t = data.table . take 1
             r = t.to_xml ["Year"] ["Author", "Price"] "Title" "the library" "22book"
@@ -294,7 +294,7 @@ add_specs suite_builder =
         group_builder.specify "Panic if wrong types passed in element_columns" <|
             t = data.table
             r = Panic.recover Any (t.to_xml 1.23)
-            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`element_columns`'))"   
+            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`element_columns`'))"
         group_builder.specify "Panic if wrong types passed in element_columns vector" pending='Not working' <|
             t = data.table
             r = Panic.recover Any (t.to_xml [1.23])
@@ -302,7 +302,7 @@ add_specs suite_builder =
         group_builder.specify "Panic if wrong types passed in attribute_columns" <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] 1.23)
-            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`attribute_columns`'))"   
+            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`attribute_columns`'))"
         group_builder.specify "Panic if wrong types passed in attribute_columns vector" pending='Not working' <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] [1.23])
@@ -310,7 +310,7 @@ add_specs suite_builder =
         group_builder.specify "Panic if wrong types passed in value_column" <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] [] 1.23)
-            r.to_text.should_equal "(Error: (Type_Error.Error Text | Integer | Nothing 1.23 '`value_column`'))"   
+            r.to_text.should_equal "(Error: (Type_Error.Error Text | Integer | Nothing 1.23 '`value_column`'))"
         group_builder.specify "Panic if wrong types passed in root_name" <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] [] "Year" 1.23)
@@ -371,10 +371,10 @@ add_specs suite_builder =
                     <special>'</special>
                   </Row>
                 </Table>
-            (depretty r).should_equal (depretty e)       
-   
-main =
+            (depretty r).should_equal (depretty e)
+
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

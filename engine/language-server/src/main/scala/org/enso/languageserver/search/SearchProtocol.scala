@@ -493,8 +493,8 @@ object SearchProtocol {
     updates: Seq[SuggestionsDatabaseUpdate]
   )
 
-  /** A request to clean the suggestions database. */
-  case object CleanSuggestionsDatabase
+  /** A request to clear the suggestions database. */
+  case object ClearSuggestionsDatabase
 
   /** The request to receive contents of the suggestions database. */
   case object GetSuggestionsDatabase

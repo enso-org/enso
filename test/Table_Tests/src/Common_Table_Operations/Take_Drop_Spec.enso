@@ -12,15 +12,15 @@ from Standard.Test import all
 from project.Util import all
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Table_Take_Drop_Data
     Value ~data
-    
+
     connection self = self.data.at 0
     table self = self.data.at 1
     empty self = self.data.at 2
-    
+
     setup create_connection_fn table_builder = Table_Take_Drop_Data.Value <|
         connection = create_connection_fn Nothing
         table =
@@ -36,14 +36,14 @@ type Table_Take_Drop_Data
 
 type Column_Take_Drop_Data
     Value ~data
-    
+
     connection self = self.data.at 0
     table self = self.data.at 1
     alpha self = self.data.at 2
     beta self = self.data.at 3
     empty_alpha self = self.data.at 4
     empty_beta self = self.data.at 5
-    
+
     setup create_connection_fn table_builder = Column_Take_Drop_Data.Value <|
         connection = create_connection_fn Nothing
         table =
@@ -56,7 +56,7 @@ type Column_Take_Drop_Data
         empty_table = table.remove_all_rows
         empty_alpha = empty_table.at "alpha"
         empty_beta = empty_table.at "beta"
-        
+
         [connection, table, alpha, beta, empty_alpha, empty_beta]
 
     teardown self =

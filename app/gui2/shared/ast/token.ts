@@ -23,6 +23,7 @@ export interface SyncTokenId {
   code_: string
   tokenType_: RawAst.Token.Type | undefined
 }
+
 export class Token implements SyncTokenId {
   readonly id: TokenId
   code_: string
@@ -45,6 +46,10 @@ export class Token implements SyncTokenId {
   static withId(code: string, type: RawAst.Token.Type | undefined, id: TokenId) {
     assert(isUuid(id))
     return new this(code, type, id)
+  }
+
+  static equal(a: SyncTokenId, b: SyncTokenId): boolean {
+    return a.tokenType_ === b.tokenType_ && a.code_ === b.code_
   }
 
   code(): string {

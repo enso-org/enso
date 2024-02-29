@@ -2256,7 +2256,7 @@ class IrToTruffle(
       *
       * @param inputArg the argument to generate code for
       * @param position the position of `arg` at the function definition site
-      * @param checkNode null or node to check the argument type for
+      * @param types null or node to check the argument type for
       * @return a truffle entity corresponding to the definition of `arg` for a
       *         given function
       */
@@ -2273,13 +2273,14 @@ class IrToTruffle(
 
           // Note [Handling Suspended Defaults]
           val defaultedValue = if (arg.suspended && defaultExpression != null) {
+            assert(arg.defaultValue.isDefined)
             val defaultRootNode = ClosureRootNode.build(
               language,
               scope,
               moduleScope,
               defaultExpression,
-              null,
-              s"<default::$scopeName::${arg.name}>",
+              makeSection(moduleScope, arg.defaultValue.get.location()),
+              s"<default::$scopeName::${arg.name.showCode()}>",
               false,
               false
             )

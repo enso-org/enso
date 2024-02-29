@@ -404,14 +404,7 @@ watchPostEffect(() => {
       <SvgIcon
         class="add-item"
         name="vector_add"
-        @pointerdown="
-          !$event.ctrlKey &&
-            !$event.shiftKey &&
-            !$event.altKey &&
-            !$event.metaKey &&
-            $event.stopImmediatePropagation()
-        "
-        @click="emit('update:modelValue', [...props.modelValue, props.default()])"
+        @click.stop="emit('update:modelValue', [...props.modelValue, props.default()])"
       />
       <span class="token">]</span>
     </div>

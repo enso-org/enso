@@ -8,12 +8,12 @@ from Standard.Table import Aggregate_Column, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
-import project.Data.Column.Column
+import project.Data.DB_Column.DB_Column
 import project.Data.Dialect
 import project.Data.SQL.SQL_Builder
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table
+import project.Data.DB_Table.DB_Table
 import project.Internal.Base_Generator
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Column_Fetcher.Column_Fetcher
@@ -105,7 +105,7 @@ type SQLite_Dialect
 
     ## PRIVATE
        Prepares a distinct operation.
-    prepare_distinct : Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
@@ -277,7 +277,7 @@ type SQLite_Dialect
         if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported "SQLite"
 
     ## PRIVATE
-    value_type_for_upload_of_existing_column : Column -> Value_Type
+    value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column = column.value_type
 
 ## PRIVATE
@@ -444,7 +444,7 @@ replace args metadata =
 
     replace_params = metadata.at 1
 
-    expression = case replace_params.input_type == Text || replace_params.input_type == Column of
+    expression = case replace_params.input_type == Text || replace_params.input_type == DB_Column of
         True ->
             ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
             case replace_params.only_first of

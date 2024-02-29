@@ -25,8 +25,8 @@ add_specs suite_builder =
             t2 = Fan_Out.fan_out_to_rows t "bar" (_.split "b")
             t2.should_equal expected
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

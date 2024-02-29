@@ -14,7 +14,7 @@ class MethodsTest extends InterpreterTest {
   ): Unit = {
     "be defined in the global scope and dispatched to" in {
       val code =
-        """
+        """import Standard.Base.Data.Numbers
           |type Foo
           |Foo.bar = number -> number + 1
           |main = Foo.bar 10
@@ -37,7 +37,7 @@ class MethodsTest extends InterpreterTest {
 
     "be callable with dot operator" in {
       val code =
-        """
+        """import Standard.Base.Data.Numbers
           |type Foo
           |Foo.bar = number -> number + 1
           |main = Foo.bar 10
@@ -47,7 +47,7 @@ class MethodsTest extends InterpreterTest {
 
     "be chainable with dot operator" in {
       val code =
-        """
+        """import Standard.Base.Data.Numbers
           |type Foo
           |type Bar
           |type Baz
@@ -63,7 +63,7 @@ class MethodsTest extends InterpreterTest {
 
     "behave like parenthesised when called with non-spaced dot operator" in {
       val code =
-        """
+        """import Standard.Base.Data.Numbers
           |type Foo
           |type Bar
           |
@@ -78,7 +78,8 @@ class MethodsTest extends InterpreterTest {
 
     "be able to be defined without arguments" in {
       val code =
-        """
+        """import Standard.Base.Data.Numbers
+          |
           |type Foo
           |Foo.bar = 1
           |main = Foo.bar + 5
@@ -89,6 +90,7 @@ class MethodsTest extends InterpreterTest {
     "be definable as blocks without arguments" in {
       val code =
         """import Standard.Base.Any.Any
+          |import Standard.Base.Data.Numbers
           |
           |Any.method self =
           |    x = self * self
@@ -169,7 +171,8 @@ class MethodsTest extends InterpreterTest {
 
     "be callable on types when non-static, with additional self arg" in {
       val code =
-        """import Standard.Base.IO
+        """import Standard.Base.Data.Numbers
+          |import Standard.Base.IO
           |
           |type Foo
           |    Mk_Foo a

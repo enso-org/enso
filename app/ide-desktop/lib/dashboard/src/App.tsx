@@ -42,16 +42,18 @@ import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
+import * as inputBindingsModule from '#/configurations/inputBindings'
+
 import * as navigateHooks from '#/hooks/navigateHooks'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
-import LocalStorageProvider from '#/providers/LocalStorageProvider'
+import InputBindingsProvider from '#/providers/InputBindingsProvider'
+import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider from '#/providers/ModalProvider'
 import SessionProvider from '#/providers/SessionProvider'
-import ShortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
 import EnterOfflineMode from '#/pages/authentication/EnterOfflineMode'
@@ -61,13 +63,43 @@ import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
+import Subscribe from '#/pages/subscribe/Subscribe'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
-import ShortcutManager, * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import LocalStorage from '#/utilities/LocalStorage'
 
 import * as authServiceModule from '#/authentication/service'
+
+// ============================
+// === Global configuration ===
+// ============================
+
+declare module '#/utilities/LocalStorage' {
+  /** */
+  interface LocalStorageData {
+    readonly inputBindings: Partial<
+      Readonly<Record<inputBindingsModule.DashboardBindingKey, string[]>>
+    >
+  }
+}
+
+LocalStorage.registerKey('inputBindings', {
+  tryParse: value =>
+    typeof value !== 'object' || value == null
+      ? null
+      : Object.fromEntries(
+          // This is SAFE, as it is a readonly upcast.
+          // eslint-disable-next-line no-restricted-syntax
+          Object.entries(value as Readonly<Record<string, unknown>>).flatMap(kv => {
+            const [k, v] = kv
+            return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
+              ? [[k, v]]
+              : []
+          })
+        ),
+})
 
 // ======================
 // === getMainPageUrl ===
@@ -86,6 +118,7 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
+  readonly vibrancy: boolean
   readonly logger: loggerProvider.Logger
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean
@@ -112,8 +145,9 @@ export default function App(props: AppProps) {
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
   const Router = detect.isOnElectron() ? router.MemoryRouter : router.BrowserRouter
-  /** Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
-   * will redirect the user between the login/register pages and the dashboard. */
+  // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
+  // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
+  // will redirect the user between the login/register pages and the dashboard.
   return (
     <>
       <toastify.ToastContainer
@@ -126,7 +160,9 @@ export default function App(props: AppProps) {
         limit={3}
       />
       <Router basename={getMainPageUrl().pathname}>
-        <AppRouter {...props} />
+        <LocalStorageProvider>
+          <AppRouter {...props} />
+        </LocalStorageProvider>
       </Router>
     </>
   )
@@ -144,32 +180,67 @@ export default function App(props: AppProps) {
 function AppRouter(props: AppProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl } = props
+  const { localStorage } = localStorageProvider.useLocalStorage()
   const navigate = navigateHooks.useNavigate()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
   }
-  const [shortcutManager] = React.useState(() => ShortcutManager.createWithDefaults())
+  const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
   React.useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const isTargetEditable =
-        event.target instanceof HTMLInputElement ||
-        (event.target instanceof HTMLElement && event.target.isContentEditable)
-      const shouldHandleEvent = isTargetEditable
-        ? !shortcutManagerModule.isTextInputEvent(event)
-        : true
-      if (shouldHandleEvent && shortcutManager.handleKeyboardEvent(event)) {
-        event.preventDefault()
-        // This is required to prevent the event from propagating to the event handler
-        // that focuses the search input.
-        event.stopImmediatePropagation()
+    const savedInputBindings = localStorage.get('inputBindings')
+    for (const k in savedInputBindings) {
+      // This is UNSAFE, hence the `?? []` below.
+      // eslint-disable-next-line no-restricted-syntax
+      const bindingKey = k as inputBindingsModule.DashboardBindingKey
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings ?? []) {
+        inputBindingsRaw.delete(bindingKey, oldBinding)
+      }
+      for (const newBinding of savedInputBindings[bindingKey] ?? []) {
+        inputBindingsRaw.add(bindingKey, newBinding)
       }
     }
-    document.body.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.body.removeEventListener('keydown', onKeyDown)
+  }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+  const inputBindings = React.useMemo(() => {
+    const updateLocalStorage = () => {
+      localStorage.set(
+        'inputBindings',
+        Object.fromEntries(
+          Object.entries(inputBindingsRaw.metadata).map(kv => {
+            const [k, v] = kv
+            return [k, v.bindings]
+          })
+        )
+      )
     }
-  }, [shortcutManager])
+    return {
+      /** Transparently pass through `handler()`. */
+      get handler() {
+        return inputBindingsRaw.handler
+      },
+      /** Transparently pass through `attach()`. */
+      get attach() {
+        return inputBindingsRaw.attach
+      },
+      reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
+        inputBindingsRaw.reset(bindingKey)
+        updateLocalStorage()
+      },
+      add: (bindingKey: inputBindingsModule.DashboardBindingKey, binding: string) => {
+        inputBindingsRaw.add(bindingKey, binding)
+        updateLocalStorage()
+      },
+      delete: (bindingKey: inputBindingsModule.DashboardBindingKey, binding: string) => {
+        inputBindingsRaw.delete(bindingKey, binding)
+        updateLocalStorage()
+      },
+      /** Transparently pass through `metadata`. */
+      get metadata() {
+        return inputBindingsRaw.metadata
+      },
+    }
+  }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
   const mainPageUrl = getMainPageUrl()
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
@@ -191,9 +262,21 @@ function AppRouter(props: AppProps) {
       if (
         isClick &&
         !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLTextAreaElement)
+        !(event.target instanceof HTMLTextAreaElement) &&
+        !(event.target instanceof HTMLElement && event.target.isContentEditable)
       ) {
-        document.getSelection()?.removeAllRanges()
+        const selection = document.getSelection()
+        const app = document.getElementById('app')
+        const appContainsSelection =
+          app != null &&
+          selection != null &&
+          selection.anchorNode != null &&
+          app.contains(selection.anchorNode) &&
+          selection.focusNode != null &&
+          app.contains(selection.focusNode)
+        if (selection != null && !appContainsSelection) {
+          selection.removeAllRanges()
+        }
       }
     }
     const onSelectStart = () => {
@@ -225,6 +308,7 @@ function AppRouter(props: AppProps) {
             path={appUtils.DASHBOARD_PATH}
             element={shouldShowDashboard && <Dashboard {...props} />}
           />
+          <router.Route path={appUtils.SUBSCRIBE_PATH} element={<Subscribe />} />
         </router.Route>
         {/* Semi-protected pages are visible to users currently registering. */}
         <router.Route element={<authProvider.SemiProtectedLayout />}>
@@ -239,9 +323,7 @@ function AppRouter(props: AppProps) {
     </router.Routes>
   )
   let result = routes
-  result = (
-    <ShortcutManagerProvider shortcutManager={shortcutManager}>{result}</ShortcutManagerProvider>
-  )
+  result = <InputBindingsProvider inputBindings={inputBindings}>{result}</InputBindingsProvider>
   result = <ModalProvider>{result}</ModalProvider>
   result = (
     <AuthProvider
@@ -255,8 +337,6 @@ function AppRouter(props: AppProps) {
     </AuthProvider>
   )
   result = <BackendProvider initialBackend={initialBackend}>{result}</BackendProvider>
-  /** {@link BackendProvider} depends on {@link LocalStorageProvider}. */
-  result = <LocalStorageProvider>{result}</LocalStorageProvider>
   result = (
     <SessionProvider
       mainPageUrl={mainPageUrl}

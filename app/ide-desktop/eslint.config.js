@@ -226,14 +226,19 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: `:matches(\
-            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title)$/][value.raw=/^'|^"|^\`/], \
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title|actionButtonLabel)$/][value.raw=/^'|^"|^\`/], \
             JSXText[value=/\\S/], \
-            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title)$/] ConditionalExpression:matches(\
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title|actionButtonLabel)$/] ConditionalExpression:matches(\
                 [consequent.raw=/^'|^"|^\`/], \
                 [alternate.raw=/^'|^"|^\`/]\
             )\
         )`,
         message: 'Use a `getText()` from `useText` instead of a literal string',
+    },
+    {
+        selector:
+            'JSXElement[closingElement!=null]:not(:has(.children:matches(JSXText[raw=/\\S/], :not(JSXText))))',
+        message: 'Use self-closing tags (`<tag />`) for tags without children.',
     },
 ]
 

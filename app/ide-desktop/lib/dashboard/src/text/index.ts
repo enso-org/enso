@@ -29,10 +29,10 @@ interface PlaceholderOverrides {
   readonly needsOwnerError: [string]
   readonly inviteSuccess: [string]
 
-  readonly labelAssetDescription: [string]
-  readonly selectedAssetsDescription: [string, string]
-  readonly confirmDeletePrompt: [string]
-  readonly theAssetTypeTitle: [string, string]
+  readonly deleteLabelActionText: [string]
+  readonly deleteSelectedAssetsActionText: [string, string]
+  readonly confirmPrompt: [string]
+  readonly deleteTheAssetTypeTitle: [string, string]
   readonly couldNotInviteUser: [string]
   readonly filesOrProjectsWithoutConflicts: [string, string]
   readonly filesAndProjectsWithoutConflicts: [string, string, string, string]
@@ -44,6 +44,8 @@ interface PlaceholderOverrides {
   readonly lastModifiedOn: [string]
   readonly versionX: [string]
   readonly onDateX: [string]
+  readonly upgradeTo: [string]
+  readonly enterTheNewKeyboardShortcutFor: [string]
 
   readonly inviteUserBackendError: [string]
   readonly listFolderBackendError: [string]
@@ -72,6 +74,8 @@ interface PlaceholderOverrides {
   readonly associateLabelsBackendError: [string]
   readonly deleteLabelBackendError: [string]
   readonly listVersionsBackendError: [string]
+  readonly createCheckoutSessionBackendError: [string]
+  readonly getCheckoutSessionBackendError: [string]
   readonly getDefaultVersionBackendError: [string]
 }
 
