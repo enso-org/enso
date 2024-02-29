@@ -15,6 +15,7 @@ import {
   ROOT_ID,
   Token,
   asOwned,
+  escapeTextLiteral,
   isIdentifier,
   isToken,
   isTokenChild,
@@ -29,7 +30,6 @@ import type { SourceRangeEdit } from '../util/data/text'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'
 import { visMetadataEquals } from '../yjsModel'
 import * as RawAst from './generated/ast'
-import { escapeInterpolation } from './interpolation'
 import {
   applyTextEditsToAst,
   parse,
@@ -1325,7 +1325,7 @@ export class TextLiteral extends Ast {
   }
 
   static new(rawText: string, module?: MutableModule): Owned<MutableTextLiteral> {
-    const escaped = escapeInterpolation(rawText)
+    const escaped = escapeTextLiteral(rawText)
     const parsed = parse(`'${escaped}'`, module)
     if (!(parsed instanceof MutableTextLiteral)) {
       console.error(`Failed to escape string for interpolated text`, rawText, escaped, parsed)
@@ -1394,7 +1394,7 @@ export class MutableTextLiteral extends TextLiteral implements MutableAst {
       this.setBoundaries(boundary)
     }
     const literalContents =
-      isInterpolated || mustBecomeInterpolated ? escapeInterpolation(rawText) : rawText
+      isInterpolated || mustBecomeInterpolated ? escapeTextLiteral(rawText) : rawText
     const parsed = parse(`${boundary}${literalContents}${boundary}`)
     assert(parsed instanceof TextLiteral)
     const elements = parsed.elements.map((e) => mapRefs(e, concreteToOwned(this.module)))

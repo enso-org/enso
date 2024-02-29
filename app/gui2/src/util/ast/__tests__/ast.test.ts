@@ -12,8 +12,8 @@ import {
 import { fc, test } from '@fast-check/vitest'
 import { initializeFFI } from 'shared/ast/ffi'
 import { Token, Tree } from 'shared/ast/generated/ast'
-import { applyInterpolation, escapeInterpolation } from 'shared/ast/interpolation'
 import type { LazyObject } from 'shared/ast/parserSupport'
+import { escapeTextLiteral, unescapeTextLiteral } from 'shared/ast/text'
 import { assert, expect } from 'vitest'
 import { TextLiteral } from '../abstract'
 
@@ -239,8 +239,8 @@ test.each([
 ])(
   'Applying and escaping text literal interpolation',
   (escapedText: string, rawText: string, roundtrip?: string) => {
-    const actualApplied = applyInterpolation(escapedText)
-    const actualEscaped = escapeInterpolation(rawText)
+    const actualApplied = unescapeTextLiteral(escapedText)
+    const actualEscaped = escapeTextLiteral(rawText)
 
     expect(actualEscaped).toBe(roundtrip ?? escapedText)
     expect(actualApplied).toBe(rawText)
@@ -250,7 +250,7 @@ test.each([
 const sometimesUnicodeString = fc.oneof(fc.string(), fc.unicodeString())
 
 test.prop({ rawText: sometimesUnicodeString })('Text interpolation roundtrip', ({ rawText }) => {
-  expect(applyInterpolation(escapeInterpolation(rawText))).toBe(rawText)
+  expect(unescapeTextLiteral(escapeTextLiteral(rawText))).toBe(rawText)
 })
 
 test.prop({ rawText: sometimesUnicodeString })('AST text literal new', ({ rawText }) => {
@@ -267,6 +267,6 @@ test.prop({
   literal.setContentUninterpolated(rawText)
   expect(literal.contentUninterpolated).toBe(rawText)
   const expectInterpolated = rawText.includes('"') || boundary === "'"
-  const expectedCode = expectInterpolated ? `'${escapeInterpolation(rawText)}'` : `"${rawText}"`
+  const expectedCode = expectInterpolated ? `'${escapeTextLiteral(rawText)}'` : `"${rawText}"`
   expect(literal.code()).toBe(expectedCode)
 })

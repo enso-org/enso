@@ -3,7 +3,7 @@ import { Vec2 } from '@/util/data/vec2'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
 import { bytesToHex } from '@noble/hashes/utils'
-import { escapeInterpolation } from 'shared/ast'
+import { escapeTextLiteral } from 'shared/ast'
 import type { DataServer } from 'shared/dataServer'
 import type { LanguageServer } from 'shared/languageServer'
 import { ErrorCode, RemoteRpcError } from 'shared/languageServer'
@@ -17,10 +17,10 @@ const DATA_DIR_NAME = 'data'
 export function uploadedExpression(result: UploadResult) {
   switch (result.source) {
     case 'Project': {
-      return `enso_project.data/'${escapeInterpolation(result.name)}' . read`
+      return `enso_project.data/'${escapeTextLiteral(result.name)}' . read`
     }
     case 'FileSystemRoot': {
-      return `Data.read '${escapeInterpolation(result.name)}'`
+      return `Data.read '${escapeTextLiteral(result.name)}'`
     }
   }
 }
