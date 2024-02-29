@@ -1388,7 +1388,7 @@ export class Documented extends Ast {
       expression.module,
       undefined,
       textToUninterpolatedElements(text),
-      [],
+      undefined,
       autospaced(expression),
     )
   }
@@ -1397,7 +1397,7 @@ export class Documented extends Ast {
     module: MutableModule,
     open: NodeChild<Token> | undefined,
     elements: TextToken<OwnedRefs>[],
-    newlines: NodeChild<Token>[],
+    newlines: NodeChild<Token>[] | undefined,
     expression: NodeChild<Owned> | undefined,
   ) {
     const base = module.baseObject('Documented')
@@ -1405,7 +1405,9 @@ export class Documented extends Ast {
     const fields = composeFieldData(base, {
       open: open ?? unspaced(Token.new('##', RawAst.Token.Type.Operator)),
       elements: elements.map((e) => mapRefs(e, ownedToRaw(module, id_))),
-      newlines,
+      newlines: newlines?.length
+        ? newlines
+        : [unspaced(Token.new('\n', RawAst.Token.Type.Newline))],
       expression: concreteChild(module, expression, id_),
     })
     return asOwned(new MutableDocumented(module, fields))

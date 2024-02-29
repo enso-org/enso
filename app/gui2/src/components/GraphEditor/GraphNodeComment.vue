@@ -4,14 +4,17 @@ import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { defineKeybinds } from '@/util/shortcuts'
 import * as random from 'lib0/random'
 import { textChangeToEdits } from 'shared/util/data/text'
-import { computed, ref, watchEffect } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 
 const { minimalSetup, EditorState, EditorView, textEditToChangeSpec } = await import(
   '@/components/CodeEditor/codemirror'
 )
 
-const props = defineProps<{ modelValue: string }>()
-const emit = defineEmits<{ 'update:modelValue': [modelValue: string | undefined] }>()
+const props = defineProps<{ modelValue: string; editing: boolean }>()
+const emit = defineEmits<{
+  'update:modelValue': [modelValue: string | undefined]
+  'update:editing': [boolean]
+}>()
 
 const paragraphs = computed(() => props.modelValue.split('\n\n'))
 
@@ -38,6 +41,7 @@ function startEdit() {
   editorView.setState(EditorState.create({ extensions: [minimalSetup] }))
   contentElement.value!.prepend(editorView.dom)
   editor.value = editorView
+  if (!props.editing) emit('update:editing', true)
   setTimeout(() => editorView.focus())
 }
 
@@ -47,6 +51,7 @@ function finishEdit() {
     emit('update:modelValue', editor.value.state.doc.toString())
   editor.value.dom.remove()
   editor.value = undefined
+  if (props.editing) emit('update:editing', false)
 }
 
 watchEffect(() => {
@@ -56,6 +61,10 @@ watchEffect(() => {
   editor.value.dispatch({
     changes: textChangeToEdits(viewText, text).map(textEditToChangeSpec),
   })
+})
+
+watchEffect(() => {
+  if (contentElement.value && props.editing && !editor.value) startEdit()
 })
 </script>
 

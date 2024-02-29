@@ -816,3 +816,10 @@ test.each(docEditCases)('Documentation edit round trip: $code', (docCase) => {
   edited.setDocumentationText(parsedDocumentation)
   expect(edited.code()).toBe(docCase.normalized ?? code)
 })
+
+test('Adding comments', () => {
+  const expr = Ast.parse('2 + 2')
+  expr.module.replaceRoot(expr)
+  expr.update((expr) => Ast.Documented.new('Calculate five', expr))
+  expect(expr.module.root()?.code()).toBe('## Calculate five\n2 + 2')
+})

@@ -369,8 +369,10 @@ function openFullMenu() {
   menuVisible.value = MenuState.Full
 }
 
+const editingComment = ref(false)
+
 const documentation = computed<string | undefined>({
-  get: () => props.node.documentation,
+  get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
   set: (text) => {
     graph.edit((edit) => {
       const outerExpr = edit.get(props.node.outerExprId)
@@ -424,6 +426,7 @@ const documentation = computed<string | undefined>({
       :isFullMenuVisible="menuVisible === MenuState.Full"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
+      @startEditingComment="editingComment = true"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -447,7 +450,12 @@ const documentation = computed<string | undefined>({
       @update:width="emit('update:visualizationWidth', $event)"
     />
     <Suspense>
-      <GraphNodeComment v-if="documentation" v-model="documentation" class="beforeNode" />
+      <GraphNodeComment
+        v-if="documentation != null"
+        v-model="documentation"
+        v-model:editing="editingComment"
+        class="beforeNode"
+      />
     </Suspense>
     <div
       ref="contentNode"
