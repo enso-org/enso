@@ -35,9 +35,9 @@ export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
   return page.getByLabel('Confirm password')
 }
 
-/** Find an "old password" input (if any). */
-export function locateOldPasswordInput(page: test.Locator | test.Page) {
-  return page.getByLabel('Old password')
+/** Find a "current password" input (if any) on the current page. */
+export function locateCurrentPasswordInput(page: test.Locator | test.Page) {
+  return page.getByPlaceholder('Enter your current password')
 }
 
 /** Find a "new password" input (if any). */
@@ -83,7 +83,7 @@ export function locateSecretValueInput(page: test.Locator | test.Page) {
 /** Find a search bar input (if any). */
 export function locateSearchBarInput(page: test.Locator | test.Page) {
   return locateSearchBar(page).getByPlaceholder(
-    'Type to search for projects, data connectors, users, and more.'
+    'Type to search for projects, Data Links, users, and more.'
   )
 }
 
@@ -101,22 +101,27 @@ export function locateToastCloseButton(page: test.Locator | test.Page) {
   return page.locator('.Toastify__close-button')
 }
 
-/** Find a login button (if any). */
+/** Find a "login" button (if any). */
 export function locateLoginButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Login', exact: true }).getByText('Login')
 }
 
-/** Find a register button (if any). */
+/** Find a "register" button (if any). */
 export function locateRegisterButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Register' }).getByText('Register')
 }
 
-/** Find a reset button (if any). */
+/** Find a "reset" button (if any). */
 export function locateResetButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Reset' }).getByText('Reset')
 }
 
-/** Find a user menu button (if any). */
+/** Find a "change" button (if any). */
+export function locateChangeButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Change' }).getByText('Change')
+}
+
+/** Find an "open user menu" button (if any). */
 export function locateUserMenuButton(page: test.Locator | test.Page) {
   return page.getByAltText('Open user menu')
 }
@@ -684,12 +689,11 @@ export async function press(page: test.Page, keyOrShortcut: string) {
     await test.test.step('Detect browser OS', async () => {
       userAgent = await page.evaluate(() => navigator.userAgent)
     })
-    // This should be `Meta` (`Cmd`) on macOS, and `Control` on all other systems
-    const ctrlKey = /\bMac OS\b/i.test(userAgent) ? 'Meta' : 'Control'
-    const deleteKey = /\bMac OS\b/i.test(userAgent) ? 'Backspace' : 'Delete'
-    await page.keyboard.press(
-      keyOrShortcut.replace(/\bMod\b/g, ctrlKey).replace(/\bDelete\b/, deleteKey)
-    )
+    const isMacOS = /\bMac OS\b/i.test(userAgent)
+    const ctrlKey = isMacOS ? 'Meta' : 'Control'
+    const deleteKey = isMacOS ? 'Backspace' : 'Delete'
+    const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
+    await test.test.step(`Press '${shortcut}'`, () => page.keyboard.press(shortcut))
   } else {
     await page.keyboard.press(keyOrShortcut)
   }

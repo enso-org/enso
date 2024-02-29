@@ -10,11 +10,12 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
+import Category from '#/layouts/CategorySwitcher/Category'
 
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
+
+import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'

@@ -385,8 +385,8 @@ final class TruffleCompilerContext implements CompilerContext {
         return saved != null;
       } catch (Throwable e) {
         logSerializationManager(
-            e instanceof IOException ? Level.WARNING : Level.SEVERE,
-            "Serialization of module `" + name + "` failed: " + e.getMessage() + "`",
+            e instanceof IOException ? Level.FINE : Level.SEVERE,
+            "Serialization of module `" + name + "` failed: " + e.getMessage(),
             e);
         throw e;
       } finally {

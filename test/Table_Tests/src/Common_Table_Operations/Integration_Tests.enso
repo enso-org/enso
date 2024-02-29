@@ -10,7 +10,7 @@ from Standard.Test import all
 from project.Common_Table_Operations.Util import run_default_backend
 from project.Common_Table_Operations.Core_Spec import weird_names
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~connection
@@ -50,7 +50,7 @@ add_specs suite_builder setup =
                 result.at name . to_vector . should_equal [200+ix]
 
         group_builder.specify "aggregates and joins" <|
-            t1 = table_builder [["Count", [1, 2, 3]], ["Class", ["X", "Y", "Z"]]] 
+            t1 = table_builder [["Count", [1, 2, 3]], ["Class", ["X", "Y", "Z"]]]
             t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "A", "C", "D", "D", "B", "B"]]]
 
             t3 = t2.aggregate ["Letter"] [Aggregate_Column.Count]

@@ -11,13 +11,12 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import type * as assetsTable from '#/layouts/AssetsTable'
 
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
@@ -47,6 +46,7 @@ const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingSlow,
+  [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -59,6 +59,7 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingMedium,
+  [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 
@@ -71,21 +72,20 @@ export interface ProjectIconProps {
   readonly smartAsset: backendModule.SmartProject
   readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   readonly assetEvents: assetEvent.AssetEvent[]
+  readonly state: assetsTable.AssetsTableState
   /** Called when the project is opened via the {@link ProjectIcon}. */
   readonly doOpenManually: (projectId: backendModule.ProjectId) => void
-  readonly onClose: () => void
-  readonly openEditor: (switchPage: boolean) => void
-  readonly state: assetsTable.AssetsTableState
+  readonly doOpenEditor: (switchPage: boolean) => void
+  readonly doCloseEditor: () => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { smartAsset, setItem, assetEvents, doOpenManually, onClose, openEditor } = props
-  const { state } = props
+  const { smartAsset, setItem, state, assetEvents, doOpenManually } = props
+  const { doCloseEditor, doOpenEditor } = props
   const { isCloud } = state
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const asset = smartAsset.value
   const projectState = asset.projectState.type
@@ -101,7 +101,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         let newProjectState: backendModule.ProjectStateType = object.merge(oldItem.projectState, {
           type: newState,
         })
-        if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[newState]) {
+        if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
           // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
           const { opened_by, ...newProjectState2 } = newProjectState
           newProjectState = newProjectState2
@@ -141,7 +141,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             if (!shouldRunInBackground) {
               setToastId(toast.toast.loading(LOADING_MESSAGE))
             }
-            await smartAsset.open({ forceCreate: false, executeAsync: shouldRunInBackground })
+            await smartAsset.open({ executeAsync: shouldRunInBackground })
           }
           const abortController = new AbortController()
           setOpenProjectAbortController(abortController)
@@ -155,7 +155,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             )
           }
         } else {
-          await smartAsset.open({ forceCreate: false, executeAsync: shouldRunInBackground })
+          await smartAsset.open({ executeAsync: shouldRunInBackground })
           setProjectState(oldState =>
             oldState === backendModule.ProjectState.openInProgress
               ? backendModule.ProjectState.opened
@@ -239,8 +239,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
         if (event.id !== asset.id) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
-            if (!isOtherUserUsingProject) {
-              void closeProject(false)
+            if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[projectState]) {
+              // void closeProject(false)
             }
           }
         } else {
@@ -258,35 +258,21 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
         break
       }
-      case AssetEventType.cancelOpeningAllProjects: {
-        if (!isRunningInBackground) {
-          setShouldOpenWhenReady(false)
-          onSpinnerStateChange?.(null)
-          setOnSpinnerStateChange(null)
-          openProjectAbortController?.abort()
-          setOpenProjectAbortController(null)
-          if (!isOtherUserUsingProject) {
-            void closeProject(false)
-          }
-        }
-        break
-      }
     }
   })
 
   React.useEffect(() => {
     if (shouldOpenWhenReady && projectState === backendModule.ProjectState.opened) {
-      openEditor(shouldSwitchPage)
+      doOpenEditor(shouldSwitchPage)
       setShouldOpenWhenReady(false)
     }
-    // `openEditor` is a callback, not a dependency.
+    // `doOpenEditor` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, projectState])
 
   const closeProject = async (triggerOnClose = true) => {
     if (triggerOnClose) {
-      onClose()
-      localStorage.delete('project')
+      doCloseEditor()
     }
     setToastId(null)
     setShouldOpenWhenReady(false)
@@ -297,7 +283,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     setOpenProjectAbortController(null)
     const abortController = new AbortController()
     setCloseProjectAbortController(abortController)
-    if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState]) {
+    if (backendModule.IS_OPENING_OR_OPENED[projectState]) {
       try {
         if (!isCloud && projectState === backendModule.ProjectState.openInProgress) {
           // Projects that are not opened cannot be closed.
@@ -336,6 +322,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         </button>
       )
     case backendModule.ProjectState.openInProgress:
+    case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
@@ -387,7 +374,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               onClick={clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()
-                openEditor(true)
+                doOpenEditor(true)
               }}
             >
               <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />

@@ -49,8 +49,8 @@ add_specs suite_builder =
             (1 == 0) && "foo" . should_equal False
             (1 == 1) && "foo" . should_equal "foo"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

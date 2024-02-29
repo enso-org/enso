@@ -1,14 +1,16 @@
 <script setup lang="ts">
+import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImportsByFQN } from '@/stores/graph/imports'
-import { SuggestionDb, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
+import type { TokenId } from '@/util/ast/abstract'
+import { ArgumentInfoKey } from '@/util/callTree'
 import { asNot } from '@/util/data/types.ts'
-import { type Identifier, type QualifiedName } from '@/util/qualifiedName.ts'
+import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -55,6 +57,12 @@ const value = computed({
     }
   },
 })
+
+const primary = computed(() => props.nesting < 2)
+const argumentName = computed(() => {
+  if (ArgumentNameShownKey in props.input) return
+  return props.input[ArgumentInfoKey]?.info?.name
+})
 </script>
 
 <script lang="ts">
@@ -90,10 +98,29 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <CheckboxWidget
-    v-model="value"
-    class="WidgetCheckbox"
-    contenteditable="false"
-    @beforeinput.stop
-  />
+  <div class="CheckboxContainer" :class="{ primary }">
+    <span v-if="argumentName" class="name" v-text="argumentName" />
+    <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
+    <CheckboxWidget
+      v-model="value"
+      class="WidgetCheckbox"
+      contenteditable="false"
+      @beforeinput.stop
+      @pointerdown.stop
+      @pointerup.stop
+    />
+  </div>
 </template>
+
+<style scoped>
+.CheckboxContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.name {
+  color: rgb(255 255 255 / 0.5);
+  margin-right: 8px;
+}
+</style>

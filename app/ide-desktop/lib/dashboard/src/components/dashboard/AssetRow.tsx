@@ -13,8 +13,8 @@ import * as modalProvider from '#/providers/ModalProvider'
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import AssetContextMenu from '#/layouts/dashboard/AssetContextMenu'
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import AssetContextMenu from '#/layouts/AssetContextMenu'
+import type * as assetsTable from '#/layouts/AssetsTable'
 
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
@@ -39,10 +39,11 @@ import Visibility, * as visibilityModule from '#/utilities/visibility'
 // === Constants ===
 // =================
 
+/** The height of the header row. */
+const HEADER_HEIGHT_PX = 34
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
-
 /** Placeholder row for directories that are empty. */
 const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
 
@@ -68,7 +69,8 @@ export interface AssetRowProps {
   readonly columns: columnUtils.Column[]
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelectedItem: boolean
+  readonly isSoleSelected: boolean
+  readonly isKeyboardSelected: boolean
   readonly allowContextMenu: boolean
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly onContextMenu: (
@@ -83,11 +85,12 @@ export interface AssetRowProps {
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, visibility: visibilityRaw, selected, isSoleSelectedItem } = props
-  const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { onDragEnd, onDrop } = props
-  const { isCloud, rootDirectory, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { nodeMap, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { item: rawItem, visibility: visibilityRaw, selected, setSelected, isSoleSelected } = props
+  const { isKeyboardSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
+  const { onDragStart, onDragOver: onDragOverRaw, onDragEnd, onDrop } = props
+  const { nodeMap, rootDirectory, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { isCloud, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { scrollContainerRef, setIsAssetPanelTemporarilyVisible } = state
 
   const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -189,10 +192,7 @@ export default function AssetRow(props: AssetRowProps) {
       } catch (error) {
         toastAndLog(`Could not copy '${asset.title}'`, error)
         // Delete the new component representing the asset that failed to insert.
-        dispatchAssetListEvent({
-          type: AssetListEventType.delete,
-          key: item.key,
-        })
+        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       }
     },
     [
@@ -259,10 +259,16 @@ export default function AssetRow(props: AssetRowProps) {
   )
 
   React.useEffect(() => {
-    if (isSoleSelectedItem) {
+    if (isSoleSelected) {
       setAssetPanelProps({ item, setItem })
+      setIsAssetPanelTemporarilyVisible(false)
     }
-  }, [item, isSoleSelectedItem, /* should never change */ setAssetPanelProps])
+  }, [
+    item,
+    isSoleSelected,
+    /* should never change */ setAssetPanelProps,
+    /* should never change */ setIsAssetPanelTemporarilyVisible,
+  ])
 
   const doDelete = React.useCallback(async () => {
     setInsertionVisibility(Visibility.hidden)
@@ -291,10 +297,7 @@ export default function AssetRow(props: AssetRowProps) {
         }
       }
       await smartAsset.delete()
-      dispatchAssetListEvent({
-        type: AssetListEventType.delete,
-        key: item.key,
-      })
+      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
       toastAndLog(
@@ -332,8 +335,7 @@ export default function AssetRow(props: AssetRowProps) {
       // These events are handled in the specific `NameColumn` files.
       case AssetEventType.updateFiles:
       case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects: {
+      case AssetEventType.closeProject: {
         break
       }
       case AssetEventType.copy: {
@@ -405,7 +407,7 @@ export default function AssetRow(props: AssetRowProps) {
               try {
                 const details = await smartAsset.getDetails()
                 const file = details.file
-                download.download(download.s3URLToHTTPURL(file.path), asset.title)
+                download.download(details.url ?? download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
                 toastAndLog('Could not download selected files', error)
               }
@@ -537,7 +539,7 @@ export default function AssetRow(props: AssetRowProps) {
   }, [])
 
   const onDragOver = (event: React.DragEvent<HTMLTableRowElement>) => {
-    props.onDragOver(event)
+    onDragOverRaw(event)
     const directoryId =
       item.item.type === backendModule.AssetType.directory
         ? item.item.value.id
@@ -574,9 +576,25 @@ export default function AssetRow(props: AssetRowProps) {
             <tr
               draggable
               tabIndex={-1}
-              className={`h-8 transition duration-300 ease-in-out ${
+              ref={element => {
+                if (isSoleSelected && element != null && scrollContainerRef.current != null) {
+                  const rect = element.getBoundingClientRect()
+                  const scrollRect = scrollContainerRef.current.getBoundingClientRect()
+                  const scrollUp = rect.top - (scrollRect.top + HEADER_HEIGHT_PX)
+                  const scrollDown = rect.bottom - scrollRect.bottom
+                  if (scrollUp < 0 || scrollDown > 0) {
+                    scrollContainerRef.current.scrollBy({
+                      top: scrollUp < 0 ? scrollUp : scrollDown,
+                      behavior: 'smooth',
+                    })
+                  }
+                }
+              }}
+              className={`h-8 transition duration-300 ease-in-out rounded-full outline-2 -outline-offset-2 outline-prmary ${
                 visibilityModule.CLASS_NAME[visibility]
-              } ${isDraggedOver || selected ? 'selected' : ''}`}
+              } ${isKeyboardSelected ? 'outline' : ''} ${
+                isDraggedOver || selected ? 'selected' : ''
+              }`}
               onClick={event => {
                 unsetModal()
                 onClick(innerProps, event)
@@ -620,7 +638,7 @@ export default function AssetRow(props: AssetRowProps) {
                 if (rowState.isEditingName || !isCloud) {
                   event.preventDefault()
                 } else {
-                  props.onDragStart(event)
+                  onDragStart(event)
                 }
               }}
               onDragEnter={event => {
@@ -697,7 +715,7 @@ export default function AssetRow(props: AssetRowProps) {
                       setItem={setItem}
                       selected={selected}
                       setSelected={setSelected}
-                      isSoleSelectedItem={isSoleSelectedItem}
+                      isSoleSelected={isSoleSelected}
                       state={state}
                       rowState={rowState}
                       setRowState={setRowState}

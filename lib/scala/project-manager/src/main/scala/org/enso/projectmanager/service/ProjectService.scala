@@ -3,7 +3,7 @@ package org.enso.projectmanager.service
 import akka.actor.ActorRef
 import cats.MonadError
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.editions.DefaultEdition
 import org.enso.pkg.Config
 import org.enso.pkg.validation.NameValidation

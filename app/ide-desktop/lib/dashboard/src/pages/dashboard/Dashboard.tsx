@@ -6,28 +6,28 @@ import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/dashboard/AssetPanel'
-import AssetPanel from '#/layouts/dashboard/AssetPanel'
-import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import Chat from '#/layouts/dashboard/Chat'
-import ChatPlaceholder from '#/layouts/dashboard/ChatPlaceholder'
-import Drive from '#/layouts/dashboard/Drive'
-import Editor from '#/layouts/dashboard/Editor'
-import Home from '#/layouts/dashboard/Home'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import Settings from '#/layouts/dashboard/Settings'
-import TopBar from '#/layouts/dashboard/TopBar'
+import type * as assetPanel from '#/layouts/AssetPanel'
+import AssetPanel from '#/layouts/AssetPanel'
+import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import Category from '#/layouts/CategorySwitcher/Category'
+import Chat from '#/layouts/Chat'
+import ChatPlaceholder from '#/layouts/ChatPlaceholder'
+import Drive from '#/layouts/Drive'
+import Editor from '#/layouts/Editor'
+import Home from '#/layouts/Home'
+import * as pageSwitcher from '#/layouts/PageSwitcher'
+import Settings from '#/layouts/Settings'
+import TopBar from '#/layouts/TopBar'
 
 import TheModal from '#/components/dashboard/TheModal'
 import type * as spinner from '#/components/Spinner'
@@ -41,7 +41,7 @@ import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ============================
 // === Global configuration ===
@@ -121,7 +121,7 @@ export default function Dashboard(props: DashboardProps) {
   const { modalRef } = modalProvider.useModalRef()
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
   const [page, setPage] = React.useState(() => localStorage.get('page') ?? pageSwitcher.Page.drive)
@@ -140,6 +140,7 @@ export default function Dashboard(props: DashboardProps) {
   const [isAssetPanelVisible, setIsAssetPanelVisible] = React.useState(
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
+  const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
   const isCloud = backend.type === backendModule.BackendType.remote
   const self = asyncEffectHooks.useAsyncEffect(user, () => backend.self(), [backend])
@@ -191,7 +192,7 @@ export default function Dashboard(props: DashboardProps) {
             try {
               const projectAsset = await remoteBackend.getProject(parentId, id, title)
               const projectState = projectAsset.value.projectState.type
-              if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState]) {
+              if (backendModule.IS_OPENING_OR_OPENED[projectState]) {
                 const details = await projectAsset.waitUntilReady()
                 if (!abortController.signal.aborted) {
                   setProjectStartupInfo({ details, projectAsset, backendType, accessToken })
@@ -271,28 +272,30 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [/* should never change */ unsetModal])
 
-  React.useEffect(() => {
-    return shortcutManager.registerKeyboardHandlers({
-      [shortcutManagerModule.KeyboardAction.closeModal]: () => {
-        if (modalRef.current == null) {
-          setPage(oldPage =>
-            oldPage !== pageSwitcher.Page.settings
-              ? oldPage
-              : localStorage.get('page') ?? pageSwitcher.Page.drive
-          )
-          return false
-        } else {
-          unsetModal()
-          return
-        }
-      },
-    })
-  }, [
-    shortcutManager,
-    /* should never change */ modalRef,
-    /* should never change */ localStorage,
-    /* should never change */ unsetModal,
-  ])
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeModal: () => {
+          if (modalRef.current == null) {
+            setPage(oldPage =>
+              oldPage !== pageSwitcher.Page.settings
+                ? oldPage
+                : localStorage.get('page') ?? pageSwitcher.Page.drive
+            )
+            return false
+          } else {
+            unsetModal()
+            return
+          }
+        },
+      }),
+    [
+      inputBindings,
+      /* should never change */ modalRef,
+      /* should never change */ localStorage,
+      /* should never change */ unsetModal,
+    ]
+  )
 
   const setBackendType = React.useCallback(
     (newBackendType: backendModule.BackendType) => {
@@ -369,10 +372,8 @@ export default function Dashboard(props: DashboardProps) {
 
   const doRemoveSelf = React.useCallback(() => {
     if (projectStartupInfo?.projectAsset != null) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.removeSelf,
-        id: projectStartupInfo.projectAsset.value.id,
-      })
+      const id = projectStartupInfo.projectAsset.value.id
+      dispatchAssetListEvent({ type: AssetListEventType.removeSelf, id })
       setProjectStartupInfo(null)
     }
   }, [projectStartupInfo?.projectAsset, /* should never change */ dispatchAssetListEvent])
@@ -400,11 +401,11 @@ export default function Dashboard(props: DashboardProps) {
         >
           <TopBar
             supportsLocalBackend={supportsLocalBackend}
+            isCloud={isCloud}
             projectAsset={projectStartupInfo?.projectAsset ?? null}
             setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
             page={page}
             setPage={setPage}
-            isCloud={isCloud}
             isEditorDisabled={projectStartupInfo == null}
             isHelpChatOpen={isHelpChatOpen}
             setIsHelpChatOpen={setIsHelpChatOpen}
@@ -443,6 +444,7 @@ export default function Dashboard(props: DashboardProps) {
             assetEvents={assetEvents}
             dispatchAssetEvent={dispatchAssetEvent}
             setAssetPanelProps={setAssetPanelProps}
+            setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
             doCreateProject={doCreateProject}
             doOpenEditor={doOpenEditor}
             doCloseEditor={doCloseEditor}
@@ -475,10 +477,12 @@ export default function Dashboard(props: DashboardProps) {
         </div>
         <div
           className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
-            isAssetPanelVisible && assetPanelProps != null ? 'min-w-120' : 'min-w-0 invisible'
+            (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && assetPanelProps != null
+              ? 'min-w-120'
+              : 'min-w-0 invisible'
           }`}
         >
-          {assetPanelProps && isAssetPanelVisible && (
+          {assetPanelProps && (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && (
             <AssetPanel
               key={assetPanelProps.item.item.value.id}
               {...assetPanelProps}

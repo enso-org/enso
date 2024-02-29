@@ -1,4 +1,4 @@
-import { expect, Page, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import * as actions from './actions'
 import { edgesToNodeWithBinding, graphNodeByBinding } from './locate'
 
@@ -22,7 +22,7 @@ test('Disconnect an edge from a port', async ({ page }) => {
   await initGraph(page)
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
 
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.visible')
+  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
 
   // Hover over edge to the right of node with binding `ten`.
   await targetEdge.click({
@@ -41,7 +41,7 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
   await initGraph(page)
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.visible')
+  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.click({
     position: { x: 450, y: 5.0 },

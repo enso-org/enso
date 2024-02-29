@@ -22,5 +22,6 @@ export const PASSWORD_PATTERN =
 export const PASSWORD_ERROR =
   'Your password must include numbers, letters (both lowercase and uppercase) and symbols, ' +
   'and must be between 6 and 256 characters long.'
+export const PASSWORD_REGEX = new RegExp('^' + PASSWORD_PATTERN + '$')
 
 export const CONFIRM_PASSWORD_ERROR = 'Passwords must match.'

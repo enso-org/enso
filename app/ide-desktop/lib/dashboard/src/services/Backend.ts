@@ -1,6 +1,7 @@
 /** @file Type definitions common between all backends. */
 import type * as React from 'react'
 
+import * as array from '#/utilities/array'
 import type * as color from '#/utilities/color'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
@@ -49,6 +50,10 @@ export const ConnectorId = newtype.newtypeConstructor<ConnectorId>()
 
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
+
+/** Unique identifier for a payment checkout session. */
+export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
+export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
 
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
@@ -113,6 +118,7 @@ export interface User {
 export enum ProjectState {
   created = 'Created',
   new = 'New',
+  scheduled = 'Scheduled',
   openInProgress = 'OpenInProgress',
   provisioned = 'Provisioned',
   opened = 'Opened',
@@ -141,9 +147,22 @@ export interface ProjectStateType {
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-export const DOES_PROJECT_STATE_INDICATE_VM_EXISTS: Readonly<Record<ProjectState, boolean>> = {
+export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.created]: false,
   [ProjectState.new]: false,
+  [ProjectState.scheduled]: true,
+  [ProjectState.openInProgress]: true,
+  [ProjectState.provisioned]: true,
+  [ProjectState.opened]: false,
+  [ProjectState.closed]: false,
+  [ProjectState.placeholder]: true,
+  [ProjectState.closing]: false,
+}
+
+export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
+  [ProjectState.created]: false,
+  [ProjectState.new]: false,
+  [ProjectState.scheduled]: true,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
   [ProjectState.opened]: true,
@@ -193,16 +212,24 @@ export interface ProjectStartupInfo {
   readonly accessToken: string | null
 }
 
-/** Metadata describing an uploaded file. */
-export interface File {
+/** Metadata describing the location of an uploaded file. */
+export interface FileLocator {
   readonly fileId: FileId
   readonly fileName: string | null
   readonly path: S3FilePath
 }
 
+/** Metadata for a file. */
+export interface FileMetadata {
+  readonly size: number
+}
+
 /** All metadata related to a file. */
 export interface FileDetails {
-  readonly file: File
+  readonly file: FileLocator
+  readonly metadata: FileMetadata
+  /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
+  readonly url?: string
 }
 
 /** A secret environment variable. */
@@ -272,6 +299,34 @@ export interface Version {
   // so we need to match it.
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly version_type: VersionType
+}
+
+/** Subscription plans. */
+export enum Plan {
+  solo = 'solo',
+  team = 'team',
+}
+
+export const PLANS = Object.values(Plan)
+
+// This is a function, even though it does not look like one.
+// eslint-disable-next-line no-restricted-syntax
+export const isPlan = array.includesPredicate(PLANS)
+
+/** Metadata uniquely describing a payment checkout session. */
+export interface CheckoutSession {
+  /** ID of the checkout session, suffixed with a secret value. */
+  readonly clientSecret: string
+  /** ID of the checkout session. */
+  readonly id: CheckoutSessionId
+}
+
+/** Metadata describing the status of a payment checkout session. */
+export interface CheckoutSessionStatus {
+  /** Status of the payment for the checkout session. */
+  readonly paymentStatus: string
+  /** Status of the checkout session. */
+  readonly status: string
 }
 
 /** Resource usage of a VM. */
@@ -649,7 +704,6 @@ export interface UpdateAssetRequestBody {
 
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
-  readonly forceCreate: boolean
   readonly executeAsync: boolean
 }
 
@@ -696,6 +750,11 @@ export interface CreateConnectorRequestBody {
 export interface CreateTagRequestBody {
   readonly value: string
   readonly color: color.LChColor
+}
+
+/** HTTP request body for the "create checkout session" endpoint. */
+export interface CreateCheckoutSessionRequestBody {
+  plan: Plan
 }
 
 /** URL query string parameters for the "list directory" endpoint. */
@@ -976,4 +1035,8 @@ export default abstract class Backend {
   abstract listTags(): Promise<Label[]>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
+  /** Create a payment checkout session. */
+  abstract createCheckoutSession(plan: Plan): Promise<CheckoutSession>
+  /** Get the status of a payment checkout session. */
+  abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
 }

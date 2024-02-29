@@ -44,9 +44,8 @@ object GatherLicenses {
         s"It consists of the following sbt project roots:" +
         s" ${projectNames.mkString(", ")}"
       )
-      val (sbtInfo, sbtWarnings) =
+      val (sbtInfo, sbtDiagnostics) =
         SbtLicenses.analyze(distribution.sbtComponents, log)
-      sbtWarnings.foreach(log.warn(_))
 
       val allInfo = sbtInfo // TODO [RW] add Rust frontend result here (#1187)
 
@@ -59,32 +58,42 @@ object GatherLicenses {
           s"${dependency.url}"
         )
         val defaultAttachments = defaultBackend.run(dependency.sources)
-        val attachments =
-          if (defaultAttachments.nonEmpty) defaultAttachments
+        val WithDiagnostics(attachments, attachmentDiagnostics) =
+          if (defaultAttachments.nonEmpty) WithDiagnostics(defaultAttachments)
           else GithubHeuristic(dependency, log).run()
-        (dependency, attachments)
+        (dependency, attachments, attachmentDiagnostics)
       }
 
-      val summary          = DependencySummary(processed)
-      val distributionRoot = configRoot / distribution.artifactName
-      val WithWarnings(processedSummary, summaryWarnings) =
+      val forSummary            = processed.map(t => (t._1, t._2))
+      val processingDiagnostics = processed.flatMap(_._3)
+      val summary               = DependencySummary(forSummary)
+      val distributionRoot      = configRoot / distribution.artifactName
+      val WithDiagnostics(processedSummary, summaryDiagnostics) =
         Review(distributionRoot, summary).run()
-      val allWarnings = sbtWarnings ++ summaryWarnings
+      val allDiagnostics =
+        sbtDiagnostics ++ processingDiagnostics ++ summaryDiagnostics
       val reportDestination =
         targetRoot / s"${distribution.artifactName}-report.html"
 
-      sbtWarnings.foreach(log.warn(_))
-      if (summaryWarnings.size > 10)
-        log.warn(
-          s"There are too many warnings (${summaryWarnings.size}) to " +
-          s"display. Please inspect the generated report."
-        )
-      else allWarnings.foreach(log.warn(_))
+      val (warnings: Seq[Diagnostic.Warning], errors: Seq[Diagnostic.Error]) =
+        Diagnostic.partition(allDiagnostics)
+
+      if (warnings.nonEmpty) {
+        log.warn(s"Found ${warnings.size} non-fatal warnings in the report:")
+        warnings.foreach(notice => log.warn(notice.message))
+      }
+
+      if (errors.isEmpty) {
+        log.info("No fatal errors found in the report.")
+      } else {
+        log.error(s"Found ${errors.size} fatal errors in the report:")
+        errors.foreach(problem => log.error(problem.message))
+      }
 
       Report.writeHTML(
         distribution,
         processedSummary,
-        allWarnings,
+        allDiagnostics,
         reportDestination
       )
       log.info(
@@ -96,10 +105,10 @@ object GatherLicenses {
       ReportState.write(
         distributionRoot / stateFileName,
         distribution,
-        summaryWarnings.length
+        errors.size
       )
       log.info(s"Re-generated distribution notices at `$packagePath`.")
-      if (summaryWarnings.nonEmpty) {
+      if (errors.nonEmpty) {
         log.warn(
           "The distribution notices were regenerated, but there are " +
           "not-reviewed issues within the report. The notices are probably " +
@@ -176,7 +185,7 @@ object GatherLicenses {
       .getOrElse(
         throw LegalReviewException(
           s"Report at $distributionConfig is not available. " +
-          s"Make sure to run `enso/gatherLicenses`."
+          s"Make sure to run `enso/gatherLicenses` or `openLegalReviewReport`."
         )
       )
 

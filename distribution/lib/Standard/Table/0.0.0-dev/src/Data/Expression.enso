@@ -4,9 +4,19 @@ polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 
+## Create an expression from a Text value.
+
+   Arguments:
+   - expression: the expression to create
+expr : Text -> Expression
+expr expression:Text -> Expression = Expression.Value expression
+
 ## PRIVATE
    Functions for parsing and handling Enso expressions.
 type Expression
+    ## Creates an expression from a Text value.
+    Value expression:Text
+
     ## PRIVATE
        ADVANCED
        Evaluates an expression and returns the result
@@ -23,14 +33,14 @@ type Expression
          evaluated against.
        - var_args_functions: a Vector of function names which take a single
          Vector argument but which should be exposed with variable parameters.
-    evaluate : Text -> (Text -> Any) -> (Any -> Any) -> Text -> Text -> Vector Text -> Any
-    evaluate expression get_column make_constant module_name type_name var_args_functions =
+    evaluate : Expression -> (Text -> Any) -> (Any -> Any) -> Text -> Text -> Vector Text -> Any
+    evaluate expression:Expression get_column make_constant module_name type_name var_args_functions =
         handle_parse_error = Panic.catch ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
         handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
         handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
 
         handle_parse_error <| handle_unsupported <| handle_arguments <|
-            ExpressionVisitorImpl.evaluate expression get_column make_constant module_name type_name var_args_functions
+            ExpressionVisitorImpl.evaluate expression.expression get_column make_constant module_name type_name var_args_functions
 
 type Expression_Error
     ## PRIVATE

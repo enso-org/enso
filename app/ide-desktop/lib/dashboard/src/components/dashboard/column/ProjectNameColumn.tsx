@@ -8,7 +8,7 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 
@@ -23,7 +23,6 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import * as string from '#/utilities/string'
 import Visibility from '#/utilities/visibility'
 
@@ -39,11 +38,11 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
-  const { isCloud, selectedKeys, assetEvents, dispatchAssetEvent, nodeMap, doOpenManually } = state
-  const { doOpenEditor, doCloseEditor } = state
+  const { isCloud, selectedKeys, assetEvents, nodeMap } = state
+  const { dispatchAssetEvent, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useNonPartialUserSession()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const smartAsset = item.item
   if (smartAsset.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
@@ -68,8 +67,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
     asset.permissions?.find(permission => permission.user.user_email === user?.value.email) ?? null
-  const projectState = asset.projectState
-  const isRunning = backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[projectState.type]
+  // This is a workaround for a temporary bad state in the backend causing the `projectState` key
+  // to be absent.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const projectState = asset.projectState ?? {
+    type: backendModule.ProjectState.closed,
+  }
+  const isRunning = backendModule.IS_OPENING_OR_OPENED[projectState.type]
   const canExecute =
     !isCloud ||
     (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
@@ -96,7 +100,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     switch (event.type) {
       case AssetEventType.openProject:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:
@@ -170,6 +173,28 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     }
   })
 
+  const handleClick = inputBindings.handler({
+    open: () => {
+      dispatchAssetEvent({
+        type: AssetEventType.openProject,
+        id: asset.id,
+        shouldAutomaticallySwitchPage: true,
+        runInBackground: false,
+      })
+    },
+    run: () => {
+      dispatchAssetEvent({
+        type: AssetEventType.openProject,
+        id: asset.id,
+        shouldAutomaticallySwitchPage: false,
+        runInBackground: true,
+      })
+    },
+    editName: () => {
+      setRowState(object.merger({ isEditingName: true }))
+    },
+  })
+
   return (
     <div
       className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
@@ -183,30 +208,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       onClick={event => {
         if (rowState.isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
-        } else if (
-          shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.open, event)
-        ) {
-          // It is a double click; open the project.
-          dispatchAssetEvent({
-            type: AssetEventType.openProject,
-            id: asset.id,
-            shouldAutomaticallySwitchPage: true,
-            runInBackground: false,
-          })
-        } else if (
-          shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.run, event)
-        ) {
-          dispatchAssetEvent({
-            type: AssetEventType.openProject,
-            id: asset.id,
-            shouldAutomaticallySwitchPage: false,
-            runInBackground: true,
-          })
+        } else if (handleClick(event)) {
+          // Already handled.
         } else if (
           !isRunning &&
           eventModule.isSingleClick(event) &&
-          ((selected && selectedKeys.current.size === 1) ||
-            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
+          selected &&
+          selectedKeys.current.size === 1
         ) {
           setRowState(object.merger({ isEditingName: true }))
         }
@@ -220,10 +228,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setItem={setAsset}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
-          openEditor={switchPage => {
+          doOpenEditor={switchPage => {
             doOpenEditor(smartAsset, setAsset, switchPage)
           }}
-          onClose={() => {
+          doCloseEditor={() => {
             doCloseEditor(asset)
           }}
           state={state}

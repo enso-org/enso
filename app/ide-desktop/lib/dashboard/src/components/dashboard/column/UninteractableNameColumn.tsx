@@ -15,7 +15,7 @@ import * as backendModule from '#/services/Backend'
 export interface UninteractableNameColumnProps
   extends Omit<
     column.AssetColumnProps,
-    'isSoleSelectedItem' | 'rowState' | 'selected' | 'setItem' | 'setRowState' | 'setSelected'
+    'isSoleSelected' | 'rowState' | 'selected' | 'setItem' | 'setRowState' | 'setSelected'
   > {}
 
 /** The icon and name of an {@link backendModule.AnyAsset}.
@@ -26,7 +26,7 @@ export default function UninteractableNameColumn(props: UninteractableNameColumn
     <NameColumn
       {...props}
       // Default states.
-      isSoleSelectedItem={false}
+      isSoleSelected={false}
       selected={false}
       rowState={assetRowUtils.INITIAL_ROW_STATE}
       // The drag placeholder cannot be interacted with.

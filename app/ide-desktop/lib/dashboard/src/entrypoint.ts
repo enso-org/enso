@@ -9,6 +9,8 @@ import * as authentication from '#/index'
 
 authentication.run({
   logger: console,
+  // Browsers usually do not support vibrancy for webpages.
+  vibrancy: false,
   // This file is only included when building for the cloud.
   supportsLocalBackend:
     process.env.SUPPORTS_LOCAL_BACKEND == null

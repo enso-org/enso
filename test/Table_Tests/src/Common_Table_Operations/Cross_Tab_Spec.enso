@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Aggregate_Column
+from Standard.Table import Aggregate_Column, expr
 import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import all
 
@@ -12,7 +12,7 @@ from Standard.Test import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type Data
     Value ~data
@@ -61,7 +61,7 @@ add_specs suite_builder setup =
             t1.at "z" . to_vector . should_equal [17]
 
         group_builder.specify "should allow a custom expression for the aggregate" <|
-            t1 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Sum "[Value]*[Value]"]
+            t1 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Sum (expr "[Value]*[Value]")]
             t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1
             t1.at "x" . to_vector . should_equal [30]
@@ -165,12 +165,12 @@ add_specs suite_builder setup =
             err2.catch.criteria . should_equal [42]
 
         group_builder.specify "should fail if aggregate values contain invalid expressions" <|
-            err1 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Sum "[MISSING]*10"]
+            err1 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Sum (expr "[MISSING]*10")]
             err1.should_fail_with Invalid_Aggregate_Column
             err1.catch.name . should_equal "[MISSING]*10"
             err1.catch.expression_error . should_equal (No_Such_Column.Error "MISSING")
 
-            err2 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Sum "[[["]
+            err2 = data.table.cross_tab [] "Key" values=[Aggregate_Column.Sum (expr "[[[")]
             err2.should_fail_with Invalid_Aggregate_Column
             err2.catch.name . should_equal "[[["
             err2.catch.expression_error . should_be_a Expression_Error.Syntax_Error
@@ -180,7 +180,7 @@ add_specs suite_builder setup =
             err1.should_fail_with Illegal_Argument
 
         group_builder.specify "should gracefully handle duplicate aggregate names" <|
-            action = data.table.cross_tab [] "Key" values=[Aggregate_Column.Count new_name="Agg1", Aggregate_Column.Sum "Value" new_name="Agg1"] on_problems=_
+            action = data.table.cross_tab [] "Key" values=[Aggregate_Column.Count as="Agg1", Aggregate_Column.Sum "Value" as="Agg1"] on_problems=_
             tester table =
                 table.column_names . should_equal ["x Agg1", "x Agg1 1", "y Agg1", "y Agg1 1", "z Agg1", "z Agg1 1"]
             problems = [Duplicate_Output_Column_Names.Error ["x Agg1", "y Agg1", "z Agg1"]]
@@ -263,7 +263,7 @@ add_specs suite_builder setup =
             r1.should_fail_with Invalid_Column_Names
             r1.catch.to_display_text . should_contain "cannot contain the NUL character"
 
-            r2 = data.table2.cross_tab [] "Key" values=[Aggregate_Column.Average "Value" new_name='x\0']
+            r2 = data.table2.cross_tab [] "Key" values=[Aggregate_Column.Average "Value" as='x\0']
             r2.print
             r2.should_fail_with Invalid_Column_Names
             r2.catch.to_display_text . should_contain "cannot contain the NUL character"

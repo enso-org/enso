@@ -48,3 +48,20 @@ type Group
         sb.append "]"
         sb.toString
 
+    is_pending self -> Boolean =
+        self.pending.is_nothing.not
+
+
+# Group is used as a key inside a map, so we define its comparator which uses only the
+# `name` field.
+type Group_Comparator
+    compare (g1 : Group) (g2 : Group) -> (Ordering | Nothing) =
+        text_comp = Comparable.from g1.name
+        text_comp.compare g1.name g2.name
+
+    hash (g : Group) =
+        text_comp = Comparable.from g.name
+        text_comp.hash g.name
+
+Comparable.from (_:Group) = Group_Comparator
+

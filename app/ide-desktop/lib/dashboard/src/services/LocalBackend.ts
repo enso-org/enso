@@ -581,4 +581,14 @@ export default class LocalBackend extends Backend {
   override deleteTag() {
     return this.invalidOperation()
   }
+
+  /** Invalid operation. */
+  override createCheckoutSession() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getCheckoutSession() {
+    return this.invalidOperation()
+  }
 }

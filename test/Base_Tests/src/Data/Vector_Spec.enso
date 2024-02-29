@@ -1082,7 +1082,7 @@ type Fib
         start = Fib.Number 1 <| Fib.Number 1 (sum_two start)
         start
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

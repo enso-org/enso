@@ -1,13 +1,13 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
+import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
-import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -18,12 +18,11 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import * as string from '#/utilities/string'
 
-// =====================
-// === DirectoryName ===
-// =====================
+// ===========================
+// === DirectoryNameColumn ===
+// ===========================
 
 /** Props for a {@link DirectoryNameColumn}. */
 export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
@@ -35,7 +34,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
   const { isCloud, selectedKeys, nodeMap, doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const smartAsset = item.item
   if (smartAsset.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
@@ -60,6 +59,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     }
   }
 
+  const handleClick = inputBindings.handler({
+    editName: () => {
+      setRowState(object.merger({ isEditingName: true }))
+    },
+  })
+
   return (
     <div
       className={`group flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
@@ -71,10 +76,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
       onClick={event => {
-        if (
+        if (handleClick(event)) {
+          // Already handled.
+        } else if (
           eventModule.isSingleClick(event) &&
-          ((selected && selectedKeys.current.size === 1) ||
-            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
+          selected &&
+          selectedKeys.current.size === 1
         ) {
           event.stopPropagation()
           setRowState(object.merger({ isEditingName: true }))
@@ -82,10 +89,10 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }}
     >
       <SvgMask
-        src={TriangleDownIcon}
+        src={FolderArrowIcon}
         alt={item.children == null ? 'Expand' : 'Collapse'}
         className={`hidden group-hover:inline-block cursor-pointer h-4 w-4 m-1 transition-transform duration-300 ${
-          item.children != null ? '' : '-rotate-90'
+          item.children != null ? 'rotate-90' : ''
         }`}
         onClick={event => {
           event.stopPropagation()

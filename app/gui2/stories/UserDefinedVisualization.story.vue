@@ -81,7 +81,7 @@ const mockFsWrapperProps = computed(() => ({
       <MockFSWrapper v-bind="mockFsWrapperProps">
         <GraphVisualization
           :currentType="currentType"
-          :data="data"
+          :dataSource="{ type: 'raw', data }"
           :scale="1"
           :nodePosition="nodePosition"
           :nodeSize="nodeSize"

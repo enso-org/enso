@@ -5,7 +5,7 @@ import ConnectorIcon from 'enso-assets/connector.svg'
 
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -15,11 +15,10 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
-// =====================
-// === ConnectorName ===
-// =====================
+// ==========================
+// === DataLinkNameColumn ===
+// ==========================
 
 /** Props for a {@link DataLinkNameColumn}. */
 export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
@@ -28,8 +27,9 @@ export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
  * @throws {Error} when the asset is not a {@link backendModule.DataLinkAsset}.
  * This should never happen. */
 export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
-  const { item, setItem, selected, rowState, setRowState } = props
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const { item, setItem, selected, state, rowState, setRowState } = props
+  const { setIsAssetPanelTemporarilyVisible } = state
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const smartAsset = item.item
   if (smartAsset.type !== backendModule.AssetType.dataLink) {
     // eslint-disable-next-line no-restricted-syntax
@@ -45,6 +45,12 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
     await Promise.resolve(null)
   }
 
+  const handleClick = inputBindings.handler({
+    editName: () => {
+      setRowState(object.merger({ isEditingName: true }))
+    },
+  })
+
   return (
     <div
       className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
@@ -56,15 +62,13 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         }
       }}
       onClick={event => {
-        if (
-          eventModule.isSingleClick(event) &&
-          (selected ||
-            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
-        ) {
+        if (handleClick(event)) {
+          // Already handled.
+        } else if (eventModule.isSingleClick(event) && selected) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()
-          // FIXME: Open sidebar and show DataLinkInput populated with the current value
+          setIsAssetPanelTemporarilyVisible(true)
         }
       }}
     >

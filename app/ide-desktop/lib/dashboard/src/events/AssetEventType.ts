@@ -9,7 +9,6 @@ enum AssetEventType {
   updateFiles = 'update-files',
   openProject = 'open-project',
   closeProject = 'close-project',
-  cancelOpeningAllProjects = 'cancel-opening-all-projects',
   copy = 'copy',
   cut = 'cut',
   cancelCut = 'cancel-cut',

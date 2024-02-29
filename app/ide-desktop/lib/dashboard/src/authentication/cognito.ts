@@ -147,6 +147,7 @@ export enum CognitoErrorType {
   notAuthorized = 'NotAuthorized',
   userNotConfirmed = 'UserNotConfirmed',
   userNotFound = 'UserNotFound',
+  userBrokenState = 'UserBrokenState',
   amplifyError = 'AmplifyError',
   authError = 'AuthError',
   noCurrentUser = 'NoCurrentUser',
@@ -540,7 +541,10 @@ export function tryIntoSignInWithPasswordError(
 
 /** An error that may occur when requesting a password reset. */
 export interface ForgotPasswordError extends CognitoError {
-  readonly type: CognitoErrorType.userNotConfirmed | CognitoErrorType.userNotFound
+  readonly type:
+    | CognitoErrorType.userBrokenState
+    | CognitoErrorType.userNotConfirmed
+    | CognitoErrorType.userNotFound
   readonly message: string
 }
 
@@ -564,6 +568,14 @@ export function tryIntoForgotPasswordError(error: AmplifyError): ForgotPasswordE
       message:
         'Cannot reset password for user with an unverified email. ' +
         'Please verify your email first.',
+    }
+  } else if (
+    error.code === 'NotAuthorizedException' &&
+    error.message === 'User password cannot be reset in the current state.'
+  ) {
+    return {
+      type: CognitoErrorType.userBrokenState,
+      message: 'User account is in a broken state. Please contact support.',
     }
   } else {
     throw error

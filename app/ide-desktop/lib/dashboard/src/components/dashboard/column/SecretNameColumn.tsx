@@ -5,20 +5,19 @@ import KeyIcon from 'enso-assets/key.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
-
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
 
 import type * as column from '#/components/dashboard/column'
 import SvgMask from '#/components/SvgMask'
+
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 
 // =====================
 // === ConnectorName ===
@@ -34,13 +33,19 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { item, selected, rowState, setRowState } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const smartAsset = item.item
   if (smartAsset.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`SecretNameColumn` can only display secrets.')
   }
   const asset = smartAsset.value
+
+  const handleClick = inputBindings.handler({
+    editName: () => {
+      setRowState(object.merger({ isEditingName: true }))
+    },
+  })
 
   return (
     <div
@@ -53,11 +58,9 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
       onClick={event => {
-        if (
-          eventModule.isSingleClick(event) &&
-          (selected ||
-            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
-        ) {
+        if (handleClick(event)) {
+          // Already handled.
+        } else if (eventModule.isSingleClick(event) && selected) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()

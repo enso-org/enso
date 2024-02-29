@@ -8,7 +8,7 @@ import akka.testkit.TestActors.blackholeProps
 import akka.testkit._
 import io.circe.Json
 import io.circe.parser.parse
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.FileSystem

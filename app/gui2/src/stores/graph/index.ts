@@ -551,6 +551,10 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
+  function isConnectedTarget(portId: PortId): boolean {
+    return db.connections.reverseLookup(portId as AstId).size > 0
+  }
+
   return {
     transact,
     db: markRaw(db),
@@ -593,6 +597,7 @@ export const useGraphStore = defineStore('graph', () => {
     edit,
     viewModule,
     addMissingImports,
+    isConnectedTarget,
   }
 })
 

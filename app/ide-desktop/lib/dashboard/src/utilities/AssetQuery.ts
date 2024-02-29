@@ -73,6 +73,21 @@ export default class AssetQuery {
     ['nos', 'no'],
     ['negativeNos', 'has'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
+  /** The subset of {@link AssetQuery.tagNames} that are applicable for the Local Backend. */
+  // `key` MUST be a string literal type.
+  // eslint-disable-next-line no-restricted-syntax
+  static localTagNames = [
+    ['keywords', null],
+    ['negativeKeywords', '-'],
+    ['names', 'name'],
+    ['negativeNames', '-name'],
+    ['types', 'type'],
+    ['negativeTypes', '-type'],
+    ['extensions', 'extension'],
+    ['negativeExtensions', '-extension'],
+    ['modifieds', 'modified'],
+    ['negativeModifieds', '-modified'],
+  ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
 
   readonly query
 
@@ -483,13 +498,13 @@ export default class AssetQuery {
       return false
     }
     const assetType =
-      node.item.value.type === backendModule.AssetType.directory
+      node.item.type === backendModule.AssetType.directory
         ? 'folder'
-        : node.item.value.type === backendModule.AssetType.secret
-        ? 'connector'
-        : String(node.item.value.type)
+        : node.item.type === backendModule.AssetType.dataLink
+        ? 'datalink'
+        : String(node.item.type)
     const assetExtension =
-      node.item.value.type !== backendModule.AssetType.file
+      node.item.type !== backendModule.AssetType.file
         ? null
         : fileInfo.fileExtension(node.item.value.title).toLowerCase()
     const assetModifiedAt = new Date(node.item.value.modifiedAt)

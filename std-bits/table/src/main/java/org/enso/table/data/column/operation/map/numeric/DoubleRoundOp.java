@@ -39,10 +39,10 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
     if (decimalPlaces <= 0) {
       // Return Long storage
       long[] out = new long[storage.size()];
-      BitSet isMissing = new BitSet();
+      BitSet isNothing = new BitSet();
 
       for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNa(i)) {
+        if (!storage.isNothing(i)) {
           double item = storage.getItemAsDouble(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
           if (!special) {
@@ -50,22 +50,22 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
           } else {
             String msg = "Value is " + item;
             problemAggregator.reportArithmeticError(msg, i);
-            isMissing.set(i);
+            isNothing.set(i);
           }
         } else {
-          isMissing.set(i);
+          isNothing.set(i);
         }
 
         context.safepoint();
       }
-      return new LongStorage(out, storage.size(), isMissing, IntegerType.INT_64);
+      return new LongStorage(out, storage.size(), isNothing, IntegerType.INT_64);
     } else {
       // Return double storage.
       DoubleBuilder doubleBuilder =
           NumericBuilder.createDoubleBuilder(storage.size(), problemAggregator);
 
       for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNa(i)) {
+        if (!storage.isNothing(i)) {
           double item = storage.getItemAsDouble(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
           if (!special) {

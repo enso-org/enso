@@ -30,7 +30,7 @@ export default function ColorPicker(props: ColorPickerProps) {
               backgroundColor: color.lChColorToCssColor(currentColor),
             }}
           >
-            <div className="hidden peer-checked:group-[]:block bg-frame-selected rounded-full w-2 h-2"></div>
+            <div className="hidden peer-checked:group-[]:block bg-frame-selected rounded-full w-2 h-2" />
           </button>
         </label>
       ))}

@@ -333,6 +333,8 @@ const editorStyle = computed(() => {
     @keydown.delete.stop
     @wheel.stop.passive
     @pointerdown.stop
+    @pointerup.stop
+    @click.stop
     @contextmenu.stop
   >
     <div class="resize-handle" v-on="resize.events" @dblclick="resetSize">

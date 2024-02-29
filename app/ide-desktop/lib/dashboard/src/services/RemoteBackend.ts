@@ -49,6 +49,18 @@ function tryGetError<T>(error: errorModule.MustNotBeKnown<T>): string | null {
     : null
 }
 
+// =============
+// === Types ===
+// =============
+
+/** The format of all errors returned by the backend. */
+interface RemoteBackendError {
+  readonly type: string
+  readonly code: string
+  readonly message: string
+  readonly param: string
+}
+
 // ============================
 // === responseIsSuccessful ===
 // ============================
@@ -174,7 +186,14 @@ class SmartObject<T> implements backend.SmartObject<T> {
 
   /** Log an error message and throws an {@link Error} with the specified message.
    * @throws {Error} Always. */
-  protected throw(message: string): never {
+  protected async throw(prefix: string, response: Response | null): Promise<never> {
+    const error =
+      response == null
+        ? { message: 'unknown error' }
+        : // This is SAFE only when the response has been confirmed to have an erroring status code.
+          // eslint-disable-next-line no-restricted-syntax
+          ((await response.json()) as RemoteBackendError)
+    const message = `${prefix}: ${error.message}.`
     this.logger.error(message)
     throw new Error(message)
   }
@@ -226,7 +245,7 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
       // Organization info has not yet been created.
       return new SmartOrganization(this.client, this.logger, null)
     } else if (!responseIsSuccessful(response)) {
-      return this.throw('Could not get organization.')
+      return this.throw('Could not get organization.', response)
     } else {
       return new SmartOrganization(this.client, this.logger, await response.json())
     }
@@ -238,9 +257,9 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
     const response = await this.httpPut(path, body)
     if (!responseIsSuccessful(response)) {
       if (body.username != null) {
-        return this.throw('Could not change username.')
+        return this.throw('Could not change username.', response)
       } else {
-        return this.throw('Could not update user.')
+        return this.throw('Could not update user.', response)
       }
     } else {
       return
@@ -251,7 +270,7 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
   async delete(): Promise<void> {
     const response = await this.httpDelete(remoteBackendPaths.DELETE_USER_PATH)
     if (!responseIsSuccessful(response)) {
-      return this.throw('Could not delete user.')
+      return this.throw('Could not delete user.', response)
     } else {
       return
     }
@@ -270,7 +289,7 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
     const response = await this.httpPutBinary<backend.User>(path, file)
     if (!responseIsSuccessful(response)) {
-      return this.throw('Could not upload user profile picture.')
+      return this.throw('Could not upload user profile picture.', response)
     } else {
       return await response.json()
     }
@@ -287,7 +306,7 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
     const path = remoteBackendPaths.INVITE_USER_PATH
     const response = await this.httpPost(path, { organizationId: this.value.id, userEmail: email })
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not invite user '${email}'.`)
+      return this.throw(`Could not invite user '${email}'.`, response)
     } else {
       return
     }
@@ -302,7 +321,7 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.httpGet<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not list users in the organization.`)
+      return this.throw(`Could not list users in the organization.`, response)
     } else {
       return (await response.json()).users
     }
@@ -322,7 +341,7 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
         // The directory is probably empty.
         return []
       } else {
-        return this.throw('Could not list recent files.')
+        return this.throw('Could not list recent files.', response)
       }
     } else {
       const assets = (await response.json()).assets
@@ -350,7 +369,7 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
     const path = remoteBackendPaths.LIST_SECRETS_PATH
     const response = await this.httpGet<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw('Could not list secrets.')
+      return this.throw('Could not list secrets.', response)
     } else {
       return (await response.json()).secrets
     }
@@ -373,7 +392,7 @@ class SmartOrganization
       // Organization info has not yet been created.
       return null
     } else if (!responseIsSuccessful(response)) {
-      return this.throw('Could not update organization.')
+      return this.throw('Could not update organization.', response)
     } else {
       return await response.json()
     }
@@ -392,7 +411,7 @@ class SmartOrganization
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
     const response = await this.httpPutBinary<backend.OrganizationInfo>(path, file)
     if (!responseIsSuccessful(response)) {
-      return this.throw('Could not upload user profile picture.')
+      return this.throw('Could not upload user profile picture.', response)
     } else {
       return await response.json()
     }
@@ -420,7 +439,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
     const path = remoteBackendPaths.updateAssetPath(this.value.id)
     const response = await this.httpPatch(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not update '${this.value.title}'.`)
+      return this.throw(`Could not update '${this.value.title}'.`, response)
     } else {
       return body.description == null && body.parentDirectoryId == null
         ? this
@@ -439,7 +458,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
     const path = remoteBackendPaths.deleteAssetPath(this.value.id)
     const response = await this.httpDelete(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Unable to delete '${this.value.title}'.`)
+      return this.throw(`Unable to delete '${this.value.title}'.`, response)
     } else {
       return
     }
@@ -450,7 +469,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
     const path = remoteBackendPaths.UNDO_DELETE_ASSET_PATH
     const response = await this.httpPatch(path, { assetId: this.value.id })
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Unable to restore ${this.value.title} from Trash.`)
+      return this.throw(`Unable to restore ${this.value.title} from Trash.`, response)
     } else {
       return
     }
@@ -466,7 +485,10 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
       parentDirectoryId,
     })
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Unable to copy '${this.value.title}' to '${parentDirectoryTitle}'.`)
+      return this.throw(
+        `Unable to copy '${this.value.title}' to '${parentDirectoryTitle}'.`,
+        response
+      )
     } else {
       return await response.json()
     }
@@ -483,7 +505,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
     const path = remoteBackendPaths.listAssetVersionsPath(this.value.id)
     const response = await this.httpGet<backend.AssetVersions>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not list versions for '${this.value.title}'.`)
+      return this.throw(`Could not list versions for '${this.value.title}'.`, response)
     } else {
       return await response.json()
     }
@@ -497,7 +519,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
       resourceId: this.value.id,
     })
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not set permissions.`)
+      return this.throw(`Could not set permissions.`, response)
     } else {
       return
     }
@@ -509,7 +531,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
     const path = remoteBackendPaths.associateTagPath(this.value.id)
     const response = await this.httpPatch(path, { labels })
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not set labels for asset '${this.value.title}'.`)
+      return this.throw(`Could not set labels for asset '${this.value.title}'.`, response)
     } else {
       return
     }
@@ -566,7 +588,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
         // The directory is probably empty.
         return []
       } else {
-        return this.throw(`Could not list folder '${this.value.title}'.`)
+        return this.throw(`Could not list folder '${this.value.title}'.`, response)
       }
     } else {
       const assets = (await response.json()).assets
@@ -613,7 +635,9 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       (updateDirectoryResponse.value != null &&
         !responseIsSuccessful(updateDirectoryResponse.value))
     ) {
-      return this.throw(`Could not update folder '${this.value.title}'.`)
+      const response =
+        updateDirectoryResponse.status === 'fulfilled' ? updateDirectoryResponse.value : null
+      return this.throw(`Could not update folder '${this.value.title}'.`, response)
     } else {
       let newValue = this.value
       if (updateDirectoryResponse.value != null) {
@@ -694,7 +718,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       const body: Body = { title, parentId: this.value.id }
       const response = await this.httpPost<ResponseBody>(path, body)
       if (!responseIsSuccessful(response)) {
-        return this.throw(`Could not create folder with name '${body.title}'.`)
+        return this.throw(`Could not create folder with name '${body.title}'.`, response)
       } else {
         const reponseBody = await response.json()
         return result.withValue(object.merge(result.value, reponseBody))
@@ -758,11 +782,11 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
           } catch {
             // Ignored.
           }
-          return this.throw(`Could not upload project${suffix}`)
+          return this.throw(`Could not upload project${suffix}`, response)
         } else {
           const responseBody = await response.json()
           if (responseBody.project == null) {
-            return this.throw('Uploaded project but did not receive project details.')
+            return this.throw('Uploaded project but did not receive project details.', response)
           } else {
             return result.withValue(
               object.merge(result.value, {
@@ -792,7 +816,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
         }
         const response = await this.httpPost<ResponseBody>(path, body)
         if (!responseIsSuccessful(response)) {
-          return this.throw(`Could not create project with name '${body.projectName}'.`)
+          return this.throw(`Could not create project with name '${body.projectName}'.`, response)
         } else {
           const responseBody = await response.json()
           return result.withValue(
@@ -850,7 +874,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
         } catch {
           // Ignored.
         }
-        return this.throw(`Could not upload file${suffix}`)
+        return this.throw(`Could not upload file${suffix}`, response)
       } else {
         const responseBody = await response.json()
         return result.withValue(object.merge(result.value, { id: responseBody.id }))
@@ -887,7 +911,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       const body: Body = { parentDirectoryId: this.value.id, name: title, value }
       const response = await this.httpPost<backend.ConnectorInfo>(path, body)
       if (!responseIsSuccessful(response)) {
-        return this.throw(`Could not create Data Link with name '${body.name}'.`)
+        return this.throw(`Could not create Data Link with name '${body.name}'.`, response)
       } else {
         const info = await response.json()
         return result.withValue(object.merge(result.value, { id: info.id }))
@@ -924,7 +948,7 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
       const body: Body = { parentDirectoryId: this.value.id, name: title, value }
       const response = await this.httpPost<backend.SecretId>(path, body)
       if (!responseIsSuccessful(response)) {
-        return this.throw(`Could not create secret with name '${body.name}'.`)
+        return this.throw(`Could not create secret with name '${body.name}'.`, response)
       } else {
         const id = await response.json()
         return result.withValue(object.merge(result.value, { id }))
@@ -941,7 +965,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
     const path = remoteBackendPaths.openProjectPath(this.value.id)
     const response = await this.httpPost(path, body ?? { forceCreate: false, executeAsync: false })
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not open project '${this.value.title}'.`)
+      return this.throw(`Could not open project '${this.value.title}'.`, response)
     } else {
       return
     }
@@ -965,7 +989,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
     const path = remoteBackendPaths.getProjectDetailsPath(this.value.id)
     const response = await this.httpGet<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not get details of project '${this.value.title}'.`)
+      return this.throw(`Could not get details of project '${this.value.title}'.`, response)
     } else {
       const project = await response.json()
       const ideVersion =
@@ -985,7 +1009,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
     const path = remoteBackendPaths.checkResourcesPath(this.value.id)
     const response = await this.httpGet<backend.ResourceUsage>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not get resource usage for project '${this.value.title}'.`)
+      return this.throw(`Could not get resource usage for project '${this.value.title}'.`, response)
     } else {
       return await response.json()
     }
@@ -1027,7 +1051,9 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
       updateProjectResponse.status === 'rejected' ||
       (updateProjectResponse.value != null && !responseIsSuccessful(updateProjectResponse.value))
     ) {
-      return this.throw(`Could not update project '${this.value.title}'.`)
+      const response =
+        updateProjectResponse.status === 'fulfilled' ? updateProjectResponse.value : null
+      return this.throw(`Could not update project '${this.value.title}'.`, response)
     } else {
       let newValue = this.value
       if (updateProjectResponse.value != null) {
@@ -1051,7 +1077,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
     const path = remoteBackendPaths.closeProjectPath(this.value.id)
     const response = await this.httpPost(path, {})
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not close project '${this.value.title}'.`)
+      return this.throw(`Could not close project '${this.value.title}'.`, response)
     } else {
       return
     }
@@ -1060,7 +1086,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
   /** Resolve only when the project is ready to be opened. */
   async waitUntilReady(abortController: AbortController = new AbortController()) {
     let project = await this.getDetails()
-    if (!backend.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[project.state.type]) {
+    if (!backend.IS_OPENING_OR_OPENED[project.state.type]) {
       await this.open()
     }
     let nextCheckTimestamp = 0
@@ -1114,7 +1140,8 @@ class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFi
       updateFileResponse.status === 'rejected' ||
       (updateFileResponse.value != null && !responseIsSuccessful(updateFileResponse.value))
     ) {
-      return this.throw(`Could not update file '${this.value.title}'.`)
+      const response = updateFileResponse.status === 'fulfilled' ? updateFileResponse.value : null
+      return this.throw(`Could not update file '${this.value.title}'.`, response)
     } else {
       return updateAssetResponse.value == null ? this : updateAssetResponse.value
     }
@@ -1125,7 +1152,7 @@ class SmartFile extends SmartAsset<backend.FileAsset> implements backend.SmartFi
     const path = remoteBackendPaths.getFileDetailsPath(this.value.id)
     const response = await this.httpGet<backend.FileDetails>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not get details of project '${this.value.title}'.`)
+      return this.throw(`Could not get details of project '${this.value.title}'.`, response)
     } else {
       return await response.json()
     }
@@ -1139,7 +1166,7 @@ class SmartDataLink extends SmartAsset<backend.DataLinkAsset> implements backend
     const path = remoteBackendPaths.getConnectorPath(this.value.id)
     const response = await this.httpGet<backend.Connector>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not get Data Link '${this.value.title}'.`)
+      return this.throw(`Could not get Data Link '${this.value.title}'.`, response)
     } else {
       return await response.json()
     }
@@ -1163,16 +1190,18 @@ class SmartDataLink extends SmartAsset<backend.DataLinkAsset> implements backend
             value: body.value,
             connectorId: this.value.id,
           })
-    const [updateAssetResponse, updateSecretResponse] = await Promise.allSettled([
+    const [updateAssetResponse, updateDataLinkResponse] = await Promise.allSettled([
       updateAssetRequest,
       updateDataLinkRequest,
     ])
     if (
       updateAssetResponse.status === 'rejected' ||
-      updateSecretResponse.status === 'rejected' ||
-      (updateSecretResponse.value != null && !responseIsSuccessful(updateSecretResponse.value))
+      updateDataLinkResponse.status === 'rejected' ||
+      (updateDataLinkResponse.value != null && !responseIsSuccessful(updateDataLinkResponse.value))
     ) {
-      return this.throw(`Could not update secret '${this.value.title}'.`)
+      const response =
+        updateDataLinkResponse.status === 'fulfilled' ? updateDataLinkResponse.value : null
+      return this.throw(`Could not update secret '${this.value.title}'.`, response)
     } else {
       return body.description == null && body.parentDirectoryId == null
         ? this
@@ -1190,7 +1219,7 @@ class SmartDataLink extends SmartAsset<backend.DataLinkAsset> implements backend
     const path = remoteBackendPaths.deleteConnectorPath(this.value.id)
     const response = await this.httpDelete(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not delete Data Link '${this.value.title}'.`)
+      return this.throw(`Could not delete Data Link '${this.value.title}'.`, response)
     } else {
       return
     }
@@ -1204,7 +1233,7 @@ class SmartSecret extends SmartAsset<backend.SecretAsset> implements backend.Sma
     const path = remoteBackendPaths.getSecretPath(this.value.id)
     const response = await this.httpGet<backend.Secret>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not get secret '${this.value.title}'.`)
+      return this.throw(`Could not get secret '${this.value.title}'.`, response)
     } else {
       return await response.json()
     }
@@ -1231,7 +1260,9 @@ class SmartSecret extends SmartAsset<backend.SecretAsset> implements backend.Sma
       updateSecretResponse.status === 'rejected' ||
       (updateSecretResponse.value != null && !responseIsSuccessful(updateSecretResponse.value))
     ) {
-      return this.throw(`Could not update secret '${this.value.title}'.`)
+      const response =
+        updateSecretResponse.status === 'fulfilled' ? updateSecretResponse.value : null
+      return this.throw(`Could not update secret '${this.value.title}'.`, response)
     } else {
       return body.description == null && body.parentDirectoryId == null
         ? this
@@ -1269,7 +1300,9 @@ export default class RemoteBackend extends Backend {
     // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
     // set.
     if (!new Headers(this.client.defaultHeaders).has('Authorization')) {
-      return this.throw('Authorization header not set.')
+      const message = 'Authorization header not set'
+      this.logger.error(message)
+      throw new Error(message)
     } else {
       if (detect.IS_DEV_MODE) {
         // @ts-expect-error This exists only for debugging purposes. It does not have types
@@ -1285,7 +1318,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.CREATE_USER_PATH
     const response = await this.post<backend.User>(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw('Could not create user.')
+      return this.throw('Could not create user', response)
     } else {
       return await response.json()
     }
@@ -1311,7 +1344,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.CREATE_TAG_PATH
     const response = await this.post<backend.Label>(path, body)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not create label '${body.value}'.`)
+      return this.throw(`Could not create label '${body.value}'.`, response)
     } else {
       return await response.json()
     }
@@ -1327,7 +1360,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.LIST_TAGS_PATH
     const response = await this.get<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not list labels.`)
+      return this.throw(`Could not list labels.`, response)
     } else {
       return (await response.json()).tags
     }
@@ -1339,7 +1372,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.deleteTagPath(tagId)
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not delete label '${value}'.`)
+      return this.throw(`Could not delete label '${value}'.`, response)
     } else {
       return
     }
@@ -1354,7 +1387,7 @@ export default class RemoteBackend extends Backend {
   ): Promise<backend.SmartProject> {
     const self = await this.self()
     if (self == null) {
-      return this.throw(`Could not get project '${title}' because you are not logged in.`)
+      return this.throw(`Could not get project '${title}' because you are not logged in.`, null)
     } else {
       const rootDirectory = self.rootDirectory()
       // The rest of the values will be incorrect. This is fine, because this directory
@@ -1363,7 +1396,7 @@ export default class RemoteBackend extends Backend {
       const children = await directory.list({ filterBy: backend.FilterBy.active, labels: null })
       const project = children.find(child => child.value.id === projectId)
       if (project?.type !== backend.AssetType.project) {
-        return this.throw(`The project '${title}' was not found in its parent folder.`)
+        return this.throw(`The project '${title}' was not found in its parent folder.`, null)
       } else {
         return project
       }
@@ -1381,7 +1414,8 @@ export default class RemoteBackend extends Backend {
     const response = await this.post(path, body ?? { forceCreate: false, executeAsync: false })
     if (!responseIsSuccessful(response)) {
       return this.throw(
-        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
+        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}`,
+        response
       )
     } else {
       return
@@ -1403,26 +1437,52 @@ export default class RemoteBackend extends Backend {
     // incorrectly, the return value is not exposed.
     const response = await this.postBinary<unknown>(path, file)
     if (!responseIsSuccessful(response)) {
-      let suffix = '.'
-      try {
-        const error = tryGetError(await response.json())
-        if (error != null) {
-          suffix = `: ${error}`
-        }
-      } catch {
-        // Ignored.
-      }
       if (params.fileId != null) {
-        return this.throw(`Could not upload file with ID '${params.fileId}'${suffix}`)
+        return this.throw(`Could not upload file with ID '${params.fileId}'`, response)
       } else {
-        return this.throw(`Could not upload file${suffix}`)
+        return this.throw('Could not upload file', response)
       }
+    }
+  }
+
+  /** Create a payment checkout session.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async createCheckoutSession(plan: backend.Plan): Promise<backend.CheckoutSession> {
+    const response = await this.post<backend.CheckoutSession>(
+      remoteBackendPaths.CREATE_CHECKOUT_SESSION_PATH,
+      { plan } satisfies backend.CreateCheckoutSessionRequestBody
+    )
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not create checkout session for plan '${plan}'.`, response)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Gets the status of a payment checkout session.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async getCheckoutSession(
+    sessionId: backend.CheckoutSessionId
+  ): Promise<backend.CheckoutSessionStatus> {
+    const path = remoteBackendPaths.getCheckoutSessionPath(sessionId)
+    const response = await this.get<backend.CheckoutSessionStatus>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not get checkout session for session ID '${sessionId}'.`, response)
+    } else {
+      return await response.json()
     }
   }
 
   /** Log an error message and throws an {@link Error} with the specified message.
    * @throws {Error} Always. */
-  private throw(message: string): never {
+  private async throw(prefix: string, response: Response | null): Promise<never> {
+    const error =
+      response == null
+        ? { message: 'unknown error' }
+        : // This is SAFE only when the response has been confirmed to have an erroring status code.
+          // eslint-disable-next-line no-restricted-syntax
+          ((await response.json()) as RemoteBackendError)
+    const message = `${prefix}: ${error.message}.`
     this.logger.error(message)
     throw new Error(message)
   }

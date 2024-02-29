@@ -2,7 +2,7 @@ package org.enso.projectmanager.protocol
 
 import akka.testkit.TestDuration
 import io.circe.literal._
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
@@ -25,14 +25,14 @@ class ProjectManagementApiSpec
     with ProjectManagementOps
     with ReportLogsOnFailure {
 
-  override val testVersion: SemVer = SemVer(0, 0, 1)
+  override val testVersion: SemVer = SemVer.of(0, 0, 1)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     gen.reset()
   }
 
-  override val engineToInstall = Some(SemVer(0, 0, 1))
+  override val engineToInstall = Some(SemVer.of(0, 0, 1))
 
   override val deleteProjectsRootAfterEachTest = false
 
