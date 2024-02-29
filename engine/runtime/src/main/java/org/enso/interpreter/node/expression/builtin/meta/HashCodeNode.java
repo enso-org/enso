@@ -106,9 +106,11 @@ public abstract class HashCodeNode extends Node {
   @Specialization
   long hashCodeForLong(long l) {
     // By casting long to double, we lose some precision on purpose
-    if (l >= -100 && l <= 100) {
+    if (l >= -9223372036854700000L && l <= 9223372036854700000L) {
+      System.out.println("AAA old hashCodeForLong d...");
       return hashCodeForDouble((double) l);
     } else {
+      System.out.println("AAA old hashCodeForLong bd");
       return BigDecimal.valueOf(l).hashCode();
     }
   }

@@ -701,6 +701,29 @@ add_specs suite_builder =
                 [x, y, z, w].each b->
                     a+b . should_equal 20
 
+    suite_builder.group "Equality + Hashing" group_builder->
+        group_builder.specify "Integer/Float pairs that are equal should hash the same" pending="hash consistency" <|
+            positive_nums = [0, 10, 3223372036854000000, 6223372036854000000000, 8223372036854000000000000, 9223372036850000000000000000000000000000]
+            nums_nested = positive_nums.map x->
+                -3.up_to 4 . map delta->
+                    [1, -1].map sign->
+                        (x + delta) * sign
+            nums = nums_nested.flatten.flatten
+            IO.println nums
+            nums.map i->
+                IO.println "====s"
+                IO.println i
+                f = i.to_float
+                IO.println f
+                f . should_equal i
+                IO.println "====1"
+                ih = Comparable.hash_builtin i
+                IO.println "====2"
+                fh = Comparable.hash_builtin f
+                IO.println "====3"
+                fh . should_equal ih
+                IO.println "====e"
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

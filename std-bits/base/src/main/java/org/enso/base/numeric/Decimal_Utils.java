@@ -75,7 +75,8 @@ public class Decimal_Utils {
 
   public static boolean fitsInLong(BigDecimal bigDecimal) {
     //return bigDecimal.compareTo(MIN_LONG_BIGDECIMAL) >= 0 && bigDecimal.compareTo(MAX_LONG_BIGDECIMAL) <= 0;
-    return bigDecimal.compareTo(new BigDecimal(-100)) >= 0 && bigDecimal.compareTo(new BigDecimal(100)) <= 0;
+    //return bigDecimal.compareTo(new BigDecimal(-100)) >= 0 && bigDecimal.compareTo(new BigDecimal(100)) <= 0;
+    return bigDecimal.compareTo(new BigDecimal("-9223372036854700000.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854700000.0")) <= 0;
     //return bigDecimal.compareTo(new BigDecimal("-9223372036854776000.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854776000.0")) <= 0;
     //return bigDecimal.compareTo(new BigDecimal("-9223372036854775000.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854775000.0")) <= 0;
     //return bigDecimal.compareTo(new BigDecimal("-9223372036854775808.0")) >= 0 && bigDecimal.compareTo(new BigDecimal("9223372036854775807.0")) <= 0;
