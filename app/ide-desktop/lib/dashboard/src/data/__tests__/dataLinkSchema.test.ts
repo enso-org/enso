@@ -54,7 +54,7 @@ v.test('rejects invalid schemas (Base)', () => {
 })
 
 v.test('correctly validates example S3 .datalink files with the schema', () => {
-  const schemas = ['simple.datalink', 'credentials-with-secrets.datalink', 'formatted.datalink']
+  const schemas = ['simple.datalink', 'credentials-with-secrets.datalink', 'format-delimited.datalink']
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(S3_DATA_LINKS_ROOT, schema))
     testSchema(json, schema)
