@@ -969,7 +969,7 @@ type DB_Table
        - column_vectors: A `Vector` of `Vector`s; each inner `Vector` becomes a
          column of the table.
        - column_names: The names of the columns of the new table.
-    make_table_from_vectors : Vector (Vector Any) -> Vector Text -> Table
+    make_table_from_vectors : Vector (Vector Any) -> Vector Text -> DB_Table
     make_table_from_vectors self column_vectors column_names =
         Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
 
@@ -1002,7 +1002,7 @@ type DB_Table
                     sql_expression = SQL_Expression.Column literal_table_name generated_literal_column_name
                     Internal_Column.Value column_name type_ref sql_expression
 
-                Table.Value literal_table_name self.connection internal_columns context
+                DB_Table.Value literal_table_name self.connection internal_columns context
 
     ## PRIVATE
 
@@ -1577,7 +1577,7 @@ type DB_Table
              #    3 | 40 | d | h
     @column Widget_Helpers.make_column_name_selector
     replace : DB_Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:(DB_Table | Map) column:(Text | Integer) from_column:(Text | Integer)=0 to_column:(Text | Integer)=1 allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+    replace self lookup_table:(DB_Table | Map) column:(Text | Integer) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         Replace_Helpers.replace self lookup_table column from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
