@@ -17,7 +17,9 @@ object Cli {
   val PROJECTS_DIRECTORY = "projects-directory"
   val PROJECT_LIST       = "project-list"
 
-  val FILESYSTEM_LIST = "filesystem-list"
+  val FILESYSTEM_LIST             = "filesystem-list"
+  val FILESYSTEM_CREATE_DIRECTORY = "filesystem-create-directory"
+  val FILESYSTEM_DELETE_DIRECTORY = "filesystem-delete-directory"
 
   object option {
 
@@ -92,6 +94,22 @@ object Cli {
       .longOpt(FILESYSTEM_LIST)
       .desc("List directory.")
       .build()
+
+    val filesystemCreateDirectory: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_CREATE_DIRECTORY)
+      .desc("Create directory.")
+      .build()
+
+    val filesystemDeleteDirectory: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_DELETE_DIRECTORY)
+      .desc("Delete directory.")
+      .build()
   }
 
   val options: cli.Options =
@@ -106,6 +124,8 @@ object Cli {
       .addOption(option.projectsDirectory)
       .addOption(option.projectList)
       .addOption(option.filesystemList)
+      .addOption(option.filesystemCreateDirectory)
+      .addOption(option.filesystemDeleteDirectory)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {

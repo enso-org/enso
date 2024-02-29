@@ -1,5 +1,6 @@
 package org.enso.projectmanager.service.filesystem
 
+import org.apache.commons.io.FileUtils
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.projectmanager.control.effect.Effects
 import org.enso.projectmanager.data.ProjectMetadata
@@ -51,7 +52,7 @@ class FileSystemServiceSpec
 
   "FileSystemService" should {
 
-    "list file system entries" in {
+    "list directory" in {
       implicit val client: WsTestClient = new WsTestClient(address)
 
       val testDir = testStorageConfig.userProjectsPath
@@ -85,5 +86,39 @@ class FileSystemServiceSpec
       // cleanup
       deleteProject(projectId)
     }
+
+    "create directory" in {
+      val testDir = testStorageConfig.userProjectsPath
+
+      val directoryName = "filesystem_test_create_dir"
+      val directoryPath = new File(testDir, directoryName)
+
+      fileSystemService
+        .createDirectory(directoryPath)
+        .unsafeRunSync()
+
+      Files.isDirectory(directoryPath.toPath) shouldEqual true
+
+      // cleanup
+      FileUtils.deleteQuietly(directoryPath)
+    }
+
+    "delete directory" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+
+      val testDir = testStorageConfig.userProjectsPath
+
+      val projectName = "New_Project_2"
+      createProject(projectName)
+
+      val directoryPath = new File(testDir, projectName)
+
+      fileSystemService
+        .deleteDirectory(directoryPath)
+        .unsafeRunSync()
+
+      Files.exists(directoryPath.toPath) shouldEqual false
+    }
+
   }
 }

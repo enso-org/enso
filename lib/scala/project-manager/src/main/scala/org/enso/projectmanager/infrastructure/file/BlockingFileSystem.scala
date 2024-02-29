@@ -5,7 +5,6 @@ import java.nio.file.{
   NoSuchFileException,
   NotDirectoryException
 }
-
 import org.apache.commons.io.{FileExistsException, FileUtils}
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
@@ -49,11 +48,14 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
-  /** Deletes the specified directory recursively.
-    *
-    * @param path a path to the directory
-    * @return either [[FileSystemFailure]] or Unit
-    */
+  /** @inheritdoc */
+  override def createDir(path: File): F[FileSystemFailure, Unit] =
+    Sync[F]
+      .blockingOp { FileUtils.forceMkdir(path) }
+      .mapError(toFsFailure)
+      .timeoutFail(OperationTimeout)(ioTimeout)
+
+  /** @inheritdoc */
   override def removeDir(path: File): F[FileSystemFailure, Unit] =
     Sync[F]
       .blockingOp { FileUtils.deleteDirectory(path) }

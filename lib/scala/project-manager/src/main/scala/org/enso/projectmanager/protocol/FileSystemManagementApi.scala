@@ -1,6 +1,6 @@
 package org.enso.projectmanager.protocol
 
-import org.enso.jsonrpc.{HasParams, HasResult, Method}
+import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 import org.enso.projectmanager.service.filesystem.FileSystemEntry
 
 import java.io.File
@@ -21,6 +21,46 @@ object FileSystemManagementApi {
     implicit val hasResult: HasResult.Aux[this.type, FileSystemList.Result] =
       new HasResult[this.type] {
         type Result = FileSystemList.Result
+      }
+  }
+
+  case object FileSystemCreateDirectory
+      extends Method("filesystem/createDirectory") {
+
+    case class Params(path: File)
+
+    type Result = Unused.type
+    val Result = Unused
+
+    implicit val hasParams
+      : HasParams.Aux[this.type, FileSystemCreateDirectory.Params] =
+      new HasParams[this.type] {
+        type Params = FileSystemCreateDirectory.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
+      }
+  }
+
+  case object FileSystemDeleteDirectory
+      extends Method("filesystem/deleteDirectory") {
+
+    case class Params(path: File)
+
+    type Result = Unused.type
+    val Result = Unused
+
+    implicit val hasParams
+      : HasParams.Aux[this.type, FileSystemDeleteDirectory.Params] =
+      new HasParams[this.type] {
+        type Params = FileSystemDeleteDirectory.Params
+      }
+
+    implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
+      new HasResult[this.type] {
+        type Result = Unused.type
       }
   }
 }

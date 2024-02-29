@@ -9,7 +9,11 @@ import org.enso.projectmanager.boot.Globals.{
   FailureExitCode,
   SuccessExitCode
 }
-import org.enso.projectmanager.boot.command.filesystem.FileSystemListCommand
+import org.enso.projectmanager.boot.command.filesystem.{
+  FileSystemCreateDirectoryCommand,
+  FileSystemDeleteDirectoryCommand,
+  FileSystemListCommand
+}
 import org.enso.projectmanager.boot.command.{CommandHandler, ProjectListCommand}
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
@@ -215,6 +219,24 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       val fileSystemListCommand =
         FileSystemListCommand[ZIO[ZAny, +*, +*]](config, directory.toFile)
       commandHandler.printJson(fileSystemListCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_CREATE_DIRECTORY)) {
+      val directory =
+        Paths.get(options.getOptionValue(Cli.FILESYSTEM_CREATE_DIRECTORY))
+      val fileSystemCreateDirectoryCommand =
+        FileSystemCreateDirectoryCommand[ZIO[ZAny, +*, +*]](
+          config,
+          directory.toFile
+        )
+      commandHandler.printJson(fileSystemCreateDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_DELETE_DIRECTORY)) {
+      val directory =
+        Paths.get(options.getOptionValue(Cli.FILESYSTEM_DELETE_DIRECTORY))
+      val fileSystemDeleteDirectoryCommand =
+        FileSystemDeleteDirectoryCommand[ZIO[ZAny, +*, +*]](
+          config,
+          directory.toFile
+        )
+      commandHandler.printJson(fileSystemDeleteDirectoryCommand.run)
     } else if (options.hasOption(Cli.PROJECT_LIST)) {
       val projectsPathOpt =
         Option(options.getOptionValue(Cli.PROJECTS_DIRECTORY))

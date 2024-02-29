@@ -32,6 +32,22 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
         Traverse[List].traverse(files)(toFileSystemEntry).map(_.flatten)
       }
 
+  /** @inheritdoc */
+  override def createDirectory(path: File): F[FileSystemServiceFailure, Unit] =
+    fileSystem
+      .createDir(path)
+      .mapError(_ =>
+        FileSystemServiceFailure.FileSystem("Failed to create directory")
+      )
+
+  /** @inheritdoc */
+  override def deleteDirectory(path: File): F[FileSystemServiceFailure, Unit] =
+    fileSystem
+      .removeDir(path)
+      .mapError(_ =>
+        FileSystemServiceFailure.FileSystem("Failed to delete directory")
+      )
+
   private def toFileSystemEntry(
     file: File
   ): F[FileSystemServiceFailure, Option[FileSystemEntry]] = {
@@ -50,7 +66,10 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
           )
         )
         .map(Some(_))
-        .mapError(e => FileSystemServiceFailure.ProjectRepository("Failed to load the project", e.message))
+        .mapError(e =>
+          FileSystemServiceFailure
+            .ProjectRepository("Failed to load the project", e.message)
+        )
     } else CovariantFlatMap[F].pure(None)
   }
 }
