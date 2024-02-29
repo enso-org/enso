@@ -1,7 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import java.math.BigInteger;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -271,67 +269,9 @@ public final class EqualsNode extends Node {
       }
     }
 
-    private void lala(Object o) {
-      var selfHash = HashCodeNode.getUncached().execute(o);
-      System.out.println("LALA " + o + " " + selfHash);
-    }
-
-    private void lolo(double d) {
-      boolean b = BigIntegerOps.fitsInLong(d);
-      System.out.println("AAA FIL " + d + " " + b);
-    }
-
     private boolean assertHashCodeIsTheSame(Object self, Object converted) {
       var selfHash = HashCodeNode.getUncached().execute(self);
       var convertedHash = HashCodeNode.getUncached().execute(converted);
-      /*
-      System.out.println("ASHITS " + self + " " + self.getClass() + " hash " + Long.toHexString(selfHash));
-      System.out.println("ASHITS " + converted + " " + converted.getClass() + " hash " + Long.toHexString(convertedHash));
-      */
-
-/*
-      {
-        lolo(-9223372036854776000.0);
-        lolo(-9223372036854775808.0);
-        lolo(-9223372036854775807.0);
-        lolo(-9223372036854775001.0);
-        lolo(-9223372036854775000.0);
-      }
-*/
-
-      /*
-      lala(9223372036854776000.0);
-      lala(new BigInteger("9223372036854776000"));
-      lala(9223372036854775806L);
-      lala(new BigInteger("9223372036854775806"));
-      */
-      /*
-      lala(9223372036854775805L);
-      lala(9223372036854775806L);
-      lala(9223372036854775807L);
-      lala(9223372036854775499L);
-      */
-      /*
-      System.out.println("Um " + HashCodeNode.getUncached().execute(Long.valueOf(1)));
-      System.out.println("Um " + HashCodeNode.getUncached().execute(Double.valueOf(1.0)));
-      Double bigd = Double.valueOf(9223372036854775808.0);
-      System.out.println("big d is " + bigd);
-      System.out.println("big d is " + String.format("%.50f", bigd.doubleValue()));
-      System.out.println("big d is " + String.format("%f", bigd.doubleValue()));
-      System.out.println("big d " + HashCodeNode.getUncached().execute(bigd));
-      {
-        Float f = Float.valueOf(23.456f);
-        Double d = Double.valueOf(23.456);
-        System.out.println("fd f " + HashCodeNode.getUncached().execute(f));
-        System.out.println("fd d " + HashCodeNode.getUncached().execute(d));
-      }
-      {
-        Float f = Float.valueOf(23.456f);
-        Double d = Double.valueOf(23.456);
-        System.out.println("fd f " + HashCodeNode.getUncached().execute(f));
-        System.out.println("fd d " + HashCodeNode.getUncached().execute(d));
-      }
-      */
       var ok = selfHash == convertedHash;
       if (!ok) {
         var msg =

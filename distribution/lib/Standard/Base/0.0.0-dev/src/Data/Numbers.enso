@@ -3,8 +3,6 @@ import project.Data.Locale.Locale
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Error.Error
-import project.IO
-import project.Meta
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Unsupported_Argument_Types
@@ -390,11 +388,9 @@ type Number
        This is needed, because the NaN value will return `False` even when being
        compared with itself, so `x == Number.nan` would not work.
     is_nan : Boolean
-    is_nan self =
-        IO.println "ISNAN "+self.to_text+" "+(Meta.get_simple_type_name self)+" "+(Double.isNaN self).to_text
-        case self of
-            _ : Float -> Double.isNaN self
-            _ -> False
+    is_nan self = case self of
+        _ : Float -> Double.isNaN self
+        _ -> False
 
     ## GROUP Math
        Checks if the given number is infinite.
