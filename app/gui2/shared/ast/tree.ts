@@ -17,6 +17,7 @@ import {
   asOwned,
   isIdentifier,
   isToken,
+  isTokenChild,
   isTokenId,
   newExternalId,
   parentId,
@@ -28,6 +29,7 @@ import type { SourceRangeEdit } from '../util/data/text'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'
 import { visMetadataEquals } from '../yjsModel'
 import * as RawAst from './generated/ast'
+import { escapeInterpolation } from './interpolation'
 import {
   applyTextEditsToAst,
   parse,
@@ -1189,32 +1191,6 @@ export interface MutableImport extends Import, MutableAst {
 }
 applyMixins(MutableImport, [MutableAst])
 
-const interpolationMap = [
-  ['\0', '\\0'],
-  ['\b', '\\b'],
-  ['\f', '\\f'],
-  ['\n', '\\n'],
-  ['\r', '\\r'],
-  ['\t', '\\t'],
-  ['\v', '\\v'],
-  ["'", "\\'"],
-  ['`', '``'],
-] as const
-
-const escapeMapping = Object.fromEntries(interpolationMap)
-const applyMapping = Object.fromEntries(interpolationMap.map(([k, v]) => [v, k]))
-
-/** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
- * NOT USABLE to insert into raw strings. Does not include double-quotes (`"`). */
-export function escapeInterpolation(string: string) {
-  return string.replace(/[\0\b\f\n\r\t\v'`]/g, (match) => escapeMapping[match]!)
-}
-
-/** Interpret all escaped characters from an interpolated (`''`) Enso string. */
-export function applyInterpolation(string: string) {
-  return string.replace(/\\[0bfnrtv']|``/g, (match) => applyMapping[match]!)
-}
-
 interface TreeRefs {
   token: any
   ast: any
@@ -1250,6 +1226,16 @@ function rawToConcrete(module: Module): RefMap<RawRefs, ConcreteRefs> {
     else return { ...child, node: module.get(child.node) }
   }
 }
+
+function concreteToOwned(module: MutableModule): RefMap<ConcreteRefs, OwnedRefs> {
+  return (child: FieldData<ConcreteRefs>) => {
+    if (typeof child !== 'object') return
+    if (!('node' in child)) return
+    if (isTokenChild(child)) return child
+    else return { ...child, node: module.copy(child.node) }
+  }
+}
+
 export interface TextToken<T extends TreeRefs = RawRefs> {
   type: 'token'
   readonly token: T['token']
@@ -1338,19 +1324,19 @@ export class TextLiteral extends Ast {
     return asOwned(new MutableTextLiteral(module, fields))
   }
 
-  static new(rawText: string, module: MutableModule): Owned<MutableTextLiteral> {
+  static new(rawText: string, module?: MutableModule): Owned<MutableTextLiteral> {
     const escaped = escapeInterpolation(rawText)
     const parsed = parse(`'${escaped}'`, module)
     if (!(parsed instanceof MutableTextLiteral)) {
       console.error(`Failed to escape string for interpolated text`, rawText, escaped, parsed)
-      const safeText = rawText.replaceAll(/[^-+A-Za-z0-9_. ]/, '')
+      const safeText = rawText.replaceAll(/[^-+A-Za-z0-9_. ]/g, '')
       return this.new(safeText, module)
     }
     return parsed
   }
 
   /** Return the value of the string, interpreted except for any interpolated expressions. */
-  contentUninterpolated(): string {
+  get contentUninterpolated(): string {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
@@ -1362,23 +1348,13 @@ export class TextLiteral extends Ast {
     if (close) yield close
   }
 
-  boundaryTokenVariant(): string | undefined {
+  boundaryTokenCode(): string | undefined {
     return (this.open || this.close)?.code()
   }
 
   isInterpolated(): boolean {
-    const token = this.boundaryTokenVariant()
+    const token = this.boundaryTokenCode()
     return token === "'" || token === "'''"
-  }
-
-  get textContents(): string {
-    const combinedCode =
-      this.fields
-        .get('elements')
-        ?.map((element) => this.module.getAny(element.node).code())
-        ?.join('') ?? ''
-    const isInterpolated = this.isInterpolated()
-    return isInterpolated ? applyInterpolation(combinedCode) : combinedCode
   }
 
   get open(): Token | undefined {
@@ -1387,6 +1363,10 @@ export class TextLiteral extends Ast {
 
   get close(): Token | undefined {
     return this.module.getToken(this.fields.get('close')?.node)
+  }
+
+  get elements(): TextElement<ConcreteRefs>[] {
+    return this.fields.get('elements').map((e) => mapRefs(e, rawToConcrete(this.module)))
   }
 }
 export class MutableTextLiteral extends TextLiteral implements MutableAst {
@@ -1398,17 +1378,27 @@ export class MutableTextLiteral extends TextLiteral implements MutableAst {
     this.fields.set('close', unspaced(Token.new(code)))
   }
 
-  setTextContents(rawText: string) {
+  setElements(elements: TextElement<OwnedRefs>[]) {
+    this.fields.set(
+      'elements',
+      elements.map((e) => mapRefs(e, ownedToRaw(this.module, this.id))),
+    )
+  }
+
+  setContentUninterpolated(rawText: string) {
+    let boundary = this.boundaryTokenCode()
     const isInterpolated = this.isInterpolated()
-    const token = this.boundaryTokenVariant()
-    const mustBecomeInterpolated = !isInterpolated && (!token || rawText.includes(token))
-    const doEscape = isInterpolated || mustBecomeInterpolated
-
-    if (mustBecomeInterpolated) this.setBoundaries(token === '"""' ? "'''" : "'")
-
-    const codeText = doEscape ? escapeInterpolation(rawText) : rawText
-    const newElement = concreteChild(this.module, unspaced(Token.new(codeText)), this.id)
-    this.fields.set('elements', [newElement])
+    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.includes(boundary))
+    if (mustBecomeInterpolated) {
+      boundary = "'"
+      this.setBoundaries(boundary)
+    }
+    const literalContents =
+      isInterpolated || mustBecomeInterpolated ? escapeInterpolation(rawText) : rawText
+    const parsed = parse(`${boundary}${literalContents}${boundary}`)
+    assert(parsed instanceof TextLiteral)
+    const elements = parsed.elements.map((e) => mapRefs(e, concreteToOwned(this.module)))
+    this.setElements(elements)
   }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableAst {}

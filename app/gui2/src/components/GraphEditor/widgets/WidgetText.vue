@@ -27,12 +27,12 @@ const shownLiteral = computed(() => inputTextLiteral.value ?? emptyTextLiteral)
 
 const textContents = computed({
   get() {
-    return inputTextLiteral.value?.textContents ?? ''
+    return shownLiteral.value.contentUninterpolated
   },
   set(value) {
     if (props.input.value instanceof Ast.TextLiteral) {
       const edit = graph.startEdit()
-      edit.getVersion(props.input.value).setTextContents(value)
+      edit.getVersion(props.input.value).setContentUninterpolated(value)
       props.onUpdate({ edit })
     } else {
       props.onUpdate({
