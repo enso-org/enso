@@ -369,7 +369,23 @@ function openFullMenu() {
   menuVisible.value = MenuState.Full
 }
 
-const documentation = computed<string | undefined>(() => props.node.documentation)
+const documentation = computed<string | undefined>({
+  get: () => props.node.documentation,
+  set: (text) => {
+    graph.edit((edit) => {
+      const outerExpr = edit.get(props.node.outerExprId)
+      if (text) {
+        if (outerExpr instanceof Ast.MutableDocumented) {
+          outerExpr.setDocumentationText(text)
+        } else {
+          outerExpr.update((outerExpr) => Ast.Documented.new(text, outerExpr))
+        }
+      } else if (outerExpr instanceof Ast.MutableDocumented && outerExpr.expression) {
+        outerExpr.replace(outerExpr.expression.take())
+      }
+    })
+  },
+})
 </script>
 
 <template>
@@ -430,7 +446,9 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
     />
-    <GraphNodeComment v-if="documentation" v-model="documentation" class="beforeNode" />
+    <Suspense>
+      <GraphNodeComment v-if="documentation" v-model="documentation" class="beforeNode" />
+    </Suspense>
     <div
       ref="contentNode"
       class="node"

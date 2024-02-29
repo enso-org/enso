@@ -35,6 +35,7 @@ const {
   forceLinting,
   lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
+  textEditToChangeSpec,
 } = await import('@/components/CodeEditor/codemirror')
 
 const projectStore = useProjectStore()
@@ -186,9 +187,6 @@ function changeSetToTextEdits(changes: ChangeSet) {
     textEdits.push({ range: [from, to], insert: insert.toString() }),
   )
   return textEdits
-}
-function textEditToChangeSpec({ range: [from, to], insert }: SourceRangeEdit) {
-  return { from, to, insert }
 }
 
 let pendingChanges: ChangeSet | undefined
