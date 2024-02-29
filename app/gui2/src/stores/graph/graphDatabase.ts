@@ -462,12 +462,14 @@ export interface Node {
   vis: Opt<VisualizationMetadata>
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
+  documentation: string | undefined
 }
 
 const baseMockNode = {
   position: Vec2.Zero,
   vis: undefined,
   primarySubject: undefined,
+  documentation: undefined,
 }
 
 /** This should only be used for supplying as initial props when testing.

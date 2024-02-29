@@ -882,7 +882,7 @@ export default class RemoteBackend extends Backend {
       { plan } satisfies backendModule.CreateCheckoutSessionRequestBody
     )
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not create checkout session for plan '${plan}'.`)
+      return this.throw(`Could not create checkout session for plan '${plan}'.`, response)
     } else {
       return await response.json()
     }
@@ -896,7 +896,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.getCheckoutSessionPath(sessionId)
     const response = await this.get<backendModule.CheckoutSessionStatus>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not get checkout session for session ID '${sessionId}'.`)
+      return this.throw(`Could not get checkout session for session ID '${sessionId}'.`, response)
     } else {
       return await response.json()
     }

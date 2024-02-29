@@ -5,9 +5,12 @@ body {
   overflow: hidden;
   height: 100vh;
   margin: 0;
+  background-blend-mode: lighten;
+}
+
+body:not(.vibrancy) {
   background: url("enso-assets/background.jpg") 0 0;
   background-size: cover;
-  background-blend-mode: lighten;
 }
 
 body::before {
@@ -49,7 +52,7 @@ body::before {
 
 .enso-dashboard *:focus,
 .enso-chat *:focus {
-  outline: none !important;
+  outline: none;
 }
 
 /* Must be kept in sync with app/gui/view/graph-editor/src/builtin/visualization/java_script/helpers/scrollable.js. */

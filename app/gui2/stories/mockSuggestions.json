@@ -1039,6 +1039,17 @@
   {
     "type": "method",
     "module": "Standard.Table.Data.Table",
+    "name": "new",
+    "arguments": [],
+    "selfType": "Standard.Table.Data.Table.Table",
+    "returnType": "Standard.Table.Data.Table.Table",
+    "isStatic": true,
+    "documentation": "",
+    "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Data.Table",
     "name": "aggregate",
     "arguments": [
       {
