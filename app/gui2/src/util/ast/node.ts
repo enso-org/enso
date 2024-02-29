@@ -1,14 +1,13 @@
-import type { Node } from '@/stores/graph'
+import type { NodeDataFromAst } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
-import { Vec2 } from '@/util/data/vec2'
 
 export const prefixes = Prefixes.FromLines({
   enableRecording:
     'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
 })
 
-export function nodeFromAst(ast: Ast.Ast): Node | undefined {
+export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
   const { nodeCode, documentation } =
     ast instanceof Ast.Documented
       ? { nodeCode: ast.expression, documentation: ast.documentation() }
@@ -22,8 +21,6 @@ export function nodeFromAst(ast: Ast.Ast): Node | undefined {
     pattern,
     rootExpr,
     innerExpr,
-    position: Vec2.Zero,
-    vis: undefined,
     prefixes: matches,
     primarySubject: primaryApplicationSubject(innerExpr),
     documentation,

@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertTrue;
 
@@ -13,8 +14,11 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -97,25 +101,25 @@ public class HttpDownloaderTest {
 
   @Test
   public void downloadBigFileWithProgress() throws Exception {
-    var uriStr = "http://localhost:" + port + "/files/big.tgz";
+    var uriStr = "http://localhost:" + port + "/files/big.txt";
     var uri = new URI(uriStr);
-    Path dest = Files.createTempFile("enso-downloader-test", ".tgz");
-    final int[] progressUpdateCalls = {0};
+    Path dest = Files.createTempFile("enso-downloader-test", ".txt");
+    List<Long> progressCalls = new ArrayList<>();
     final int[] doneCalls = {0};
     var task = HTTPDownload.download(uri, dest);
     var progressListener =
         new ProgressListener<Path>() {
           @Override
           public void progressUpdate(long done, Option<Object> total) {
-            progressUpdateCalls[0]++;
+            progressCalls.add(done);
             assertThat(total.isDefined(), is(true));
             assertThat(total.get(), instanceOf(Long.class));
             long reportedTotal = (Long) total.get();
             assertThat(reportedTotal, is(BigFileHandler.BIG_FILE_SIZE));
             assertThat(
-                "Should send and report just chunk, not the whole file",
+                "Reported progress should not exceed total size",
                 done,
-                lessThan(reportedTotal));
+                lessThanOrEqualTo(reportedTotal));
           }
 
           @Override
@@ -129,8 +133,13 @@ public class HttpDownloaderTest {
     var resp = task.force();
     assertThat(resp.toFile().exists(), is(true));
     assertThat("Done was called exactly once", doneCalls[0], is(1));
-    assertThat(
-        "Progress reported was called at least once", progressUpdateCalls[0], greaterThan(0));
+    assertThat("Progress reported was called at least twice", progressCalls.size(), greaterThan(1));
+    for (int i = 0; i < progressCalls.size() - 1; i++) {
+      var progress = progressCalls.get(i);
+      var nextProgress = progressCalls.get(i + 1);
+      assertThat("Progress should be increasing", progress, lessThan(nextProgress));
+    }
+    BigFileHandler.assertSameFileContent(dest);
     Files.deleteIfExists(dest);
   }
 
@@ -191,33 +200,41 @@ public class HttpDownloaderTest {
   }
 
   private static class BigFileHandler extends SimpleHttpHandler {
-    private static final int CHUNK_SIZE = 1024;
+    private static final int CHUNK_SIZE = 4096;
     private static final long BIG_FILE_SIZE = 10 * CHUNK_SIZE;
-    private static final byte[] BIG_FILE_BYTES = new byte[Math.toIntExact(BIG_FILE_SIZE)];
+    private static final byte[] BIG_FILE_CONTENT;
 
     static {
       var rnd = new Random(42);
-      rnd.nextBytes(BIG_FILE_BYTES);
+      var sb = new StringBuilder();
+      for (int i = 0; i < BIG_FILE_SIZE; i++) {
+        char c = (char) (rnd.nextInt(26) + 'a');
+        sb.append(c);
+      }
+      BIG_FILE_CONTENT = sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     protected void doHandle(HttpExchange exchange) throws IOException {
-      if (exchange.getRequestURI().toString().equals("/files/big.tgz")) {
+      if (exchange.getRequestURI().toString().equals("/files/big.txt")) {
         long chunks = BIG_FILE_SIZE / CHUNK_SIZE;
         exchange.getResponseHeaders().set("Content-Length", Long.toString(BIG_FILE_SIZE));
-        exchange.getResponseHeaders().set("Content-Type", "application/x-gzip");
-        // Set responseLength to 0 to indicate that the response length is unknown
-        // and force chunking the response.
-        exchange.sendResponseHeaders(200, 0);
+        exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=utf-8");
+        exchange.getResponseHeaders().set("Transfer-Encoding", "chunked");
+        exchange.sendResponseHeaders(200, BIG_FILE_SIZE);
         try (var os = exchange.getResponseBody()) {
           for (int i = 0; i < chunks; i++) {
-            os.write(BIG_FILE_BYTES, i * CHUNK_SIZE, CHUNK_SIZE);
-            os.flush();
+            os.write(BIG_FILE_CONTENT, i * CHUNK_SIZE, CHUNK_SIZE);
           }
         }
       } else {
         exchange.sendResponseHeaders(404, -1);
       }
+    }
+
+    static void assertSameFileContent(Path file) throws IOException {
+      byte[] readbytes = Files.readAllBytes(file);
+      assertThat(readbytes, is(BIG_FILE_CONTENT));
     }
   }
 }

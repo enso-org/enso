@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
@@ -45,6 +46,8 @@ const emit = defineEmits<{
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationVisible': [visible: boolean]
+  'update:visualizationFullscreen': [fullscreen: boolean]
+  'update:visualizationWidth': [width: number]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -108,6 +111,7 @@ const warning = computed(() => {
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+const isOnlyOneSelected = computed(() => isSelected.value && nodeSelection?.selected.size === 1)
 watch(isSelected, (selected) => {
   if (!selected) {
     menuVisible.value = MenuState.Off
@@ -115,7 +119,9 @@ watch(isSelected, (selected) => {
 })
 
 const isDocsVisible = ref(false)
+const visualizationWidth = computed(() => props.node.vis?.width ?? null)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
+const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -321,6 +327,8 @@ function openFullMenu() {
   }
   menuVisible.value = MenuState.Full
 }
+
+const documentation = computed<string | undefined>(() => props.node.documentation)
 </script>
 
 <template>
@@ -374,15 +382,21 @@ function openFullMenu() {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       :currentType="props.node.vis?.identifier"
+      :isFullscreen="isVisualizationFullscreen"
       :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
       :typename="expressionInfo?.typename"
+      :width="visualizationWidth"
+      :isFocused="isOnlyOneSelected"
       @update:rect="
         emit('update:visualizationRect', $event),
           (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
       "
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
+      @update:fullscreen="emit('update:visualizationFullscreen', $event)"
+      @update:width="emit('update:visualizationWidth', $event)"
     />
+    <GraphNodeComment v-if="documentation" v-model="documentation" class="beforeNode" />
     <div
       ref="contentNode"
       class="node"
@@ -400,10 +414,10 @@ function openFullMenu() {
         @openFullMenu="openFullMenu"
       />
     </div>
-    <GraphNodeError v-if="error" class="message" :message="error" type="error" />
+    <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
     <GraphNodeError
       v-if="warning && (nodeHovered || isSelected)"
-      class="message warning"
+      class="afterNode warning"
       :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
       :message="warning"
       type="warning"
@@ -624,7 +638,14 @@ function openFullMenu() {
   z-index: 1;
 }
 
-.message {
+.beforeNode {
+  position: absolute;
+  bottom: 100%;
+  left: 60px;
+  margin-bottom: 2px;
+}
+
+.afterNode {
   position: absolute;
   top: 100%;
   margin-top: 4px;
