@@ -160,8 +160,7 @@ type Enso_File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
     with_input_stream self (open_options : Vector) action = if self.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.") else
         if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Files can only be opened for reading.") else
-            s3_url = get_download_url_for_file self
-            response = HTTP.fetch s3_url HTTP_Method.Get []
+            response = HTTP.fetch (get_download_url_for_file self) HTTP_Method.Get []
             response.if_not_error <| response.body.with_stream action
 
     ## ALIAS load, open
@@ -357,7 +356,5 @@ get_file_description file:Enso_File -> JS_Object =
    stored anywhere.
 get_download_url_for_file file:Enso_File -> Text =
     file_description = get_file_description file
-    ## TODO migrate to the pre-signed URLs once that is implemented
-       presigned_url = file_description |> get_required_field "url"
-    path = file_description |> get_required_field "file" |> get_required_field "path"
-    path.replace "s3://production-enso-organizations-files/" "https://production-enso-organizations-files.s3.eu-west-1.amazonaws.com/"
+    presigned_url = file_description |> get_required_field "url"
+    presigned_url
