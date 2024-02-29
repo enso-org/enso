@@ -222,8 +222,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           setAreSuggestionsVisible(false)
         }
       }}
-      className="group search-bar relative flex items-center text-primary rounded-full gap-2.5 h-8 grow max-w-98.25 xl:max-w-screen-1/3 px-2"
+      className="group search-bar relative flex items-center text-primary rounded-full gap-asset-search-bar h-row grow max-w-asset-search-bar xl:max-w-screen-1/3 px-input-x"
     >
+      {/* The custom opacity can be considered as part of this icon's image. */}
+      {/* eslint-disable-next-line no-restricted-syntax */}
       <img src={FindIcon} className="relative z-1 opacity-80" />
       <input
         ref={searchRef}
@@ -254,14 +256,14 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           }
         }}
       />
-      <div className="absolute flex flex-col top left overflow-hidden w-full before:absolute before:bg-frame before:inset before:backdrop-blur-default rounded-default pointer-events-none transition-all duration-300">
-        <div className="relative padding h-8" />
+      <div className="absolute flex flex-col top left overflow-hidden w-full before:absolute before:bg-frame before:inset before:backdrop-blur-default rounded-default pointer-events-none">
+        <div className="relative padding h-row" />
         {areSuggestionsVisible && (
           <div className="relative flex flex-col gap-2">
             {/* Tags (`name:`, `modified:`, etc.) */}
             <div
               data-testid="asset-search-tag-names"
-              className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto"
+              className="flex flex-wrap gap-buttons whitespace-nowrap px-2 pointer-events-auto"
             >
               {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
                 const [key, tag] = entry
@@ -270,7 +272,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                   : [
                       <button
                         key={key}
-                        className="bg-frame rounded-full h-6 px-2 hover:bg-selected-frame transition-all"
+                        className="bg-frame rounded-full h-text px-2 hover:bg-selected-frame transition-all"
                         onClick={() => {
                           querySource.current = QuerySource.internal
                           setQuery(query.add({ [key]: [[]] }))
@@ -283,7 +285,10 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             </div>
             {/* Asset labels */}
             {isCloud && (
-              <div data-testid="asset-search-labels" className="flex gap-2 p-2 pointer-events-auto">
+              <div
+                data-testid="asset-search-labels"
+                className="flex gap-buttons p-2 pointer-events-auto"
+              >
                 {labels.map(label => {
                   const negated = query.negativeLabels.some(term =>
                     array.shallowEqual(term, [label.value])

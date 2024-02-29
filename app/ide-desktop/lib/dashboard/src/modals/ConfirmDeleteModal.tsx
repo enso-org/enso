@@ -43,7 +43,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col gap-2 rounded-default w-96 px-4 p-2 pointer-events-auto before:absolute before:inset before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="relative flex flex-col gap-modal rounded-default w-confirm-delete-modal px-4 p-modal pointer-events-auto before:absolute before:inset before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()

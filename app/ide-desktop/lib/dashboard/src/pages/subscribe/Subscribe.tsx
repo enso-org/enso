@@ -117,13 +117,13 @@ export default function Subscribe() {
     <Modal centered className="bg-black/10 text-primary text-xs">
       <div
         data-testid="subscribe-modal"
-        className="flex flex-col gap-2 bg-selected-frame backdrop-blur-default rounded-default p-8 w-full max-w-md max-h-[100vh]"
+        className="flex flex-col gap-modal bg-selected-frame backdrop-blur-default rounded-default p-8 w-full max-w-md max-h-[100vh]"
         onClick={event => {
           event.stopPropagation()
         }}
       >
         <div className="self-center text-xl">Upgrade to {string.capitalizeFirst(plan)}</div>
-        <div className="flex items-stretch rounded-full bg-gray-500/30 text-base h-8">
+        <div className="flex items-stretch rounded-full bg-gray-500/30 text-base h-row">
           {backendModule.PLANS.map(newPlan => (
             <button
               key={newPlan}
@@ -156,7 +156,7 @@ export default function Subscribe() {
             </stripeReact.EmbeddedCheckoutProvider>
           </div>
         ) : (
-          <div className="h-155 transition-all" />
+          <div className="h-payment-form transition-all" />
         )}
       </div>
     </Modal>

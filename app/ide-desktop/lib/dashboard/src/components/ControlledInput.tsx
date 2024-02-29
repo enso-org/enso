@@ -89,7 +89,7 @@ export default function ControlledInput(props: ControlledInputProps) {
             }
           : onBlur
       }
-      className="text-sm placeholder-gray-500 hover:bg-gray-100 focus:bg-gray-100 pl-10 pr-4 rounded-full border transition-all duration-300 w-full py-2"
+      className="text-sm placeholder-gray-500 hover:bg-gray-100 focus:bg-gray-100 pl-10 pr-4 rounded-full border transition-all duration-300 w-full py-auth-input-y"
     />
   )
 }

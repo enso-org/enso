@@ -139,7 +139,7 @@ export default function ManageLabelsModal<
         >
           <div className="absolute bg-selected-frame backdrop-blur-default rounded-default h-full w-full" />
           <form
-            className="relative flex flex-col rounded-default gap-2 p-2"
+            className="relative flex flex-col rounded-default gap-modal p-modal"
             onSubmit={async event => {
               event.preventDefault()
               setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])

@@ -56,7 +56,7 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGoogle()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-auth py-2"
+            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-auth py-auth-input-y"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
             Sign up or login with Google
@@ -69,7 +69,7 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGitHub()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-auth py-2"
+            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-auth py-auth-input-y"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
             Sign up or login with GitHub

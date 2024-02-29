@@ -46,7 +46,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       <form
         data-testid="upsert-secret-modal"
         tabIndex={-1}
-        className="relative flex flex-col gap-2 rounded-default w-96 p-4 pt-2 pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="relative flex flex-col gap-modal rounded-default w-upsert-secret-modal p-4 pt-modal pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -64,12 +64,12 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
         </h1>
         <label className="relative flex">
-          <div className="w-12 h-6 py-1">Name</div>
+          <div className="w-modal-label h-text py-1">Name</div>
           <input
             autoFocus
             disabled={!isNameEditable}
             placeholder="Enter the name of the secret"
-            className="grow bg-transparent border border-black/10 rounded-full leading-cozy h-6 px-4 py-px disabled:opacity-disabled"
+            className="text grow bg-transparent border border-black/10 rounded-full px-4 disabled:opacity-disabled"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
@@ -77,11 +77,11 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           />
         </label>
         <label className="relative flex">
-          <div className="w-12 h-6 py-1">Value</div>
+          <div className="w-modal-label h-text py-1">Value</div>
           <input
             autoFocus={!isNameEditable}
             placeholder="Enter the value of the secret"
-            className="grow bg-transparent border border-black/10 rounded-full leading-cozy h-6 px-4 py-px"
+            className="text grow bg-transparent border border-black/10 rounded-full px-4"
             onInput={event => {
               setValue(event.currentTarget.value)
             }}

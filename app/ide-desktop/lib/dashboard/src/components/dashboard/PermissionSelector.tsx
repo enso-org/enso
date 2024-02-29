@@ -118,14 +118,14 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       permissionDisplay = (
-        <div className="flex gap-px w-30.25">
+        <div className="flex gap-px w-permission-display">
           <button
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
             className={`${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } grow rounded-l-full h-6 px-1.75 py-0.5 disabled:opacity-30`}
+            } grow rounded-l-full h-text px-1.75 py-0.5 disabled:opacity-30`}
             onClick={doShowPermissionTypeSelector}
           >
             {permission.type}
@@ -136,7 +136,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(disabled && error != null ? { title: error } : {})}
             className={`${
               permissionsModule.DOCS_CLASS_NAME
-            } grow h-6 px-1.75 py-0.5 disabled:opacity-30 ${permission.docs ? '' : 'opacity-30'}`}
+            } grow h-text px-1.75 py-0.5 disabled:opacity-30 ${
+              permission.docs ? '' : 'opacity-30'
+            }`}
             onClick={event => {
               event.stopPropagation()
               setAction(
@@ -156,7 +158,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(disabled && error != null ? { title: error } : {})}
             className={`${
               permissionsModule.EXEC_CLASS_NAME
-            } grow rounded-r-full h-6 px-1.75 py-0.5 disabled:opacity-30 ${
+            } grow rounded-r-full h-text px-1.75 py-0.5 disabled:opacity-30 ${
               permission.execute ? '' : 'opacity-30'
             }`}
             onClick={event => {
@@ -184,7 +186,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           {...(disabled && error != null ? { title: error } : {})}
           className={`${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } rounded-full h-6 w-30.25 disabled:opacity-30`}
+          } rounded-full h-text w-permission-display disabled:opacity-30`}
           onClick={doShowPermissionTypeSelector}
         >
           {permission.type}

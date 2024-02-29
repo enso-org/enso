@@ -56,7 +56,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           left: position.left + window.scrollX,
           top: position.top + window.scrollY,
         }}
-        className="relative flex flex-col gap-2 rounded-default pointer-events-auto w-80 p-4 pt-2 before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="relative flex flex-col gap-modal rounded-default pointer-events-auto w-new-label-modal p-4 pt-modal before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -74,12 +74,12 @@ export default function NewLabelModal(props: NewLabelModalProps) {
       >
         <h1 className="relative text-sm font-semibold">New Label</h1>
         <label className="relative flex">
-          <div className="w-12 h-text py-1">Name</div>
+          <div className="w-modal-label h-text py-1">Name</div>
           <input
             autoFocus
             size={1}
             placeholder="Enter the name of the label"
-            className={`grow bg-transparent border border-black/10 rounded-full leading-cozy h-text px-4 py-px ${
+            className={`text grow bg-transparent border border-black/10 rounded-full px-4 ${
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers
               color != null && color.lightness <= 50
                 ? 'text-tag-text placeholder-selected-frame'
@@ -103,7 +103,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             event.preventDefault()
           }}
         >
-          <div className="w-12 h-text py-1">Color</div>
+          <div className="w-modal-label h-text py-1">Color</div>
           <div className="grow flex items-center gap-1">
             <ColorPicker setColor={setColor} />
           </div>

@@ -32,5 +32,5 @@ export const CLASS_NAME: Readonly<Record<Visibility, string>> = {
   // Note that in some cases (e.g. table rows with alternating colors), the element should be
   // completely removed from the DOM, rather than just hidden via CSS.
   [Visibility.hidden]: 'hidden',
-  [Visibility.faded]: 'opacity-50 pointer-events-none-recursive',
+  [Visibility.faded]: 'opacity pointer-events-none-recursive',
 }

@@ -190,7 +190,7 @@ function ChatMessage(props: ChatMessageProps) {
         <img
           crossOrigin="anonymous"
           src={message.avatar ?? DefaultUserIcon}
-          className="rounded-full h-8 w-8 my-1"
+          className="rounded-full size-chat-profile-picture my-1"
         />
         <div className="mx-2 leading-cozy">
           <div className="font-bold">{message.name}</div>
@@ -333,7 +333,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
-          <div className="min-h max-h-70 overflow-y-auto">
+          <div className="min-h max-h-chat-thread-list overflow-y-auto">
             {threads.map(thread => (
               <div
                 key={thread.id}
@@ -350,7 +350,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
                   }
                 }}
               >
-                <div className="w-8 text-center">
+                <div className="w-chat-indicator text-center">
                   {/* {thread.hasUnreadMessages ? '(!) ' : ''} */}
                 </div>
                 <div>{thread.title}</div>
@@ -663,7 +663,7 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top right backdrop-blur-default h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
+        className={`text-xs text-primary flex flex-col fixed top right backdrop-blur-default h-screen shadow-soft w-chat py-1 z-3 transition-transform ${
           detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >

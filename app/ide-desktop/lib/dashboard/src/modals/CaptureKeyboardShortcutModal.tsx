@@ -64,7 +64,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col items-center gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:inset-0 before:rounded-2xl before:bg-selected-frame before:backdrop-blur-3xl before:w-full before:h-full"
+        className="relative flex flex-col items-center gap-modal rounded-default w-capture-keyboard-shortcut-modal p-modal pointer-events-auto before:absolute before:inset before:rounded-default before:bg-selected-frame before:backdrop-blur-3xl before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key === 'Escape' && key === 'Escape') {
             // Ignore.
@@ -106,7 +106,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           }`}
         >
           {shortcut === '' ? (
-            <span className="leading-170 text-primary/30 h-6 py-px">No shortcut entered</span>
+            <span className="text text-primary/30">No shortcut entered</span>
           ) : (
             <KeyboardShortcut shortcut={shortcut} />
           )}
@@ -114,19 +114,11 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         <span className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
         </span>
-        <div className="relative flex self-start gap-2">
-          <button
-            disabled={!canSubmit}
-            type="submit"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50"
-          >
+        <div className="relative flex self-start gap-buttons">
+          <button disabled={!canSubmit} type="submit" className="button text-white bg-invite">
             Confirm
           </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-selected-frame rounded-full px-4 py-1"
-            onClick={unsetModal}
-          >
+          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
             Cancel
           </button>
         </div>

@@ -101,7 +101,7 @@ export interface SettingsSidebarProps {
 export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { settingsTab, setSettingsTab } = props
   return (
-    <div className="flex flex-col gap-4 w-51.5 overflow-y-auto shrink-0">
+    <div className="flex flex-col gap-4 w-settings-sidebar overflow-y-auto shrink-0">
       {SECTIONS.flatMap(section => {
         const tabs = section.tabs.filter(tab => tab.visible)
         return tabs.length === 0

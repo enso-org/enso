@@ -239,7 +239,7 @@ export default function ManagePermissionsModal<
                 }
               : {}
           }
-          className="sticky w-115.25 rounded-default before:absolute before:bg-selected-frame before:backdrop-blur-default before:rounded-default before:w-full before:h-full"
+          className="sticky w-manage-permissions rounded-default before:absolute before:bg-selected-frame before:backdrop-blur-default before:rounded-default before:w-full before:h-full"
           onClick={mouseEvent => {
             mouseEvent.stopPropagation()
           }}
@@ -253,8 +253,9 @@ export default function ManagePermissionsModal<
             }
           }}
         >
-          <div className="relative flex flex-col rounded-default gap-2 p-2">
-            <div className="flex gap-2">
+          <div className="relative flex flex-col rounded-default gap-modal p-modal">
+            {/* The value of this `gap` is a placeholder, as there is currently only one entry. */}
+            <div className="flex gap-buttons">
               <h2 className="text-sm font-bold">Invite</h2>
               {/* Space reserved for other tabs. */}
             </div>

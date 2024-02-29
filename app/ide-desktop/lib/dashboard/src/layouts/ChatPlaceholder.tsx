@@ -37,7 +37,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   } else {
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top right backdrop-blur-default h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
+        className={`text-xs text-primary flex flex-col fixed top right backdrop-blur-default h-screen shadow-soft w-chat py-1 z-3 transition-transform ${
           detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >

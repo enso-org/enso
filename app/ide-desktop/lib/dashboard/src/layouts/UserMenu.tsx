@@ -47,7 +47,7 @@ export default function UserMenu(props: UserMenuProps) {
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className="absolute flex flex-col bg-selected-frame backdrop-blur-default rounded-default gap-icons right-2.25 top-2.25 w-51.5 px-2 py-2.25"
+        className="absolute flex flex-col bg-selected-frame backdrop-blur-default rounded-default gap-icons right-2.25 top-2.25 w-user-menu px-2 py-2.25"
         onClick={event => {
           event.stopPropagation()
         }}
@@ -58,9 +58,7 @@ export default function UserMenu(props: UserMenuProps) {
               <div className="flex items-center rounded-full overflow-clip size-profile-picture">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
-                  height={28}
-                  width={28}
-                  className="pointer-events-none"
+                  className="pointer-events-none size-profile-picture"
                 />
               </div>
               <span className="text">{user.name}</span>
@@ -101,7 +99,7 @@ export default function UserMenu(props: UserMenuProps) {
           </>
         ) : (
           <>
-            <div className="flex items-center h-7">
+            <div className="flex items-center h-profile-picture">
               <span className="text">You are not logged in.</span>
             </div>
             <div className="flex flex-col">

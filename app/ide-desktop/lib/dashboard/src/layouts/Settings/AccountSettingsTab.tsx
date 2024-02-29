@@ -159,7 +159,7 @@ export default function AccountSettingsTab() {
     <div className="flex flex-col lg:flex-row gap-settings-section h lg:h-auto">
       <div className="flex flex-col gap-settings-subsection w-settings-main-section">
         <div className="flex flex-col gap-settings-section-header">
-          <h3 className="font-bold text-xl h-9.5 py-0.5">User Account</h3>
+          <h3 className="settings-subheading">User Account</h3>
           <div className="flex flex-col">
             <div className="flex h-row gap-settings-entry">
               <span className="w-user-account-settings-label text my-auto">Name</span>
@@ -175,7 +175,7 @@ export default function AccountSettingsTab() {
         </div>
         {canChangePassword && (
           <div key={passwordFormKey}>
-            <h3 className="font-bold text-xl h-9.5 py-0.5">Change Password</h3>
+            <h3 className="settings-subheading">Change Password</h3>
             <div className="flex h-row gap-settings-entry">
               <span className="w-change-password-settings-label text my-auto">
                 Current Password
@@ -229,7 +229,7 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex items-center h-row gap-2">
+            <div className="flex items-center h-row gap-buttons">
               <button
                 disabled={
                   currentPassword === '' ||
@@ -239,7 +239,7 @@ export default function AccountSettingsTab() {
                   !validation.PASSWORD_REGEX.test(newPassword)
                 }
                 type="submit"
-                className="settings-value text-white bg-invite font-medium rounded-full -my-px disabled:opacity-disabled"
+                className="settings-value text-white bg-invite font-medium rounded-full disabled:opacity-disabled"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -252,7 +252,7 @@ export default function AccountSettingsTab() {
               </button>
               <button
                 type="button"
-                className="settings-value bg-selected-frame font-medium rounded-full -my-px"
+                className="settings-value bg-selected-frame font-medium rounded-full"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -266,10 +266,10 @@ export default function AccountSettingsTab() {
           </div>
         )}
         <div className="flex flex-col items-center gap-settings-section-header rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
-          <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">Danger Zone</h3>
-          <div className="flex gap-2">
+          <h3 className="settings-subheading text-danger">Danger Zone</h3>
+          <div className="flex gap-buttons">
             <button
-              className="rounded-full bg-danger text-inversed px-2 py-1"
+              className="button bg-danger text-inversed px-delete-user-account-button-x"
               onClick={event => {
                 event.stopPropagation()
                 setModal(
@@ -292,7 +292,7 @@ export default function AccountSettingsTab() {
         </div>
       </div>
       <div className="flex flex-col gap-settings-section-header">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
+        <h3 className="settings-subheading">Profile picture</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-profile-picture-large w-profile-picture-large hover:bg-frame transition-colors">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
           <img
@@ -302,7 +302,7 @@ export default function AccountSettingsTab() {
             className="pointer-events-none"
           />
         </label>
-        <span className="py-1 w-profile-picture-caption">
+        <span className="py-profile-picture-caption-y w-profile-picture-caption">
           Your profile picture should not be irrelevant, abusive or vulgar. It should not be a
           default image provided by Enso.
         </span>

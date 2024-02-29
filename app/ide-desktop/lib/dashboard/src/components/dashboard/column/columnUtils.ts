@@ -88,17 +88,17 @@ export const COLUMN_NAME: Readonly<Record<Column, string>> = {
 
 const COLUMN_CSS_CLASSES =
   'text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0'
-const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
+const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */
 export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
-  [Column.name]: `rounded-rows-skip-level min-w-61.25 p-0 border-l-0 ${COLUMN_CSS_CLASSES}`,
-  [Column.modified]: `min-w-33.25 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.sharedWith]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.labels]: `min-w-80 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.accessedByProjects]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.accessedData]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.docs]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.name]: `rounded-rows-skip-level min-w-drive-name-column p border-l-0 ${COLUMN_CSS_CLASSES}`,
+  [Column.modified]: `min-w-drive-modified-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.sharedWith]: `min-w-drive-shared-with-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.labels]: `min-w-drive-labels-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.accessedByProjects]: `min-w---drive-acssed-by-projects-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.accessedData]: `min-w-drive-accessed-data-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.docs]: `min-w-drive-docs-column ${NORMAL_COLUMN_CSS_CLASSES}`,
 }
 
 // =====================

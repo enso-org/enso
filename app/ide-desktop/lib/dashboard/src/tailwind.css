@@ -11,6 +11,7 @@
   --text-height: 1.5rem;
   --disabled-opacity: 50%;
   --placeholder-opacity: 75%;
+  --read-only-opacity: 75%;
   --disabled-icon-opacity: 75%;
   /* The default gap between a subheading and its content. */
   --subheading-gap: 1rem;
@@ -18,10 +19,10 @@
   --icons-padding-x: 0.5rem;
   --icon-size: 1rem;
   --project-icon-size: 1.5rem;
+  /* The gap between each icon in a horizontal list of buttons. */
+  --buttons-gap: 0.5rem;
   /* The gap between each icon in a horizontal list of icons. */
   --icons-gap: 0.75rem;
-  /* The gap between each item in the horizontal user bar. */
-  --user-bar-gap: 0.5rem;
   /* The gap between an icon and its associated text. */
   --icon-with-text-gap: 0.375rem;
   /* The gap between an icon and its associated text in a selector option. */
@@ -42,6 +43,7 @@
   --default-corner-radius: 1rem;
   --profile-picture-large-size: 8rem;
   --profile-picture-caption-width: 16rem;
+  --profile-picture-caption-padding-y: 0.25rem;
   --button-padding-x: 0.5rem;
   --selector-padding-x: 0.625rem;
   --selector-padding-y: 0.25rem;
@@ -60,7 +62,31 @@
   --spinner-medium-transition-duration: 5s;
   --spinner-slow-transition-duration: 90s;
   --modifiers-gap: 0.1875rem;
-  --macos-modifiers-gap: 0.125rem;
+  --modifiers-macos-gap: 0.125rem;
+  --cell-padding-x: 0.5rem;
+  --plus-icon-size: 1.125rem;
+  --context-menu-padding: 0.5rem;
+  --context-menu-width: 15.5rem;
+  --context-menu-macos-width: 14.375rem;
+  /* The vertical gap between entries in a Data Link input. */
+  --data-link-gap: 0.25rem;
+  --data-link-text-input-width: 10rem;
+  --data-link-object-input-padding: 0.5rem;
+  --data-link-object-input-width: 7rem;
+  --data-link-dropdown-title-width: 3rem;
+  --input-padding-x: 0.5rem;
+  --asset-search-bar-gap: 0.625rem;
+  /* The default maximum width of the asset search bar.
+   * It is narrower below a certain point, and wider above a certain point. */
+  --asset-search-bar-width: 24.5625rem;
+  --permission-display-width: 7.5625rem;
+  --asset-panel-width: 30rem;
+  --permission-type-selector-width: 28.125rem;
+  --payment-form-height: 38.75rem;
+
+  /* The gap between each item in the horizontal user bar. */
+  --user-bar-gap: 0.5rem;
+  --user-menu-width: 12.875rem;
 
   --side-panel-transition-duration: 500ms;
   --side-panel-width: 30rem;
@@ -88,7 +114,32 @@
   /********\
   * Modals *
   \********/
+
+  /* The vertical gap between inputs in a modal. */
+  --modal-gap: 0.5rem;
+  /* The padding around the entire modal. */
+  --modal-padding: 0.5rem;
+  --modal-label-width: 3rem;
   --manage-labels-modal-width: 15rem;
+  --confirm-delete-modal-width: 24rem;
+  --confirm-delete-user-modal-width: 24rem;
+  --duplicate-assets-modal-width: 24rem;
+  --capture-keyboard-shortcut-modal-width: 24rem;
+  --new-label-modal-width: 20rem;
+  --invite-users-modal-width: 28.8125rem;
+  --manage-permissions-modal-width: 28.8125rem;
+  --upsert-data-link-modal-width: 24rem;
+  --upsert-secret-modal-width: 24rem;
+
+  /******\
+  * Chat *
+  \******/
+
+  --chat-profile-picture-size: 2rem;
+  --chat-width: 20.875rem;
+  --chat-indicator-width: 2rem;
+  /* The maximum height of the thread list. */
+  --chat-thread-list-height: 17.5rem;
 
   /****************\
   * Settings pages *
@@ -101,17 +152,24 @@
   /* The horizontal gap between horizontally stacked settings sections. */
   --settings-section-gap: 2rem;
   /* The vertical gap between vertically stacked settings subsections. */
-  --settings-subsection-gap: var(--settings-section-gap);
+  --settings-subsection-gap: 2rem;
   /* The gap between the header and contents of a section in a settings page. */
   --settings-section-header-gap: 0.625rem;
   /* The gap between the label and value of a settings entry. */
   --settings-entry-gap: 1.1875rem;
+  --settings-sidebar-width: 12.875rem;
   /* The width of the main section of the settings page, if there are multiple sections stacked
    * horizontally. */
   --settings-main-section-width: 32rem;
   --user-account-settings-label-width: 3rem;
   --change-password-settings-label-width: 9rem;
   --organization-settings-label-width: 10rem;
+  --delete-user-account-button-padding-x: 0.5rem;
+
+  --members-name-column-width: 8rem;
+  --members-email-column-width: 12rem;
+  --keyboard-shortcuts-icon-column-width: 1rem;
+  --keyboard-shortcuts-name-column-width: 9rem;
 
   /*********************\
   * Authentication flow *
@@ -131,6 +189,8 @@
   --auth-transition-duration: 300ms;
   /* The gap between the icon and text of an auth link. */
   --auth-link-gap: 0.5rem;
+  /* The vertical padding of all inputs and buttons in the auth flow. */
+  --auth-input-padding-y: 0.5rem;
 
   /* The top and bottom padding for the entire sidebar. */
   --sidebar-padding: 0.25rem;
@@ -163,6 +223,18 @@
   --sample-height: 11.25rem;
   /* The height of the sample's info bar. */
   --sample-info-height: 1.125rem;
+
+  /************\
+  * Drive page *
+  \************/
+
+  --drive-name-column-width: 15.3125rem;
+  --drive-modified-column-width: 8.3125rem;
+  --drive-shared-with-column-width: 10rem;
+  --drive-labels-column-width: 20rem;
+  --drive-accessed-by-projects-column-width: 24rem;
+  --drive-accessed-data-column-width: 24rem;
+  --drive-docs-column-width: 24rem;
 }
 
 body {
@@ -264,6 +336,10 @@ body::before {
 
     .text-subheading {
       @apply text-xl leading-snug py-0.5;
+    }
+
+    .settings-subheading {
+      @apply font-bold text-xl h-9.5 py-0.5;
     }
 
     .settings-value {

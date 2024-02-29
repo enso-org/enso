@@ -43,7 +43,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   return (
     <Modal centered className="bg-dim">
       <form
-        className="relative flex flex-col gap-2 rounded-default w-96 p-4 pt-2 pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="relative flex flex-col gap-modal rounded-default w-upsert-data-link-modal p-4 pt-modal pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -60,11 +60,11 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
       >
         <h1 className="relative text-sm font-semibold">Create Data Link</h1>
         <div className="relative flex" title="Must not be blank.">
-          <div className="w-12 h-6 py-1">Name</div>
+          <div className="w-modal-label h-text py-1">Name</div>
           <input
             autoFocus
             placeholder="Enter the name of the Data Link"
-            className={`grow bg-transparent border rounded-full leading-cozy h-6 px-4 py-px disabled:opacity-disabled ${
+            className={`text grow bg-transparent border rounded-full px-4 disabled:opacity-disabled ${
               name !== '' ? 'border-black/10' : 'border-red-700/60'
             }`}
             value={name}

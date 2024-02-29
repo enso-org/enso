@@ -194,7 +194,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
       <form
         data-testid="new-label-modal"
         tabIndex={-1}
-        className="relative flex flex-col gap-2 rounded-default pointer-events-auto w-96 p-4 pt-2 before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="relative flex flex-col gap-modal rounded-default pointer-events-auto w-duplicate-assets-modal p-4 pt-modal before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()

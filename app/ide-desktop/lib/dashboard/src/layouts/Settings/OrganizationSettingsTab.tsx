@@ -160,7 +160,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
     <div className="flex flex-col lg:flex-row flex-0 gap-settings-section h lg:h-auto">
       <div className="flex flex-col gap-settings-subsection w-settings-main-section">
         <div className="flex flex-col gap-settings-section-header">
-          <h3 className="font-bold text-xl h-9.5 py-0.5">Organization</h3>
+          <h3 className="settings-subheading">Organization</h3>
           <div className="flex flex-col">
             <div className="flex h-row gap-settings-entry">
               <span className="w-organization-settings-label text my-auto">
@@ -247,7 +247,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
         </div>
       </div>
       <div className="flex flex-col gap-settings-section-header">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
+        <h3 className="settings-subheading">Profile picture</h3>
         <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
           <input
             type="file"

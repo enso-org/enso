@@ -149,7 +149,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
               readOnly={readOnly}
               value={typeof value === 'string' ? value : ''}
               size={1}
-              className={`rounded-full w-40 px-2 bg-transparent border text disabled:opacity-disabled read-only:opacity-75 read-only:cursor-not-allowed ${
+              className={`rounded-full w-data-link-text-input px-input-x bg-transparent border text disabled:opacity-disabled read-only:opacity-read-only read-only:cursor-not-allowed ${
                 jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter text"
@@ -168,7 +168,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className={`rounded-full w-40 px-2 bg-transparent border text disabled:opacity-disabled read-only:opacity-75 read-only:cursor-not-allowed ${
+            className={`rounded-full w-data-link-text-input px-input-x bg-transparent border text disabled:opacity-disabled read-only:opacity-read-only read-only:cursor-not-allowed ${
               jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
             }`}
             placeholder="Enter number"
@@ -188,7 +188,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
             readOnly={readOnly}
             value={typeof value === 'number' ? value : ''}
             size={1}
-            className={`rounded-full w-40 px-2 bg-transparent border text disabled:opacity-disabled read-only:opacity-75 read-only:cursor-not-allowed ${
+            className={`rounded-full w-data-link-text-input px-input-x bg-transparent border text disabled:opacity-disabled read-only:opacity-read-only read-only:cursor-not-allowed ${
               jsonSchema.isMatch(DEFS, schema, value) ? 'border-black/10' : 'border-red-700/60'
             }`}
             placeholder="Enter integer"
@@ -227,7 +227,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
           }
         )
         return constantValue(schema).length === 1 ? null : (
-          <div className="flex flex-col gap-1 rounded-default border border-black/10 p-2">
+          <div className="flex flex-col gap-data-link rounded-default border border-black/10 p-data-link-object-input">
             {propertyDefinitions.map(definition => {
               const { key, schema: childSchema } = definition
               const isOptional = !requiredProperties.includes(key)
@@ -240,9 +240,9 @@ export default function DataLinkInput(props: DataLinkInputProps) {
                     : {})}
                 >
                   <div
-                    className={`inline-block h-6 leading-cozy py-px w-28 whitespace-nowrap ${
+                    className={`text inline-block w-data-link-object-input whitespace-nowrap ${
                       isOptional ? 'cursor-pointer' : ''
-                    } ${value != null && key in value ? '' : 'opacity-50'}`}
+                    } ${value != null && key in value ? '' : 'opacity-disabled'}`}
                     onClick={() => {
                       if (isOptional) {
                         setValue(oldValue => {
@@ -346,10 +346,10 @@ export default function DataLinkInput(props: DataLinkInputProps) {
         />
       )
       return (
-        <div className={`flex flex-col gap-1 ${childValue.length === 0 ? 'w-full' : ''}`}>
+        <div className={`flex flex-col gap-data-link ${childValue.length === 0 ? 'w-full' : ''}`}>
           {dropdownTitle != null ? (
-            <div className="flex items-center">
-              <div className="w-12 h-6 py-1">{dropdownTitle}</div>
+            <div className="flex items-center h-row">
+              <div className="w-data-link-dropdown-title h-text">{dropdownTitle}</div>
               {dropdown}
             </div>
           ) : (
@@ -373,7 +373,7 @@ export default function DataLinkInput(props: DataLinkInputProps) {
     } else {
       const childSchemas = schema.allOf.flatMap(object.singletonObjectOrNull)
       return (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-data-link">
           {childSchemas.map((childSchema, i) => (
             <DataLinkInput
               key={i}

@@ -87,7 +87,7 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
     return (
       <div
         className={`flex items-center h-text ${
-          detect.isOnMacOS() ? 'gap-macos-modifiers' : 'gap-modifiers'
+          detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers'
         }`}
       >
         {modifiers.map(
