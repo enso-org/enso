@@ -7,6 +7,11 @@
           "description": "The offset of the IDE's toolbar from the window's left edge.",
           "value": 0,
           "primary": false
+        },
+        "vibrancy": {
+          "description": "Enable the vibrancy effect.",
+          "value": false,
+          "primary": false
         }
       }
     },

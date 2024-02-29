@@ -216,6 +216,35 @@ impl RunContext {
         Ok(())
     }
 
+    /// During the native-image build, the engine generates arg files. This function uploads them as
+    /// artifacts on the CI, so we can inspect them later.
+    /// Note that if something goes wrong, the native image arg files may not be present.
+    async fn upload_native_image_arg_files(&self) -> Result {
+        debug!("Uploading Native Image Arg Files");
+        let engine_runner_ni_argfile =
+            &self.repo_root.engine.runner.target.native_image_args_txt.path;
+        let launcher_ni_argfile = &self.repo_root.engine.launcher.target.native_image_args_txt.path;
+        let project_manager_ni_argfile =
+            &self.repo_root.lib.scala.project_manager.target.native_image_args_txt.path;
+        let native_image_arg_files = [
+            (engine_runner_ni_argfile, "Engine Runner native-image-args"),
+            (launcher_ni_argfile, "Launcher native-image-args"),
+            (project_manager_ni_argfile, "Project Manager native-image-args"),
+        ];
+        for (argfile, artifact_name) in native_image_arg_files {
+            if argfile.exists() {
+                ide_ci::actions::artifacts::upload_single_file(&argfile, artifact_name).await?;
+            } else {
+                warn!(
+                    "Native Image Arg File for {} not found at {}",
+                    artifact_name,
+                    argfile.display()
+                );
+            }
+        }
+        Ok(())
+    }
+
     pub async fn build(&self) -> Result<BuiltArtifacts> {
         self.prepare_build_env().await?;
         if ide_ci::ci::run_in_ci() {
@@ -320,12 +349,6 @@ impl RunContext {
                 tasks.push("engine-runner/buildNativeImage");
             }
 
-            if TARGET_OS != OS::Windows {
-                // FIXME [mwu] apparently this is broken on Windows because of the line endings
-                // mismatch
-                tasks.push("verifyLicensePackages");
-            }
-
             if self.config.build_project_manager_package() {
                 tasks.push("buildProjectManagerDistribution");
             }
@@ -333,7 +356,10 @@ impl RunContext {
             if self.config.build_launcher_package() {
                 tasks.push("buildLauncherDistribution");
             }
-            sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+
+            if !tasks.is_empty() {
+                sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+            }
         } else {
             // If we are run on a weak machine (like GH-hosted runner), we need to build things one
             // by one.
@@ -475,6 +501,8 @@ impl RunContext {
 
         // If we were running any benchmarks, they are complete by now. Upload the report.
         if is_in_env() {
+            self.upload_native_image_arg_files().await?;
+
             for bench in &self.config.execute_benchmarks {
                 match bench {
                     Benchmarks::Runtime => {
@@ -534,8 +562,14 @@ impl RunContext {
             runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
         }
 
+        // Verify the status of the License Review Report
+        if TARGET_OS != OS::Windows {
+            // FIXME [mwu] apparently this is broken on Windows because of the line endings
+            // mismatch
+            sbt.call_arg("verifyLicensePackages").await?;
+        }
 
-        // Verify License Packages in Distributions
+        // Verify Integrity of Generated License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
             for package in ret.packages() {

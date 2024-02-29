@@ -66,11 +66,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.guava.guava-32.0.0-jre`.
 
 
-'listenablefuture', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.guava.listenablefuture-9999.0-empty-to-avoid-conflict-with-guava`.
-
-
 'j2objc-annotations', licensed under the Apache License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.j2objc.j2objc-annotations-2.8`.

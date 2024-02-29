@@ -2,6 +2,7 @@ private
 
 import project.Any.Any
 import project.Data.Array.Array
+import project.Data.Array_Proxy.Array_Proxy
 import project.Data.List.List
 import project.Data.Map.Map
 import project.Data.Maybe.Maybe
@@ -230,6 +231,15 @@ find vector condition start ~if_missing =
         found = used_start.up_to self_len . find (idx -> (predicate (vector.at idx)))
         if found.is_nothing then if_missing else vector.at found
 
+transpose vec_of_vecs =
+    if vec_of_vecs.is_empty then [] else
+        length = vec_of_vecs.length
+        first_subvector_length = vec_of_vecs.at 0 . length
+        check_same_length vec_of_vecs <|
+            inner i = Vector.from_polyglot_array (Array_Proxy.new length j-> ((vec_of_vecs.at j).at i))
+            proxy = Array_Proxy.new first_subvector_length inner
+            Vector.from_polyglot_array proxy
+
 map vector function on_problems =
     vector_from_function vector.length (function << vector.at) on_problems
 
@@ -323,3 +333,18 @@ filter_with_index vector predicate =
     builder = vector.fold_with_index Vector.new_builder builder-> ix-> elem->
         if predicate ix elem then builder.append elem else builder
     builder.to_vector
+
+## PRIVATE
+   Check that all vectors have the same length and return an informative message
+   if they don't.
+
+   Compares all vectors to the first one and reports the first one that differs.
+check_same_length : Vector (Vector Any) -> Any -> Any ! Illegal_Argument
+check_same_length vecs ~action =
+    if vecs.is_empty then action else
+        num_vecs = vecs.length
+        len = vecs.at 0 . length
+        go i = if i >= num_vecs then action else
+            if vecs.at i . length == len then @Tail_Call go (i+1) else
+                Error.throw (Illegal_Argument.Error "Transpose requires that all vectors be the same length, but rows 0 and "+i.to_text+" had different lengths ("+len.to_text+" and "+(vecs.at i . length).to_text+")")
+        go 0
