@@ -106,13 +106,17 @@ function translateVisualizationToFile(
     case 'Library':
       project = { project: 'Library', contents: vis.identifier.module.name } as const
       break
-    default:
-      return { show: vis.visible }
   }
   return {
-    name: vis.identifier.name,
     show: vis.visible,
-    project,
+    fullscreen: vis.fullscreen,
+    width: vis.width ?? undefined,
+    ...(project == null || vis.identifier == null
+      ? {}
+      : {
+          project: project,
+          name: vis.identifier.name,
+        }),
   }
 }
 
@@ -136,6 +140,8 @@ export function translateVisualizationFromFile(
   return {
     identifier: module && vis.name ? { name: vis.name, module } : null,
     visible: vis.show,
+    fullscreen: vis.fullscreen ?? false,
+    width: vis.width ?? null,
   }
 }
 
