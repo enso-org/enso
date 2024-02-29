@@ -14,11 +14,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 import org.enso.cli.task.TaskProgressImplementation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.Some;
 
 /** A {@link HttpResponse} body handler for {@link Path} that keeps track of the progress. */
 class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(PathProgressBodyHandler.class);
+
   private final Path destination;
   private final TaskProgressImplementation<Path> progress;
   private Long total;
@@ -41,6 +45,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
       var reportedLenOpt = responseInfo.headers().firstValueAsLong("Content-Length");
       if (reportedLenOpt.isPresent()) {
         total = reportedLenOpt.getAsLong();
+        LOGGER.debug("Content-Length: {}", total);
       }
     }
     if (total != null) {
@@ -48,6 +53,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
     } else {
       progress.reportProgress(0, Option.empty());
     }
+    LOGGER.debug("Initializing download into {}, estimated total is {}", destination, total);
     WritableByteChannel destChannel;
     try {
       destChannel =
@@ -62,6 +68,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
     private Flow.Subscription subscription;
     private final WritableByteChannel destChannel;
     private final CompletableFuture<Path> result = new CompletableFuture<>();
+    private long downloaded;
 
     ProgressSubscriber(WritableByteChannel destChannel) {
       this.destChannel = destChannel;
@@ -78,7 +85,8 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
       try {
         for (ByteBuffer item : items) {
           var len = item.remaining();
-          progress.reportProgress(len, total == null ? Option.empty() : Some.apply(total));
+          downloaded += len;
+          progress.reportProgress(downloaded, total == null ? Option.empty() : Some.apply(total));
           destChannel.write(item);
         }
         subscription.request(1);
@@ -90,6 +98,12 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
 
     @Override
     public void onError(Throwable throwable) {
+      LOGGER.warn(
+          "Error while downloading into {}. Download progress {}/{}",
+          destination,
+          downloaded,
+          total,
+          throwable);
       try {
         destChannel.close();
       } catch (IOException e) {
@@ -100,6 +114,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
 
     @Override
     public void onComplete() {
+      LOGGER.debug("Downloaded complete into {}", destination);
       try {
         destChannel.close();
       } catch (IOException e) {
@@ -110,7 +125,7 @@ class PathProgressBodyHandler implements HttpResponse.BodyHandler<Path> {
 
     @Override
     public CompletionStage<Path> getBody() {
-      return CompletableFuture.completedFuture(destination);
+      return result;
     }
   }
 }
