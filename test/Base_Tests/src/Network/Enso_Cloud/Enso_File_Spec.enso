@@ -128,6 +128,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             Data.read "enso://"+Enso_User.current.name+"/test_file.json" . should_equal [1, 2, 3, "foo"]
             Data.read "enso://"+Enso_User.current.name+"/test-directory/another.txt" . should_equal "Hello Another!"
 
+            r = Data.read "enso://"+Enso_User.current.name+"/test-directory/nonexistent-directory/some-file.txt"
+            r.should_fail_with Not_Found
+
         group_builder.specify "should be able to open a file as input stream" <|
             test_file = Enso_File.root / "test_file.json"
             test_file.exists . should_be_true
