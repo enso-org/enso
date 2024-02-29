@@ -341,8 +341,8 @@ Enso_Asset_Type.from (that:Text) = case that of
     "file" -> Enso_Asset_Type.File
     "directory" -> Enso_Asset_Type.Directory
     "secret" -> Enso_Asset_Type.Secret
-    "connection" -> Enso_Asset_Type.Data_Link
-    _ -> Error.throw (Illegal_Argument.Error "Invalid asset type.")
+    "connector" -> Enso_Asset_Type.Data_Link
+    _ -> Error.throw (Illegal_Argument.Error "Invalid asset type: "+that.pretty+".")
 
 ## PRIVATE
 File_Format_Metadata.from (that:Enso_File) = File_Format_Metadata.Value Nothing that.name (that.extension.catch _->Nothing)
