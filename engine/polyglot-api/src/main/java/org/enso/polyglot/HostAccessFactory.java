@@ -4,7 +4,6 @@ import org.graalvm.polyglot.HostAccess;
 
 /** Utility class for creating HostAccess object. */
 public class HostAccessFactory {
-
   public HostAccess allWithTypeMapping() {
     return HostAccess.newBuilder()
         .allowPublicAccess(true)
@@ -18,9 +17,5 @@ public class HostAccessFactory {
         .allowMapAccess(true)
         .allowAccessInheritance(true)
         .build();
-  }
-
-  private boolean longInSafeDoubleRange(Long v, Long max) {
-    return v >= -max && v <= max;
   }
 }
