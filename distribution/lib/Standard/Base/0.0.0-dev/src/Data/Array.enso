@@ -606,7 +606,8 @@ type Array
              matrix.transposed == transposed
              # => True
     transpose : Array (Array Any) ! Illegal_Argument
-    transpose self = Vector.transpose self
+    transpose self =
+        Array_Like_Helpers.transpose self
 
     ## Applies a function to each element of the array, returning the `Vector`
        of results.

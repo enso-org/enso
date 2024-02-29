@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Data.Array.Array
-import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
 import project.Data.Numbers.Integer
@@ -568,13 +567,7 @@ type Vector a
              # => True
     transpose : Vector (Vector Any) ! Illegal_Argument
     transpose self =
-        if self.is_empty then [] else
-            length = self.length
-            first_subvector_length = self.at 0 . length
-            check_same_length self <|
-                inner i  = Vector.from_polyglot_array (Array_Proxy.new length j-> ((self.at j).at i))
-                proxy = Array_Proxy.new first_subvector_length inner
-                Vector.from_polyglot_array proxy
+        Array_Like_Helpers.transpose self
 
     ## ICON dataframe_map_column
        Applies a function to each element of the vector, returning the `Vector` of
@@ -1342,21 +1335,6 @@ type Map_Error
 ## PRIVATE
    Indicates that a method should not wrap thrown errors in `Map_Error`.
 type No_Wrap
-
-## PRIVATE
-   Check that all vectors have the same length and return an informative message
-   if they don't.
-
-   Compares all vectors to the first one and reports the first one that differs.
-check_same_length : Vector (Vector Any) -> Any -> Any ! Illegal_Argument
-check_same_length vecs ~action =
-    if vecs.is_empty then action else
-        num_vecs = vecs.length
-        len = vecs.at 0 . length
-        go i = if i >= num_vecs then action else
-            if vecs.at i . length == len then @Tail_Call go (i+1) else
-                Error.throw (Illegal_Argument.Error "Transpose requires that all vectors be the same length, but rows 0 and "+i.to_text+" had different lengths ("+len.to_text+" and "+(vecs.at i . length).to_text+")")
-        go 0
 
 ## PRIVATE
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error
