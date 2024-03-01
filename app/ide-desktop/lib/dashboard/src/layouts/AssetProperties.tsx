@@ -15,6 +15,7 @@ import type Category from '#/layouts/CategorySwitcher/Category'
 import Button from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import DataLinkInput from '#/components/dashboard/DataLinkInput'
+import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
@@ -33,12 +34,13 @@ export interface AssetPropertiesProps {
   readonly item: AssetTreeNode
   readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   readonly category: Category
+  readonly labels: backendModule.Label[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { item: rawItem, setItem: rawSetItem, category, dispatchAssetEvent } = props
+  const { item: rawItem, setItem: rawSetItem, category, labels, dispatchAssetEvent } = props
 
   const [item, innerSetItem] = React.useState(rawItem)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
@@ -170,7 +172,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           <tbody>
             <tr data-testid="asset-panel-permissions">
               <td className="min-w-32 px py-1">
-                <span className="inline-block text">Shared with</span>
+                <span className="text inline-block">Shared with</span>
               </td>
               <td className="p w-full">
                 <SharedWithColumn
@@ -178,6 +180,21 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   setItem={setItem}
                   state={{ category, dispatchAssetEvent }}
                 />
+              </td>
+            </tr>
+            <tr data-testid="asset-panel-labels">
+              <td className="min-w-32 px py-1">
+                <span className="text inline-block">Labels</span>
+              </td>
+              <td className="p w-full">
+                {item.item.labels?.map(value => {
+                  const label = labels.find(otherLabel => otherLabel.value === value)
+                  return label == null ? null : (
+                    <Label key={value} active disabled color={label.color} onClick={() => {}}>
+                      {value}
+                    </Label>
+                  )
+                })}
               </td>
             </tr>
           </tbody>

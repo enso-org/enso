@@ -530,6 +530,7 @@ export default function Dashboard(props: DashboardProps) {
               page={page}
               setPage={setPage}
               category={Category.home}
+              labels={labels}
               isHelpChatOpen={isHelpChatOpen}
               setIsHelpChatOpen={setIsHelpChatOpen}
               setVisibility={setIsAssetPanelVisible}
