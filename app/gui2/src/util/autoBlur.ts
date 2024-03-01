@@ -39,3 +39,11 @@ export function registerAutoBlurHandler() {
     { capture: true },
   )
 }
+
+/** Returns true if the target of the event is in the DOM subtree of the given `area` element. */
+export function targetIsOutside(
+  e: Event,
+  area: Ref<HTMLElement | SVGElement | MathMLElement | undefined>,
+): boolean {
+  return !!area.value && e.target instanceof Element && !area.value.contains(e.target)
+}
