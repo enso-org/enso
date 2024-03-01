@@ -160,10 +160,11 @@ public class AutoscopedConstructorTest extends TestBase {
               "enso",
               """
               type M
-                  Construct v1 v2=2 v3=3 v4=4
+                  Construct v1=1 v2=2 v3=3 v4=4
 
                   materialize v:M = [v.v1, v.v2, v.v3, v.v4]
 
+              c0 _ = M.materialize (~Construct)
               c1 a = M.materialize (~Construct a)
               c12 a b = M.materialize (~Construct a b)
               c123 a b c = M.materialize (~Construct a b c)
@@ -174,6 +175,7 @@ public class AutoscopedConstructorTest extends TestBase {
               c31 a c = M.materialize ((~Construct v3=c) a)
               """);
 
+      var c0 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c0");
       var c1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c1");
       var c12 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c12");
       var c123 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c123");
@@ -183,6 +185,7 @@ public class AutoscopedConstructorTest extends TestBase {
       var c41 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c41");
       var c31 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c31");
 
+      assertEquals("[1, 2, 3, 4]", c0.execute("ignored").toString());
       assertEquals("[9, 2, 3, 4]", c1.execute(9).toString());
       assertEquals("[9, 7, 3, 4]", c12.execute(9, 7).toString());
       assertEquals("[9, 7, 5, 4]", c123.execute(9, 7, 5).toString());
