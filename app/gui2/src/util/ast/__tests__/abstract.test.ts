@@ -4,11 +4,7 @@ import { tryQualifiedName } from '@/util/qualifiedName'
 import { initializeFFI } from 'shared/ast/ffi'
 import { unwrap } from 'shared/util/data/result'
 import { expect, test } from 'vitest'
-import {
-  MutableModule,
-  substituteQualifiedName,
-  type Identifier,
-} from '../abstract'
+import { MutableModule, substituteQualifiedName, type Identifier } from '../abstract'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
