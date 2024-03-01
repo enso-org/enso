@@ -37,20 +37,25 @@ const handleClick = defineKeybinds(`comment-${random.uint53()}`, {
 }).handler({ startEdit })
 
 function startEdit() {
-  const editorView = new EditorView()
-  editorView.setState(EditorState.create({ extensions: [minimalSetup] }))
-  contentElement.value!.prepend(editorView.dom)
-  editor.value = editorView
+  if (editor.value) {
+    editor.value.focus()
+  } else {
+    const editorView = new EditorView()
+    editorView.setState(EditorState.create({ extensions: [minimalSetup] }))
+    contentElement.value!.prepend(editorView.dom)
+    editor.value = editorView
+    setTimeout(() => editorView.focus())
+  }
   if (!props.editing) emit('update:editing', true)
-  setTimeout(() => editorView.focus())
 }
 
 function finishEdit() {
-  if (!editor.value) return
-  if (editor.value.state.doc.toString() !== props.modelValue)
-    emit('update:modelValue', editor.value.state.doc.toString())
-  editor.value.dom.remove()
-  editor.value = undefined
+  if (editor.value) {
+    if (editor.value.state.doc.toString() !== props.modelValue)
+      emit('update:modelValue', editor.value.state.doc.toString())
+    editor.value.dom.remove()
+    editor.value = undefined
+  }
   if (props.editing) emit('update:editing', false)
 }
 
