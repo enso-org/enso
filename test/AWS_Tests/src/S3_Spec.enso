@@ -550,7 +550,7 @@ add_specs suite_builder =
             (enso_project.data / "simple.datalink") . read . should_equal "Hello WORLD!"
 
         group_builder.specify "should be able to read a data link with custom credentials and secrets" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
-            f = replace_username_in_datalink (enso_project.data / "credentials-with-secrets.datalink")
+            transformed_datalink_file = replace_username_in_datalink (enso_project.data / "credentials-with-secrets.datalink")
 
             secret_key_id = Enso_Secret.create "datalink-secret-AWS-keyid" (Environment.get "AWS_ACCESS_KEY_ID")
             secret_key_id.should_succeed
@@ -558,7 +558,7 @@ add_specs suite_builder =
                 secret_key_value = Enso_Secret.create "datalink-secret-AWS-secretkey" (Environment.get "AWS_SECRET_ACCESS_KEY")
                 secret_key_value.should_succeed
                 Panic.with_finalizer secret_key_value.delete <| with_retries <|
-                    f.read . should_equal "Hello WORLD!"
+                    transformed_datalink_file.read . should_equal "Hello WORLD!"
 
         group_builder.specify "should be able to read a data link with a custom file format set" <|
             r = (enso_project.data / "format-delimited.datalink") . read
