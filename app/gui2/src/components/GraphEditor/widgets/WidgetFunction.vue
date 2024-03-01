@@ -12,7 +12,6 @@ import {
   argsWidgetConfigurationSchema,
   functionCallConfiguration,
 } from '@/providers/widgetRegistry/configuration'
-import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import { entryQn } from '@/stores/suggestionDatabase/entry'
@@ -35,7 +34,6 @@ import { computed, proxyRefs } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const project = useProjectStore()
-const tree = injectWidgetTree()
 
 provideFunctionInfo(
   proxyRefs({
