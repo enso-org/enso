@@ -55,12 +55,12 @@ public final class UnresolvedConstructor implements EnsoObject {
   @Override
   @CompilerDirectives.TruffleBoundary
   public String toString() {
-    return "UnresolvedConstructor[" + name + "]";
+    return "~" + name;
   }
 
   @ExportMessage
   String toDisplayString(boolean allowSideEffects) {
-    return "UnresolvedConstructor";
+    return toString();
   }
 
   /**

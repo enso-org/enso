@@ -427,6 +427,33 @@ add_specs suite_builder =
 
             do_duration now
 
+    suite_builder.group "Autoscoped Constructors" group_builder->
+
+        group_builder.specify "Foo.Value as autoscoped" <|
+
+            v = ~Value 10
+            foo = v:Foo
+            Foo.Value 10 . should_equal foo
+
+        group_builder.specify "Autoscope to two different values" <|
+
+            v = ~Value 10
+            foo = v:Foo
+            bar = v:Bar
+            Foo.Value 10 . should_equal foo
+            Bar.Value 10 . should_equal bar
+
+        group_builder.specify "Cannot find constructor" <|
+            v = ~Value 10
+
+            b = Panic.recover Any <|
+                x = v:Back
+                x
+
+            b . should_fail_with Type_Error
+            msg = b.to_display_text
+            msg . should_contain "~Value"
+
     suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text
         f2 (x : Text | DateTimeFormatter) = case x of
