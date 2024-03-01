@@ -5,11 +5,11 @@ import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 
 import * as modalProvider from '#/providers/ModalProvider'
 
-import DataLinkInput from '#/layouts/DataLinkInput'
-
+import DataLinkInput from '#/components/dashboard/DataLinkInput'
 import Modal from '#/components/Modal'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
+import * as validateDataLink from '#/utilities/validateDataLink'
 
 // =================
 // === Constants ===
@@ -34,10 +34,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const [name, setName] = React.useState('')
   const [value, setValue] = React.useState<NonNullable<unknown> | null>(INITIAL_DATA_LINK_VALUE)
-  const isValueSubmittable = React.useMemo(
-    () => jsonSchema.isMatch(DEFS, SCHEMA.$defs.DataLink, value),
-    [value]
-  )
+  const isValueSubmittable = React.useMemo(() => validateDataLink.validateDataLink(value), [value])
   const isSubmittable = name !== '' && isValueSubmittable
 
   return (

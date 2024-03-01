@@ -118,6 +118,7 @@ function getMainPageUrl() {
 
 /** Global configuration for the `App` component. */
 export interface AppProps {
+  readonly vibrancy: boolean
   readonly logger: loggerProvider.Logger
   /** Whether the application may have the local backend running. */
   readonly supportsLocalBackend: boolean

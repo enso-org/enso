@@ -341,6 +341,10 @@ generate_from_part dialect from_spec = case from_spec of
         dialect.wrap_identifier name ++ alias dialect as_name
     From_Spec.Query raw_sql as_name ->
         SQL_Builder.code raw_sql . paren ++ alias dialect as_name
+    From_Spec.Literal_Values vecs column_names as_name ->
+        Runtime.assert (vecs.length == column_names.length) "Vectors and column names must have the same length"
+        values = SQL_Builder.join ", " (vecs.transpose.map (vec-> SQL_Builder.join ", " (vec.map SQL_Builder.interpolation) . paren))
+        SQL_Builder.code "(VALUES " ++ values ++ ")" ++ alias dialect as_name
     From_Spec.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
         right = generate_from_part dialect right_spec
