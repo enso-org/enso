@@ -325,7 +325,7 @@ const graphBindingsHandler = graphBindings.handler({
 })
 
 const { handleClick } = useDoubleClick(
-  (e: PointerEvent) => {
+  (e: MouseEvent) => {
     graphBindingsHandler(e)
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
@@ -592,7 +592,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
     :style="groupColors"
     v-on.="graphNavigator.events"
     v-on..="nodeSelection.events"
-    @pointerdown="handleClick"
+    @click="handleClick"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
@@ -627,7 +627,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @zoomIn="graphNavigator.scale *= 1.1"
       @zoomOut="graphNavigator.scale *= 0.9"
     />
-    <PlusButton @pointerdown.stop="startCreatingNodeFromButton()" @click.stop @pointerup.stop />
+    <PlusButton @pointerdown.stop @click.stop="startCreatingNodeFromButton()" @pointerup.stop />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" />

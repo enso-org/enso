@@ -26,8 +26,6 @@ import {
   tryQualifiedName,
   type IdentifierOrOperatorIdentifier,
 } from '@/util/qualifiedName'
-import { defineKeybinds } from '@/util/shortcuts'
-import * as random from 'lib0/random'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -135,10 +133,6 @@ interaction.setWhen(showDropdownWidget, {
   },
 })
 
-const handleClick = defineKeybinds(`dropdown-${random.uint53()}`, {
-  toggleDropdownWidget: ['PointerMain'],
-}).handler({ toggleDropdownWidget })
-
 function toggleDropdownWidget() {
   showDropdownWidget.value = !showDropdownWidget.value
 }
@@ -194,9 +188,9 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   <div
     ref="widgetRoot"
     class="WidgetSelection"
-    @pointerdown.stop="handleClick"
+    @pointerdown.stop
     @pointerup.stop
-    @click.stop
+    @click.stop="toggleDropdownWidget"
   >
     <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
     <SvgIcon name="arrow_right_head_only" class="arrow" />
