@@ -221,6 +221,10 @@ type Decimal
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
 
+    * self that = Decimal.Value (self.big_decimal.multiply that.big_decimal)
+
+    to_double self = self.big_decimal.doubleValue
+
     ##
         / : Decimal -> Decimal -> Decimal
         / self (that:Decimal) = self.divide that

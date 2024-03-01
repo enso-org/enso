@@ -78,9 +78,11 @@ public class Decimal_Utils {
   public static int hashCodeOf(BigDecimal bd) {
     boolean isFractional = bd.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) != 0;
     boolean fitsInLong = fitsInLong(bd);
+    System.out.println("BD hco " + bd + " " + isFractional + " " + fitsInLong);
     if (isFractional || fitsInLong) {
       System.out.println("AAA new Double.hashCode");
       double d = bd.doubleValue();
+      System.out.println("BD hco d " + d + " " + (d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY));
       assert d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY;
       return Double.hashCode(d);
     } else {
