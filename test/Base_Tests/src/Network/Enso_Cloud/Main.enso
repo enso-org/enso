@@ -2,19 +2,20 @@ from Standard.Base import all
 
 from Standard.Test import all
 
+import project.Network.Enso_Cloud.Cloud_Data_Link_Spec
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import project.Network.Enso_Cloud.Enso_Cloud_Spec
 import project.Network.Enso_Cloud.Enso_File_Spec
 import project.Network.Enso_Cloud.Secrets_Spec
-import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 add_specs suite_builder setup =
     Enso_Cloud_Spec.add_specs suite_builder setup
     Enso_File_Spec.add_specs suite_builder setup
     Secrets_Spec.add_specs suite_builder setup
+    Cloud_Data_Link_Spec.add_specs suite_builder setup
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
         add_specs suite_builder setup
     suite.run_with_filter filter
-
