@@ -2,6 +2,10 @@ package org.enso.base.enso_cloud;
 
 import org.enso.base.file_system.FileSystemSPI;
 
+/** Registers the `enso://` protocol for resolving file paths.
+ * <p>
+ * See `Enso_File.new` for more information on path resolution.
+ */
 @org.openide.util.lookup.ServiceProvider(service = FileSystemSPI.class)
 public class EnsoPathFileSystemSPI extends FileSystemSPI {
   @Override
