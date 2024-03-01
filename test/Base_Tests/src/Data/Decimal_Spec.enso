@@ -371,6 +371,8 @@ add_specs suite_builder =
             (d == Float.max_value) . should_be_true
             ((d * d) == Float.max_value) . should_be_false
             ((-(d * d)) == -Float.max_value) . should_be_false
+            Comparable.hash_buildin (d * d) . should_equal 0
+            Comparable.hash_buildin -(d * d) . should_equal 0
 
         group_builder.specify "Decimals equal to equal values should be equal" pending="== consistency" <|
             i = 6223372036853999999997
