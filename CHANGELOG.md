@@ -621,6 +621,7 @@
 - [Adjusted expression handling and new `Simple_Expression` type.][9128]
 - [Allow reading Data Links configured locally or in the Cloud.][9215]
 - [Allow using `enso://` paths in `Data.read` and other places.][9225]
+- [Update the XML methods and add more capabilities to document.][9233]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -898,6 +899,7 @@
 [9128]: https://github.com/enso-org/enso/pull/9128
 [9215]: https://github.com/enso-org/enso/pull/9215
 [9225]: https://github.com/enso-org/enso/pull/9225
+[9233]: https://github.com/enso-org/enso/pull/9233
 
 #### Enso Compiler
 
