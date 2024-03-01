@@ -33,7 +33,9 @@ import org.openjdk.jmh.infra.Blackhole;
 
 /**
  * This benchmark imports all the symbols from libraries, that are normally imported in the IDE
- * template. The
+ * template. This benchmark focuses on performance of import/export resolution compiler phase. The
+ * IR cache is enabled, so that modules that are imported from standard libraries are not
+ * re-compiled.
  */
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
