@@ -1249,7 +1249,6 @@ name = "enso-build-ci-gen"
 version = "0.1.0"
 dependencies = [
  "enso-build",
- "enso-build-shader-tools",
  "ide-ci",
  "serde_yaml",
  "tokio",
@@ -1305,18 +1304,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-build-shader-tools"
-version = "0.1.0"
-dependencies = [
- "html_parser",
- "ide-ci",
- "octocrab",
- "regex",
- "tempfile",
- "tokio",
-]
-
-[[package]]
 name = "enso-data-structures"
 version = "0.2.0"
 dependencies = [
@@ -1326,17 +1313,6 @@ dependencies = [
  "failure",
  "itertools",
  "serde",
-]
-
-[[package]]
-name = "enso-debug-api"
-version = "0.1.0"
-dependencies = [
- "derivative",
- "futures",
- "js-sys",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -1378,25 +1354,6 @@ dependencies = [
  "ide-ci",
  "regex",
  "tokio",
-]
-
-[[package]]
-name = "enso-generics"
-version = "0.2.0"
-dependencies = [
- "derivative",
- "enso-zst",
- "paste",
- "serde",
-]
-
-[[package]]
-name = "enso-json-to-struct"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -1578,26 +1535,6 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "web-sys",
-]
-
-[[package]]
-name = "enso-profiler-data"
-version = "0.1.0"
-dependencies = [
- "derivative",
- "enso-prelude",
- "enso-profiler",
- "futures",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "enso-profiler-demo-data"
-version = "0.1.0"
-dependencies = [
- "enso-profiler",
- "futures",
 ]
 
 [[package]]
@@ -2094,20 +2031,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "html_parser"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec016cabcf7c9c48f9d5fdc6b03f273585bfce640a0f47a69552039e92b1959a"
-dependencies = [
- "pest",
- "pest_derive",
- "serde",
- "serde_derive",
- "serde_json",
- "thiserror",
-]
 
 [[package]]
 name = "http"

@@ -1,10 +1,10 @@
 //! Macro expansion utilities. Allow expanding macro variables in the same as Rust macro rules do.
 
+use std::collections::{HashMap, HashSet};
 use crate::macros::pattern::*;
 use crate::prelude::*;
 
 use crate::syntax;
-
 
 
 // ==============
@@ -122,13 +122,13 @@ use crate::syntax;
 #[derive(Clone, Debug, Default)]
 pub struct VarMap<'s, V> {
     nested: Option<Box<VarMap<'s, V>>>,
-    map:    HashMap<String, VarMapEntry<'s, V>>,
+    map: HashMap<String, VarMapEntry<'s, V>>,
 }
 
 /// Entry of the [`VarMap`] map.
 #[derive(Clone, Debug, Default)]
 struct VarMapEntry<'s, V> {
-    pub tokens:    Vec<Vec<syntax::Item<'s>>>,
+    pub tokens: Vec<Vec<syntax::Item<'s>>>,
     pub validator: V,
 }
 
@@ -182,14 +182,13 @@ impl<'s> Match<'s> {
                 validator.insert_local_var(&name);
                 tree.map
                     .entry(name)
-                    .or_insert_with(|| VarMapEntry::new(validator.clone_ref(), default()))
+                    .or_insert_with(|| VarMapEntry::new(validator.clone(), default()))
                     .tokens
                     .push(t.tokens());
             }
         }
     }
 }
-
 
 
 // =================
@@ -199,7 +198,7 @@ impl<'s> Match<'s> {
 /// Validator used to check if the macro generation correct. See the definition of [`VarMap`] to
 /// learn more.
 #[allow(missing_docs)]
-pub trait Validator: PartialEq + Default + CloneRef {
+pub trait Validator: PartialEq + Default + Clone {
     fn check(&self, name: &str) -> bool;
     fn parent(&self) -> Option<Self>;
     fn set_parent(&self, parent: &Self);
@@ -207,11 +206,11 @@ pub trait Validator: PartialEq + Default + CloneRef {
 }
 
 /// Disabled validator. See the docs of [`VarMap`] to learn more.
-#[derive(Copy, Clone, CloneRef, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct DisabledValidator;
 
 /// Enabled validator. See the docs of [`VarMap`] to learn more.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 #[allow(missing_docs)]
 pub struct EnabledValidator {
     scope: Rc<RefCell<VarScope>>,
@@ -237,12 +236,12 @@ impl Validator for EnabledValidator {
 
     #[inline(always)]
     fn parent(&self) -> Option<Self> {
-        self.scope.borrow().parent.as_ref().map(|t| t.clone_ref())
+        self.scope.borrow().parent.as_ref().cloned()
     }
 
     #[inline(always)]
     fn set_parent(&self, parent: &Self) {
-        self.scope.borrow_mut().parent = Some(parent.clone_ref());
+        self.scope.borrow_mut().parent = Some(parent.clone());
     }
 
     #[inline(always)]
@@ -268,7 +267,6 @@ impl Validator for DisabledValidator {
     #[inline(always)]
     fn insert_local_var(&self, _var: &str) {}
 }
-
 
 
 // ==================
@@ -298,7 +296,7 @@ impl<'t, 's, V: Validator> VarMapView<'t, 's, V> {
     pub fn nested(&self) -> Self {
         let tree = self.tree.and_then(|t| t.nested.as_ref().map(|n| n.as_ref()));
         let resolved_validator = None;
-        let parent_validator_to_check = self.resolved_validator.as_ref().map(|t| t.clone_ref());
+        let parent_validator_to_check = self.resolved_validator.as_ref().cloned();
         Self { tree, resolved_validator, parent_validator_to_check }
     }
 }
@@ -314,7 +312,7 @@ impl<'t, 's, V: Validator> VarMapView<'t, 's, V> {
                             todo!("Report nice error that the name does not belong to the scope.")
                         },
                     None => {
-                        let resolved_validator = entry.validator.clone_ref();
+                        let resolved_validator = entry.validator.clone();
                         if let Some(parent_validator_to_check) = &self.parent_validator_to_check {
                             let mut ok = false;
                             let mut validator = resolved_validator.clone();

@@ -29,11 +29,11 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 
+use std::collections::HashMap;
 use enso_prelude::*;
 
 use enso_profiler::format::AnyMetadata;
 use enso_profiler_data as data;
-
 
 
 // =====================
@@ -42,7 +42,6 @@ use enso_profiler_data as data;
 
 /// Set this to filter the output to matching profilers and their children.
 const INCLUDE_ONLY_SUBTREES_MATCHING_PREFIX: Option<&str> = None;
-
 
 
 // ============
@@ -75,7 +74,6 @@ fn main() {
 }
 
 
-
 // =====================
 // === FuncCollector ===
 // =====================
@@ -104,7 +102,7 @@ impl FuncCollector {
     fn visit(&mut self, label: &Label, frame: &data::aggregate::Frame, enable: bool) {
         let enable = enable
             || INCLUDE_ONLY_SUBTREES_MATCHING_PREFIX
-                .map_or(true, |prefix| label.starts_with(prefix));
+            .map_or(true, |prefix| label.starts_with(prefix));
         if enable {
             let func = self.funcs.entry(label.clone()).or_default();
             func.self_duration += frame.self_duration();
@@ -120,7 +118,6 @@ impl FuncCollector {
 type Label = ImString;
 
 
-
 // ===================
 // === FuncTimings ===
 // ===================
@@ -129,10 +126,9 @@ type Label = ImString;
 #[derive(Default)]
 struct FuncTimings {
     total_duration: f64,
-    self_duration:  f64,
-    count:          usize,
+    self_duration: f64,
+    count: usize,
 }
-
 
 
 // ============
@@ -141,6 +137,6 @@ struct FuncTimings {
 
 /// Identifies a profiler, and contains information about the time spent in its intervals.
 struct Func {
-    label:   Label,
+    label: Label,
     timings: FuncTimings,
 }

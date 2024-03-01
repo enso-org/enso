@@ -14,7 +14,6 @@ members = [
     "build/cli",
     "build/intellij-run-config-gen",
     "build/deprecated/rust-scripts",
-    "build/shader-tools",
     "lib/rust/*",
     "lib/rust/parser/doc-parser",
     "lib/rust/parser/src/syntax/tree/visitor",
@@ -23,8 +22,6 @@ members = [
     "lib/rust/parser/schema",
     "lib/rust/parser/debug",
     "lib/rust/enso-pack",
-    "lib/rust/profiler/data",
-    "lib/rust/profiler/demo-data",
     "tools/language-server/logstat",
     "tools/language-server/wstest",
 ]

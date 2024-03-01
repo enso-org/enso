@@ -1,10 +1,10 @@
 //! Supports aggregating interval data by profiler to analyze total time spent, abstracting away
 //! *when* intervals occurred.
 
+use std::collections::HashMap;
 use enso_prelude::*;
 
 use crate::Class;
-
 
 
 // =====================
@@ -24,7 +24,6 @@ use crate::Class;
 const SKIP_FRAMES_BELOW_MS: f64 = 16.6;
 
 
-
 // ==================
 // === Aggregator ===
 // ==================
@@ -33,7 +32,7 @@ const SKIP_FRAMES_BELOW_MS: f64 = 16.6;
 #[derive(Default, Debug)]
 pub struct Aggregator {
     stack: Vec<ImString>,
-    root:  Frame,
+    root: Frame,
 }
 
 impl Aggregator {
@@ -95,7 +94,6 @@ impl From<Aggregator> for Frame {
 }
 
 
-
 // =============
 // === Frame ===
 // =============
@@ -103,10 +101,10 @@ impl From<Aggregator> for Frame {
 /// Aggregated info about all occurrences of a particular stack of profilers.
 #[derive(Default, Debug)]
 pub struct Frame {
-    duration:     f64,
+    duration: f64,
     /// Aggregated intervals that ran as children of this profiler.
     pub children: HashMap<ImString, Self>,
-    intervals:    usize,
+    intervals: usize,
 }
 
 impl Frame {

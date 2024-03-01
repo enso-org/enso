@@ -16,7 +16,6 @@ use std::rc::Rc;
 use std::str::pattern;
 
 
-
 // =================
 // === StringOps ===
 // =================
@@ -34,8 +33,8 @@ pub trait StringOps {
         start_marker: P,
         end_marker: P,
     ) -> Option<(&'a str, &'a str, &'a str)>
-    where
-        P: pattern::Pattern<'a>;
+        where
+            P: pattern::Pattern<'a>;
 
     /// Converts the camel case string to snake case. For example, converts `FooBar` to `foo_bar`.
     fn camel_case_to_snake_case(&self) -> String;
@@ -66,8 +65,8 @@ impl<T: AsRef<str>> StringOps for T {
         start_marker: P,
         end_marker: P,
     ) -> Option<(&'a str, &'a str, &'a str)>
-    where
-        P: pattern::Pattern<'a>,
+        where
+            P: pattern::Pattern<'a>,
     {
         let text = self.as_ref();
         let (prefix, rest) = text.split_once(start_marker)?;
@@ -313,7 +312,6 @@ impl PartialEq<ImString> for String {
 }
 
 
-
 // ==================
 // === ToImString ===
 // ==================
@@ -322,12 +320,6 @@ impl PartialEq<ImString> for String {
 #[allow(missing_docs)]
 pub trait ToImString {
     fn to_im_string(&self) -> ImString;
-}
-
-impl<T: core::fmt::Display> ToImString for T {
-    default fn to_im_string(&self) -> ImString {
-        format!("{self}").into()
-    }
 }
 
 impl ToImString for ImString {
@@ -359,7 +351,6 @@ impl ToImString for &str {
         self.into()
     }
 }
-
 
 
 // === Macros ===
@@ -511,7 +502,6 @@ pub fn common_postfix_length(source_a: &str, source_b: &str) -> usize {
     let mismatch = zipped.find_position(|(a, b)| *a != *b);
     mismatch.map(|(ix, _)| ix).unwrap_or(shortest)
 }
-
 
 
 // =============

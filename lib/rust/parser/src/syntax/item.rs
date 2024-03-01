@@ -6,7 +6,6 @@ use crate::source::*;
 use crate::syntax::*;
 
 
-
 // ============
 // === Item ===
 // ============
@@ -28,7 +27,7 @@ pub struct Line<'s> {
     /// The line-beginning token.
     pub newline: token::Newline<'s>,
     /// The line's contents.
-    pub items:   Vec<Item<'s>>,
+    pub items: Vec<Item<'s>>,
 }
 
 impl<'s> Item<'s> {
@@ -53,7 +52,7 @@ impl<'s> Item<'s> {
     /// If this item is an [`Item::Tree`], apply the given function to the contained [`Tree`] and
     /// return the result.
     pub fn map_tree<'t: 's, F>(self, f: F) -> Self
-    where F: FnOnce(Tree<'s>) -> Tree<'t> {
+        where F: FnOnce(Tree<'s>) -> Tree<'t> {
         match self {
             Item::Tree(tree) => Item::Tree(f(tree)),
             _ => self,
@@ -73,16 +72,11 @@ impl<'s> From<Tree<'s>> for Item<'s> {
     }
 }
 
-impl<'s> TryAsRef<Item<'s>> for Item<'s> {
-    fn try_as_ref(&self) -> Option<&Item<'s>> {
-        Some(self)
-    }
-}
 
 /// Given a sequence of [`Line`]s belonging to one block, create an AST block node, of a type
 /// determined by the syntax of the lines in the block.
 pub fn build_block<'s>(
-    lines: impl IntoIterator<Item = Line<'s>>,
+    lines: impl IntoIterator<Item=Line<'s>>,
     parser: &mut operator::Precedence<'s>,
 ) -> Tree<'s> {
     let mut block_builder = tree::block::Builder::new();
@@ -91,7 +85,6 @@ pub fn build_block<'s>(
     }
     block_builder.build()
 }
-
 
 
 // ===========
@@ -105,7 +98,6 @@ pub enum Ref<'s, 'a> {
     Token(token::Ref<'s, 'a>),
     Tree(&'a Tree<'s>),
 }
-
 
 
 // ======================
