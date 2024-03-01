@@ -156,11 +156,31 @@ type Response
 
              import Standard.Examples
 
-             example_to_text = Examples.get_geo_data.decode_as_json
+             example_to_text = Data.fetch Examples.geo_data_url . decode_as_json
     @encoding Encoding.default_widget
     decode_as_json : Encoding | Infer -> JS_Object | Boolean | Number | Nothing | Text | Vector
     decode_as_json self (encoding : Encoding | Infer = Infer) =
         self.body.decode_as_json encoding
+
+    ## GROUP Output
+       Write response body to a File.
+
+       Arguments:
+       - file: The file to write the body to.
+       - on_existing_file: Specifies how to proceed if the file already exists.
+
+       > Examples
+         Write the contents of the request body to a scratch file on disk. The
+         file will be created if it does not exist, and will be overwritten if
+         it does.
+
+             import Standard.Examples
+
+             example_write =
+                Data.fetch Examples.geo_data_url . write Examples.scratch_file
+    write : Writable_File -> Existing_File_Behavior -> File
+    write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+        self.body.write file on_existing_file
 
     ## PRIVATE
        Convert to a JavaScript Object representing this Response.
