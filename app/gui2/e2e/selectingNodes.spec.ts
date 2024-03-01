@@ -11,9 +11,16 @@ test('Selecting nodes by click', async ({ page }) => {
   await customExpect.not.toBeSelected(node1)
   await customExpect.not.toBeSelected(node2)
 
+  const deselectAll = async () => {
+    await page.keyboard.press('Escape')
+    await customExpect.not.toBeSelected(node1)
+    await customExpect.not.toBeSelected(node2)
+  }
+
   await locate.graphNodeIcon(node1).click()
   await customExpect.toBeSelected(node1)
   await customExpect.not.toBeSelected(node2)
+  await deselectAll()
 
   await locate.graphNodeIcon(node2).click()
   await customExpect.not.toBeSelected(node1)
@@ -23,14 +30,12 @@ test('Selecting nodes by click', async ({ page }) => {
   await locate.graphNodeIcon(node1).click({ modifiers: ['Shift'] })
   await customExpect.toBeSelected(node1)
   await customExpect.toBeSelected(node2)
+  await deselectAll()
 
   await locate.graphNodeIcon(node2).click()
   await customExpect.not.toBeSelected(node1)
   await customExpect.toBeSelected(node2)
-
-  await page.mouse.click(200, 200)
-  await customExpect.not.toBeSelected(node1)
-  await customExpect.not.toBeSelected(node2)
+  await deselectAll()
 })
 
 test('Selecting nodes by area drag', async ({ page }) => {

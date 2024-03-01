@@ -376,11 +376,16 @@ function showComponentBrowser(nodePosition?: Vec2, usage?: Usage) {
   componentBrowserVisible.value = true
 }
 
-function startCreatingNodeFromButton() {
+function addNodeFromSelection() {
   const targetPos =
     placementPositionForSelection() ??
     nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
   showComponentBrowser(targetPos)
+}
+
+function addNodeAt(pos: Vec2 | undefined) {
+  if (!pos) return addNodeFromSelection()
+  showComponentBrowser(pos)
 }
 
 function hideComponentBrowser() {
@@ -600,6 +605,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
+        @addNode="addNodeAt($event)"
       />
     </div>
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
@@ -627,7 +633,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @zoomIn="graphNavigator.scale *= 1.1"
       @zoomOut="graphNavigator.scale *= 0.9"
     />
-    <PlusButton @pointerdown.stop @click.stop="startCreatingNodeFromButton()" @pointerup.stop />
+    <PlusButton @pointerdown.stop @click.stop="addNodeFromSelection()" @pointerup.stop />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" />
