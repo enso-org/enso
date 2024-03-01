@@ -2,6 +2,9 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Common.Type_Error
 
+import Standard.Base.Runtime.State
+from Standard.Base.Errors.Common import Uninitialized_State
+
 import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
 import project.Semantic.Conversion_Use.Hello
@@ -29,6 +32,9 @@ type My_Error
 
 type Not_Foo
     Value notfoo
+
+type Stateful
+    Value v:Number=(State.get Number)
 
 Foo.from (that:Bar) = Foo.Value that.bar
 Foo.from (that:Baz) = Foo.Value that.baz
@@ -478,6 +484,23 @@ add_specs suite_builder =
             Panic.recover Any (m_foo v) . should_fail_with Type_Error
             Panic.recover Any (m_bar v) . should_fail_with Type_Error
             m_back v . should_equal <| Back.Times 10
+
+        group_builder.specify "Lazy constructor with State" <|
+            v0 = ~Value
+            v1 = ~Value 33
+
+            State.run Number 42 <|
+                s42 = State.get Number
+                s42 . should_equal 42
+
+                v0:Stateful . should_equal <| Stateful.Value 42
+                v1:Stateful . should_equal <| Stateful.Value 33
+
+            v1:Stateful . should_equal <| Stateful.Value 33
+            err = Panic.recover Any <|
+                v = v0:Stateful
+                v
+            err . should_fail_with Uninitialized_State
 
     suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text

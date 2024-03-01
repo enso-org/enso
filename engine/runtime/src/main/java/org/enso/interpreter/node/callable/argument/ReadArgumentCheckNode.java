@@ -46,7 +46,6 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
 import org.graalvm.collections.Pair;
 
 public abstract class ReadArgumentCheckNode extends Node {
@@ -261,8 +260,7 @@ public abstract class ReadArgumentCheckNode extends Node {
         VirtualFrame frame,
         UnresolvedConstructor unresolved,
         @Cached UnresolvedConstructor.ConstructNode construct) {
-      var ctx = EnsoContext.get(this);
-      var state = State.create(ctx);
+      var state = Function.ArgumentsHelper.getState(frame.getArguments());
       return construct.execute(frame, state, expectedType, unresolved);
     }
 
