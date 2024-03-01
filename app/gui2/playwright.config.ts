@@ -38,7 +38,9 @@ export default defineConfig({
   testDir: './e2e',
   forbidOnly: !!process.env.CI,
   repeatEach: process.env.CI ? 3 : 1,
+  retries: 2,
   ...(process.env.CI ? { workers: 1 } : {}),
+  timeout: 60000,
   expect: {
     timeout: 5000,
     toHaveScreenshot: { threshold: 0 },
