@@ -44,7 +44,7 @@ const value = computed({
       if (requiresImport) graph.addMissingImports(edit, theImport)
       props.onUpdate({ edit })
     } else {
-      graph.addMissingImportsDisregardConflicts(edit, theImport)
+      graph.addMissingImports(edit, theImport)
       props.onUpdate({
         edit,
         portUpdate: {

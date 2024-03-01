@@ -1,7 +1,7 @@
 import type { Filter } from '@/components/ComponentBrowser/filtering'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
-import { requiredImportEquals, requiredImports, type ImportsForEntry } from '@/stores/graph/imports'
+import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
@@ -73,7 +73,7 @@ export function useComponentBrowserInput(
   const code = ref('')
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => RawAstExtended.parse(code.value))
-  const imports = ref<ImportsForEntry[]>([])
+  const imports = ref<RequiredImport[]>([])
 
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
@@ -230,7 +230,9 @@ export function useComponentBrowserInput(
   }
 
   /** Apply given suggested entry to the input. */
-  function applySuggestion(id: SuggestionId, entry: SuggestionEntry) {
+  function applySuggestion(id: SuggestionId) {
+    const entry = suggestionDb.get(id)
+    if (!entry) return
     const { newCode, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
     code.value = newCode
     selection.value = { start: newCursorPos, end: newCursorPos }
@@ -240,11 +242,11 @@ export function useComponentBrowserInput(
         const requiredEntry = suggestionDb.get(importId)
         if (requiredEntry) {
           // Keep in mind, that we need to provide the id of `entry`, not `requiredEntry` here!
-          imports.value.push({ id, imports: requiredImports(suggestionDb, requiredEntry) })
+          imports.value = imports.value.concat(requiredImports(suggestionDb, requiredEntry))
         }
       }
     } else {
-      imports.value.push({ id, imports: requiredImports(suggestionDb, entry) })
+      imports.value = imports.value.concat(requiredImports(suggestionDb, entry))
     }
   }
 
@@ -285,22 +287,16 @@ export function useComponentBrowserInput(
    *
    * If suggestion was manually edited by the user after accepting, it is not included.
    */
-  function importsToAdd(): ImportsForEntry[] {
-    const finalImports: ImportsForEntry[] = []
-    for (const import_ of imports.value) {
-      const filtered = []
-      for (const anImport of import_.imports) {
-        const alreadyAdded = finalImports.some((existing) =>
-          existing.imports.some((e) => requiredImportEquals(e, anImport)),
-        )
-        const importedIdent =
-          anImport.kind == 'Qualified' ? qnLastSegment(anImport.module) : anImport.import
-        const noLongerNeeded = !code.value.includes(importedIdent)
-        if (!noLongerNeeded && !alreadyAdded) {
-          filtered.push(anImport)
-        }
+  function importsToAdd(): RequiredImport[] {
+    const finalImports: RequiredImport[] = []
+    for (const anImport of imports.value) {
+      const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, anImport))
+      const importedIdent =
+        anImport.kind == 'Qualified' ? qnLastSegment(anImport.module) : anImport.import
+      const noLongerNeeded = !code.value.includes(importedIdent)
+      if (!noLongerNeeded && !alreadyAdded) {
+        finalImports.push(anImport)
       }
-      if (filtered.length > 0) finalImports.push({ id: import_.id, imports: filtered })
     }
     return finalImports
   }

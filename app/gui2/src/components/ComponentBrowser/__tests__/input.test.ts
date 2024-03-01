@@ -282,12 +282,14 @@ test.each([
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
+    const db = new SuggestionDb()
+    const dummyId = 1
+    db.set(dummyId, suggestion)
     const graphMock = GraphDb.Mock()
-    const input = useComponentBrowserInput(graphMock, new SuggestionDb())
+    const input = useComponentBrowserInput(graphMock, db)
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
-    const dummyId = 0
-    input.applySuggestion(dummyId, suggestion)
+    input.applySuggestion(dummyId)
     expect(input.code.value).toEqual(expected)
     expect(input.selection.value).toStrictEqual({
       start: expectedCursorPos,
@@ -312,14 +314,9 @@ test.each([
     expectedCode: 'Table.new ',
     expectedImports: [
       {
-        id: 3,
-        imports: [
-          {
-            kind: 'Unqualified',
-            from: unwrap(tryQualifiedName('Standard.Base')),
-            import: unwrap(tryIdentifier('Table')),
-          },
-        ],
+        kind: 'Unqualified',
+        from: unwrap(tryQualifiedName('Standard.Base')),
+        import: unwrap(tryIdentifier('Table')),
       },
     ],
   },
@@ -328,24 +325,14 @@ test.each([
     suggestionId: 3,
     initialCode: 'Base.',
     expectedCode: 'Base.Table.new ',
-    expectedImports: [
-      {
-        id: 1,
-        imports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
-      },
-    ],
+    expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
   },
   {
     description: 'Importing the head of partially edited qualified name (2)',
     suggestionId: 3,
     initialCode: 'Base.Table.',
     expectedCode: 'Base.Table.new ',
-    expectedImports: [
-      {
-        id: 1,
-        imports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
-      },
-    ],
+    expectedImports: [{ kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Base')) }],
   },
   {
     description: 'Do not import if user changes input manually after applying suggestion',
@@ -366,8 +353,7 @@ test.each([
     const input = useComponentBrowserInput(graphMock, db)
     input.code.value = initialCode
     input.selection.value = { start: initialCode.length, end: initialCode.length }
-    const suggestion = db.get(suggestionId)!
-    input.applySuggestion(suggestionId, suggestion)
+    input.applySuggestion(suggestionId)
     if (manuallyEditedCode != null) {
       input.code.value = manuallyEditedCode
     }

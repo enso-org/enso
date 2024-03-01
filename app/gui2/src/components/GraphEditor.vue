@@ -24,7 +24,7 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore, type NodeId } from '@/stores/graph'
-import type { ImportsForEntry } from '@/stores/graph/imports'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { bail } from '@/util/assert'
@@ -412,7 +412,7 @@ function hideComponentBrowser() {
   componentBrowserVisible.value = false
 }
 
-function onComponentBrowserCommit(content: string, requiredImports: ImportsForEntry[]) {
+function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
   if (content != null) {
     if (graphStore.editedNodeInfo) {
       // We finish editing a node.

@@ -8,13 +8,11 @@ import {
   makeStaticMethod,
   makeType,
   type SuggestionEntry,
-  type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { MutableModule, parseIdent, parseIdents, parseQualifiedName } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import {
-  qnLastSegment,
   qnSegments,
   qnSplit,
   tryIdentifier,
@@ -240,6 +238,14 @@ function definedInEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEnt
   return db.getEntryByQualifiedName(entry.definedIn)
 }
 
+function entryFQNFromRequiredImport(importStatement: RequiredImport): QualifiedName {
+  if (importStatement.kind === 'Qualified') {
+    return importStatement.module
+  } else {
+    return unwrap(tryQualifiedName(`${importStatement.from}.${importStatement.import}`))
+  }
+}
+
 export function requiredImportEquals(left: RequiredImport, right: RequiredImport): boolean {
   if (left.kind != right.kind) return false
   switch (left.kind) {
@@ -285,18 +291,12 @@ export function filterOutRedundantImports(
   return required.filter((info) => !existing.some((existing) => covers(existing, info)))
 }
 
-/* Imports required for specific entry. */
-export interface ImportsForEntry {
-  id: SuggestionId
-  imports: RequiredImport[]
-}
-
 /* Information about detected conflict import, and advisory on resolution. */
 export interface DetectedConflict {
   /* Always true, for more expressive API usage. */
   detected: boolean
   /* Advisory to replace the following name (qualified name or single ident)… */
-  name: QualifiedName | IdentifierOrOperatorIdentifier
+  pattern: QualifiedName | IdentifierOrOperatorIdentifier
   /* … with this fully qualified name. */
   fullyQualified: QualifiedName
 }
@@ -307,26 +307,24 @@ export type ConflictInfo = DetectedConflict | undefined
 export function detectImportConflicts(
   suggestionDb: SuggestionDb,
   existingImports: Import[],
-  importsForEntry: ImportsForEntry,
+  importToCheck: RequiredImport,
 ): ConflictInfo {
-  const entry = suggestionDb.get(importsForEntry.id)
-  if (!entry) return
+  const entryFQN = entryFQNFromRequiredImport(importToCheck)
+  const [entryId] = suggestionDb.nameToId.lookup(entryFQN)
+  if (entryId == null) return
+  const entry = suggestionDb.get(entryId)!
   const conflictingIds = suggestionDb.conflictingNames.lookup(entry.name)
   // Obviously, the entry doesn’t conflict with itself.
-  conflictingIds.delete(importsForEntry.id)
+  conflictingIds.delete(entryId)
 
   for (const id of conflictingIds) {
     const e = suggestionDb.get(id)
     const required = e ? requiredImports(suggestionDb, e) : []
     for (const req of required) {
       if (existingImports.some((existing) => covers(existing, req))) {
-        const usedAs =
-          entry.memberOf != null
-            ? (`${qnLastSegment(entry.memberOf)}.${entry.name}` as QualifiedName)
-            : entry.name
         return {
           detected: true,
-          name: usedAs,
+          pattern: entry.name,
           fullyQualified: entryQn(entry),
         }
       }
@@ -466,35 +464,45 @@ if (import.meta.vitest) {
     db.set(12, makeModule('Project.Foo'))
     db.set(13, makeType('Project.Foo.Vector'))
     db.set(14, makeStaticMethod('Project.Foo.Vector.new'))
+    db.set(15, makeModule('Project.Foo.Base'))
 
     return db
   }
 
+  const qn = (s: string) => unwrap(tryQualifiedName(s))
   test.each([
     {
-      description: 'Conflicting methods',
-      importing: 14,
-      alreadyImported: 11,
-      expected: { name: 'Vector.new', fullyQualified: 'Project.Foo.Vector.new' },
+      description: 'Conflicting Vector',
+      importing: {
+        kind: 'Unqualified',
+        from: qn('Project.Foo'),
+        import: 'Vector',
+      } as RequiredImport,
+      alreadyImported: [
+        { from: qn('Standard.Base'), imported: { kind: 'List', names: ['Vector'] } } as Import,
+      ],
+      expected: { name: 'Vector', fullyQualified: 'Project.Foo.Vector' },
     },
     {
-      description: 'Conflicting types',
-      importing: 13,
-      alreadyImported: 10,
+      description: 'Conflicting Vector (2)',
+      importing: {
+        kind: 'Unqualified',
+        from: qn('Project.Foo'),
+        import: 'Vector',
+      } as RequiredImport,
+      alreadyImported: [
+        { from: qn('Standard.Base'), imported: { kind: 'All', except: [] } } as Import,
+      ],
       expected: { name: 'Vector', fullyQualified: 'Project.Foo.Vector' },
     },
   ])('Conflicting imports: $description', ({ importing, alreadyImported, expected }) => {
     const db = mockDb()
 
-    const existingEntry = db.get(alreadyImported)!
-    const existingImports = requiredImports(db, existingEntry).map(
-      (import_) => recognizeImport(requiredImportToAst(import_))!,
-    )
-    const imports = requiredImports(db, db.get(importing)!)
-    const conflicts = detectImportConflicts(db, existingImports, { id: importing, imports })
+    const existingImports: Import[] = alreadyImported
+    const conflicts = detectImportConflicts(db, existingImports, importing)
     expect(conflicts).toEqual({
       detected: true,
-      name: expected.name,
+      pattern: expected.name,
       fullyQualified: expected.fullyQualified,
     } as ConflictInfo)
   })

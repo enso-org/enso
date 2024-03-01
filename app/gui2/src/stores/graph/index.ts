@@ -9,7 +9,6 @@ import {
   readImports,
   type DetectedConflict,
   type Import,
-  type ImportsForEntry,
   type RequiredImport,
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
@@ -212,7 +211,7 @@ export const useGraphStore = defineStore('graph', () => {
     position: Vec2,
     expression: string,
     metadata: NodeMetadataFields = {},
-    withImports: ImportsForEntry[] | undefined = undefined,
+    withImports: RequiredImport[] | undefined = undefined,
   ): Opt<NodeId> {
     const method = syncModule.value ? methodAstInModule(syncModule.value) : undefined
     if (!method) {
@@ -227,7 +226,7 @@ export const useGraphStore = defineStore('graph', () => {
       rhs.setNodeMetadata(metadata)
       const assignment = Ast.Assignment.new(edit, ident, rhs)
       for (const conflict of conflicts) {
-        substituteQualifiedName(edit, assignment, conflict.name, conflict.fullyQualified)
+        substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
       }
       edit.getVersion(method).bodyAsBlock().push(assignment)
       return asNodeId(rhs.id)
@@ -237,7 +236,7 @@ export const useGraphStore = defineStore('graph', () => {
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
   function addMissingImports(
     edit: MutableModule,
-    newImports: ImportsForEntry[],
+    newImports: RequiredImport[],
   ): DetectedConflict[] | undefined {
     const topLevel = edit.getVersion(moduleRoot.value!)
     if (!(topLevel instanceof Ast.MutableBodyBlock)) {
@@ -247,20 +246,18 @@ export const useGraphStore = defineStore('graph', () => {
     const existingImports = readImports(topLevel)
 
     const conflicts = []
+    const nonConflictingImports = []
     for (const newImport of newImports) {
       const conflictInfo = detectImportConflicts(suggestionDb.entries, existingImports, newImport)
       if (conflictInfo?.detected) {
         conflicts.push(conflictInfo)
+      } else {
+        nonConflictingImports.push(newImport)
       }
     }
+    addMissingImportsDisregardConflicts(edit, nonConflictingImports, existingImports)
+
     if (conflicts.length > 0) return conflicts
-
-    const allImportsToAdd = newImports.reduce(
-      (acc, im) => acc.concat(im.imports),
-      [] as RequiredImport[],
-    )
-
-    addMissingImportsDisregardConflicts(edit, allImportsToAdd, existingImports)
   }
 
   /* Adds imports, ignores any possible conflicts.

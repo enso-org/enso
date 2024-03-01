@@ -599,10 +599,27 @@ test.each([
     substitution: 'z',
     expected: 'z + y',
   },
+  {
+    original: 'Data.Table.new',
+    pattern: 'Data',
+    substitution: 'Project.Foo.Data',
+    expected: 'Project.Foo.Data.Table.new',
+  },
+  {
+    original: 'Data.Table.new',
+    pattern: 'Table',
+    substitution: 'ShouldNotWork',
+    expected: 'Data.Table.new',
+  },
 ])('Substitute $pattern insde $original', ({ original, pattern, substitution, expected }) => {
   const expression = Ast.parse(original)
   expression.module.replaceRoot(expression)
   const edit = expression.module.edit()
-  substituteQualifiedName(edit, expression, pattern, unwrap(tryQualifiedName(substitution)))
+  substituteQualifiedName(
+    edit,
+    expression,
+    pattern as Ast.QualifiedName,
+    unwrap(tryQualifiedName(substitution)),
+  )
   expect(edit.root()?.code()).toEqual(expected)
 })

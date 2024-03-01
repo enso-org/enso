@@ -200,21 +200,24 @@ export function parseQualifiedName(ast: Ast): QualifiedName | null {
 export function substituteQualifiedName(
   module: MutableModule,
   expression: Ast,
-  name: QualifiedName | IdentifierOrOperatorIdentifier,
+  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
   to: QualifiedName,
 ) {
   const expr = module.getVersion(expression) ?? expression
   if (expr instanceof PropertyAccess || expr instanceof Ident) {
     const qn = parseQualifiedName(expr)
-    if (qn === name) {
+    if (qn === pattern) {
       expr.updateValue(() => Ast.parse(to, module))
+    } else if (qn && qn.startsWith(pattern)) {
+      const withoutPattern = qn.replace(pattern, '')
+      expr.updateValue(() => Ast.parse(to + withoutPattern, module))
     }
   } else {
     for (const child of expr.children()) {
       if (child instanceof Token) {
         continue
       }
-      substituteQualifiedName(module, child, name, to)
+      substituteQualifiedName(module, child, pattern, to)
     }
   }
 }
