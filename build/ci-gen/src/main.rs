@@ -31,7 +31,7 @@ async fn main() -> Result {
     setup_logging()?;
     let repo_root = deduce_repository_path()?;
     let workflows_dir = RepoRootGithub::new_under(&repo_root).workflows;
-    let mut workflows = enso_build::ci_gen::generate(&workflows_dir)?;
+    let workflows = enso_build::ci_gen::generate(&workflows_dir)?;
 
     for WorkflowToWrite { source, path, workflow } in workflows {
         let preamble = preamble(&source);
