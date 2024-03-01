@@ -38,24 +38,20 @@ interface Tag {
   parameters?: ArgumentWidgetConfiguration[]
 }
 
-function identToLabel(name: IdentifierOrOperatorIdentifier): string {
-  return name
-}
-
 function tagFromExpression(expression: string): Tag {
   const qn = tryQualifiedName(expression)
   if (!qn.ok) return { expression }
   const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
   if (entry) return tagFromEntry(entry)
   return {
-    label: identToLabel(qnLastSegment(qn.value)),
+    label: qnLastSegment(qn.value),
     expression: qn.value,
   }
 }
 
 function tagFromEntry(entry: SuggestionEntry): Tag {
   return {
-    label: identToLabel(entry.name),
+    label: entry.name,
     expression:
       entry.selfType != null
         ? `_.${entry.name}`
