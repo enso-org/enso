@@ -606,17 +606,17 @@ export const useProjectStore = defineStore('project', () => {
 
   const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
     const config = computed(() =>
-      info.payload.type === 'DataflowError'
-        ? {
-            expressionId: id,
-            visualizationModule: 'Standard.Visualization.Preprocessor',
-            expression: {
-              module: 'Standard.Visualization.Preprocessor',
-              definedOnType: 'Standard.Visualization.Preprocessor',
-              name: 'error_preprocessor',
-            },
-          }
-        : null,
+      info.payload.type === 'DataflowError' ?
+        {
+          expressionId: id,
+          visualizationModule: 'Standard.Visualization.Preprocessor',
+          expression: {
+            module: 'Standard.Visualization.Preprocessor',
+            definedOnType: 'Standard.Visualization.Preprocessor',
+            name: 'error_preprocessor',
+          },
+        }
+      : null,
     )
     const data = useVisualizationData(config)
     return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
