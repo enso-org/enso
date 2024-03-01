@@ -19,8 +19,12 @@ export default test.defineConfig({
     timeout: 30_000,
   },
   timeout: 30_000,
+  reporter: 'html',
   use: {
     baseURL: 'http://localhost:8080',
+    // We have a problem with many transient failures; to investigate them, we need trace on all
+    // tests.
+    trace: 'on',
     launchOptions: {
       ignoreDefaultArgs: ['--headless'],
       args: [
