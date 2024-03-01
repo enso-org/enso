@@ -14,6 +14,7 @@ const emit = defineEmits<{
   'update:isDocsVisible': [isDocsVisible: boolean]
   'update:isVisualizationVisible': [isVisualizationVisible: boolean]
   startEditing: []
+  startEditingComment: []
 }>()
 </script>
 
@@ -24,6 +25,11 @@ const emit = defineEmits<{
     @pointerup.stop
     @click.stop
   >
+    <SvgIcon
+      name="comment"
+      class="icon-container button slot2"
+      @click.stop="emit('startEditingComment')"
+    />
     <ToggleIcon
       icon="eye"
       class="icon-container button slot5"
