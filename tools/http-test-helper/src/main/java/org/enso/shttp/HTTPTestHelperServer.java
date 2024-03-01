@@ -48,7 +48,8 @@ public class HTTPTestHelperServer {
       // Make sure the main thread is blocked for as long as the server is running.
       stopNotification.acquire();
     } catch (InterruptedException e) {
-      System.out.println("Server main thread was unexpectedly interrupted. The server will now stop.");
+      System.out.println(
+          "Server main thread was unexpectedly interrupted. The server will now stop.");
     } finally {
       server.stop();
     }
