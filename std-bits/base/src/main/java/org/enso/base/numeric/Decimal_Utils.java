@@ -88,7 +88,7 @@ public class Decimal_Utils {
       //System.out.println("AAA new hash as bi");
       //return bd.toBigIntegerExact().hashCode();
       System.out.println("AAA new hash as bd");
-      return bd.hashCode();
+      return bd.toBigIntegerExact().hashCode();
     }
   }
 }
