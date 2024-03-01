@@ -101,49 +101,49 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   }, [category, /* should never change */ localStorage])
 
   return (
-    <div className="flex flex-col items-start w-30">
-      <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-snug h-6 py-0.5">Category</span>
-      </div>
-      {CATEGORIES.map(currentCategory => (
-        <CategorySwitcherItem
-          key={currentCategory}
-          active={category === currentCategory}
-          disabled={category === currentCategory}
-          image={CATEGORY_ICONS[currentCategory]}
-          name={currentCategory}
-          iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}
-          onClick={() => {
-            setCategory(currentCategory)
-          }}
-          onDragOver={event => {
-            if (
-              (category === Category.trash && currentCategory === Category.home) ||
-              (category !== Category.trash && currentCategory === Category.trash)
-            ) {
-              event.preventDefault()
-            }
-          }}
-          onDrop={event => {
-            if (
-              (category === Category.trash && currentCategory === Category.home) ||
-              (category !== Category.trash && currentCategory === Category.trash)
-            ) {
-              event.preventDefault()
-              event.stopPropagation()
-              unsetModal()
-              const payload = drag.ASSET_ROWS.lookup(event)
-              if (payload != null) {
-                dispatchAssetEvent({
-                  type:
-                    category === Category.trash ? AssetEventType.restore : AssetEventType.delete,
-                  ids: new Set(payload.map(item => item.key)),
-                })
+    <div className="flex flex-col gap-drive-sidebar-section-heading w-full">
+      <div className="text-header font-bold text-sm px-drive-sidebar-section-heading">Category</div>
+      <div className="flex flex-col items-start">
+        {CATEGORIES.map(currentCategory => (
+          <CategorySwitcherItem
+            key={currentCategory}
+            active={category === currentCategory}
+            disabled={category === currentCategory}
+            image={CATEGORY_ICONS[currentCategory]}
+            name={currentCategory}
+            iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}
+            onClick={() => {
+              setCategory(currentCategory)
+            }}
+            onDragOver={event => {
+              if (
+                (category === Category.trash && currentCategory === Category.home) ||
+                (category !== Category.trash && currentCategory === Category.trash)
+              ) {
+                event.preventDefault()
               }
-            }
-          }}
-        />
-      ))}
+            }}
+            onDrop={event => {
+              if (
+                (category === Category.trash && currentCategory === Category.home) ||
+                (category !== Category.trash && currentCategory === Category.trash)
+              ) {
+                event.preventDefault()
+                event.stopPropagation()
+                unsetModal()
+                const payload = drag.ASSET_ROWS.lookup(event)
+                if (payload != null) {
+                  dispatchAssetEvent({
+                    type:
+                      category === Category.trash ? AssetEventType.restore : AssetEventType.delete,
+                    ids: new Set(payload.map(item => item.key)),
+                  })
+                }
+              }
+            }}
+          />
+        ))}
+      </div>
     </div>
   )
 }

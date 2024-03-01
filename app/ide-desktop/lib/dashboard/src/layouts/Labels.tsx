@@ -45,11 +45,12 @@ export default function Labels(props: LabelsProps) {
   const { setModal } = modalProvider.useSetModal()
 
   return (
-    <div data-testid="labels" className="flex flex-col items-start w-30">
-      <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-snug h-6 py-0.5">Labels</span>
-      </div>
-      <ul data-testid="labels-list" className="flex flex-col items-start gap-1">
+    <div
+      data-testid="labels"
+      className="flex flex-col items-start gap-drive-sidebar-section-heading w-full"
+    >
+      <div className="text-header font-bold text-sm px-drive-sidebar-section-heading">Labels</div>
+      <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
         {labels
           .filter(label => !deletedLabelNames.has(label.value))
           .sort((a, b) => (a.value > b.value ? 1 : a.value < b.value ? -1 : 0))
@@ -58,7 +59,7 @@ export default function Labels(props: LabelsProps) {
               array.shallowEqual(term, [label.value])
             )
             return (
-              <li key={label.id} className="group flex items-center gap-1">
+              <li key={label.id} className="group flex items-center gap-label-icons">
                 <Label
                   draggable
                   color={label.color}
@@ -110,7 +111,7 @@ export default function Labels(props: LabelsProps) {
                     <SvgMask
                       src={Trash2Icon}
                       alt="Delete"
-                      className="opacity-0 group-hover:opacity-100 text-delete size-4"
+                      className="transparent group-hover:opacity-full text-delete size-icon"
                     />
                   </button>
                 )}
@@ -133,8 +134,10 @@ export default function Labels(props: LabelsProps) {
               )
             }}
           >
-            <img src={PlusIcon} className="size-1.5" />
-            <span className="leading-snug h-6 py-0.5">new label</span>
+            {/* This is a non-standard-sized icon. */}
+            {/* eslint-disable-next-line no-restricted-syntax */}
+            <img src={PlusIcon} className="size-[6px] mr-[6px]" />
+            <span className="text-header">new label</span>
           </Label>
         </li>
       </ul>

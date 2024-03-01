@@ -23,7 +23,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
           ? 'Sort by name descending'
           : 'Stop sorting by name'
       }
-      className="flex items-center gap-2 pt-1 pb-1.5"
+      className="flex items-center gap-icon-with-text px-name-column-header-x w-full h-drive-table-heading"
       onMouseEnter={() => {
         setIsHovered(true)
       }}
@@ -40,9 +40,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
         }
       }}
     >
-      <span className="leading-snug h-6 py-0.5">
-        {columnUtils.COLUMN_NAME[columnUtils.Column.name]}
-      </span>
+      <span className="text-header">{columnUtils.COLUMN_NAME[columnUtils.Column.name]}</span>
       <img
         alt={
           !isSortActive || sortDirection === SortDirection.ascending
@@ -50,7 +48,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
             : 'Sort Descending'
         }
         src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'invisible'}
+        className={isSortActive ? '' : isHovered ? 'opacity-disabled' : 'invisible'}
       />
     </button>
   )

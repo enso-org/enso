@@ -53,12 +53,12 @@ export default function Label(props: InternalLabelProps) {
     <button
       data-testid={dataTestId}
       disabled={disabled}
-      className={`flex items-center rounded-full whitespace-nowrap gap-1.5 h-6 px-2.25 transition-all ${className} ${
+      className={`flex items-center rounded-full whitespace-nowrap h-text px-label-x transition-all ${className} ${
         negated
           ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset before:w-full before:h-full'
           : ''
-      } ${active ? '' : 'opacity-50'} ${
-        disabled ? '' : group ? 'group-hover:opacity-100' : 'hover:opacity-100'
+      } ${active ? '' : 'opacity-disabled'} ${
+        disabled ? '' : group ? 'group-hover:opacity-full' : 'hover:opacity-full'
       } ${textColorClassName}`}
       style={{ backgroundColor: backend.lChColorToCssColor(color) }}
       {...passthrough}

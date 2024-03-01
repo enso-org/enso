@@ -30,7 +30,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           disabled={!onClick}
           className={`${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } inline-block rounded-full whitespace-nowrap h-6 px-1.75 py-0.5 ${className ?? ''}`}
+          } inline-block rounded-full whitespace-nowrap h-text px-1.75 py-0.5 ${className ?? ''}`}
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
@@ -57,7 +57,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           <div
             className={`${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } rounded-full h-6 px-1.75 py-0.5 m-1`}
+            } rounded-full h-text px-1.75 py-0.5 m-1`}
           >
             {children}
           </div>

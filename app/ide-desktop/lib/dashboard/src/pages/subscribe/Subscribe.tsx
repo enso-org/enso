@@ -117,7 +117,7 @@ export default function Subscribe() {
     <Modal centered className="bg-black/10 text-primary text-xs">
       <div
         data-testid="subscribe-modal"
-        className="flex flex-col gap-modal bg-selected-frame backdrop-blur-default rounded-default p-8 w-full max-w-md max-h-[100vh]"
+        className="flex flex-col gap-modal bg-selected-frame backdrop-blur-default rounded-default p-auth w-full max-w-md max-h-screen"
         onClick={event => {
           event.stopPropagation()
         }}

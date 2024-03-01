@@ -190,7 +190,7 @@ export default function ManageLabelsModal<
               disabled={!canCreateNewLabel}
               className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
             >
-              <div className="h-6 py-0.5">Create</div>
+              <div className="h-text py-0.5">Create</div>
             </button>
             {canSelectColor && (
               <div className="flex flex-col items-center">

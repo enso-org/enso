@@ -92,11 +92,11 @@ const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x last:rounded-r-full last:w-full ${C
 
 /** CSS classes for every column. */
 export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
-  [Column.name]: `rounded-rows-skip-level min-w-drive-name-column p border-l-0 ${COLUMN_CSS_CLASSES}`,
+  [Column.name]: `rounded-rows-skip-level min-w-drive-name-column px border-l-0 ${COLUMN_CSS_CLASSES}`,
   [Column.modified]: `min-w-drive-modified-column ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.sharedWith]: `min-w-drive-shared-with-column ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.labels]: `min-w-drive-labels-column ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.accessedByProjects]: `min-w---drive-acssed-by-projects-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.accessedByProjects]: `min-w-drive-accessed-by-projects-column ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.accessedData]: `min-w-drive-accessed-data-column ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.docs]: `min-w-drive-docs-column ${NORMAL_COLUMN_CSS_CLASSES}`,
 }

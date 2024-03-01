@@ -124,11 +124,11 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
           className={`relative before:absolute before:border before:border-black/10 before:rounded-xl before:backdrop-blur-default before:top before:w-full before:transition-colors ${
             isDropdownVisible
               ? 'before:h-full before:shadow-soft'
-              : 'before:h-6 group-hover:before:bg-frame'
+              : 'before:h-text group-hover:before:bg-frame'
           }`}
         >
           {/* Spacing. */}
-          <div className="relative padding h-6" />
+          <div className="relative padding h-text" />
           <div
             className={`relative grid rounded-xl w-full max-h-10lh transition-grid-template-rows ${
               isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
@@ -136,7 +136,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
           >
             {items.map((item, i) => (
               <div
-                className={`flex gap-1 rounded-xl px-2 h-6 transition-colors ${
+                className={`flex gap-1 rounded-xl px-2 h-text transition-colors ${
                   i === visuallySelectedIndex
                     ? 'cursor-default bg-frame font-bold'
                     : 'hover:bg-selected-frame'
@@ -170,9 +170,9 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         </div>
       </div>
       <div
-        className={`relative flex gap-1 items-center h-6 px-2 ${isDropdownVisible ? 'z-1' : ''} ${
-          readOnly ? 'opacity-75 cursor-not-allowed' : ''
-        }`}
+        className={`relative flex gap-1 items-center h-text px-button-x ${
+          isDropdownVisible ? 'z-1' : ''
+        } ${readOnly ? 'opacity-read-only cursor-not-allowed' : ''}`}
       >
         <SvgMask src={TriangleDownIcon} />
         <div className="grow">

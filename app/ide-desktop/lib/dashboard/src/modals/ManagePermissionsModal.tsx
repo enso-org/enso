@@ -13,7 +13,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import Autocomplete from '#/components/Autocomplete'
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
-import UserPermissions from '#/components/dashboard/UserPermissions'
+import UserPermission from '#/components/dashboard/UserPermission'
 import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
@@ -308,13 +308,13 @@ export default function ManagePermissionsModal<
                 }
                 className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
               >
-                <div className="h-6 py-0.5">{willInviteNewUser ? 'Invite' : 'Share'}</div>
+                <div className="h-text py-0.5">{willInviteNewUser ? 'Invite' : 'Share'}</div>
               </button>
             </form>
             <div className="overflow-auto pl-1 pr-12 max-h-80">
               {editablePermissions.map(userPermissions => (
-                <div key={userPermissions.user.pk} className="flex items-center h-8">
-                  <UserPermissions
+                <div key={userPermissions.user.pk} className="flex items-center h-row">
+                  <UserPermission
                     asset={item}
                     self={self}
                     isOnlyOwner={isOnlyOwner}

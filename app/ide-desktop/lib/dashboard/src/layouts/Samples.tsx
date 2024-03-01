@@ -188,17 +188,17 @@ function ProjectTile(props: InternalProjectTileProps) {
         )}
       </button>
       <div className="flex justify-between text-primary h-sample-info px-4 opacity-70">
-        <div className="flex gap-icon-with-text">
+        <div className="flex gap-samples-icon-with-text">
           <SvgMask src={Logo} />
           <span className="font-bold leading-snug pb-px">{author}</span>
         </div>
         {/* Normally `flex` */}
         <div className="gap-icons hidden">
-          <div title="Views" className="flex gap-icon-with-text">
+          <div title="Views" className="flex gap-samples-icon-with-text">
             <SvgMask alt="Views" src={OpenCountIcon} />
             <span className="font-bold leading-snug pb-px">{opens}</span>
           </div>
-          <div title="Likes" className="flex gap-icon-with-text">
+          <div title="Likes" className="flex gap-samples-icon-with-text">
             <SvgMask alt="Likes" src={HeartIcon} />
             <span className="font-bold leading-snug pb-px">{likes}</span>
           </div>

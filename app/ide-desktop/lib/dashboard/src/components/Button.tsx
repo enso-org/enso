@@ -31,8 +31,8 @@ export default function Button(props: ButtonProps) {
         className={`${
           active
             ? ''
-            : `group-disabled:cursor-not-allowed ${disabledOpacityClassName ?? 'opacity-50'}`
-        } group-enabled:cursor-pointer group-enabled:hover:opacity-100 transition-opacity duration-100 ${
+            : `group-disabled:cursor-not-allowed ${disabledOpacityClassName ?? 'opacity-disabled'}`
+        } group-enabled:cursor-pointer group-enabled:hover:opacity-full transition-opacity ${
           className ?? ''
         }`}
         {...(alt != null ? { alt } : {})}

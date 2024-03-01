@@ -20,7 +20,7 @@ export default function AssetVersion(props: AssetVersionProps) {
   const { number, version } = props
 
   return (
-    <div className="flex flex-col cursor-pointer rounded-default p-2 select-none overflow-y-auto hover:bg-frame transition-colors">
+    <div className="flex flex-col cursor-pointer rounded-default p-version select-none overflow-y-auto hover:bg-frame transition-colors">
       <div>version {number}</div>
       <div className="text-not-selected text-xs">
         on {dateTime.formatDateTime(new Date(version.lastModified))}

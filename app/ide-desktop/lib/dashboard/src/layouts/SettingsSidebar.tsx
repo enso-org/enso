@@ -114,7 +114,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                 {tabs.map(tab => (
                   <div
                     key={tab.settingsTab}
-                    className={`flex items-center gap-2 h-8 px-2 rounded-full hover:text-primary hover:bg-selected-frame transition-colors ${
+                    className={`flex items-center gap-icon-with-text h-row px-button-x rounded-full hover:text-primary hover:bg-selected-frame transition-colors ${
                       tab.settingsTab === settingsTab
                         ? 'text-primary bg-selected-frame'
                         : 'cursor-pointer text-not-selected'
@@ -131,7 +131,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                           : 'text-icon-not-selected'
                       }
                     />
-                    <span className="h-6 leading-cozy py-px">{tab.name}</span>
+                    <span className="text">{tab.name}</span>
                   </div>
                 ))}
               </div>,

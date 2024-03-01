@@ -9,9 +9,9 @@ import SvgMask from '#/components/SvgMask'
 /** A heading for the "Accessed data" column. */
 export default function AccessedDataColumnHeading(): JSX.Element {
   return (
-    <div className="flex items-center gap-2">
-      <SvgMask src={AccessedDataIcon} className="h-4 w-4" />
-      <span className="leading-snug h-6 py-0.5">
+    <div className="flex items-center gap-icon-with-text w-full h-drive-table-heading">
+      <SvgMask src={AccessedDataIcon} className="size-icon" />
+      <span className="text-header">
         {columnUtils.COLUMN_NAME[columnUtils.Column.accessedData]}
       </span>
     </div>

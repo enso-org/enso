@@ -154,7 +154,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <SvgMask
         src={FolderArrowIcon}
         alt={item.children == null ? 'Expand' : 'Collapse'}
-        className={`hidden group-hover:inline-block cursor-pointer h-4 w-4 m-1 transition-transform duration-300 ${
+        className={`hidden group-hover:inline-block cursor-pointer size-icon m-1 transition-transform duration-300 ${
           item.children != null ? 'rotate-90' : ''
         }`}
         onClick={event => {
@@ -162,7 +162,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
         }}
       />
-      <SvgMask src={FolderIcon} className="group-hover:hidden h-4 w-4 m-1" />
+      <SvgMask src={FolderIcon} className="group-hover:hidden size-icon m-1" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}

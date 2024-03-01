@@ -74,16 +74,16 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex flex-col flex-1 gap-settings-header overflow-hidden">
-      <div className="flex gap-2.5 font-bold text-xl h-9.5 px-4.75">
-        <span className="py-0.5">Settings for </span>
+    <div className="flex flex-col flex-1 gap-settings-header overflow-hidden px-page-x">
+      <div className="flex gap-2.5 font-bold text-xl h-heading px-heading-x">
+        <span className="py-heading-y">Settings for </span>
         <div className="rounded-full leading-snug bg-frame h-9 px-2.25 pt-0.5 pb-1.25">
           {settingsTab !== SettingsTab.organization
             ? user?.name ?? 'your account'
             : organization.organization_name ?? 'your organization'}
         </div>
       </div>
-      <div className="flex flex-1 gap-settings px-3 overflow-hidden">
+      <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar settingsTab={settingsTab} setSettingsTab={setSettingsTab} />
         {content}
       </div>

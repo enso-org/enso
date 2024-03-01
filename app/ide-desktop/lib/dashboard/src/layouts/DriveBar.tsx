@@ -73,11 +73,11 @@ export default function DriveBar(props: DriveBarProps) {
   }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
 
   return (
-    <div className="flex h-row py-0.5">
-      <div className="flex gap-2.5">
+    <div className="flex h-row py-drive-bar-y">
+      <div className="flex gap-drive-bar">
         <button
           disabled={!isHomeCategory}
-          className="flex items-center bg-frame rounded-full h-row px-2.5"
+          className="flex items-center bg-frame rounded-full h-row px-new-project-button-x"
           {...(!isHomeCategory ? { title: 'You can only create a new project in Home.' } : {})}
           onClick={() => {
             unsetModal()
@@ -86,13 +86,13 @@ export default function DriveBar(props: DriveBarProps) {
         >
           <span
             className={`font-semibold whitespace-nowrap text ${
-              !isHomeCategory ? 'opacity-50' : ''
+              !isHomeCategory ? 'opacity-disabled' : ''
             }`}
           >
             New Project
           </span>
         </button>
-        <div className="flex items-center text-black/50 bg-frame rounded-full gap-icons h-row px-3">
+        <div className="flex items-center text-black/50 bg-frame rounded-full gap-icons h-row px-drive-bar-icons-x">
           {backend.type !== backendModule.BackendType.local && (
             <Button
               active={isHomeCategory}
@@ -100,7 +100,7 @@ export default function DriveBar(props: DriveBarProps) {
               error="You can only create a new folder in Home."
               image={AddFolderIcon}
               alt="New Folder"
-              disabledOpacityClassName="opacity-20"
+              disabledOpacityClassName="opacity-disabled-category"
               onClick={() => {
                 unsetModal()
                 doCreateDirectory()
@@ -114,7 +114,7 @@ export default function DriveBar(props: DriveBarProps) {
               error="You can only create a new secret in Home."
               image={AddKeyIcon}
               alt="New Secret"
-              disabledOpacityClassName="opacity-20"
+              disabledOpacityClassName="opacity-disabled-category"
               onClick={event => {
                 event.stopPropagation()
                 setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
@@ -128,7 +128,7 @@ export default function DriveBar(props: DriveBarProps) {
               error="You can only create a new Data Link in Home."
               image={AddConnectorIcon}
               alt="New Data Link"
-              disabledOpacityClassName="opacity-20"
+              disabledOpacityClassName="opacity-disabled-category"
               onClick={event => {
                 event.stopPropagation()
                 setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)

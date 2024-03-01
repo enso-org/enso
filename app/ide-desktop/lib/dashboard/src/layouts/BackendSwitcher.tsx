@@ -33,7 +33,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
         }}
       >
         <div
-          className={`flex items-center gap-selector-icon-with-text ${
+          className={`flex items-center gap-icon-with-text ${
             backend.type === backendModule.BackendType.remote ? '' : 'opacity-30'
           }`}
         >
@@ -49,7 +49,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
         }}
       >
         <div
-          className={`flex items-center gap-selector-icon-with-text ${
+          className={`flex items-center gap-icon-with-text ${
             backend.type === backendModule.BackendType.local ? '' : 'opacity-30'
           }`}
         >

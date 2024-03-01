@@ -293,11 +293,11 @@ export default function Drive(props: DriveProps) {
   switch (status) {
     case DriveStatus.offline: {
       return (
-        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+        <div className={`grow grid place-items-center ${hidden ? 'hidden' : ''}`}>
           <div className="flex flex-col text-base text-center gap-status-page">
             <div>You are not logged in.</div>
             <button
-              className="text-white bg-help rounded-full self-center leading-cozy h-row py-px w-16"
+              className="button text-white bg-help self-center"
               onClick={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
@@ -310,7 +310,7 @@ export default function Drive(props: DriveProps) {
     }
     case DriveStatus.noProjectManager: {
       return (
-        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+        <div className={`grow grid place-items-center ${hidden ? 'hidden' : ''}`}>
           <div className="flex flex-col text-base text-center gap-status-page">
             Could not connect to the Project Manager. Please try restarting {common.PRODUCT_NAME},
             or manually launching the Project Manager.
@@ -320,18 +320,15 @@ export default function Drive(props: DriveProps) {
     }
     case DriveStatus.notEnabled: {
       return (
-        <div className={`grow grid place-items-center mx-2 ${hidden ? 'hidden' : ''}`}>
+        <div className={`grow grid place-items-center ${hidden ? 'hidden' : ''}`}>
           <div className="flex flex-col text-base text-center gap-status-page">
             Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
-            <a
-              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-cozy h-row py-px px-2 w-min"
-              href="https://enso.org/pricing"
-            >
+            <a className="button text-white bg-help self-center" href="https://enso.org/pricing">
               Upgrade
             </a>
             {!supportsLocalBackend && (
               <button
-                className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-cozy h-row py-px px-2 w-min"
+                className="button text-white bg-help self-center"
                 onClick={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {
@@ -352,12 +349,12 @@ export default function Drive(props: DriveProps) {
       return (
         <div
           data-testid="drive-view"
-          className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 mt-8 ${
+          className={`flex flex-col flex-1 overflow-hidden gap-drive-heading px-page-x ${
             hidden ? 'hidden' : ''
           }`}
         >
-          <div className="flex flex-col self-start gap-3">
-            <h1 className="text-xl font-bold h-9.5 pl-1.5">
+          <div className="flex flex-col self-start gap-icons">
+            <h1 className="text-xl font-bold leading-snug h-heading px-heading-x py-heading-y">
               {backend.type === backendModule.BackendType.remote ? 'Cloud Drive' : 'Local Drive'}
             </h1>
             <DriveBar
@@ -373,7 +370,7 @@ export default function Drive(props: DriveProps) {
           </div>
           <div className="flex flex-1 gap-drive overflow-hidden">
             {backend.type === backendModule.BackendType.remote && (
-              <div className="flex flex-col gap-sidebar py-sidebar">
+              <div className="flex flex-col gap-drive-sidebar py-drive-sidebar-y w-drive-sidebar">
                 <CategorySwitcher
                   category={category}
                   setCategory={setCategory}

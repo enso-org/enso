@@ -237,15 +237,15 @@ const RESTRICTED_SYNTAXES = [
         // TODO [sb]: `z-3` should be eliminated, but is currently still required.
         // TODO: this does not work for template strings and nested strings
         selector: `:matches(\
-            TemplateElement[value.raw=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px)/],\
-            Literal[value=/\\b(?:w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px)/]\
+            TemplateElement[value.raw=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px|\\[)/],\
+            Literal[value=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px|\\[)/]\
         )`,
         message: 'Fixed values for Tailwind `size-`, `w-`, `h-`, `p-`, `m-` are not allowed',
     },
     {
         selector: `:matches(\
-            TemplateElement[value.raw=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-\\d/],\
-            Literal[value=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-\\d/]\
+            TemplateElement[value.raw=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-(?:xl|\\d|\\[)/],\
+            Literal[value=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-(?:xl|\\d|\\[)/]\
         )`,
         message:
             'Fixed values for Tailwind `opacity-`, `rounded-`, `leading-`, `duration-` and `grid-cols-fill` are not allowed',

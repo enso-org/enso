@@ -206,7 +206,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                 doSubmit()
               }}
             >
-              <div className="h-6 py-0.5">Invite</div>
+              <div className="h-text py-0.5">Invite</div>
             </button>
           </div>
         </div>

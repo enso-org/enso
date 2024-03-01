@@ -60,7 +60,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     [/* should never change */ setItem]
   )
   return (
-    <div className="group flex items-center gap-1">
+    <div className="group flex items-center gap-column-items">
       {(asset.labels ?? [])
         .filter(label => !deletedLabelNames.has(label))
         .map(label => (
@@ -129,7 +129,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         ))}
       {managesThisAsset && (
         <button
-          className="h-4 w-4 invisible group-hover:visible"
+          className="size-icon invisible group-hover:visible"
           onClick={event => {
             event.stopPropagation()
             setModal(

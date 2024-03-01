@@ -265,7 +265,9 @@ export default function AccountSettingsTab() {
             </div>
           </div>
         )}
-        <div className="flex flex-col items-center gap-settings-section-header rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
+        {/* This UI element does not appear anywhere else. */}
+        {/* eslint-disable-next-line no-restricted-syntax */}
+        <div className="flex flex-col items-center gap-settings-section-header rounded-2.5xl border-2 border-danger px-[16px] pt-[9px] pb-[15px]">
           <h3 className="settings-subheading text-danger">Danger Zone</h3>
           <div className="flex gap-buttons">
             <button

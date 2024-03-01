@@ -25,7 +25,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
           ? 'Sort by modification date descending'
           : 'Stop sorting by modification date'
       }
-      className="flex items-center cursor-pointer gap-2"
+      className="flex items-center cursor-pointer gap-icon-with-text w-full h-drive-table-heading"
       onMouseEnter={() => {
         setIsHovered(true)
       }}
@@ -42,10 +42,8 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
         }
       }}
     >
-      <SvgMask src={TimeIcon} className="h-4 w-4" />
-      <span className="leading-snug h-6 py-0.5">
-        {columnUtils.COLUMN_NAME[columnUtils.Column.modified]}
-      </span>
+      <SvgMask src={TimeIcon} className="size-icon" />
+      <span className="text-header">{columnUtils.COLUMN_NAME[columnUtils.Column.modified]}</span>
       <img
         alt={
           !isSortActive || sortDirection === SortDirection.ascending
@@ -53,7 +51,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
             : 'Sort Descending'
         }
         src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'invisible'}
+        className={isSortActive ? '' : isHovered ? 'opacity-disabled' : 'invisible'}
       />
     </button>
   )

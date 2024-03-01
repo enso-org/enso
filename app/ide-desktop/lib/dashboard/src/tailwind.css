@@ -3,6 +3,13 @@
 
 :root {
   --row-height: 2rem;
+  --page-padding-x: 0.8125rem;
+  /* The gap between the top bar and the main content (the content of the current page). */
+  --top-level-gap: 2rem;
+  /* The height of the main heading of a page. */
+  --heading-height: 2.375rem;
+  --heading-padding-x: 0.375rem;
+  --heading-padding-y: 0.125rem;
   /* The height of a profile picture when displayed in a row.
    * This should be slightly less than `--row-height`. */
   --profile-picture-size: 1.75rem;
@@ -13,21 +20,25 @@
   --placeholder-opacity: 75%;
   --read-only-opacity: 75%;
   --disabled-icon-opacity: 75%;
+  --disabled-category-opacity: 20%;
   /* The default gap between a subheading and its content. */
   --subheading-gap: 1rem;
   /* The horizontal padding of the entire horizontal list of icons. */
   --icons-padding-x: 0.5rem;
   --icon-size: 1rem;
   --project-icon-size: 1.5rem;
-  /* The gap between each icon in a horizontal list of buttons. */
+  /* The horizontal gap between each icon in a list of buttons. */
   --buttons-gap: 0.5rem;
-  /* The gap between each icon in a horizontal list of icons. */
+  /* The horizontal gap between each icon in a list of icons. */
   --icons-gap: 0.75rem;
   /* The gap between an icon and its associated text. */
-  --icon-with-text-gap: 0.375rem;
+  --samples-icon-with-text-gap: 0.375rem;
   /* The gap between an icon and its associated text in a selector option. */
-  --selector-icon-with-text-gap: 0.5rem;
+  --icon-with-text-gap: 0.5rem;
   --pages-gap: 1rem;
+  /* The vertical gap between the drive heading and the rest of the drive page. */
+  --drive-heading-gap: 0.625rem;
+  /* The horizontal gap between the drive sidebar and the asset tree. */
   --drive-gap: 0.75rem;
   /* The gap between the icon and label of a menu entry or context menu entry. */
   --menu-entry-gap: 0.75rem;
@@ -44,6 +55,7 @@
   --profile-picture-large-size: 8rem;
   --profile-picture-caption-width: 16rem;
   --profile-picture-caption-padding-y: 0.25rem;
+  /* Alternate button padding, for buttons that do not use the `button` class. */
   --button-padding-x: 0.5rem;
   --selector-padding-x: 0.625rem;
   --selector-padding-y: 0.25rem;
@@ -83,10 +95,40 @@
   --asset-panel-width: 30rem;
   --permission-type-selector-width: 28.125rem;
   --payment-form-height: 38.75rem;
+  --drive-table-heading-height: 2rem;
+  --new-project-button-padding-x: 0.625rem;
+  --name-column-header-padding-x: 0.375rem;
+  /* The horizontal gap between adjacent column items. */
+  --column-items-gap: 0.25rem;
+  --version-padding: 0.5rem;
+  --label-padding-x: 0.5625rem;
+  /* The vertical gap between adjacent icons. */
+  --labels-gap: 0.25rem;
+  /* The horizontal gap between a label and its icons. */
+  --label-icons-gap: 0.25rem;
 
+  --drive-bar-gap: 0.625rem;
+  --drive-bar-padding-y: 0.125rem;
+  /* The horizontal padding of the entire horizontal list of icons on the drive bar. */
+  --drive-bar-icons-padding-x: 0.75rem;
   /* The gap between each item in the horizontal user bar. */
   --user-bar-gap: 0.5rem;
+  /* The gap between a user permission and the corresponding username. */
+  --user-permission-gap: 0.75rem;
+
+  /*************\
+  |* User menu *|
+  \*************/
+
+  /* The vertical gap between each group in the user menu. */
+  --user-menu-gap: 0.75rem;
+  --user-menu-padding-x: 0.5rem;
+  --user-menu-padding-y: 0.5625rem;
   --user-menu-width: 12.875rem;
+
+  /*************************\
+  |* Right hand side panel *|
+  \*************************/
 
   --side-panel-transition-duration: 500ms;
   --side-panel-width: 30rem;
@@ -111,9 +153,25 @@
     var(--radio-button-size) / 2 - var(--radio-button-dot-size) / 2
   );
 
-  /********\
-  * Modals *
-  \********/
+  /***********\
+  |* Indents *|
+  \***********/
+
+  --indent-size: 1.5rem;
+  --indent-1-size: calc(var(--indent-size) * 1);
+  --indent-2-size: calc(var(--indent-size) * 2);
+  --indent-3-size: calc(var(--indent-size) * 3);
+  --indent-4-size: calc(var(--indent-size) * 4);
+  --indent-5-size: calc(var(--indent-size) * 5);
+  --indent-6-size: calc(var(--indent-size) * 6);
+  --indent-7-size: calc(var(--indent-size) * 7);
+  --indent-8-size: calc(var(--indent-size) * 8);
+  --indent-9-size: calc(var(--indent-size) * 9);
+  --indent-10-size: calc(var(--indent-size) * 10);
+
+  /**********\
+  |* Modals *|
+  \**********/
 
   /* The vertical gap between inputs in a modal. */
   --modal-gap: 0.5rem;
@@ -131,9 +189,9 @@
   --upsert-data-link-modal-width: 24rem;
   --upsert-secret-modal-width: 24rem;
 
-  /******\
-  * Chat *
-  \******/
+  /********\
+  |* Chat *|
+  \********/
 
   --chat-profile-picture-size: 2rem;
   --chat-width: 20.875rem;
@@ -141,9 +199,9 @@
   /* The maximum height of the thread list. */
   --chat-thread-list-height: 17.5rem;
 
-  /****************\
-  * Settings pages *
-  \****************/
+  /******************\
+  |* Settings pages *|
+  \******************/
 
   /* The horizontal gap between the settings sidebar and main content. */
   --settings-gap: 2rem;
@@ -171,9 +229,9 @@
   --keyboard-shortcuts-icon-column-width: 1rem;
   --keyboard-shortcuts-name-column-width: 9rem;
 
-  /*********************\
-  * Authentication flow *
-  \*********************/
+  /***********************\
+  |* Authentication flow *|
+  \***********************/
 
   /* The vertical gap between elements in an auth form. */
   --auth-gap: 1.5rem;
@@ -192,17 +250,14 @@
   /* The vertical padding of all inputs and buttons in the auth flow. */
   --auth-input-padding-y: 0.5rem;
 
-  /* The top and bottom padding for the entire sidebar. */
-  --sidebar-padding: 0.25rem;
-  /* The gap between the individual panels in the sidebar. */
-  --sidebar-gap: 1rem;
-
-  /***********\
-  * Home page *
-  \***********/
+  /*************\
+  |* Home page *|
+  \*************/
 
   /* The gap between each section in the home page. */
   --home-gap: 3rem;
+  /* The padding at the very bottom of the entire home page. */
+  --home-page-padding-b: 0.25rem;
   /* The gap between items in the banner. Usually these are the title and the subtitle. */
   --banner-gap: 0.5rem;
   --banner-padding-x: 2.4375rem;
@@ -224,9 +279,9 @@
   /* The height of the sample's info bar. */
   --sample-info-height: 1.125rem;
 
-  /************\
-  * Drive page *
-  \************/
+  /**************\
+  |* Drive page *|
+  \**************/
 
   --drive-name-column-width: 15.3125rem;
   --drive-modified-column-width: 8.3125rem;
@@ -235,6 +290,19 @@
   --drive-accessed-by-projects-column-width: 24rem;
   --drive-accessed-data-column-width: 24rem;
   --drive-docs-column-width: 24rem;
+
+  /***************************\
+  |* Left hand drive sidebar *|
+  \***************************/
+
+  /* The vertical padding for the entire sidebar. */
+  --drive-sidebar-padding-y: 0.25rem;
+  /* The gap between the individual panels in the sidebar. */
+  --drive-sidebar-gap: 1rem;
+  --drive-sidebar-width: 7.5rem;
+  --drive-sidebar-section-heading-padding-x: 0.5rem;
+  /* The vertical gap between the section heading and its content. */
+  --drive-sidebar-section-heading-gap: 0.375rem;
 }
 
 body {
@@ -332,6 +400,10 @@ body::before {
 
     .text {
       @apply leading-cozy h-text py-px;
+    }
+
+    .text-header {
+      @apply leading-snug h-text py-0.5;
     }
 
     .text-subheading {

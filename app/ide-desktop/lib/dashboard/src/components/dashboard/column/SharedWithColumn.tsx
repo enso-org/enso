@@ -60,7 +60,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     [/* should never change */ setItem]
   )
   return (
-    <div className="group flex items-center gap-1">
+    <div className="group flex items-center gap-column-items">
       {(asset.permissions ?? []).map(otherUser => (
         <PermissionDisplay key={otherUser.user.pk} action={otherUser.permission}>
           {otherUser.user.user_name}
@@ -68,7 +68,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
       ))}
       {managesThisAsset && (
         <button
-          className="h-4 w-4 invisible pointer-events-none group-hover:visible group-hover:pointer-events-auto"
+          className="size-icon invisible pointer-events-none group-hover:visible group-hover:pointer-events-auto"
           onClick={event => {
             event.stopPropagation()
             setModal(

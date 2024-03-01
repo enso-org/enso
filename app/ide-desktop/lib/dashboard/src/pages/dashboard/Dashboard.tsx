@@ -434,7 +434,7 @@ export default function Dashboard(props: DashboardProps) {
       >
         <div
           className={`flex flex-col grow container-size overflow-hidden relative select-none h-screen ${
-            page === pageSwitcher.Page.home ? 'pb-1' : 'pb-2 gap-4'
+            page === pageSwitcher.Page.home ? 'pb-home-page-b' : 'gap-top-level'
           }`}
           onContextMenu={event => {
             event.preventDefault()
