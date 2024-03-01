@@ -468,6 +468,17 @@ add_specs suite_builder =
             m_back_foo v . should_equal <| Foo.Value 10
             m_back_bar v . should_equal <| Bar.Value 10
 
+        group_builder.specify "Choose suitable constructor" <|
+            v = ~Times 10
+
+            m_foo (m:Foo|Bar) = m
+            m_bar (m:Bar|Foo) = m
+            m_back (m:Foo|Bar|Back) = m
+
+            Panic.recover Any (m_foo v) . should_fail_with Type_Error
+            Panic.recover Any (m_bar v) . should_fail_with Type_Error
+            m_back v . should_equal <| Back.Times 10
+
     suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text
         f2 (x : Text | DateTimeFormatter) = case x of
