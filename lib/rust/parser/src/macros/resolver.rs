@@ -32,7 +32,11 @@ use crate::syntax::token;
 use crate::syntax::token::Token;
 
 use enso_data_structures::im_list::List;
-use std::collections::{HashMap, VecDeque};
+
+
+
+use std::collections::HashMap;
+use std::collections::VecDeque;
 
 
 // ================
@@ -45,7 +49,7 @@ pub struct MacroMap {
     /// Macros that can occur anywhere in an expression.
     pub expression: SegmentMap<'static>,
     /// Macros that can only occur in statement context.
-    pub statement: SegmentMap<'static>,
+    pub statement:  SegmentMap<'static>,
 }
 
 impl MacroMap {
@@ -92,7 +96,7 @@ pub struct SegmentEntry<'s> {
     /// Definition of the macro that should be used when all the required segments will be matched.
     /// It contains [`Pattern`] definition for every segment that will be used after all the
     /// segment tokens are discovered.
-    pub definition: Rc<macros::Definition<'s>>,
+    pub definition:        Rc<macros::Definition<'s>>,
 }
 
 
@@ -102,7 +106,7 @@ impl<'a> SegmentMap<'a> {
         let header = definition.segments.head.header;
         let entry = SegmentEntry {
             required_segments: definition.segments.tail.clone(),
-            definition: Rc::new(definition),
+            definition:        Rc::new(definition),
         };
         if let Some(node) = self.get_mut(header) {
             node.push(entry);
@@ -121,16 +125,16 @@ impl<'a> SegmentMap<'a> {
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
 pub struct Resolver<'s> {
-    blocks: Vec<Block>,
+    blocks:     Vec<Block>,
     /// The lines of all currently-open blocks. This is partitioned by `blocks`.
-    lines: Vec<syntax::item::Line<'s>>,
+    lines:      Vec<syntax::item::Line<'s>>,
     /// All currently-open macros. These are partitioned into scopes by `blocks`.
-    macros: Vec<PartiallyMatchedMacro<'s>>,
+    macros:     Vec<PartiallyMatchedMacro<'s>>,
     /// Segments of all currently-open macros. These are partitioned by `macros`.
-    segments: Vec<MatchedSegment<'s>>,
+    segments:   Vec<MatchedSegment<'s>>,
     /// Items of all segments of all currently-open macros. These are partitioned by `segments`.
-    items: Vec<syntax::Item<'s>>,
-    context: Context,
+    items:      Vec<syntax::Item<'s>>,
+    context:    Context,
     precedence: syntax::operator::Precedence<'s>,
 }
 
@@ -141,13 +145,13 @@ impl<'s> Resolver<'s> {
     /// Create a new resolver, in statement context.
     pub fn new_statement() -> Self {
         Self {
-            context: Context::Statement,
+            context:    Context::Statement,
             precedence: syntax::operator::Precedence::new(),
-            blocks: default(),
-            lines: default(),
-            macros: default(),
-            segments: default(),
-            items: default(),
+            blocks:     default(),
+            lines:      default(),
+            macros:     default(),
+            segments:   default(),
+            items:      default(),
         }
     }
 
@@ -155,12 +159,12 @@ impl<'s> Resolver<'s> {
     pub fn run(
         &mut self,
         root_macro_map: &MacroMap,
-        tokens: impl IntoIterator<Item=Token<'s>>,
+        tokens: impl IntoIterator<Item = Token<'s>>,
     ) -> syntax::Tree<'s> {
         let start = crate::source::code::Location::default();
         self.lines.push(syntax::item::Line {
             newline: token::newline(Code::empty(start), Code::empty(start)),
-            items: default(),
+            items:   default(),
         });
         tokens.into_iter().for_each(|t| self.push(root_macro_map, t));
         self.finish_current_line();
@@ -195,11 +199,11 @@ enum Step<'s> {
 #[derive(Debug)]
 struct Block {
     /// Index in `macro_stack` after the last element in the enclosing scope.
-    macros_start: usize,
+    macros_start:  usize,
     /// Index in `open_blocks` after the last element in the enclosing scope.
     outputs_start: usize,
     /// Index in `items` after the last element in the enclosing scope.
-    items: usize,
+    items:         usize,
 }
 
 impl<'s> Resolver<'s> {
@@ -460,9 +464,9 @@ impl<'s> Resolver<'s> {
 #[derive(Debug)]
 struct PartiallyMatchedMacro<'s> {
     possible_next_segments: SegmentMap<'s>,
-    matched_macro_def: Option<Rc<macros::Definition<'s>>>,
+    matched_macro_def:      Option<Rc<macros::Definition<'s>>>,
     /// Height in `segments` where this macro's resolved segments begin.
-    segments_start: usize,
+    segments_start:         usize,
 }
 
 
@@ -472,6 +476,6 @@ struct PartiallyMatchedMacro<'s> {
 
 #[derive(Debug)]
 struct MatchedSegment<'s> {
-    header: Token<'s>,
+    header:      Token<'s>,
     items_start: usize,
 }

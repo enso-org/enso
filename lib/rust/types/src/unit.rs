@@ -13,6 +13,7 @@ use paste::paste;
 use std::borrow::Cow;
 
 
+
 /// Common traits for built-in units.
 pub mod traits {
     pub use super::BytesCowOps;
@@ -64,7 +65,7 @@ pub trait UncheckedInto<T> {
 }
 
 impl<T, S> const UncheckedInto<T> for S
-    where T: ~ const UncheckedFrom<S>
+where T: ~const UncheckedFrom<S>
 {
     fn unchecked_into(self) -> T {
         T::unchecked_from(self)
@@ -100,7 +101,7 @@ pub trait Variant {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[reflect(transparent)]
 pub struct UnitData<V, R> {
-    repr: R,
+    repr:    R,
     #[reflect(skip)]
     variant: ZST<V>,
 }
@@ -130,7 +131,7 @@ impl<V, R: Copy> Clone for UnitData<V, R> {
 /// Trait used to resolve conflicts when implementing traits fot [`Unit`].
 pub auto trait IsNotUnit {}
 
-impl<V, R> ! IsNotUnit for UnitData<V, R> {}
+impl<V, R> !IsNotUnit for UnitData<V, R> {}
 
 
 // ===============
@@ -213,7 +214,7 @@ impl<V> Ord for UnitData<V, usize> {
 // ============
 
 impl<V, R> From<&UnitData<V, R>> for UnitData<V, R>
-    where R: Copy
+where R: Copy
 {
     fn from(t: &UnitData<V, R>) -> Self {
         *t
@@ -471,7 +472,7 @@ gen_ops_mut!(RevSub, Sub, SubAssign, sub_assign);
 gen_ops_mut!(RevMul, Mul, MulAssign, mul_assign);
 gen_ops_mut!(RevDiv, Div, DivAssign, div_assign);
 
-impl<V, R: ops::Neg<Output=R>> ops::Neg for UnitData<V, R> {
+impl<V, R: ops::Neg<Output = R>> ops::Neg for UnitData<V, R> {
     type Output = UnitData<V, R>;
 
     fn neg(mut self) -> Self::Output {

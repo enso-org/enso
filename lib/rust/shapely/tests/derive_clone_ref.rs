@@ -67,6 +67,6 @@
 //
 // #[derive(CloneRef, Clone)]
 // #[clone_ref(bound = "T:CloneRef")]
-// // Here derive macro must correctly merge user-provided bound, generics list bound and where clause.
-// struct StructVariousBounds<T: Display>(T)
+// // Here derive macro must correctly merge user-provided bound, generics list bound and where
+// clause. struct StructVariousBounds<T: Display>(T)
 // where T: Debug;

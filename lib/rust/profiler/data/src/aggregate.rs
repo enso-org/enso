@@ -1,10 +1,12 @@
 //! Supports aggregating interval data by profiler to analyze total time spent, abstracting away
 //! *when* intervals occurred.
 
-use std::collections::HashMap;
 use enso_prelude::*;
 
 use crate::Class;
+
+use std::collections::HashMap;
+
 
 
 // =====================

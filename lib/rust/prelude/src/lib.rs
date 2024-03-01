@@ -14,9 +14,11 @@
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-#![warn(unsafe_code)]
+
+
 
 mod data;
 mod macros;
@@ -44,9 +46,9 @@ pub use vec::*;
 pub use boolinator::Boolinator;
 pub use derivative::Derivative;
 pub use derive_more::*;
+pub use enso_reflect::prelude::*;
 pub use itertools::Itertools;
 pub use paste::paste;
-pub use enso_reflect::prelude::*;
 pub use std::ops::AddAssign;
 
 

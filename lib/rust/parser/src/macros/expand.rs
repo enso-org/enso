@@ -1,8 +1,11 @@
 //! Macro expansion utilities. Allow expanding macro variables in the same as Rust macro rules do.
 
-use std::collections::{HashMap, HashSet};
+
+
 use crate::macros::pattern::*;
 use crate::prelude::*;
+use std::collections::HashMap;
+use std::collections::HashSet;
 
 use crate::syntax;
 
@@ -122,13 +125,13 @@ use crate::syntax;
 #[derive(Clone, Debug, Default)]
 pub struct VarMap<'s, V> {
     nested: Option<Box<VarMap<'s, V>>>,
-    map: HashMap<String, VarMapEntry<'s, V>>,
+    map:    HashMap<String, VarMapEntry<'s, V>>,
 }
 
 /// Entry of the [`VarMap`] map.
 #[derive(Clone, Debug, Default)]
 struct VarMapEntry<'s, V> {
-    pub tokens: Vec<Vec<syntax::Item<'s>>>,
+    pub tokens:    Vec<Vec<syntax::Item<'s>>>,
     pub validator: V,
 }
 

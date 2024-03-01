@@ -137,6 +137,7 @@ pub mod assets;
 pub use ide_ci::prelude;
 
 
+
 // =================
 // === Hot Fixes ===
 // =================
@@ -162,9 +163,9 @@ pub fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 pub struct Paths {
-    pub workspace: PathBuf,
+    pub workspace:  PathBuf,
     pub this_crate: paths::ThisCrate,
-    pub target: paths::Target,
+    pub target:     paths::Target,
 }
 
 macro_rules! define_paths {
@@ -316,7 +317,7 @@ pub async fn workspace_dir() -> Result<PathBuf> {
 /// The arguments to `wasm-pack build` that `ensogl-pack` wants to customize.
 pub struct WasmPackOutputs {
     /// Value to passed as `--out-dir` to `wasm-pack`.
-    pub out_dir: PathBuf,
+    pub out_dir:  PathBuf,
     /// Value to passed as `--out-name` to `wasm-pack`.
     pub out_name: String,
 }
@@ -381,7 +382,7 @@ pub async fn run_wasm_pack(
 ) -> Result<()> {
     info!("Obtaining and running the wasm-pack command.");
     let replaced_args = WasmPackOutputs {
-        out_dir: paths.target.enso_pack.wasm_pack.root.clone(),
+        out_dir:  paths.target.enso_pack.wasm_pack.root.clone(),
         out_name: WASM_PACK_OUT_NAME.to_string(),
     };
     let mut command = provider(replaced_args).context("Failed to obtain wasm-pack command.")?;
@@ -398,7 +399,7 @@ pub async fn run_wasm_pack(
         &paths.target.enso_pack.wasm_pack.index,
         &paths.target.enso_pack.dist.pkg_js,
     )
-        .await?;
+    .await?;
     ide_ci::fs::copy(
         &paths.target.enso_pack.wasm_pack.pkg_bg,
         &paths.target.enso_pack.dist.main_wasm,

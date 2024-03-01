@@ -21,6 +21,7 @@ use ide_ci::programs::spirv_cross::SpirvCross;
 use std::hash::Hasher;
 
 
+
 // =============
 // === Build ===
 // =============
@@ -103,7 +104,7 @@ impl From<Builder> for &'static str {
 
 /// The inputs to a builder.
 struct AssetSources {
-    asset_key: String,
+    asset_key:   String,
     input_files: Vec<String>,
     inputs_hash: u64,
 }
@@ -125,7 +126,7 @@ impl AssetSources {
 /// The outputs of a builder.
 #[derive(Serialize)]
 struct Asset {
-    dir: String,
+    dir:   String,
     files: Vec<String>,
 }
 

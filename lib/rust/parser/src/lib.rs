@@ -116,6 +116,7 @@ pub mod source;
 pub mod syntax;
 
 
+
 /// Popular utilities, imported by most modules of this crate.
 pub mod prelude {
     pub use enso_prelude::serde_reexports::*;
@@ -129,7 +130,7 @@ pub mod prelude {
     pub struct ParseResult<T> {
         /// The result of the operation. If `internal_error` is set, this is a best-effort value
         /// that cannot be assumed to be accurate; otherwise, it should be correct.
-        pub value: T,
+        pub value:          T,
         /// Internal error encountered while computing this result.
         pub internal_error: Option<String>,
     }
@@ -138,7 +139,7 @@ pub mod prelude {
         /// Return a new [`ParseResult`] whose value is the result of applying the given function to
         /// the input's value, and whose `internal_error` field is the same as the input.
         pub fn map<U, F>(self, f: F) -> ParseResult<U>
-            where F: FnOnce(T) -> U {
+        where F: FnOnce(T) -> U {
             let ParseResult { value, internal_error } = self;
             let value = f(value);
             ParseResult { value, internal_error }
@@ -215,28 +216,28 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
             tree.variant = Box::new(Variant::TypeSignature(TypeSignature {
                 variable: mem::take(&mut typed.expression),
                 operator: mem::take(&mut typed.operator),
-                type_: mem::take(&mut typed.type_),
+                type_:    mem::take(&mut typed.type_),
             }));
         }
         Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs })
-        if opr.properties.is_assignment() =>
-            {
-                let (lhs, return_spec) = match &mut *lhs.variant {
-                    Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
+            if opr.properties.is_assignment() =>
+        {
+            let (lhs, return_spec) = match &mut *lhs.variant {
+                Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
                     if opr.properties.is_arrow() =>
-                        (
-                            lhs,
-                            Some(ReturnSpecification {
-                                arrow: mem::take(opr),
-                                r#type: mem::take(rhs),
-                            }),
-                        ),
-                    _ => (lhs, None),
-                };
-                let (leftmost, args) = collect_arguments(lhs.clone());
-                if return_spec.is_none() {
-                    if let Some(rhs) = rhs {
-                        if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
+                    (
+                        lhs,
+                        Some(ReturnSpecification {
+                            arrow:  mem::take(opr),
+                            r#type: mem::take(rhs),
+                        }),
+                    ),
+                _ => (lhs, None),
+            };
+            let (leftmost, args) = collect_arguments(lhs.clone());
+            if return_spec.is_none() {
+                if let Some(rhs) = rhs {
+                    if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
                             // If the LHS is a type, this is a (destructuring) assignment.
                             let lhs = expression_to_pattern(mem::take(lhs));
                             tree.variant = Box::new(Variant::Assignment(Assignment {
@@ -246,32 +247,32 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
                             }));
                             return tree;
                         }
-                        if !is_invalid_pattern(&leftmost) && args.is_empty() && !is_body_block(rhs) {
-                            // If the LHS has no arguments, and there is a RHS, and the RHS is not a
-                            // body block, this is a variable assignment.
-                            tree.variant = Box::new(Variant::Assignment(Assignment {
-                                pattern: leftmost,
-                                equals: mem::take(opr),
-                                expr: mem::take(rhs),
-                            }));
-                            return tree;
-                        }
+                    if !is_invalid_pattern(&leftmost) && args.is_empty() && !is_body_block(rhs) {
+                        // If the LHS has no arguments, and there is a RHS, and the RHS is not a
+                        // body block, this is a variable assignment.
+                        tree.variant = Box::new(Variant::Assignment(Assignment {
+                            pattern: leftmost,
+                            equals:  mem::take(opr),
+                            expr:    mem::take(rhs),
+                        }));
+                        return tree;
                     }
                 }
-                if is_qualified_name(&leftmost) {
-                    // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
-                    // a qualified name, this is a function definition.
-                    tree.variant = Box::new(Variant::Function(Function {
-                        name: leftmost,
-                        args,
-                        returns: return_spec,
-                        equals: mem::take(opr),
-                        body: mem::take(rhs),
-                    }));
-                    return tree;
-                }
-                return tree.with_error("Invalid use of assignment operator `=`.");
             }
+            if is_qualified_name(&leftmost) {
+                // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
+                // a qualified name, this is a function definition.
+                tree.variant = Box::new(Variant::Function(Function {
+                    name: leftmost,
+                    args,
+                    returns: return_spec,
+                    equals: mem::take(opr),
+                    body: mem::take(rhs),
+                }));
+                return tree;
+            }
+            return tree.with_error("Invalid use of assignment operator `=`.");
+        }
         _ => (),
     }
     tree
@@ -294,7 +295,7 @@ fn is_qualified_name(tree: &syntax::Tree) -> bool {
     match &*tree.variant {
         Variant::Ident(_) => true,
         Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-        if matches!(&*rhs.variant, Variant::Ident(_)) && opr.properties.is_dot() =>
+            if matches!(&*rhs.variant, Variant::Ident(_)) && opr.properties.is_dot() =>
             is_qualified_name(lhs),
         _ => false,
     }

@@ -13,6 +13,7 @@ use std::fmt;
 use std::rc;
 
 
+
 // ======================================================
 // === The global logs (EVENTS and the METADATA_LOGS) ===
 // ======================================================
@@ -79,9 +80,9 @@ pub(crate) fn get_raw_log() -> LogData {
 /// A snapshot of the internal event log.
 /// Contains all the information necessary to produce a profile.
 pub(crate) struct LogData {
-    pub events: Vec<Event>,
-    metadata_names: Vec<&'static str>,
-    metadata_entries: Vec<Box<dyn Iterator<Item=Box<serde_json::value::RawValue>>>>,
+    pub events:       Vec<Event>,
+    metadata_names:   Vec<&'static str>,
+    metadata_entries: Vec<Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>>,
 }
 
 
@@ -93,7 +94,7 @@ pub(crate) struct LogData {
 #[derive(Debug)]
 struct LogTranslator<'a> {
     profile: format::Builder<'a>,
-    ids: std::collections::HashMap<EventId, format::MeasurementId>,
+    ids:     std::collections::HashMap<EventId, format::MeasurementId>,
 }
 
 macro_rules! translate_transition {
@@ -143,13 +144,13 @@ impl<'a> LogTranslator<'a> {
 // ===================
 
 pub(crate) struct MetadataLog<T> {
-    pub name: &'static str,
+    pub name:    &'static str,
     pub entries: rc::Rc<log::Log<T>>,
 }
 
 pub(crate) trait MetadataSource {
     fn name(&self) -> &'static str;
-    fn get_all(&self) -> Box<dyn Iterator<Item=Box<serde_json::value::RawValue>>>;
+    fn get_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>;
 }
 
 impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
@@ -157,7 +158,7 @@ impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
         self.name
     }
 
-    fn get_all(&self) -> Box<dyn Iterator<Item=Box<serde_json::value::RawValue>>> {
+    fn get_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>> {
         let mut entries = Vec::with_capacity(self.entries.len());
         self.entries.for_each(|x| entries.push(serde_json::value::to_raw_value(&x).unwrap()));
         Box::new(entries.into_iter())
@@ -172,7 +173,7 @@ impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
 /// An object that supports writing a specific type of metadata to the profiling log.
 #[derive(Debug)]
 pub struct MetadataLogger<T> {
-    id: u32,
+    id:      u32,
     entries: rc::Rc<log::Log<T>>,
 }
 
@@ -285,28 +286,28 @@ pub enum Event {
     /// The end of a measurement.
     End {
         /// Identifies the measurement by the ID of its Start event.
-        id: EventId,
+        id:        EventId,
         /// When the event occurred.
         timestamp: Timestamp,
     },
     /// The beginning of an interruption to a measurement, e.g. an await point.
     Pause {
         /// Identifies the measurement by the ID of its Start event.
-        id: EventId,
+        id:        EventId,
         /// When the event occurred.
         timestamp: Timestamp,
     },
     /// The end of an interruption to an a measurement, e.g. an await point.
     Resume {
         /// Identifies the measurement by the ID of its Start event.
-        id: EventId,
+        id:        EventId,
         /// When the event occurred.
         timestamp: Timestamp,
     },
     /// Metadata: wrapper with dependency-injected contents.
     Metadata {
         /// Application-specific data associated with a point in time.
-        data: ExternalMetadata,
+        data:      ExternalMetadata,
         /// When the event occurred.
         timestamp: Timestamp,
     },
@@ -333,11 +334,11 @@ pub struct Start {
     /// Specifies parent measurement by its [`Start`].
     pub parent: EventId,
     /// Start time, or None to indicate it is the same as `parent`.
-    pub start: Option<Timestamp>,
+    pub start:  Option<Timestamp>,
     /// Identifies where in the code this measurement originates.
-    pub label: Label,
+    pub label:  Label,
     /// Identifies the importance of this event.
-    pub level: ProfilingLevel,
+    pub level:  ProfilingLevel,
 }
 
 
@@ -522,9 +523,9 @@ impl<T: Profiler + Copy> Drop for Started<T> {
 }
 
 impl<T, U> crate::Parent<T> for Started<U>
-    where
-        U: crate::Parent<T> + Profiler + Copy,
-        T: Profiler + Copy,
+where
+    U: crate::Parent<T> + Profiler + Copy,
+    T: Profiler + Copy,
 {
     fn start_child(&self, label: Label) -> Started<T> {
         self.0.start_child(label)
