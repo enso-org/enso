@@ -34,6 +34,15 @@ type Polyglot
 
     ## PRIVATE
        ADVANCED
+       Reads the element in a given polyglot array object.
+
+       Arguments:
+       - index: The index to get the element from.
+    write_array_element : Any -> Integer -> Any
+    write_array_element array index = @Builtin_Method "Polyglot.write_array_element"
+
+    ## PRIVATE
+       ADVANCED
        Executes a polyglot function object (e.g. a lambda).
 
        Arguments:

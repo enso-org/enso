@@ -1,13 +1,14 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
+import Standard.Base.Data.Arrow_Array_Builder.Arrow_Array_Builder
 from Standard.Test import all
 
 foreign arrow new_arrow = """
     new[Int8]
 
-Vector.set self index elem =
-    set_builtin self index elem
+## Used only for testing immutability
+Vector.set self at item = set_builtin self at item
 
 set_builtin : (Vector | Array) -> Integer -> Any -> Nothing
 set_builtin vector at item = @Builtin_Method "Array_Like_Helpers.set_builtin"
@@ -20,14 +21,19 @@ add_specs suite_builder =
         group_builder.specify "should allow for creating a new fixed Array in Arrow" <|
             arrow_array_constructor = new_arrow
             array_10 = arrow_array_constructor.new 10
-            v = Vector.from_polyglot_array array_10
-            v.length . should_equal 10
-            v.at 1 . should_equal Nothing
-            v.at 10 . should_fail_with Index_Out_Of_Bounds
-            v.set 1 10
-            v.at 1 . should_equal 10
-            v.set 8 127
-            v.set 8 128 . should_fail_with Unsupported_Argument_Types
+            builder = Arrow_Array_Builder.from_arrow_array array_10
+
+            builder.length . should_equal 10
+            builder.at 1 . should_equal Nothing
+            builder.at 10 . should_fail_with Index_Out_Of_Bounds
+            builder.set 1 10
+            builder.at 1 . should_equal 10
+            builder.set 8 127
+            builder.set 8 128 . should_fail_with Unsupported_Argument_Types
+            v = builder.build
+            v.set 8 10 . should_fail_with Unsupported_Argument_Types
+            v.at 8 . should_equal 127
+            builder.set 1 0 . should_fail_with Unsupported_Argument_Types
 
 main =
     suite = Test.build suite_builder->

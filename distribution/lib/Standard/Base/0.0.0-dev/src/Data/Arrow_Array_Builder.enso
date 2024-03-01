@@ -1,0 +1,44 @@
+import project.Any.Any
+import project.Data.Vector.Vector
+import project.Data.Numbers.Integer
+import project.Internal.Array_Like_Helpers
+import project.Errors.Common.Index_Out_Of_Bounds
+import project.Nothing.Nothing
+
+@Builtin_Type
+type Arrow_Array_Builder
+    ## PRIVATE
+
+        Sets a provided value at a given index.
+    set : Integer -> Any -> Nothing ! Index_Out_Of_Bounds
+    set self index value =
+        Arrow_Array_Builder.set_builtin self index value
+
+    ## PRIVATE
+
+        Returns the size of the builder.
+    length : Integer
+    length self =
+        Array_Like_Helpers.length self
+
+    ## PRIVATE
+
+        Returns an element at the provided index.
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        Array_Like_Helpers.at self index
+
+    ## PRIVATE
+
+        Returns an immutable Vector from this builder.
+        The builder is marked as sealed and cannot be modified further.
+    build : Vector
+    build self =
+        Arrow_Array_Builder.build_builtin self
+
+    ## PRIVATE
+
+        Returns a mutable builder backed by the provided Arrow array.
+    from_arrow_array : Any -> Arrow_Array_Builder
+    from_arrow_array arr =
+        Arrow_Array_Builder.from_arrow_array_builtin arr
