@@ -1,0 +1,93 @@
+import project.Any.Any
+import project.Data.Json.JS_Object
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
+import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Error.Error
+import project.Errors.Illegal_State.Illegal_State
+import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Errors.Unimplemented.Unimplemented
+import project.Nothing.Nothing
+import project.System.File.File
+import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File_Format.Auto_Detect
+import project.System.File_Format.Infer
+import project.System.File_Format.JSON_Format
+import project.System.File_Format_Metadata.File_Format_Metadata
+import project.System.Input_Stream.Input_Stream
+from project.Enso_Cloud.Public_Utils import get_required_field
+
+polyglot java import org.enso.base.enso_cloud.DataLinkSPI
+polyglot java import org.enso.base.file_format.FileFormatSPI
+
+## PRIVATE
+   A file format for reading data links.
+type Data_Link_Format
+    ## PRIVATE
+       If the File_Format supports reading from the file, return a configured instance.
+    for_read : File_Format_Metadata -> Data_Link_Format | Nothing
+    for_read file:File_Format_Metadata =
+        case file.guess_extension of
+            ".datalink" -> Data_Link_Format
+            _ -> Nothing
+
+    ## PRIVATE
+       Currently writing data links is not supported.
+    for_file_write : Writable_File -> Nothing
+    for_file_write file =
+        _ = file
+        Nothing
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems =
+        json = JSON_Format.read file on_problems
+        read_datalink json on_problems
+
+    ## PRIVATE
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
+        json = JSON_Format.read_stream stream metadata
+        read_datalink json Problem_Behavior.Report_Error
+
+## PRIVATE
+interpret_json_as_datalink json =
+    typ = get_required_field "type" json
+    case DataLinkSPI.findDataLinkType typ of
+        Nothing ->
+            library_name = get_required_field "libraryName" json
+            Error.throw (Illegal_State.Error "The data link for "+typ+" is provided by the library "+library_name+" which is not loaded. Please import the library, and if necessary, restart the project.")
+        data_link_type ->
+            data_link_type.parse json
+
+## PRIVATE
+read_datalink json on_problems =
+    data_link_instance = interpret_json_as_datalink json
+    data_link_instance.read on_problems
+
+## PRIVATE
+parse_secure_value (json : Text | JS_Object) -> Text | Enso_Secret =
+    case json of
+        raw_text : Text -> raw_text
+        _ : JS_Object ->
+            case get_required_field "type" json of
+                "secret" ->
+                    secret_path = get_required_field "secretPath" json
+                    _ = secret_path
+                    Unimplemented.throw "Reading secrets from a path is not implemented yet, see: https://github.com/enso-org/enso/issues/9048"
+                other -> Error.throw (Illegal_State.Error "Unexpected value inside of a data-link: "+other+".")
+
+## PRIVATE
+parse_format json = case json of
+    Nothing -> Auto_Detect
+    _ : JS_Object -> case get_required_field "subType" json of
+        "default" -> Auto_Detect
+        sub_type : Text ->
+            format_type = FileFormatSPI.findFormatForDataLinkSubType sub_type
+            if format_type.is_nothing then Error.throw (Illegal_State.Error "Unknown format inside of a datalink: "+sub_type+". Perhaps the library providing that format needs to be imported?") else
+                format_type.from json
+        other ->
+            Error.throw (Illegal_State.Error "Expected `subType` to be a string, but got: "+other.to_display_text+".")
+    other -> Error.throw (Illegal_State.Error "Unexpected value inside of a data-link `format` field: "+other.to_display_text+".")
