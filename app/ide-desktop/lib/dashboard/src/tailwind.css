@@ -48,6 +48,7 @@
   --drive-gap: 0.75rem;
   /* The gap between the icon and label of a menu entry or context menu entry. */
   --menu-entry-gap: 0.75rem;
+  --menu-entry-corner-radius: 0.5rem;
   /* The vertical gap between items on a page displaying an abnormal status.
    * These include the loading screen and pages for accessing the drive or chat
    * without the appropriate permissions. */
@@ -83,9 +84,13 @@
   --modifiers-macos-gap: 0.125rem;
   --cell-padding-x: 0.5rem;
   --plus-icon-size: 1.125rem;
+  /* The horizontal gap between adjacent context menus. */
+  --context-menus-gap: 0.125rem;
   --context-menu-padding: 0.5rem;
   --context-menu-width: 15.5rem;
   --context-menu-macos-width: 14.375rem;
+  --context-menu-entry-padding-x: 0.75rem;
+  --context-menu-separator-padding-y: 0.125rem;
   /* The vertical gap between entries in a Data Link input. */
   --data-link-gap: 0.25rem;
   --data-link-text-input-width: 10rem;
@@ -93,12 +98,15 @@
   --data-link-object-input-width: 7rem;
   --data-link-dropdown-title-width: 3rem;
   --input-padding-x: 0.5rem;
+  --multiline-input-padding-y: 0.5rem;
+  /* The default height for an input with a large default size,
+   * indicating that the input expects a lot of text (e.g. a paragraph). */
+  --paragraph-input-height: 6rem;
   --asset-search-bar-gap: 0.625rem;
   /* The default maximum width of the asset search bar.
    * It is narrower below a certain point, and wider above a certain point. */
   --asset-search-bar-width: 24.5625rem;
   --permission-display-width: 7.5625rem;
-  --asset-panel-width: 30rem;
   --permission-type-selector-width: 28.125rem;
   --payment-form-height: 38.75rem;
   --drive-table-heading-height: 2rem;
@@ -120,6 +128,16 @@
   /* The horizontal gap between the arrow of a dropdown and the label of the current item. */
   --dropdown-arrow-gap: 0.25rem;
   --dropdown-items-height: 15rem;
+  --page-switcher-padding-x: 0.625rem;
+  --selection-brush-corner-radius: 0.5rem;
+  /* This MUST be in `px` as `border-width` does not understand `rem`. */
+  --selection-brush-border-width: 6px;
+  --tick-cross-button-margin: 0.125rem;
+  --search-suggestions-gap: 0.5rem;
+  --search-suggestions-padding: 0.5rem;
+  --search-suggestions-list-height: 16rem;
+  --search-suggestion-padding-y: 0.25rem;
+  --search-suggestion-margin: 0.25rem;
 
   --drive-bar-gap: 0.625rem;
   --drive-bar-padding-y: 0.125rem;
@@ -129,6 +147,10 @@
   --user-bar-gap: 0.5rem;
   /* The gap between a user permission and the corresponding username. */
   --user-permission-gap: 0.75rem;
+  --asset-panel-width: 30rem;
+  /* The vertical gap between sections of the asset panel. */
+  --asset-panel-gap: 2rem;
+  --asset-panel-padding-left: 0.75rem;
   --permission-type-selector-corner-radius: calc(
     var(--default-corner-radius) + 0.25rem
   );
@@ -166,7 +188,6 @@
 
   --extended-editor-menu-size: 2.5rem;
 
-  --context-menu-entry-padding-x: 0.75rem;
   --menu-entry-padding: 0.25rem;
 
   --frame-color: rgb(255 255 255 / 40%);
@@ -234,6 +255,7 @@
   --chat-indicator-width: 2rem;
   /* The maximum height of the thread list. */
   --chat-thread-list-height: 17.5rem;
+  --chat-padding-y: 0.25rem;
 
   /******************\
   |* Settings pages *|
@@ -252,6 +274,8 @@
   /* The gap between the label and value of a settings entry. */
   --settings-entry-gap: 1.1875rem;
   --settings-sidebar-width: 12.875rem;
+  /* The gap between each section in the settings sidebar. */
+  --settings-sidebar-gap: 1rem;
   /* The width of the main section of the settings page, if there are multiple sections stacked
    * horizontally. */
   --settings-main-section-width: 32rem;
@@ -264,6 +288,9 @@
   --members-email-column-width: 12rem;
   --keyboard-shortcuts-icon-column-width: 1rem;
   --keyboard-shortcuts-name-column-width: 9rem;
+  --keyboard-shortcuts-icon-column-padding-right: 0.375rem;
+  /* The horizontal gap between each icon for modifying the shortcuts for a particular action. */
+  --keyboard-shortcuts-button-gap: 0.25rem;
 
   /***********************\
   |* Authentication flow *|
@@ -283,8 +310,11 @@
   --auth-transition-duration: 300ms;
   /* The gap between the icon and text of an auth link. */
   --auth-link-gap: 0.5rem;
+  --auth-input-padding-right: 1rem;
   /* The vertical padding of all inputs and buttons in the auth flow. */
   --auth-input-padding-y: 0.5rem;
+  --auth-icon-container-width: 2.5rem;
+  --font-awesome-icon-padding-x: 0.75rem;
 
   /*************\
   |* Home page *|
@@ -300,10 +330,14 @@
   --banner-padding-y: 0.5625rem;
   /* The vertical padding for each banner item (the title and the subtitle). */
   --banner-item-padding: 0.125rem;
+  /* The horizontal padding for each section of the home page. */
+  --home-section-padding-x: 1.1875rem;
   /* The horizontal and vertical gap between adjacent news item tiles. */
   --news-items-gap: 0.75rem;
   --news-items-column-width: 18.75rem;
   --news-item-height: 11.25rem;
+  --news-item-description-padding: 1rem;
+  --news-item-subtitle-padding-y: 0.125rem;
   /* The horizontal and vertical gap between adjacent sample tiles. */
   --samples-gap: 0.75rem;
   --samples-column-width: 15rem;
@@ -312,6 +346,11 @@
   /* The height of the tile containing the sample's image and description.
    * Does not include the height of its info bar. */
   --sample-height: 11.25rem;
+  --sample-description-padding-x: 1rem;
+  --sample-description-padding-top: 0.4375rem;
+  --sample-description-padding-bottom: 0.875rem;
+  --sample-image-height: 6.25rem;
+  --sample-info-opacity: 70%;
   /* The height of the sample's info bar. */
   --sample-info-height: 1.125rem;
 
@@ -333,18 +372,20 @@
   --name-column-icon-margin: 0.25rem;
   --name-column-icon-gap: 0.25rem;
 
-  /***************************\
-  |* Left hand drive sidebar *|
-  \***************************/
+  /*********************\
+  |* Left hand sidebar *|
+  \*********************/
 
   /* The vertical padding for the entire sidebar. */
   --drive-sidebar-padding-y: 0.25rem;
   /* The gap between the individual panels in the sidebar. */
   --drive-sidebar-gap: 1rem;
   --drive-sidebar-width: 7.5rem;
-  --drive-sidebar-section-heading-padding-x: 0.5rem;
+  --sidebar-section-heading-padding-x: 0.5rem;
+  /* Only used for the settings sidebar, not the drive sidebar. */
+  --sidebar-section-heading-padding-y: 0.125rem;
   /* The vertical gap between the section heading and its content. */
-  --drive-sidebar-section-heading-gap: 0.375rem;
+  --sidebar-section-heading-gap: 0.375rem;
 }
 
 body {

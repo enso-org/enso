@@ -23,17 +23,17 @@ export default function MembersSettingsTab() {
 
   return (
     <div className="flex flex-col gap-settings-subsection">
-      <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Members</h3>
-        <div className="flex gap-2.5">
+      <div className="flex flex-col gap-settings-section-header">
+        <h3 className="settings-subheading">Members</h3>
+        <div className="flex gap-drive-bar">
           <button
-            className="flex items-center bg-frame rounded-full h-8 px-2.5"
+            className="flex items-center bg-frame rounded-full h-row px-new-project-button-x"
             onClick={event => {
               event.stopPropagation()
               setModal(<InviteUsersModal eventTarget={null} />)
             }}
           >
-            <span className="font-semibold whitespace-nowrap text">Invite Members</span>
+            <span className="text font-semibold whitespace-nowrap">Invite Members</span>
           </button>
         </div>
         <table className="self-start table-fixed">

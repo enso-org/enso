@@ -6,7 +6,7 @@ import * as toastify from 'react-toastify'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
-import TriangleDownIcon from 'enso-assets/triangle_down.svg'
+import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import * as chat from 'enso-chat/chat'
 import * as detect from 'enso-common/src/detect'
 
@@ -274,15 +274,13 @@ function ChatHeader(props: InternalChatHeaderProps) {
   return (
     <>
       <div className="flex text-sm font-semibold mx-4 mt-2">
-        <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
+        <button className="flex grow items-center gap-2" onClick={toggleThreadListVisibility}>
           <SvgMask
             className={`transition-transform duration-arrow shrink-0 ${
-              isThreadListVisible ? '-rotate-180' : ''
+              isThreadListVisible ? '-rotate-90' : 'rotate-90'
             }`}
-            src={TriangleDownIcon}
+            src={FolderArrowIcon}
           />
-          {/* Spacing. */}
-          <div className="w-2" />
           <div className="grow">
             <input
               type="text"
@@ -663,7 +661,7 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top right backdrop-blur-default h-screen shadow-soft w-chat py-1 z-3 transition-transform ${
+        className={`text-xs text-primary flex flex-col fixed top right backdrop-blur-default h-screen shadow-soft w-chat py-chat-y z-3 transition-transform ${
           detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >

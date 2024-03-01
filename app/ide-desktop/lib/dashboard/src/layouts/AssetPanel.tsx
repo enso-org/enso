@@ -109,7 +109,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="absolute flex flex-col h-full border-black/[0.12] border-l-2 gap-8 w-asset-panel pl-3 pr-4 py-2.25"
+      className="absolute flex flex-col h-full border-black/[0.12] border-l-2 gap-asset-panel w-asset-panel p-top-bar-margin pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
@@ -118,7 +118,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         {item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
             <button
-              className={`rounded-full leading-cozy px-2 select-none bg-frame hover:bg-selected-frame transition-colors ${
+              className={`rounded-full leading-cozy px-button-x select-none bg-frame hover:bg-selected-frame transition-colors ${
                 tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame'
               }`}
               onClick={() => {
@@ -134,7 +134,7 @@ export default function AssetPanel(props: AssetPanelProps) {
           )}
         {/* Spacing. */}
         <div className="grow" />
-        <div className="flex gap-2">
+        <div className="flex gap-top-bar-right">
           <AssetInfoBar
             canToggleAssetPanel={true}
             isAssetPanelVisible={true}

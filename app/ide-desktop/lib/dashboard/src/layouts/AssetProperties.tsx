@@ -169,10 +169,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
         <table>
           <tbody>
             <tr data-testid="asset-panel-permissions">
-              <td className="min-w-32 px-0 py-1">
+              <td className="min-w-32 px py-1">
                 <span className="inline-block text">Shared with</span>
               </td>
-              <td className="p-0 w-full">
+              <td className="p w-full">
                 <SharedWithColumn
                   item={item}
                   setItem={setItem}
@@ -199,7 +199,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 setValue={setEditedDataLinkValue}
               />
               {canEditThisAsset && (
-                <div className="flex gap-2">
+                <div className="flex gap-buttons">
                   <button
                     type="button"
                     disabled={dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable}

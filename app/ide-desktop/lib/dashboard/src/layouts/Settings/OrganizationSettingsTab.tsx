@@ -169,7 +169,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <span className="grow font-bold text my-auto">
                 <input
                   ref={nameRef}
-                  className="rounded-full font-bold leading-cozy w-full h-row -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors"
+                  className="settings-value rounded-full font-bold w-full bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
                   key={organization.organization_name}
                   type="text"
                   size={1}
@@ -186,7 +186,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <span className="grow font-bold text my-auto">
                 <input
                   ref={emailRef}
-                  className="rounded-full font-bold leading-cozy w-full h-row -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors invalid:border invalid:border-red-700"
+                  className="settings-value rounded-full font-bold w-full bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
                   key={organization.email}
                   type="text"
                   size={1}
@@ -214,7 +214,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <span className="grow font-bold text my-auto">
                 <input
                   ref={websiteRef}
-                  className="rounded-full font-bold leading-cozy w-full h-row -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors"
+                  className="settings-value rounded-full font-bold w-full bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
                   key={organization.website}
                   type="text"
                   size={1}
@@ -231,7 +231,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               <span className="grow font-bold text my-auto">
                 <input
                   ref={locationRef}
-                  className="rounded-full font-bold leading-cozy w-full h-row -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors"
+                  className="settings-value rounded-full font-bold w-full bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
                   key={organization.address}
                   type="text"
                   size={1}
@@ -248,7 +248,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
       </div>
       <div className="flex flex-col gap-settings-section-header">
         <h3 className="settings-subheading">Profile picture</h3>
-        <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
+        <label className="flex items-center cursor-pointer rounded-full overflow-clip h-profile-picture-large w-profile-picture-large hover:bg-frame transition-colors">
           <input
             type="file"
             className="hidden"
@@ -262,7 +262,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
             className="pointer-events-none"
           />
         </label>
-        <span className="py-1 w-profile-picture-caption">
+        <span className="py-profile-picture-caption-y w-profile-picture-caption">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
           should not be a default image provided by Enso.
         </span>

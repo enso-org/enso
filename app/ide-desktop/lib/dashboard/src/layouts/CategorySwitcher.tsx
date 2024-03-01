@@ -98,8 +98,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   }, [category, /* should never change */ localStorage])
 
   return (
-    <div className="flex flex-col gap-drive-sidebar-section-heading w-full">
-      <div className="text-header font-bold text-sm px-drive-sidebar-section-heading">Category</div>
+    <div className="flex flex-col gap-sidebar-section-heading w-full">
+      <div className="text-header font-bold text-sm px-sidebar-section-heading-x">Category</div>
       <div className="flex flex-col items-start">
         {CATEGORIES.map(currentCategory => (
           <CategorySwitcherItem

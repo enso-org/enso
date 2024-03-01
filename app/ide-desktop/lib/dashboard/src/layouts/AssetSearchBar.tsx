@@ -263,11 +263,11 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       <div className="absolute flex flex-col top left overflow-hidden w-full before:absolute before:bg-frame before:inset before:backdrop-blur-default rounded-default pointer-events-none">
         <div className="relative padding h-row" />
         {areSuggestionsVisible && (
-          <div className="relative flex flex-col gap-2">
+          <div className="relative flex flex-col gap-search-suggestions">
             {/* Tags (`name:`, `modified:`, etc.) */}
             <div
               data-testid="asset-search-tag-names"
-              className="flex flex-wrap gap-buttons whitespace-nowrap px-2 pointer-events-auto"
+              className="flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions pointer-events-auto"
             >
               {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
                 const [key, tag] = entry
@@ -276,7 +276,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                   : [
                       <button
                         key={key}
-                        className="bg-frame rounded-full h-text px-2 hover:bg-selected-frame transition-all"
+                        className="bg-frame rounded-full h-text px-button-x hover:bg-selected-frame transition-all"
                         onClick={() => {
                           querySource.current = QuerySource.internal
                           setQuery(query.add({ [key]: [[]] }))
@@ -291,7 +291,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             {isCloud && (
               <div
                 data-testid="asset-search-labels"
-                className="flex gap-buttons p-2 pointer-events-auto"
+                className="flex gap-buttons p-search-suggestions pointer-events-auto"
               >
                 {labels.map(label => {
                   const negated = query.negativeLabels.some(term =>
@@ -327,7 +327,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               </div>
             )}
             {/* Suggestions */}
-            <div className="flex flex-col max-h-[16rem] overflow-y-auto">
+            <div className="flex flex-col max-h-search-suggestions-list overflow-y-auto">
               {suggestions.map((suggestion, index) => (
                 // This should not be a `<button>`, since `render()` may output a
                 // tree containing a button.
@@ -340,7 +340,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     }
                   }}
                   tabIndex={-1}
-                  className={`cursor-pointer px-2 py-1 mx-1 rounded-default text-left hover:bg-selected-frame last:mb-1 transition-colors pointer-events-auto ${
+                  className={`cursor-pointer px-search-suggestions py-search-suggestion-y mx-search-suggestion rounded-default text-left hover:bg-selected-frame last:mb-search-suggestion transition-colors pointer-events-auto ${
                     index === selectedIndex
                       ? 'bg-selected-frame'
                       : selectedIndices.has(index)

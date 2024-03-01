@@ -46,7 +46,9 @@ const HEADER_HEIGHT_PX = 34
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
 /** Placeholder row for directories that are empty. */
-const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
+const EMPTY_DIRECTORY_PLACEHOLDER = (
+  <span className="px-name-column-x opacity-read-only">This folder is empty.</span>
+)
 
 // ================
 // === AssetRow ===
@@ -735,9 +737,9 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialLoading: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
+          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p">
             <div
-              className={`flex justify-center rounded-full h-row py-1 w-container ${indent.indentClass(
+              className={`flex justify-center rounded-full h-row w-container ${indent.indentClass(
                 item.depth
               )}`}
             >
@@ -750,11 +752,9 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialEmpty: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
+          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p">
             <div
-              className={`flex items-center rounded-full h-row py-2 ${indent.indentClass(
-                item.depth
-              )}`}
+              className={`flex items-center rounded-full h-row ${indent.indentClass(item.depth)}`}
             >
               <img src={BlankIcon} />
               {EMPTY_DIRECTORY_PLACEHOLDER}

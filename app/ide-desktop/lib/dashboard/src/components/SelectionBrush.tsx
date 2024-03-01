@@ -173,8 +173,8 @@ export default function SelectionBrush(props: SelectionBrushProps) {
 
   return reactDom.createPortal(
     <div
-      className={`fixed bg-selection-brush pointer-events-none box-content rounded-lg border-transparent z-1 transition-border-margin duration-100 ${
-        hidden ? 'border-0 m-0' : 'border-6 -m-1.5'
+      className={`fixed bg-selection-brush pointer-events-none box-content rounded-selection-brush border-transparent z-1 transition-border-margin ${
+        hidden ? 'border-0 m' : 'border-selection-brush -m-selection-brush-border'
       }`}
       style={brushStyle}
     />,

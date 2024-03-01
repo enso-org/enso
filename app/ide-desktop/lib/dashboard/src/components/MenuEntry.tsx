@@ -58,7 +58,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     <button
       disabled={disabled}
       title={title}
-      className={`flex items-center place-content-between h-row disabled:bg-transparent rounded-lg text-left disabled:opacity-disabled hover:bg-black/10 p-menu-entry ${
+      className={`flex items-center place-content-between h-row disabled:bg-transparent rounded-menu-entry text-left disabled:opacity-disabled hover:bg-black/10 p-menu-entry ${
         isContextMenuEntry ? 'px-context-menu-entry-x' : ''
       }`}
       onClick={event => {

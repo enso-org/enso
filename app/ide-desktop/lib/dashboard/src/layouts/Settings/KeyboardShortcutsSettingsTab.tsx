@@ -67,11 +67,11 @@ export default function KeyboardShortcutsSettingsTab() {
   }, [/* should never change */ scrollContainerRef])
 
   return (
-    <div className="flex flex-col flex-1 gap-2.5 w-full pr-4">
+    <div className="flex flex-col flex-1 gap-settings-section-header w-full">
       <h3 className="settings-subheading">Keyboard shortcuts</h3>
-      <div className="flex gap-2.5">
+      <div className="flex gap-drive-bar">
         <button
-          className="flex items-center bg-frame rounded-full h-row px-2.5"
+          className="flex items-center bg-frame rounded-full h-row px-new-project-button-x"
           onClick={event => {
             event.stopPropagation()
             setModal(
@@ -98,7 +98,7 @@ export default function KeyboardShortcutsSettingsTab() {
         <table className="rounded-rows table-fixed border-collapse">
           <thead className="sticky top-0">
             <tr className="text-left text-sm font-semibold h-row">
-              <th className="min-w-keyboard-shortcuts-icon-column pl-cell-x pr-1.5">
+              <th className="min-w-keyboard-shortcuts-icon-column pl-cell-x pr-keyboard-shortcuts-icon-column-r">
                 {/* Icon */}
               </th>
               <th className="min-w-keyboard-shortcuts-name-column px-cell-x">Name</th>
@@ -114,7 +114,7 @@ export default function KeyboardShortcutsSettingsTab() {
                 const [action, info] = kv
                 return (
                   <tr key={action}>
-                    <td className="flex h-row items-center rounded-l-full pl-cell-x pr-1.5 bg-clip-padding">
+                    <td className="flex h-row items-center rounded-l-full pl-cell-x pr-keyboard-shortcuts-icon-column-r bg-clip-padding">
                       <SvgMask
                         src={info.icon ?? BlankIcon}
                         color={info.color}
@@ -124,10 +124,16 @@ export default function KeyboardShortcutsSettingsTab() {
                     <td className="px-cell-x bg-clip-padding border-transparent border-l-2 border-r-2">
                       {info.name}
                     </td>
-                    <td className="group min-w-max pl-cell-x bg-clip-padding border-transparent border-l-2 border-r-2">
-                      <div className="flex gap-2 pr-4">
+                    <td className="group min-w-max px-cell-x bg-clip-padding border-transparent border-l-2 border-r-2">
+                      {/* I don't know why this padding is needed,
+                       * given that this is a flex container. */}
+                      {/* eslint-disable-next-line no-restricted-syntax */}
+                      <div className="flex gap-buttons pr-4">
                         {info.bindings.map((binding, i) => (
-                          <div key={i} className="inline-flex items-center gap-1 shrink-0">
+                          <div
+                            key={i}
+                            className="inline-flex items-center gap-keyboard-shortcuts-button shrink-0"
+                          >
                             <KeyboardShortcut shortcut={binding} />
                             <button
                               className="invisible group-hover:visible"
@@ -140,7 +146,7 @@ export default function KeyboardShortcutsSettingsTab() {
                             </button>
                           </div>
                         ))}
-                        <div className="flex gap-1 shrink-0">
+                        <div className="flex gap-keyboard-shortcuts-buttons shrink-0">
                           <button
                             className="align-middle invisible group-hover:visible"
                             onClick={event => {

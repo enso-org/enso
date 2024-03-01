@@ -85,7 +85,7 @@ export default function DriveBar(props: DriveBarProps) {
           }}
         >
           <span
-            className={`font-semibold whitespace-nowrap text ${
+            className={`text font-semibold whitespace-nowrap ${
               !isHomeCategory ? 'opacity-disabled' : ''
             }`}
           >

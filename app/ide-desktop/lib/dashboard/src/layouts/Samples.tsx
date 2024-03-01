@@ -175,32 +175,34 @@ function ProjectTile(props: InternalProjectTileProps) {
       >
         <div
           style={{ background }}
-          className={`rounded-t-2xl w-full h-25 ${background != null ? '' : 'bg-frame'}`}
+          className={`rounded-t-default w-full h-sample-image ${
+            background != null ? '' : 'bg-frame'
+          }`}
         />
-        <div className="grow bg-frame backdrop-blur rounded-b-2xl w-full px-4 pt-1.75 pb-3.5">
-          <h2 className="text-sm font-bold leading-snug py-0.5">{title}</h2>
-          <div className="text-xs text-ellipsis leading-snug pb-px">{description}</div>
+        <div className="grow bg-frame backdrop-blur rounded-b-default w-full px-sample-description-x pt-sample-description-t pb-sample-description-b">
+          <h2 className="text-header text-sm font-bold">{title}</h2>
+          <div className="text-xs text-ellipsis leading-snug">{description}</div>
         </div>
         {spinnerState != null && (
-          <div className="absolute grid w-full h-25 place-items-center">
+          <div className="absolute grid w-full h-sample-image place-items-center">
             <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
           </div>
         )}
       </button>
-      <div className="flex justify-between text-primary h-sample-info px-4 opacity-70">
+      <div className="flex justify-between text-primary h-sample-info px-sample-description-x opacity-sample-info">
         <div className="flex gap-samples-icon-with-text">
-          <SvgMask src={Logo} />
-          <span className="font-bold leading-snug pb-px">{author}</span>
+          <SvgMask src={Logo} className="size-icon self-end" />
+          <span className="font-bold leading-snug self-start">{author}</span>
         </div>
         {/* Normally `flex` */}
         <div className="gap-icons hidden">
           <div title="Views" className="flex gap-samples-icon-with-text">
-            <SvgMask alt="Views" src={OpenCountIcon} />
-            <span className="font-bold leading-snug pb-px">{opens}</span>
+            <SvgMask alt="Views" src={OpenCountIcon} className="size-icon self-end" />
+            <span className="font-bold leading-snug self-start">{opens}</span>
           </div>
           <div title="Likes" className="flex gap-samples-icon-with-text">
-            <SvgMask alt="Likes" src={HeartIcon} />
-            <span className="font-bold leading-snug pb-px">{likes}</span>
+            <SvgMask alt="Likes" src={HeartIcon} className="size-icon self-end" />
+            <span className="font-bold leading-snug self-start">{likes}</span>
           </div>
         </div>
       </div>
@@ -225,7 +227,7 @@ export interface SamplesProps {
 export default function Samples(props: SamplesProps) {
   const { createProject } = props
   return (
-    <div data-testid="samples" className="flex flex-col gap-subheading px-4.75">
+    <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
       <h2 className="text-subheading">Sample and community projects</h2>
       <div className="grid gap-samples grid-cols-fill-samples">
         <ProjectsEntry createProject={createProject} />

@@ -47,9 +47,9 @@ export default function Labels(props: LabelsProps) {
   return (
     <div
       data-testid="labels"
-      className="flex flex-col items-start gap-drive-sidebar-section-heading w-full"
+      className="flex flex-col items-start gap-sidebar-section-heading w-full"
     >
-      <div className="text-header font-bold text-sm px-drive-sidebar-section-heading">Labels</div>
+      <div className="text-header font-bold text-sm px-sidebar-section-heading-x">Labels</div>
       <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
         {labels
           .filter(label => !deletedLabelNames.has(label.value))

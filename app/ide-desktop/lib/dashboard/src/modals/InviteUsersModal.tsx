@@ -39,6 +39,8 @@ function Email(props: InternalEmailProps) {
   const { email, isValid, doDelete } = props
   return (
     <div
+      // This UI element does not appear anywhere else.
+      // eslint-disable-next-line no-restricted-syntax
       className={`inline-flex gap-0.5 items-center rounded-full py-0.5 px-1 m-0.5 ${
         isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
       }`}
@@ -132,11 +134,8 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           }
         }}
       >
-        <div className="relative flex flex-col rounded-default gap-2 p-2">
-          <div>
-            <h2 className="text-sm font-bold">Invite</h2>
-            {/* Space reserved for other tabs. */}
-          </div>
+        <div className="relative flex flex-col rounded-default gap-modal p-modal-wide pt-modal">
+          <h2 className="text text-sm font-bold">Invite</h2>
           <form
             className="grow"
             onSubmit={event => {
@@ -149,7 +148,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               }
             }}
           >
-            <label className="block min-h-5lh rounded-default border border-black/10 py-0.5 px-1">
+            <label className="block min-h-paragraph-input rounded-default border border-black/10 py-multiline-input-y px-input-x">
               {Array.from(newEmails, (newEmail, i) => (
                 <Email
                   key={i}
@@ -168,7 +167,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                 autoFocus
                 type="text"
                 placeholder="Type email to invite"
-                className="text bg-transparent px-1 w-30 max-w-full"
+                className="text bg-transparent max-w-full"
                 value={email}
                 onKeyDown={event => {
                   if (
@@ -202,11 +201,9 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               type="submit"
               disabled={!canSubmit}
               className="button/30 text-tag-text bg-invite"
-              onClick={() => {
-                doSubmit()
-              }}
+              onClick={doSubmit}
             >
-              <div className="h-text py-0.5">Invite</div>
+              Invite
             </button>
           </div>
         </div>
