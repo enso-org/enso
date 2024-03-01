@@ -49,6 +49,7 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
     </div>
     <div
       v-if="tree.extended || !application.argument.hideByDefault"
+      class="argument"
       :class="{ animateWhenShown: application.argument.hideByDefault }"
     >
       <NodeWidget :input="application.argument.toWidgetInput()" nest />
@@ -81,6 +82,12 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
     display: inline;
     white-space: pre;
   }
+}
+
+.argument {
+  display: flex;
+  flex-direction: row;
+  place-items: center;
 }
 
 .animateWhenShown {
