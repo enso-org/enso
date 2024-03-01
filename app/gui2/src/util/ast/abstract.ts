@@ -170,7 +170,8 @@ export function parseQualifiedName(ast: Ast): QualifiedName | null {
   return idents && normalizeQualifiedName(qnFromSegments(idents))
 }
 
-/* Substitute `name` inside `expression` with `to`. */
+/* Substitute `pattern` inside `expression` with `to`.
+ * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain). */
 export function substituteQualifiedName(
   module: MutableModule,
   expression: Ast,
