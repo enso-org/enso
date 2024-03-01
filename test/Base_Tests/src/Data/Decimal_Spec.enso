@@ -315,6 +315,12 @@ add_specs suite_builder =
             + [["-39463720368547758090000000", -39463720368547758090000000]]
             + [["-39463720368547758080000000", -39463720368547758080000000]]
             + [["-39463720368547758070000000", -39463720368547758070000000]]
+            + [[Float.max_value, Float.max_value]]
+            + [[-Float.max_value, -Float.max_value]]
+            + [[Float.min_value, Float.min_value]]
+            + [[-Float.min_value, -Float.min_value]]
+            + [[Float.max_value-1.0, Float.max_value-1.0]]
+            + [[-Float.max_value+1.0, -Float.max_value+1.0]]
 
         values = ok_values + problematic_values
         #values = ok_values
