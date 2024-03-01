@@ -1,3 +1,4 @@
+import type { DeepReadonly } from 'vue'
 import type {
   Identifier,
   IdentifierOrOperatorIdentifier,
@@ -342,11 +343,14 @@ export abstract class MutableAst extends Ast {
 
 /** Values that may be found in fields of `Ast` subtypes. */
 type FieldData<T extends TreeRefs = RawRefs> =
-  | T['ast']
-  | T['token']
-  | FieldData<T>[]
-  | undefined
-  | StructuralField<T>
+  | NonArrayFieldData<T>
+  | NonArrayFieldData<T>[]
+  | (T['ast'] | T['token'])[]
+
+// Logically `FieldData<T>[]` could be a type of `FieldData`, but the type needs to be non-recursive so that it can be
+// used with `DeepReadonly`.
+type NonArrayFieldData<T extends TreeRefs> = T['ast'] | T['token'] | undefined | StructuralField<T>
+
 /** Objects that do not directly contain `AstId`s or `SyncTokenId`s, but may have `NodeChild` fields. */
 type StructuralField<T extends TreeRefs = RawRefs> =
   | MultiSegmentAppSegment<T>
@@ -354,22 +358,25 @@ type StructuralField<T extends TreeRefs = RawRefs> =
   | OpenCloseTokens<T>
   | NameSpecification<T>
   | TextElement<T>
+  | ArgumentDefinition<T>
+
 /** Type whose fields are all suitable for storage as `Ast` fields. */
 interface FieldObject<T extends TreeRefs> {
   [field: string]: FieldData<T>
 }
+
 /** Returns the fields of an `Ast` subtype that are not part of `AstFields`. */
 function* fieldDataEntries<Fields>(map: FixedMapView<Fields>) {
   for (const entry of map.entries()) {
     // All fields that are not from `AstFields` are `FieldData`.
-    if (!astFieldKeys.includes(entry[0] as any)) yield entry as [string, FieldData]
+    if (!astFieldKeys.includes(entry[0] as any)) yield entry as [string, DeepReadonly<FieldData>]
   }
 }
 
 function idRewriter(
   f: (id: AstId) => AstId | undefined,
-): (field: FieldData) => FieldData | undefined {
-  return (field: FieldData) => {
+): (field: DeepReadonly<FieldData>) => FieldData | undefined {
+  return (field: DeepReadonly<FieldData>) => {
     if (typeof field !== 'object') return
     if (!('node' in field)) return
     if (isTokenId(field.node)) return
@@ -413,35 +420,32 @@ export function syncNodeMetadata(target: MutableNodeMetadata, source: NodeMetada
 }
 
 function rewriteFieldRefs<T extends TreeRefs, U extends TreeRefs>(
-  field: FieldData<T>,
-  f: (t: FieldData<T>) => FieldData<U> | undefined,
+  field: DeepReadonly<FieldData<T>>,
+  f: (t: DeepReadonly<FieldData<T>>) => FieldData<U> | undefined,
 ): FieldData<U> {
   const newValue = f(field)
   if (newValue) return newValue
   if (typeof field !== 'object') return
-  if (Array.isArray(field)) {
-    let fieldChanged = false
+  // `Array.isArray` doesn't work with `DeepReadonly`, but we just need a narrowing that distinguishes it from all
+  // `StructuralField` types.
+  if ('forEach' in field) {
+    const newValues = new Map<number, FieldData<U>>()
     field.forEach((subfield, i) => {
       const newValue = rewriteFieldRefs(subfield, f)
-      if (newValue !== undefined) {
-        field[i] = newValue
-        fieldChanged = true
-      }
+      if (newValue !== undefined) newValues.set(i, newValue)
     })
-    if (fieldChanged) return field
+    if (newValues.size) return Array.from(field, (oldValue, i) => newValues.get(i) ?? oldValue)
   } else {
-    const fieldObject = field satisfies StructuralField
-    let fieldChanged = false
+    const fieldObject = field satisfies DeepReadonly<StructuralField>
+    const newValues = new Map<string, FieldData<U>>()
     for (const [key, value] of Object.entries(fieldObject)) {
       const newValue = rewriteFieldRefs(value, f)
-      if (newValue !== undefined) {
-        // This update is safe because `newValue` was obtained by reading `fieldObject[key]` and modifying it in a
-        // type-preserving way.
-        ;(fieldObject as any)[key] = newValue
-        fieldChanged = true
-      }
+      if (newValue !== undefined) newValues.set(key, newValue)
     }
-    if (fieldChanged) return fieldObject
+    if (newValues.size)
+      return Object.fromEntries(
+        Object.entries(fieldObject).map(([key, oldValue]) => [key, newValues.get(key) ?? oldValue]),
+      )
   }
 }
 
@@ -1277,7 +1281,7 @@ function rawTextElementValue(raw: TextElement, module: Module): string {
   return textElementValue(mapRefs(raw, rawToConcrete(module)))
 }
 
-function uninterpolatedText(elements: TextElement[], module: Module): string {
+function uninterpolatedText(elements: DeepReadonly<TextElement[]>, module: Module): string {
   return elements.reduce((s, e) => s + rawTextElementValue(e, module), '')
 }
 
@@ -2193,7 +2197,8 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
 }
 
 export interface FixedMapView<Fields> {
-  get<Key extends string & keyof Fields>(key: Key): Fields[Key]
+  get<Key extends string & keyof Fields>(key: Key): DeepReadonly<Fields[Key]>
+  /** @internal Unsafe. The caller must ensure the yielded values are not modified. */
   entries(): IterableIterator<readonly [string, unknown]>
   clone(): FixedMap<Fields>
   has(key: string): boolean
@@ -2203,8 +2208,12 @@ export interface FixedMap<Fields> extends FixedMapView<Fields> {
   set<Key extends string & keyof Fields>(key: Key, value: Fields[Key]): void
 }
 
-function getAll<Fields extends object>(map: FixedMapView<Fields>): Fields {
-  return Object.fromEntries(map.entries()) as Fields
+type DeepReadonlyFields<T> = {
+  [K in keyof T]: DeepReadonly<T[K]>
+}
+
+function getAll<Fields extends object>(map: FixedMapView<Fields>): DeepReadonlyFields<Fields> {
+  return Object.fromEntries(map.entries()) as DeepReadonlyFields<Fields>
 }
 
 declare const brandLegalFieldContent: unique symbol
@@ -2330,7 +2339,7 @@ function setNode<
 >(map: FixedMap<Fields>, key: Key, node: AstId | undefined): void {
   // The signature correctly only allows this function to be called if `Fields[Key] instanceof NodeChild<SyncId>`,
   // but it doesn't prove that property to TSC, so we have to cast here.
-  const old = map.get(key as string & keyof Fields)
+  const old = map.get(key as string & keyof Fields) as DeepReadonly<NodeChild<AstId>>
   const updated = old ? { ...old, node } : autospaced(node)
   map.set(key, updated as Fields[Key])
 }

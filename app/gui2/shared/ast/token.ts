@@ -1,3 +1,4 @@
+import type { DeepReadonly } from 'vue'
 import type { AstId, NodeChild, Owned } from '.'
 import { Ast, newExternalId } from '.'
 import { assert } from '../util/assert'
@@ -24,8 +25,8 @@ function newTokenId(): TokenId {
 /** @internal */
 export interface SyncTokenId {
   readonly id: TokenId
-  code_: string
-  tokenType_: RawAst.Token.Type | undefined
+  readonly code_: string
+  readonly tokenType_: RawAst.Token.Type | undefined
 }
 
 export class Token implements SyncTokenId {
@@ -126,6 +127,8 @@ export function isOperator(code: string): code is Operator {
 }
 
 /** @internal */
-export function isTokenId(t: SyncTokenId | AstId | Ast | Owned<Ast> | Owned): t is SyncTokenId {
+export function isTokenId(
+  t: DeepReadonly<SyncTokenId | AstId | Ast | Owned<Ast> | Owned>,
+): t is DeepReadonly<SyncTokenId> {
   return typeof t === 'object' && !(t instanceof Ast)
 }

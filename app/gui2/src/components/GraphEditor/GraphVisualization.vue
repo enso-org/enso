@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { visualizationBindings } from '@/bindings'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
+import { focusIsIn, useEvent } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import {
@@ -20,9 +22,10 @@ import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
 import { computedAsync } from '@vueuse/core'
 import { isIdentifier } from 'shared/ast'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
+  nextTick,
   onErrorCaptured,
   onUnmounted,
   ref,
@@ -43,15 +46,19 @@ const props = defineProps<{
   isCircularMenuVisible: boolean
   nodePosition: Vec2
   nodeSize: Vec2
+  width: Opt<number>
   scale: number
+  isFocused: boolean
+  isFullscreen: boolean
   typename?: string | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
   'update:rect': [rect: Rect | undefined]
-  'update:userSetSize': [size: Vec2]
   'update:id': [id: VisualizationIdentifier]
   'update:visible': [visible: boolean]
+  'update:fullscreen': [fullscreen: boolean]
+  'update:width': [width: number]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -217,31 +224,36 @@ watchEffect(async () => {
 })
 
 const isBelowToolbar = ref(false)
-let userSetWidth = ref<number | null>(null)
 let userSetHeight = ref(150)
-
-const userSetSize = computed(() => new Vec2(userSetWidth.value ?? 0, userSetHeight.value))
 
 const rect = computed(
   () =>
     new Rect(
       props.nodePosition,
       new Vec2(
-        Math.max(userSetWidth.value ?? 0, props.nodeSize.x),
+        Math.max(props.width ?? 0, props.nodeSize.x),
         userSetHeight.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
       ),
     ),
 )
 
 watchEffect(() => emit('update:rect', rect.value))
-watchEffect(() => emit('update:userSetSize', userSetSize.value))
 onUnmounted(() => {
   emit('update:rect', undefined)
-  emit('update:userSetSize', userSetSize.value)
 })
 
+const allTypes = computed(() => Array.from(visualizationStore.types(props.typename)))
+
 provideVisualizationConfig({
-  fullscreen: false,
+  get isFocused() {
+    return props.isFocused
+  },
+  get fullscreen() {
+    return props.isFullscreen
+  },
+  set fullscreen(value) {
+    emit('update:fullscreen', value)
+  },
   get scale() {
     return props.scale
   },
@@ -249,7 +261,7 @@ provideVisualizationConfig({
     return rect.value.width
   },
   set width(value) {
-    userSetWidth.value = value
+    emit('update:width', value)
   },
   get height() {
     return userSetHeight.value
@@ -264,7 +276,7 @@ provideVisualizationConfig({
     isBelowToolbar.value = value
   },
   get types() {
-    return Array.from(visualizationStore.types(props.typename))
+    return allTypes.value
   },
   get isCircularMenuVisible() {
     return props.isCircularMenuVisible
@@ -295,10 +307,49 @@ const effectiveVisualization = computed(() => {
   }
   return visualization.value
 })
+
+const root = ref<HTMLElement>()
+
+const keydownHandler = visualizationBindings.handler({
+  nextType: () => {
+    if (props.isFocused || focusIsIn(root.value)) {
+      const currentIndex = allTypes.value.findIndex((type) =>
+        visIdentifierEquals(type, currentType.value),
+      )
+      const nextIndex = (currentIndex + 1) % allTypes.value.length
+      emit('update:id', allTypes.value[nextIndex]!)
+    } else {
+      return false
+    }
+  },
+  toggleFullscreen: () => {
+    if (props.isFocused || focusIsIn(root.value)) {
+      emit('update:fullscreen', !props.isFullscreen)
+    } else {
+      return false
+    }
+  },
+  exitFullscreen: () => {
+    if (props.isFullscreen) {
+      emit('update:fullscreen', false)
+    } else {
+      return false
+    }
+  },
+})
+
+useEvent(window, 'keydown', (event) => keydownHandler(event))
+
+watch(
+  () => props.isFullscreen,
+  (f) => {
+    f && nextTick(() => root.value?.focus())
+  },
+)
 </script>
 
 <template>
-  <div class="GraphVisualization">
+  <div ref="root" class="GraphVisualization" tabindex="-1">
     <Suspense>
       <template #fallback><LoadingVisualization :data="{}" /></template>
       <component

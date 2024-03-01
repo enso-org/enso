@@ -224,7 +224,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen.below-toolbar {
-  padding-top: 78px;
+  padding-top: 40px;
 }
 
 .toolbars {
@@ -254,7 +254,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen .toolbars {
-  top: 40px;
+  top: 4px;
 }
 
 .toolbar {

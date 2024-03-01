@@ -112,8 +112,8 @@ export function keyboardBusy() {
 }
 
 /** Whether focused element is within given element's subtree. */
-export function focusIsIn(el: Element) {
-  return el.contains(document.activeElement)
+export function focusIsIn(el: Element | undefined | null) {
+  return el && el.contains(document.activeElement)
 }
 
 /**
@@ -133,7 +133,7 @@ export function modKey(e: KeyboardEvent): boolean {
 }
 
 /** A helper for getting Element out of VueInstance, it allows using `useResizeObserver` with Vue components. */
-function unrefElement(
+export function unrefElement(
   element: Ref<Element | undefined | null | VueInstance>,
 ): Element | undefined | null {
   const plain = toValue(element)

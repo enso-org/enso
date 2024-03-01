@@ -29,12 +29,7 @@ import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
-import type {
-  LocalOrigin,
-  SourceRangeKey,
-  VisualizationIdentifier,
-  VisualizationMetadata,
-} from 'shared/yjsModel'
+import type { LocalOrigin, SourceRangeKey, VisualizationMetadata } from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import {
   computed,
@@ -47,7 +42,12 @@ import {
   type ShallowRef,
 } from 'vue'
 
-export { type Node, type NodeId } from '@/stores/graph/graphDatabase'
+export type {
+  Node,
+  NodeDataFromAst,
+  NodeDataFromMetadata,
+  NodeId,
+} from '@/stores/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: NodeId
@@ -310,34 +310,31 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function normalizeVisMetadata(
-    id: Opt<VisualizationIdentifier>,
-    visible: boolean | undefined,
+    partial: Partial<VisualizationMetadata>,
   ): VisualizationMetadata | undefined {
-    const vis: VisualizationMetadata = { identifier: id ?? null, visible: visible ?? false }
-    if (visMetadataEquals(vis, { identifier: null, visible: false })) return undefined
+    const empty: VisualizationMetadata = {
+      identifier: null,
+      visible: false,
+      fullscreen: false,
+      width: null,
+    }
+    const vis: VisualizationMetadata = { ...empty, ...partial }
+    if (visMetadataEquals(vis, empty)) return undefined
     else return vis
   }
 
-  function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
+  function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
     const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
-    editNodeMetadata(nodeAst, (metadata) =>
-      metadata.set(
-        'visualization',
-        normalizeVisMetadata(vis, metadata.get('visualization')?.visible),
-      ),
-    )
-  }
-
-  function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
-    if (!nodeAst) return
-    editNodeMetadata(nodeAst, (metadata) =>
-      metadata.set(
-        'visualization',
-        normalizeVisMetadata(metadata.get('visualization')?.identifier, visible),
-      ),
-    )
+    editNodeMetadata(nodeAst, (metadata) => {
+      const data: Partial<VisualizationMetadata> = {
+        identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
+        visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
+        fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
+        width: vis.width ?? metadata.get('visualization')?.width ?? null,
+      }
+      metadata.set('visualization', normalizeVisMetadata(data))
+    })
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
@@ -613,8 +610,7 @@ export const useGraphStore = defineStore('graph', () => {
     batchEdits,
     setNodeContent,
     setNodePosition,
-    setNodeVisualizationId,
-    setNodeVisualizationVisible,
+    setNodeVisualization,
     stopCapturingUndo,
     topLevel,
     updateNodeRect,

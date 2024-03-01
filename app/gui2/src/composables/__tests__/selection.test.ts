@@ -21,7 +21,9 @@ function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
 
 // TODO[ao]: We should read the modifiers from bindings.ts, but I don't know how yet.
 
-test.each`
+// TODO[ao]: Skipping test, as they often fail in CI
+// (for example https://github.com/enso-org/enso/actions/runs/8102076908/job/22163122663)
+test.skip.each`
   click | modifiers                  | expected
   ${1}  | ${[]}                      | ${[1]}
   ${3}  | ${[]}                      | ${[3]}
@@ -50,7 +52,9 @@ const areas: Record<string, Rect> = {
   all: Rect.FromBounds(0, 0, 30, 30),
 }
 
-test.each`
+// TODO[ao]: Skipping test, as they often fail in CI
+// (for example https://github.com/enso-org/enso/actions/runs/8102076908/job/22163122663)
+test.skip.each`
   areaId      | modifiers                  | expected
   ${'left'}   | ${[]}                      | ${[1, 3]}
   ${'right'}  | ${[]}                      | ${[2, 4]}
