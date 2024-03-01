@@ -24,6 +24,12 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`ProgressUnit`](#progressunit)
   - [`EngineVersion`](#engineversion)
   - [`RunningState`](#runningstate)
+  - [`FileSystemEntry`](#filesystementry)
+- [File System Management Operations](#file-system-management-operations)
+  - [List Directories](#list-directories)
+  - [Create Directory](#create-directory)
+  - [Delete Directory](#delete-directory)
+  - [Move File Or Directory](#move-file-or-directory)
 - [Project Management Operations](#project-management-operations)
   - [`project/open`](#projectopen)
   - [`project/close`](#projectclose)
@@ -186,6 +192,119 @@ interface RunningStatus {
   shuttingDown: bool;
 }
 ```
+
+### `FileSystemEntry`
+
+A directory entry in the fileystem operations.
+
+```typescript
+type FileSystemEntry = FileEntry | DirectoryEntry | ProjectEntry;
+
+interface FileEntry {
+  path: string;
+}
+
+interface DirectoryEntry {
+  path: string;
+}
+
+interface ProjectEntry {
+  path: string;
+  metadata: ProjectMetadata;
+}
+```
+
+## File System Management Operations
+
+The project-manager binary provides Cli interface to do basic filesystem
+operations.
+
+### List Directories
+
+List directory returning information about filesystem entries together with the
+project metadata if the listed directory contains a project.
+
+#### Parameters
+
+```typescript
+project-manager --filesystem-list {path}
+```
+
+#### Result
+
+```typescript
+{
+  entries: FileSystemEntry[];
+}
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+
+### Create Directory
+
+Create directory with the specified path.
+
+#### Parameters
+
+```typescript
+project-manager --filesystem-create-directory {path}
+```
+
+### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+
+### Delete Directory
+
+Deletes directory with the specified path.
+
+#### Parameters
+
+```typescript
+project-manager --filesystem-delete-directory {path}
+```
+
+### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+
+### Move File Or Directory
+
+Moves file or directory from target path to the destination path.
+
+#### Parameters
+
+```typescript
+project-manager --filesystem-move-from {path} --filesystem-move-to {path}
+```
+
+### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
 
 ## Project Management Operations
 

@@ -11,7 +11,7 @@ object FileSystemManagementApi {
 
     case class Params(path: File)
 
-    case class Result(projects: Seq[FileSystemEntry])
+    case class Result(entries: Seq[FileSystemEntry])
 
     implicit val hasParams: HasParams.Aux[this.type, FileSystemList.Params] =
       new HasParams[this.type] {
