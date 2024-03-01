@@ -337,6 +337,9 @@ add_specs suite_builder =
 
                 Test.with_clue "TTT "+d.to_text+" "+(Meta.get_simple_type_name (pr.at 0))+" "+q.to_text
                     d . should_equal expected
+                    expected . should_equal d
+                    (d == expected) . should_be_true
+                    (expected == d) . should_be_true
                 IO.println '===== end'
                 ##
                     expected . should_equal d
