@@ -7,8 +7,10 @@ import java.math.MathContext;
 
 /** Utils for the Enso Decmial type. */
 public class Decimal_Utils {
-  private static final BigDecimal MIN_LONG_BIGDECIMAL = BigDecimal.valueOf((double)Long.MIN_VALUE);
-  private static final BigDecimal MAX_LONG_BIGDECIMAL = BigDecimal.valueOf((double)Long.MAX_VALUE);
+  //private static final BigDecimal MIN_LONG_BIGDECIMAL = BigDecimal.valueOf((double)Long.MIN_VALUE);
+  //private static final BigDecimal MAX_LONG_BIGDECIMAL = BigDecimal.valueOf((double)Long.MAX_VALUE);
+  private static final BigDecimal MIN_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MIN_VALUE);
+  private static final BigDecimal MAX_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MAX_VALUE);
 
   public static record ConversionResult(BigDecimal newValue, boolean hasPrecisionLoss) {}
 
