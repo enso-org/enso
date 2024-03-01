@@ -452,7 +452,8 @@ add_specs suite_builder =
 
             b . should_fail_with Type_Error
             msg = b.to_display_text
-            msg . should_contain "~Value"
+            msg . should_contain "expected expression to be Back"
+            msg . should_contain "but got ~Value"
 
     suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text
