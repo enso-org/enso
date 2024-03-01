@@ -342,7 +342,7 @@ const keydownHandler = visualizationBindings.handler({
   },
 })
 
-useEvent(window, 'keydown', (event) => keydownHandler(event))
+useEvent(window, 'keydown', keydownHandler)
 
 watch(
   () => props.isFullscreen,
