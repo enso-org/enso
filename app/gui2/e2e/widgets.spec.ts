@@ -60,6 +60,10 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   // Check initially visible arguments
   const node = locate.graphNodeByBinding(page, 'data')
   const argumentNames = node.locator('.WidgetArgumentName')
+  await expect(argumentNames).toHaveCount(1)
+
+  // Check arguments after selecting node
+  await node.click()
   await expect(argumentNames).toHaveCount(3)
 
   // Set value on `on_problems` (static drop-down)
@@ -129,6 +133,10 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // Check initially visible arguments
   const node = locate.graphNodeByBinding(page, 'aggregated')
   const argumentNames = node.locator('.WidgetArgumentName')
+  await expect(argumentNames).toHaveCount(1)
+
+  // Check arguments after selecting node
+  await node.click()
   await expect(argumentNames).toHaveCount(3)
 
   // Add first aggregate

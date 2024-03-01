@@ -436,6 +436,7 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
+        :extended="isOnlyOneSelected"
         @openFullMenu="openFullMenu"
       />
     </div>

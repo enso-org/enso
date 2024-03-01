@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const tree = injectWidgetTree()
 const application = computed(() => props.input[ArgumentApplicationKey])
 const targetMaybePort = computed(() => {
   const target = application.value.target
@@ -45,7 +47,12 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
     <div v-if="application.infixOperator" class="infixOp" :style="operatorStyle">
       <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
     </div>
-    <NodeWidget :input="application.argument.toWidgetInput()" nest />
+    <div
+      v-if="tree.extended || !application.argument.hideByDefault"
+      :class="{ animateWhenShown: application.argument.hideByDefault }"
+    >
+      <NodeWidget :input="application.argument.toWidgetInput()" nest />
+    </div>
   </span>
 </template>
 
@@ -73,6 +80,18 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
     content: var(--whitespace-post);
     display: inline;
     white-space: pre;
+  }
+}
+
+.animateWhenShown {
+  animation: show 4800ms 100ms cubic-bezier(0.38, 0.97, 0.56, 0.76) forwards;
+  max-width: 0;
+  overflow-x: clip;
+}
+
+@keyframes show {
+  100% {
+    max-width: 2000px;
   }
 }
 </style>
