@@ -73,8 +73,8 @@ add_specs suite_builder =
             sorted.to_text . should_equal "[10, 32, 46, 98, 101, 106, 106, 115, 117, 117]"
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

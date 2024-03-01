@@ -35,9 +35,9 @@ export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
   return page.getByLabel('Confirm password')
 }
 
-/** Find an "old password" input (if any) on the current page. */
-export function locateOldPasswordInput(page: test.Locator | test.Page) {
-  return page.getByLabel('Old password')
+/** Find a "current password" input (if any) on the current page. */
+export function locateCurrentPasswordInput(page: test.Locator | test.Page) {
+  return page.getByPlaceholder('Enter your current password')
 }
 
 /** Find a "new password" input (if any) on the current page. */
@@ -83,7 +83,7 @@ export function locateSecretValueInput(page: test.Locator | test.Page) {
 /** Find a search bar input (if any) on the current page. */
 export function locateSearchBarInput(page: test.Locator | test.Page) {
   return locateSearchBar(page).getByPlaceholder(
-    'Type to search for projects, data connectors, users, and more.'
+    'Type to search for projects, Data Links, users, and more.'
   )
 }
 
@@ -94,41 +94,34 @@ export function locateAssetRowName(locator: test.Locator) {
 
 // === Button locators ===
 
-/** Find a toast close button (if any) on the current page. */
+/** Find a toast close button (if any) on the current locator. */
 export function locateToastCloseButton(page: test.Locator | test.Page) {
   // There is no other simple way to uniquely identify this element.
   // eslint-disable-next-line no-restricted-properties
   return page.locator('.Toastify__close-button')
 }
 
-/** Find a login button (if any) on the current page. */
+/** Find a "login" button (if any) on the current locator. */
 export function locateLoginButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Login', exact: true }).getByText('Login')
 }
 
-/** Find a register button (if any) on the current page. */
+/** Find a "register" button (if any) on the current locator. */
 export function locateRegisterButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Register' }).getByText('Register')
 }
 
-/** Find a reset button (if any) on the current page. */
-export function locateResetButton(page: test.Locator | test.Page) {
-  return page.getByRole('button', { name: 'Reset' }).getByText('Reset')
+/** Find a "change" button (if any) on the current locator. */
+export function locateChangeButton(page: test.Locator | test.Page) {
+  return page.getByRole('button', { name: 'Change' }).getByText('Change')
 }
 
-/** Find a user menu button (if any) on the current page. */
+/** Find a user menu button (if any) on the current locator. */
 export function locateUserMenuButton(page: test.Locator | test.Page) {
   return page.getByAltText('Open user menu')
 }
 
-/** Find a change password button (if any) on the current page. */
-export function locateChangePasswordButton(page: test.Locator | test.Page) {
-  return page
-    .getByRole('button', { name: 'Change your password' })
-    .getByText('Change your password')
-}
-
-/** Find a "sign out" button (if any) on the current page. */
+/** Find a "sign out" button (if any) on the current locator. */
 export function locateLogoutButton(page: test.Locator | test.Page) {
   return page.getByRole('button', { name: 'Logout' }).getByText('Logout')
 }
@@ -498,12 +491,6 @@ export function locateCollapsibleDirectories(page: test.Page) {
   return locateAssetRows(page).filter({ has: page.getByAltText('Collapse') })
 }
 
-/** Find a "change password" modal (if any) on the current page. */
-export function locateChangePasswordModal(page: test.Locator | test.Page) {
-  // This has no identifying features.
-  return page.getByTestId('change-password-modal')
-}
-
 /** Find a "confirm delete" modal (if any) on the current page. */
 export function locateConfirmDeleteModal(page: test.Locator | test.Page) {
   // This has no identifying features.
@@ -589,6 +576,17 @@ export function getAssetRowLeftPx(locator: test.Locator) {
   return locator.evaluate(el => el.children[0]?.children[0]?.getBoundingClientRect().left ?? 0)
 }
 
+// ===================================
+// === expect functions for themes ===
+// ===================================
+
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectClassSelected(locator: test.Locator) {
+  await test.test.step('Expect `selected`', async () => {
+    await test.expect(locator).toHaveClass(/(?:^| )selected(?: |$)/)
+  })
+}
+
 // ============================
 // === expectPlaceholderRow ===
 // ============================
@@ -634,12 +632,11 @@ export async function press(page: test.Page, keyOrShortcut: string) {
     await test.test.step('Detect browser OS', async () => {
       userAgent = await page.evaluate(() => navigator.userAgent)
     })
-    // This should be `Meta` (`Cmd`) on macOS, and `Control` on all other systems
-    const ctrlKey = /\bMac OS\b/i.test(userAgent) ? 'Meta' : 'Control'
-    const deleteKey = /\bMac OS\b/i.test(userAgent) ? 'Backspace' : 'Delete'
-    await page.keyboard.press(
-      keyOrShortcut.replace(/\bMod\b/g, ctrlKey).replace(/\bDelete\b/, deleteKey)
-    )
+    const isMacOS = /\bMac OS\b/i.test(userAgent)
+    const ctrlKey = isMacOS ? 'Meta' : 'Control'
+    const deleteKey = isMacOS ? 'Backspace' : 'Delete'
+    const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
+    await test.test.step(`Press '${shortcut}'`, () => page.keyboard.press(shortcut))
   } else {
     await page.keyboard.press(keyOrShortcut)
   }

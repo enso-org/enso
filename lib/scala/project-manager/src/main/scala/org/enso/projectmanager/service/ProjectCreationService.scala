@@ -2,7 +2,7 @@ package org.enso.projectmanager.service
 
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.logger.masking.MaskedPath
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._

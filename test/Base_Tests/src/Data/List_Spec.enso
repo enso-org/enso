@@ -294,8 +294,8 @@ add_specs suite_builder = suite_builder.group "List" group_builder->
         l.get 3 . should_equal Nothing
         l.get -4 . should_equal Nothing
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

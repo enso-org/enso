@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.cast.CastProblemAggregator;
@@ -20,7 +19,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
-public abstract class Storage<T> {
+public abstract class Storage<T> implements ColumnStorage {
   /** A constant representing the index of a missing value in a column. */
   public static final int NOT_FOUND_INDEX = -1;
 
@@ -29,14 +28,12 @@ public abstract class Storage<T> {
    */
   public abstract int size();
 
-  /**
-   * @return the number of NA elements in this column
-   */
-  public abstract int countMissing();
+  @Override
+  public long getSize() {
+    return size();
+  }
 
-  /**
-   * @return the type tag of this column's storage.
-   */
+  @Override
   public abstract StorageType getType();
 
   /**
@@ -70,13 +67,8 @@ public abstract class Storage<T> {
     return this;
   }
 
-  /**
-   * Checks whether the value at {@code idx} is missing.
-   *
-   * @param idx the index to check.
-   * @return whether or not the value is missing.
-   */
-  public abstract boolean isNa(long idx);
+  @Override
+  public abstract boolean isNothing(long index);
 
   /**
    * Returns a boxed representation of an item. Missing values are denoted with null.
@@ -99,44 +91,17 @@ public abstract class Storage<T> {
     public static final String DIV = "/";
     public static final String MOD = "%";
     public static final String POWER = "^";
-    public static final String TRUNCATE = "truncate";
-    public static final String CEIL = "ceil";
-    public static final String FLOOR = "floor";
     public static final String ROUND = "round";
-    public static final String NOT = "not";
     public static final String AND = "&&";
     public static final String OR = "||";
-    public static final String IS_NOTHING = "is_nothing";
-    public static final String IS_NAN = "is_nan";
-    public static final String IS_INFINITE = "is_infinite";
-    public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
-    public static final String TEXT_LENGTH = "text_length";
     public static final String TEXT_LEFT = "text_left";
     public static final String TEXT_RIGHT = "text_right";
     public static final String CONTAINS = "contains";
     public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
-    public static final String YEAR = "year";
-    public static final String QUARTER = "quarter";
-    public static final String MONTH = "month";
-    public static final String WEEK = "week";
-    public static final String DAY = "day";
-    public static final String HOUR = "hour";
-    public static final String MINUTE = "minute";
-    public static final String SECOND = "second";
-    public static final String MILLISECOND = "millisecond";
-    public static final String MICROSECOND = "microsecond";
-    public static final String NANOSECOND = "nanosecond";
   }
-
-  /* Specifies if the given unary operation has a vectorized implementation available for this storage.*/
-  public abstract boolean isUnaryOpVectorized(String name);
-
-  /** Runs a vectorized unary operation. */
-  public abstract Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator);
 
   /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
   public abstract boolean isBinaryOpVectorized(String name);
@@ -165,37 +130,6 @@ public abstract class Storage<T> {
    */
   public abstract Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemAggregator problemAggregator);
-
-  /**
-   * Runs a unary function on each non-null element in this storage.
-   *
-   * @param function the function to run.
-   * @param skipNa whether rows containing missing values should be passed to the function.
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the function on each row
-   */
-  public final Storage<?> unaryMap(
-      Function<Object, Value> function,
-      boolean skipNa,
-      StorageType expectedResultType,
-      ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      Object it = getItemBoxed(i);
-      if (skipNa && it == null) {
-        storageBuilder.appendNulls(1);
-      } else {
-        Value result = function.apply(it);
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.appendNoGrow(converted);
-      }
-
-      context.safepoint();
-    }
-    return storageBuilder.seal();
-  }
 
   /**
    * Runs a 2-argument function on each element in this storage.
@@ -267,34 +201,6 @@ public abstract class Storage<T> {
       context.safepoint();
     }
     return storageBuilder.seal();
-  }
-
-  /**
-   * Runs a unary operation.
-   *
-   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
-   *
-   * @param name the name of the vectorized operation
-   * @param problemAggregator the problem aggregator to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not
-   *     available; it should never raise dataflow errors.
-   * @param skipNa whether rows containing missing values should be passed to the fallback function.
-   * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *     operation is vectorized
-   * @return the result of running the operation on each row
-   */
-  public final Storage<?> vectorizedOrFallbackUnaryMap(
-      String name,
-      MapOperationProblemAggregator problemAggregator,
-      Function<Object, Value> fallback,
-      boolean skipNa,
-      StorageType expectedResultType) {
-    if (isUnaryOpVectorized(name)) {
-      return runVectorizedUnaryMap(name, problemAggregator);
-    } else {
-      checkFallback(fallback, expectedResultType, name);
-      return unaryMap(fallback, skipNa, expectedResultType, problemAggregator);
-    }
   }
 
   /**
@@ -448,7 +354,7 @@ public abstract class Storage<T> {
     var builder = Builder.getForType(commonType, size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      if (isNa(i)) {
+      if (isNothing(i)) {
         builder.appendNoGrow(other.getItemBoxed(i));
       } else {
         builder.appendNoGrow(getItemBoxed(i));
@@ -531,5 +437,10 @@ public abstract class Storage<T> {
       StorageType targetType, CastProblemAggregator castProblemAggregator) {
     StorageConverter<?> converter = StorageConverter.fromStorageType(targetType);
     return converter.cast(this, castProblemAggregator);
+  }
+
+  @Override
+  public Object getItemAsObject(long index) {
+    return getItemBoxed((int) index);
   }
 }

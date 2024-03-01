@@ -1,6 +1,6 @@
 package org.enso.launcher
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 
 object Constants {
 
@@ -10,7 +10,7 @@ object Constants {
     * and provide better error messages if it cannot.
     */
   val uploadIntroducedVersion: SemVer =
-    SemVer(0, 2, 17, Some("SNAPSHOT"))
+    SemVer.of(0, 2, 17, "SNAPSHOT")
 
   /** The engine version in which the dependency preinstall command has been
     * introduced.
@@ -19,7 +19,7 @@ object Constants {
     * and provide better error messages if it cannot.
     */
   val preinstallDependenciesIntroducedVersion: SemVer =
-    SemVer(0, 2, 28, Some("SNAPSHOT"))
+    SemVer.of(0, 2, 28, "SNAPSHOT")
 
   /** The upload URL associated with the main Enso library repository. */
   val defaultUploadUrl = "https://publish.libraries.release.enso.org/"

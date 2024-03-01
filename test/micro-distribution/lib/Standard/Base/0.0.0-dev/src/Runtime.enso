@@ -1,10 +1,12 @@
 import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Boolean.Boolean
+import project.Error.Error
 import project.Errors.Common.Forbidden_Operation
 import project.Function.Function
 import project.Panic.Panic
 
+from project.Data.Boolean import True
 from project.Runtime.Context import Input, Output
 
 @Builtin_Type
@@ -18,9 +20,11 @@ type Context
             Input  -> "Input"
             Output -> "Output"
 
-    if_enabled : Function -> Text -> Any
-    if_enabled self ~action environment="design" =
-        if self.is_enabled environment then action else Panic.throw (Forbidden_Operation.Error self.name)
+    if_enabled : Any -> Text -> Text -> Boolean -> Any ! Forbidden_Operation
+    if_enabled self ~action environment="design" disabled_message="The "+self.name+" context is disabled." panic=True =
+        if self.is_enabled environment then action else
+            error = Forbidden_Operation.Error disabled_message
+            if panic then Panic.throw error else Error.throw error
 
     is_enabled : Text -> Boolean
     is_enabled self environment="design" =

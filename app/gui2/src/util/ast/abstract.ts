@@ -1,6 +1,5 @@
 import { parseEnso } from '@/util/ast'
 import { normalizeQualifiedName, qnFromSegments } from '@/util/qualifiedName'
-import { swapKeysAndValues } from '@/util/record'
 import type {
   AstId,
   IdentifierOrOperatorIdentifier,
@@ -26,31 +25,6 @@ import {
   print,
 } from 'shared/ast'
 export * from 'shared/ast'
-
-const mapping: Record<string, string> = {
-  '\b': '\\b',
-  '\f': '\\f',
-  '\n': '\\n',
-  '\r': '\\r',
-  '\t': '\\t',
-  '\v': '\\v',
-  '"': '\\"',
-  "'": "\\'",
-  '`': '``',
-}
-
-const reverseMapping = swapKeysAndValues(mapping)
-
-/** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
- * NOT USABLE to insert into raw strings. Does not include quotes. */
-export function escape(string: string) {
-  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
-}
-
-/** The reverse of `escape`: transform the string into human-readable form, not suitable for interpolation. */
-export function unescape(string: string) {
-  return string.replace(/\\[0bfnrtv"']|``/g, (match) => reverseMapping[match]!)
-}
 
 export function deserialize(serialized: string): Owned {
   const parsed: SerializedPrintedSource = JSON.parse(serialized)
@@ -84,7 +58,7 @@ export function tokenTree(root: Ast): TokenTree {
     if (isTokenId(child.node)) {
       return module.getToken(child.node).code()
     } else {
-      const node = module.get(child.node)
+      const node = module.tryGet(child.node)
       return node ? tokenTree(node) : '<missing>'
     }
   })
@@ -98,7 +72,7 @@ export function tokenTreeWithIds(root: Ast): TokenTree {
       if (isTokenId(child.node)) {
         return module.getToken(child.node).code()
       } else {
-        const node = module.get(child.node)
+        const node = module.tryGet(child.node)
         return node ? tokenTreeWithIds(node) : ['<missing>']
       }
     }),

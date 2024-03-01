@@ -422,8 +422,8 @@ add_specs suite_builder =
             t.column_names . should_not_contain "Children"
             t.column_names . should_not_contain "Value"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

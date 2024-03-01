@@ -534,6 +534,41 @@ type Vector a
     partition_with_index self predicate =
         Array_Like_Helpers.partition_with_index self predicate
 
+    ## GROUP Selections
+       Swaps the rows and columns of a matrix represented by a vector of vectors.
+
+       ! Error Conditions
+
+         - If the rows (subvectors) do not all have the same length, an
+         `Illegal_Argument` error is raised.
+
+       > Example
+         Transpose a vector of vectors.
+
+             matrix = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+             # +---+---+---+
+             # | 0 | 1 | 2 |
+             # +---+---+---+
+             # | 3 | 4 | 5 |
+             # +---+---+---+
+             # | 6 | 7 | 8 |
+             # +---+---+---+
+
+             transposed = [[0, 3, 6], [1, 4, 7], [2, 5, 8]]
+             # +---+---+---+
+             # | 0 | 3 | 6 |
+             # +---+---+---+
+             # | 1 | 4 | 7 |
+             # +---+---+---+
+             # | 2 | 5 | 8 |
+             # +---+---+---+
+
+             matrix.transposed == transposed
+             # => True
+    transpose : Vector (Vector Any) ! Illegal_Argument
+    transpose self =
+        Array_Like_Helpers.transpose self
+
     ## ICON dataframe_map_column
        Applies a function to each element of the vector, returning the `Vector` of
        results.
@@ -1047,7 +1082,8 @@ type Vector a
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## GROUP Selections
+    ## ALIAS unique, deduplicate
+       GROUP Selections
        ICON preparation
        Keeps only unique elements within the vector, removing any duplicates.
 

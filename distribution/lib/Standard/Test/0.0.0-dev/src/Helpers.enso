@@ -1,6 +1,7 @@
 private
 
 from Standard.Base import all
+from Standard.Base.Runtime import assert
 from Standard.Base.Runtime import State
 
 import project.Clue.Clue
@@ -13,27 +14,20 @@ import project.Test.Test
 import project.Test_Reporter
 import project.Test_Result.Test_Result
 
-run_group_with_filter : Group -> (Regex|Text|Nothing) -> Vector Test_Result
-run_group_with_filter (group : Group) (spec_filter : (Regex|Text|Nothing)) =
-    filtered_specs = group.specs.filter spec->
-        case spec_filter of
-            regex : Regex -> (regex.match spec.name) != Nothing
-            text : Text -> spec.name.contains text
-            Nothing -> True
-    run_specs_from_group filtered_specs group
-
-
 run_group : Group -> Vector Test_Result
 run_group (group : Group) =
+    assert group.is_pending.not
     run_specs_from_group group.specs group
 
 
 run_specs_from_group : Vector Spec -> Group -> Vector Test_Result
 run_specs_from_group (specs : Vector Spec) (group : Group) =
+    assert (group.is_pending.not)
     case specs.is_empty of
         True -> []
         False ->
             test_results = specs.map spec->
+                assert (group_contains_spec group spec)
                 pair = run_spec spec
                 spec_res = pair.second
                 time_taken = pair.first
@@ -43,7 +37,11 @@ run_specs_from_group (specs : Vector Spec) (group : Group) =
             test_results
 
 
-## PRIVATE
+group_contains_spec (group : Group) (spec : Spec) -> Boolean =
+    spec_names = group.specs.map (it-> it.name)
+    spec_names.contains spec.name
+
+
 run_spec : Spec -> Pair Duration Spec_Result
 run_spec (spec : Spec) =
     pair = case spec.pending of

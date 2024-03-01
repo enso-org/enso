@@ -21,6 +21,8 @@ export interface VisualizationIdentifier {
 export interface VisualizationMetadata {
   identifier: VisualizationIdentifier | null
   visible: boolean
+  fullscreen: boolean
+  width: number | null
 }
 
 export function visMetadataEquals(
@@ -29,7 +31,12 @@ export function visMetadataEquals(
 ) {
   return (
     (!a && !b) ||
-    (a && b && a.visible === b.visible && visIdentifierEquals(a.identifier, b.identifier))
+    (a &&
+      b &&
+      a.visible === b.visible &&
+      a.fullscreen == b.fullscreen &&
+      a.width == b.width &&
+      visIdentifierEquals(a.identifier, b.identifier))
   )
 }
 
@@ -120,13 +127,23 @@ export class DistributedModule {
     this.undoManager = new Y.UndoManager([this.doc.nodes])
   }
 
-  transact<T>(fn: () => T): T {
-    return this.doc.ydoc.transact(fn, 'local')
-  }
-
   dispose(): void {
     this.doc.ydoc.destroy()
   }
+}
+
+export const localOrigins = ['local', 'local:CodeEditor'] as const
+export type LocalOrigin = (typeof localOrigins)[number]
+export type Origin = LocalOrigin | 'remote'
+/** Locally-originated changes not otherwise specified. */
+export const defaultLocalOrigin: LocalOrigin = 'local'
+export function isLocalOrigin(origin: string): origin is LocalOrigin {
+  const localOriginNames: readonly string[] = localOrigins
+  return localOriginNames.includes(origin)
+}
+export function tryAsOrigin(origin: string): Origin | undefined {
+  if (isLocalOrigin(origin)) return origin
+  if (origin === 'remote') return origin
 }
 
 export type SourceRange = readonly [start: number, end: number]
@@ -228,6 +245,14 @@ export function isUuid(x: unknown): x is Uuid {
 
 export function rangeEquals(a: SourceRange, b: SourceRange): boolean {
   return a[0] == b[0] && a[1] == b[1]
+}
+
+export function rangeIncludes(a: SourceRange, b: number): boolean {
+  return a[0] <= b && a[1] >= b
+}
+
+export function rangeLength(a: SourceRange): number {
+  return a[1] - a[0]
 }
 
 export function rangeEncloses(a: SourceRange, b: SourceRange): boolean {

@@ -124,9 +124,9 @@ function toggleDropdownWidget() {
   showDropdownWidget.value = !showDropdownWidget.value
 }
 
-function onClick(index: number) {
+function onClick(index: number, keepOpen: boolean) {
   selectedIndex.value = index
-  showDropdownWidget.value = false
+  showDropdownWidget.value = keepOpen
 }
 
 // When the selected index changes, we update the expression content.
@@ -177,7 +177,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <div class="WidgetSelection" @pointerdown.stop="toggleDropdownWidget">
+  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
+  <div class="WidgetSelection" @pointerdown.stop @pointerup.stop @click.stop="toggleDropdownWidget">
     <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
     <SvgIcon name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
@@ -186,8 +187,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       :color="'var(--node-color-primary)'"
       :values="tagLabels"
       :selectedValue="selectedLabel"
-      @pointerdown.stop
-      @click="onClick($event)"
+      @click="onClick"
     />
   </div>
 </template>

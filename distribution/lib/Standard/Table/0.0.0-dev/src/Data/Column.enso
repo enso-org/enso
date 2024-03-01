@@ -33,7 +33,18 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.operation.CountNothing
+polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
+polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
+polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
+polyglot java import org.enso.table.data.column.operation.unary.IsInfiniteOperation
+polyglot java import org.enso.table.data.column.operation.unary.IsNaNOperation
+polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
+polyglot java import org.enso.table.data.column.operation.unary.NotOperation
+polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
+polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePartOperation
+polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -150,7 +161,7 @@ type Column
         num_rows = java_col.getSize
         display_rows = num_rows.min show_rows
         items = Vector.new display_rows num->
-            row = if storage.isNa num then "Nothing" else
+            row = if storage.isNothing num then "Nothing" else
                 get_item_string storage num
             [num.to_text, row]
         table = print_table ["", col_name] items 1 format_terminal
@@ -769,7 +780,7 @@ type Column
     not self =
         Value_Type.expect_boolean self <|
             new_name = naming_helper.concat ["not", naming_helper.to_expression_text self]
-            run_vectorized_unary_op self Java_Storage.Maps.NOT new_name
+            apply_unary_operation self NotOperation.INSTANCE new_name
 
     ## ALIAS if
        GROUP Standard.Base.Logical
@@ -921,7 +932,7 @@ type Column
                     True ->
                         self.rename new_name
                     False ->
-                        simple_unary_op self Java_Storage.Maps.TRUNCATE
+                        apply_unary_operation self UnaryRoundOperation.TRUNCATE_INSTANCE
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
@@ -946,7 +957,7 @@ type Column
                 new_name = naming_helper.function_name "ceil" [self]
                 self.rename new_name
             False ->
-                simple_unary_op self Java_Storage.Maps.CEIL
+                apply_unary_operation self UnaryRoundOperation.CEIL_INSTANCE
 
     ## GROUP Standard.Base.Rounding
        ICON math
@@ -966,7 +977,7 @@ type Column
                 new_name = naming_helper.function_name "floor" [self]
                 self.rename new_name
             False ->
-                simple_unary_op self Java_Storage.Maps.FLOOR
+                apply_unary_operation self UnaryRoundOperation.FLOOR_INSTANCE
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -1045,7 +1056,7 @@ type Column
     is_nothing : Column
     is_nothing self =
         new_name = naming_helper.concat [naming_helper.to_expression_text self, "is Nothing"]
-        run_vectorized_unary_op self Java_Storage.Maps.IS_NOTHING new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
+        apply_unary_operation self IsNothingOperation.INSTANCE new_name
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -1061,9 +1072,8 @@ type Column
         new_name = naming_helper.function_name "is_nan" [self]
         fallback x = case x of
             _ : Float   -> x.is_nan
-            Nothing     -> Nothing
             _           -> False
-        run_vectorized_unary_op self Java_Storage.Maps.IS_NAN new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
+        apply_unary_operation self IsNaNOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -1075,9 +1085,8 @@ type Column
         new_name = naming_helper.function_name "is_infinite" [self]
         fallback x = case x of
             _ : Float   -> x.is_infinite
-            Nothing     -> Nothing
             _           -> False
-        run_vectorized_unary_op self Java_Storage.Maps.IS_INFINITE new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
+        apply_unary_operation self IsInfiniteOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -1094,7 +1103,7 @@ type Column
             _ : Text -> x == ""
             Nothing  -> True
             _        -> False
-        run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean skip_nulls=False
+        apply_unary_operation self IsEmptyOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean nothing_unchanged=False)
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1287,7 +1296,7 @@ type Column
     text_length : Column
     text_length self =
         Value_Type.expect_text self <|
-            simple_unary_op self Java_Storage.Maps.TEXT_LENGTH
+            apply_unary_operation self TextLengthOperation.INSTANCE
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1473,7 +1482,7 @@ type Column
        Returns a column of `Integer` type.
     year : Column ! Invalid_Value_Type
     year self = Value_Type.expect_has_date self <|
-        simple_unary_op self Java_Storage.Maps.YEAR
+        apply_unary_operation self DatePartOperation.YEAR_INSTANCE
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1483,7 +1492,7 @@ type Column
        Returns a column of `Integer` type.
     month : Column ! Invalid_Value_Type
     month self = Value_Type.expect_has_date self <|
-        simple_unary_op self Java_Storage.Maps.MONTH
+        apply_unary_operation self DatePartOperation.MONTH_INSTANCE
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1494,7 +1503,7 @@ type Column
        Returns a column of `Integer` type.
     day : Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self <|
-        simple_unary_op self Java_Storage.Maps.DAY
+        apply_unary_operation self DatePartOperation.DAY_INSTANCE
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1504,7 +1513,7 @@ type Column
        Returns a column of `Integer` type.
     hour : Column ! Invalid_Value_Type
     hour self = Value_Type.expect_has_time self <|
-        simple_unary_op self Java_Storage.Maps.HOUR
+        apply_unary_operation self DatePartOperation.HOUR_INSTANCE
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1514,7 +1523,7 @@ type Column
        Returns a column of `Integer` type.
     minute : Column ! Invalid_Value_Type
     minute self = Value_Type.expect_has_time self <|
-        simple_unary_op self Java_Storage.Maps.MINUTE
+        apply_unary_operation self DatePartOperation.MINUTE_INSTANCE
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -1524,7 +1533,7 @@ type Column
        Returns a column of `Integer` type.
     second : Column ! Invalid_Value_Type
     second self = Value_Type.expect_has_time self <|
-        simple_unary_op self Java_Storage.Maps.SECOND
+        apply_unary_operation self DatePartOperation.SECOND_INSTANCE
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1534,7 +1543,21 @@ type Column
     @period Date_Time_Helpers.make_period_selector_for_column
     date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
     date_part self period =
-        Date_Time_Helpers.make_date_part_function self period simple_unary_op naming_helper
+        date_part_operation col name =
+            operation = case name of
+                DatePartOperation.YEAR -> DatePartOperation.YEAR_INSTANCE
+                DatePartOperation.QUARTER -> DatePartOperation.QUARTER_INSTANCE
+                DatePartOperation.MONTH -> DatePartOperation.MONTH_INSTANCE
+                DatePartOperation.WEEK -> DatePartOperation.WEEK_INSTANCE
+                DatePartOperation.DAY -> DatePartOperation.DAY_INSTANCE
+                DatePartOperation.HOUR -> DatePartOperation.HOUR_INSTANCE
+                DatePartOperation.MINUTE -> DatePartOperation.MINUTE_INSTANCE
+                DatePartOperation.SECOND -> DatePartOperation.SECOND_INSTANCE
+                DatePartOperation.MILLISECOND -> DatePartOperation.MILLISECOND_INSTANCE
+                TruncatedTimePartOperation.MICROSECOND -> TruncatedTimePartOperation.MICROSECOND_INSTANCE
+                TruncatedTimePartOperation.NANOSECOND -> TruncatedTimePartOperation.NANOSECOND_INSTANCE
+            apply_unary_operation col operation
+        Date_Time_Helpers.make_date_part_function self period date_part_operation naming_helper
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1644,7 +1667,7 @@ type Column
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
                 set = Set.from_vector as_vector error_on_duplicates=False
-                run_unary_op self set.contains_relational new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
+                apply_unary_map self result_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2063,7 +2086,7 @@ type Column
 
              example_count_nothing = Examples.text_column_2.count_nothing
     count_nothing : Integer
-    count_nothing self = self.java_column.getStorage.countMissing
+    count_nothing self = CountNothing.apply self.java_column
 
     ## GROUP Standard.Base.Metadata
        Returns the number of non-null items in this column.
@@ -2118,7 +2141,7 @@ type Column
         valid_index = (index >= 0) && (index < self.length)
         if valid_index.not then default else
             storage = self.java_column.getStorage
-            if storage.isNa index then Nothing else
+            if storage.isNothing index then Nothing else
                 storage.getItem index
 
     ## ICON data_input
@@ -2501,27 +2524,6 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
         Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
-   Runs a unary operation over the provided column.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - function: The function to apply to each element of `column`.
-   - new_name: The name of the column created as the result of this operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-   - expected_result_type: The expected result type of the operation. If set to
-     `Nothing`, the result type is inferred from the values.
-run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing =
-    s = column.java_column.getStorage
-    storage_type = resolve_storage_type expected_result_type
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-            s.unaryMap function skip_nulls storage_type problem_builder
-        Column.Value (Java_Column.new new_name new_storage)
-
-## PRIVATE
 
    Executes a vectorized binary operation over the provided column.
 
@@ -2559,30 +2561,6 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn operand skip_nulls storage_type
                 Column.Value (Java_Column.new new_name rs)
-
-## PRIVATE
-
-   Executes a vectorized unary operation over the provided column.
-
-   Arguments:
-   - column: The column to execute the operation over.
-   - name: The name of the vectorized operation.
-   - new_name: The name of the column created as the result of this operation.
-   - fallback_fn: The function to call if a vectorized operation is not
-     available. It should never raise dataflow errors.
-   - expected_result_type: The expected result type of the operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-run_vectorized_unary_op : Column -> Text -> Text -> (Any -> Any) -> Value_Type -> Any -> Column
-run_vectorized_unary_op column name new_name fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
-        s = column.java_column.getStorage
-        storage_type = resolve_storage_type expected_result_type
-        rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-            s.vectorizedOrFallbackUnaryMap name problem_builder fallback_fn skip_nulls storage_type
-        Column.Value (Java_Column.new new_name rs)
 
 ## PRIVATE
 
@@ -2653,11 +2631,6 @@ run_vectorized_binary_case_text_op left op other case_sensitivity fallback new_n
             run_binary_op left fallback other new_name=new_name skip_nulls=True expected_result_type=result_type
 
 ## PRIVATE
-simple_unary_op column op_name =
-    new_name = naming_helper.function_name op_name [column]
-    run_vectorized_unary_op column op_name new_name
-
-## PRIVATE
    Converts the value type to a storage type, passing `Nothing` through.
 
    Sometimes we do not specify the storage type as it should be inferred by the
@@ -2719,3 +2692,34 @@ Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_v
 ## PRIVATE
    Conversion method to a Column from a Vector.
 Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector
+
+## PRIVATE
+   Applies a UnaryOperation to a column.
+
+   Arguments:
+   - column: The column to apply the operation to.
+   - operation: The UnaryOperation to apply.
+   - new_name: The name of the column created as the result of this operation.
+   - if_unsupported: The result if the operation is not supported for the column.
+apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called. This is a bug in the Table library.")) =
+    used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
+        java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator
+        if java_column.is_nothing then if_unsupported else Column.Value java_column
+
+## PRIVATE
+   Applies a function to every row in the column.
+
+   Arguments:
+   - column: The column to apply the operation to.
+   - new_name: The name of the column created as the result of this operation.
+   - function: A function applied to every element. It should not raise errors.
+   - expected_result_type: The expected result type of the operation.
+   - nothing_unchanged: If set to `True`, `Nothing` values will be passed through
+     the operation without being changed. If set to `False`, `Nothing` values will
+     be passed to the function.
+apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True =
+    storage_type = resolve_storage_type expected_result_type
+    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
+        map_column = UnaryOperation.mapFunction column.java_column function nothing_unchanged storage_type new_name java_problem_aggregator
+        Column.Value map_column

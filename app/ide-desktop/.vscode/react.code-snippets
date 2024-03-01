@@ -24,5 +24,9 @@
   "useState": {
     "prefix": ["$s", "usestate"],
     "body": ["const [$1, set${1/(.*)/${1:/pascalcase}/}] = React.useState($2)"]
+  },
+  "section": {
+    "prefix": ["$S", "section"],
+    "body": ["// ====${1/./=/g}====", "// === $1 ===", "// ====${1/./=/g}===="]
   }
 }

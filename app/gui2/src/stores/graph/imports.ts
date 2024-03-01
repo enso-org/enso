@@ -446,7 +446,7 @@ if (import.meta.vitest) {
     const db = new SuggestionDb()
     const reexportedModule = makeModule('Standard.AWS.Connections')
     reexportedModule.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
-    const reexportedType = makeModule('Standard.Database.Table.Table')
+    const reexportedType = makeModule('Standard.Database.DB_Table.DB_Table')
     reexportedType.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
     const extensionMethod = makeMethod('Standard.Network.URI.fetch')
     extensionMethod.definedIn = unwrap(tryQualifiedName('Standard.Base'))
@@ -543,7 +543,7 @@ if (import.meta.vitest) {
         {
           kind: 'Unqualified',
           from: unwrap(tryQualifiedName('Standard.Base')),
-          import: unwrap(tryIdentifier('Table')),
+          import: unwrap(tryIdentifier('DB_Table')),
         },
       ],
     },

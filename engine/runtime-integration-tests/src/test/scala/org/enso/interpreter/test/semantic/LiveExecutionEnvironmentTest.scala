@@ -37,7 +37,9 @@ class LiveExecutionEnvironmentTest extends InterpreterTest {
           |
           |main = Panic.catch Any (Runtime.with_disabled_context Input action=(input_action 2)) p-> p.payload.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Forbidden_Operation.Error 'Input')"
+      eval(
+        code
+      ) shouldEqual "(Forbidden_Operation.Error 'The Input context is disabled.')"
     }
 
     "error on invalid environment actions" in {

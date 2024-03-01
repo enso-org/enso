@@ -535,10 +535,10 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @pointerdown="zoomToSelected(false)" />
+        <SvgIcon name="show_all" alt="Fit all" @click.stop="zoomToSelected(false)" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <SvgIcon name="find" alt="Zoom to selected" @pointerdown="zoomToSelected" />
+        <SvgIcon name="find" alt="Zoom to selected" @click.stop="zoomToSelected" />
       </button>
     </template>
     <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>

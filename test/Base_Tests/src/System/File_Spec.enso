@@ -841,7 +841,7 @@ add_specs suite_builder =
             filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
             filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

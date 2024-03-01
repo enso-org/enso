@@ -90,7 +90,7 @@ type Primitive_Enso_Callback_Test
         builder = NumericBuilder.createLongBuilder n
         storage = self.int_column.java_column.getStorage
         0.up_to n . each i->
-            case storage.isNa i of
+            case storage.isNothing i of
                 True ->
                     builder.appendNulls 1
                 False ->

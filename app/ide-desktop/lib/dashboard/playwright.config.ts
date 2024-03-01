@@ -18,6 +18,7 @@ export default test.defineConfig({
     toHaveScreenshot: { threshold: 0 },
     timeout: 30_000,
   },
+  timeout: 30_000,
   use: {
     baseURL: 'http://localhost:8080',
     launchOptions: {

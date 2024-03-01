@@ -5,8 +5,7 @@ import { ref } from 'vue'
 import TopBar from '@/components/TopBar.vue'
 
 const title = ref('Mock Project')
-const modes = ref(['design', 'live'])
-const mode = ref('live')
+const recordMode = ref(true)
 const breadcrumbs = ref(['main', 'ad_analytics'])
 </script>
 
@@ -15,21 +14,19 @@ const breadcrumbs = ref(['main', 'ad_analytics'])
     <div style="height: 48px">
       <TopBar
         :title="title"
-        :mode="mode"
-        :modes="modes"
+        :recordMode="recordMode"
         :breadcrumbs="breadcrumbs"
         @back="logEvent('back', [])"
         @forward="logEvent('forward', [])"
-        @execute="logEvent('execute', [])"
+        @recordOnce="logEvent('recordOnce', [])"
         @breadcrumbClick="logEvent('breadcrumbClick', [$event])"
-        @update:mode="logEvent('update:mode', [$event]), (mode = $event)"
+        @update:recordMode="logEvent('update:recordMode', [$event]), (recordMode = $event)"
       />
     </div>
 
     <template #controls>
       <HstText v-model="title" title="title" />
-      <HstSelect v-model="mode" title="mode" :options="modes" />
-      <HstJson v-model="modes" title="modes" />
+      <HstJson v-model="recordMode" title="recordMode" />
       <HstJson v-model="breadcrumbs" title="breadcrumbs" />
     </template>
   </Story>

@@ -54,8 +54,8 @@ add_specs suite_builder =
         group_builder.specify "should apply default arguments that involve local functions" <|
             local_fun 0 . should_equal 43
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

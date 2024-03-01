@@ -14,6 +14,6 @@ public class ForbiddenOperation extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("operation");
+    return List.of("message");
   }
 }

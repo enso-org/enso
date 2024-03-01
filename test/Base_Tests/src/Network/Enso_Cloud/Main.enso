@@ -12,9 +12,9 @@ add_specs suite_builder setup =
     Enso_File_Spec.add_specs suite_builder setup
     Secrets_Spec.add_specs suite_builder setup
 
-main =
+main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
         add_specs suite_builder setup
-    suite.run_with_filter
+    suite.run_with_filter filter
 

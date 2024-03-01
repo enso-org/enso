@@ -37,8 +37,8 @@ add_specs suite_builder = suite_builder.group "Text_Sub_Range_Data" group_builde
         character_ranges accent_2 . should_equal [0.up_to 2]
         character_ranges kshi+facepalm+accent_1+accent_2 . should_equal [0.up_to 4, 4.up_to 11, 11.up_to 12, 12.up_to 14]
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
