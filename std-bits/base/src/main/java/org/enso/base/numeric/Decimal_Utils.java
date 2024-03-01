@@ -80,11 +80,21 @@ public class Decimal_Utils {
     boolean fitsInLong = fitsInLong(bd);
     System.out.println("BD hco " + bd + " " + isFractional + " " + fitsInLong);
     if (isFractional || fitsInLong) {
-      System.out.println("AAA new Double.hashCode");
       double d = bd.doubleValue();
-      System.out.println("BD hco d " + d + " " + (d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY));
-      assert d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY;
-      return Double.hashCode(d);
+      //assert d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY;
+      var is_finite = d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY;
+      if (is_finite) {
+        //System.out.println("BD hco d " + d + " " + (d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY));
+        System.out.println("AAA new Double.hashCode");
+        return Double.hashCode(d);
+      } else {
+        // Infinite values here just means finite values outside the double
+        // range. In this path, the values must fractional, and so cannot
+        // coincide with a value of any other type, so we can hash it however we
+        // want.
+        System.out.println("AAA new bd.hC");
+        return bd.hashCode();
+      }
     } else {
       // Will not throw ArithmeticException since the value has a 0 fractional part.
       //System.out.println("AAA new hash as bi");
