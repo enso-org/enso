@@ -264,7 +264,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   return (
     <div
-      className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+      className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -288,7 +288,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       }}
     >
       {!canExecute ? (
-        <SvgMask src={NetworkIcon} className="m-1" />
+        <SvgMask src={NetworkIcon} className="size-icon m-name-column-icon" />
       ) : (
         <ProjectIcon
           keyProp={item.key}

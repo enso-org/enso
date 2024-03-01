@@ -114,7 +114,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
   return (
     <div
-      className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+      className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -145,7 +145,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
     >
-      <SvgMask src={KeyIcon} className="size-icon m-1" />
+      <SvgMask src={KeyIcon} className="size-icon m-name-column-icon" />
       {/* Secrets cannot be renamed. */}
       <span data-testid="asset-row-name" className="bg-transparent grow text">
         {asset.title}

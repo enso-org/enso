@@ -23,7 +23,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
           ? 'Sort by name descending'
           : 'Stop sorting by name'
       }
-      className="flex items-center gap-icon-with-text px-name-column-header-x w-full h-drive-table-heading"
+      className="flex items-center gap-icon-with-text px-name-column-x w-full h-drive-table-heading"
       onMouseEnter={() => {
         setIsHovered(true)
       }}

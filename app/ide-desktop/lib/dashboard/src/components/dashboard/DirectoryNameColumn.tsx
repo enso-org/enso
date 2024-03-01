@@ -130,7 +130,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   return (
     <div
-      className={`group flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+      className={`group flex text-left items-center whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -154,7 +154,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <SvgMask
         src={FolderArrowIcon}
         alt={item.children == null ? 'Expand' : 'Collapse'}
-        className={`hidden group-hover:inline-block cursor-pointer size-icon m-1 transition-transform duration-300 ${
+        className={`hidden group-hover:inline-block cursor-pointer size-icon m-name-column-icon transition-transform duration-arrow ${
           item.children != null ? 'rotate-90' : ''
         }`}
         onClick={event => {
@@ -162,7 +162,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
         }}
       />
-      <SvgMask src={FolderIcon} className="group-hover:hidden size-icon m-1" />
+      <SvgMask src={FolderIcon} className="group-hover:hidden size-icon m-name-column-icon" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}

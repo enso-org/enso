@@ -276,7 +276,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
       <div className="flex text-sm font-semibold mx-4 mt-2">
         <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
           <SvgMask
-            className={`transition-transform duration-300 shrink-0 ${
+            className={`transition-transform duration-arrow shrink-0 ${
               isThreadListVisible ? '-rotate-180' : ''
             }`}
             src={TriangleDownIcon}

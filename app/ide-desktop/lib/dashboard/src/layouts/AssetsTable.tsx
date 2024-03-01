@@ -112,7 +112,9 @@ const QUERY_PLACEHOLDER = (
   <span className="opacity-placeholder">No files match the current filters.</span>
 )
 /** The placeholder row for the Trash category. */
-const TRASH_PLACEHOLDER = <span className="opacity-placeholder px-1.5">Your trash is empty.</span>
+const TRASH_PLACEHOLDER = (
+  <span className="opacity-placeholder px-cell-x">Your trash is empty.</span>
+)
 
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {
@@ -2431,7 +2433,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       <div className="flex flex-col w-min min-size-full">
         {isCloud && (
           <div className="sticky top h flex flex-col">
-            <div className="block sticky right self-end px-2 py-2.25">
+            <div className="block sticky right self-end px-extra-columns-panel-x py-extra-columns-panel-y">
               <div className="inline-flex gap-icons">
                 {columnUtils.EXTRA_COLUMNS.map(column => (
                   <Button
