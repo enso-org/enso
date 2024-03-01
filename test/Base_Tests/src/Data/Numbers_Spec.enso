@@ -703,7 +703,7 @@ add_specs suite_builder =
 
     suite_builder.group "Equality + Hashing" group_builder->
         group_builder.specify "Integer/Float pairs that are equal should hash the same" <|
-            positive_nums = [0, 10, 3223372036854000000, 6223372036854000000000, 8223372036854000000000000, 9223372036850000000000000000000000000000]
+            positive_nums = [0, 10, 3223372036854000000, 6223372036854000000000, 8223372036854000000000000, 9223372036850000000000000000000000000000, 9223372036854776000]
             nums_nested = positive_nums.map x->
                 -3.up_to 4 . map delta->
                     [1, -1].map sign->
