@@ -30,6 +30,7 @@ export const graphSelection: GraphSelection = {
   hoveredNode: undefined,
   hoveredPort: undefined,
   isSelected: () => false,
+  isChanging: false,
   mouseHandler: () => false,
   selectAll: () => {},
   selected: new Set(),
