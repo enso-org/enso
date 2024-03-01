@@ -39,8 +39,8 @@ public final class UnresolvedConstructor implements EnsoObject {
    * Creates a new unresolved name.
    *
    * @param name constructor name
-   * @param descs arguments to apply to it
-   * @param args arguments to apply to it
+   * @param descs argument descriptions to apply to the constructor
+   * @param args argument values to apply to the constructor
    */
   private UnresolvedConstructor(String name, CallArgumentInfo[] descs, Object[] args) {
     this.name = name;
