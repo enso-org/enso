@@ -433,9 +433,6 @@ impl Processor {
             }
             arg::backend::Command::CiCheck {} => {
                 let config = enso_build::engine::BuildConfigurationFlags {
-                    test_scala: true,
-                    test_standard_library: true,
-                    test_java_generated_from_rust: true,
                     build_benchmarks: true,
                     // Windows is not yet supported for the native runner.
                     build_native_runner: enso_build::ci::big_memory_machine()

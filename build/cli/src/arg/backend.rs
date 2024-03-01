@@ -47,6 +47,11 @@ pub enum Command {
         #[clap(arg_enum, required = true)]
         which: Vec<enso_build::engine::Tests>,
     },
+    // /// Run an SBT command.
+    // Run {
+    //     #[clap(last = true)]
+    //     args: Vec<String>,
+    // },
     /// Run an SBT command.
     Sbt {
         #[clap(last = true)]

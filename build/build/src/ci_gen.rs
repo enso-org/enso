@@ -621,6 +621,9 @@ pub fn backend() -> Result<Workflow> {
     for target in CHECKED_TARGETS {
         workflow.add(target, job::CiCheckBackend);
         workflow.add(target, job::VerifyLicensePackages);
+        workflow.add(target, job::ScalaTests);
+        workflow.add(target, job::StandardLibraryTests);
+        // TODO? Java generated from Rust
     }
     Ok(workflow)
 }

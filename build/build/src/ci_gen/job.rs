@@ -156,6 +156,22 @@ impl JobArchetype for VerifyLicensePackages {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct ScalaTests;
+impl JobArchetype for crate::ci_gen::job::ScalaTests {
+    fn job(&self, target: Target) -> Job {
+        plain_job(target, "Scala Tests", "backend test scala")
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct StandardLibraryTests;
+impl JobArchetype for crate::ci_gen::job::StandardLibraryTests {
+    fn job(&self, target: Target) -> Job {
+        plain_job(target, "Standard Library Tests", "backend test standard-library")
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct Lint;
 impl JobArchetype for Lint {
     fn job(&self, target: Target) -> Job {
