@@ -175,7 +175,7 @@ list_directory directory:File (name_filter:(Text | Nothing)=Nothing) recursive:B
 
          import Standard.Base.Data
          file = enso_project.data / "spreadsheet.xls"
-         Data.fetch URL . body . to_file file
+         Data.fetch URL . body . write file
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
 fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     response = HTTP.fetch uri method headers

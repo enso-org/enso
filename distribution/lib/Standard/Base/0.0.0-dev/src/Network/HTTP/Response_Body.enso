@@ -194,10 +194,10 @@ type Response_Body
 
              import Standard.Examples
 
-             example_to_file =
-                Examples.get_geo_data.to_file Examples.scratch_file
-    to_file : Writable_File -> Existing_File_Behavior -> File
-    to_file self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+             example_write =
+                Examples.get_geo_data.write Examples.scratch_file
+    write : Writable_File -> Existing_File_Behavior -> File
+    write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
         self.with_stream body_stream->
             file.write on_existing_file output_stream->
                 r = output_stream.write_stream body_stream
