@@ -24,6 +24,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   openComponentBrowser: ['Enter'],
   newNode: ['N'],
   toggleVisualization: ['Space'],
+  toggleVisualizationFullscreen: ['Shift+Space'],
   deleteSelected: ['OsDelete'],
   zoomToSelected: ['Mod+Shift+A'],
   selectAll: ['Mod+A'],
@@ -35,6 +36,12 @@ export const graphBindings = defineKeybinds('graph-editor', {
   stopProfiling: ['Mod+Alt+.'],
   enterNode: ['Mod+E'],
   exitNode: ['Mod+Shift+E'],
+})
+
+export const visualizationBindings = defineKeybinds('visualization', {
+  nextType: ['Mod+Space'],
+  toggleFullscreen: ['Shift+Space'],
+  exitFullscreen: ['Escape'],
 })
 
 export const selectionMouseBindings = defineKeybinds('selection', {

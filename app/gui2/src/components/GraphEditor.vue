@@ -239,15 +239,22 @@ const graphBindingsHandler = graphBindings.handler({
     graphStore.stopCapturingUndo()
   },
   toggleVisualization() {
-    if (keyboardBusy()) return false
     graphStore.transact(() => {
       const allVisible = set
         .toArray(nodeSelection.selected)
         .every((id) => !(graphStore.db.nodeIdToNode.get(id)?.vis?.visible !== true))
 
       for (const nodeId of nodeSelection.selected) {
-        graphStore.setNodeVisualizationVisible(nodeId, !allVisible)
+        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
+    })
+  },
+  toggleVisualizationFullscreen() {
+    if (nodeSelection.selected.size !== 1) return
+    graphStore.transact(() => {
+      const selected = set.first(nodeSelection.selected)
+      const isFullscreen = graphStore.db.nodeIdToNode.get(selected)?.vis?.fullscreen
+      graphStore.setNodeVisualization(selected, { visible: true, fullscreen: !isFullscreen })
     })
   },
   copyNode() {
@@ -320,6 +327,9 @@ const graphBindingsHandler = graphBindings.handler({
 const { handleClick } = useDoubleClick(
   (e: PointerEvent) => {
     graphBindingsHandler(e)
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
   },
   () => {
     stackNavigator.exitNode()
