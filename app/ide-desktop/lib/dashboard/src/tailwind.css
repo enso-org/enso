@@ -21,6 +21,8 @@
   --read-only-opacity: 75%;
   --disabled-icon-opacity: 75%;
   --disabled-category-opacity: 20%;
+  /* The opacity of disabled permissions-related buttons. */
+  --disabled-permissions-opacity: 30%;
   /* The default gap between a subheading and its content. */
   --subheading-gap: 1rem;
   /* The horizontal padding of the entire horizontal list of icons. */
@@ -116,6 +118,9 @@
   --user-bar-gap: 0.5rem;
   /* The gap between a user permission and the corresponding username. */
   --user-permission-gap: 0.75rem;
+  --permission-type-selector-corner-radius: calc(
+    var(--default-corner-radius) + 0.25rem
+  );
 
   /*************\
   |* User menu *|

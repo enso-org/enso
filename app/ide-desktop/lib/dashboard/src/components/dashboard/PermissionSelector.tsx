@@ -31,8 +31,10 @@ const LABEL_STRAIGHT_WIDTH_PX = 97
 /** Props for a {@link PermissionSelector}. */
 export interface PermissionSelectorProps {
   readonly showDelete?: boolean
-  /** When true, the button is not clickable. */
+  /** When `true`, the button is not clickable. */
   readonly disabled?: boolean
+  /** When `true`, the button has lowered opacity when it is disabled. */
+  readonly input?: boolean
   /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
   readonly typeSelectorYOffsetPx?: number
   readonly error?: string | null
@@ -47,8 +49,9 @@ export interface PermissionSelectorProps {
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-  const { showDelete = false, disabled = false, typeSelectorYOffsetPx, error } = props
-  const { selfPermission, action: actionRaw, assetType, className, onChange, doDelete } = props
+  const { showDelete = false, disabled = false, input = false, typeSelectorYOffsetPx } = props
+  const { error, selfPermission, action: actionRaw, assetType, className } = props
+  const { onChange, doDelete } = props
   const [action, setActionRaw] = React.useState(actionRaw)
   const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
@@ -85,7 +88,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
         : function Child() {
             return (
               <Modal
-                className="fixed size-full"
+                className="fixed size-full overflow-auto"
                 onClick={() => {
                   setTheChild(null)
                 }}
@@ -102,7 +105,13 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                     if (type === permissionsModule.Permission.delete) {
                       doDelete?.()
                     } else {
-                      setAction(permissionsModule.TYPE_TO_PERMISSION_ACTION[type])
+                      const newAction = permissionsModule.TYPE_TO_PERMISSION_ACTION[type]
+                      const newPermissions = permissionsModule.FROM_PERMISSION_ACTION[newAction]
+                      if ('docs' in permission && 'docs' in newPermissions) {
+                        setAction(permissionsModule.toPermissionAction({ ...permission, type }))
+                      } else {
+                        setAction(permissionsModule.TYPE_TO_PERMISSION_ACTION[type])
+                      }
                     }
                   }}
                 />
@@ -125,7 +134,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(disabled && error != null ? { title: error } : {})}
             className={`${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } grow rounded-l-full h-text px-1.75 py-0.5 disabled:opacity-30`}
+            } grow rounded-l-full h-text px-1.75 py-0.5 ${
+              input ? 'disabled:opacity-disabled-permissions' : ''
+            }`}
             onClick={doShowPermissionTypeSelector}
           >
             {permission.type}
@@ -134,11 +145,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`${
-              permissionsModule.DOCS_CLASS_NAME
-            } grow h-text px-1.75 py-0.5 disabled:opacity-30 ${
-              permission.docs ? '' : 'opacity-30'
-            }`}
+            className={`${permissionsModule.DOCS_CLASS_NAME} grow h-text px-1.75 py-0.5 ${
+              input ? 'disabled:opacity-disabled-permissions' : ''
+            } ${permission.docs ? '' : 'opacity-disabled-permissions'}`}
             onClick={event => {
               event.stopPropagation()
               setAction(
@@ -158,9 +167,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(disabled && error != null ? { title: error } : {})}
             className={`${
               permissionsModule.EXEC_CLASS_NAME
-            } grow rounded-r-full h-text px-1.75 py-0.5 disabled:opacity-30 ${
-              permission.execute ? '' : 'opacity-30'
-            }`}
+            } grow rounded-r-full h-text px-1.75 py-0.5 ${
+              input ? 'disabled:opacity-disabled-permissions' : ''
+            } ${permission.execute ? '' : 'opacity-disabled-permissions'}`}
             onClick={event => {
               event.stopPropagation()
               setAction(
@@ -186,7 +195,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           {...(disabled && error != null ? { title: error } : {})}
           className={`${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } rounded-full h-text w-permission-display disabled:opacity-30`}
+          } rounded-full h-text w-permission-display ${
+            input ? 'disabled:opacity-disabled-permissions' : ''
+          }`}
           onClick={doShowPermissionTypeSelector}
         >
           {permission.type}

@@ -85,12 +85,12 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
   return (
     <div
       style={style}
-      className="sticky pointer-events-auto w-min before:absolute before:bg-selected-frame before:rounded-default before:backdrop-blur-default before:w-full before:h-full"
+      className="sticky pointer-events-auto w-min rounded-permission-type-selector before:absolute before:bg-selected-frame before:rounded-permission-type-selector before:backdrop-blur-default before:w-full before:h-full"
       onClick={event => {
         event.stopPropagation()
       }}
     >
-      <div className="relative flex flex-col w-permission-type-selector p-1">
+      <div className="group relative flex flex-col w-permission-type-selector p-1">
         {PERMISSION_TYPE_DATA.filter(
           data =>
             (showDelete ? true : data.type !== permissions.Permission.delete) &&
@@ -101,16 +101,15 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
           <button
             key={data.type}
             type="button"
-            disabled={type === data.type}
-            className={`flex items-center rounded-full gap-2 h-8 px-1 ${
-              type === data.type ? 'bg-black/5' : ''
+            className={`flex items-center rounded-full gap-2 h-row px-1 hover:bg-black/5 ${
+              type === data.type ? 'bg-black/5 group-hover:bg-transparent hover:!bg-black/5' : ''
             }`}
             onClick={() => {
               onChange(data.type)
             }}
           >
             <div
-              className={`rounded-full w-13 h-5 my-1 py-0.5 ${
+              className={`rounded-full w-13 h-text my-1 py-0.5 ${
                 permissions.PERMISSION_CLASS_NAME[data.type]
               }`}
             >
@@ -122,7 +121,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
             {data.previous != null && (
               <>
                 <div
-                  className={`text-center rounded-full w-13 h-5 my-1 py-0.5 ${
+                  className={`text-center rounded-full w-13 h-text my-1 py-0.5 ${
                     permissions.PERMISSION_CLASS_NAME[data.previous]
                   }`}
                 >

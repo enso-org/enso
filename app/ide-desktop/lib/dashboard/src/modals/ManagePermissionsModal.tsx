@@ -239,7 +239,7 @@ export default function ManagePermissionsModal<
                 }
               : {}
           }
-          className="sticky w-manage-permissions rounded-default before:absolute before:bg-selected-frame before:backdrop-blur-default before:rounded-default before:w-full before:h-full"
+          className="sticky w-manage-permissions-modal rounded-default before:absolute before:bg-selected-frame before:backdrop-blur-default before:rounded-default before:w-full before:h-full"
           onClick={mouseEvent => {
             mouseEvent.stopPropagation()
           }}
@@ -268,6 +268,7 @@ export default function ManagePermissionsModal<
             >
               <div className="flex items-center grow rounded-full border border-black/10 gap-2 px-1">
                 <PermissionSelector
+                  input
                   disabled={willInviteNewUser}
                   selfPermission={self.permission}
                   typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
@@ -306,19 +307,19 @@ export default function ManagePermissionsModal<
                     : users.length === 0 ||
                       (email != null && emailsOfUsersWithPermission.has(email))
                 }
-                className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
+                className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-disabled-permissions"
               >
                 <div className="h-text py-0.5">{willInviteNewUser ? 'Invite' : 'Share'}</div>
               </button>
             </form>
             <div className="overflow-auto pl-1 pr-12 max-h-80">
-              {editablePermissions.map(userPermissions => (
-                <div key={userPermissions.user.pk} className="flex items-center h-row">
+              {editablePermissions.map(userPermission => (
+                <div key={userPermission.user.pk} className="flex items-center h-row">
                   <UserPermission
                     asset={item}
                     self={self}
                     isOnlyOwner={isOnlyOwner}
-                    userPermission={userPermissions}
+                    userPermission={userPermission}
                     setUserPermission={newUserPermission => {
                       setPermissions(oldPermissions =>
                         oldPermissions.map(oldUserPermission =>

@@ -68,6 +68,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         '4xl': '2rem',
         default: 'var(--default-corner-radius)',
         auth: 'var(--auth-corner-radius)',
+        'permission-type-selector': 'var(--permission-type-selector-corner-radius)',
       },
       spacing: {
         DEFAULT: '0',
@@ -193,6 +194,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         disabled: 'var(--disabled-opacity)',
         'disabled-icon': 'var(--disabled-icon-opacity)',
         'disabled-category': 'var(--disabled-category-opacity)',
+        'disabled-permissions': 'var(--disabled-permissions-opacity)',
         placeholder: 'var(--placeholder-opacity)',
         'read-only': 'var(--read-only-opacity)',
         'new-empty-project': 'var(--new-empty-project-opacity)',
