@@ -455,6 +455,19 @@ add_specs suite_builder =
             msg . should_contain "expected expression to be Back"
             msg . should_contain "but got ~Value"
 
+        group_builder.specify "Choose first constructor" <|
+            v = ~Value 10
+
+            m_foo (m:Foo|Bar|Back) = m
+            m_bar (m:Bar|Foo|Back) = m
+            m_back_foo (m:Back|Foo|Bar) = m
+            m_back_bar (m:Back|Bar|Foo) = m
+
+            m_foo v . should_equal <| Foo.Value 10
+            m_bar v . should_equal <| Bar.Value 10
+            m_back_foo v . should_equal <| Foo.Value 10
+            m_back_bar v . should_equal <| Bar.Value 10
+
     suite_builder.group "Polyglot Argument" group_builder->
         f1 (x : DateTimeFormatter) = x.to_text
         f2 (x : Text | DateTimeFormatter) = case x of
