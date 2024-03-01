@@ -39,7 +39,7 @@ import org.openjdk.jmh.infra.Blackhole;
  * </pre>
  *
  * This is the format that is used by the IDE. This should measure mostly the performance of the
- * dataflow analysis pass.
+ * alias analysis pass.
  */
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
