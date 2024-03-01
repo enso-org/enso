@@ -226,7 +226,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           setAreSuggestionsVisible(false)
         }
       }}
-      className="group search-bar relative flex items-center text-primary rounded-full gap-asset-search-bar h-row grow max-w-asset-search-bar xl:max-w-screen-1/3 px-input-x"
+      className="group search-bar relative flex items-center text-primary rounded-full gap-asset-search-bar h-row grow max-w-asset-search-bar xl:max-w-asset-search-bar-wide px-input-x"
     >
       {/* The custom opacity can be considered as part of this icon's image. */}
       {/* eslint-disable-next-line no-restricted-syntax */}

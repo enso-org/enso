@@ -111,7 +111,7 @@ function ReactionBar(props: ReactionBarProps) {
   const { selectedReactions, doReact, doRemoveReaction, className } = props
 
   return (
-    <div className={`inline-block bg-white rounded-full m-1 ${className ?? ''}`}>
+    <div className={`inline-block bg-white rounded-full m-chat-reaction-bar ${className ?? ''}`}>
       {REACTION_EMOJIS.map(emoji => (
         <button
           key={emoji}
@@ -122,8 +122,10 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
-            selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale hover:grayscale-0'
+          className={`rounded-full hover:bg-gray-200 m-chat-reaction p-chat-reaction ${
+            selectedReactions.has(emoji)
+              ? ''
+              : 'opacity-inactive-reaction grayscale hover:grayscale-0'
           }`}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
@@ -178,7 +180,7 @@ function ChatMessage(props: ChatMessageProps) {
   const [isHovered, setIsHovered] = React.useState(false)
   return (
     <div
-      className="mx-4 my-2"
+      className="mx-chat-message-x my-chat-message-y"
       onMouseEnter={() => {
         setIsHovered(true)
       }}
@@ -190,11 +192,11 @@ function ChatMessage(props: ChatMessageProps) {
         <img
           crossOrigin="anonymous"
           src={message.avatar ?? DefaultUserIcon}
-          className="rounded-full size-chat-profile-picture my-1"
+          className="rounded-full size-chat-profile-picture my-chat-profile-picture-y"
         />
-        <div className="mx-2 leading-cozy">
+        <div className="mx-chat-message-info-x leading-cozy">
           <div className="font-bold">{message.name}</div>
-          <div className="text-opacity-50 text-primary">
+          <div className="text-opacity-unimportant text-primary">
             {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
           </div>
         </div>
@@ -211,7 +213,7 @@ function ChatMessage(props: ChatMessageProps) {
         />
       )}
       {message.isStaffMessage && !shouldShowReactionBar && isHovered && (
-        <div className="relative h py-1 -my-1">
+        <div className="relative h py-chat-reaction-bar-y -my-chat-reaction-bar-py">
           <ReactionBar
             doReact={doReact}
             doRemoveReaction={doRemoveReaction}
@@ -273,8 +275,11 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
   return (
     <>
-      <div className="flex text-sm font-semibold mx-4 mt-2">
-        <button className="flex grow items-center gap-2" onClick={toggleThreadListVisibility}>
+      <div className="flex text-sm font-semibold mx-chat-header-x mt-chat-header-t">
+        <button
+          className="flex grow items-center gap-icon-with-text"
+          onClick={toggleThreadListVisibility}
+        >
           <SvgMask
             className={`transition-transform duration-arrow shrink-0 ${
               isThreadListVisible ? '-rotate-90' : 'rotate-90'
@@ -286,7 +291,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
               type="text"
               ref={titleInputRef}
               defaultValue={threadTitle}
-              className="bg-transparent w-full leading-6"
+              className="bg-transparent w-full leading-chat-thread-title"
               onClick={event => {
                 event.stopPropagation()
               }}
@@ -321,7 +326,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
             />
           </div>
         </button>
-        <button className="mx-1" onClick={doClose}>
+        <button className="mx-close-icon" onClick={doClose}>
           <img src={CloseLargeIcon} />
         </button>
       </div>
@@ -335,7 +340,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
             {threads.map(thread => (
               <div
                 key={thread.id}
-                className={`flex p-1 ${
+                className={`flex p-chat-thread-button ${
                   thread.id === threadId
                     ? 'cursor-default bg-selected-frame'
                     : 'cursor-pointer hover:bg-frame'
@@ -742,13 +747,16 @@ export default function Chat(props: ChatProps) {
             />
           ))}
         </div>
-        <form className="rounded-default bg-frame p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
+        <form
+          className="rounded-default bg-frame p-chat-form mx-chat-form-x my-chat-form-y"
+          onSubmit={sendCurrentMessage}
+        >
           <textarea
             ref={messageInputRef}
             rows={1}
             required
             placeholder="Type your message ..."
-            className="w-full rounded-lg bg-transparent resize-none p-1"
+            className="w-full rounded-chat-input bg-transparent resize-none p-chat-input"
             onKeyDown={event => {
               switch (event.key) {
                 case 'Enter': {
@@ -773,11 +781,11 @@ export default function Chat(props: ChatProps) {
               }
             }}
           />
-          <div className="flex gap-0.5">
+          <div className="flex gap-chat-buttons">
             <button
               type="button"
               disabled={!isReplyEnabled}
-              className={`grow text-xxs text-left text-white rounded-full px-1.5 py-1 ${
+              className={`grow text-xxs text-left text-white rounded-full px-chat-button-x py-chat-button-y ${
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
               }`}
               onClick={event => {
@@ -789,8 +797,8 @@ export default function Chat(props: ChatProps) {
             <button
               type="submit"
               disabled={!isReplyEnabled}
-              className={`text-white bg-blue-600/90 rounded-full px-1.5 py-1 ${
-                isReplyEnabled ? '' : 'opacity-50'
+              className={`text-white bg-blue-600/90 rounded-full px-chat-button-x py-chat-button-y ${
+                isReplyEnabled ? '' : 'opacity-disabled'
               }`}
             >
               Reply!
@@ -799,6 +807,8 @@ export default function Chat(props: ChatProps) {
         </form>
         {!isPaidUser && (
           <button
+            // This UI element does not appear anywhere else.
+            // eslint-disable-next-line no-restricted-syntax
             className="leading-cozy rounded-default bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
             onClick={upgradeToPro}
           >

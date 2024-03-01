@@ -25,6 +25,8 @@
   /* The opacity of disabled permissions-related buttons. */
   --disabled-permissions-opacity: 30%;
   --disabled-backend-opacity: 30%;
+  --unimportant-opacity: 50%;
+  --inactive-reaction-opacity: 70%;
   /* The default gap between a subheading and its content. */
   --subheading-gap: 1rem;
   /* The horizontal padding of the entire horizontal list of icons. */
@@ -98,7 +100,7 @@
   --data-link-object-input-width: 7rem;
   --data-link-dropdown-title-width: 3rem;
   --input-padding-x: 0.5rem;
-  --multiline-input-padding-y: 0.5rem;
+  --multiline-input-padding: 0.5rem;
   /* The default height for an input with a large default size,
    * indicating that the input expects a lot of text (e.g. a paragraph). */
   --paragraph-input-height: 6rem;
@@ -106,6 +108,8 @@
   /* The default maximum width of the asset search bar.
    * It is narrower below a certain point, and wider above a certain point. */
   --asset-search-bar-width: 24.5625rem;
+  /* The width of the asset search bar on wide screens. */
+  --asset-search-bar-wide-width: 33.333333vw;
   --permission-display-width: 7.5625rem;
   --permission-type-selector-width: 28.125rem;
   --payment-form-height: 38.75rem;
@@ -138,6 +142,33 @@
   --search-suggestions-list-height: 16rem;
   --search-suggestion-padding-y: 0.25rem;
   --search-suggestion-margin: 0.25rem;
+  --close-icon-margin: 0.25rem;
+
+  /********\
+  |* Chat *|
+  \********/
+
+  --chat-header-margin-x: 1rem;
+  --chat-header-margin-top: 0.5rem;
+  --chat-thread-button-padding: 0.25rem;
+  --chat-form-padding: 0.25rem;
+  --chat-form-margin-x: 0.5rem;
+  --chat-form-margin-y: 0.25rem;
+  --chat-input-padding: 0.25rem;
+  --chat-input-corner-radius: 0.5rem;
+  --chat-thread-title-line-height: 1.5rem;
+  /* The horizontal gap between two adjacent chat buttons. */
+  --chat-buttons-gap: 0.125rem;
+  --chat-button-padding-x: 0.375rem;
+  --chat-button-padding-y: 0.25rem;
+  --chat-message-margin-x: 1rem;
+  --chat-message-margin-y: 0.5rem;
+  --chat-message-info-margin-x: 0.5rem;
+  --chat-profile-picture-margin-y: 0.25rem;
+  --chat-reaction-bar-padding-y: 0.25rem;
+  --chat-reaction-bar-margin: 0.25rem;
+  --chat-reaction-margin: 0.25rem;
+  --chat-reaction-padding: 0.25rem;
 
   --drive-bar-gap: 0.625rem;
   --drive-bar-padding-y: 0.125rem;
@@ -183,8 +214,11 @@
   /* The gap between sections in the side panel. */
   --side-panel-gap: 0.25rem;
   --side-panel-heading-height: 1.75rem;
+  --side-panel-heading-padding-y: 0.0625px;
   /* The vertical gap between a heading and its content in the side panel. */
   --side-panel-section-gap: 0.5rem;
+  --side-panel-label-width: 8rem;
+  --side-panel-description-padding-y: 0.25rem;
 
   --extended-editor-menu-size: 2.5rem;
 
@@ -497,7 +531,7 @@ body::before {
     }
 
     .settings-subheading {
-      @apply font-bold text-xl h-9.5 py-0.5;
+      @apply font-bold text-xl h-[2.375rem] py-0.5;
     }
 
     .settings-value {

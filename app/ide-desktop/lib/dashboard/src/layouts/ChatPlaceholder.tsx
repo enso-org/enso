@@ -41,21 +41,21 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
           detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >
-        <div className="flex text-sm font-semibold mx-4 mt-2">
+        <div className="flex text-sm font-semibold mx-chat-header-x mt-chat-header-t">
           <div className="grow" />
-          <button className="mx-1" onClick={doClose}>
+          <button className="mx-close-icon" onClick={doClose}>
             <img src={CloseLargeIcon} />
           </button>
         </div>
         <div className="grow grid place-items-center">
-          <div className="flex flex-col gap-3 text-base text-center">
+          <div className="flex flex-col text-base text-center gap-status-page">
             <div>
               Login or register to access live chat
               <br />
               with our support team.
             </div>
             <button
-              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-cozy h-8 py-px px-2 w-min"
+              className="button text-white bg-help self-center"
               onClick={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
@@ -63,7 +63,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
               Login
             </button>
             <button
-              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-cozy h-8 py-px px-2 w-min"
+              className="button text-white bg-help self-center"
               onClick={() => {
                 navigate(appUtils.REGISTRATION_PATH)
               }}

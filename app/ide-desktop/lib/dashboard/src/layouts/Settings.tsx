@@ -79,7 +79,7 @@ export default function Settings() {
         <span className="py-heading-y">Settings for </span>
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
-        <div className="rounded-full leading-snug bg-frame h-9 ml-2.5 px-2.25 pt-0.5 pb-1.25">
+        <div className="rounded-full leading-snug bg-frame h-[2.25rem] ml-[0.625rem] px-[0.5625rem] pt-[0.125rem] pb-[0.3125rem]">
           {settingsTab !== SettingsTab.organization
             ? user?.name ?? 'your account'
             : organization.organization_name ?? 'your organization'}

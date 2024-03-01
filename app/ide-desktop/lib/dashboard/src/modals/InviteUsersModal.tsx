@@ -148,7 +148,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               }
             }}
           >
-            <label className="block min-h-paragraph-input rounded-default border border-black/10 py-multiline-input-y px-input-x">
+            <label className="block min-h-paragraph-input rounded-default border border-black/10 p-multiline-input">
               {Array.from(newEmails, (newEmail, i) => (
                 <Email
                   key={i}

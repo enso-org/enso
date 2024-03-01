@@ -113,7 +113,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   return (
     <>
       <div className="flex flex-col items-start gap-side-panel">
-        <span className="flex items-center gap-side-panel-section text-lg leading-snug h-side-panel-heading py-px">
+        <span className="flex items-center gap-side-panel-section text-lg leading-snug h-side-panel-heading py-side-panel-heading-y">
           Description
           {ownsThisAsset && !isEditingDescription && (
             <Button
@@ -125,11 +125,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             />
           )}
         </span>
-        <div data-testid="asset-panel-description" className="py-1 self-stretch">
+        <div
+          data-testid="asset-panel-description"
+          className="py-side-panel-description-y self-stretch"
+        >
           {!isEditingDescription ? (
-            <span className="leading-cozy py-px">{item.item.description}</span>
+            <span className="text">{item.item.description}</span>
           ) : (
-            <form className="flex flex-col gap-2" onSubmit={doEditDescription}>
+            <form className="flex flex-col gap-modal" onSubmit={doEditDescription}>
               <textarea
                 ref={element => {
                   if (element != null && queuedDescription != null) {
@@ -157,21 +160,25 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 onChange={event => {
                   setDescription(event.currentTarget.value)
                 }}
-                className="bg-frame resize-none rounded-lg w-full p-2"
+                className="bg-frame resize-none rounded-input w-full p-multiline-input -m-multiline-input-p"
               />
-              <button type="submit" className="button self-start bg-selected-frame">
-                Update
-              </button>
+              <div className="flex gap-buttons">
+                <button type="submit" className="button self-start bg-selected-frame">
+                  Update
+                </button>
+              </div>
             </form>
           )}
         </div>
       </div>
       <div className="flex flex-col items-start gap-side-panel-section">
-        <h2 className="text-lg leading-snug h-side-panel-heading py-px">Settings</h2>
+        <h2 className="text-lg leading-snug h-side-panel-heading py-side-panel-heading-y">
+          Settings
+        </h2>
         <table>
           <tbody>
-            <tr data-testid="asset-panel-permissions">
-              <td className="min-w-32 px py-1">
+            <tr data-testid="asset-panel-permissions" className="h-row">
+              <td className="text min-w-side-panel-label p my-auto">
                 <span className="text inline-block">Shared with</span>
               </td>
               <td className="p w-full">
@@ -182,8 +189,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 />
               </td>
             </tr>
-            <tr data-testid="asset-panel-labels">
-              <td className="min-w-32 px py-1">
+            <tr data-testid="asset-panel-labels" className="h-row">
+              <td className="text min-w-side-panel-label p my-auto">
                 <span className="text inline-block">Labels</span>
               </td>
               <td className="p w-full">
@@ -202,7 +209,9 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       </div>
       {isDataLink && (
         <div className="flex flex-col items-start gap-side-panel-section">
-          <h2 className="text-lg leading-snug h-side-panel-heading py-px">Data Link</h2>
+          <h2 className="text-lg leading-snug h-side-panel-heading py-side-panel-heading-y">
+            Data Link
+          </h2>
           {!isDataLinkFetched ? (
             <div className="grid self-stretch place-items-center">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
