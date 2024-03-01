@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
@@ -22,12 +21,7 @@ const showArgumentValue = computed(() => {
 
 const placeholder = computed(() => props.input instanceof ArgumentPlaceholder)
 const primary = computed(() => props.nesting < 2)
-const showArrow = computed(() => {
-  const config = props.input.dynamicConfig
-  if (config == null) return false
-  if (config.kind !== 'OneOfFunctionCalls') return false
-  return config.showArrow
-})
+
 const innerInput = computed(() => ({
   ...props.input,
   [ArgumentNameShownKey]: true,
@@ -58,11 +52,8 @@ export const ArgumentNameShownKey: unique symbol = Symbol('ArgumentNameShownKey'
 <template>
   <div class="WidgetArgumentName" :class="{ placeholder, primary }">
     <template v-if="showArgumentValue">
-      <div class="nameContainer">
-        <span class="name">{{ props.input[ArgumentInfoKey].info.name }}</span>
-        <SvgIcon v-if="showArrow" name="arrow_right_head_only" class="arrow" />
-      </div>
-      <NodeWidget :input="innerInput" allowEmpty />
+      <span class="name">{{ props.input[ArgumentInfoKey].info.name }}</span
+      ><NodeWidget :input="innerInput" allowEmpty />
     </template>
     <template v-else>{{ props.input[ArgumentInfoKey].info.name }}</template>
   </div>
@@ -78,22 +69,10 @@ export const ArgumentNameShownKey: unique symbol = Symbol('ArgumentNameShownKey'
 .placeholder,
 .name {
   color: rgb(255 255 255 / 0.5);
+  margin-right: 8px;
 
   &:last-child {
     margin-right: 0px;
   }
-}
-
-.nameContainer {
-  position: relative;
-  margin-right: 8px;
-}
-
-.arrow {
-  position: absolute;
-  bottom: -7px;
-  left: 50%;
-  transform: translateX(-50%) rotate(90deg) scale(0.7);
-  opacity: 0.5;
 }
 </style>
