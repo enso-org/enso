@@ -36,6 +36,7 @@ import {
   print,
   printAst,
   printBlock,
+  printDocumented,
   syncToCode,
 } from './parse'
 
@@ -1366,7 +1367,7 @@ export interface MutableTextLiteral extends TextLiteral, MutableAst {}
 applyMixins(MutableTextLiteral, [MutableAst])
 
 interface DocumentedFields {
-  open: NodeChild<SyncTokenId> | undefined
+  open: NodeChild<SyncTokenId>
   elements: TextToken[]
   newlines: NodeChild<SyncTokenId>[]
   expression: NodeChild<AstId> | undefined
@@ -1382,19 +1383,29 @@ export class Documented extends Ast {
     if (parsed instanceof MutableDocumented) return parsed
   }
 
+  static new(text: string, expression: Owned) {
+    return this.concrete(
+      expression.module,
+      undefined,
+      textToUninterpolatedElements(text),
+      undefined,
+      autospaced(expression),
+    )
+  }
+
   static concrete(
     module: MutableModule,
     open: NodeChild<Token> | undefined,
     elements: TextToken<OwnedRefs>[],
-    newlines: NodeChild<Token>[],
+    newlines: NodeChild<Token>[] | undefined,
     expression: NodeChild<Owned> | undefined,
   ) {
     const base = module.baseObject('Documented')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
-      open,
+      open: open ?? unspaced(Token.new('##', RawAst.Token.Type.Operator)),
       elements: elements.map((e) => mapRefs(e, ownedToRaw(module, id_))),
-      newlines,
+      newlines: newlines ?? [unspaced(Token.new('\n', RawAst.Token.Type.Newline))],
       expression: concreteChild(module, expression, id_),
     })
     return asOwned(new MutableDocumented(module, fields))
@@ -1412,15 +1423,33 @@ export class Documented extends Ast {
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, elements, newlines, expression } = getAll(this.fields)
-    if (open) yield open
-    for (const e of elements) yield* fieldConcreteChildren(e)
+    yield open
+    for (const { token } of elements) yield token
     yield* newlines
     if (expression) yield expression
+  }
+
+  printSubtree(
+    info: SpanMap,
+    offset: number,
+    parentIndent: string | undefined,
+    verbatim?: boolean,
+  ): string {
+    return printDocumented(this, info, offset, parentIndent, verbatim)
   }
 }
 export class MutableDocumented extends Documented implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & DocumentedFields>
+
+  setDocumentationText(text: string) {
+    this.fields.set(
+      'elements',
+      textToUninterpolatedElements(text).map((owned) =>
+        mapRefs(owned, ownedToRaw(this.module, this.id)),
+      ),
+    )
+  }
 
   setExpression<T extends MutableAst>(value: Owned<T> | undefined) {
     this.fields.set('expression', unspaced(this.claimChild(value)))
@@ -1430,6 +1459,22 @@ export interface MutableDocumented extends Documented, MutableAst {
   get expression(): MutableAst | undefined
 }
 applyMixins(MutableDocumented, [MutableAst])
+
+function textToUninterpolatedElements(text: string): TextToken<OwnedRefs>[] {
+  const elements = new Array<TextToken<OwnedRefs>>()
+  text.split('\n').forEach((line, i) => {
+    if (i)
+      elements.push({
+        type: 'token',
+        token: unspaced(Token.new('\n', RawAst.Token.Type.TextNewline)),
+      })
+    elements.push({
+      type: 'token',
+      token: autospaced(Token.new(line, RawAst.Token.Type.TextSection)),
+    })
+  })
+  return elements
+}
 
 interface InvalidFields {
   expression: NodeChild<AstId>
