@@ -24,31 +24,33 @@ public class HTTPTestHelperServer {
     }
     String host = args[0];
     int port = Integer.parseInt(args[1]);
-    Semaphore stopNotification = new Semaphore(0, false);
+    final Semaphore stopNotification = new Semaphore(0, false);
     HybridHTTPServer server = null;
     try {
       server = createServer(host, port, null, true);
-      final HybridHTTPServer server1 = server;
-      SignalHandler stopServerHandler =
-          (Signal sig) -> {
-            System.out.println("Stopping server... (SIG" + sig.getName() + ")");
-            server1.stop();
-          };
-      for (String signalName : List.of("TERM", "INT")) {
-        Signal.handle(new Signal(signalName), stopServerHandler);
-      }
-      server.start();
-      // Make sure the execution is blocked until the process is interrupted.
-      stopNotification.acquire();
     } catch (URISyntaxException | IOException e) {
       e.printStackTrace();
+      System.exit(1);
+    }
+
+    SignalHandler stopServerHandler =
+        (Signal sig) -> {
+          System.out.println("Stopping server... (SIG" + sig.getName() + ")");
+          stopNotification.release();
+        };
+    for (String signalName : List.of("TERM", "INT")) {
+      Signal.handle(new Signal(signalName), stopServerHandler);
+    }
+
+    server.start();
+
+    try {
+      // Make sure the main thread is blocked for as long as the server is running.
+      stopNotification.acquire();
     } catch (InterruptedException e) {
-      System.out.println("Server interrupted");
+      System.out.println("Server main thread was unexpectedly interrupted. The server will now stop.");
     } finally {
-      stopNotification.release();
-      if (server != null) {
-        server.stop();
-      }
+      server.stop();
     }
   }
 
