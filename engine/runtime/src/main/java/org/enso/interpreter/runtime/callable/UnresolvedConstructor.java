@@ -76,16 +76,16 @@ public final class UnresolvedConstructor implements EnsoObject {
   /**
    * Marks this object as executable through the interop library.
    *
-   * @param addionalDescriptions description of the applied arguments
+   * @param additionalDescriptions description of the applied arguments
    * @param additionalArguments new arguments to add to the unresolved constructor
    * @return always true @ExportMessage public boolean isExecutable() { return true; }
    */
   public UnresolvedConstructor withArguments(
-      CallArgumentInfo[] addionalDescriptions, Object[] additionalArguments) {
+      CallArgumentInfo[] additionalDescriptions, Object[] additionalArguments) {
     if (this.args == NONE) {
-      return new UnresolvedConstructor(this.name, addionalDescriptions, additionalArguments);
+      return new UnresolvedConstructor(this.name, additionalDescriptions, additionalArguments);
     } else {
-      var newDescs = join(this.descs, addionalDescriptions);
+      var newDescs = join(this.descs, additionalDescriptions);
       var newArgs = join(this.args, additionalArguments);
       return new UnresolvedConstructor(this.name, newDescs, newArgs);
     }
