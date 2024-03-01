@@ -239,6 +239,46 @@ type XML_Document
     child_names : Vector Text ! XML_Error
     child_names self = [self.root_element.name]
 
+    ## Get elements denoted by the given XPath key.
+
+       Arguments:
+       - key: The XPath string to use to search for elements.
+
+       > Example
+         Get an element by xpath.
+
+             root = XML_Document.from_file test_file
+             root.at "/class/teacher[1]/firstname"
+             # => [XML_Document.from_text "<firstname>Alice</firstname>" . root_element]
+    get_xpath : Text -> Vector (Text | XML_Element) ! XML_Error
+    get_xpath self key:Text =
+        XML_Error.handle_java_exceptions <|
+            xpath = XPathFactory.newInstance.newXPath
+            only_wanted_nodes (xpath.evaluate key self.java_document XPathConstants.NODESET)
+
+    ## Gets child elements matching a given tag name.
+
+       Arguments:
+       - tag_name: The tag name to search for.
+    @tag_name (e-> make_single_choice e.child_names)
+    get_children_by_tag_name : Text -> Vector XML_Element ! XML_Error
+    get_children_by_tag_name self tag_name:Text =
+        if tag_name=="*" || tag_name==self.root_element.name then [self.root_element] else []
+
+    ## Gets descendant elements matching a given tag name.
+       This searches through all descendants of the node, not just immediate children.
+
+       Arguments:
+       - tag_name: The tag name to search for.
+
+       > Example
+             XML_Document.from_text '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
+             # => [XML_Document.from_text "<baz>hello</baz>" . root_element, XML_Document.from_text "<baz>goodbye</baz>" . root_element]
+    get_descendants_by_tag_name : Text -> Vector XML_Element ! XML_Error
+    get_descendants_by_tag_name self tag_name:Text =
+        root = if tag_name == self.root_element.name then [self.root_element] else []
+        root + (self.root_element.get_descendants_by_tag_name tag_name)
+
     ## PRIVATE
        Convert to a JavaScript Object representing this XML_Document.
     to_js_object : JS_Object
@@ -284,9 +324,9 @@ type XML_Element
     @key child_selector
     get : Text | Integer -> Any -> Any | Text | XML_Element | Vector (Text | XML_Element) ! No_Such_Key | Index_Out_Of_Bounds | XML_Error
     get self key:(Text | Integer)="." ~if_missing=Nothing = case key of
-            _ : Integer -> self.children_cache.get key if_missing
-            _ : Text -> if key.starts_with "@" then self.attribute (key.drop 1) else
-                self.children.find (c-> c.name == key) . if_nothing if_missing
+        _ : Integer -> self.children_cache.get key if_missing
+        _ : Text -> if key.starts_with "@" then self.attribute (key.drop 1) if_missing else
+            self.children.find (c-> c.name == key) . if_nothing if_missing
 
     ## GROUP Selections
        Gets a child or attribute of an XML element.
@@ -349,7 +389,7 @@ type XML_Element
     child_names : Vector Text ! XML_Error
     child_names self =
         XML_Error.handle_java_exceptions <|
-            self.children_cache.map _.name . distinct
+            self.children_cache.map  n->n.name . distinct
 
     ## GROUP Selections
        Get an attribute of an XML element.
@@ -449,15 +489,27 @@ type XML_Element
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
 
-    ## Gets elements matching a given tag name.
+    ## Gets child elements matching a given tag name.
 
+       Arguments:
+       - tag_name: The tag name to search for.
+    @tag_name (e-> make_single_choice e.child_names)
+    get_children_by_tag_name : Text -> Vector XML_Element ! XML_Error
+    get_children_by_tag_name self tag_name:Text = if tag_name == "*" then self.children_cache else
+        XML_Error.handle_java_exceptions <|
+           self.children_cache.filter (c-> c.name == tag_name)
+
+    ## Gets descendant elements matching a given tag name.
        This searches through all descendants of the node, not just immediate children.
+
+       Arguments:
+       - tag_name: The tag name to search for.
 
        > Example
              XML_Document.from_text '<foo> <baz>hello</baz> <bar>and</bar> <baz>goodbye</baz> </foo>' . root_element . get_elements_by_tag_name "baz"
              # => [XML_Document.from_text "<baz>hello</baz>" . root_element, XML_Document.from_text "<baz>goodbye</baz>" . root_element]
-    get_elements_by_tag_name : Text -> Vector XML_Element ! XML_Error
-    get_elements_by_tag_name self tag_name:Text =
+    get_descendants_by_tag_name : Text -> Vector XML_Element ! XML_Error
+    get_descendants_by_tag_name self tag_name:Text =
         XML_Error.handle_java_exceptions <|
             only_wanted_nodes (self.java_element.getElementsByTagName tag_name)
 

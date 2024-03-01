@@ -150,9 +150,9 @@ type Table
                  row_2 =  [ 2     , False , 'b'   ]
                  row_3 =  [ 3     , True  , 'c'   ]
                  Table.from_rows header [row_1, row_2, row_3]
-    @header (Widget.Vector_Editor item_default='"Column"')
+    @header (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='"Column"')
     from_rows : Vector -> Vector -> Table
-    from_rows header:Vector rows =
+    from_rows header rows =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
         Table.new columns
 
