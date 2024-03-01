@@ -90,7 +90,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
         event.stopPropagation()
       }}
     >
-      <div className="group relative flex flex-col w-permission-type-selector p-1">
+      <div className="group relative flex flex-col w-permission-type-selector p-permission-type-selector">
         {PERMISSION_TYPE_DATA.filter(
           data =>
             (showDelete ? true : data.type !== permissions.Permission.delete) &&
@@ -101,7 +101,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
           <button
             key={data.type}
             type="button"
-            className={`flex items-center rounded-full gap-2 h-row px-1 hover:bg-black/5 ${
+            className={`flex items-start rounded-full gap-permission-type-button h-row p-permission-type-button hover:bg-black/5 ${
               type === data.type ? 'bg-black/5 group-hover:bg-transparent hover:!bg-black/5' : ''
             }`}
             onClick={() => {
@@ -109,32 +109,26 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
             }}
           >
             <div
-              className={`rounded-full w-13 h-text my-1 py-0.5 ${
+              className={`rounded-full w-permission-type h-full py-permission-type-y ${
                 permissions.PERMISSION_CLASS_NAME[data.type]
               }`}
             >
               {data.type}
             </div>
-            <span className="font-normal leading-cozy h-6.5 pt-1">
-              <span className="h-5.5 py-px">=</span>
-            </span>
+            <span className="text font-normal">=</span>
             {data.previous != null && (
               <>
                 <div
-                  className={`text-center rounded-full w-13 h-text my-1 py-0.5 ${
+                  className={`text-center rounded-full w-permission-type h-full py-permission-type-y ${
                     permissions.PERMISSION_CLASS_NAME[data.previous]
                   }`}
                 >
                   {data.previous}
                 </div>
-                <span className="font-normal leading-cozy h-6.5 pt-1">
-                  <span className="h-5.5 py-px">+</span>
-                </span>
+                <span className="text font-normal">+</span>
               </>
             )}
-            <div className="leading-cozy h-6.5 pt-1">
-              <span className="h-5.5 py-px">{data.description(assetType)}</span>
-            </div>
+            <span className="text">{data.description(assetType)}</span>
           </button>
         ))}
       </div>

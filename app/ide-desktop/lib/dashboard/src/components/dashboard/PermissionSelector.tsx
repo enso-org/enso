@@ -17,7 +17,8 @@ import * as permissionsModule from '#/utilities/permissions'
 const TYPE_SELECTOR_X_OFFSET_PX = -8
 /** The vertical offset of the {@link PermissionTypeSelector} from its parent element. */
 const TYPE_SELECTOR_Y_OFFSET_PX = 28
-/** The vertical offset of the label's clip path from its parent element. */
+/** The vertical offset of the label's clip path from its parent element.
+ * Optimized for 100% zoom. */
 const LABEL_CLIP_Y_OFFSET_PX = 0.5
 /** The border radius of the permission label. */
 const LABEL_BORDER_RADIUS_PX = 12
@@ -134,7 +135,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(disabled && error != null ? { title: error } : {})}
             className={`${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } grow rounded-l-full h-text px-1.75 py-0.5 ${
+            } grow rounded-l-full h-text px-permission-mini-button-x py-permission-mini-button-y ${
               input ? 'disabled:opacity-disabled-permissions' : ''
             }`}
             onClick={doShowPermissionTypeSelector}
@@ -145,7 +146,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`${permissionsModule.DOCS_CLASS_NAME} grow h-text px-1.75 py-0.5 ${
+            className={`${
+              permissionsModule.DOCS_CLASS_NAME
+            } grow h-text px-permission-mini-button-x py-permission-mini-button-y ${
               input ? 'disabled:opacity-disabled-permissions' : ''
             } ${permission.docs ? '' : 'opacity-disabled-permissions'}`}
             onClick={event => {
@@ -167,7 +170,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(disabled && error != null ? { title: error } : {})}
             className={`${
               permissionsModule.EXEC_CLASS_NAME
-            } grow rounded-r-full h-text px-1.75 py-0.5 ${
+            } grow rounded-r-full h-text px-permission-mini-button-x py-permission-mini-button-y ${
               input ? 'disabled:opacity-disabled-permissions' : ''
             } ${permission.execute ? '' : 'opacity-disabled-permissions'}`}
             onClick={event => {

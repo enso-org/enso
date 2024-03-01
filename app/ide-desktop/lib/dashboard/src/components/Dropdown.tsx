@@ -1,7 +1,7 @@
 /** @file A styled dropdown. */
 import * as React from 'react'
 
-import TriangleDownIcon from 'enso-assets/triangle_down.svg'
+import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -102,7 +102,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     <div
       ref={rootRef}
       tabIndex={0}
-      className={`group relative flex flex-col w-max items-center rounded-xl cursor-pointer leading-cozy whitespace-nowrap ${
+      className={`group relative flex flex-col w-max items-center rounded-input cursor-pointer leading-cozy whitespace-nowrap ${
         className ?? ''
       }`}
       onFocus={event => {
@@ -121,22 +121,22 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         className={`absolute left w-max h-full ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
       >
         <div
-          className={`relative before:absolute before:border before:border-black/10 before:rounded-xl before:backdrop-blur-default before:top before:w-full before:transition-colors ${
+          className={`relative before:absolute before:border before:border-black/10 before:rounded-input before:backdrop-blur-default before:top before:w-full before:transition-colors ${
             isDropdownVisible
-              ? 'before:h-full before:shadow-soft'
+              ? 'before:bg-frame before:h-full before:shadow-soft'
               : 'before:h-text group-hover:before:bg-frame'
           }`}
         >
           {/* Spacing. */}
           <div className="relative padding h-text" />
           <div
-            className={`relative grid rounded-xl w-full max-h-10lh transition-grid-template-rows ${
+            className={`relative grid rounded-input w-full max-h-dropdown-items overflow-auto transition-grid-template-rows ${
               isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
             }`}
           >
             {items.map((item, i) => (
               <div
-                className={`flex gap-1 rounded-xl px-2 h-text transition-colors ${
+                className={`flex gap-dropdown-arrow rounded-input px-input-x h-text transition-colors ${
                   i === visuallySelectedIndex
                     ? 'cursor-default bg-frame font-bold'
                     : 'hover:bg-selected-frame'
@@ -162,7 +162,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                   }
                 }}
               >
-                <SvgMask src={TriangleDownIcon} className="invisible" />
+                <div className="size-icon" />
                 <Child item={item} />
               </div>
             ))}
@@ -170,11 +170,11 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         </div>
       </div>
       <div
-        className={`relative flex gap-1 items-center h-text px-button-x ${
+        className={`relative flex gap-dropdown-arrow items-center h-text px-input-x ${
           isDropdownVisible ? 'z-1' : ''
         } ${readOnly ? 'opacity-read-only cursor-not-allowed' : ''}`}
       >
-        <SvgMask src={TriangleDownIcon} />
+        <SvgMask src={FolderArrowIcon} className="size-icon rotate-90" />
         <div className="grow">
           {visuallySelectedItem != null && <Child item={visuallySelectedItem} />}
         </div>

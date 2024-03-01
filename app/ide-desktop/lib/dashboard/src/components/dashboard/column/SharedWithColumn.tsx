@@ -88,7 +88,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
             )
           }}
         >
-          <img className="size-4.5" src={Plus2Icon} />
+          <img className="size-plus-icon" src={Plus2Icon} />
         </button>
       )}
     </div>

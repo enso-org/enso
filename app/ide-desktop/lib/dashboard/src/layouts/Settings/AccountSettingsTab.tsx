@@ -267,7 +267,7 @@ export default function AccountSettingsTab() {
         )}
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
-        <div className="flex flex-col items-center gap-settings-section-header rounded-2.5xl border-2 border-danger px-[16px] pt-[9px] pb-[15px]">
+        <div className="flex flex-col items-start gap-settings-section-header rounded-2.5xl border-2 border-danger px-[16px] pt-[9px] pb-[15px]">
           <h3 className="settings-subheading text-danger">Danger Zone</h3>
           <div className="flex gap-buttons">
             <button
@@ -276,7 +276,6 @@ export default function AccountSettingsTab() {
                 event.stopPropagation()
                 setModal(
                   <ConfirmDeleteUserModal
-                    description="user account"
                     doDelete={async () => {
                       await backend.deleteUser()
                       await signOut()

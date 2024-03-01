@@ -12,7 +12,7 @@ export interface ColorPickerProps {
 export default function ColorPicker(props: ColorPickerProps) {
   const { setColor } = props
   return (
-    <>
+    <div className="flex items-center gap-colors">
       {backend.COLORS.map((currentColor, i) => (
         <label
           key={i}
@@ -32,6 +32,6 @@ export default function ColorPicker(props: ColorPickerProps) {
           </button>
         </label>
       ))}
-    </>
+    </div>
   )
 }

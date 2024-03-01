@@ -775,11 +775,11 @@ export default function Chat(props: ChatProps) {
               }
             }}
           />
-          <div className="flex">
+          <div className="flex gap-0.5">
             <button
               type="button"
               disabled={!isReplyEnabled}
-              className={`text-xxs text-white rounded-full grow text-left px-1.5 py-1 ${
+              className={`grow text-xxs text-left text-white rounded-full px-1.5 py-1 ${
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
               }`}
               onClick={event => {
@@ -788,8 +788,6 @@ export default function Chat(props: ChatProps) {
             >
               New question? Click to start a new thread!
             </button>
-            {/* Spacing. */}
-            <div className="w-0.5" />
             <button
               type="submit"
               disabled={!isReplyEnabled}

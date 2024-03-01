@@ -17,19 +17,26 @@ import SvgMask from '#/components/SvgMask'
 
 import * as drag from '#/utilities/drag'
 
+// =================
+// === Constants ===
+// =================
+
+const CATEGORIES = Object.values(Category)
+
+const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
+  [Category.recent]: RecentIcon,
+  [Category.home]: Home2Icon,
+  [Category.trash]: Trash2Icon,
+}
+
 // ============================
 // === CategorySwitcherItem ===
 // ============================
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps {
-  /** When true, the button is not faded out even when not hovered. */
-  readonly active?: boolean
-  /** When true, the button is not clickable. */
-  readonly disabled?: boolean
-  readonly image: string
-  readonly name: string
-  readonly iconClassName?: string
+  readonly category: Category
+  readonly isCurrent: boolean
   readonly onClick: () => void
   readonly onDragOver: (event: React.DragEvent) => void
   readonly onDrop: (event: React.DragEvent) => void
@@ -37,16 +44,16 @@ interface InternalCategorySwitcherItemProps {
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { active = false, disabled = false, image, name, iconClassName, onClick } = props
+  const { category, isCurrent, onClick } = props
   const { onDragOver, onDrop } = props
   return (
     <button
-      disabled={disabled}
-      title={`Go To ${name}`}
-      className={`group flex items-center rounded-full gap-2 h-8 px-2 hover:bg-selected-frame transition-colors ${
-        active ? 'bg-selected-frame' : 'text-not-selected'
-      } ${disabled ? '' : 'hover:text-primary hover:bg-selected-frame hover:opacity-100'} ${
-        !active && disabled ? 'cursor-not-allowed' : ''
+      disabled={isCurrent}
+      title={`Go To ${category}`}
+      className={`group flex items-center rounded-full gap-icon-with-text h-row px-button-x hover:bg-selected-frame transition-colors ${
+        isCurrent
+          ? 'bg-selected-frame'
+          : 'text-not-selected hover:text-primary hover:bg-selected-frame hover:opacity-full'
       }`}
       onClick={onClick}
       // Required because `dragover` does not fire on `mouseenter`.
@@ -55,12 +62,16 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       onDrop={onDrop}
     >
       <SvgMask
-        src={image}
+        src={CATEGORY_ICONS[category]}
         className={`group-hover:text-icon-selected ${
-          active ? 'text-icon-selected' : 'text-icon-not-selected'
-        } ${iconClassName ?? ''}`}
+          isCurrent ? 'text-icon-selected' : 'text-icon-not-selected'
+        } ${
+          // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
+          // eslint-disable-next-line no-restricted-syntax
+          category === Category.recent ? '-ml-0.5' : ''
+        }`}
       />
-      <span>{name}</span>
+      <span>{category}</span>
     </button>
   )
 }
@@ -68,20 +79,6 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 // ========================
 // === CategorySwitcher ===
 // ========================
-
-const CATEGORIES: Category[] = [Category.recent, Category.home, Category.trash]
-
-const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
-  [Category.recent]: RecentIcon,
-  [Category.home]: Home2Icon,
-  [Category.trash]: Trash2Icon,
-}
-
-const CATEGORY_CLASS_NAMES: Readonly<Record<Category, string>> = {
-  [Category.recent]: '-ml-0.5',
-  [Category.home]: '',
-  [Category.trash]: '',
-}
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
@@ -107,11 +104,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
         {CATEGORIES.map(currentCategory => (
           <CategorySwitcherItem
             key={currentCategory}
-            active={category === currentCategory}
-            disabled={category === currentCategory}
-            image={CATEGORY_ICONS[currentCategory]}
-            name={currentCategory}
-            iconClassName={CATEGORY_CLASS_NAMES[currentCategory]}
+            category={currentCategory}
+            isCurrent={category === currentCategory}
             onClick={() => {
               setCategory(currentCategory)
             }}

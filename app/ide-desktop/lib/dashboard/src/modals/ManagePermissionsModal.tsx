@@ -254,19 +254,18 @@ export default function ManagePermissionsModal<
           }}
         >
           <div className="relative flex flex-col rounded-default gap-modal p-modal">
-            {/* The value of this `gap` is a placeholder, as there is currently only one entry. */}
-            <div className="flex gap-buttons">
-              <h2 className="text-sm font-bold">Invite</h2>
+            <div className="flex items-center h-row gap-modal-tabs px-modal-tab-bar-x">
+              <h2 className="text text-sm font-bold">Invite</h2>
               {/* Space reserved for other tabs. */}
             </div>
             <form
-              className="flex gap-1"
+              className="flex gap-input-with-button"
               onSubmit={event => {
                 event.preventDefault()
                 void doSubmit()
               }}
             >
-              <div className="flex items-center grow rounded-full border border-black/10 gap-2 px-1">
+              <div className="flex items-center grow rounded-full border border-black/10 gap-user-permission px-manage-permissions-modal-input">
                 <PermissionSelector
                   input
                   disabled={willInviteNewUser}
@@ -276,28 +275,30 @@ export default function ManagePermissionsModal<
                   assetType={item.type}
                   onChange={setAction}
                 />
-                <Autocomplete
-                  multiple
-                  autoFocus
-                  placeholder="Type usernames or emails to search or invite"
-                  type="text"
-                  itemsToString={items =>
-                    items.length === 1 && items[0] != null
-                      ? items[0].email
-                      : `${items.length} users selected`
-                  }
-                  values={users}
-                  setValues={setUsers}
-                  items={allUsers}
-                  itemToKey={otherUser => otherUser.id}
-                  itemToString={otherUser => `${otherUser.name} (${otherUser.email})`}
-                  matches={(otherUser, text) =>
-                    otherUser.email.toLowerCase().includes(text.toLowerCase()) ||
-                    otherUser.name.toLowerCase().includes(text.toLowerCase())
-                  }
-                  text={email}
-                  setText={setEmail}
-                />
+                <div className="grow -mx-button-px">
+                  <Autocomplete
+                    multiple
+                    autoFocus
+                    placeholder="Type usernames or emails to search or invite"
+                    type="text"
+                    itemsToString={items =>
+                      items.length === 1 && items[0] != null
+                        ? items[0].email
+                        : `${items.length} users selected`
+                    }
+                    values={users}
+                    setValues={setUsers}
+                    items={allUsers}
+                    itemToKey={otherUser => otherUser.id}
+                    itemToString={otherUser => `${otherUser.name} (${otherUser.email})`}
+                    matches={(otherUser, text) =>
+                      otherUser.email.toLowerCase().includes(text.toLowerCase()) ||
+                      otherUser.name.toLowerCase().includes(text.toLowerCase())
+                    }
+                    text={email}
+                    setText={setEmail}
+                  />
+                </div>
               </div>
               <button
                 type="submit"
@@ -307,12 +308,14 @@ export default function ManagePermissionsModal<
                     : users.length === 0 ||
                       (email != null && emailsOfUsersWithPermission.has(email))
                 }
-                className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-disabled-permissions"
+                className="button/30 text-tag-text bg-invite px-button-x"
               >
-                <div className="h-text py-0.5">{willInviteNewUser ? 'Invite' : 'Share'}</div>
+                <div className="h-text py-modal-invite-button-text-y">
+                  {willInviteNewUser ? 'Invite' : 'Share'}
+                </div>
               </button>
             </form>
-            <div className="overflow-auto pl-1 pr-12 max-h-80">
+            <div className="overflow-auto px-manage-permissions-modal-input max-h-manage-permissions-modal-permissions-list">
               {editablePermissions.map(userPermission => (
                 <div key={userPermission.user.pk} className="flex items-center h-row">
                   <UserPermission

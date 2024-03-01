@@ -10,6 +10,7 @@
   --heading-height: 2.375rem;
   --heading-padding-x: 0.375rem;
   --heading-padding-y: 0.125rem;
+  --input-corner-radius: 0.75rem;
   /* The height of a profile picture when displayed in a row.
    * This should be slightly less than `--row-height`. */
   --profile-picture-size: 1.75rem;
@@ -23,6 +24,7 @@
   --disabled-category-opacity: 20%;
   /* The opacity of disabled permissions-related buttons. */
   --disabled-permissions-opacity: 30%;
+  --disabled-backend-opacity: 30%;
   /* The default gap between a subheading and its content. */
   --subheading-gap: 1rem;
   /* The horizontal padding of the entire horizontal list of icons. */
@@ -35,8 +37,10 @@
   --icons-gap: 0.75rem;
   /* The gap between an icon and its associated text. */
   --samples-icon-with-text-gap: 0.375rem;
-  /* The gap between an icon and its associated text in a selector option. */
+  /* The horizontal gap between an icon and its associated text in a selector option. */
   --icon-with-text-gap: 0.5rem;
+  /* The horizontal gap between an input and its associated submit button. */
+  --input-with-button-gap: 0.25rem;
   --pages-gap: 1rem;
   /* The vertical gap between the drive heading and the rest of the drive page. */
   --drive-heading-gap: 0.625rem;
@@ -103,12 +107,19 @@
   --column-items-gap: 0.25rem;
   --version-padding: 0.5rem;
   --label-padding-x: 0.5625rem;
-  /* The vertical gap between adjacent icons. */
+  /* The horizontal gap between adjacent color inputs. */
+  --colors-gap: 0.25rem;
+  /* The vertical gap between adjacent labels. */
   --labels-gap: 0.25rem;
   /* The horizontal gap between a label and its icons. */
   --label-icons-gap: 0.25rem;
   /* The transition duration of an arrow transitioning between two directions. */
   --arrow-transition-duration: 300ms;
+  /* The maximum height of the autocomplete suggestions list. */
+  --autocomplete-suggestions-height: 15rem;
+  /* The horizontal gap between the arrow of a dropdown and the label of the current item. */
+  --dropdown-arrow-gap: 0.25rem;
+  --dropdown-items-height: 15rem;
 
   --drive-bar-gap: 0.625rem;
   --drive-bar-padding-y: 0.125rem;
@@ -121,6 +132,15 @@
   --permission-type-selector-corner-radius: calc(
     var(--default-corner-radius) + 0.25rem
   );
+  --permission-type-selector-padding: 0.25rem;
+  --permission-type-button-padding: 0.25rem;
+  /* The horizontal gap between elements in a permission type button. */
+  --permission-type-button-gap: 0.5rem;
+  --permission-type-width: 3.25rem;
+  --permission-type-padding-y: 0.125rem;
+  --permission-mini-button-padding-x: 0.4375rem;
+  --permission-mini-button-padding-y: 0.125rem;
+  --permission-with-border-margin: 0.25rem;
 
   /*************\
   |* User menu *|
@@ -183,7 +203,10 @@
   --modal-gap: 0.5rem;
   /* The padding around the entire modal. */
   --modal-padding: 0.5rem;
+  /* Alternative, wider padding around the entire modal. */
+  --modal-wide-padding: 1rem;
   --modal-label-width: 3rem;
+
   --manage-labels-modal-width: 15rem;
   --confirm-delete-modal-width: 24rem;
   --confirm-delete-user-modal-width: 24rem;
@@ -194,6 +217,13 @@
   --manage-permissions-modal-width: 28.8125rem;
   --upsert-data-link-modal-width: 24rem;
   --upsert-secret-modal-width: 24rem;
+
+  --modal-tab-bar-padding-x: 0.5rem;
+  --modal-tabs-gap: 0.75rem;
+  --manage-permissions-modal-input-padding: 0.25rem;
+  --modal-invite-button-text-padding-y: 0.125rem;
+  --manage-permissions-modal-permissions-list-height: 20rem;
+  --manage-labels-list-height: 20rem;
 
   /********\
   |* Chat *|

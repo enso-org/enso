@@ -244,8 +244,8 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: `:matches(\
-            TemplateElement[value.raw=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-(?:xl|\\d|\\[)/],\
-            Literal[value=/\\b(?:opacity|gap|rounded|leading|duration|grid-cols-fill)-(?:xl|\\d|\\[)/]\
+            TemplateElement[value.raw=/\\b(?:opacity|gap|rounded(?:-[lrbtxy])?|leading|duration|grid-cols-fill)-(?:xs|sm|md|lg|xl|\\d|\\[)/],\
+            Literal[value=/\\b(?:opacity|gap|rounded(?:-[lrbtxy])?|leading|duration|grid-cols-fill)-(?:xs|sm|md|lg|xl|\\d|\\[)/]\
         )`,
         message:
             'Fixed values for Tailwind `opacity-`, `rounded-`, `leading-`, `duration-` and `grid-cols-fill` are not allowed',

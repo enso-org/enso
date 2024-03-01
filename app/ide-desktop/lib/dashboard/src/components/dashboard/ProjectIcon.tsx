@@ -32,8 +32,6 @@ import * as object from '#/utilities/object'
 
 /** The size of the icon, in pixels. */
 const ICON_SIZE_PX = 24
-/** The styles of the icons. */
-const ICON_CLASSES = 'size-6'
 const LOADING_MESSAGE =
   'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -344,7 +342,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             doOpenManually(item.id)
           }}
         >
-          <SvgMask alt="Open in editor" className={ICON_CLASSES} src={PlayIcon} />
+          <SvgMask alt="Open in editor" src={PlayIcon} className="size-project-icon" />
         </button>
       )
     case backendModule.ProjectState.openInProgress:
@@ -368,7 +366,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <SvgMask
             alt="Stop execution"
             src={StopIcon}
-            className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+            className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
           />
         </button>
       )
@@ -391,7 +389,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             <SvgMask
               alt="Stop execution"
               src={StopIcon}
-              className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+              className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
             />
           </button>
           {!isOtherUserUsingProject && !isRunningInBackground && (
@@ -403,7 +401,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 doOpenEditor(true)
               }}
             >
-              <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />
+              <SvgMask alt="Open in editor" src={ArrowUpIcon} className="size-project-icon" />
             </button>
           )}
         </div>

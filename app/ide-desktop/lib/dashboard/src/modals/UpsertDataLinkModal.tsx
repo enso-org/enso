@@ -40,7 +40,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   return (
     <Modal centered className="bg-dim">
       <form
-        className="relative flex flex-col gap-modal rounded-default w-upsert-data-link-modal p-4 pt-modal pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="relative flex flex-col gap-modal rounded-default w-upsert-data-link-modal p-modal-wide pt-modal pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -56,12 +56,12 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         }}
       >
         <h1 className="relative text-sm font-semibold">Create Data Link</h1>
-        <div className="relative flex" title="Must not be blank.">
-          <div className="w-modal-label h-text py-1">Name</div>
+        <div className="relative flex items-center" title="Must not be blank.">
+          <div className="text w-modal-label">Name</div>
           <input
             autoFocus
             placeholder="Enter the name of the Data Link"
-            className={`text grow bg-transparent border rounded-full px-4 disabled:opacity-disabled ${
+            className={`text grow bg-transparent border rounded-full px-input-x disabled:opacity-disabled ${
               name !== '' ? 'border-black/10' : 'border-red-700/60'
             }`}
             value={name}
@@ -73,7 +73,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         <div className="relative">
           <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
-        <div className="relative flex gap-2">
+        <div className="relative flex gap-buttons">
           <button type="submit" disabled={!isSubmittable} className="button text-white bg-invite">
             Create
           </button>

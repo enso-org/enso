@@ -34,7 +34,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       >
         <div
           className={`flex items-center gap-icon-with-text ${
-            backend.type === backendModule.BackendType.remote ? '' : 'opacity-30'
+            backend.type === backendModule.BackendType.remote ? '' : 'opacity-disabled-backend'
           }`}
         >
           <SvgMask src={CloudIcon} />
@@ -50,7 +50,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       >
         <div
           className={`flex items-center gap-icon-with-text ${
-            backend.type === backendModule.BackendType.local ? '' : 'opacity-30'
+            backend.type === backendModule.BackendType.local ? '' : 'opacity-disabled-backend'
           }`}
         >
           <SvgMask src={NotCloudIcon} />

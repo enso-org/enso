@@ -46,7 +46,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       <form
         data-testid="upsert-secret-modal"
         tabIndex={-1}
-        className="relative flex flex-col gap-modal rounded-default w-upsert-secret-modal p-4 pt-modal pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="relative flex flex-col gap-modal rounded-default w-upsert-secret-modal p-modal-wide pt-modal pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -63,31 +63,31 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         <h1 className="relative text-sm font-semibold">
           {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
         </h1>
-        <label className="relative flex">
-          <div className="w-modal-label h-text py-1">Name</div>
+        <label className="relative flex h-row items-center">
+          <div className="text w-modal-label">Name</div>
           <input
             autoFocus
             disabled={!isNameEditable}
             placeholder="Enter the name of the secret"
-            className="text grow bg-transparent border border-black/10 rounded-full px-4 disabled:opacity-disabled"
+            className="text grow bg-transparent border border-black/10 rounded-full px-input-x disabled:opacity-disabled"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
             }}
           />
         </label>
-        <label className="relative flex">
-          <div className="w-modal-label h-text py-1">Value</div>
+        <label className="relative flex h-row items-center">
+          <div className="text w-modal-label">Value</div>
           <input
             autoFocus={!isNameEditable}
             placeholder="Enter the value of the secret"
-            className="text grow bg-transparent border border-black/10 rounded-full px-4"
+            className="text grow bg-transparent border border-black/10 rounded-full px-input-x disabled:opacity-disabled"
             onInput={event => {
               setValue(event.currentTarget.value)
             }}
           />
         </label>
-        <div className="relative flex gap-2">
+        <div className="relative flex gap-buttons">
           <button disabled={!canSubmit} type="submit" className="button text-white bg-invite">
             {isCreatingSecret ? 'Create' : 'Update'}
           </button>

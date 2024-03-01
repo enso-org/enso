@@ -56,7 +56,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           left: position.left + window.scrollX,
           top: position.top + window.scrollY,
         }}
-        className="relative flex flex-col gap-modal rounded-default pointer-events-auto w-new-label-modal p-4 pt-modal before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="relative flex flex-col gap-modal rounded-default pointer-events-auto w-new-label-modal p-modal-wide pt-modal before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -73,13 +73,13 @@ export default function NewLabelModal(props: NewLabelModalProps) {
         }}
       >
         <h1 className="relative text-sm font-semibold">New Label</h1>
-        <label className="relative flex">
-          <div className="w-modal-label h-text py-1">Name</div>
+        <label className="relative flex items-center">
+          <div className="text w-modal-label">Name</div>
           <input
             autoFocus
             size={1}
             placeholder="Enter the name of the label"
-            className={`text grow bg-transparent border border-black/10 rounded-full px-4 ${
+            className={`text grow bg-transparent border border-black/10 rounded-full px-input-x ${
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers
               color != null && color.lightness <= 50
                 ? 'text-tag-text placeholder-selected-frame'
@@ -98,17 +98,17 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           />
         </label>
         <label
-          className="relative flex"
+          className="relative flex items-center"
           onClick={event => {
             event.preventDefault()
           }}
         >
-          <div className="w-modal-label h-text py-1">Color</div>
-          <div className="grow flex items-center gap-1">
+          <div className="text w-modal-label">Color</div>
+          <div className="grow">
             <ColorPicker setColor={setColor} />
           </div>
         </label>
-        <div className="relative flex gap-2">
+        <div className="relative flex gap-buttons">
           <button disabled={!canSubmit} type="submit" className="button text-white bg-invite">
             Create
           </button>

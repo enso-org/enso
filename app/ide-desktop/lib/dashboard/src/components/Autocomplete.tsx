@@ -184,7 +184,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             size={1}
             value={text ?? ''}
             placeholder={placeholder}
-            className="grow bg-transparent text px-input-x"
+            className="text grow bg-transparent px-button-x"
             onFocus={() => {
               setIsDropdownVisible(true)
             }}
@@ -202,7 +202,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
           <div
             ref={element => element?.focus()}
             tabIndex={-1}
-            className="grow cursor-pointer bg-transparent text px-input-x"
+            className="text grow cursor-pointer bg-transparent px-button-x"
             onClick={() => {
               setIsDropdownVisible(true)
             }}
@@ -218,19 +218,23 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
       </div>
       <div className="h">
         <div
-          className={`relative rounded-default shadow-soft w-full h-max top-2 z-1 before:absolute before:rounded-default before:backdrop-blur-default before:top before:w-full before:h-full ${
-            isDropdownVisible ? 'before:border before:border-black/10' : ''
+          className={`relative rounded-default shadow-soft w-full h-max top-2 z-1 before:absolute before:rounded-default before:bg-frame before:backdrop-blur-default before:top before:w-full before:h-full ${
+            isDropdownVisible && matchingItems.length !== 0
+              ? 'before:border before:border-black/10'
+              : ''
           }`}
         >
           <div
-            className={`relative rounded-default overflow-auto w-full max-h-10lh ${
+            className={`relative rounded-default overflow-auto w-full max-h-autocomplete-suggestions ${
               isDropdownVisible ? '' : 'h'
             }`}
           >
+            {/* FIXME: "Invite" modal does not take into account the height of the autocomplete,
+             * so the suggestions may go offscreen. */}
             {matchingItems.map((item, index) => (
               <div
                 key={itemToKey(item)}
-                className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black/5 py-1 px-2 ${
+                className={`text relative cursor-pointer first:rounded-t-default last:rounded-b-default hover:bg-black/5 px-input-x ${
                   index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-black/10' : ''
                 }`}
                 onMouseDown={event => {

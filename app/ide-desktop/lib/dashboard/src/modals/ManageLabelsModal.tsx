@@ -156,54 +156,54 @@ export default function ManageLabelsModal<
               }
             }}
           >
-            <div>
-              <h2 className="text-sm font-bold">Labels</h2>
-              {/* Space reserved for other tabs. */}
+            <div className="flex items-center h-row gap-modal-tabs px-modal-tab-bar-x">
+              <h2 className="text text-sm font-bold">Labels</h2>
             </div>
-            <div
-              className={`flex items-center grow rounded-full border border-black/10 gap-2 px-1 ${
-                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                canSelectColor && color != null && color.lightness <= 50
-                  ? 'text-tag-text placeholder-tag-text'
-                  : 'text-primary'
-              }`}
-              style={
-                !canSelectColor || color == null
-                  ? {}
-                  : {
-                      backgroundColor: backendModule.lChColorToCssColor(color),
-                    }
-              }
-            >
-              <input
-                autoFocus
-                type="text"
-                placeholder="Type labels to search"
-                className="text grow bg-transparent px-1"
-                onChange={event => {
-                  setQuery(event.currentTarget.value)
-                }}
-              />
+            <div className="flex gap-input-with-button">
+              <div
+                className={`flex items-center grow rounded-full border border-black/10 px-input-x ${
+                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                  canSelectColor && color != null && color.lightness <= 50
+                    ? 'text-tag-text placeholder-tag-text'
+                    : 'text-primary'
+                }`}
+                style={
+                  !canSelectColor || color == null
+                    ? {}
+                    : {
+                        backgroundColor: backendModule.lChColorToCssColor(color),
+                      }
+                }
+              >
+                <input
+                  autoFocus
+                  type="text"
+                  size={1}
+                  placeholder="Type labels to search"
+                  className="text grow bg-transparent"
+                  onChange={event => {
+                    setQuery(event.currentTarget.value)
+                  }}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!canCreateNewLabel}
+                className="button/30 text-tag-text bg-invite px-button-x"
+              >
+                <div className="h-text py-modal-invite-button-text-y">Create</div>
+              </button>
             </div>
-            <button
-              type="submit"
-              disabled={!canCreateNewLabel}
-              className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
-            >
-              <div className="h-text py-0.5">Create</div>
-            </button>
             {canSelectColor && (
-              <div className="flex flex-col items-center">
-                <div className="grow flex items-center gap-1">
-                  <ColorPicker setColor={setColor} />
-                </div>
+              <div className="mx-auto">
+                <ColorPicker setColor={setColor} />
               </div>
             )}
-            <div className="overflow-auto pl-1 pr-12 max-h-80">
+            <div className="overflow-auto max-h-manage-labels-list">
               {Array.from(allLabels.values())
                 .filter(label => regex.test(label.value))
                 .map(label => (
-                  <div key={label.id} className="flex items-center h-8">
+                  <div key={label.id} className="flex items-center h-row">
                     <Label
                       active={labels.includes(label.value)}
                       color={label.color}
