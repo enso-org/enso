@@ -11,12 +11,14 @@ import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useEvent, useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
+import { targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
@@ -35,6 +37,7 @@ const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
+const interaction = injectInteractionHandler()
 
 const props = defineProps<{
   nodePosition: Vec2
@@ -47,7 +50,24 @@ const emit = defineEmits<{
   canceled: []
 }>()
 
+const cbOpen: Interaction = {
+  cancel: () => {
+    emit('canceled')
+  },
+  click: (e: PointerEvent) => {
+    if (targetIsOutside(e, cbRoot)) {
+      if (input.anyChange.value) {
+        acceptInput()
+      } else {
+        interaction.cancel(cbOpen)
+      }
+    }
+    return false
+  },
+}
+
 onMounted(() => {
+  interaction.setCurrent(cbOpen)
   input.reset(props.usage)
   if (inputField.value != null) {
     inputField.value.focus({ preventScroll: true })
@@ -158,23 +178,6 @@ function preventNonInputDefault(e: Event) {
     e.preventDefault()
   }
 }
-
-useEvent(
-  window,
-  'pointerdown',
-  (event) => {
-    if (event.button !== 0) return
-    if (!(event.target instanceof Element)) return
-    if (!cbRoot.value?.contains(event.target)) {
-      if (input.anyChange.value) {
-        emit('accepted', input.code.value, input.importsToAdd())
-      } else {
-        emit('canceled')
-      }
-    }
-  },
-  { capture: true },
-)
 
 const inputElement = ref<HTMLElement>()
 const inputSize = useResizeObserver(inputElement, false)
@@ -357,6 +360,7 @@ function acceptSuggestion(index: Opt<Component> = null) {
 
 function acceptInput() {
   emit('accepted', input.code.value.trim(), input.importsToAdd())
+  interaction.end(cbOpen)
 }
 
 // === Key Events Handler ===
@@ -385,9 +389,6 @@ const handler = componentBrowserBindings.handler({
       selected.value -= 1
     }
     scrolling.scrollWithTransition({ type: 'selected' })
-  },
-  cancelEditing() {
-    emit('canceled')
   },
 })
 </script>
