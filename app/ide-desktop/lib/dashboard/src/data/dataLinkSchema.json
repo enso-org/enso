@@ -6,7 +6,8 @@
       "anyOf": [
         { "$ref": "#/$defs/S3DataLink" },
         { "$ref": "#/$defs/HttpFetchDataLink" }
-      ]
+      ],
+      "$comment": "The fields `type` and `libraryName` are required for all data link types, but we currently don't add a top-level `required` setting to the schema, because it was confusing the code that is generating the modal."
     },
     "SecureValue": {
       "title": "Secure Value",
@@ -88,32 +89,35 @@
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "S3", "type": "string" },
+        "libraryName": { "const": "Standard.AWS" },
         "uri": {
           "title": "URI",
           "description": "Must start with \"s3://\".",
           "type": "string",
-          "pattern": "^s3://[\\w.~-]+/[/\\w.~-]+$"
+          "pattern": "^s3://[a-z0-9.-]{3,63}/.{1,1024}$"
         },
         "auth": { "title": "Authentication", "$ref": "#/$defs/AwsAuth" },
         "format": { "title": "Format", "$ref": "#/$defs/Format" }
       },
-      "required": ["type", "uri", "auth"]
+      "required": ["type", "libraryName", "uri", "auth"]
     },
     "HttpFetchDataLink": {
-      "$comment": "missing <headers with secrets> OR <query string with secrets>",
+      "$comment": "missing <headers with secrets> and <query string with secrets>",
       "title": "HTTP Fetch",
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "HTTP", "type": "string" },
+        "libraryName": { "const": "Standard.Base" },
         "uri": {
           "title": "URI",
           "description": "Must start with \"http://\" or \"https://\".",
           "type": "string",
           "pattern": "^https?://[\\w.~-]+/?.*$"
         },
-        "method": { "title": "Method", "const": "GET", "type": "string" }
+        "method": { "title": "Method", "const": "GET", "type": "string" },
+        "format": { "title": "Format", "$ref": "#/$defs/Format" }
       },
-      "required": ["type", "uri", "method"]
+      "required": ["type", "libraryName", "uri", "method"]
     },
 
     "Format": {
@@ -147,7 +151,8 @@
           "title": "Delimiter",
           "description": "Must not be blank.",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 1
         },
         "encoding": { "title": "Encoding", "const": "utf8", "type": "string" },
         "headers": {
@@ -162,9 +167,10 @@
       "title": "JSON",
       "type": "object",
       "properties": {
-        "type": { "title": "Type", "const": "json", "type": "string" }
+        "type": { "title": "Type", "const": "format", "type": "string" },
+        "subType": { "title": "Type", "const": "json", "type": "string" }
       },
-      "required": ["type"]
+      "required": ["type", "subType"]
     }
   }
 }

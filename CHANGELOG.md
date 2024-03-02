@@ -615,9 +615,12 @@
 - [Allow removing rows using a Filter_Condition.][8861]
 - [Added `Table.to_xml`.][8979]
 - [Implemented Write support for `S3_File`.][8921]
+- [Implemented `Table.replace` for the database backend.][8986]
 - [Separate `Group_By` from `columns` into new argument on `aggregate`.][9027]
 - [Allow `copy_to` and `move_to` to work between local and S3 files.][9054]
 - [Adjusted expression handling and new `Simple_Expression` type.][9128]
+- [Allow reading Data Links configured locally or in the Cloud.][9215]
+- [Update the XML methods and add more capabilities to document.][9233]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -887,11 +890,14 @@
 [8865]: https://github.com/enso-org/enso/pull/8865
 [8935]: https://github.com/enso-org/enso/pull/8935
 [8861]: https://github.com/enso-org/enso/pull/8861
-[8979]: https://github.com/enso-org/enso/pull/8979
 [8921]: https://github.com/enso-org/enso/pull/8921
+[8979]: https://github.com/enso-org/enso/pull/8979
+[8986]: https://github.com/enso-org/enso/pull/8986
 [9027]: https://github.com/enso-org/enso/pull/9027
 [9054]: https://github.com/enso-org/enso/pull/9054
 [9128]: https://github.com/enso-org/enso/pull/9128
+[9215]: https://github.com/enso-org/enso/pull/9215
+[9233]: https://github.com/enso-org/enso/pull/9233
 
 #### Enso Compiler
 
