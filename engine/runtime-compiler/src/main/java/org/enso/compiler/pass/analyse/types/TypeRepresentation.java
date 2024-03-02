@@ -105,9 +105,8 @@ public sealed interface TypeRepresentation
    * reduce coupling; however for now, I'm just trying to keep it simple to make the PoC work.
    *
    * @param name the qualified name of the type
-   * @param shape the type that this type object represents
    */
-  record TypeObject(QualifiedName name, BindingsMap.Type shape) implements TypeRepresentation {
+  record TypeObject(QualifiedName name) implements TypeRepresentation {
     @Override
     public String toString() {
       return "(type " + name.item() + ")";
@@ -172,7 +171,7 @@ public sealed interface TypeRepresentation
       case SumType sumType -> new SumType(
           sumType.types.stream().map(TypeRepresentation::toAbstract).toList());
       case TopType topType -> topType;
-      case TypeObject typeObject -> new TypeObject(typeObject.name, typeObject.shape);
+      case TypeObject typeObject -> new TypeObject(typeObject.name);
       case UnresolvedSymbol unresolvedSymbol -> unresolvedSymbol;
     };
   }

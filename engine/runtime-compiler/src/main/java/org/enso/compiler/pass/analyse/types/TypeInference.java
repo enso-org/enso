@@ -16,6 +16,7 @@ import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.JavaInteropHelpers;
 import org.enso.compiler.pass.resolve.*;
+import org.enso.pkg.QualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -294,7 +295,7 @@ public final class TypeInference implements IRPass {
   }
 
   private TypeRepresentation.TypeObject resolvedTypeAsTypeObject(BindingsMap.ResolvedType resolvedType) {
-    return new TypeRepresentation.TypeObject(resolvedType.qualifiedName(), resolvedType.tp());
+    return new TypeRepresentation.TypeObject(resolvedType.qualifiedName());
   }
 
   private void processLiteral(Literal literal) {
@@ -359,6 +360,24 @@ public final class TypeInference implements IRPass {
     return null;
   }
 
+  private BindingsMap getBindingsMap(IR ir) {
+    return getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
+  }
+
+  private BindingsMap.Type findTypeDescription(QualifiedName typeName, IR someIr) {
+    var bindingsMap = getBindingsMap(someIr);
+    var result = bindingsMap.resolveQualifiedName(typeName.path());
+    if (result.isLeft()) {
+      throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type cannot be found in the bindings map.");
+    }
+
+    var resolved = result.right().get();
+    return switch (resolved) {
+      case BindingsMap.ResolvedType resolvedType -> resolvedType.tp();
+      default -> throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type is not a type, but " + resolved + ".");
+    };
+  }
+
   private TypeRepresentation processUnresolvedSymbolApplication(TypeRepresentation.UnresolvedSymbol function, Expression argument) {
     var argumentType = getInferredType(argument);
     if (argumentType == null) {
@@ -367,7 +386,8 @@ public final class TypeInference implements IRPass {
 
     switch (argumentType.type()) {
       case TypeRepresentation.TypeObject typeObject -> {
-        Option<BindingsMap.Cons> ctorCandidate = typeObject.shape().members().find((ctor) -> ctor.name().equals(function.name()));
+        var typeDescription = findTypeDescription(typeObject.name(), argument);
+        Option<BindingsMap.Cons> ctorCandidate = typeDescription.members().find((ctor) -> ctor.name().equals(function.name()));
         if (ctorCandidate.isDefined()) {
           return buildAtomConstructorType(typeObject, ctorCandidate.get());
         } else {
