@@ -146,6 +146,21 @@ type DB_Table
             _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if internal_column.is_nothing then if_missing else self.make_column internal_column
 
+    ## ALIAS get cell, cell value
+       ICON select_column
+       Gets a value from the table.
+
+       Arguments:
+       - selector: The name or index of the column.
+       - index: The index of the value to get within the column.
+       - if_missing: The value to use if the selector isn't present.
+    @selector Widget_Helpers.make_column_name_selector
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
+    get_value : Text | Integer -> Integer -> Any -> Column | Any
+    get_value self selector=0 index=0 ~if_missing=Nothing =
+        col = self.get selector if_missing=Nothing
+        if Nothing == col then if_missing else col.get index if_missing
+
     ## GROUP Standard.Base.Selections
        ICON select_column
        Gets the first column.
