@@ -306,7 +306,7 @@ type Table
     get_value : Text | Integer -> Integer -> Any -> Column | Any
     get_value self selector=0 index=0 ~if_missing=Nothing =
         col = self.get selector if_missing=Nothing
-        if col.is_nothing then if_missing else col.get index if_missing
+        if Nothing == col then if_missing else col.get index if_missing
 
     ## GROUP Standard.Base.Selections
        ICON select_column
