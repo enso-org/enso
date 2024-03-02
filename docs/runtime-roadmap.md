@@ -14,20 +14,11 @@ priority, but the dependencies between tasks are described.
 
 ## Technology Choices
 
-With the advent of Java 17 and its ergonomic improvements (read:
-pattern-matching), it makes little sense to retain the usage of Scala throughout
-the compiler. The language was originally introduced due to the capabilities of
-its type system in comparison to Java's, but very little of this functionality
-has been used in the end.
-
-We recommend moving everything to Java as part of this work, as you will end up
-with better tooling support. Scala has been a problem child.
-
-Enso originally started working with Java 8, and was transitioned (painfully,
-due to the JPMS) to Java 11. Java 8 was EOL'd by the graal team after a couple
-of years. It seems likely that Java 11 will suffer a similar fate, though the
-transition from 11 to 17 will be far less painful as it doesn't introduce any
-breaking language-level changes.
+Enso interpreter is written in a mixture of Scala and Java. Scala was originally
+used due to the capabilities of its type system in comparison to Java's. Modern
+Java (as provided by JDK 21 or [Frgaal compiler](http://frgaal.org)) meets most
+of the needs too. The ultimate goal is to write everything in Java and also keep
+up with most recent long term supported JDK/GraalVM releases.
 
 ## Static Analysis
 
@@ -49,7 +40,8 @@ Currently, the IR is:
 - Very verbose and difficult to add a new node to. Adding a new node requires
   adding ~100 lines of code that could likely be automated away. Lots of
   boilerplate.
-- Of unknown performance.
+- Of poor performance as witnessed by
+  [static compiler benchmarks](https://github.com/enso-org/enso/pull/9158)
 - Partially mutable, making it confusing as to which things are shared.
 
 A new IR for Enso would have to:
@@ -252,25 +244,6 @@ To rectify this situation, we recommend implementing a system we have termed
 With this done, it may still be necessary to create a Java DSL for implementing
 built-in methods and types, but that is unclear at this point.
 
-### Static Methods on Types
-
-Currently, Enso allows calling methods on _modules_, _constructors_, and
-_instances_. This does not conform to the language specification because it
-allows constructors and instances to be treated the same at runtime. This leads
-to odd results (see the ticket below).
-
-The end result should be compliant with the design described
-[here](https://github.com/enso-org/enso/issues/1851), and needs to be taken into
-account when defining builtins.
-
-### Better Safepointing
-
-Enso currently uses a hand-rolled safepointing system for interrupting threads
-and handling resource finalisation. With 21.1, Truffle landed its own system for
-doing this. Enso should be updated to use
-[the new system](https://github.com/oracle/graal/blob/master/truffle/docs/Safepoints.md),
-instead, as it will provide better performance and more robust operation.
-
 ## Runtime Performance
 
 While Enso is performant when it gets JITted by GraalVM, the performance when
@@ -289,29 +262,6 @@ This can be greatly improved.
 - Keeping methods in `HashMap` and similar implementation decisions can easily
   be improved.
 - Many of the above-listed static optimisations will greatly help here.
-
-### Unboxed Atoms
-
-Currently every atom in Enso is stored boxed. In limited circumstances it may be
-possible to unbox these and hence remove the indirection cost when accessing
-their data.
-
-- Read the details of Truffle's
-  [`DynamicObject`](https://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/object/DynamicObject.html),
-  and the sources.
-- Use this system to inform the design for a system that reduces the overhead of
-  dynamic field names and arities when accessing data on Atoms.
-
-### Unboxed Vectors
-
-Enso currently doesn't have support for unboxed arrays (and hence vectors). This
-means that it incurs a significant performance cost when working with pure
-numerical arrays. This can be improved.
-
-- Read the truffle documentation on
-  [truffle libraries](https://github.com/oracle/graal/blob/master/truffle/docs/TruffleLibraries.md).
-- Based on this, define a system that seamlessly specializes and deoptimises
-  between boxed and unboxed arrays as necessary.
 
 ## IDE
 
@@ -362,7 +312,3 @@ preprocessors.
 - Implement caching support for the visualization expression processing.
 - This cache should, much like the IDE's introspection cache, track and save the
   values of all top-level bindings in the visualization preprocessor.
-
-## Parser
-
-Parser
