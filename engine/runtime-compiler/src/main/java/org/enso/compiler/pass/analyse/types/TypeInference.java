@@ -24,6 +24,8 @@ import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
+import scala.util.Either;
+import scala.util.Right;
 
 import java.util.*;
 
@@ -70,10 +72,11 @@ public final class TypeInference implements IRPass {
         Option.empty()
     );
 
+    BindingsMap bindingsMap = getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
     var mappedBindings = ir.bindings().map((def) -> switch (def) {
         case Method.Explicit b -> {
           var mapped = def.mapExpressions(
-              (expression) -> runExpression(expression, ctx)
+              (expression) -> analyzeExpression(expression, ctx, LocalBindingsTyping.create(), bindingsMap)
           );
 
           var inferredType = getInferredType(b.body());
@@ -95,10 +98,10 @@ public final class TypeInference implements IRPass {
 
   @Override
   public Expression runExpression(Expression ir, InlineContext inlineContext) {
-    return analyzeExpression(ir, inlineContext, LocalBindingsTyping.create());
+    return analyzeExpression(ir, inlineContext, LocalBindingsTyping.create(), inlineContext.bindingsAnalysis());
   }
 
-  private Expression analyzeExpression(Expression ir, InlineContext inlineContext, LocalBindingsTyping localBindingsTyping) {
+  private Expression analyzeExpression(Expression ir, InlineContext inlineContext, LocalBindingsTyping localBindingsTyping, BindingsMap bindingsMap) {
     // We first run the inner expressions, as most basic inference is propagating types in a bottom-up manner.
     var mappedIr = switch (ir) {
       case Function.Lambda lambda -> {
@@ -108,27 +111,27 @@ public final class TypeInference implements IRPass {
             registerBinding(arg, type, localBindingsTyping);
           }
         }
-        var newBody = analyzeExpression(lambda.body(), inlineContext, localBindingsTyping);
+        var newBody = analyzeExpression(lambda.body(), inlineContext, localBindingsTyping, bindingsMap);
         yield lambda.copy(lambda.arguments(), newBody, lambda.location(), lambda.canBeTCO(), lambda.passData(), lambda.diagnostics(), lambda.id());
       }
       case Case.Expr caseExpr -> {
-        var newScrutinee = analyzeExpression(caseExpr.scrutinee(), inlineContext, localBindingsTyping);
+        var newScrutinee = analyzeExpression(caseExpr.scrutinee(), inlineContext, localBindingsTyping, bindingsMap);
         List<Case.Branch> newBranches = CollectionConverters$.MODULE$.asJava(caseExpr.branches()).stream().map((branch) -> {
           // TODO once we will be implementing type equality constraints*, we will need to copy localBindingsTyping here, to ensure independent typing of branches
           //  (*) (case x of _ : Integer -> e) ==> x : Integer within e
           var myBranchLocalBindingsTyping = localBindingsTyping;
           registerPattern(branch.pattern(), myBranchLocalBindingsTyping);
-          var newExpression = analyzeExpression(branch.expression(), inlineContext, myBranchLocalBindingsTyping);
+          var newExpression = analyzeExpression(branch.expression(), inlineContext, myBranchLocalBindingsTyping, bindingsMap);
           return branch.copy(branch.pattern(), newExpression, branch.terminalBranch(), branch.location(), branch.passData(), branch.diagnostics(), branch.id());
         }).toList();
         yield caseExpr.copy(newScrutinee, CollectionConverters$.MODULE$.asScala(newBranches).toSeq(), caseExpr.isNested(), caseExpr.location(), caseExpr.passData(), caseExpr.diagnostics(), caseExpr.id());
       }
       default -> ir.mapExpressions(
-          (expression) -> analyzeExpression(expression, inlineContext, localBindingsTyping)
+          (expression) -> analyzeExpression(expression, inlineContext, localBindingsTyping, bindingsMap)
       );
     };
 
-    processTypePropagation(mappedIr, localBindingsTyping);
+    processTypePropagation(mappedIr, bindingsMap, localBindingsTyping);
 
     // The ascriptions are processed later, because we want them to _overwrite_ any type that was inferred.
     processTypeAscription(mappedIr);
@@ -160,7 +163,7 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private void processTypePropagation(Expression ir, LocalBindingsTyping localBindingsTyping) {
+  private void processTypePropagation(Expression ir, BindingsMap bindingsMap, LocalBindingsTyping localBindingsTyping) {
     switch (ir) {
       case Name.Literal l -> processName(l, localBindingsTyping);
       case Application.Force f -> {
@@ -172,7 +175,7 @@ public final class TypeInference implements IRPass {
       case Application.Prefix p -> {
         var functionType = getInferredType(p.function());
         if (functionType != null) {
-          var inferredType = processApplication(functionType.type(), p.arguments(), p);
+          var inferredType = processApplication(functionType.type(), p.arguments(), p, bindingsMap);
           if (inferredType != null) {
             setInferredType(p, new InferredType(inferredType));
           }
@@ -310,14 +313,14 @@ public final class TypeInference implements IRPass {
   }
 
   @SuppressWarnings("unchecked")
-  private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR) {
+  private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR, BindingsMap bindingsMap) {
     if (arguments.isEmpty()) {
       logger.warn("processApplication: {} - unexpected - no arguments in a function application", relatedIR.showCode());
       return functionType;
     }
 
     var firstArgument = arguments.head();
-    var firstResult = processSingleApplication(functionType, firstArgument, relatedIR);
+    var firstResult = processSingleApplication(functionType, firstArgument, relatedIR, bindingsMap);
     if (firstResult == null) {
       return null;
     }
@@ -325,11 +328,11 @@ public final class TypeInference implements IRPass {
     if (arguments.length() == 1) {
       return firstResult;
     } else {
-      return processApplication(firstResult, (scala.collection.immutable.List<CallArgument>) arguments.tail(), relatedIR);
+      return processApplication(firstResult, (scala.collection.immutable.List<CallArgument>) arguments.tail(), relatedIR, bindingsMap);
     }
   }
 
-  private TypeRepresentation processSingleApplication(TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR) {
+  private TypeRepresentation processSingleApplication(TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR, BindingsMap bindingsMap) {
     if (argument.name().isDefined()) {
       // TODO named arguments are not yet supported
       return null;
@@ -345,7 +348,7 @@ public final class TypeInference implements IRPass {
       }
 
       case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
-        return processUnresolvedSymbolApplication(unresolvedSymbol, argument.value());
+        return processUnresolvedSymbolApplication(bindingsMap, unresolvedSymbol, argument.value());
       }
 
       case TypeRepresentation.TopType() -> {
@@ -360,25 +363,20 @@ public final class TypeInference implements IRPass {
     return null;
   }
 
-  private BindingsMap getBindingsMap(IR ir) {
-    return getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
-  }
+  private BindingsMap.Type findResolvedType(BindingsMap bindingsMap, QualifiedName typeName) {
+    var resolved = switch (bindingsMap.resolveQualifiedName(typeName.fullPath())) {
+      case Right<BindingsMap.ResolutionError, BindingsMap.ResolvedName> right ->
+          right.value();
+      default -> throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type cannot be found in the bindings map.");
+    };
 
-  private BindingsMap.Type findTypeDescription(QualifiedName typeName, IR someIr) {
-    var bindingsMap = getBindingsMap(someIr);
-    var result = bindingsMap.resolveQualifiedName(typeName.path());
-    if (result.isLeft()) {
-      throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type cannot be found in the bindings map.");
-    }
-
-    var resolved = result.right().get();
     return switch (resolved) {
       case BindingsMap.ResolvedType resolvedType -> resolvedType.tp();
       default -> throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type is not a type, but " + resolved + ".");
     };
   }
 
-  private TypeRepresentation processUnresolvedSymbolApplication(TypeRepresentation.UnresolvedSymbol function, Expression argument) {
+  private TypeRepresentation processUnresolvedSymbolApplication(BindingsMap bindingsMap, TypeRepresentation.UnresolvedSymbol function, Expression argument) {
     var argumentType = getInferredType(argument);
     if (argumentType == null) {
       return null;
@@ -386,7 +384,7 @@ public final class TypeInference implements IRPass {
 
     switch (argumentType.type()) {
       case TypeRepresentation.TypeObject typeObject -> {
-        var typeDescription = findTypeDescription(typeObject.name(), argument);
+        var typeDescription = findResolvedType(bindingsMap, typeObject.name());
         Option<BindingsMap.Cons> ctorCandidate = typeDescription.members().find((ctor) -> ctor.name().equals(function.name()));
         if (ctorCandidate.isDefined()) {
           return buildAtomConstructorType(typeObject, ctorCandidate.get());

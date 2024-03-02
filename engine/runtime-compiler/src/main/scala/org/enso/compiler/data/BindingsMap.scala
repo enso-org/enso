@@ -9,6 +9,7 @@ import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.MethodDefinitions
@@ -739,13 +740,40 @@ object BindingsMap {
     * @param members the member names
     * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
-  case class Type(// TODO if type can hold Cons->Argument->Expression, we need to make it have toAbstract
+  case class Type(
     override val name: String,
     params: Seq[String],
     members: Seq[Cons],
     builtinType: Boolean
   ) extends DefinedEntity {
     override def canExport: Boolean = true
+
+    def toAbstract: Type =
+      this.copy(members = Seq())
+
+    def toConcrete(concreteModule: ModuleReference.Concrete): Option[Type] = {
+      val ir = concreteModule.unsafeAsModule().getIr
+      ir.bindings.collectFirst {
+        case typeIr: Definition.Type if typeIr.name.name == name => typeIr
+      }.map { typeIr => Type.fromIr(typeIr, builtinType) }
+    }
+  }
+
+  object Type {
+    def fromIr(ir: Definition.Type, isBuiltinType: Boolean): Type =
+      BindingsMap.Type(
+        ir.name.name,
+        ir.params.map(_.name.name),
+        ir.members.map(m =>
+          Cons(
+            m.name.name,
+            m.arguments.map(arg =>
+              BindingsMap.Argument(arg.name.name, arg.defaultValue.isDefined, arg.ascribedType)
+            )
+          )
+        ),
+        isBuiltinType
+      )
   }
 
   /** A representation of an imported polyglot symbol.
@@ -777,16 +805,16 @@ object BindingsMap {
     }
 
     /** @inheritdoc */
-    override def toAbstract: ResolvedType = {
-      this.copy(module = module.toAbstract)
-    }
+    override def toAbstract: ResolvedType =
+      this.copy(module = module.toAbstract, tp = tp.toAbstract)
 
     /** @inheritdoc */
     override def toConcrete(
       moduleMap: ModuleMap
-    ): Option[ResolvedType] = {
-      module.toConcrete(moduleMap).map(module => this.copy(module = module))
-    }
+    ): Option[ResolvedType] = for {
+      concreteModule <- module.toConcrete(moduleMap)
+      concreteTp     <- tp.toConcrete(concreteModule)
+    } yield ResolvedType(concreteModule, concreteTp)
 
     override def qualifiedName: QualifiedName =
       module.getName.createChild(tp.name)

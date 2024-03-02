@@ -31,7 +31,6 @@ import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
 public class TypeInferenceTest extends CompilerTest {
-  @Ignore
   @Test
   public void zeroAryCheck() throws Exception {
     final URI uri = new URI("memory://zeroAryCheck.enso");

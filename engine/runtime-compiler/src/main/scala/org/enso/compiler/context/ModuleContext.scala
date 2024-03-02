@@ -1,10 +1,10 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.PackageRepository
-import org.enso.compiler.data.CompilerConfig
+import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.pass.PassConfiguration
-import org.enso.pkg.Package;
-import org.enso.pkg.QualifiedName;
+import org.enso.pkg.Package
+import org.enso.pkg.QualifiedName
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.data.BindingsMap.ModuleReference
 
@@ -25,8 +25,8 @@ case class ModuleContext(
   isGeneratingDocs: Boolean                    = false,
   pkgRepo: Option[PackageRepository]           = None
 ) {
-  def isSynthetic()            = module.isSynthetic()
-  def bindingsAnalysis()       = module.getBindingsMap()
+  def isSynthetic(): Boolean = module.isSynthetic()
+  def bindingsAnalysis(): BindingsMap = module.getBindingsMap()
   def getName(): QualifiedName = module.getName()
   def getPackage(): Package[_] = module.getPackage()
   def getSource(): Source      = module.getSource()
