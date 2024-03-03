@@ -267,11 +267,12 @@ export const useGraphStore = defineStore('graph', () => {
     )
   }
 
-  function setNodeContent(id: NodeId, content: string) {
+  function setNodeContent(id: NodeId, content: string, withImports?: RequiredImport[] | undefined) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
       edit.getVersion(node.rootSpan).syncToCode(content)
+      if (withImports) addMissingImports(edit, withImports)
     })
   }
 
