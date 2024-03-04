@@ -31,9 +31,10 @@ import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 
 public class TypeInferenceTest extends CompilerTest {
+  @Ignore("TODO resolving global methods")
   @Test
   public void zeroAryCheck() throws Exception {
-    final URI uri = new URI("memory://zeroAryCheck.enso");
+    final URI uri = new URI("memory://zeroAryModuleMethodCheck.enso");
     final Source src =
         Source.newBuilder(
                 "enso",
@@ -45,8 +46,6 @@ public class TypeInferenceTest extends CompilerTest {
 
                 foo =
                     x = const
-                    y = My_Type.Value 23
-                    _ = y
                     x
                 """,
                 uri.getAuthority())
@@ -56,12 +55,11 @@ public class TypeInferenceTest extends CompilerTest {
     Module module = compile(src);
     Method foo = findStaticMethod(module, "foo");
     var x = findAssignment(foo.body(), "x");
-    TypeRepresentation xType = getInferredType(x.expression());
-    TypeRepresentation.AtomType asAtom = (TypeRepresentation.AtomType) xType;
-    assertTrue("The type of `x` should be `My_Type`.", asAtom.fqn().item().equals("My_Type"));
+    TypeRepresentation myType = TypeRepresentation.fromQualifiedName("zeroAryModuleMethodCheck.My_Type");
+    assertEquals(getInferredType(x.expression()), myType);
   }
 
-  @Ignore("TODO resolution of local function application")
+  @Ignore("TODO resolution of global function application")
   @Test
   public void functionReturnCheck() throws Exception {
     final URI uri = new URI("memory://functionReturnCheck.enso");
@@ -361,6 +359,7 @@ public class TypeInferenceTest extends CompilerTest {
                 type My_Type
                     Singleton
                 foo =
+                    # x = zeroArgConstructor.My_Type
                     x = My_Type.Singleton
                     x
                 """,

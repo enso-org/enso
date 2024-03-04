@@ -161,6 +161,7 @@ public sealed interface TypeRepresentation
 
   // This is needed because we are referring the BindingsMap... in TypeObject
   // TODO maybe we should stop?
+  @Deprecated
   default TypeRepresentation toAbstract() {
     return switch (this) {
       case ArrowType arrowType -> new ArrowType(
