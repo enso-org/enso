@@ -763,9 +763,10 @@ object BindingsMap {
     override def canExport: Boolean = true
 
     def toAbstract: Type =
-      this.copy(members = Seq())
+      this.copy(members = null)
 
     def toConcrete(concreteModule: ModuleReference.Concrete): Option[Type] = {
+      // TODO this seems to not work because ir is null at this stage :(
       val ir = concreteModule.unsafeAsModule().getIr
       ir.bindings.collectFirst {
         case typeIr: Definition.Type if typeIr.name.name == name => typeIr
