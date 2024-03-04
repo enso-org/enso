@@ -2649,7 +2649,7 @@ type Table
     to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
 
     ## GROUP Standard.Base.Conversions
-       Returns a string containing an XML representation of the table.
+       Returns an `XML_Document` representation of the table.
        Arguments:
        - element_columns: Columns to be used as elements in the XML.
        - attribute_columns: Columns to be used as attributes in the XML.
@@ -2691,7 +2691,7 @@ type Table
     @element_columns Widget_Helpers.make_column_name_vector_selector
     @attribute_columns Widget_Helpers.make_column_name_vector_selector
     @value_column Widget_Helpers.make_column_name_selector
-    to_xml self (element_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = self.column_names) (attribute_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = []) (value_column : Text | Integer | Nothing = Nothing) (root_name : Text = "Table") (row_name : Text = "Row") (on_problems : Problem_Behavior = Report_Warning) -> Text =
+    to_xml self (element_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = self.column_names) (attribute_columns : (Vector (Integer | Text | Regex) | Text | Integer | Regex) = []) (value_column : Text | Integer | Nothing = Nothing) (root_name : Text = "Table") (row_name : Text = "Row") (on_problems : Problem_Behavior = Report_Warning) -> XML_Document =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         resolved_element_columns = columns_helper.select_columns_helper element_columns Case_Sensitivity.Default False problem_builder
@@ -2707,7 +2707,7 @@ type Table
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
         
         problem_builder.attach_problems_before on_problems <|
-            Java_TableToXml.to_xml self.row_count java_element_columns java_attribute_column java_value_column root_name row_name
+            XML_Document.Value (Java_TableToXml.to_xml self.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
