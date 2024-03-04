@@ -509,7 +509,7 @@ const connected = computed(() => isConnected(props.edge))
         class="edge io"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
-        @pointerdown="click"
+        @pointerdown.stop="click"
         @pointerenter="hovered = true"
         @pointerleave="hovered = false"
       />

@@ -90,7 +90,7 @@ type Simple_Expression
         builder.append (Option "trim" fqn+".Trim" [["what", with_text]])
 
         fqn_column = Meta.get_qualified_type_name Simple_Expression
-        derived = Option "<Simple Expression>" fqn_column+".From" [["input", col_names], ["operation", Single_Choice builder.to_vector]]
+        derived = Option "<Simple Expression>" fqn_column+".From" [["input", with_all_types], ["operation", Single_Choice builder.to_vector]]
 
         Single_Choice [text, number, boolean, expression, derived] display=display
 
