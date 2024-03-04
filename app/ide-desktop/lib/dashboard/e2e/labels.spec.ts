@@ -23,7 +23,6 @@ test.test('drag labels onto single row', async ({ page }) => {
   api.addSecret('quux')
   await actions.login({ page })
 
-  await actions.locateLabelsColumnToggle(page).click()
   await labels.nth(0).dragTo(assetRows.nth(1))
   await test.expect(actions.locateAssetLabels(assetRows.nth(0)).getByText(label)).not.toBeVisible()
   await test.expect(actions.locateAssetLabels(assetRows.nth(1)).getByText(label)).toBeVisible()
@@ -95,7 +94,6 @@ test.test('drag (recursive)', async ({ page }) => {
   shouldHaveLabel(api.addFile('yet another file', { parentId: directory5.id }))
   await actions.login({ page })
 
-  await actions.locateLabelsColumnToggle(page).click()
   let didExpandRows = false
   do {
     didExpandRows = false
@@ -164,7 +162,6 @@ test.test('drag (inverted, recursive)', async ({ page }) => {
   api.setLabels(api.rootDirectoryId, [backendLabel.value])
   await actions.login({ page })
 
-  await actions.locateLabelsColumnToggle(page).click()
   /** The default position (the center) cannot be clicked on as it lands exactly on a label -
    * which has its own mouse action. It also cannot be too far left, otherwise it triggers
    * edit mode for the name. */
