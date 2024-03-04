@@ -87,6 +87,21 @@ export class Rect {
   intersects(other: Rect): boolean {
     return this.intersectsX(other) && this.intersectsY(other)
   }
+
+  /** If this `Rect` already includes `point`, return `undefined`; otherwise, return a new `Rect` that has been shifted
+   *  by the minimum distance that causes it to include the point. The point may specify only an `x` or `y` bound to
+   *  leave the other dimension unchanged.
+   */
+  offsetToInclude(point: Partial<Vec2>): Rect | undefined {
+    const newX =
+      point.x &&
+      (point.x < this.left ? point.x : point.x > this.right ? point.x - this.width : undefined)
+    const newY =
+      point.y &&
+      (point.y < this.top ? point.y : point.y > this.bottom ? point.y - this.height : undefined)
+    if (newX == null && newY == null) return
+    return new Rect(new Vec2(newX ?? this.pos.x, newY ?? this.pos.y), this.size)
+  }
 }
 
 Rect.Zero = new Rect(Vec2.Zero, Vec2.Zero)

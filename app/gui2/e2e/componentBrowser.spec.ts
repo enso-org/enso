@@ -55,7 +55,7 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   const outputPortX = outputPortArea.x + outputPortArea.width / 2.0
   const outputPortY = outputPortArea.y + outputPortArea.height - 2.0
   await page.mouse.click(outputPortX, outputPortY)
-  await page.mouse.click(40, 300)
+  await page.mouse.click(100, 500)
   await expectAndCancelBrowser('final.')
   // Double-clicking port
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
