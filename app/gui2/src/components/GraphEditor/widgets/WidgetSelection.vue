@@ -19,11 +19,7 @@ import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
-import {
-  qnLastSegment,
-  tryQualifiedName,
-  type IdentifierOrOperatorIdentifier,
-} from '@/util/qualifiedName'
+import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -40,24 +36,20 @@ interface Tag {
   parameters?: ArgumentWidgetConfiguration[]
 }
 
-function identToLabel(name: IdentifierOrOperatorIdentifier): string {
-  return name.replaceAll('_', ' ')
-}
-
 function tagFromExpression(expression: string): Tag {
   const qn = tryQualifiedName(expression)
   if (!qn.ok) return { expression }
   const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
   if (entry) return tagFromEntry(entry)
   return {
-    label: identToLabel(qnLastSegment(qn.value)),
+    label: qnLastSegment(qn.value),
     expression: qn.value,
   }
 }
 
 function tagFromEntry(entry: SuggestionEntry): Tag {
   return {
-    label: identToLabel(entry.name),
+    label: entry.name,
     expression:
       entry.selfType != null ? `_.${entry.name}`
       : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
@@ -77,7 +69,6 @@ const dynamicTags = computed<Tag[]>(() => {
   if (config?.kind !== 'Single_Choice') return []
   return config.values.map((value) => ({
     ...tagFromExpression(value.value),
-    ...(value.label ? { label: value.label } : {}),
     parameters: value.parameters,
   }))
 })
@@ -145,18 +136,20 @@ function onClick(index: number, keepOpen: boolean) {
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
   let edit: Ast.MutableModule | undefined
+  // Unless import conflict resolution is needed, we use the selected expression as is.
+  let value = selectedTag.value?.expression
   if (selectedTag.value?.requiredImports) {
     edit = graph.startEdit()
-    graph.addMissingImports(edit, selectedTag.value.requiredImports)
+    const conflicts = graph.addMissingImports(edit, selectedTag.value.requiredImports)
+    if (conflicts != null && conflicts.length > 0) {
+      // Is there is a conflict, it would be a single one, because we only ask about a single entry.
+      value = conflicts[0]?.fullyQualified
+    }
   }
-  props.onUpdate({
-    edit,
-    portUpdate: {
-      value: selectedTag.value?.expression,
-      origin: props.input.portId,
-    },
-  })
+  props.onUpdate({ edit, portUpdate: { value, origin: props.input.portId } })
 })
+
+const isHovered = ref(false)
 </script>
 
 <script lang="ts">
@@ -191,9 +184,11 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     @pointerdown.stop
     @pointerup.stop
     @click.stop="toggleDropdownWidget"
+    @pointerover="isHovered = true"
+    @pointerout="isHovered = false"
   >
     <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
-    <SvgIcon name="arrow_right_head_only" class="arrow" />
+    <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
       v-if="showDropdownWidget"
       class="dropdownContainer"
@@ -213,8 +208,9 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 
 .arrow {
   position: absolute;
-  bottom: -6px;
+  bottom: -7px;
   left: 50%;
-  transform: translateX(-50%) rotate(90deg);
+  transform: translateX(-50%) rotate(90deg) scale(0.7);
+  opacity: 0.5;
 }
 </style>

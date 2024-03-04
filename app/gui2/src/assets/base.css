@@ -2,54 +2,26 @@
 @import url('./font-mplus1.css');
 @import url('./font-dejavu.css');
 
-/* color palette from <https://github.com/vuejs/theme> */
-:root {
-  --vt-c-white: #ffffff;
-  --vt-c-white-soft: #f8f8f8;
-  --vt-c-white-mute: #f2f2f2;
-
-  --vt-c-black: #181818;
-  --vt-c-black-soft: #222222;
-  --vt-c-black-mute: #282828;
-
-  --vt-c-indigo: #2c3e50;
-
-  --vt-c-divider-light-1: rgba(60 60 60 / 0.29);
-  --vt-c-divider-light-2: rgba(60 60 60 / 0.12);
-  --vt-c-divider-dark-1: rgba(84 84 84 / 0.65);
-  --vt-c-divider-dark-2: rgba(84 84 84 / 0.48);
-
-  --vt-c-text-light-1: rgba(118 118 118);
-  --vt-c-text-light-2: rgba(60 60 60 / 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235 235 235 / 0.64);
-}
-
 /* semantic color variables for this project */
 :root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
-
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
-
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
-
-  --color-primary: rgba(0 0 0 / 0.6);
-  --color-text-light: rgba(255 255 255 / 0.7);
-  --color-text-inversed: rgba(255 255 255);
-  --color-app-bg: rgba(255 255 255 / 0.8);
-  --color-menu-entry-hover-bg: rgba(0 0 0 / 0.1);
+  --color-text: rgb(118 118 118);
+  --color-primary: rgb(0 0 0 / 0.6);
+  --color-text-light: rgb(255 255 255 / 0.7);
+  --color-text-inversed: rgb(255 255 255);
+  --color-app-bg: rgb(255 255 255 / 0.8);
+  --color-menu-entry-hover-bg: rgb(0 0 0 / 0.1);
   --color-visualization-bg: rgb(255 242 242);
-  --color-dim: rgba(0 0 0 / 0.25);
-  --color-frame-bg: rgba(255 255 255 / 0.3);
-  --color-frame-selected-bg: rgba(255 255 255 / 0.7);
-  --color-widget: rgba(255 255 255 / 0.12);
-  --color-widget-focus: rgba(255 255 255 / 0.25);
-  --color-widget-selected: rgba(255 255 255 / 0.58);
-  --color-port-connected: rgba(255 255 255 / 0.15);
+  --color-dim: rgb(0 0 0 / 0.25);
+  --color-frame-bg: rgb(255 255 255 / 0.3);
+  --color-frame-selected-bg: rgb(255 255 255 / 0.7);
+  --color-widget: rgb(255 255 255 / 0.12);
+  --color-widget-focus: rgb(255 255 255 / 0.25);
+  --color-widget-selected: rgb(255 255 255 / 0.58);
+  --color-port-connected: rgb(255 255 255 / 0.15);
+
+  /* colors for specific icons */
+  --color-warning: rgb(251 188 5);
+  --color-error: rgb(234 67 53);
 }
 
 /* non-color variables */

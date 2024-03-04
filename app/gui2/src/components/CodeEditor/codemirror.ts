@@ -28,6 +28,7 @@ import {
   syntaxTree,
 } from '@codemirror/language'
 import { type Diagnostic } from '@codemirror/lint'
+import type { ChangeSpec } from '@codemirror/state'
 import { hoverTooltip as originalHoverTooltip, type TooltipView } from '@codemirror/view'
 import {
   NodeProp,
@@ -43,6 +44,7 @@ import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
 import type { Diagnostic as LSDiagnostic } from 'shared/languageServerTypes'
 import { tryGetSoleValue } from 'shared/util/data/iterable'
+import type { SourceRangeEdit } from 'shared/util/data/text'
 
 export function lsDiagnosticsToCMDiagnostics(
   source: string,
@@ -194,4 +196,8 @@ export function hoverTooltip(
       create: typeof domOrCreate !== 'function' ? () => domOrCreate : domOrCreate,
     }
   })
+}
+
+export function textEditToChangeSpec({ range: [from, to], insert }: SourceRangeEdit): ChangeSpec {
+  return { from, to, insert }
 }

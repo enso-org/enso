@@ -1,14 +1,19 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import org.enso.interpreter.bench.Utils;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -114,17 +119,7 @@ main = n ->
 
   @Setup
   public void initializeBenchmarks(BenchmarkParams params) {
-    this.context =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
+    this.context = SrcUtil.newContextBuilder().build();
 
     this.sumTCO = Utils.getMainMethod(context, SUM_TCO_CODE);
     this.sumTCOWithEval = Utils.getMainMethod(context, SUM_TCO_WITH_EVAL_CODE);
