@@ -294,7 +294,7 @@ add_specs suite_builder =
         group_builder.specify "Panic if wrong types passed in element_columns" <|
             t = data.table
             r = Panic.recover Any (t.to_xml 1.23)
-            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`element_columns`'))"
+            r.to_text.should_equal "(Error: Type error: expected `element_columns` to be Vector | Text | Integer | Regex, but got Float.)"
         group_builder.specify "Panic if wrong types passed in element_columns vector" pending='Not working' <|
             t = data.table
             r = Panic.recover Any (t.to_xml [1.23])
@@ -302,27 +302,27 @@ add_specs suite_builder =
         group_builder.specify "Panic if wrong types passed in attribute_columns" <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] 1.23)
-            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`attribute_columns`'))"
+            r.to_text.should_equal "(Error: Type error: expected `attribute_columns` to be Vector | Text | Integer | Regex, but got Float.)"
         group_builder.specify "Panic if wrong types passed in attribute_columns vector" pending='Not working' <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] [1.23])
-            r.to_text.should_equal "(Error: (Type_Error.Error Vector | Text | Integer | Regex 1.23 '`attribute_columns`'))"
+            r.to_text.should_equal "(Error: Type error: expected `attribute_columns` to be Vector | Text | Integer | Regex, but got Float.)"
         group_builder.specify "Panic if wrong types passed in value_column" <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] [] 1.23)
-            r.to_text.should_equal "(Error: (Type_Error.Error Text | Integer | Nothing 1.23 '`value_column`'))"
+            r.to_text.should_equal "(Error: Type error: expected `value_column` to be Text | Integer | Nothing, but got Float.)"
         group_builder.specify "Panic if wrong types passed in root_name" <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] [] "Year" 1.23)
-            r.to_text.should_equal "(Error: (Type_Error.Error Text 1.23 '`root_name`'))"
+            r.to_text.should_equal "(Error: Type error: expected `root_name` to be Text, but got Float.)"
         group_builder.specify "Panic if wrong types passed in row_name" <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] [] "Year" "Table" 1.23)
-            r.to_text.should_equal "(Error: (Type_Error.Error Text 1.23 '`row_name`'))"
+            r.to_text.should_equal "(Error: Type error: expected `row_name` to be Text, but got Float.)"
         group_builder.specify "Panic if wrong types passed in on_problems" <|
             t = data.table
             r = Panic.recover Any (t.to_xml [] [] "Year" "Table" "row" 1.23)
-            r.to_text.should_equal "(Error: (Type_Error.Error Problem_Behavior 1.23 '`on_problems`'))"
+            r.to_text.should_equal "(Error: Type error: expected `on_problems` to be Problem_Behavior, but got Float.)"
         group_builder.specify "works with unicode characters" <|
             unicode_column = ["unicode", ['\u00A9', "👩‍🔬"]]
             #   | unicode
