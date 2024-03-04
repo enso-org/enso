@@ -901,14 +901,20 @@ object BindingsMap {
     override def findExportedSymbolsFor(name: String): List[ResolvedName] =
       exportedSymbols.getOrElse(name, List())
 
-    override def exportedSymbols: Map[String, List[ResolvedName]] = module
-      .unsafeAsModule("must be a module to run resolution")
-      .getIr
-      .unsafeGetMetadata(
-        BindingAnalysis,
-        "Wrong pass ordering. Running resolution on an unparsed module."
-      )
-      .exportedSymbols
+    override def exportedSymbols: Map[String, List[ResolvedName]] = {
+      val ir = module
+        .unsafeAsModule("must be a module to run resolution")
+        .getIr
+      if (ir == null) {
+        throw new NullPointerException(s"Missing module IR for ${module.getName}")
+      }
+
+        ir.unsafeGetMetadata(
+          BindingAnalysis,
+          "Wrong pass ordering. Running resolution on an unparsed module."
+        )
+        .exportedSymbols
+    }
   }
 
   /** A representation of a name being resolved to a method call.
