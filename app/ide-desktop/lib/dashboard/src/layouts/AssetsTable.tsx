@@ -67,14 +67,14 @@ import Visibility from '#/utilities/Visibility'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly extraColumns: columnUtils.ExtraColumn[]
+    readonly enabledColumns: columnUtils.Column[]
   }
 }
 
-LocalStorage.registerKey('extraColumns', {
+LocalStorage.registerKey('enabledColumns', {
   tryParse: value => {
     const possibleColumns = Array.isArray(value) ? value : []
-    const values = possibleColumns.filter(array.includesPredicate(columnUtils.EXTRA_COLUMNS))
+    const values = possibleColumns.filter(array.includesPredicate(columnUtils.CLOUD_COLUMNS))
     return values.length === 0 ? null : values
   },
 })
@@ -386,7 +386,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
-  const [extraColumns, setExtraColumns] = React.useState(() => new Set<columnUtils.ExtraColumn>())
+  const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
   const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
   const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
@@ -1064,9 +1064,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   React.useEffect(() => {
-    const savedExtraColumns = localStorage.get('extraColumns')
-    if (savedExtraColumns != null) {
-      setExtraColumns(new Set(savedExtraColumns))
+    const savedEnabledColumns = localStorage.get('enabledColumns')
+    if (savedEnabledColumns != null) {
+      setEnabledColumns(new Set(savedEnabledColumns))
     }
   }, [/* should never change */ localStorage])
 
@@ -1108,9 +1108,9 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   React.useEffect(() => {
     if (initialized) {
-      localStorage.set('extraColumns', Array.from(extraColumns))
+      localStorage.set('enabledColumns', [...enabledColumns])
     }
-  }, [extraColumns, initialized, /* should never change */ localStorage])
+  }, [enabledColumns, initialized, /* should never change */ localStorage])
 
   React.useEffect(() => {
     if (selectedKeysRef.current.size !== 1) {
@@ -2146,7 +2146,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     ]
   )
 
-  const columns = columnUtils.getColumnList(backend.type, extraColumns)
+  const columns = columnUtils.getColumnList(backend.type, enabledColumns)
 
   const headerRow = (
     <tr ref={headerRowRef} className="sticky top text-sm font-semibold">
@@ -2433,23 +2433,23 @@ export default function AssetsTable(props: AssetsTableProps) {
           <div className="sticky top h flex flex-col">
             <div className="block sticky right self-end px-extra-columns-panel-x py-extra-columns-panel-y">
               <div className="inline-flex gap-icons">
-                {columnUtils.EXTRA_COLUMNS.map(column => (
+                {columnUtils.CLOUD_COLUMNS.map(column => (
                   <Button
                     key={column}
-                    active={extraColumns.has(column)}
-                    image={columnUtils.EXTRA_COLUMN_IMAGES[column]}
-                    alt={`${extraColumns.has(column) ? 'Show' : 'Hide'} ${
+                    active={enabledColumns.has(column)}
+                    image={columnUtils.COLUMN_ICONS[column]}
+                    alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
                       columnUtils.COLUMN_NAME[column]
                     }`}
                     onClick={event => {
                       event.stopPropagation()
-                      const newExtraColumns = new Set(extraColumns)
-                      if (extraColumns.has(column)) {
+                      const newExtraColumns = new Set(enabledColumns)
+                      if (enabledColumns.has(column)) {
                         newExtraColumns.delete(column)
                       } else {
                         newExtraColumns.add(column)
                       }
-                      setExtraColumns(newExtraColumns)
+                      setEnabledColumns(newExtraColumns)
                     }}
                   />
                 ))}

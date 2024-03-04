@@ -1,8 +1,11 @@
 /** @file Types and constants related to `Column`s. */
 import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 import AccessedDataIcon from 'enso-assets/accessed_data.svg'
+import BlankIcon from 'enso-assets/blank.svg'
 import DocsIcon from 'enso-assets/docs.svg'
+import PeopleIcon from 'enso-assets/people.svg'
 import TagIcon from 'enso-assets/tag.svg'
+import TimeIcon from 'enso-assets/time.svg'
 
 import * as backend from '#/services/Backend'
 
@@ -35,9 +38,6 @@ export enum Column {
   docs = 'docs',
 }
 
-/** Columns that can be toggled between visible and hidden. */
-export type ExtraColumn = (typeof EXTRA_COLUMNS)[number]
-
 /** Columns that can be used as a sort column. */
 export type SortableColumn = Column.modified | Column.name
 
@@ -45,16 +45,34 @@ export type SortableColumn = Column.modified | Column.name
 // === Constants ===
 // =================
 
-/** The list of extra columns, in order. */
+export const DEFAULT_ENABLED_COLUMNS = new Set([
+  Column.name,
+  Column.modified,
+  Column.sharedWith,
+  Column.labels,
+])
+
+/** The list of all possible columns for the local backend, in order. */
+export const LOCAL_COLUMNS = [Column.name, Column.modified] as const
+
+/** The list of all possible columns for the cloud backend, in order. */
 // This MUST be `as const`, to generate the `ExtraColumn` type above.
-export const EXTRA_COLUMNS = [
+export const CLOUD_COLUMNS = [
+  Column.name,
+  Column.modified,
+  Column.sharedWith,
   Column.labels,
   Column.accessedByProjects,
   Column.accessedData,
   Column.docs,
 ] as const
 
-export const EXTRA_COLUMN_IMAGES: Readonly<Record<ExtraColumn, string>> = {
+export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
+  /* The file column does not have an icon, however this does not matter as it is not
+   * collapsible. */
+  [Column.name]: BlankIcon,
+  [Column.modified]: TimeIcon,
+  [Column.sharedWith]: PeopleIcon,
   [Column.labels]: TagIcon,
   [Column.accessedByProjects]: AccessedByProjectsIcon,
   [Column.accessedData]: AccessedDataIcon,
@@ -92,18 +110,17 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 // =====================
 
 /** Return the full list of columns given the relevant current state. */
-export function getColumnList(backendType: backend.BackendType, extraColumns: Set<ExtraColumn>) {
+export function getColumnList(backendType: backend.BackendType, enabledColumns: Set<Column>) {
+  let columns: readonly Column[]
   switch (backendType) {
     case backend.BackendType.local: {
-      return [Column.name, Column.modified]
+      columns = LOCAL_COLUMNS
+      break
     }
     case backend.BackendType.remote: {
-      return [
-        Column.name,
-        Column.modified,
-        Column.sharedWith,
-        ...EXTRA_COLUMNS.filter(column => extraColumns.has(column)),
-      ]
+      columns = CLOUD_COLUMNS
+      break
     }
   }
+  return columns.filter(column => enabledColumns.has(column))
 }
