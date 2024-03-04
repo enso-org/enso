@@ -591,8 +591,8 @@ pub fn promote() -> Result<Workflow> {
 pub fn typical_check_triggers() -> Event {
     let clean_build_input =
         WorkflowDispatchInput::new_boolean("Clean before and after the run.", false, false);
-    let workflow_dispatch =
-        WorkflowDispatch::default().with_input("Clean Build", clean_build_input);
+    let workflow_dispatch = WorkflowDispatch::default()
+        .with_input(crate::ci::inputs::CLEAN_BUILD_REQUIRED, clean_build_input);
     Event {
         pull_request: Some(default()),
         workflow_dispatch: Some(workflow_dispatch),

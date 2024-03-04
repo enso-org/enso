@@ -9,7 +9,7 @@ on:
   pull_request: {}
   workflow_dispatch:
     inputs:
-      Clean Build:
+      clean_build_required:
         description: Clean before and after the run.
         required: false
         type: boolean
