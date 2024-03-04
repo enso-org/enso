@@ -42,10 +42,10 @@ export interface AssetPropertiesProps {
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { item: rawItem, setItem: rawSetItem, category, labels, setQuery } = props
+  const { item: itemRaw, setItem: setItemRaw, category, labels, setQuery } = props
   const { dispatchAssetEvent } = props
 
-  const [item, innerSetItem] = React.useState(rawItem)
+  const [item, setItemInner] = React.useState(itemRaw)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
@@ -63,10 +63,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<AssetTreeNode>) => {
-      innerSetItem(valueOrUpdater)
-      rawSetItem(valueOrUpdater)
+      setItemInner(valueOrUpdater)
+      setItemRaw(valueOrUpdater)
     },
-    [/* should never change */ rawSetItem]
+    [/* should never change */ setItemRaw]
   )
   const self = item.item.permissions?.find(permission => permission.user.user_email === user?.email)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own

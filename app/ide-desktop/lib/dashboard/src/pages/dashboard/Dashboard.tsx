@@ -456,8 +456,7 @@ export default function Dashboard(props: DashboardProps) {
             setQuery={setQuery}
             labels={labels}
             suggestions={suggestions}
-            canToggleAssetPanel={assetPanelProps != null}
-            isAssetPanelVisible={isAssetPanelVisible && assetPanelProps != null}
+            isAssetPanelVisible={isAssetPanelVisible}
             setIsAssetPanelVisible={setIsAssetPanelVisible}
             doRemoveSelf={doRemoveSelf}
             onSignOut={() => {
@@ -517,16 +516,17 @@ export default function Dashboard(props: DashboardProps) {
         </div>
         <div
           className={`flex flex-col duration-side-panel transition-min-width ease-in-out overflow-hidden ${
-            (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && assetPanelProps != null
+            isAssetPanelVisible || isAssetPanelTemporarilyVisible
               ? 'min-w-side-panel'
               : 'min-w invisible'
           }`}
         >
-          {assetPanelProps && (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && (
+          {(isAssetPanelVisible || isAssetPanelTemporarilyVisible) && (
             <AssetPanel
               supportsLocalBackend={supportsLocalBackend}
-              key={assetPanelProps.item.item.id}
-              {...assetPanelProps}
+              key={assetPanelProps?.item?.item.id}
+              item={assetPanelProps?.item ?? null}
+              setItem={assetPanelProps?.setItem ?? null}
               page={page}
               setPage={setPage}
               setQuery={setQuery}

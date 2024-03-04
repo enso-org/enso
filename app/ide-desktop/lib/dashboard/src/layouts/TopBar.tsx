@@ -34,7 +34,6 @@ export interface TopBarProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly labels: backendModule.Label[]
   readonly suggestions: assetSearchBar.Suggestion[]
-  readonly canToggleAssetPanel: boolean
   readonly isAssetPanelVisible: boolean
   readonly setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
   readonly doRemoveSelf: () => void
@@ -46,7 +45,7 @@ export interface TopBarProps {
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { query, setQuery, labels, suggestions, canToggleAssetPanel } = props
+  const { query, setQuery, labels, suggestions } = props
   const { isAssetPanelVisible, setIsAssetPanelVisible, doRemoveSelf, onSignOut } = props
 
   return (
@@ -72,7 +71,6 @@ export default function TopBar(props: TopBarProps) {
         <div className="flex gap-top-bar-right">
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
-              canToggleAssetPanel={canToggleAssetPanel}
               isAssetPanelVisible={isAssetPanelVisible}
               setIsAssetPanelVisible={setIsAssetPanelVisible}
             />

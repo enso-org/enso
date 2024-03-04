@@ -111,7 +111,7 @@ function ReactionBar(props: ReactionBarProps) {
   const { selectedReactions, doReact, doRemoveReaction, className } = props
 
   return (
-    <div className={`inline-block bg-white rounded-full m-chat-reaction-bar ${className ?? ''}`}>
+    <div className={`inline-block bg-frame rounded-full m-chat-reaction-bar ${className ?? ''}`}>
       {REACTION_EMOJIS.map(emoji => (
         <button
           key={emoji}
@@ -122,8 +122,8 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          className={`rounded-full hover:bg-gray-200 m-chat-reaction p-chat-reaction ${
-            selectedReactions.has(emoji) ? '' : 'opacity-inactive grayscale hover:grayscale-0'
+          className={`selectable rounded-full hover:bg-hover-bg hover:grayscale-0 m-chat-reaction p-chat-reaction ${
+            selectedReactions.has(emoji) ? 'active' : 'grayscale'
           }`}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />

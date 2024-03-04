@@ -52,8 +52,8 @@ LocalStorage.registerKey('assetPanelTab', {
 
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
-  readonly item: AssetTreeNode
-  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly item: AssetTreeNode | null
+  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>> | null
 }
 
 /** Props for an {@link AssetPanel}. */
@@ -85,8 +85,8 @@ export default function AssetPanel(props: AssetPanelProps) {
   const [tab, setTab] = React.useState(() => {
     const savedTab = localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
     if (
-      (item.item.type === backend.AssetType.secret ||
-        item.item.type === backend.AssetType.directory) &&
+      (item?.item.type === backend.AssetType.secret ||
+        item?.item.type === backend.AssetType.directory) &&
       savedTab === AssetPanelTab.versions
     ) {
       return AssetPanelTab.properties
@@ -118,7 +118,8 @@ export default function AssetPanel(props: AssetPanelProps) {
       }}
     >
       <div className="flex">
-        {item.item.type !== backend.AssetType.secret &&
+        {item != null &&
+          item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
             <button
               className={`rounded-full leading-cozy px-button-x select-none bg-frame hover:bg-selected-frame transition-colors ${
@@ -138,11 +139,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         {/* Spacing. */}
         <div className="grow" />
         <div className="flex gap-top-bar-right">
-          <AssetInfoBar
-            canToggleAssetPanel={true}
-            isAssetPanelVisible={true}
-            setIsAssetPanelVisible={setVisibility}
-          />
+          <AssetInfoBar isAssetPanelVisible setIsAssetPanelVisible={setVisibility} />
           <UserBar
             supportsLocalBackend={supportsLocalBackend}
             isHelpChatOpen={isHelpChatOpen}
@@ -156,17 +153,25 @@ export default function AssetPanel(props: AssetPanelProps) {
           />
         </div>
       </div>
-      {tab === AssetPanelTab.properties && (
-        <AssetProperties
-          item={item}
-          setItem={setItem}
-          category={category}
-          labels={labels}
-          setQuery={setQuery}
-          dispatchAssetEvent={dispatchAssetEvent}
-        />
+      {item == null || setItem == null ? (
+        <div className="grow grid place-items-center text-lg">
+          Select exactly one asset to view its details.
+        </div>
+      ) : (
+        <>
+          {tab === AssetPanelTab.properties && (
+            <AssetProperties
+              item={item}
+              setItem={setItem}
+              category={category}
+              labels={labels}
+              setQuery={setQuery}
+              dispatchAssetEvent={dispatchAssetEvent}
+            />
+          )}
+          <AssetVersions hidden={tab !== AssetPanelTab.versions} item={item} />
+        </>
       )}
-      <AssetVersions hidden={tab !== AssetPanelTab.versions} item={item} />
     </div>
   )
 }
