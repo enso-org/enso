@@ -285,7 +285,9 @@ type Decimal
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
 
-    * self that = Decimal.Value (self.big_decimal.multiply that.big_decimal)
+    - self (that:Decimal) = Decimal.Value (self.big_decimal.subtract that.big_decimal)
+    * self (that:Decimal) = Decimal.Value (self.big_decimal.multiply that.big_decimal)
+    / self (that:Decimal) = Decimal.Value (self.big_decimal.divide that.big_decimal)
 
     negate self = Decimal.Value self.big_decimal.negate
 

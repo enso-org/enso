@@ -108,6 +108,13 @@ add_specs suite_builder =
             Decimal.from 12345 . should_equal (Decimal.new 12345)
             Decimal.from 12345 . should_equal (Decimal.from_integer 12345)
 
+        group_builder.specify "constructor should respect Math_Context " <|
+            Decimal.new 12000 (Math_Context.new 0) . should_equal 12000
+            Decimal.new 12000 (Math_Context.new 1) . should_equal 10000
+            Decimal.new 12000 (Math_Context.new 2) . should_equal 12000
+            Decimal.new 12000 (Math_Context.new 3) . should_equal 12000
+
+    suite_builder.group "comparison" group_builder->
         group_builder.specify "should compare correctly" <|
             nums = [["-45.23", "124.872"], [-45.23, 124.872], [-45, 124]]
             nums.map pr->
@@ -174,7 +181,6 @@ add_specs suite_builder =
                 (x0 != x1) . should_be_false
                 (x1 != x0) . should_be_false
 
-    suite_builder.group "arithmetic" group_builder->
         vs = []
             + [92233720368547758080.0]
             + [9223372036854777000.0]
@@ -274,6 +280,33 @@ add_specs suite_builder =
             + [[9223372036854770000.0, 9223372036854770000.0]]
             + [[9223372036854770000000.0, 9223372036854770000000.0]]
             + [[92233720368547700000000000000000000000.0, 92233720368547700000000000000000000000.0]]
+            + [[9223372036854775805, 9223372036854775805]]
+            + [[9223372036854775806, 9223372036854775806]]
+            + [[9223372036854775807, 9223372036854775807]]
+            + [[9223372036854775808, 9223372036854775808]]
+            + [[9223372036854775809, 9223372036854775809]]
+            + [[9223372036854775999, 9223372036854775999]]
+            + [[9223372036854776000, 9223372036854776000]]
+            + [[9223372036854776001, 9223372036854776001]]
+            + [[9223372036854777000, 9223372036854777000]]
+            + [[-9223372036854775810, -9223372036854775810]]
+            + [[-9223372036854775809, -9223372036854775809]]
+            + [[-9223372036854775808, -9223372036854775808]]
+            + [[-9223372036854775807, -9223372036854775807]]
+            + [[-9223372036854775807, -9223372036854775807]]
+            + [[-9223372036854775806, -9223372036854775806]]
+            + [[3946372036854775806000, 3946372036854775806000]]
+            + [[3946372036854775807000, 3946372036854775807000]]
+            + [[3946372036854775808000, 3946372036854775808000]]
+            + [[-3946372036854775809000, -3946372036854775809000]]
+            + [[-3946372036854775808000, -3946372036854775808000]]
+            + [[-3946372036854775807000, -3946372036854775807000]]
+            + [[39463720368547758060000000, 39463720368547758060000000]]
+            + [[39463720368547758070000000, 39463720368547758070000000]]
+            + [[39463720368547758080000000, 39463720368547758080000000]]
+            + [[-39463720368547758090000000, -39463720368547758090000000]]
+            + [[-39463720368547758080000000, -39463720368547758080000000]]
+            + [[-39463720368547758070000000, -39463720368547758070000000]]
             + [["9223372036854775805", 9223372036854775805]]
             + [["9223372036854775806", 9223372036854775806]]
             + [["9223372036854775807", 9223372036854775807]]
@@ -334,7 +367,7 @@ add_specs suite_builder =
                 (d != expected) . should_be_false
                 (expected != d) . should_be_false
 
-            IO.println "QQQ "+v.to_text+" "+(v.is_a Text).to_text+" "+(Meta.get_simple_type_name v)
+            # IO.println "QQQ "+v.to_text+" "+(v.is_a Text).to_text+" "+(Meta.get_simple_type_name v)
             if v.is_a Text . not then
                 group_builder.specify "should compare correctly to Integer and Float (inequalities) "+i.to_text+" "+d.to_text+" "+(Meta.get_simple_type_name v) <|
                     lesser = if v > 10000 then v/2 else if v < -10000 then v*2 else v-1
@@ -398,13 +431,85 @@ add_specs suite_builder =
             id . should_equal fd
             fd . should_equal id
 
-        group_builder.specify "constructor should respect Math_Context " <|
-            Decimal.new 12000 (Math_Context.new 0) . should_equal 12000
-            Decimal.new 12000 (Math_Context.new 1) . should_equal 10000
-            Decimal.new 12000 (Math_Context.new 2) . should_equal 12000
-            Decimal.new 12000 (Math_Context.new 3) . should_equal 12000
+    suite_builder.group "arithmetic" group_builder->
+        group_builder.specify "should behave like Integer and Float under +, -, *, where comparison of the result with Float arithmetic is exact " <|
+            mixed_values = []
+                + [0.25]
+                + [0.5]
+                + [1]
+                + [-1]
+                + [2]
+                + [-2]
+                + [12.5]
+                + [-34.5]
+                + [-124.5]
+                + [5734.5]
+                + [72512.25]
+                + [-349.25]
+
+            large_integers = []
+                + [0]
+                + [1]
+                + [-1]
+                + [2]
+                + [-2]
+                + [12]
+                + [-34]
+                + [-124]
+                + [5734]
+                + [72512]
+                + [-349]
+                + [9223372036854775805]
+                + [9223372036854775806]
+                + [9223372036854775807]
+                + [9223372036854775808]
+                + [9223372036854775809]
+                + [9223372036854775999]
+                + [9223372036854776000]
+                + [9223372036854776001]
+                + [9223372036854777000]
+                + [-9223372036854775810]
+                + [-9223372036854775809]
+                + [-9223372036854775808]
+                + [-9223372036854775807]
+                + [-9223372036854775807]
+                + [-9223372036854775806]
+                + [3946372036854775806000]
+                + [3946372036854775807000]
+                + [3946372036854775808000]
+                + [-3946372036854775809000]
+                + [-3946372036854775808000]
+                + [-3946372036854775807000]
+                + [39463720368547758060000000]
+                + [39463720368547758070000000]
+                + [39463720368547758080000000]
+                + [-39463720368547758090000000]
+                + [-39463720368547758080000000]
+                + [-39463720368547758070000000]
+
+            #IO.println mixed_values
+            #IO.println large_integers
+            mixed_pairs = (mixed_values.map a-> (mixed_values.map b-> [a, b])).flatten
+            #IO.println mixed_pairs
+            large_integer_pairs = (large_integers.map a-> (large_integers.map b-> [a, b])).flatten
+            #IO.println large_integer_pairs
+            pairs = mixed_pairs + large_integer_pairs
+            #ops = [.add, .subtract, .multiply, .divide]
+            ops = [(+), (-), (*)] # , (/)]
+            IO.println "PAIRS "+pairs.to_text
+            IO.println "OPS "+ops.to_text
+            ops.map op->
+                pairs.map pr->
+                    IO.println "RRR "+op.to_text+" "+pr.to_text
+                    a = pr.at 0
+                    b = pr.at 1
+                    expected = op a b
+                    IO.println "RRRe "+expected.to_text
+                    op (Decimal.new a) (Decimal.new b) . should_equal (Decimal.new expected)
+                    op (Decimal.new a) b . should_equal (Decimal.new expected)
+                    op a (Decimal.new b) . should_equal (Decimal.new expected)
 
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter filter="Integer and Float"
+    suite.run_with_filter
