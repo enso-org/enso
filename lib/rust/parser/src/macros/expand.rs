@@ -1,13 +1,13 @@
 //! Macro expansion utilities. Allow expanding macro variables in the same as Rust macro rules do.
 
-
-
 use crate::macros::pattern::*;
 use crate::prelude::*;
+
+use crate::syntax;
+
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use crate::syntax;
 
 
 // ==============

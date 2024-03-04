@@ -19,6 +19,7 @@ use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
 
 
+
 /// This should be kept as recent as possible.
 ///
 /// macOS must use a recent version of Electron Builder to have Python 3 support. Otherwise, build
@@ -125,9 +126,9 @@ impl JobArchetype for CancelWorkflow {
             r#if: Some(not_default_branch()),
             ..default()
         }
-            // Necessary permission to cancel a run, as per:
-            // https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#cancel-a-workflow-run
-            .with_permission(Permission::Actions, Access::Write)
+        // Necessary permission to cancel a run, as per:
+        // https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#cancel-a-workflow-run
+        .with_permission(Permission::Actions, Access::Write)
     }
 }
 
@@ -326,8 +327,8 @@ impl JobArchetype for PackageNewIde {
         RunStepsBuilder::new(
             "ide2 build --backend-source current-ci-run --gui2-upload-artifact false",
         )
-            .customize(with_packaging_steps(target.0))
-            .build_job("Package New IDE", target)
+        .customize(with_packaging_steps(target.0))
+        .build_job("Package New IDE", target)
     }
 }
 

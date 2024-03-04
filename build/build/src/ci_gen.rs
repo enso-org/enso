@@ -48,6 +48,7 @@ pub mod job;
 pub mod step;
 
 
+
 /// Whether a runner is self-hosted or GitHub-hosted.
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RunnerType {
@@ -175,7 +176,7 @@ impl CleaningCondition {
     /// Format condition as `if` expression.
     ///
     /// All the conditions are joined with `&&`.
-    pub fn format_conjunction(conditions: impl IntoIterator<Item=Self>) -> Option<String> {
+    pub fn format_conjunction(conditions: impl IntoIterator<Item = Self>) -> Option<String> {
         let conditions = conditions.into_iter().collect::<BTreeSet<_>>();
         if conditions.is_empty() {
             None
@@ -189,7 +190,7 @@ impl CleaningCondition {
 /// Create a step that cleans the runner if the conditions are met.
 pub fn cleaning_step(
     name: impl Into<String>,
-    conditions: impl IntoIterator<Item=CleaningCondition>,
+    conditions: impl IntoIterator<Item = CleaningCondition>,
 ) -> Step {
     let mut ret = run("git-clean").with_name(name);
     ret.r#if = CleaningCondition::format_conjunction(conditions);
@@ -203,12 +204,12 @@ pub struct RunStepsBuilder {
     /// The command passed to `./run` script.
     pub run_command: String,
     /// Condition under which the runner should be cleaned before and after the run.
-    pub cleaning: CleaningCondition,
+    pub cleaning:    CleaningCondition,
     /// Customize the step that runs the command.
     ///
     /// Allows replacing the run step with one or more custom steps.
     #[derivative(Debug = "ignore")]
-    pub customize: Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
+    pub customize:   Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
 }
 
 impl RunStepsBuilder {
@@ -259,9 +260,9 @@ impl RunStepsBuilder {
 #[derive(Debug)]
 pub struct RunJobBuilder {
     /// Data to generate the steps.
-    pub inner: RunStepsBuilder,
+    pub inner:   RunStepsBuilder,
     /// Name of the job. Might be modified to include the runner info.
-    pub name: String,
+    pub name:    String,
     /// The runners on which the job should run.
     pub runs_on: Box<dyn RunsOn>,
 }
@@ -319,7 +320,7 @@ pub fn setup_script_steps() -> Vec<Step> {
 }
 
 
-pub fn list_everything_on_failure() -> impl IntoIterator<Item=Step> {
+pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
     let win = Step {
         name: Some("List files if failed (Windows)".into()),
         r#if: Some(format!("failure() && {}", is_windows_runner())),
@@ -392,9 +393,9 @@ impl JobArchetype for UploadIde2 {
         RunStepsBuilder::new(
             "ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
         )
-            .cleaning(RELEASE_CLEANING_POLICY)
-            .customize(with_packaging_steps(target.0))
-            .build_job("Build New IDE", target)
+        .cleaning(RELEASE_CLEANING_POLICY)
+        .customize(with_packaging_steps(target.0))
+        .build_job("Build New IDE", target)
     }
 }
 
