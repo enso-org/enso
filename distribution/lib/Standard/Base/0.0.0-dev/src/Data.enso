@@ -99,6 +99,7 @@ read_text path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Wa
     File.new path . read_text encoding on_problems
 
 ## GROUP Input
+   ICON data_input
    Lists files contained in the provided directory.
 
    Arguments:
@@ -156,6 +157,7 @@ list_directory directory:File (name_filter:(Text | Nothing)=Nothing) recursive:B
 
 ## ALIAS download, http get
    GROUP Input
+   ICON data_input
    Fetches from the provided URI and returns the response, parsing the body if
    the content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
@@ -194,6 +196,7 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
 
 ## ALIAS http post, upload
    GROUP Input
+   ICON data_output
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
    status code does not represent a successful response.
@@ -318,6 +321,7 @@ post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Meth
         response.decode if_unsupported=response.with_materialized_body
 
 ## GROUP Input
+   ICON data_download
    Fetches from the provided URI and if successful writes to the file. Returns
    an error if the status code does not represent a successful response.
 
@@ -329,7 +333,7 @@ post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Meth
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
 @uri Text_Input
-download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
+download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> File ! Request_Error | HTTP_Error
 download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
     response = HTTP.fetch uri method headers
     response.write file
