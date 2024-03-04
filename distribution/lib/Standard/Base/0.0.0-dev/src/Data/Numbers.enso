@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Decimal.Decimal
 import project.Data.Locale.Locale
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
@@ -534,7 +535,9 @@ type Float
          Checking if 10 is greater than 7.3.
 
              10 > 7.3
-    > self that:Number -> Boolean = float_greater self that
+    > self that:(Number | Decimal) -> Boolean = case that of
+        _ : Number -> float_greater self that
+        _ : Decimal -> that < self
 
     ## ALIAS greater than or equal
        GROUP Operators
@@ -548,7 +551,9 @@ type Float
          Checking if 10 is greater than or equal to 7.3.
 
              10 >= 7.3
-    >= self that:Number -> Boolean = float_greater_equal self that
+    >= self that:(Number | Decimal) -> Boolean = case that of
+        _ : Number -> float_greater_equal self that
+        _ : Decimal -> that <= self
 
     ## ALIAS less than
        GROUP Operators
@@ -562,7 +567,9 @@ type Float
          Checking if 10 is less than 7.3.
 
              10 < 7.3
-    < self that:Number -> Boolean = float_less self that
+    < self that:(Number | Decimal) -> Boolean = case that of
+        _ : Number -> float_less self that
+        _ : Decimal -> that > self
 
     ## ALIAS less than or equal
        GROUP Operators
@@ -576,7 +583,9 @@ type Float
          Checking if 10.4 is less than or equal to 7.
 
              10.4 <= 7
-    <= self that:Number -> Boolean = float_less_equal self that
+    <= self that:(Number | Decimal) -> Boolean = case that of
+        _ : Number -> float_less self that
+        _ : Decimal -> that >= self
 
     ## GROUP Math
        ICON math
@@ -852,7 +861,9 @@ type Integer
          Checking if 10 is greater than 7.
 
              10 > 7
-    > self that:Number -> Boolean = integer_greater self that
+    > self that:(Number | Decimal) -> Boolean = case that of
+        _ : Number -> integer_greater self that
+        _ : Decimal -> that < self
 
     ## ALIAS greater than or equal
        GROUP Operators
@@ -866,7 +877,9 @@ type Integer
          Checking if 10 is greater than or equal to 7.
 
              10 >= 7
-    >= self that:Number -> Boolean = integer_greater_equal self that
+    >= self that:(Number | Decimal) -> Boolean = case that of
+        _ : Number -> integer_greater_equal self that
+        _ : Decimal -> that <= self
 
     ## ALIAS less than
        GROUP Operators
@@ -880,7 +893,9 @@ type Integer
          Checking if 10 is less than 7.
 
              10 < 7
-    < self that:Number -> Boolean = integer_less self that
+    < self that:(Number | Decimal) -> Boolean = case that of
+        _ : Number -> integer_less self that
+        _ : Decimal -> that > self
 
     ## ALIAS less than or equal
        GROUP Operators
@@ -894,7 +909,9 @@ type Integer
          Checking if 10 is less than or equal to 7.
 
              10 <= 7
-    <= self that:Number -> Boolean = integer_less_equal self that
+    <= self that:(Number | Decimal) -> Boolean = case that of
+        _ : Number -> integer_less_equal self that
+        _ : Decimal -> that >= self
 
     ## GROUP Math
        ICON math

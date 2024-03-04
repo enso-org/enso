@@ -164,6 +164,15 @@ type Decimal
         #IO.println r
         r
 
+    < self (that:Decimal) = Decimal_Comparator.compare self that == Ordering.Less
+    > self (that:Decimal) = Decimal_Comparator.compare self that == Ordering.Greater
+    <= self (that:Decimal) =
+        ordering = Decimal_Comparator.compare self that
+        ordering == Ordering.Less || ordering == Ordering.Equal
+    >= self (that:Decimal) =
+        ordering = Decimal_Comparator.compare self that
+        ordering == Ordering.Greater || ordering == Ordering.Equal
+
     ## ALIAS plus
        GROUP Operators
        ICON math
@@ -272,6 +281,7 @@ handle_precision_loss original_value conversion_result:Decimal_Utils.Conversion_
         Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
 
 type Decimal_Comparator
+    #compare x:Decimal y:Decimal =
     compare x:Decimal y:Decimal =
         r = Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
         IO.println "BBB dc "+x.to_text+" "+y.to_text+" "+r.to_text
@@ -282,9 +292,15 @@ Comparable.from (_:Decimal) = Decimal_Comparator
 Comparable.from (_:Number) = Decimal_Comparator
 
 Decimal.from (that:Text) = Decimal.from_text that
+Decimal.from (that:Float) =
+    r = Decimal.new that
+    IO.println "AAA D from F"
+    IO.println that
+    IO.println r
+    r
 Decimal.from (that:Number) =
     r = Decimal.new that
-    #IO.println "AAA D from N"
-    #IO.println that
-    #IO.println r
+    IO.println "AAA D from N"
+    IO.println that
+    IO.println r
     r

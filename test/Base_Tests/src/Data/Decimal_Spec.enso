@@ -315,46 +315,64 @@ add_specs suite_builder =
             + [["-9223372036854776000.0", -9223372036854776000.0]]
 
         values = ok_values # + problematic_values
+        _ = [problematic_values]
 
         valuest = []
             + [["9223372036854776000.0", 9223372036854776000.0]]
         _ = [values, valuest]
 
         values.map_with_index i-> pr->
-            group_builder.specify "should compare correctly to Integer and Float "+i.to_text <|
-                IO.println '===== start'
-                d = Decimal.new (pr.at 0)
-                expected = pr.at 1
+            v = pr.at 0
+            d = Decimal.new v
+            expected = pr.at 1
 
-                ##
-                    d_comparable = Comparable.from d
-                    e_comparable = Comparable.from expected
-                    IO.println "---- b"
-                    IO.println (Meta.get_simple_type_name d)
-                    IO.println (Meta.get_simple_type_name expected)
-                    IO.println (Meta.get_simple_type_name d_comparable)
-                    IO.println (Meta.get_simple_type_name e_comparable)
-                    d_hash = d_comparable.hash d
-                    e_hash = e_comparable.hash expected
-                    IO.println "---- a"
-                q = Panic.catch Any handler=(_-> "fail") <|
-                    d . should_equal expected
-                    "  ok"
+            group_builder.specify "should compare correctly to Integer and Float "+i.to_text+" "+d.to_text+" "+(Meta.get_simple_type_name v) <|
+                d . should_equal expected
+                expected . should_equal d
+                (d == expected) . should_be_true
+                (expected == d) . should_be_true
+                (d != expected) . should_be_false
+                (expected != d) . should_be_false
 
-                IO.println "TTT "+q.to_text+" "+d.to_text+" "+(Meta.get_simple_type_name (pr.at 0))+" "
+            IO.println "QQQ "+v.to_text+" "+(v.is_a Text).to_text+" "+(Meta.get_simple_type_name v)
+            if v.is_a Text . not then
+                group_builder.specify "should compare correctly to Integer and Float (inequalities) "+i.to_text+" "+d.to_text+" "+(Meta.get_simple_type_name v) <|
+                    lesser = if v > 10000 then v/2 else (if v < -10000 then v*2 else v-1)
+                    greater = if v > 10000 then v*2 else (if v < -10000 then v/2 else v+1)
+                    IO.println "WWW"+v.to_text+" "+lesser.to_text+" "+greater.to_text
+                    (v > lesser) . should_be_true
+                    (v < greater) . should_be_true
 
-                Test.with_clue "TTT "+d.to_text+" "+(Meta.get_simple_type_name (pr.at 0))+" "+q.to_text
-                    d . should_equal expected
-                    expected . should_equal d
-                    (d == expected) . should_be_true
-                    (expected == d) . should_be_true
-                IO.println '===== end'
-                ##
-                    expected . should_equal d
-                    d . should_equal d
-                    (d == expected) . should_be_true
-                    (expected == d) . should_be_true
-                    (d == d) . should_be_true
+                    Test.with_clue "EEE "+d.to_text+" "+(Meta.get_simple_type_name d)+" "+greater.to_text+" "+(Meta.get_simple_type_name greater) <|
+                        (d <= v) . should_be_true
+                        (d >= v) . should_be_true
+                        (v <= d) . should_be_true
+                        (v >= d) . should_be_true
+
+                        if greater.is_infinite.not then
+                            (d < greater) . should_be_true
+                            (d <= greater) . should_be_true
+                            (greater > d) . should_be_true
+                            (greater >= d) . should_be_true
+                            (d > greater) . should_be_false
+                            (d >= greater) . should_be_false
+                            (greater < d) . should_be_false
+                            (greater <= d) . should_be_false
+
+                        if lesser.is_infinite.not then
+                            (d > lesser) . should_be_true
+                            (d >= lesser) . should_be_true
+                            (lesser < d) . should_be_true
+                            (lesser <= d) . should_be_true
+                            (d < lesser) . should_be_false
+                            (d <= lesser) . should_be_false
+                            (lesser > d) . should_be_false
+                            (lesser >= d) . should_be_false
+
+                        (d < d) . should_be_false
+                        (d > d) . should_be_false
+                        (d <= d) . should_be_true
+                        (d >= d) . should_be_true
 
         group_builder.specify "can support values outside the double range" <|
             d = Decimal.new Float.max_value
