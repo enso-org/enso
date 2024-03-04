@@ -88,10 +88,17 @@ onMounted(() => {
 })
 </script>
 <script lang="ts">
+/** Interpret a comment from source-code format to display format.
+ *
+ *  Hard-wrapped lines are combined similarly to how whitespace is interpreted in Markdown:
+ *  - A single linebreak is treated as a space.
+ *  - A sequence of linebreaks is treated as a paragraph-break.
+ */
 export function rawTextToCooked(raw: string) {
   return raw.replaceAll(/(?<!\n)\n(?!\n)/g, ' ').replaceAll(/\n(\n+)/g, '$1')
 }
 
+/** Invert the transformation applied by @{rawTextToCooked}. */
 export function cookedTextToRaw(cooked: string) {
   return cooked.replaceAll('\n', '\n\n')
 }
