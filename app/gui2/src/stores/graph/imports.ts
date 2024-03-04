@@ -1,7 +1,6 @@
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   SuggestionKind,
-  entryQn,
   makeCon,
   makeMethod,
   makeModule,
@@ -13,13 +12,13 @@ import { Ast } from '@/util/ast'
 import { MutableModule, parseIdent, parseIdents, parseQualifiedName } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import {
+  qnLastSegment,
   qnSegments,
   qnSplit,
   tryIdentifier,
   tryQualifiedName,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
-  qnLastSegment,
 } from '@/util/qualifiedName'
 
 // ========================
@@ -313,7 +312,7 @@ export function detectImportConflicts(
   const entryFQN = entryFQNFromRequiredImport(importToCheck)
   const [entryId] = suggestionDb.nameToId.lookup(entryFQN)
   if (entryId == null) return
-    const name = qnLastSegment(entryFQN)
+  const name = qnLastSegment(entryFQN)
   const conflictingIds = suggestionDb.conflictingNames.lookup(name)
   // Obviously, the entry doesn’t conflict with itself.
   conflictingIds.delete(entryId)
