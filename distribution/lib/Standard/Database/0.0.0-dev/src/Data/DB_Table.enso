@@ -12,7 +12,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Metadata import make_single_choice
+from Standard.Base.Metadata import make_single_choice, Widget
 from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
@@ -156,7 +156,7 @@ type DB_Table
        - if_missing: The value to use if the selector isn't present.
     @selector Widget_Helpers.make_column_name_selector
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
-    get_value : Text | Integer -> Integer -> Any -> Column | Any
+    get_value : Text | Integer -> Integer -> Any -> Any
     get_value self selector=0 index=0 ~if_missing=Nothing =
         col = self.get selector if_missing=Nothing
         if Nothing == col then if_missing else col.get index if_missing

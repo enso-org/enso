@@ -166,6 +166,7 @@ type Response
         self.body.decode_as_json encoding
 
     ## GROUP Output
+       ALIAS to_file
        Write response body to a File.
 
        Arguments:
