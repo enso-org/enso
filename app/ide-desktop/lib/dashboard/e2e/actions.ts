@@ -22,7 +22,7 @@ export const VALID_EMAIL = 'email@example.com'
 
 /** Find an email input (if any) on the current page. */
 export function locateEmailInput(page: test.Locator | test.Page) {
-  return page.getByLabel('Email')
+  return page.getByPlaceholder('Enter your email')
 }
 
 /** Find a password input (if any) on the current page. */
@@ -32,7 +32,7 @@ export function locatePasswordInput(page: test.Locator | test.Page) {
 
 /** Find a "confirm password" input (if any) on the current page. */
 export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
-  return page.getByLabel('Confirm password')
+  return page.getByPlaceholder('Confirm your password')
 }
 
 /** Find a "current password" input (if any) on the current page. */
@@ -609,6 +609,16 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
     await test.expect(assetRows).toHaveCount(1)
     await test.expect(assetRows).toHaveText(/Your trash is empty/)
   })
+}
+
+// =======================
+// === Mouse utilities ===
+// =======================
+
+/** Click an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function clickAssetRow(assetRow: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await assetRow.click({ position: { x: 100, y: 16 } })
 }
 
 // ==========================

@@ -51,8 +51,8 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
 
   await actions.locateLabelsColumnToggle(page).click()
   await page.keyboard.down(await actions.modModifier(page))
-  await assetRows.nth(0).click()
-  await assetRows.nth(2).click()
+  await actions.clickAssetRow(assetRows.nth(0))
+  await actions.clickAssetRow(assetRows.nth(2))
   await labels.nth(0).dragTo(assetRows.nth(2))
   await page.keyboard.up(await actions.modModifier(page))
   await test.expect(actions.locateAssetLabels(assetRows.nth(0)).getByText(label)).toBeVisible()
@@ -112,8 +112,8 @@ test.test('drag (recursive)', async ({ page }) => {
   await page.keyboard.down(await actions.modModifier(page))
   const directory1Row = assetRows.filter({ hasText: directory1.title })
   await directory1Row.click()
-  await assetRows.filter({ hasText: directory2.title }).click()
-  await assetRows.filter({ hasText: directory5.title }).click()
+  await actions.clickAssetRow(assetRows.filter({ hasText: directory2.title }))
+  await actions.clickAssetRow(assetRows.filter({ hasText: directory5.title }))
   await labels.nth(1).dragTo(directory1Row)
   await page.keyboard.up(await actions.modModifier(page))
   for (const row of await actions.locateAssetRows(page).all()) {

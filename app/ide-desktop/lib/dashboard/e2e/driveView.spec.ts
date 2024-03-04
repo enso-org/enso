@@ -23,7 +23,7 @@ test.test('drive view', async ({ page }) => {
   // The last opened project needs to be stopped, to remove the toast notification notifying the
   // user that project creation may take a while. Previously opened projects are stopped when the
   // new project is created.
-  await actions.locateStopProjectButton(assetRows.nth(0)).click()
+  await actions.locateStopProjectButton(actions.clickAssetRow(assetRows.nth(0)))
   // Project context menu
   await assetRows.nth(0).click({ button: 'right' })
   const contextMenu = actions.locateContextMenus(page)
