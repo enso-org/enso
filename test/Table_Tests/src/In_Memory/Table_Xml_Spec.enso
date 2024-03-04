@@ -4,7 +4,9 @@ from Standard.Test import all
 from Standard.Table.Errors import all
 import Standard.Base.Errors.Common.Type_Error
 
-# pretty xml makes the tests easier to read
+## Pretty xml makes the tests easier to read, 
+   so this function allows to convert a pretty-formatted expected XML value
+   into a raw value that can be compared with the generated XML.
 depretty xmlText =
     xmlText.replace (Regex.compile "\n\s*") ""
 
