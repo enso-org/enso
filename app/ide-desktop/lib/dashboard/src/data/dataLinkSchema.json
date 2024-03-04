@@ -145,6 +145,10 @@
           "title": "Database Name",
           "type": "string"
         },
+        "schema": {
+          "title": "Schema",
+          "type": "string"
+        },
         "credentials": {
           "title": "Credentials",
           "type": "object",
