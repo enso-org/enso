@@ -16,7 +16,7 @@ import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
@@ -343,18 +343,18 @@ watch(selectedSuggestionId, (id) => {
 
 // === Accepting Entry ===
 
-function applySuggestion(component: Opt<Component> = null): SuggestionEntry | null {
+function applySuggestion(component: Opt<Component> = null) {
+  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
+  if (suggestionId == null) return
+  input.applySuggestion(suggestionId)
+}
+
+function acceptSuggestion(component: Opt<Component> = null) {
+  applySuggestion(component)
   const providedSuggestion =
     component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
   const suggestion = providedSuggestion ?? selectedSuggestion.value
-  if (suggestion == null) return null
-  input.applySuggestion(suggestion)
-  return suggestion
-}
-
-function acceptSuggestion(index: Opt<Component> = null) {
-  const applied = applySuggestion(index)
-  const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
+  const shouldFinish = suggestion != null && suggestion.kind !== SuggestionKind.Module
   if (shouldFinish) acceptInput()
 }
 
