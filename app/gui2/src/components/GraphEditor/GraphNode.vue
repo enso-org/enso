@@ -428,6 +428,8 @@ const documentation = computed<string | undefined>({
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
+      @openFullMenu="openFullMenu"
+      @delete="emit('delete')"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
