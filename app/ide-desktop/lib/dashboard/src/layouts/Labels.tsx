@@ -17,7 +17,6 @@ import NewLabelModal from '#/modals/NewLabelModal'
 import type * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import * as assetQuery from '#/utilities/AssetQuery'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as drag from '#/utilities/drag'
 
@@ -70,7 +69,7 @@ export default function Labels(props: LabelsProps) {
                   disabled={newLabelNames.has(label.value)}
                   onClick={event => {
                     setQuery(oldQuery =>
-                      assetQuery.toggleLabel(oldQuery, label.value, event.shiftKey)
+                      oldQuery.withToggled('labels', 'negativeLabels', label.value, event.shiftKey)
                     )
                   }}
                   onDragStart={event => {

@@ -11,7 +11,7 @@ import Label from '#/components/dashboard/Label'
 import type * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import AssetQuery, * as assetQuery from '#/utilities/AssetQuery'
+import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
 
 // =============
@@ -310,8 +310,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                       onClick={event => {
                         querySource.current = QuerySource.internal
                         setQuery(oldQuery => {
-                          const newQuery = assetQuery.toggleLabel(
-                            oldQuery,
+                          const newQuery = oldQuery.withToggled(
+                            'labels',
+                            'negativeLabels',
                             label.value,
                             event.shiftKey
                           )

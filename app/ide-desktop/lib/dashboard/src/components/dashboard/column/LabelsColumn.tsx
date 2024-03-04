@@ -22,7 +22,6 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import type * as backendModule from '#/services/Backend'
 
-import * as assetQuery from '#/utilities/AssetQuery'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -108,7 +107,9 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             onClick={event => {
               event.preventDefault()
               event.stopPropagation()
-              setQuery(oldQuery => assetQuery.toggleLabel(oldQuery, label, event.shiftKey))
+              setQuery(oldQuery =>
+                oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey)
+              )
             }}
           >
             {label}

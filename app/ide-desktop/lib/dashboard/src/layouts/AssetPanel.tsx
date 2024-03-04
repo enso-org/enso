@@ -16,6 +16,7 @@ import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 import * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
+import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 
@@ -60,6 +61,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
   readonly supportsLocalBackend: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly labels: backend.Label[]
   readonly isHelpChatOpen: boolean
@@ -74,7 +76,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { item, setItem, supportsLocalBackend, page, setPage, category, labels } = props
+  const { item, setItem, supportsLocalBackend, page, setPage, setQuery, category, labels } = props
   const { isHelpChatOpen, setIsHelpChatOpen, setVisibility } = props
   const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
 
@@ -158,8 +160,9 @@ export default function AssetPanel(props: AssetPanelProps) {
         <AssetProperties
           item={item}
           setItem={setItem}
-          labels={labels}
           category={category}
+          labels={labels}
+          setQuery={setQuery}
           dispatchAssetEvent={dispatchAssetEvent}
         />
       )}

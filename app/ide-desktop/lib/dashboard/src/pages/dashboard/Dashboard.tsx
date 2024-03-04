@@ -529,6 +529,7 @@ export default function Dashboard(props: DashboardProps) {
               {...assetPanelProps}
               page={page}
               setPage={setPage}
+              setQuery={setQuery}
               category={Category.home}
               labels={labels}
               isHelpChatOpen={isHelpChatOpen}

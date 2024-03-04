@@ -20,6 +20,7 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 
 import * as backendModule from '#/services/Backend'
 
+import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -35,12 +36,14 @@ export interface AssetPropertiesProps {
   readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   readonly category: Category
   readonly labels: backendModule.Label[]
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { item: rawItem, setItem: rawSetItem, category, labels, dispatchAssetEvent } = props
+  const { item: rawItem, setItem: rawSetItem, category, labels, setQuery } = props
+  const { dispatchAssetEvent } = props
 
   const [item, innerSetItem] = React.useState(rawItem)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
@@ -185,7 +188,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 <SharedWithColumn
                   item={item}
                   setItem={setItem}
-                  state={{ category, dispatchAssetEvent }}
+                  state={{ category, dispatchAssetEvent, setQuery }}
                 />
               </td>
             </tr>
