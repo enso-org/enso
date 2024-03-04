@@ -340,19 +340,18 @@ watch(selectedSuggestionId, (id) => {
 
 // === Accepting Entry ===
 
-function applySuggestion(component: Opt<Component> = null): SuggestionEntry | null {
+function applySuggestion(component: Opt<Component> = null) {
+  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
+  if (suggestionId == null) return
+  input.applySuggestion(suggestionId)
+}
+
+function acceptSuggestion(component: Opt<Component> = null) {
+  applySuggestion(component)
   const providedSuggestion =
     component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
   const suggestion = providedSuggestion ?? selectedSuggestion.value
-  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
-  if (suggestion == null || suggestionId == null) return null
-  input.applySuggestion(suggestionId)
-  return suggestion
-}
-
-function acceptSuggestion(index: Opt<Component> = null) {
-  const applied = applySuggestion(index)
-  const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
+  const shouldFinish = suggestion != null && suggestion.kind !== SuggestionKind.Module
   if (shouldFinish) acceptInput()
 }
 

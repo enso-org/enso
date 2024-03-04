@@ -19,6 +19,7 @@ import {
   tryQualifiedName,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
+  qnLastSegment,
 } from '@/util/qualifiedName'
 
 // ========================
@@ -312,8 +313,8 @@ export function detectImportConflicts(
   const entryFQN = entryFQNFromRequiredImport(importToCheck)
   const [entryId] = suggestionDb.nameToId.lookup(entryFQN)
   if (entryId == null) return
-  const entry = suggestionDb.get(entryId)!
-  const conflictingIds = suggestionDb.conflictingNames.lookup(entry.name)
+    const name = qnLastSegment(entryFQN)
+  const conflictingIds = suggestionDb.conflictingNames.lookup(name)
   // Obviously, the entry doesn’t conflict with itself.
   conflictingIds.delete(entryId)
 
@@ -324,8 +325,8 @@ export function detectImportConflicts(
       if (existingImports.some((existing) => covers(existing, req))) {
         return {
           detected: true,
-          pattern: entry.name,
-          fullyQualified: entryQn(entry),
+          pattern: name,
+          fullyQualified: entryFQN,
         }
       }
     }

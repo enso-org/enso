@@ -273,7 +273,6 @@ export function useComponentBrowserInput(
       if (importId) {
         const requiredEntry = suggestionDb.get(importId)
         if (requiredEntry) {
-          // Keep in mind, that we need to provide the id of `entry`, not `requiredEntry` here!
           imports.value = imports.value.concat(requiredImports(suggestionDb, requiredEntry))
         }
       }
