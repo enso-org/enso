@@ -2,9 +2,8 @@ package org.enso.base;
 
 import java.io.ByteArrayOutputStream;
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.transform.TransformerException;
 import org.w3c.dom.DOMConfiguration;
-import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.bootstrap.DOMImplementationRegistry;
 import org.w3c.dom.ls.DOMImplementationLS;
@@ -20,9 +19,11 @@ public class XML_Utils {
    *
    * @param element the element to convert to a string
    * @return the string representation of the element
-   * @throws TransformerException
+   * @throws ClassNotFoundException if the DOM implementation class cannot be found.
+   * @throws IllegalAccessException if the DOM implementation class cannot be accessed.
+   * @throws InstantiationException if the DOM implementation class cannot be instantiated.
    */
-  public static String outerXML(Element element)
+  public static String outerXML(Node element)
       throws ClassNotFoundException, IllegalAccessException, InstantiationException {
     DOMImplementationLS dom =
         (DOMImplementationLS) DOMImplementationRegistry.newInstance().getDOMImplementation("LS");
@@ -38,9 +39,11 @@ public class XML_Utils {
    *
    * @param element the element to convert to a string
    * @return the string representation of the element's contents
-   * @throws TransformerException
+   * @throws ClassNotFoundException if the DOM implementation class cannot be found.
+   * @throws IllegalAccessException if the DOM implementation class cannot be accessed.
+   * @throws InstantiationException if the DOM implementation class cannot be instantiated.
    */
-  public static String innerXML(Element element)
+  public static String innerXML(Node element)
       throws ClassNotFoundException, IllegalAccessException, InstantiationException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DOMImplementationLS dom =
@@ -62,9 +65,7 @@ public class XML_Utils {
     documentBuilder.setErrorHandler(
         new ErrorHandler() {
           @Override
-          public void warning(SAXParseException e) throws SAXException {
-            ;
-          }
+          public void warning(SAXParseException e) {}
 
           @Override
           public void fatalError(SAXParseException e) throws SAXException {
