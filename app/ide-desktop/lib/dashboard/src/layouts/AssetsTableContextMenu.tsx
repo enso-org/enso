@@ -2,8 +2,6 @@
  * are selected. */
 import * as React from 'react'
 
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -18,6 +16,8 @@ import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
+
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import * as backendModule from '#/services/Backend'
 
