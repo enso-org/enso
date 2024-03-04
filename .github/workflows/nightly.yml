@@ -4,7 +4,7 @@
 name: Nightly Release
 on:
   schedule:
-  - cron: 0 2 * * *
+    - cron: 0 2 * * *
   workflow_dispatch: {}
 jobs:
   promote-nightly:
@@ -14,4 +14,4 @@ jobs:
       designator: nightly
     secrets: inherit
 env:
-  ENSO_BUILD_SKIP_VERSION_CHECK: 'true'
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"
