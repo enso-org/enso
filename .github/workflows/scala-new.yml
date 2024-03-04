@@ -58,28 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend ci-check
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
-          AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
-        name: Engine Test Reporter
-        uses: dorny/test-reporter@v1
-        with:
-          max-annotations: 50
-          name: Engine Tests (linux, x86_64)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
-          path-replace-backslashes: true
-          reporter: java-junit
-      - if: success() || failure()
-        name: Standard Library Test Reporter
-        uses: dorny/test-reporter@v1
-        with:
-          max-annotations: 50
-          name: Standard Library Tests (linux, x86_64)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
-          path-replace-backslashes: true
-          reporter: java-junit
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -91,8 +70,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    permissions:
-      checks: write
   enso-build-ci-gen-job-ci-check-backend-macos-x86_64:
     name: Engine (macos, x86_64)
     runs-on:
@@ -129,28 +106,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend ci-check
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
-          AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
-        name: Engine Test Reporter
-        uses: dorny/test-reporter@v1
-        with:
-          max-annotations: 50
-          name: Engine Tests (macos, x86_64)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
-          path-replace-backslashes: true
-          reporter: java-junit
-      - if: success() || failure()
-        name: Standard Library Test Reporter
-        uses: dorny/test-reporter@v1
-        with:
-          max-annotations: 50
-          name: Standard Library Tests (macos, x86_64)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
-          path-replace-backslashes: true
-          reporter: java-junit
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -162,8 +118,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    permissions:
-      checks: write
   enso-build-ci-gen-job-ci-check-backend-windows-x86_64:
     name: Engine (windows, x86_64)
     runs-on:
@@ -201,28 +155,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend ci-check
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
-          AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: success() || failure()
-        name: Engine Test Reporter
-        uses: dorny/test-reporter@v1
-        with:
-          max-annotations: 50
-          name: Engine Tests (windows, x86_64)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
-          path-replace-backslashes: true
-          reporter: java-junit
-      - if: success() || failure()
-        name: Standard Library Test Reporter
-        uses: dorny/test-reporter@v1
-        with:
-          max-annotations: 50
-          name: Standard Library Tests (windows, x86_64)
-          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
-          path-replace-backslashes: true
-          reporter: java-junit
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -234,8 +167,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    permissions:
-      checks: write
   enso-build-ci-gen-job-scala-tests-linux-x86_64:
     name: Scala Tests (linux, x86_64)
     runs-on:
@@ -274,6 +205,15 @@ jobs:
       - run: ./run backend test scala
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: success() || failure()
+        name: Engine Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Engine Tests Report (linux, x86_64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -285,6 +225,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      checks: write
   enso-build-ci-gen-job-scala-tests-macos-x86_64:
     name: Scala Tests (macos, x86_64)
     runs-on:
@@ -322,6 +264,15 @@ jobs:
       - run: ./run backend test scala
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: success() || failure()
+        name: Engine Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Engine Tests Report (macos, x86_64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -333,6 +284,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      checks: write
   enso-build-ci-gen-job-scala-tests-windows-x86_64:
     name: Scala Tests (windows, x86_64)
     runs-on:
@@ -371,6 +324,15 @@ jobs:
       - run: ./run backend test scala
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: success() || failure()
+        name: Engine Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Engine Tests Report (windows, x86_64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -382,6 +344,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      checks: write
   enso-build-ci-gen-job-standard-library-tests-linux-x86_64:
     name: Standard Library Tests (linux, x86_64)
     runs-on:
@@ -419,7 +383,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend test standard-library
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: success() || failure()
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (linux, x86_64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -431,6 +407,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      checks: write
   enso-build-ci-gen-job-standard-library-tests-macos-x86_64:
     name: Standard Library Tests (macos, x86_64)
     runs-on:
@@ -467,7 +445,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend test standard-library
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: success() || failure()
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (macos, x86_64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -479,6 +469,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      checks: write
   enso-build-ci-gen-job-standard-library-tests-windows-x86_64:
     name: Standard Library Tests (windows, x86_64)
     runs-on:
@@ -516,7 +508,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run backend test standard-library
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
+          AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: success() || failure()
+        name: Standard Library Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Standard Library Tests Report (windows, x86_64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
@@ -528,6 +532,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      checks: write
   enso-build-ci-gen-job-verify-license-packages-linux-x86_64:
     name: Verify License Packages (linux, x86_64)
     runs-on:

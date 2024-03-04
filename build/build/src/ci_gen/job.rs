@@ -159,7 +159,10 @@ impl JobArchetype for VerifyLicensePackages {
 pub struct ScalaTests;
 impl JobArchetype for crate::ci_gen::job::ScalaTests {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Scala Tests", "backend test scala")
+        RunStepsBuilder::new("backend test scala")
+            .customize(move |step| vec![step, step::engine_test_reporter(target)])
+            .build_job("Scala Tests", target)
+            .with_permission(Permission::Checks, Access::Write)
     }
 }
 
@@ -167,7 +170,25 @@ impl JobArchetype for crate::ci_gen::job::ScalaTests {
 pub struct StandardLibraryTests;
 impl JobArchetype for crate::ci_gen::job::StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Standard Library Tests", "backend test standard-library")
+        RunStepsBuilder::new("backend test standard-library")
+            .customize(move |step| {
+                let main_step = step
+                    .with_secret_exposed_as(
+                        secret::ENSO_LIB_S3_AWS_REGION,
+                        crate::aws::env::AWS_REGION,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
+                        crate::aws::env::AWS_ACCESS_KEY_ID,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
+                        crate::aws::env::AWS_SECRET_ACCESS_KEY,
+                    );
+                vec![main_step, step::stdlib_test_reporter(target)]
+            })
+            .build_job("Standard Library Tests", target)
+            .with_permission(Permission::Checks, Access::Write)
     }
 }
 
@@ -384,28 +405,6 @@ impl JobArchetype for PackageNewIde {
 pub struct CiCheckBackend;
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend ci-check")
-            .customize(move |step| {
-                let main_step = step
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_REGION,
-                        crate::aws::env::AWS_REGION,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                        crate::aws::env::AWS_ACCESS_KEY_ID,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                        crate::aws::env::AWS_SECRET_ACCESS_KEY,
-                    );
-                vec![
-                    main_step,
-                    step::engine_test_reporter(target),
-                    step::stdlib_test_reporter(target),
-                ]
-            })
-            .build_job("Engine", target)
-            .with_permission(Permission::Checks, Access::Write)
+        RunStepsBuilder::new("backend ci-check").build_job("Engine", target)
     }
 }
