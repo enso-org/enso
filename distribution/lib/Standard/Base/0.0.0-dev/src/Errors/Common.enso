@@ -86,6 +86,9 @@ type Type_Error
             . replace "{got}" got
         "Type error: "+msg+"."
 
+    to_text : Text
+    to_text self = self.to_display_text
+
 @Builtin_Type
 type Compile_Error
     ## PRIVATE
