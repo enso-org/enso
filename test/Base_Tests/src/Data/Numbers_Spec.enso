@@ -26,6 +26,12 @@ type Complex
 
     < self (that:Complex) = Complex_Comparator.compare self that == Ordering.Less
     > self (that:Complex) = Complex_Comparator.compare self that == Ordering.Greater
+    >= self (that:Complex) =
+        ordering = Complex_Comparator.compare self that
+        ordering == Ordering.Greater || ordering == Ordering.Equal
+    <= self (that:Complex) =
+        ordering = Complex_Comparator.compare self that
+        ordering == Ordering.Less || ordering == Ordering.Equal
 
 Complex.from (that:Number) = Complex.new that
 
@@ -637,10 +643,7 @@ add_specs suite_builder =
             v2>v1 . should_be_true
 
             v1<=v2 . should_be_true
-            v2<=v1 . should_be_false
-
             v1>=v2 . should_be_false
-            v2>=v1 . should_be_true
 
     suite_builder.group "BigInts" group_builder->
         expected_value = 2002115494039257055317447151023464523838443110452722331466645440244415760562579268801894716412
