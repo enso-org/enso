@@ -69,8 +69,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   // Set value on `on_problems` (static drop-down)
   const onProblemsArg = argumentNames.filter({ has: page.getByText('on_problems') })
   await onProblemsArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report Warning', 'Report Error'])
-  await dropDown.clickOption(page, 'Report Error')
+  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report_Warning', 'Report_Error'])
+  await dropDown.clickOption(page, 'Report_Error')
   await expect(onProblemsArg.locator('.WidgetToken')).toHaveText([
     'Problem_Behavior',
     '.',
@@ -87,8 +87,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     notAppliedArguments: [0, 1],
   })
   await page.getByText('Report_Error').click()
-  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report Warning', 'Report Error'])
-  await dropDown.clickOption(page, 'Report Warning')
+  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report_Warning', 'Report_Error'])
+  await dropDown.clickOption(page, 'Report_Warning')
   await expect(onProblemsArg.locator('.WidgetToken')).toHaveText([
     'Problem_Behavior',
     '.',
@@ -99,8 +99,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   const pathArg = argumentNames.filter({ has: page.getByText('path') })
   await pathArg.click()
   await expect(page.locator('.dropdownContainer')).toBeVisible()
-  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
-  await dropDown.clickOption(page, 'File 2')
+  await dropDown.expectVisibleWithOptions(page, ['"File 1"', '"File 2"'])
+  await dropDown.clickOption(page, '"File 2"')
   await expect(pathArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"File 2"')
 
   // Change value on `path` (dynamic config)
@@ -113,8 +113,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     notAppliedArguments: [1],
   })
   await page.getByText('path').click()
-  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
-  await dropDown.clickOption(page, 'File 1')
+  await dropDown.expectVisibleWithOptions(page, ['"File 1"', '"File 2"'])
+  await dropDown.clickOption(page, '"File 1"')
   await expect(pathArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"File 1"')
 })
 
@@ -162,8 +162,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // Change aggregation type
   const firstItem = columnsArg.locator('.item > .WidgetPort > .WidgetSelection')
   await firstItem.click()
-  await dropDown.expectVisibleWithOptions(page, ['Group By', 'Count', 'Count Distinct'])
-  await dropDown.clickOption(page, 'Count Distinct')
+  await dropDown.expectVisibleWithOptions(page, ['Group_By', 'Count', 'Count_Distinct'])
+  await dropDown.clickOption(page, 'Count_Distinct')
   await expect(columnsArg.locator('.WidgetToken')).toHaveText([
     'Aggregate_Column',
     '.',
@@ -188,8 +188,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // Set column
   const columnArg = firstItem.locator('.WidgetSelection').first()
   await columnArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
-  await dropDown.clickOption(page, 'column 1')
+  await dropDown.expectVisibleWithOptions(page, ['"column 1"', '"column 2"'])
+  await dropDown.clickOption(page, '"column 1"')
   await expect(columnsArg.locator('.WidgetToken')).toHaveText([
     'Aggregate_Column',
     '.',
@@ -227,8 +227,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   const secondItem = columnsArg.locator('.item > .WidgetPort > .WidgetSelection').nth(1)
   const secondColumnArg = secondItem.locator('.WidgetSelection').first()
   await secondColumnArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
-  await dropDown.clickOption(page, 'column 2')
+  await dropDown.expectVisibleWithOptions(page, ['"column 1"', '"column 2"'])
+  await dropDown.clickOption(page, '"column 2"')
   await expect(secondItem.locator('.WidgetToken')).toHaveText(['Aggregate_Column', '.', 'Group_By'])
   await expect(secondItem.locator('.EnsoTextInputWidget > input').first()).toHaveValue('"column 2"')
 

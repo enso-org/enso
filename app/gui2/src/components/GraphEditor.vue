@@ -392,7 +392,7 @@ function commitComponentBrowser(content: string, requiredImports: RequiredImport
   if (content != null) {
     if (graphStore.editedNodeInfo) {
       // We finish editing a node.
-      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
+      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
     } else if (content != '') {
       // We finish creating a new node.
       const metadata = undefined
