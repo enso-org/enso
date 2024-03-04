@@ -89,7 +89,13 @@ public abstract class ReadArgumentCheckNode extends Node {
       expectedTypeMessage = expectedTypeMessage();
     }
     var ctx = EnsoContext.get(this);
-    var msg = comment == null ? "expression" : comment;
+    String msg;
+    if (v instanceof UnresolvedConstructor) {
+      msg = "Cannot find constructor {got} among {exp}";
+    } else {
+      var where = (comment == null ? "expression" : comment);
+      msg = "expected " + where + " to be {exp}, but got {got}";
+    }
     var err = ctx.getBuiltins().error().makeTypeErrorOfComment(expectedTypeMessage, v, msg);
     throw new PanicException(err, this);
   }

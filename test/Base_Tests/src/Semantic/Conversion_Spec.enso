@@ -458,8 +458,7 @@ add_specs suite_builder =
 
             b . should_fail_with Type_Error
             msg = b.to_display_text
-            msg . should_contain "expected expression to be Back"
-            msg . should_contain "but got ~Value"
+            msg . should_contain "Cannot find constructor ~Value among Back"
 
         group_builder.specify "Choose first constructor" <|
             v = ~Value 10
