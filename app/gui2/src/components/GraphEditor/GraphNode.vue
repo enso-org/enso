@@ -5,6 +5,7 @@ import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
@@ -117,7 +118,7 @@ const warning = computed(() => {
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
   if (!warning) return
-  return '⚠ Warning: ' + warning!
+  return 'Warning: ' + warning!
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
@@ -474,12 +475,16 @@ const documentation = computed<string | undefined>({
         @openFullMenu="openFullMenu"
       />
     </div>
+    <div class="statuses">
+      <SvgIcon v-if="warning" name="warning" />
+    </div>
     <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
     <GraphNodeError
       v-if="warning && (nodeHovered || isSelected)"
       class="afterNode warning"
-      :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
+      :class="{ messageWithMenu: menuVisible !== MenuState.Off }"
       :message="warning"
+      icon="warning"
       type="warning"
     />
     <svg class="bgPaths" :style="bgStyleVariables">
@@ -711,11 +716,30 @@ const documentation = computed<string | undefined>({
   margin-top: 4px;
 }
 
+.messageWarning {
+  margin-top: 8px;
+}
+
 .messageWithMenu {
   left: 40px;
 }
 
-.warning {
-  top: 35px;
+.statuses {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  top: 0;
+  right: 100%;
+  margin-right: 8px;
+  color: var(--color-warning);
+  transition: opacity 0.2s ease-in-out;
+}
+
+.GraphNode:is(:hover, .selected) .statuses,
+.GraphNode:has(.selection:hover) .statuses {
+  opacity: 0;
 }
 </style>
