@@ -5,676 +5,676 @@ name: GUI CI
 on:
   push:
     branches:
-      - develop
+    - develop
   pull_request: {}
   workflow_dispatch: {}
 jobs:
   enso-build-ci-gen-job-build-backend-linux-x86_64:
     name: Build Backend (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+    - self-hosted
+    - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend get
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run backend get
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-build-backend-macos-x86_64:
     name: Build Backend (macos, x86_64)
     runs-on:
-      - macos-latest
+    - macos-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend get
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run backend get
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-build-backend-windows-x86_64:
     name: Build Backend (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+    - self-hosted
+    - Windows
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend get
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run backend get
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-cancel-workflow-linux-x86_64:
     name: Cancel Previous Runs
     if: github.ref != 'refs/heads/develop'
     runs-on:
-      - ubuntu-latest
+    - ubuntu-latest
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.12.1
-        with:
-          access_token: ${{ github.token }}
+    - name: Cancel Previous Runs
+      uses: styfle/cancel-workflow-action@0.12.1
+      with:
+        access_token: ${{ github.token }}
     permissions:
       actions: write
   enso-build-ci-gen-job-lint-linux-x86_64:
     name: Lint (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+    - self-hosted
+    - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run lint
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run lint
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-native-test-linux-x86_64:
     name: Native GUI tests (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+    - self-hosted
+    - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run wasm test --no-wasm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run wasm test --no-wasm
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-new-gui-build-linux-x86_64:
     name: New (Vue) GUI build (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+    - self-hosted
+    - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run gui2 build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run gui2 build
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-new-gui-build-macos-x86_64:
     name: New (Vue) GUI build (macos, x86_64)
     runs-on:
-      - macos-latest
+    - macos-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run gui2 build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run gui2 build
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-new-gui-build-windows-x86_64:
     name: New (Vue) GUI build (windows, x86_64)
     runs-on:
-      - self-hosted
-      - Windows
+    - self-hosted
+    - Windows
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run gui2 build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run gui2 build
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-new-gui-test-linux-x86_64:
     name: New (Vue) GUI tests (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+    - self-hosted
+    - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run gui2 test
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run gui2 test
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-package-new-ide-linux-x86_64:
     name: Package New IDE (linux, x86_64)
     needs:
-      - enso-build-ci-gen-job-build-backend-linux-x86_64
+    - enso-build-ci-gen-job-build-backend-linux-x86_64
     runs-on:
-      - self-hosted
-      - Linux
+    - self-hosted
+    - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-package-new-ide-macos-x86_64:
     name: Package New IDE (macos, x86_64)
     needs:
-      - enso-build-ci-gen-job-build-backend-macos-x86_64
+    - enso-build-ci-gen-job-build-backend-macos-x86_64
     runs-on:
-      - macos-latest
+    - macos-latest
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: NPM install
-        run: npm install
-      - name: Uninstall old Electron Builder
-        run: npm uninstall --save --workspace enso electron-builder
-      - name: Install new Electron Builder
-        run: npm install --save-dev --workspace enso electron-builder@24.6.4
-      - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
-        env:
-          APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
-          APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
-          APPLETEAMID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
-          CSC_FOR_PULL_REQUEST: "true"
-          CSC_IDENTITY_AUTO_DISCOVERY: "true"
-          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
-          CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: NPM install
+      run: npm install
+    - name: Uninstall old Electron Builder
+      run: npm uninstall --save --workspace enso electron-builder
+    - name: Install new Electron Builder
+      run: npm install --save-dev --workspace enso electron-builder@24.6.4
+    - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
+      env:
+        APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
+        APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+        APPLETEAMID: ${{ secrets.APPLE_NOTARIZATION_TEAM_ID }}
+        CSC_FOR_PULL_REQUEST: 'true'
+        CSC_IDENTITY_AUTO_DISCOVERY: 'true'
+        CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
+        CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-package-new-ide-windows-x86_64:
     name: Package New IDE (windows, x86_64)
     needs:
-      - enso-build-ci-gen-job-build-backend-windows-x86_64
+    - enso-build-ci-gen-job-build-backend-windows-x86_64
     runs-on:
-      - self-hosted
-      - Windows
+    - self-hosted
+    - Windows
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
-          WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
+        WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-wasm-test-linux-x86_64:
     name: WASM GUI tests (linux, x86_64)
     runs-on:
-      - self-hosted
-      - Linux
+    - self-hosted
+    - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.2.1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.10.2
-      - name: Expose Artifact API and context information.
-        uses: actions/github-script@v7
-        with:
-          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          submodules: recursive
-      - name: Build Script Setup
-        run: ./run --help
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean before
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run wasm test --no-native
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
-        name: Clean after
-        run: ./run git-clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Setup conda (GH runners only)
+      uses: s-weigand/setup-conda@v1.2.1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+      name: Installing wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.10.2
+    - name: Expose Artifact API and context information.
+      uses: actions/github-script@v7
+      with:
+        script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+    - name: Checking out the repository
+      uses: actions/checkout@v4
+      with:
+        clean: false
+        submodules: recursive
+    - name: Build Script Setup
+      run: ./run --help
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: 'contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean before
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: ./run wasm test --no-native
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - if: failure() && runner.os == 'Windows'
+      name: List files if failed (Windows)
+      run: Get-ChildItem -Force -Recurse
+    - if: failure() && runner.os != 'Windows'
+      name: List files if failed (non-Windows)
+      run: ls -lAR
+    - if: 'always() && contains(github.event.pull_request.labels.*.name, ''CI: Clean build required'')'
+      name: Clean after
+      run: ./run git-clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 env:
-  ENSO_BUILD_SKIP_VERSION_CHECK: "true"
+  ENSO_BUILD_SKIP_VERSION_CHECK: 'true'

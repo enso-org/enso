@@ -23,7 +23,6 @@
 pub mod arg;
 
 
-
 pub mod prelude {
     pub use crate::arg::ArgExt as _;
     pub use enso_build::prelude::*;
@@ -157,8 +156,8 @@ impl Processor {
         target: T,
         source: arg::Source<T>,
     ) -> BoxFuture<'static, Result<GetTargetJob<T>>>
-    where
-        T: Resolvable,
+        where
+            T: Resolvable,
     {
         let span = info_span!("Resolving.", ?target, ?source).entered();
         let destination = source.output_path.output_path;
@@ -224,13 +223,13 @@ impl Processor {
         let commit = self.commit();
         async move {
             Ok(gui::BuildInfo {
-                commit:         commit.await?,
-                name:           "Enso IDE".into(),
-                version:        triple.versions.version.clone(),
+                commit: commit.await?,
+                name: "Enso IDE".into(),
+                version: triple.versions.version.clone(),
                 engine_version: triple.versions.version.clone(),
             })
         }
-        .boxed()
+            .boxed()
     }
 
     // pub fn pm_info(&self) -> enso_build::project::backend::BuildInput {
@@ -260,13 +259,13 @@ impl Processor {
         async move {
             Ok(WithDestination::new(
                 BuildSource {
-                    input:                  input.await?,
+                    input: input.await?,
                     should_upload_artifact: upload_artifact,
                 },
                 output_path.output_path,
             ))
         }
-        .boxed()
+            .boxed()
     }
 
     pub fn resolve_watch_job<T: WatchResolvable>(
@@ -301,9 +300,9 @@ impl Processor {
         &self,
         target_source: arg::Source<Target>,
     ) -> BoxFuture<'static, Result<Target::Artifact>>
-    where
-        Target: IsTarget + IsTargetSource + Send + Sync + 'static,
-        Target: Resolvable,
+        where
+            Target: IsTarget + IsTargetSource + Send + Sync + 'static,
+            Target: Resolvable,
     {
         let target = self.target::<Target>();
         let get_task = self.target().map(|target| self.resolve(target, target_source));
@@ -319,8 +318,8 @@ impl Processor {
             let job = job.await?;
             target?.build(context, job).await
         }
-        .void_ok()
-        .boxed()
+            .void_ok()
+            .boxed()
     }
 
     pub fn handle_wasm(&self, wasm: arg::wasm::Target) -> BoxFuture<'static, Result> {
@@ -394,7 +393,7 @@ impl Processor {
                     context.execute(operation).await?;
                     Ok(())
                 }
-                .boxed()
+                    .boxed()
             }
             arg::backend::Command::Benchmark { which, minimal_run } => {
                 let config = enso_build::engine::BuildConfigurationFlags {
@@ -408,7 +407,7 @@ impl Processor {
                     context.build().await?;
                     Ok(())
                 }
-                .boxed()
+                    .boxed()
             }
             arg::backend::Command::Test { which } => {
                 let mut config = enso_build::engine::BuildConfigurationFlags::default();
@@ -436,7 +435,7 @@ impl Processor {
                     let context = context.await?;
                     context.execute(operation).await
                 }
-                .boxed()
+                    .boxed()
             }
             arg::backend::Command::CiCheck {} => {
                 let config = enso_build::engine::BuildConfigurationFlags {
@@ -473,8 +472,8 @@ impl Processor {
                     let context = context.await?;
                     context.build().await
                 }
-                .void_ok()
-                .boxed()
+                    .void_ok()
+                    .boxed()
             }
         }
     }
@@ -497,7 +496,7 @@ impl Processor {
             };
             Ok(enso_build::engine::RunContext { inner, config, paths, external_runtime: None })
         }
-        .boxed()
+            .boxed()
     }
 
     /// Get a handle to the release by its identifier.
@@ -530,7 +529,7 @@ impl Processor {
                 .await?;
             Ok(())
         }
-        .boxed()
+            .boxed()
     }
 
     pub fn handle_ide(&self, ide: arg::ide::Target) -> BoxFuture<'static, Result> {
@@ -547,7 +546,7 @@ impl Processor {
                     ide.start_unpacked(ide_option).run_ok().await?;
                     Ok(())
                 }
-                .boxed()
+                    .boxed()
             }
             arg::ide::Command::Watch { gui, project_manager, ide_option: ide_watch } => {
                 let context = self.context();
@@ -558,7 +557,7 @@ impl Processor {
                         .watch(&context, watch_gui_job.await?, project_manager, ide_watch)
                         .await
                 }
-                .boxed()
+                    .boxed()
             }
             arg::ide::Command::IntegrationTest {
                 external_backend,
@@ -589,12 +588,12 @@ impl Processor {
                         wasm_pack_options,
                         Some(wasm_timeout.into()),
                     )
-                    .await?;
+                        .await?;
                     // Custom root must live while the tests are being run.
                     drop(custom_root);
                     Ok(())
                 }
-                .boxed()
+                    .boxed()
             }
         }
     }
@@ -626,7 +625,7 @@ impl Processor {
             }
             command.spawn_intercepting()
         }
-        .boxed()
+            .boxed()
     }
     pub fn build_ide(
         &self,
@@ -643,7 +642,7 @@ impl Processor {
             }
             Ok(artifacts)
         }
-        .boxed()
+            .boxed()
     }
 
     pub fn build_old_ide(
@@ -682,7 +681,7 @@ impl Processor {
                 build_info.await?;
                 gui.await
             }
-            .boxed(),
+                .boxed(),
             project_manager: self.get(project_manager),
             version: self.triple.versions.version.clone(),
             electron_target,
@@ -964,11 +963,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                     &ctx.octocrab,
                     &ctx.triple.versions.version,
                 )
-                .await?;
-            }
-            Action::DeployGui(args) => {
-                let crate::arg::release::DeployGui {} = args;
-                enso_build::release::upload_gui_to_cloud_good(&ctx).await?;
+                    .await?;
             }
             Action::Publish => {
                 enso_build::release::publish_release(&ctx).await?;
@@ -992,7 +987,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                     }
                 }
             }
-            .await?;
+                .await?;
         }
         Target::ChangelogCheck => {
             let ci_context = ide_ci::actions::context::Context::from_env()?;
