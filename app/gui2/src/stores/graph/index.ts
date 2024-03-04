@@ -307,11 +307,23 @@ export const useGraphStore = defineStore('graph', () => {
     )
   }
 
-  function setNodeContent(id: NodeId, content: string) {
+  function setNodeContent(id: NodeId, content: string, withImports?: RequiredImport[] | undefined) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
       edit.getVersion(node.rootSpan).syncToCode(content)
+      if (withImports) {
+        const conflicts = addMissingImports(edit, withImports)
+        if (conflicts == null) return
+        const wholeAssignment = edit.getVersion(node.rootSpan)?.mutableParent()
+        if (wholeAssignment == null) {
+          console.error('Cannot find parent of the node expression. Conflict resolution failed.')
+          return
+        }
+        for (const conflict of conflicts) {
+          substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
+        }
+      }
     })
   }
 
