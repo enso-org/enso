@@ -21,11 +21,7 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import { asNot } from '@/util/data/types.ts'
-import {
-  qnLastSegment,
-  tryQualifiedName,
-  type IdentifierOrOperatorIdentifier,
-} from '@/util/qualifiedName'
+import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -183,7 +179,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 <template>
   <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <div
-   ref="widgetRoot" class="WidgetSelection"
+    ref="widgetRoot"
+    class="WidgetSelection"
     @pointerdown.stop
     @pointerup.stop
     @click.stop="toggleDropdownWidget"
