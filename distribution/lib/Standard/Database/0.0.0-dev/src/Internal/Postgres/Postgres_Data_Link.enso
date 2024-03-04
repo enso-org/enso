@@ -1,0 +1,21 @@
+from Standard.Base import all
+from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
+from Standard.Base.Enso_Cloud.Data_Link import parse_format
+
+import project.Connection.Postgres_Details.Postgres_Details
+
+## PRIVATE
+type Postgres_Data_Link
+    Connection details:Postgres_Details
+    Table name:Text details:Postgres_Details
+
+
+    ## PRIVATE
+    parse json -> Postgres_Data_Link =
+        # TODO
+        Nothing
+
+    ## PRIVATE
+    read self (on_problems : Problem_Behavior) =
+        # TODO
+        Nothing
