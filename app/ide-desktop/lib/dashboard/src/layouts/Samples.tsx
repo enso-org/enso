@@ -110,7 +110,9 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
   return (
     <div className="flex flex-col gap-sample">
       <button
-        className="relative h-sample cursor-pointer before:absolute before:inset before:bg-frame before:rounded-default before:w-full before:h-full before:opacity-new-empty-project"
+        // This UI element does not appear anywhere else.
+        // eslint-disable-next-line no-restricted-syntax
+        className="relative h-sample cursor-pointer before:absolute before:inset before:bg-frame before:rounded-default before:w-full before:h-full before:opacity-60"
         onClick={onClick}
       >
         <div className="relative flex rounded-default size-full">
@@ -189,7 +191,10 @@ function ProjectTile(props: InternalProjectTileProps) {
           </div>
         )}
       </button>
-      <div className="flex justify-between text-primary h-sample-info px-sample-description-x opacity-sample-info">
+      {/* Although this component is instantiated multiple times, it has a unique role and hence
+       * its own opacity. */}
+      {/* eslint-disable-next-line no-restricted-syntax */}
+      <div className="flex justify-between text-primary h-sample-info px-sample-description-x opacity-70">
         <div className="flex gap-samples-icon-with-text">
           <SvgMask src={Logo} className="size-icon self-end" />
           <span className="font-bold leading-snug self-start">{author}</span>

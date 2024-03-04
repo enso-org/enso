@@ -110,7 +110,7 @@ export default function Labels(props: LabelsProps) {
                     <SvgMask
                       src={Trash2Icon}
                       alt="Delete"
-                      className="transparent group-hover:opacity-full text-delete size-icon"
+                      className="transparent group-hover:active text-delete size-icon transition-all"
                     />
                   </button>
                 )}

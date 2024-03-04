@@ -47,7 +47,7 @@ const HEADER_HEIGHT_PX = 34
 const DRAG_EXPAND_DELAY_MS = 500
 /** Placeholder row for directories that are empty. */
 const EMPTY_DIRECTORY_PLACEHOLDER = (
-  <span className="px-name-column-x opacity-read-only">This folder is empty.</span>
+  <span className="placeholder px-name-column-x">This folder is empty.</span>
 )
 
 // ================

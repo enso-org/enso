@@ -52,7 +52,7 @@ export default function DriveBar(props: DriveBarProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
-  const isHomeCategory = category === Category.home || !isCloud
+  const effectiveCategory = isCloud ? category : Category.home
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -72,112 +72,120 @@ export default function DriveBar(props: DriveBarProps) {
     })
   }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
 
-  return (
-    <div className="flex h-row py-drive-bar-y">
-      <div className="flex gap-drive-bar">
-        <button
-          disabled={!isHomeCategory}
-          className="flex items-center bg-frame rounded-full h-row px-new-project-button-x"
-          {...(!isHomeCategory ? { title: 'You can only create a new project in Home.' } : {})}
-          onClick={() => {
-            unsetModal()
-            doCreateProject()
-          }}
-        >
-          <span
-            className={`text font-semibold whitespace-nowrap ${
-              !isHomeCategory ? 'opacity-disabled' : ''
-            }`}
-          >
-            New Project
-          </span>
-        </button>
-        <div className="flex items-center text-black/50 bg-frame rounded-full gap-icons h-row px-drive-bar-icons-x">
-          {backend.type !== backendModule.BackendType.local && (
-            <Button
-              active={isHomeCategory}
-              disabled={!isHomeCategory}
-              error="You can only create a new folder in Home."
-              image={AddFolderIcon}
-              alt="New Folder"
-              onClick={() => {
-                unsetModal()
-                doCreateDirectory()
-              }}
-            />
-          )}
-          {isCloud && (
-            <Button
-              active={isHomeCategory}
-              disabled={!isHomeCategory}
-              error="You can only create a new secret in Home."
-              image={AddKeyIcon}
-              alt="New Secret"
-              onClick={event => {
-                event.stopPropagation()
-                setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
-              }}
-            />
-          )}
-          {isCloud && (
-            <Button
-              active={isHomeCategory}
-              disabled={!isHomeCategory}
-              error="You can only create a new Data Link in Home."
-              image={AddConnectorIcon}
-              alt="New Data Link"
-              onClick={event => {
-                event.stopPropagation()
-                setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
-              }}
-            />
-          )}
-          <input
-            ref={uploadFilesRef}
-            type="file"
-            multiple
-            id="upload_files_input"
-            name="upload_files_input"
-            {...(isCloud ? {} : { accept: '.enso-project' })}
-            className="hidden"
-            onInput={event => {
-              if (event.currentTarget.files != null) {
-                doUploadFiles(Array.from(event.currentTarget.files))
-              }
-              // Clear the list of selected files. Otherwise, `onInput` will not be
-              // dispatched again if the same file is selected.
-              event.currentTarget.value = ''
-            }}
-          />
-          <Button
-            active={isHomeCategory}
-            disabled={!isHomeCategory}
-            error="You can only upload files to Home."
-            image={DataUploadIcon}
-            alt="Upload Files"
-            onClick={() => {
-              unsetModal()
-              uploadFilesRef.current?.click()
-            }}
-          />
-          <Button
-            active={canDownloadFiles}
-            disabled={!canDownloadFiles}
-            image={DataDownloadIcon}
-            alt="Download Files"
-            error={
-              category === Category.trash
-                ? 'You cannot download files from Trash.'
-                : 'You currently can only download files.'
-            }
-            onClick={event => {
-              event.stopPropagation()
-              unsetModal()
-              dispatchAssetEvent({ type: AssetEventType.downloadSelected })
-            }}
-          />
-        </div>
-      </div>
-    </div>
+  const newProjectButton = (
+    <button
+      className="flex items-center bg-frame rounded-full h-row px-new-project-button-x"
+      onClick={() => {
+        unsetModal()
+        doCreateProject()
+      }}
+    >
+      <span className="text font-semibold whitespace-nowrap">New Project</span>
+    </button>
   )
+
+  switch (effectiveCategory) {
+    case Category.recent: {
+      // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
+      // in the given directory, to avoid name collisions.
+      return (
+        <div className="flex h-row py-drive-bar-y">
+          <div className="flex gap-drive-bar" />
+        </div>
+      )
+    }
+    case Category.trash: {
+      return (
+        <div className="flex h-row py-drive-bar-y">
+          <div className="flex gap-drive-bar" />
+        </div>
+      )
+    }
+    case Category.home: {
+      return (
+        <div className="flex h-row py-drive-bar-y">
+          <div className="flex gap-drive-bar">
+            {newProjectButton}
+            <div className="flex items-center text-black/50 bg-frame rounded-full gap-icons h-row px-drive-bar-icons-x">
+              {isCloud && (
+                <Button
+                  active
+                  image={AddFolderIcon}
+                  alt="New Folder"
+                  onClick={() => {
+                    unsetModal()
+                    doCreateDirectory()
+                  }}
+                />
+              )}
+              {isCloud && (
+                <Button
+                  active
+                  image={AddKeyIcon}
+                  alt="New Secret"
+                  onClick={event => {
+                    event.stopPropagation()
+                    setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
+                  }}
+                />
+              )}
+              {isCloud && (
+                <Button
+                  active
+                  image={AddConnectorIcon}
+                  alt="New Data Link"
+                  onClick={event => {
+                    event.stopPropagation()
+                    setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
+                  }}
+                />
+              )}
+              <input
+                ref={uploadFilesRef}
+                type="file"
+                multiple
+                id="upload_files_input"
+                name="upload_files_input"
+                {...(isCloud ? {} : { accept: '.enso-project' })}
+                className="hidden"
+                onInput={event => {
+                  if (event.currentTarget.files != null) {
+                    doUploadFiles(Array.from(event.currentTarget.files))
+                  }
+                  // Clear the list of selected files. Otherwise, `onInput` will not be
+                  // dispatched again if the same file is selected.
+                  event.currentTarget.value = ''
+                }}
+              />
+              <Button
+                active
+                image={DataUploadIcon}
+                alt="Upload Files"
+                onClick={() => {
+                  unsetModal()
+                  uploadFilesRef.current?.click()
+                }}
+              />
+              <Button
+                active={canDownloadFiles}
+                disabled={!canDownloadFiles}
+                image={DataDownloadIcon}
+                alt="Download Files"
+                error={
+                  isCloud
+                    ? 'You currently can only download files.'
+                    : 'First select a project to download.'
+                }
+                onClick={event => {
+                  event.stopPropagation()
+                  unsetModal()
+                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )
+    }
+  }
 }

@@ -228,9 +228,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       }}
       className="group search-bar relative flex items-center text-primary rounded-full gap-asset-search-bar h-row grow max-w-asset-search-bar xl:max-w-asset-search-bar-wide px-input-x"
     >
-      {/* The custom opacity can be considered as part of this icon's image. */}
-      {/* eslint-disable-next-line no-restricted-syntax */}
-      <img src={FindIcon} className="relative z-1 opacity-80" />
+      <img src={FindIcon} className="placeholder relative z-1" />
       <input
         ref={searchRef}
         type="search"

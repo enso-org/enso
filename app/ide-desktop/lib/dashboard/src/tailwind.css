@@ -66,9 +66,8 @@
   --top-bar-gap: 0.875rem;
   /* The gap between the two panels on the right side of the top bar.*/
   --top-bar-right-gap: 0.5rem;
-  /* The vertical gap between the spiner of a new empty project and its text. */
+  /* The vertical gap between the spinner of a new empty project and its text. */
   --new-empty-project-gap: 0.75rem;
-  --new-empty-project-opacity: 60%;
   --new-empty-project-spinner-padding: 0.5rem;
   --spinner-fast-transition-duration: 1s;
   --spinner-medium-transition-duration: 5s;
@@ -377,7 +376,6 @@
   --sample-description-padding-top: 0.4375rem;
   --sample-description-padding-bottom: 0.875rem;
   --sample-image-height: 6.25rem;
-  --sample-info-opacity: 70%;
   /* The height of the sample's info bar. */
   --sample-info-height: 1.125rem;
 
@@ -522,7 +520,7 @@ body::before {
     }
 
     .read-only {
-      @apply opacity-75;
+      @apply opacity-75 cursor-not-allowed;
     }
 
     .transparent {

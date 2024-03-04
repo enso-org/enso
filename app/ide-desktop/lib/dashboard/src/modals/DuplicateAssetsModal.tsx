@@ -225,7 +225,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             <button
               disabled={didUploadNonConflicting}
               type="button"
-              className="button relative self-start bg-selected-frame rounded-full disabled:opacity-disabled"
+              className="selectable enabled:active button relative self-start bg-selected-frame rounded-full"
               onClick={() => {
                 doUploadNonConflicting()
                 setDidUploadNonConflicting(true)

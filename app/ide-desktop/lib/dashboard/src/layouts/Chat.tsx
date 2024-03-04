@@ -795,9 +795,7 @@ export default function Chat(props: ChatProps) {
             <button
               type="submit"
               disabled={!isReplyEnabled}
-              className={`text-white bg-blue-600/90 rounded-full px-chat-button-x py-chat-button-y ${
-                isReplyEnabled ? '' : 'opacity-disabled'
-              }`}
+              className="selectable enabled:active text-white bg-blue-600/90 rounded-full px-chat-button-x py-chat-button-y"
             >
               Reply!
             </button>

@@ -232,7 +232,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   <button
                     type="button"
                     disabled={dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable}
-                    className="button text-white bg-invite disabled:opacity-disabled"
+                    className="selectable enabled:active button text-white bg-invite"
                     onClick={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.dataLink) {

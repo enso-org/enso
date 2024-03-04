@@ -69,7 +69,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             autoFocus
             disabled={!isNameEditable}
             placeholder="Enter the name of the secret"
-            className="text grow bg-transparent border border-black/10 rounded-full px-input-x disabled:opacity-disabled"
+            className="selectable enabled:active text grow bg-transparent border border-black/10 rounded-full px-input-x"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
@@ -81,7 +81,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           <input
             autoFocus={!isNameEditable}
             placeholder="Enter the value of the secret"
-            className="text grow bg-transparent border border-black/10 rounded-full px-input-x disabled:opacity-disabled"
+            className="text grow bg-transparent border border-black/10 rounded-full px-input-x"
             onInput={event => {
               setValue(event.currentTarget.value)
             }}

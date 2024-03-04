@@ -102,19 +102,17 @@ const LOADING_SPINNER_SIZE_PX = 36
 const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
 /** The default placeholder row. */
 const PLACEHOLDER = (
-  <span className="opacity-placeholder">
+  <span className="placeholder px-cell-x">
     You have no files. Go ahead and create one using the buttons above, or open a template from the
     home screen.
   </span>
 )
 /** A placeholder row for when a query (text or labels) is active. */
 const QUERY_PLACEHOLDER = (
-  <span className="opacity-placeholder">No files match the current filters.</span>
+  <span className="placeholder px-cell-x">No files match the current filters.</span>
 )
 /** The placeholder row for the Trash category. */
-const TRASH_PLACEHOLDER = (
-  <span className="opacity-placeholder px-cell-x">Your trash is empty.</span>
-)
+const TRASH_PLACEHOLDER = <span className="placeholder px-cell-x">Your trash is empty.</span>
 
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {

@@ -177,8 +177,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       maxHeight: ({ theme }) => ({ .../** @type {{}}*/ (theme('height')) }),
       opacity: {
         full: '100%',
-        'new-empty-project': 'var(--new-empty-project-opacity)',
-        'sample-info': 'var(--sample-info-opacity)',
         unimportant: 'var(--unimportant-opacity)',
       },
       gap: {

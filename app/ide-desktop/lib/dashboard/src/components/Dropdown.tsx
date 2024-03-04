@@ -171,8 +171,10 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
       </div>
       <div
         className={`relative flex gap-dropdown-arrow items-center h-text px-input-x ${
+          // This style is conditionally applied so that closed dropdowns do not draw over the
+          // currently opened dropdown.
           isDropdownVisible ? 'z-1' : ''
-        } ${readOnly ? 'opacity-read-only cursor-not-allowed' : ''}`}
+        } ${readOnly ? 'read-only' : ''}`}
       >
         <SvgMask src={FolderArrowIcon} className="size-icon rotate-90" />
         <div className="grow">

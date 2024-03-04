@@ -61,7 +61,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           <input
             autoFocus
             placeholder="Enter the name of the Data Link"
-            className={`text grow bg-transparent border rounded-full px-input-x disabled:opacity-disabled ${
+            className={`text grow bg-transparent border rounded-full px-input-x ${
               name !== '' ? 'border-black/10' : 'border-red-700/60'
             }`}
             value={name}
