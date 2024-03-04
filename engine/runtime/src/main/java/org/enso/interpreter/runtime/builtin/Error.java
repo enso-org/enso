@@ -195,8 +195,8 @@ public final class Error {
    * @param comment description of the value that was being checked
    * @return a runtime representation of the error.
    */
-  public Atom makeTypeErrorOfComment(Object expected, Object actual, String comment) {
-    return typeError.newInstance(expected, actual, Text.create(comment));
+  public Atom makeTypeErrorOfComment(Object expected, Object actual, Text comment) {
+    return typeError.newInstance(expected, actual, comment);
   }
 
   /**

@@ -16,7 +16,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Metadata import make_single_choice
+from Standard.Base.Metadata import make_single_choice, Widget
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
 import project.Data.Aggregate_Column.Aggregate_Column
@@ -150,6 +150,7 @@ type Table
                  row_2 =  [ 2     , False , 'b'   ]
                  row_3 =  [ 3     , True  , 'c'   ]
                  Table.from_rows header [row_1, row_2, row_3]
+    @header (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='"Column"')
     from_rows : Vector -> Vector -> Table
     from_rows header rows =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
@@ -2333,6 +2334,7 @@ type Table
 
     ## ALIAS metadata
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
@@ -2476,7 +2478,7 @@ type Table
     @names Widget_Helpers.make_column_name_selector
     @values Widget_Helpers.make_aggregate_column_selector
     cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
-    cross_tab self group_by names values=Aggregate_Column.Count (on_problems=Report_Warning) = Out_Of_Memory.handle_java_exception "cross_tab" <|
+    cross_tab self group_by=[] names=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) = Out_Of_Memory.handle_java_exception "cross_tab" <|
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
 

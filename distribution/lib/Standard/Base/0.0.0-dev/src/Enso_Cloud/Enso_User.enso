@@ -1,6 +1,6 @@
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
-import project.Enso_Cloud.Utils
+import project.Enso_Cloud.Internal.Utils
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Data.Vector.Vector

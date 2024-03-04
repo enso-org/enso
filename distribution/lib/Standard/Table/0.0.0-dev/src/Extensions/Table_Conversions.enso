@@ -24,6 +24,37 @@ Vector.to_table : Vector | Nothing -> Table ! Type_Error
 Vector.to_table self fields=Nothing =
     Table.from_objects self fields
 
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `Range` into a `Table`.
+
+   Arguments:
+   - name: The name of the column to use for the range.
+Range.to_table : Text -> Table
+Range.to_table self name:Text="Range" =
+    self.to Table name
+
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `Date_Range` into a `Table`.
+
+   Arguments:
+   - name: The name of the column to use for the range.
+Date_Range.to_table : Text -> Table
+Date_Range.to_table self name:Text=self.default_column_name =
+    self.to Table name
+
+## GROUP Standard.Base.Conversions
+   ICON convert
+   Converts this `JS_Object` into a `Table`.
+
+   Arguments:
+   - fields: a Vector of Text representing the names of fields to look up.
+     If `Nothing` then all fields found are added.
+JS_Object.to_table : Vector | Nothing -> Table ! Type_Error
+JS_Object.to_table self fields=Nothing =
+    self.to Table fields
+
 ## GROUP Standard.Base.Constants
    ICON data_input
    Converts an object or a Vector of object into a Table, by looking up the
