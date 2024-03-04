@@ -164,14 +164,69 @@ type Decimal
         #IO.println r
         r
 
-    < self (that:Decimal) = Decimal_Comparator.compare self that == Ordering.Less
+    ## ALIAS greater than
+       GROUP Operators
+       ICON operators
+       Checks if this is greater than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than 7.
+
+             Decimal.new 10 > 7
+             # => True
     > self (that:Decimal) = Decimal_Comparator.compare self that == Ordering.Greater
-    <= self (that:Decimal) =
-        ordering = Decimal_Comparator.compare self that
-        ordering == Ordering.Less || ordering == Ordering.Equal
+
+    ## ALIAS greater than or equal
+       GROUP Operators
+       ICON operators
+       Checks if this is greater than or equal to that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than or equal to 7.
+
+             Decimal.new 10 >= 7
+             # => True
     >= self (that:Decimal) =
         ordering = Decimal_Comparator.compare self that
         ordering == Ordering.Greater || ordering == Ordering.Equal
+
+    ## ALIAS less than
+       GROUP Operators
+       ICON operators
+       Checks if this is less than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than 7.
+
+             Decimal.new 10 < 7
+             # => False
+    < self (that:Decimal) = Decimal_Comparator.compare self that == Ordering.Less
+
+    ## ALIAS less than or equal
+       GROUP Operators
+       ICON operators
+       Checks if this is less than or equal to that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than or equal to 7.
+
+             Decimal.new 10 <= 7
+             # => False
+    <= self (that:Decimal) =
+        ordering = Decimal_Comparator.compare self that
+        ordering == Ordering.Less || ordering == Ordering.Equal
 
     ## ALIAS plus
        GROUP Operators
