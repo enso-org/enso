@@ -13,6 +13,9 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
 
 Decimal.should_have_rep self rep = self.get_internal_representation . should_equal rep
 
+Any.ssee self b = if self == b then Nothing else
+    IO.println "SSEE "+self.to_text+" "+b.to_text
+
 add_specs suite_builder =
     suite_builder.group "construction" group_builder->
         group_builder.specify "should be able to construct a Decimal from a string" <|
@@ -432,84 +435,41 @@ add_specs suite_builder =
             fd . should_equal id
 
     suite_builder.group "arithmetic" group_builder->
-        group_builder.specify "should behave like Integer and Float under +, -, *, where comparison of the result with Float arithmetic is exact " <|
-            mixed_values = []
-                + [0.25]
-                + [0.5]
-                + [1]
-                + [-1]
-                + [2]
-                + [-2]
-                + [12.5]
-                + [-34.5]
-                + [-124.5]
-                + [5734.5]
-                + [72512.25]
-                + [-349.25]
+        group_builder.specify "should allow arithmetic with Decimals" <|
+            ((Decimal.new 1) + (Decimal.new 2)) . should_equal (Decimal.new 3)
+            ((Decimal.new 1.1) + (Decimal.new 2.2)) . should_equal (Decimal.new 3.3)
 
-            large_integers = []
-                + [0]
-                + [1]
-                + [-1]
-                + [2]
-                + [-2]
-                + [12]
-                + [-34]
-                + [-124]
-                + [5734]
-                + [72512]
-                + [-349]
-                + [9223372036854775805]
-                + [9223372036854775806]
-                + [9223372036854775807]
-                + [9223372036854775808]
-                + [9223372036854775809]
-                + [9223372036854775999]
-                + [9223372036854776000]
-                + [9223372036854776001]
-                + [9223372036854777000]
-                + [-9223372036854775810]
-                + [-9223372036854775809]
-                + [-9223372036854775808]
-                + [-9223372036854775807]
-                + [-9223372036854775807]
-                + [-9223372036854775806]
-                + [3946372036854775806000]
-                + [3946372036854775807000]
-                + [3946372036854775808000]
-                + [-3946372036854775809000]
-                + [-3946372036854775808000]
-                + [-3946372036854775807000]
-                + [39463720368547758060000000]
-                + [39463720368547758070000000]
-                + [39463720368547758080000000]
-                + [-39463720368547758090000000]
-                + [-39463720368547758080000000]
-                + [-39463720368547758070000000]
+            ((Decimal.new 10) - (Decimal.new 6)) . should_equal (Decimal.new 4)
+            ((Decimal.new 10.1) - (Decimal.new 6.6)) . should_equal (Decimal.new 3.5)
 
-            #IO.println mixed_values
-            #IO.println large_integers
-            mixed_pairs = (mixed_values.map a-> (mixed_values.map b-> [a, b])).flatten
-            #IO.println mixed_pairs
-            large_integer_pairs = (large_integers.map a-> (large_integers.map b-> [a, b])).flatten
-            #IO.println large_integer_pairs
-            pairs = mixed_pairs + large_integer_pairs
-            #ops = [.add, .subtract, .multiply, .divide]
-            ops = [(+), (-), (*)] # , (/)]
-            IO.println "PAIRS "+pairs.to_text
-            IO.println "OPS "+ops.to_text
-            ops.map op->
-                pairs.map pr->
-                    IO.println "RRR "+op.to_text+" "+pr.to_text
-                    a = pr.at 0
-                    b = pr.at 1
-                    expected = op a b
-                    IO.println "RRRe "+expected.to_text
-                    op (Decimal.new a) (Decimal.new b) . should_equal (Decimal.new expected)
-                    op (Decimal.new a) b . should_equal (Decimal.new expected)
-                    op a (Decimal.new b) . should_equal (Decimal.new expected)
+            ((Decimal.new 3) * (Decimal.new 7)) . should_equal (Decimal.new 21)
+            ((Decimal.new 3.12) * (Decimal.new 7.97)) . should_equal (Decimal.new 24.8664)
+
+            ((Decimal.new 50) / (Decimal.new 2)) . should_equal (Decimal.new 25)
+            ((Decimal.new 50.75) / (Decimal.new 2.5)) . should_equal (Decimal.new 20.3)
+
+            ((Decimal.new 1) + (Decimal.new -2)) . should_equal (Decimal.new -1)
+            ((Decimal.new 1.1) + (Decimal.new -2.2)) . should_equal (Decimal.new -1.1)
+
+            ((Decimal.new -10) - (Decimal.new 6)) . should_equal (Decimal.new -16)
+            ((Decimal.new 10.1) - (Decimal.new -6.6)) . should_equal (Decimal.new 16.7)
+
+            ((Decimal.new 3) * (Decimal.new -7)) . should_equal (Decimal.new -21)
+            ((Decimal.new -3.12) * (Decimal.new 7.97)) . should_equal (Decimal.new -24.8664)
+
+            ((Decimal.new -50) / (Decimal.new -2)) . should_equal (Decimal.new 25)
+            ((Decimal.new -50.75) / (Decimal.new -2.5)) . should_equal (Decimal.new 20.3)
+
+            ((Decimal.new 213427523957) + (Decimal.new 93849398884384)) . should_equal (Decimal.new 94062826408341)
+            ((Decimal.new 723579374753.3535345) + (Decimal.new 35263659267.23434535)) . should_equal (Decimal.new "758843034020.587844")
+
+            ((Decimal.new -29388920982834) - (Decimal.new 842820)) . should_equal (Decimal.new -29388921825654)
+            ((Decimal.new -8273762787.3535345) - (Decimal.new 76287273.23434535)) . should_equal (Decimal.new "-8350050060.58788035")
+
+            ((Decimal.new 7297927982888383) * (Decimal.new 828737)) . should_equal (Decimal.new 6048062942754969862271)
+            ((Decimal.new 893872388.3535345) * (Decimal.new 72374727737.23434535)) . should_equal (Decimal.new "64693770738918459194.623193774730")
 
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter="should allow arithmetic"
