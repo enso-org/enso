@@ -23,36 +23,34 @@ export interface BackendSwitcherProps {
 export default function BackendSwitcher(props: BackendSwitcherProps) {
   const { setBackendType } = props
   const { backend } = backendProvider.useBackend()
+  const isCloud = backend.type === backendModule.BackendType.remote
+
   return (
     <div className="flex shrink-0 gap-px">
       <button
-        disabled={backend.type === backendModule.BackendType.remote}
-        className="flex flex-col items-start first:rounded-l-full last:rounded-r-full px-selector-x py-selector-y w-backend-switcher-option bg-frame text-black disabled:bg-selected-frame disabled:text-cloud"
+        disabled={isCloud}
+        className={`selectable ${
+          isCloud ? 'active' : ''
+        } flex flex-col items-start first:rounded-l-full last:rounded-r-full px-selector-x py-selector-y w-backend-switcher-option text-primary bg-selected-frame disabled:text-cloud`}
         onClick={() => {
           setBackendType(backendModule.BackendType.remote)
         }}
       >
-        <div
-          className={`flex items-center gap-icon-with-text ${
-            backend.type === backendModule.BackendType.remote ? '' : 'opacity-disabled-backend'
-          }`}
-        >
+        <div className="flex items-center gap-icon-with-text">
           <SvgMask src={CloudIcon} />
           <span className="text">Cloud</span>
         </div>
       </button>
       <button
-        disabled={backend.type === backendModule.BackendType.local}
-        className="flex flex-col items-start first:rounded-l-full last:rounded-r-full px-selector-x py-selector-y w-backend-switcher-option bg-frame text-black disabled:bg-selected-frame disabled:text-cloud"
+        disabled={!isCloud}
+        className={`selectable ${
+          !isCloud ? 'active' : ''
+        } flex flex-col items-start first:rounded-l-full last:rounded-r-full px-selector-x py-selector-y w-backend-switcher-option bg-selected-frame text-primary disabled:text-cloud`}
         onClick={() => {
           setBackendType(backendModule.BackendType.local)
         }}
       >
-        <div
-          className={`flex items-center gap-icon-with-text ${
-            backend.type === backendModule.BackendType.local ? '' : 'opacity-disabled-backend'
-          }`}
-        >
+        <div className="flex items-center gap-icon-with-text">
           <SvgMask src={NotCloudIcon} />
           <span className="text">Local</span>
         </div>

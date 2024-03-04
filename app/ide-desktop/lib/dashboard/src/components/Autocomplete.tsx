@@ -235,7 +235,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
               <div
                 key={itemToKey(item)}
                 className={`text relative cursor-pointer first:rounded-t-default last:rounded-b-default hover:bg-black/5 px-input-x ${
-                  index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-black/10' : ''
+                  index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-hover-bg' : ''
                 }`}
                 onMouseDown={event => {
                   event.preventDefault()

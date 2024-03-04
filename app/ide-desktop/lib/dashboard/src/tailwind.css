@@ -17,16 +17,7 @@
   --profile-picture-padding: 0.1875rem;
   /* The height of text not beside an icon. */
   --text-height: 1.5rem;
-  --disabled-opacity: 50%;
-  --placeholder-opacity: 75%;
-  --read-only-opacity: 75%;
-  --disabled-icon-opacity: 75%;
-  --disabled-category-opacity: 20%;
-  /* The opacity of disabled permissions-related buttons. */
-  --disabled-permissions-opacity: 30%;
-  --disabled-backend-opacity: 30%;
   --unimportant-opacity: 50%;
-  --inactive-reaction-opacity: 70%;
   /* The default gap between a subheading and its content. */
   --subheading-gap: 1rem;
   /* The horizontal padding of the entire horizontal list of icons. */
@@ -90,6 +81,8 @@
   --context-menus-gap: 0.125rem;
   --context-menu-padding: 0.5rem;
   --context-menu-width: 15.5rem;
+  --context-menu-half-width: calc(var(--context-menu-width) / 2);
+  --context-menu-macos-half-width: calc(var(--context-menu-macos-width) / 2);
   --context-menu-macos-width: 14.375rem;
   --context-menu-entry-padding-x: 0.75rem;
   --context-menu-separator-padding-y: 0.125rem;
@@ -402,7 +395,7 @@
   --extra-columns-panel-padding-x: 0.5rem;
   --extra-columns-panel-padding-y: 0.5625rem;
   --name-column-padding-x: 0.375rem;
-  --name-column-padding-y: 0.25rem;
+  --name-column-padding-y: 0.125rem;
   --name-column-icon-margin: 0.25rem;
   --name-column-icon-gap: 0.25rem;
 
@@ -503,19 +496,41 @@ body::before {
   background: rgba(0, 0, 0, 0);
 }
 
-.enso-dashboard,
-.enso-chat {
-  @layer components {
+@layer components {
+  .button {
+    @apply selectable;
+  }
+
+  .visibility-faded {
+    @apply pointer-events-none-recursive;
+  }
+
+  .enso-dashboard,
+  .enso-chat {
+    /* A selectable element, when hovered. */
+    .selectable {
+      @apply disabled:opacity-30 disabled:cursor-not-allowed opacity-50 hover:opacity-75 transition-all;
+    }
+
+    /* An element that is currently selected, or one that is not selectable. */
+    .active {
+      @apply opacity-100 disabled:opacity-100 hover:opacity-100 disabled:cursor-default;
+    }
+
+    .placeholder {
+      @apply opacity-75;
+    }
+
+    .read-only {
+      @apply opacity-75;
+    }
+
     .transparent {
       @apply opacity-0;
     }
 
     .button {
-      @apply inline-block rounded-full px-4 py-1 disabled:opacity-disabled;
-    }
-
-    .button\/30 {
-      @apply inline-block rounded-full px-4 py-1 disabled:opacity-30;
+      @apply inline-block rounded-full px-4 py-1;
     }
 
     .text {
@@ -536,6 +551,17 @@ body::before {
 
     .settings-value {
       @apply leading-cozy h-text py-px px-2;
+    }
+
+    /* This rule is empty and hence unneeded at runtime. */
+    /* .visibility-visible {} */
+
+    .visibility-hidden {
+      @apply hidden;
+    }
+
+    .visibility-faded {
+      @apply opacity-50;
     }
 
     .clip-path-top {
@@ -619,7 +645,10 @@ body::before {
       container-type: size;
     }
   }
+}
 
+.enso-dashboard,
+.enso-chat {
   .pointer-events-none-recursive,
   .pointer-events-none-recursive * {
     pointer-events: none;

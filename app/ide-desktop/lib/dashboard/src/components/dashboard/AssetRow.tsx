@@ -34,7 +34,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
-import Visibility, * as visibilityModule from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // =================
 // === Constants ===
@@ -565,11 +565,9 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }
               }}
-              className={`h-row ease-in-out outline-2 -outline-offset-2 outline-primary ${
-                visibilityModule.CLASS_NAME[visibility]
-              } ${isKeyboardSelected ? 'outline' : ''} ${
-                isDraggedOver || selected ? 'selected' : ''
-              }`}
+              className={`h-row ease-in-out rounded-full outline-2 -outline-offset-2 outline-primary ${visibility} ${
+                isKeyboardSelected ? 'outline' : ''
+              } ${isDraggedOver || selected ? 'selected' : ''}`}
               onClick={event => {
                 unsetModal()
                 onClick(innerProps, event)

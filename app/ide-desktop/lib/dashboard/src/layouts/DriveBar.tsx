@@ -100,7 +100,6 @@ export default function DriveBar(props: DriveBarProps) {
               error="You can only create a new folder in Home."
               image={AddFolderIcon}
               alt="New Folder"
-              disabledOpacityClassName="opacity-disabled-category"
               onClick={() => {
                 unsetModal()
                 doCreateDirectory()
@@ -114,7 +113,6 @@ export default function DriveBar(props: DriveBarProps) {
               error="You can only create a new secret in Home."
               image={AddKeyIcon}
               alt="New Secret"
-              disabledOpacityClassName="opacity-disabled-category"
               onClick={event => {
                 event.stopPropagation()
                 setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
@@ -128,7 +126,6 @@ export default function DriveBar(props: DriveBarProps) {
               error="You can only create a new Data Link in Home."
               image={AddConnectorIcon}
               alt="New Data Link"
-              disabledOpacityClassName="opacity-disabled-category"
               onClick={event => {
                 event.stopPropagation()
                 setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
@@ -158,7 +155,6 @@ export default function DriveBar(props: DriveBarProps) {
             error="You can only upload files to Home."
             image={DataUploadIcon}
             alt="Upload Files"
-            disabledOpacityClassName="opacity-disabled-icon"
             onClick={() => {
               unsetModal()
               uploadFilesRef.current?.click()
@@ -174,7 +170,6 @@ export default function DriveBar(props: DriveBarProps) {
                 ? 'You cannot download files from Trash.'
                 : 'You currently can only download files.'
             }
-            disabledOpacityClassName="opacity-disabled-icon"
             onClick={event => {
               event.stopPropagation()
               unsetModal()

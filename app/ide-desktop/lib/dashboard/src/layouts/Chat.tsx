@@ -123,9 +123,7 @@ function ReactionBar(props: ReactionBarProps) {
             }
           }}
           className={`rounded-full hover:bg-gray-200 m-chat-reaction p-chat-reaction ${
-            selectedReactions.has(emoji)
-              ? ''
-              : 'opacity-inactive-reaction grayscale hover:grayscale-0'
+            selectedReactions.has(emoji) ? '' : 'opacity-inactive grayscale hover:grayscale-0'
           }`}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />

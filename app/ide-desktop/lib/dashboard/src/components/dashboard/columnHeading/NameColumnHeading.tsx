@@ -12,8 +12,9 @@ import SortDirection, * as sortDirectionModule from '#/utilities/SortDirection'
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
   const { sortColumn, setSortColumn, sortDirection, setSortDirection } = state
-  const [isHovered, setIsHovered] = React.useState(false)
   const isSortActive = sortColumn === columnUtils.Column.name && sortDirection != null
+  const isDescending = sortDirection === SortDirection.descending
+
   return (
     <button
       title={
@@ -23,13 +24,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
           ? 'Sort by name descending'
           : 'Stop sorting by name'
       }
-      className="flex items-center gap-icon-with-text px-name-column-x w-full h-drive-table-heading"
-      onMouseEnter={() => {
-        setIsHovered(true)
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false)
-      }}
+      className="group flex items-center gap-icon-with-text px-name-column-x w-full h-drive-table-heading"
       onClick={event => {
         event.stopPropagation()
         if (sortColumn === columnUtils.Column.name) {
@@ -47,8 +42,10 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
             ? 'Sort Ascending'
             : 'Sort Descending'
         }
-        src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-        className={isSortActive ? '' : isHovered ? 'opacity-disabled' : 'invisible'}
+        src={SortAscendingIcon}
+        className={`transition-all duration-arrow ${
+          isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
+        } ${isDescending ? 'rotate-180' : ''}`}
       />
     </button>
   )

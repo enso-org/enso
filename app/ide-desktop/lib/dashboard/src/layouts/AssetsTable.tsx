@@ -58,7 +58,7 @@ import * as set from '#/utilities/set'
 import SortDirection from '#/utilities/SortDirection'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // ============================
 // === Global configuration ===

@@ -21,7 +21,7 @@ export default function SubmitButton(props: SubmitButtonProps) {
     <button
       disabled={disabled}
       type="submit"
-      className="flex gap-icon-with-text items-center justify-center focus:outline-none text-white bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 rounded-full py-auth-input-y w-full transition-all duration-auth ease-in disabled:opacity-disabled"
+      className={`selectable enabled:active flex gap-icon-with-text items-center justify-center focus:outline-none text-white bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 rounded-full py-auth-input-y transition-all duration-auth`}
     >
       {text}
       <SvgMask src={icon} />

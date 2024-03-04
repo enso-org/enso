@@ -133,11 +133,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`${
+            className={`selectable ${!disabled || !input ? 'active' : ''} ${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } grow rounded-l-full h-text px-permission-mini-button-x py-permission-mini-button-y ${
-              input ? 'disabled:opacity-disabled-permissions' : ''
-            }`}
+            } grow rounded-l-full h-text px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={doShowPermissionTypeSelector}
           >
             {permission.type}
@@ -146,11 +144,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`${
+            className={`selectable ${permission.docs && (!disabled || !input) ? 'active' : ''} ${
               permissionsModule.DOCS_CLASS_NAME
-            } grow h-text px-permission-mini-button-x py-permission-mini-button-y ${
-              input ? 'disabled:opacity-disabled-permissions' : ''
-            } ${permission.docs ? '' : 'opacity-disabled-permissions'}`}
+            } grow h-text px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={event => {
               event.stopPropagation()
               setAction(
@@ -168,11 +164,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`${
+            className={`selectable ${permission.execute && (!disabled || !input) ? 'active' : ''} ${
               permissionsModule.EXEC_CLASS_NAME
-            } grow rounded-r-full h-text px-permission-mini-button-x py-permission-mini-button-y ${
-              input ? 'disabled:opacity-disabled-permissions' : ''
-            } ${permission.execute ? '' : 'opacity-disabled-permissions'}`}
+            } grow rounded-r-full h-text px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={event => {
               event.stopPropagation()
               setAction(
@@ -196,11 +190,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           type="button"
           disabled={disabled}
           {...(disabled && error != null ? { title: error } : {})}
-          className={`${
+          className={`selectable ${!disabled || !input ? 'active' : ''} ${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } rounded-full h-text w-permission-display ${
-            input ? 'disabled:opacity-disabled-permissions' : ''
-          }`}
+          } rounded-full h-text w-permission-display`}
           onClick={doShowPermissionTypeSelector}
         >
           {permission.type}

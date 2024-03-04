@@ -68,7 +68,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
       ))}
       {managesThisAsset && (
         <button
-          className="size-icon invisible pointer-events-none group-hover:visible group-hover:pointer-events-auto"
+          className="shrink-0 invisible group-hover:visible"
           onClick={event => {
             event.stopPropagation()
             setModal(

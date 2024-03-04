@@ -13,6 +13,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         /** The default color of all text. */
         // This should be named "regular".
         primary: 'rgb(0 0 0 / 60%)',
+        'hover-bg': 'rgb(0 0 0 / 10%)',
         frame: 'var(--frame-color)',
         'selected-frame': 'var(--selected-frame-color)',
         'not-selected': 'rgb(0 0 0 / 40%)',
@@ -176,17 +177,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       maxHeight: ({ theme }) => ({ .../** @type {{}}*/ (theme('height')) }),
       opacity: {
         full: '100%',
-        disabled: 'var(--disabled-opacity)',
-        'disabled-icon': 'var(--disabled-icon-opacity)',
-        'disabled-category': 'var(--disabled-category-opacity)',
-        'disabled-backend': 'var(--disabled-backend-opacity)',
-        'disabled-permissions': 'var(--disabled-permissions-opacity)',
-        placeholder: 'var(--placeholder-opacity)',
-        'read-only': 'var(--read-only-opacity)',
         'new-empty-project': 'var(--new-empty-project-opacity)',
         'sample-info': 'var(--sample-info-opacity)',
         unimportant: 'var(--unimportant-opacity)',
-        'inactive-reaction': 'var(--inactive-reaction-opacity)',
       },
       gap: {
         modal: 'var(--modal-gap)',
@@ -388,6 +381,10 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       gridTemplateColumns: {
         'fill-news-items': 'repeat(auto-fill, minmax(var(--news-items-column-width), 1fr))',
         'fill-samples': 'repeat(auto-fill, minmax(var(--samples-column-width), 1fr))',
+      },
+      translate: {
+        'context-menu-half-x': 'var(--context-menu-half-width)',
+        'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
       },
     },
   },

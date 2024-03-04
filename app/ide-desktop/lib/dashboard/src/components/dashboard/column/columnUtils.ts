@@ -2,23 +2,9 @@
 import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 import DocsIcon from 'enso-assets/docs.svg'
-import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
-import SortDescendingIcon from 'enso-assets/sort_descending.svg'
 import TagIcon from 'enso-assets/tag.svg'
 
 import * as backend from '#/services/Backend'
-
-import SortDirection from '#/utilities/SortDirection'
-
-// =================
-// === Constants ===
-// =================
-
-/** The corresponding icon URL for each {@link SortDirection}. */
-export const SORT_ICON: Readonly<Record<SortDirection, string>> = {
-  [SortDirection.ascending]: SortAscendingIcon,
-  [SortDirection.descending]: SortDescendingIcon,
-}
 
 // =============
 // === Types ===
@@ -87,12 +73,12 @@ export const COLUMN_NAME: Readonly<Record<Column, string>> = {
 }
 
 const COLUMN_CSS_CLASSES =
-  'text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0'
-const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
+  'text-left bg-clip-padding border-transparent border-y border-2 last:border-r-0 last:rounded-r-full last:w-full'
+const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */
 export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
-  [Column.name]: `rounded-rows-skip-level min-w-drive-name-column px border-l-0 ${COLUMN_CSS_CLASSES}`,
+  [Column.name]: `rounded-rows-skip-level min-w-drive-name-column h-full p border-l-0 ${COLUMN_CSS_CLASSES}`,
   [Column.modified]: `min-w-drive-modified-column ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.sharedWith]: `min-w-drive-shared-with-column ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.labels]: `min-w-drive-labels-column ${NORMAL_COLUMN_CSS_CLASSES}`,

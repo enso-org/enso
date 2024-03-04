@@ -9,7 +9,6 @@ export interface ButtonProps {
   readonly active?: boolean
   /** When `true`, the button is not clickable. */
   readonly disabled?: boolean
-  readonly disabledOpacityClassName?: string
   readonly image: string
   readonly alt?: string
   /** A title that is only shown when `disabled` is `true`. */
@@ -20,23 +19,17 @@ export interface ButtonProps {
 
 /** A styled button. */
 export default function Button(props: ButtonProps) {
-  const { active = false, disabled = false, disabledOpacityClassName, image, alt, error } = props
-  const { className, onClick } = props
+  const { active = false, disabled = false, image, error } = props
+  const { alt, className, onClick } = props
 
   return (
-    <button disabled={disabled} className="flex group">
+    <button disabled={disabled} className={`flex group selectable ${active ? 'active' : ''}`}>
       <SvgMask
         src={image}
         {...(!active && disabled && error != null ? { title: error } : {})}
-        className={`${
-          active
-            ? ''
-            : `group-disabled:cursor-not-allowed ${disabledOpacityClassName ?? 'opacity-disabled'}`
-        } group-enabled:cursor-pointer group-enabled:hover:opacity-full transition-opacity ${
-          className ?? ''
-        }`}
         {...(alt != null ? { alt } : {})}
-        {...(disabled ? {} : { onClick })}
+        className={className}
+        onClick={onClick}
       />
     </button>
   )

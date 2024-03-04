@@ -27,7 +27,7 @@ import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // ===================
 // === ProjectName ===
@@ -264,7 +264,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   return (
     <div
-      className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
+      className={`flex items-center h-full whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {

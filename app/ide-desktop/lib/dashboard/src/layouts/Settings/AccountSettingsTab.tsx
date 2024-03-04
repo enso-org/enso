@@ -239,7 +239,7 @@ export default function AccountSettingsTab() {
                   !validation.PASSWORD_REGEX.test(newPassword)
                 }
                 type="submit"
-                className="settings-value text-white bg-invite font-medium rounded-full disabled:opacity-disabled"
+                className={`selectable enabled:active settings-value text-white bg-invite font-medium rounded-full`}
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')

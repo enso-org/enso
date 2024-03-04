@@ -24,7 +24,7 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // =====================
 // === DirectoryName ===
@@ -130,7 +130,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   return (
     <div
-      className={`group flex text-left items-center whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
+      className={`group flex h-full items-center whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {

@@ -98,7 +98,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 readOnly={readOnly}
                 value={typeof value === 'string' ? value : ''}
                 size={1}
-                className={`text rounded-input w-data-link-text-input px-input-x bg-transparent border disabled:opacity-disabled read-only:opacity-read-only read-only:cursor-not-allowed ${
+                className={`text rounded-input w-data-link-text-input px-input-x bg-transparent border read-only:opacity-read-only read-only:cursor-not-allowed ${
                   getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
                 }`}
                 placeholder="Enter text"
@@ -118,7 +118,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`text rounded-input w-data-link-text-input px-input-x bg-transparent border disabled:opacity-disabled read-only:opacity-read-only read-only:cursor-not-allowed ${
+              className={`text rounded-input w-data-link-text-input px-input-x bg-transparent border read-only:opacity-read-only read-only:cursor-not-allowed ${
                 getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter number"
@@ -139,7 +139,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`text rounded-input w-data-link-text-input px-input-x bg-transparent border disabled:opacity-disabled read-only:opacity-read-only read-only:cursor-not-allowed ${
+              className={`text rounded-input w-data-link-text-input px-input-x bg-transparent border read-only:opacity-read-only read-only:cursor-not-allowed ${
                 getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter integer"
@@ -188,15 +188,19 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   return jsonSchema.constantValue(defs, childSchema).length === 1 ? null : (
                     <div
                       key={key}
-                      className="flex flex-wrap items-center"
+                      className="flex flex-wrap gap-buttons items-center"
                       {...('description' in childSchema
                         ? { title: String(childSchema.description) }
                         : {})}
                     >
-                      <div
-                        className={`text inline-block w-data-link-object-input whitespace-nowrap ${
-                          isOptional ? 'cursor-pointer' : ''
-                        } ${value != null && key in value ? '' : 'opacity-disabled'}`}
+                      <button
+                        type="button"
+                        disabled={!isOptional}
+                        className={`text selectable ${
+                          value != null && key in value ? 'active' : ''
+                        } inline-block rounded-full px-button-x text-left w-data-link-object-input whitespace-nowrap ${
+                          isOptional ? 'hover:bg-hover-bg' : ''
+                        }`}
                         onClick={() => {
                           if (isOptional) {
                             setValue(oldValue => {
@@ -220,7 +224,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         }}
                       >
                         {'title' in childSchema ? String(childSchema.title) : key}
-                      </div>
+                      </button>
                       {value != null && key in value && (
                         <JSONSchemaInput
                           readOnly={readOnly}

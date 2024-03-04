@@ -129,7 +129,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         ))}
       {managesThisAsset && (
         <button
-          className="size-icon invisible group-hover:visible"
+          className="shrink-0 invisible group-hover:visible"
           onClick={event => {
             event.stopPropagation()
             setModal(

@@ -21,7 +21,7 @@ import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // ================
 // === FileName ===
@@ -120,7 +120,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
   return (
     <div
-      className={`flex text-left items-center align-middle whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
+      className={`flex items-center h-full whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
