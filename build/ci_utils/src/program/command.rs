@@ -229,23 +229,6 @@ pub trait IsCommandWrapper {
         self
     }
 
-    // fn spawn(&mut self) -> Result<Child> {
-    //     self.borrow_mut_command().spawn().anyhow_err()
-    // }
-    //
-    //
-    // fn status(&mut self) -> BoxFuture<'static, Result<ExitStatus>> {
-    //     let fut = self.borrow_mut_command().status();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
-    //
-    // fn output(&mut self) -> BoxFuture<'static, Result<Output>> {
-    //     let fut = self.borrow_mut_command().output();
-    //     async move { fut.await.anyhow_err() }.boxed()
-    // }
-
-
-
     /// Value-based variant of [`Self::current_dir`], for convenience.
     fn with_current_dir(self, dir: impl AsRef<Path>) -> Self
     where Self: Sized {
@@ -337,6 +320,7 @@ impl Command {
 
     pub fn run_ok(&mut self) -> BoxFuture<'static, Result<()>> {
         let pretty = self.describe();
+        let pretty2 = pretty.clone();
         let span = info_span!(
             "Running process.",
             status = tracing::field::Empty,
@@ -345,11 +329,16 @@ impl Command {
         )
         .entered();
         let child = self.spawn_intercepting();
+        let start = chrono::Utc::now();
         let status_checker = self.status_checker.clone();
         async move {
             let mut child = child?;
             let status = child
                 .wait()
+                .inspect(|_| {
+                    let duration = chrono::Utc::now() - start;
+                    info!("{} finished in {}", pretty2, pretty_print_duration(duration));
+                })
                 .inspect_ok(|exit_status| {
                     tracing::Span::current().record("status", exit_status.code());
                 })
@@ -362,6 +351,7 @@ impl Command {
 
     pub fn output_ok(&mut self) -> BoxFuture<'static, Result<Output>> {
         let pretty = self.describe();
+        let pretty2 = pretty.clone();
         let span = info_span!(
             "Running process for the output.",
             status = tracing::field::Empty,
@@ -373,11 +363,18 @@ impl Command {
         self.stdout(Stdio::piped());
         self.stderr(Stdio::piped());
         let child = self.spawn();
+        let start = chrono::Utc::now();
         let status_checker = self.status_checker.clone();
         async move {
             let child = child?;
-            let output =
-                child.wait_with_output().await.context("Failed while waiting for output.")?;
+            let output = child
+                .wait_with_output()
+                .inspect(|_| {
+                    let duration = chrono::Utc::now() - start;
+                    info!("{} finished in {}", pretty2, pretty_print_duration(duration));
+                })
+                .await
+                .context("Failed while waiting for output.")?;
             tracing::Span::current().record("status", output.status.code());
             status_checker(output.status).with_context(|| {
                 format!(
@@ -531,6 +528,44 @@ pub trait FallibleManipulator {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result;
 }
 
+/// Pretty print duration in human-readable format, e.g. "1h 2m 3.36s".
+///
+/// # Examples
+/// ```
+/// use ide_ci::program::command::pretty_print_duration;
+///
+/// let duration = chrono::Duration::seconds(3723);
+/// let pretty = pretty_print_duration(duration);
+/// assert_eq!(pretty, "1h 2m 3.00s");
+///
+/// let duration = chrono::Duration::milliseconds(75);
+/// let pretty = pretty_print_duration(duration);
+/// assert_eq!(pretty, "15.25s");
+/// ```
+pub fn pretty_print_duration(duration: chrono::Duration) -> String {
+    let mut result = String::new();
+    let mut seconds = duration.num_seconds();
+    let mut minutes = seconds / 60;
+    seconds %= 60;
+    let mut hours = minutes / 60;
+    minutes %= 60;
+    let days = hours / 24;
+    hours %= 24;
+
+    if days > 0 {
+        result.push_str(&format!("{days}d "));
+    }
+    if hours > 0 {
+        result.push_str(&format!("{hours}h "));
+    }
+    if minutes > 0 {
+        result.push_str(&format!("{minutes}m "));
+    }
+    if seconds > 0 {
+        result.push_str(&format!("{seconds}.2s"));
+    }
+    result
+}
 
 #[cfg(test)]
 mod tests {

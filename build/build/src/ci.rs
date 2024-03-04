@@ -14,6 +14,11 @@ pub mod labels {
     pub const CLEAN_BUILD_REQUIRED: &str = "CI: Clean build required";
 }
 
+/// Names used to represent common workflow dispatch events inputs.
+pub mod inputs {
+    pub const CLEAN_BUILD_REQUIRED: &str = "clean_build_required";
+}
+
 /// Check if this is a "big memory" machine.
 ///
 /// Our self-hosted runners are big memory machines, but the GitHub-hosted ones are not.

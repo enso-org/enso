@@ -357,8 +357,8 @@ impl RunContext {
                 tasks.push("buildLauncherDistribution");
             }
 
-            if !tasks.is_empty() {
-                sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+            for task in tasks {
+                sbt.call_arg(task).await?;
             }
         } else {
             // If we are run on a weak machine (like GH-hosted runner), we need to build things one
@@ -459,17 +459,15 @@ impl RunContext {
                 ]);
             }
 
-            let build_command = (!tasks.is_empty()).then_some(Sbt::concurrent_tasks(tasks));
+            for task in tasks {
+                sbt.call_arg(task).await?;
+            }
 
             // We want benchmarks to run only after the other build tasks are done, as they are
             // really CPU-heavy.
             let benchmark_tasks = self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
-            let command_sequence = build_command.as_deref().into_iter().chain(benchmark_tasks);
-            let final_command = Sbt::sequential_tasks(command_sequence);
-            if !final_command.is_empty() {
-                sbt.call_arg(final_command).await?;
-            } else {
-                debug!("No SBT tasks to run.");
+            for task in benchmark_tasks {
+                sbt.call_arg(task).await?;
             }
         } else {
             if self.config.build_benchmarks {

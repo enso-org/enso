@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use crate::ci::labels::CLEAN_BUILD_REQUIRED;
 use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::with_packaging_steps;
 use crate::ci_gen::job::RunsOn;
@@ -155,22 +154,31 @@ pub enum CleaningCondition {
     Always,
     /// Clean only if the "Clean required" label is present on the pull request.
     #[default]
-    OnLabel,
+    OnRequest,
 }
 
-impl CleaningCondition {
-    /// Pretty print (for GH Actions) the `if` condition for the cleaning step.
-    pub fn format(self) -> String {
+impl Display for CleaningCondition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // Note that we need to use `always() &&` to make this condition evaluate on failed and
         // canceled runs. See: https://docs.github.com/en/actions/learn-github-actions/expressions#always
         //
         // Using `always() &&` is not a no-op like `true &&` would be.
         match self {
-            Self::Always => "always()".into(),
-            Self::OnLabel => format!(
-                "contains(github.event.pull_request.labels.*.name, '{CLEAN_BUILD_REQUIRED}')"
+            Self::Always => write!(f, "always()"),
+            Self::OnRequest => write!(
+                f,
+                "contains(github.event.pull_request.labels.*.name, '{}') || inputs.{}",
+                crate::ci::labels::CLEAN_BUILD_REQUIRED,
+                crate::ci::inputs::CLEAN_BUILD_REQUIRED
             ),
         }
+    }
+}
+
+impl CleaningCondition {
+    /// Pretty print (for GH Actions) the `if` condition for the cleaning step.
+    pub fn format(self) -> String {
+        self.to_string()
     }
 
     /// Format condition as `if` expression.
@@ -181,7 +189,7 @@ impl CleaningCondition {
         if conditions.is_empty() {
             None
         } else {
-            Some(conditions.into_iter().map(Self::format).join(" && "))
+            conditions.into_iter().map(|c| format!("({})", c.format())).join(" && ").into()
         }
     }
 }
@@ -581,9 +589,13 @@ pub fn promote() -> Result<Workflow> {
 }
 
 pub fn typical_check_triggers() -> Event {
+    let clean_build_input =
+        WorkflowDispatchInput::new_boolean("Clean before and after the run.", false, false);
+    let workflow_dispatch =
+        WorkflowDispatch::default().with_input("Clean Build", clean_build_input);
     Event {
         pull_request: Some(default()),
-        workflow_dispatch: Some(default()),
+        workflow_dispatch: Some(workflow_dispatch),
         push: Some(on_default_branch_push()),
         ..default()
     }
