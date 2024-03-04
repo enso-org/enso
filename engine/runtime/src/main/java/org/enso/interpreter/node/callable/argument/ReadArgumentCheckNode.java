@@ -42,6 +42,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -89,12 +90,14 @@ public abstract class ReadArgumentCheckNode extends Node {
       expectedTypeMessage = expectedTypeMessage();
     }
     var ctx = EnsoContext.get(this);
-    String msg;
+    Text msg;
     if (v instanceof UnresolvedConstructor) {
-      msg = "Cannot find constructor {got} among {exp}";
+      msg = Text.create("Cannot find constructor {got} among {exp}");
     } else {
-      var where = (comment == null ? "expression" : comment);
-      msg = "expected " + where + " to be {exp}, but got {got}";
+      var where = Text.create(comment == null ? "expression" : comment);
+      var exp = Text.create("expected ");
+      var got = Text.create(" to be {exp}, but got {got}");
+      msg = Text.create(exp, Text.create(where, got));
     }
     var err = ctx.getBuiltins().error().makeTypeErrorOfComment(expectedTypeMessage, v, msg);
     throw new PanicException(err, this);
