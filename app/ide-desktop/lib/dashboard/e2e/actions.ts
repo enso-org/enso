@@ -587,6 +587,24 @@ export async function expectClassSelected(locator: test.Locator) {
   })
 }
 
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectNotTransparent(locator: test.Locator) {
+  await test.test.step('expect.not.transparent', async () => {
+    await test.expect
+      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
+      .not.toBe('0')
+  })
+}
+
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectTransparent(locator: test.Locator) {
+  await test.test.step('expect.transparent', async () => {
+    await test.expect
+      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
+      .toBe('0')
+  })
+}
+
 // ============================
 // === expectPlaceholderRow ===
 // ============================
@@ -618,7 +636,7 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
 /** Click an asset row. The center must not be clicked as that is the button for adding a label. */
 export async function clickAssetRow(assetRow: test.Locator) {
   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  await assetRow.click({ position: { x: 100, y: 16 } })
+  await assetRow.click({ position: { x: 300, y: 16 } })
 }
 
 // ==========================

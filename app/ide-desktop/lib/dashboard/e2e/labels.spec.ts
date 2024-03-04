@@ -49,7 +49,6 @@ test.test('drag labels onto multiple rows', async ({ page }) => {
   api.addSecret('quux')
   await actions.login({ page })
 
-  await actions.locateLabelsColumnToggle(page).click()
   await page.keyboard.down(await actions.modModifier(page))
   await actions.clickAssetRow(assetRows.nth(0))
   await actions.clickAssetRow(assetRows.nth(2))
