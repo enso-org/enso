@@ -22,9 +22,7 @@ export default test.defineConfig({
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:8080',
-    // We have a problem with many transient failures; to investigate them, we need trace on all
-    // tests.
-    trace: 'on',
+    trace: 'retain-on-failure',
     launchOptions: {
       ignoreDefaultArgs: ['--headless'],
       args: [

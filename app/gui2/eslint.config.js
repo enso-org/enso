@@ -57,7 +57,7 @@ const conf = [
       'vue/multi-word-component-names': 0,
     },
   },
-  // We must make sure our E2E tests await all steps, otherwise they're flacky.
+  // We must make sure our E2E tests await all steps, otherwise they're flaky.
   {
     files: ['e2e/**/*.spec.ts'],
     languageOptions: {

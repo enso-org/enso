@@ -47,9 +47,7 @@ export default defineConfig({
   reporter: 'html',
   use: {
     headless: !DEBUG,
-    // We have a problem with many transient failures; to investigate them, we need trace on all
-    // tests.
-    trace: 'on',
+    trace: 'retain-on-failure',
     viewport: { width: 1920, height: 1600 },
     ...(DEBUG
       ? {}
