@@ -230,13 +230,27 @@ case class BindingsMap(
       case List()     => Left(ResolutionNotFound)
       case List(item) => resolveName(item)
       case firstModuleName :: rest =>
-        val consName = rest.last
-        val modNames = rest.init
-        resolveName(firstModuleName).flatMap(
-          resolveQualifiedNameIn(_, modNames, consName)
-        )
-
+        resolveName(firstModuleName).flatMap { firstModule =>
+          // This special handling is needed, because when resolving a local module name, we do not necessarily only look at _exported_ symbols, but overall locally defined symbols.
+          val isQualifiedLocalImport = firstModule == ResolvedModule(currentModule)
+          if (isQualifiedLocalImport) {
+            resolveLocalName(rest)
+          } else {
+            val consName = rest.last
+            val modNames = rest.init
+            resolveQualifiedNameIn(firstModule, modNames, consName)
+          }
+        }
     }
+
+  private def resolveLocalName(name: List[String]): Either[ResolutionError, ResolvedName] = name match {
+    case List()     => Left(ResolutionNotFound)
+    case List(singleItem) =>
+      handleAmbiguity(findLocalCandidates(singleItem))
+    case firstName :: rest =>
+      handleAmbiguity(findLocalCandidates(firstName))
+        .flatMap(resolveQualifiedNameIn(_, rest.init, rest.last))
+  }
 
   private def findExportedSymbolsFor(
     name: String
@@ -901,20 +915,15 @@ object BindingsMap {
     override def findExportedSymbolsFor(name: String): List[ResolvedName] =
       exportedSymbols.getOrElse(name, List())
 
-    override def exportedSymbols: Map[String, List[ResolvedName]] = {
-      val ir = module
+    override def exportedSymbols: Map[String, List[ResolvedName]] =
+      module
         .unsafeAsModule("must be a module to run resolution")
         .getIr
-      if (ir == null) {
-        throw new NullPointerException(s"Missing module IR for ${module.getName}")
-      }
-
-        ir.unsafeGetMetadata(
+        .unsafeGetMetadata(
           BindingAnalysis,
           "Wrong pass ordering. Running resolution on an unparsed module."
         )
         .exportedSymbols
-    }
   }
 
   /** A representation of a name being resolved to a method call.
