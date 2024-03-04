@@ -19,6 +19,7 @@ import type * as backend from '#/services/Backend'
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as drag from '#/utilities/drag'
+import * as string from '#/utilities/string'
 
 // ==============
 // === Labels ===
@@ -52,7 +53,7 @@ export default function Labels(props: LabelsProps) {
       <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
         {labels
           .filter(label => !deletedLabelNames.has(label.value))
-          .sort((a, b) => (a.value > b.value ? 1 : a.value < b.value ? -1 : 0))
+          .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
           .map(label => {
             const negated = currentNegativeLabels.some(term =>
               array.shallowEqual(term, [label.value])

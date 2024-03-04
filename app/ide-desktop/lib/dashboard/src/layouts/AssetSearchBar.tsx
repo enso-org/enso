@@ -13,6 +13,7 @@ import type * as backend from '#/services/Backend'
 import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
+import * as string from '#/utilities/string'
 
 // =============
 // === Types ===
@@ -291,38 +292,39 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                 data-testid="asset-search-labels"
                 className="flex gap-buttons p-search-suggestions pointer-events-auto"
               >
-                {labels.map(label => {
-                  const negated = query.negativeLabels.some(term =>
-                    array.shallowEqual(term, [label.value])
-                  )
-                  return (
-                    <Label
-                      key={label.id}
-                      color={label.color}
-                      group={false}
-                      active={
-                        negated ||
-                        query.labels.some(term => array.shallowEqual(term, [label.value]))
-                      }
-                      negated={negated}
-                      onClick={event => {
-                        querySource.current = QuerySource.internal
-                        setQuery(oldQuery => {
-                          const newQuery = oldQuery.withToggled(
-                            'labels',
-                            'negativeLabels',
-                            label.value,
-                            event.shiftKey
-                          )
-                          baseQuery.current = newQuery
-                          return newQuery
-                        })
-                      }}
-                    >
-                      {label.value}
-                    </Label>
-                  )
-                })}
+                {labels
+                  .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
+                  .map(label => {
+                    const negated = query.negativeLabels.some(term =>
+                      array.shallowEqual(term, [label.value])
+                    )
+                    return (
+                      <Label
+                        key={label.id}
+                        color={label.color}
+                        active={
+                          negated ||
+                          query.labels.some(term => array.shallowEqual(term, [label.value]))
+                        }
+                        negated={negated}
+                        onClick={event => {
+                          querySource.current = QuerySource.internal
+                          setQuery(oldQuery => {
+                            const newQuery = oldQuery.withToggled(
+                              'labels',
+                              'negativeLabels',
+                              label.value,
+                              event.shiftKey
+                            )
+                            baseQuery.current = newQuery
+                            return newQuery
+                          })
+                        }}
+                      >
+                        {label.value}
+                      </Label>
+                    )
+                  })}
               </div>
             )}
             {/* Suggestions */}
