@@ -57,7 +57,10 @@ export function documentationData(
     documentation: parsed,
     ...(iconName != null ? { iconName } : {}),
     ...(groupIndex != null ? { groupIndex } : {}),
-    aliases: tagValue(parsed, 'Alias')?.split(',') ?? [],
+    aliases:
+      tagValue(parsed, 'Alias')
+        ?.trim()
+        .split(/\s*,\s*/g) ?? [],
     isPrivate: isSome(tagValue(parsed, 'Private')),
     isUnstable: isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced')),
   }

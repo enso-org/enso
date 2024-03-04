@@ -1,5 +1,5 @@
 /** @file Column types and column display modes. */
-import type * as assetsTable from '#/layouts/dashboard/AssetsTable'
+import type * as assetsTable from '#/layouts/AssetsTable'
 
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import DocsColumn from '#/components/dashboard/column/DocsColumn'

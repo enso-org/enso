@@ -16,7 +16,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Metadata import make_single_choice
+from Standard.Base.Metadata import make_single_choice, Widget
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
 import project.Data.Aggregate_Column.Aggregate_Column
@@ -55,6 +55,7 @@ import project.Internal.Lookup_Helpers
 import project.Internal.Lookup_Helpers.Lookup_Column
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Replace_Helpers
 import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
@@ -149,6 +150,7 @@ type Table
                  row_2 =  [ 2     , False , 'b'   ]
                  row_3 =  [ 3     , True  , 'c'   ]
                  Table.from_rows header [row_1, row_2, row_3]
+    @header (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='"Column"')
     from_rows : Vector -> Vector -> Table
     from_rows header rows =
         columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
@@ -1689,6 +1691,42 @@ type Table
             Warning.set result []
 
     ## PRIVATE
+       A helper that creates a two-column table from a Map.
+
+       The keys of the `Map` become the first column, with name
+       `key_column_name`, and the values of the `Map` become the second column,
+       with name `value_column_name`.
+
+       For the in-memory database, the `Map` can be empty. For the database
+       backends, it must not be empty.
+
+       Arguments:
+       - map: The `Map` to create the table from.
+       - key_column_name: The name to use for the first column.
+       - value_column_name: The name to use for the second column.
+    make_table_from_map  : Map Any Any -> Text -> Text -> Table
+    make_table_from_map self map key_column_name value_column_name =
+        keys_and_values = map.to_vector
+        self.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
+
+    ## PRIVATE
+       A helper that creates a literal table from `Vector`s.
+
+       For the in-memory database, the columns can be empty. For the database
+       backends, they must not be empty.
+
+       Arguments:
+       - column_vectors: A `Vector` of `Vector`s; each inner `Vector` becomes a
+         column of the table.
+       - column_names: The names of the columns of the new table.
+    make_table_from_vectors : Vector (Vector Any) -> Vector Text -> Table
+    make_table_from_vectors self column_vectors column_names =
+        # Assume the columns are all the same length; if not, it will be an error anyway.
+        if column_vectors.is_empty then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
+            Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
+            Table.new (column_vectors.zip column_names (v-> n-> Column.from_vector n v))
+
+    ## PRIVATE
 
        Create a constant column from a value.
     make_constant_column : Any -> Column
@@ -1924,7 +1962,7 @@ type Table
          In the Database backend, there are no guarantees related to ordering of
          results.
 
-       ? Error Conditions
+       ! Error Conditions
 
          - If this table or the lookup table is lacking any of the columns
            specified in `key_columns`, a `Missing_Input_Columns` error is raised.
@@ -2009,7 +2047,7 @@ type Table
          In the Database backend, there are no guarantees related to ordering of
          results.
 
-       ? Error Conditions
+       ! Error Conditions
 
          - If this table or the lookup table is lacking any of the columns
            specified by `from_column`, `to_column`, or `column`, a
@@ -2056,36 +2094,9 @@ type Table
              #    2 | 30 | c | g
              #    3 | 40 | d | h
     @column Widget_Helpers.make_column_name_selector
-    @from_column Widget_Helpers.make_column_name_selector
-    @to_column Widget_Helpers.make_column_name_selector
     replace : Table | Map -> (Text | Integer) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        case lookup_table of
-            _ : Map ->
-                if from_column.is_nothing.not || to_column.is_nothing.not then Error.throw (Illegal_Argument.Error "If a Map is provided as the lookup_table, then from_column and to_column should not also be specified.") else 
-                    self.replace (map_to_lookup_table lookup_table 'from' 'to') column 'from' 'to' allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
-            _ : Table ->
-                from_column_resolved = from_column.if_nothing 0
-                to_column_resolved = to_column.if_nothing 1
-                selected_lookup_columns = lookup_table.select_columns [from_column_resolved, to_column_resolved]
-                self.select_columns column . if_not_error <| selected_lookup_columns . if_not_error <|
-                    unique = self.column_naming_helper.create_unique_name_strategy
-                    unique.mark_used (self.column_names)
-
-                    ## We perform a `merge` into `column`, using a duplicate of `column`
-                       as the key column to join with `from_column`.
-
-                    duplicate_key_column_name = unique.make_unique "duplicate_key"
-                    duplicate_key_column = self.at column . rename duplicate_key_column_name
-                    self_with_duplicate = self.set duplicate_key_column set_mode=Set_Mode.Add
-
-                    ## Create a lookup table with just `to_column` and `from_column`,
-                       renamed to match the base table's `column` and its duplicate,
-                       respectively.
-                    lookup_table_renamed = selected_lookup_columns . rename_columns (Map.from_vector [[from_column_resolved, duplicate_key_column_name], [to_column_resolved, column]])
-
-                    merged = self_with_duplicate.merge lookup_table_renamed duplicate_key_column_name add_new_columns=False allow_unmatched_rows=allow_unmatched_rows on_problems=on_problems
-                    merged.remove_columns duplicate_key_column_name
+        Replace_Helpers.replace self lookup_table column from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -2323,6 +2334,7 @@ type Table
 
     ## ALIAS metadata
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of
@@ -2466,7 +2478,7 @@ type Table
     @names Widget_Helpers.make_column_name_selector
     @values Widget_Helpers.make_aggregate_column_selector
     cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
-    cross_tab self group_by names values=Aggregate_Column.Count (on_problems=Report_Warning) = Out_Of_Memory.handle_java_exception "cross_tab" <|
+    cross_tab self group_by=[] names=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) = Out_Of_Memory.handle_java_exception "cross_tab" <|
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
 
