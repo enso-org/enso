@@ -145,14 +145,20 @@ function onClick(index: number, keepOpen: boolean) {
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
   let edit: Ast.MutableModule | undefined
+  // Unless import conflict resolution is needed, we use the selected expression as is.
+  let value = selectedTag.value?.expression
   if (selectedTag.value?.requiredImports) {
     edit = graph.startEdit()
-    graph.addMissingImports(edit, selectedTag.value.requiredImports)
+    const conflicts = graph.addMissingImports(edit, selectedTag.value.requiredImports)
+    if (conflicts != null && conflicts.length > 0) {
+      // Is there is a conflict, it would be a single one, because we only ask about a single entry.
+      value = conflicts[0]?.fullyQualified
+    }
   }
   props.onUpdate({
     edit,
     portUpdate: {
-      value: selectedTag.value?.expression,
+      value,
       origin: asNot<TokenId>(props.input.portId),
     },
   })

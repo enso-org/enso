@@ -4,8 +4,11 @@ import type { WidgetUpdate } from '@/providers/widgetRegistry'
 import { GraphDb, asNodeId, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
+  detectImportConflicts,
   filterOutRedundantImports,
   readImports,
+  type DetectedConflict,
+  type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
@@ -19,7 +22,7 @@ import type {
   NodeMetadata,
   NodeMetadataFields,
 } from '@/util/ast/abstract'
-import { MutableModule, isIdentifier } from '@/util/ast/abstract'
+import { MutableModule, isIdentifier, substituteQualifiedName } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -229,24 +232,61 @@ export const useGraphStore = defineStore('graph', () => {
     const ident = generateUniqueIdent()
     metadata.position = { x: position.x, y: position.y }
     return edit((edit) => {
-      if (withImports) addMissingImports(edit, withImports)
+      const conflicts = withImports ? addMissingImports(edit, withImports) ?? [] : []
       const rhs = Ast.parse(expression, edit)
       rhs.setNodeMetadata(metadata)
       const assignment = Ast.Assignment.new(edit, ident, rhs)
+      for (const conflict of conflicts) {
+        substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
+      }
       edit.getVersion(method).bodyAsBlock().push(assignment)
       return asNodeId(rhs.id)
     })
   }
 
-  function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
-    if (!newImports.length) return
+  /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
+  function addMissingImports(
+    edit: MutableModule,
+    newImports: RequiredImport[],
+  ): DetectedConflict[] | undefined {
     const topLevel = edit.getVersion(moduleRoot.value!)
     if (!(topLevel instanceof Ast.MutableBodyBlock)) {
       console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
       return
     }
     const existingImports = readImports(topLevel)
-    const importsToAdd = filterOutRedundantImports(existingImports, newImports)
+
+    const conflicts = []
+    const nonConflictingImports = []
+    for (const newImport of newImports) {
+      const conflictInfo = detectImportConflicts(suggestionDb.entries, existingImports, newImport)
+      if (conflictInfo?.detected) {
+        conflicts.push(conflictInfo)
+      } else {
+        nonConflictingImports.push(newImport)
+      }
+    }
+    addMissingImportsDisregardConflicts(edit, nonConflictingImports, existingImports)
+
+    if (conflicts.length > 0) return conflicts
+  }
+
+  /* Adds imports, ignores any possible conflicts.
+   * `existingImports` are optional and will be used instead of `readImports(topLevel)` if provided. */
+  function addMissingImportsDisregardConflicts(
+    edit: MutableModule,
+    imports: RequiredImport[],
+    existingImports?: Import[] | undefined,
+  ) {
+    if (!imports.length) return
+    const topLevel = edit.getVersion(moduleRoot.value!)
+    if (!(topLevel instanceof Ast.MutableBodyBlock)) {
+      console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
+      return
+    }
+    const existingImports_ = existingImports ?? readImports(topLevel)
+
+    const importsToAdd = filterOutRedundantImports(existingImports_, imports)
     if (!importsToAdd.length) return
     addImports(edit.getVersion(topLevel), importsToAdd)
   }
@@ -594,6 +634,7 @@ export const useGraphStore = defineStore('graph', () => {
     edit,
     viewModule,
     addMissingImports,
+    addMissingImportsDisregardConflicts,
     isConnectedTarget,
   }
 })
