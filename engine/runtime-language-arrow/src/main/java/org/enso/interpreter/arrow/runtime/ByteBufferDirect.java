@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 import org.enso.interpreter.arrow.util.MemoryUtil;
 
 final class ByteBufferDirect implements AutoCloseable {
+  private final ByteBuffer allocated;
   private final ByteBuffer dataBuffer;
   private final ByteBuffer bitmapBuffer;
 
@@ -17,10 +18,10 @@ final class ByteBufferDirect implements AutoCloseable {
    */
   private ByteBufferDirect(int valueCount, SizeInBytes unit) {
     var padded = RoundingUtil.forValueCount(valueCount, unit);
-    // TODO: should allocate a **single** `ByteBuffer` from the allocated chunk of memory,
-    // what would guarantee continues allocation of memory per array.
-    this.dataBuffer = ByteBuffer.allocate(padded.getDataBufferSizeInBytes());
-    this.bitmapBuffer = ByteBuffer.allocate(padded.getValidityBitmapSizeInBytes());
+    var buffer = ByteBuffer.allocate(padded.getTotalSizeInBytes());
+    this.allocated = buffer;
+    this.dataBuffer = buffer.slice(0, padded.getDataBufferSizeInBytes());
+    this.bitmapBuffer = buffer.slice(dataBuffer.capacity(), padded.getValidityBitmapSizeInBytes());
     for (int i = 0; i < bitmapBuffer.capacity(); i++) {
       bitmapBuffer.put(i, (byte) 0);
     }
@@ -33,7 +34,8 @@ final class ByteBufferDirect implements AutoCloseable {
    * @param dataBuffer memory-mapped data buffer
    * @param bitmapBuffer memory-mapped buffer representing null bitmaps
    */
-  private ByteBufferDirect(ByteBuffer dataBuffer, ByteBuffer bitmapBuffer) {
+  private ByteBufferDirect(ByteBuffer allocated, ByteBuffer dataBuffer, ByteBuffer bitmapBuffer) {
+    this.allocated = allocated;
     this.dataBuffer = dataBuffer;
     this.bitmapBuffer = bitmapBuffer;
   }
@@ -45,9 +47,10 @@ final class ByteBufferDirect implements AutoCloseable {
    * @param dataBuffer memory-mapped buffer
    * @param bitmapSizeInBytes size of the bitmap buffer (in bytes)
    */
-  private ByteBufferDirect(ByteBuffer dataBuffer, int bitmapSizeInBytes) {
+  private ByteBufferDirect(ByteBuffer allocated, ByteBuffer dataBuffer, int bitmapSizeInBytes) {
+    this.allocated = allocated;
     this.dataBuffer = dataBuffer;
-    this.bitmapBuffer = ByteBuffer.allocate(bitmapSizeInBytes);
+    this.bitmapBuffer = allocated.slice(dataBuffer.capacity(), bitmapSizeInBytes);
     for (int i = 0; i < bitmapBuffer.capacity(); i++) {
       bitmapBuffer.put(i, (byte) 255);
     }
@@ -71,19 +74,22 @@ final class ByteBufferDirect implements AutoCloseable {
    */
   public static ByteBufferDirect fromAddress(long dataAddress, int valueCount, SizeInBytes unit) {
     var padded = RoundingUtil.forValueCount(valueCount, unit);
-    ByteBuffer buffer = MemoryUtil.directBuffer(dataAddress, padded.getDataBufferSizeInBytes());
-    buffer.order(ByteOrder.LITTLE_ENDIAN);
-    return new ByteBufferDirect(buffer, padded.getValidityBitmapSizeInBytes());
+    ByteBuffer buffer = MemoryUtil.directBuffer(dataAddress, padded.getTotalSizeInBytes());
+    ByteBuffer dataBuffer = buffer.slice(0, padded.getDataBufferSizeInBytes());
+    dataBuffer.order(ByteOrder.LITTLE_ENDIAN);
+    return new ByteBufferDirect(buffer, dataBuffer, padded.getValidityBitmapSizeInBytes());
   }
 
   public static ByteBufferDirect fromAddress(
       long dataAddress, long bitmapAddress, int size, SizeInBytes unit) {
     var padded = RoundingUtil.forValueCount(size, unit);
-    ByteBuffer buffer = MemoryUtil.directBuffer(dataAddress, padded.getDataBufferSizeInBytes());
-    buffer.order(ByteOrder.LITTLE_ENDIAN);
+    ByteBuffer allocated = MemoryUtil.directBuffer(dataAddress, padded.getTotalSizeInBytes());
+    assert dataAddress + padded.getDataBufferSizeInBytes() == bitmapAddress;
+    ByteBuffer dataBuffer = allocated.slice(0, padded.getDataBufferSizeInBytes());
+    dataBuffer.order(ByteOrder.LITTLE_ENDIAN);
     ByteBuffer bitmapBuffer =
-        MemoryUtil.directBuffer(bitmapAddress, padded.getValidityBitmapSizeInBytes());
-    return new ByteBufferDirect(buffer, bitmapBuffer);
+        allocated.slice(dataBuffer.capacity(), padded.getValidityBitmapSizeInBytes());
+    return new ByteBufferDirect(allocated, dataBuffer, bitmapBuffer);
   }
 
   public void put(byte b) throws UnsupportedMessageException {
@@ -203,5 +209,7 @@ final class ByteBufferDirect implements AutoCloseable {
   @Override
   public void close() throws Exception {
     this.dataBuffer.clear();
+    this.bitmapBuffer.clear();
+    this.allocated.clear();
   }
 }

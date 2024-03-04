@@ -87,6 +87,10 @@ public class RoundingUtil {
       return (int) dataBufferSize;
     }
 
+    public int getTotalSizeInBytes() {
+      return (int) (dataBufferSize + validityBitmapSize);
+    }
+
     private long validityBitmapSize;
     private long dataBufferSize;
 
