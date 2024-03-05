@@ -184,8 +184,8 @@ export class Cognito {
   }
 
   /** Save the access token to a file for further reuse. */
-  saveAccessToken(accessToken: string | null) {
-    this.amplifyConfig.saveAccessToken?.(accessToken)
+  saveAccessToken(accessTokenPayload: SaveAccessTokenPayload | null) {
+    this.amplifyConfig.saveAccessToken?.(accessTokenPayload)
   }
 
   /** Return the current {@link UserSession}, or `None` if the user is not logged in.
@@ -194,7 +194,10 @@ export class Cognito {
   async userSession() {
     const currentSession = await results.Result.wrapAsync(() => amplify.Auth.currentSession())
     const amplifySession = currentSession.mapErr(intoCurrentSessionErrorType)
-    return amplifySession.map(parseUserSession).unwrapOr(null)
+
+    return amplifySession
+      .map(session => parseUserSession(session, this.amplifyConfig.userPoolWebClientId))
+      .unwrapOr(null)
   }
 
   /** Returns the associated organization ID of the current user, which is passed during signup,
@@ -262,6 +265,7 @@ export class Cognito {
     const result = await results.Result.wrapAsync(async () => {
       await amplify.Auth.signIn(username, password)
     })
+
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
   }
 
@@ -367,19 +371,49 @@ export interface UserSession {
   readonly email: string
   /** User's access token, used to authenticate the user (e.g., when making API calls). */
   readonly accessToken: string
+  /** User's refresh token, used to refresh the access token when it expires. */
+  readonly refreshToken: string
+  /** URL to refresh the access token. */
+  readonly refreshUrl: string
+  /** Time when the access token will expire, date in ISO format(UTC). */
+  readonly expireAt: string
+  /** The client ID of the user pool. */
+  readonly clientId: string
 }
 
 /** Parse a `CognitoUserSession` into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
-function parseUserSession(session: cognito.CognitoUserSession): UserSession {
+function parseUserSession(
+  session: cognito.CognitoUserSession,
+  clientId: string
+): UserSession {
   const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
+
   /** The `email` field is mandatory, so we assert that it exists and is a string. */
   if (typeof email !== 'string') {
     throw new Error('Payload does not have an email field.')
   } else {
     const accessToken = session.getAccessToken().getJwtToken()
-    return { email, accessToken }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const refreshUrl: string = session.getAccessToken().payload.iss
+    const expirationTimestamp = session.getAccessToken().getExpiration()
+
+    const expireAt = (() => {
+      const date = new Date(0)
+      date.setUTCSeconds(expirationTimestamp)
+      return date.toISOString()
+    })()
+
+    return {
+      email,
+      accessToken,
+      refreshUrl,
+      clientId,
+      refreshToken: session.getRefreshToken().getToken(),
+      expireAt,
+    }
   }
 }
 
