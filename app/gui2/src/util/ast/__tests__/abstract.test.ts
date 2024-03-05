@@ -1,8 +1,10 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { tryQualifiedName } from '@/util/qualifiedName'
 import { initializeFFI } from 'shared/ast/ffi'
+import { unwrap } from 'shared/util/data/result'
 import { expect, test } from 'vitest'
-import { MutableModule, type Identifier } from '../abstract'
+import { MutableModule, substituteQualifiedName, type Identifier } from '../abstract'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
@@ -777,6 +779,56 @@ test('Analyze app-like', () => {
   const { func, args } = Ast.analyzeAppLike(appLike)
   expect(func.code()).toBe('Preprocessor.default_preprocessor')
   expect(args.map((ast) => ast.code())).toEqual(['3', '4', '5', '6'])
+})
+
+test.each([
+  {
+    original: 'Vector.new',
+    pattern: 'Vector.new',
+    substitution: 'Standard.Base.Vector.new',
+    expected: 'Standard.Base.Vector.new',
+  },
+  {
+    original: 'x = Table.from_vec (Vector.new 1 2 3)',
+    pattern: 'Vector.new',
+    substitution: 'NotReallyVector.create',
+    expected: 'x = Table.from_vec (NotReallyVector.create 1 2 3)',
+  },
+  {
+    original: 'x',
+    pattern: 'x',
+    substitution: 'y',
+    expected: 'y',
+  },
+  {
+    original: 'x + y',
+    pattern: 'x',
+    substitution: 'z',
+    expected: 'z + y',
+  },
+  {
+    original: 'Data.Table.new',
+    pattern: 'Data',
+    substitution: 'Project.Foo.Data',
+    expected: 'Project.Foo.Data.Table.new',
+  },
+  {
+    original: 'Data.Table.new',
+    pattern: 'Table',
+    substitution: 'ShouldNotWork',
+    expected: 'Data.Table.new',
+  },
+])('Substitute $pattern insde $original', ({ original, pattern, substitution, expected }) => {
+  const expression = Ast.parse(original)
+  expression.module.replaceRoot(expression)
+  const edit = expression.module.edit()
+  substituteQualifiedName(
+    edit,
+    expression,
+    pattern as Ast.QualifiedName,
+    unwrap(tryQualifiedName(substitution)),
+  )
+  expect(edit.root()?.code()).toEqual(expected)
 })
 
 const docEditCases = [

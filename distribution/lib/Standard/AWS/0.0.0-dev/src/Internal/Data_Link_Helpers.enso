@@ -9,10 +9,10 @@ import project.AWS_Credential.AWS_Credential
 
 ## PRIVATE
    Decodes the JSON representation of `AWS_Credential` as defined in `dataLinkSchema.json#/$defs/AwsAuth`.
-decode_aws_credential json -> AWS_Credential | Nothing =
+decode_aws_credential json -> AWS_Credential =
     case get_required_field "type" json of
         "aws_auth" -> case get_required_field "subType" json of
-            "default" -> Nothing
+            "default" -> AWS_Credential.Default
             "profile" ->
                 profile = get_required_field "profile" json
                 AWS_Credential.Profile profile

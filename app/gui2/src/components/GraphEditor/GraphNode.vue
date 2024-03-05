@@ -5,6 +5,7 @@ import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
@@ -88,14 +89,6 @@ const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const baseNodeSize = computed(() => new Vec2(contentNode.value?.scrollWidth ?? 0, nodeSize.value.y))
 
-/// Menu can be full, partial or off
-enum MenuState {
-  Full,
-  Partial,
-  Off,
-}
-const menuVisible = ref(MenuState.Off)
-
 const error = computed(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
   if (!externalId) return
@@ -118,16 +111,23 @@ const warning = computed(() => {
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
   if (!warning) return
-  return '⚠ Warning: ' + warning!
+  return 'Warning: ' + warning!
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
-const isOnlyOneSelected = computed(() => isSelected.value && nodeSelection?.selected.size === 1)
-watch(isSelected, (selected) => {
-  if (!selected) {
-    menuVisible.value = MenuState.Off
-  }
+const isOnlyOneSelected = computed(
+  () => isSelected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
+)
+
+const menuVisible = isOnlyOneSelected
+const menuFull = ref(false)
+watch(menuVisible, (visible) => {
+  if (!visible) menuFull.value = false
 })
+function openFullMenu() {
+  menuFull.value = true
+  nodeSelection?.setSelection(new Set([nodeId.value]))
+}
 
 const isDocsVisible = ref(false)
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
@@ -181,7 +181,6 @@ const dragPointer = usePointer((pos, event, type) => {
       ) {
         nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
         handleNodeClick(event)
-        menuVisible.value = MenuState.Partial
       }
       startEvent = null
       startEpochMs.value = 0
@@ -363,13 +362,6 @@ function portGroupStyle(port: PortData) {
   }
 }
 
-function openFullMenu() {
-  if (!nodeSelection?.isSelected(nodeId.value)) {
-    nodeSelection?.setSelection(new Set([nodeId.value]))
-  }
-  menuVisible.value = MenuState.Full
-}
-
 const editingComment = ref(false)
 
 const documentation = computed<string | undefined>({
@@ -419,15 +411,17 @@ const documentation = computed<string | undefined>({
       {{ node.pattern?.code() ?? '' }}
     </div>
     <CircularMenu
-      v-if="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
+      v-if="menuVisible"
       v-model:isOutputContextOverridden="isOutputContextOverridden"
       v-model:isDocsVisible="isDocsVisible"
       :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
       :isVisualizationVisible="isVisualizationVisible"
-      :isFullMenuVisible="menuVisible === MenuState.Full"
+      :isFullMenuVisible="menuVisible && menuFull"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
+      @openFullMenu="openFullMenu"
+      @delete="emit('delete')"
       @addNode="emit('addNode', $event)"
     />
     <GraphVisualization
@@ -435,7 +429,7 @@ const documentation = computed<string | undefined>({
       :nodeSize="baseNodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
-      :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
+      :isCircularMenuVisible="menuVisible"
       :currentType="node.vis?.identifier"
       :isFullscreen="isVisualizationFullscreen"
       :dataSource="{ type: 'node', nodeId: externalId }"
@@ -474,15 +468,20 @@ const documentation = computed<string | undefined>({
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
+        :extended="isOnlyOneSelected"
         @openFullMenu="openFullMenu"
       />
+    </div>
+    <div class="statuses">
+      <SvgIcon v-if="warning" name="warning" />
     </div>
     <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
     <GraphNodeError
       v-if="warning && (nodeHovered || isSelected)"
       class="afterNode warning"
-      :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
+      :class="{ messageWithMenu: menuVisible }"
       :message="warning"
+      icon="warning"
       type="warning"
     />
     <svg class="bgPaths" :style="bgStyleVariables">
@@ -714,11 +713,30 @@ const documentation = computed<string | undefined>({
   margin-top: 4px;
 }
 
+.messageWarning {
+  margin-top: 8px;
+}
+
 .messageWithMenu {
   left: 40px;
 }
 
-.warning {
-  top: 35px;
+.statuses {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  top: 0;
+  right: 100%;
+  margin-right: 8px;
+  color: var(--color-warning);
+  transition: opacity 0.2s ease-in-out;
+}
+
+.GraphNode:is(:hover, .selected) .statuses,
+.GraphNode:has(.selection:hover) .statuses {
+  opacity: 0;
 }
 </style>

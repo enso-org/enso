@@ -4,7 +4,7 @@ import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { defineKeybinds } from '@/util/shortcuts'
 import * as random from 'lib0/random'
 import { textChangeToEdits } from 'shared/util/data/text'
-import { computed, ref, watch, watchEffect } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 
 const { minimalSetup, EditorState, EditorView, textEditToChangeSpec } = await import(
   '@/components/CodeEditor/codemirror'

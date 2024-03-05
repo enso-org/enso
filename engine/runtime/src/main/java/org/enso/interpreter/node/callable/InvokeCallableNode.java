@@ -15,6 +15,7 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -234,6 +235,12 @@ public abstract class InvokeCallableNode extends BaseNode {
               .makeNoConversionCurrying(canApplyThis, canApplyThat, conversion),
           this);
     }
+  }
+
+  @Specialization
+  public Object invokeDynamicConstructor(
+      UnresolvedConstructor symbol, VirtualFrame callerFrame, State state, Object[] arguments) {
+    return symbol.withArguments(invokeFunctionNode.getSchema(), arguments);
   }
 
   @Specialization
