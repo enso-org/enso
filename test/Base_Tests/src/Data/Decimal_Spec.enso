@@ -382,28 +382,28 @@ add_specs suite_builder =
                     Test.with_clue "EEE "+d.to_text+" "+(Meta.get_simple_type_name d)+" "+greater.to_text+" "+(Meta.get_simple_type_name greater) <|
                         (d <= v) . should_be_true
                         (d >= v) . should_be_true
-                        #(v <= d) . should_be_true
-                        #(v >= d) . should_be_true
+                        (v <= d) . should_be_true
+                        (v >= d) . should_be_true
 
                         if greater.is_infinite.not then
                             (d < greater) . should_be_true
                             (d <= greater) . should_be_true
                             (greater > d) . should_be_true
-                            #(greater >= d) . should_be_true
+                            (greater >= d) . should_be_true
                             (d > greater) . should_be_false
                             (d >= greater) . should_be_false
                             (greater < d) . should_be_false
-                            #(greater <= d) . should_be_false
+                            (greater <= d) . should_be_false
 
                         if lesser.is_infinite.not then
                             (d > lesser) . should_be_true
                             (d >= lesser) . should_be_true
                             (lesser < d) . should_be_true
-                            #(lesser <= d) . should_be_true
+                            (lesser <= d) . should_be_true
                             (d < lesser) . should_be_false
                             (d <= lesser) . should_be_false
                             (lesser > d) . should_be_false
-                            #(lesser >= d) . should_be_false
+                            (lesser >= d) . should_be_false
 
                         (d < d) . should_be_false
                         (d > d) . should_be_false
@@ -436,40 +436,40 @@ add_specs suite_builder =
 
     suite_builder.group "arithmetic" group_builder->
         group_builder.specify "should allow arithmetic with Decimals" <|
-            ((Decimal.new 1) + (Decimal.new 2)) . should_equal (Decimal.new 3)
-            ((Decimal.new 1.1) + (Decimal.new 2.2)) . should_equal (Decimal.new 3.3)
+            (Decimal.new 1 + Decimal.new 2) . should_equal (Decimal.new 3)
+            (Decimal.new 1.1 + Decimal.new 2.2) . should_equal (Decimal.new 3.3)
 
-            ((Decimal.new 10) - (Decimal.new 6)) . should_equal (Decimal.new 4)
-            ((Decimal.new 10.1) - (Decimal.new 6.6)) . should_equal (Decimal.new 3.5)
+            (Decimal.new 10 - Decimal.new 6) . should_equal (Decimal.new 4)
+            (Decimal.new 10.1 - Decimal.new 6.6) . should_equal (Decimal.new 3.5)
 
-            ((Decimal.new 3) * (Decimal.new 7)) . should_equal (Decimal.new 21)
-            ((Decimal.new 3.12) * (Decimal.new 7.97)) . should_equal (Decimal.new 24.8664)
+            (Decimal.new 3 * Decimal.new 7) . should_equal (Decimal.new 21)
+            (Decimal.new 3.12 * Decimal.new 7.97) . should_equal (Decimal.new 24.8664)
 
-            ((Decimal.new 50) / (Decimal.new 2)) . should_equal (Decimal.new 25)
-            ((Decimal.new 50.75) / (Decimal.new 2.5)) . should_equal (Decimal.new 20.3)
+            (Decimal.new 50 / Decimal.new 2) . should_equal (Decimal.new 25)
+            (Decimal.new 50.75 / Decimal.new 2.5) . should_equal (Decimal.new 20.3)
 
-            ((Decimal.new 1) + (Decimal.new -2)) . should_equal (Decimal.new -1)
-            ((Decimal.new 1.1) + (Decimal.new -2.2)) . should_equal (Decimal.new -1.1)
+            (Decimal.new 1 + Decimal.new -2) . should_equal (Decimal.new -1)
+            (Decimal.new 1.1 + Decimal.new -2.2) . should_equal (Decimal.new -1.1)
 
-            ((Decimal.new -10) - (Decimal.new 6)) . should_equal (Decimal.new -16)
-            ((Decimal.new 10.1) - (Decimal.new -6.6)) . should_equal (Decimal.new 16.7)
+            (Decimal.new -10 - Decimal.new 6) . should_equal (Decimal.new -16)
+            (Decimal.new 10.1 - Decimal.new -6.6) . should_equal (Decimal.new 16.7)
 
-            ((Decimal.new 3) * (Decimal.new -7)) . should_equal (Decimal.new -21)
-            ((Decimal.new -3.12) * (Decimal.new 7.97)) . should_equal (Decimal.new -24.8664)
+            (Decimal.new 3 * Decimal.new -7) . should_equal (Decimal.new -21)
+            (Decimal.new -3.12 * Decimal.new 7.97) . should_equal (Decimal.new -24.8664)
 
-            ((Decimal.new -50) / (Decimal.new -2)) . should_equal (Decimal.new 25)
-            ((Decimal.new -50.75) / (Decimal.new -2.5)) . should_equal (Decimal.new 20.3)
+            (Decimal.new -50 / Decimal.new -2) . should_equal (Decimal.new 25)
+            (Decimal.new -50.75 / Decimal.new -2.5) . should_equal (Decimal.new 20.3)
 
-            ((Decimal.new 213427523957) + (Decimal.new 93849398884384)) . should_equal (Decimal.new 94062826408341)
-            ((Decimal.new 723579374753.3535345) + (Decimal.new 35263659267.23434535)) . should_equal (Decimal.new "758843034020.587844")
+            (Decimal.new 213427523957 + Decimal.new 93849398884384) . should_equal (Decimal.new 94062826408341)
+            (Decimal.new 723579374753.3535345 + Decimal.new 35263659267.23434535) . should_equal (Decimal.new "758843034020.587844")
 
-            ((Decimal.new -29388920982834) - (Decimal.new 842820)) . should_equal (Decimal.new -29388921825654)
-            ((Decimal.new -8273762787.3535345) - (Decimal.new 76287273.23434535)) . should_equal (Decimal.new "-8350050060.58788035")
+            (Decimal.new -29388920982834 - Decimal.new 842820) . should_equal (Decimal.new -29388921825654)
+            (Decimal.new -8273762787.3535345 - Decimal.new 76287273.23434535) . should_equal (Decimal.new "-8350050060.58788035")
 
-            ((Decimal.new 7297927982888383) * (Decimal.new 828737)) . should_equal (Decimal.new 6048062942754969862271)
-            ((Decimal.new 893872388.3535345) * (Decimal.new 72374727737.23434535)) . should_equal (Decimal.new "64693770738918459194.623193774730")
+            (Decimal.new 7297927982888383 * Decimal.new 828737) . should_equal (Decimal.new 6048062942754969862271)
+            (Decimal.new 893872388.3535345 * Decimal.new 72374727737.23434535) . should_equal (Decimal.new "64693770738918459194.623193774730")
 
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter filter="should allow arithmetic"
+    suite.run_with_filter # filter="should allow arithmetic"
