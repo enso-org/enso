@@ -8,6 +8,7 @@ from Standard.Table import Table, Value_Type, Aggregate_Column, expr
 from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 import Standard.Database.Data.DB_Column.DB_Column
+import Standard.Database.Data.DB_Table.DB_Table
 import Standard.Database.Data.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Postgres.Postgres_Entity_Naming_Properties
@@ -899,6 +900,7 @@ add_datalink_specs suite_builder =
                     ## Now we access this table but this time through a datalink.
                        Btw. this will keep a connection open until the table is garbage collected, but that is probably fine...
                     datalink_table = Data.read datalink_file
+                    datalink_table.should_be_a DB_Table
                     datalink_table.column_names . should_equal ["X", "Y"]
                     datalink_table.at "X" . to_vector . should_equal [22]
                     datalink_table.at "Y" . to_vector . should_equal ["o"]
