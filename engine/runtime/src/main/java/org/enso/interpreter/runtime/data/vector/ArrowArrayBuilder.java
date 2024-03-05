@@ -22,7 +22,10 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.ArrowArrayBuilder.ArrowArrayBuilder")
+@Builtin(
+    pkg = "mutable",
+    stdlibName = "Standard.Base.Data.ArrowArrayBuilder.ArrowArrayBuilder",
+    containsValues = false)
 public abstract class ArrowArrayBuilder implements EnsoObject {
 
   protected boolean sealed = false;

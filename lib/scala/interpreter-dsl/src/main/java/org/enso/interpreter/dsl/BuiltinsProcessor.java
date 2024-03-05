@@ -88,14 +88,16 @@ public class BuiltinsProcessor extends AbstractProcessor {
         processingEnv.getFiler().createSourceFile(builtinType.fullyQualifiedName());
     Optional<String> stdLibName =
         annotation.stdlibName().isEmpty() ? Optional.empty() : Optional.of(annotation.stdlibName());
-    generateBuiltinType(gen, builtinType, stdLibName, elt.getSimpleName().toString());
+    generateBuiltinType(
+        gen, builtinType, stdLibName, elt.getSimpleName().toString(), annotation.containsValues());
   }
 
   private void generateBuiltinType(
       JavaFileObject gen,
       ClassName builtinType,
       Optional<String> stdLibName,
-      String underlyingTypeName)
+      String underlyingTypeName,
+      boolean containsValues)
       throws IOException {
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
       out.println("package " + builtinType.pkg() + ";");
@@ -112,11 +114,16 @@ public class BuiltinsProcessor extends AbstractProcessor {
               + "\")";
       out.println(builtinTypeAnnotation);
       out.println("public class " + builtinType.name() + " extends Builtin {");
-      out.println(
-          """
-        @Override
-        public boolean containsValues() {
-          return true;
+      out.println("""
+          @Override
+          public boolean containsValues() {
+        """);
+      if (containsValues) {
+        out.println("    return true;");
+      } else {
+        out.println("    return false;");
+      }
+      out.println("""
         }
       }
       """);
