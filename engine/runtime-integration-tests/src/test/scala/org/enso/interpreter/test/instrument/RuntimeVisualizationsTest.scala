@@ -1421,12 +1421,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
     val modifyVisualizationResponses =
       context.receiveNIgnoreExpressionUpdates(4)
+
     modifyVisualizationResponses should contain allOf (
       Api.Response(requestId, Api.VisualizationModified()),
       context.executionComplete(contextId)
     )
-    val Some((dataAfterModification, foundVisualizatonId)) =
-      modifyVisualizationResponses.collectFirst {
+    val visualizationUpdates2 =
+      modifyVisualizationResponses.collect {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
@@ -1441,9 +1442,14 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           (data, modifiedId)
       }
 
-    List(visualizationId, visualizationId2) should contain(foundVisualizatonId)
+    visualizationUpdates2.map(_._2) should contain theSameElementsAs Seq(
+      visualizationId,
+      visualizationId2
+    )
 
-    new String(dataAfterModification) shouldEqual "8"
+    visualizationUpdates2.map(p =>
+      new String(p._1)
+    ) should contain theSameElementsAs Seq("7", "8")
   }
 
   it should "not emit visualization update when visualization is detached" in withContext() {
