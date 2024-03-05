@@ -244,7 +244,7 @@ export default [
     eslintJs.configs.recommended,
     {
         // Playwright build cache.
-        ignores: ['**/.cache/**'],
+        ignores: ['**/.cache/**', '**/playwright-report'],
     },
     {
         settings: {
