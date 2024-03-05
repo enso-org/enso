@@ -42,12 +42,12 @@ export default function UserMenu(props: UserMenuProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   return (
-    <Modal hidden={hidden} className="absolute overflow-hidden bg-dim size-full">
+    <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className="absolute flex flex-col bg-selected-frame backdrop-blur-default rounded-default gap-user-menu right-top-bar-margin top-top-bar-margin w-user-menu px-user-menu-x py-user-menu-y"
+        className="absolute right-top-bar-margin top-top-bar-margin flex w-user-menu flex-col gap-user-menu rounded-default bg-selected-frame px-user-menu-x py-user-menu-y backdrop-blur-default"
         onClick={event => {
           event.stopPropagation()
         }}
@@ -55,7 +55,7 @@ export default function UserMenu(props: UserMenuProps) {
         {user != null ? (
           <>
             <div className="flex items-center gap-icons px-menu-entry">
-              <div className="flex items-center rounded-full overflow-clip size-profile-picture">
+              <div className="flex size-profile-picture items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
                   className="pointer-events-none size-profile-picture"
@@ -99,7 +99,7 @@ export default function UserMenu(props: UserMenuProps) {
           </>
         ) : (
           <>
-            <div className="flex items-center h-profile-picture">
+            <div className="flex h-profile-picture items-center">
               <span className="text">You are not logged in.</span>
             </div>
             <div className="flex flex-col">

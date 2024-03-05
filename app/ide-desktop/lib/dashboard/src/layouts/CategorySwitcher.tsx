@@ -52,7 +52,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       title={`Go To ${category}`}
       className={`selectable ${
         isCurrent ? 'active bg-selected-frame' : ''
-      } group flex items-center rounded-full gap-icon-with-text h-row px-button-x hover:bg-selected-frame transition-colors`}
+      } group flex h-row items-center gap-icon-with-text rounded-full px-button-x transition-colors hover:bg-selected-frame`}
       onClick={onClick}
       // Required because `dragover` does not fire on `mouseenter`.
       onDragEnter={onDragOver}
@@ -96,8 +96,8 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   }, [category, /* should never change */ localStorage])
 
   return (
-    <div className="flex flex-col gap-sidebar-section-heading w-full">
-      <div className="text-header font-bold text-sm px-sidebar-section-heading-x">Category</div>
+    <div className="flex w-full flex-col gap-sidebar-section-heading">
+      <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Category</div>
       <div className="flex flex-col items-start">
         {CATEGORIES.map(currentCategory => (
           <CategorySwitcherItem

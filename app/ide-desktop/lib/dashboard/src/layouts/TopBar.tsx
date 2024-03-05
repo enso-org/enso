@@ -50,7 +50,7 @@ export default function TopBar(props: TopBarProps) {
   const { isAssetPanelEnabled, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
 
   return (
-    <div className="relative flex m-top-bar mb h-row gap-top-bar z-3">
+    <div className="relative z-3 m-top-bar mb flex h-row gap-top-bar">
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
         <BackendSwitcher setBackendType={setBackendType} />
@@ -58,7 +58,7 @@ export default function TopBar(props: TopBarProps) {
       {page === pageSwitcher.Page.editor ? (
         <div className="flex-1" />
       ) : (
-        <div className="flex-1 flex flex-wrap justify-around">
+        <div className="flex flex-1 flex-wrap justify-around">
           <AssetSearchBar
             isCloud={isCloud}
             query={query}

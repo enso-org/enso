@@ -23,7 +23,7 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
   const { backend } = backendProvider.useBackend()
   return (
     <div
-      className={`flex items-center shrink-0 bg-frame rounded-full gap-icons h-row px-icons-x cursor-default pointer-events-auto ${
+      className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-icons rounded-full bg-frame px-icons-x ${
         backend.type === backendModule.BackendType.remote ? '' : 'invisible'
       }`}
       onClick={event => {

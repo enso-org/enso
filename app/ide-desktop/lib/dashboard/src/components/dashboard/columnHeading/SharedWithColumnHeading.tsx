@@ -13,7 +13,7 @@ export default function SharedWithColumnHeading(props: column.AssetColumnHeading
   const { hideColumn } = state
 
   return (
-    <div className="flex items-center gap-icon-with-text w-full h-drive-table-heading">
+    <div className="flex h-drive-table-heading w-full items-center gap-icon-with-text">
       <SvgMask
         src={PeopleIcon}
         className="size-icon"

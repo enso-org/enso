@@ -27,22 +27,22 @@ export default function MembersSettingsTab() {
         <h3 className="settings-subheading">Members</h3>
         <div className="flex gap-drive-bar">
           <button
-            className="flex items-center bg-frame rounded-full h-row px-new-project-button-x"
+            className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
             onClick={event => {
               event.stopPropagation()
               setModal(<InviteUsersModal eventTarget={null} />)
             }}
           >
-            <span className="text font-semibold whitespace-nowrap">Invite Members</span>
+            <span className="text whitespace-nowrap font-semibold">Invite Members</span>
           </button>
         </div>
-        <table className="self-start table-fixed rounded-rows">
+        <table className="rounded-rows table-fixed self-start">
           <thead>
             <tr className="h-row">
-              <th className="text-left px-cell-x bg-clip-padding border-transparent border-x-2 last:border-r-0 text-sm font-semibold w-members-name-column">
+              <th className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
                 Name
               </th>
-              <th className="text-left px-cell-x bg-clip-padding border-transparent border-x-2 last:border-r-0 text-sm font-semibold w-members-email-column">
+              <th className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
                 Email
               </th>
             </tr>
@@ -62,10 +62,10 @@ export default function MembersSettingsTab() {
             ) : (
               members.map(member => (
                 <tr key={member.id} className="h-row">
-                  <td className="text bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full border-transparent border-x-2 last:border-r-0 ">
+                  <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 ">
                     {member.name}
                   </td>
-                  <td className="text bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full border-transparent border-x-2 last:border-r-0 ">
+                  <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 ">
                     {member.email}
                   </td>
                 </tr>

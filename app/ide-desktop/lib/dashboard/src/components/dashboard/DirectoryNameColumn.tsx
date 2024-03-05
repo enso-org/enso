@@ -130,7 +130,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   return (
     <div
-      className={`group flex h-full items-center whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
+      className={`group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -154,7 +154,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <SvgMask
         src={FolderArrowIcon}
         alt={item.children == null ? 'Expand' : 'Collapse'}
-        className={`hidden group-hover:inline-block cursor-pointer size-icon m-name-column-icon transition-transform duration-arrow ${
+        className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
           item.children != null ? 'rotate-90' : ''
         }`}
         onClick={event => {
@@ -162,11 +162,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
         }}
       />
-      <SvgMask src={FolderIcon} className="group-hover:hidden size-icon m-name-column-icon" />
+      <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`cursor-pointer bg-transparent grow text ${
+        className={`text grow cursor-pointer bg-transparent ${
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
         }`}
         checkSubmittable={newTitle =>

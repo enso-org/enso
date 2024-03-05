@@ -23,9 +23,9 @@ export default function AssetSummary(props: AssetSummaryProps) {
   const { asset, new: isNew = false, newName, className } = props
   return (
     <div
-      className={`flex items-center gap-icon-with-text rounded-default bg-frame min-h-row px-button-x ${className}`}
+      className={`flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x ${className}`}
     >
-      <div className="grid place-items-center size-icon">
+      <div className="grid size-icon place-items-center">
         <AssetIcon asset={asset} />
       </div>
       <div className="flex flex-col">

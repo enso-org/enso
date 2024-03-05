@@ -24,16 +24,16 @@ export default function SetUsername() {
   const [username, setUsername] = React.useState('')
 
   return (
-    <div className="flex flex-col gap-auth text-primary text-sm items-center justify-center min-h-screen">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
       <form
         data-testid="set-username-panel"
-        className="flex flex-col gap-auth bg-selected-frame rounded-auth shadow-md p-auth w-full max-w-md"
+        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
         onSubmit={async event => {
           event.preventDefault()
           await authSetUsername(backend, username, email)
         }}
       >
-        <div className="font-medium self-center text-xl">Set your username</div>
+        <div className="self-center text-xl font-medium">Set your username</div>
         <Input
           id="username"
           type="text"

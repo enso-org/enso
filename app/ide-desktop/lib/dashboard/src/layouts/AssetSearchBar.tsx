@@ -227,7 +227,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           setAreSuggestionsVisible(false)
         }
       }}
-      className="group search-bar relative flex items-center text-primary rounded-full gap-asset-search-bar h-row grow max-w-asset-search-bar xl:max-w-asset-search-bar-wide px-input-x"
+      className="search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide"
     >
       <img src={FindIcon} className="placeholder relative z-1" />
       <input
@@ -239,7 +239,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             ? 'Type to search for projects, Data Links, users, and more.'
             : 'Type to search for projects.'
         }
-        className="peer relative z-1 grow bg-transparent text placeholder:text-center"
+        className="text peer relative z-1 grow bg-transparent placeholder:text-center"
         onChange={event => {
           if (querySource.current !== QuerySource.internal) {
             querySource.current = QuerySource.typing
@@ -259,14 +259,14 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           }
         }}
       />
-      <div className="absolute flex flex-col top left overflow-hidden w-full before:absolute before:bg-frame before:inset before:backdrop-blur-default rounded-default pointer-events-none">
-        <div className="relative padding h-row" />
+      <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
+        <div className="padding relative h-row" />
         {areSuggestionsVisible && (
           <div className="relative flex flex-col gap-search-suggestions">
             {/* Tags (`name:`, `modified:`, etc.) */}
             <div
               data-testid="asset-search-tag-names"
-              className="flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions pointer-events-auto"
+              className="pointer-events-auto flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions"
             >
               {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
                 const [key, tag] = entry
@@ -275,7 +275,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                   : [
                       <button
                         key={key}
-                        className="bg-frame rounded-full h-text px-button-x hover:bg-selected-frame transition-all"
+                        className="h-text rounded-full bg-frame px-button-x transition-all hover:bg-selected-frame"
                         onClick={() => {
                           querySource.current = QuerySource.internal
                           setQuery(query.add({ [key]: [[]] }))
@@ -290,7 +290,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             {isCloud && (
               <div
                 data-testid="asset-search-labels"
-                className="flex gap-buttons p-search-suggestions pointer-events-auto"
+                className="pointer-events-auto flex gap-buttons p-search-suggestions"
               >
                 {labels
                   .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
@@ -328,7 +328,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               </div>
             )}
             {/* Suggestions */}
-            <div className="flex flex-col max-h-search-suggestions-list overflow-y-auto">
+            <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto">
               {suggestions.map((suggestion, index) => (
                 // This should not be a `<button>`, since `render()` may output a
                 // tree containing a button.
@@ -341,7 +341,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     }
                   }}
                   tabIndex={-1}
-                  className={`cursor-pointer px-search-suggestions py-search-suggestion-y mx-search-suggestion rounded-default text-left hover:bg-selected-frame last:mb-search-suggestion transition-colors pointer-events-auto ${
+                  className={`pointer-events-auto mx-search-suggestion cursor-pointer rounded-default px-search-suggestions py-search-suggestion-y text-left transition-colors last:mb-search-suggestion hover:bg-selected-frame ${
                     index === selectedIndex
                       ? 'bg-selected-frame'
                       : selectedIndices.has(index)

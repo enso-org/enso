@@ -67,11 +67,11 @@ export default function KeyboardShortcutsSettingsTab() {
   }, [/* should never change */ scrollContainerRef])
 
   return (
-    <div className="flex flex-col flex-1 gap-settings-section-header w-full">
+    <div className="flex w-full flex-1 flex-col gap-settings-section-header">
       <h3 className="settings-subheading">Keyboard shortcuts</h3>
       <div className="flex gap-drive-bar">
         <button
-          className="flex items-center bg-frame rounded-full h-row px-new-project-button-x"
+          className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
           onClick={event => {
             event.stopPropagation()
             setModal(
@@ -89,7 +89,7 @@ export default function KeyboardShortcutsSettingsTab() {
             )
           }}
         >
-          <span className="text font-semibold whitespace-nowrap">Reset All</span>
+          <span className="text whitespace-nowrap font-semibold">Reset All</span>
         </button>
       </div>
       {/* There is a horizontal scrollbar for some reason without `px-px`. */}
@@ -97,13 +97,13 @@ export default function KeyboardShortcutsSettingsTab() {
       <div ref={scrollContainerRef} className="overflow-auto px-px">
         <table className="rounded-rows table-fixed border-collapse">
           <thead className="sticky top-0">
-            <tr className="text-left text-sm font-semibold h-row">
+            <tr className="h-row text-left text-sm font-semibold">
               <th className="min-w-keyboard-shortcuts-icon-column pl-cell-x pr-keyboard-shortcuts-icon-column-r">
                 {/* Icon */}
               </th>
               <th className="min-w-keyboard-shortcuts-name-column px-cell-x">Name</th>
               <th className="px-cell-x">Shortcuts</th>
-              <th className="px-cell-x w-full">Description</th>
+              <th className="w-full px-cell-x">Description</th>
             </tr>
           </thead>
           <tbody ref={bodyRef}>
@@ -114,17 +114,17 @@ export default function KeyboardShortcutsSettingsTab() {
                 const [action, info] = kv
                 return (
                   <tr key={action}>
-                    <td className="flex h-row items-center rounded-l-full pl-cell-x pr-keyboard-shortcuts-icon-column-r bg-clip-padding">
+                    <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-keyboard-shortcuts-icon-column-r">
                       <SvgMask
                         src={info.icon ?? BlankIcon}
                         color={info.color}
                         className="size-icon"
                       />
                     </td>
-                    <td className="px-cell-x bg-clip-padding border-transparent border-l-2 border-r-2">
+                    <td className="border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
                       {info.name}
                     </td>
-                    <td className="group min-w-max px-cell-x bg-clip-padding border-transparent border-l-2 border-r-2">
+                    <td className="group min-w-max border-l-2 border-r-2 border-transparent bg-clip-padding px-cell-x">
                       {/* I don't know why this padding is needed,
                        * given that this is a flex container. */}
                       {/* eslint-disable-next-line no-restricted-syntax */}
@@ -132,7 +132,7 @@ export default function KeyboardShortcutsSettingsTab() {
                         {info.bindings.map((binding, i) => (
                           <div
                             key={i}
-                            className="inline-flex items-center gap-keyboard-shortcuts-button shrink-0"
+                            className="inline-flex shrink-0 items-center gap-keyboard-shortcuts-button"
                           >
                             <KeyboardShortcut shortcut={binding} />
                             <button
@@ -146,9 +146,9 @@ export default function KeyboardShortcutsSettingsTab() {
                             </button>
                           </div>
                         ))}
-                        <div className="flex gap-keyboard-shortcuts-buttons shrink-0">
+                        <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
                           <button
-                            className="align-middle invisible group-hover:visible"
+                            className="invisible align-middle group-hover:visible"
                             onClick={event => {
                               event.stopPropagation()
                               setModal(
@@ -166,7 +166,7 @@ export default function KeyboardShortcutsSettingsTab() {
                             <img className="size-plus-icon" src={Plus2Icon} />
                           </button>
                           <button
-                            className="align-middle invisible group-hover:visible"
+                            className="invisible align-middle group-hover:visible"
                             onClick={() => {
                               inputBindings.reset(action)
                               doRefresh()
@@ -177,7 +177,7 @@ export default function KeyboardShortcutsSettingsTab() {
                         </div>
                       </div>
                     </td>
-                    <td className="rounded-r-full cell-x bg-clip-padding border-transparent border-l-2 border-r-2">
+                    <td className="cell-x rounded-r-full border-l-2 border-r-2 border-transparent bg-clip-padding">
                       {info.description}
                     </td>
                   </tr>

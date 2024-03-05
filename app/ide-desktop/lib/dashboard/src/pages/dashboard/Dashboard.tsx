@@ -430,12 +430,12 @@ export default function Dashboard(props: DashboardProps) {
   return (
     <>
       <div
-        className={`flex text-primary text-xs ${
-          page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+        className={`flex text-xs text-primary ${
+          page === pageSwitcher.Page.editor ? 'pointer-events-none cursor-none' : ''
         }`}
       >
         <div
-          className={`flex flex-col grow container-size overflow-hidden relative select-none h-screen ${
+          className={`container-size relative flex h-screen grow select-none flex-col overflow-hidden ${
             page === pageSwitcher.Page.home ? 'pb-home-page-b' : 'gap-top-level'
           }`}
           onContextMenu={event => {
@@ -518,8 +518,8 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </div>
         <div
-          className={`flex flex-col duration-side-panel transition-min-width ease-in-out overflow-hidden ${
-            isAssetPanelVisible ? 'min-w-side-panel' : 'min-w invisible'
+          className={`flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out ${
+            isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
           }`}
         >
           {isAssetPanelVisible && (
@@ -545,7 +545,7 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </div>
       </div>
-      <div className="text-xs text-primary select-none">
+      <div className="select-none text-xs text-primary">
         <TheModal />
       </div>
     </>

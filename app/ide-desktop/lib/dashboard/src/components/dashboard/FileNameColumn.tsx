@@ -120,7 +120,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
   return (
     <div
-      className={`flex items-center h-full whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
+      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -136,11 +136,11 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
     >
-      <SvgMask src={fileIcon.fileIcon()} className="size-icon m-name-column-icon" />
+      <SvgMask src={fileIcon.fileIcon()} className="m-name-column-icon size-icon" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={false}
-        className="bg-transparent grow text"
+        className="text grow bg-transparent"
         checkSubmittable={newTitle =>
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>

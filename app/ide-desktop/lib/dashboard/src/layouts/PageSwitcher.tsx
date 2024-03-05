@@ -52,7 +52,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
   const { page, setPage, isEditorDisabled } = props
   return (
     <div
-      className={`cursor-default pointer-events-auto flex items-center rounded-full shrink-0 gap-pages px-page-switcher-x ${
+      className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
         page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
       }`}
     >

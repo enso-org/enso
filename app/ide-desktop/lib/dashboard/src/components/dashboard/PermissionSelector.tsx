@@ -94,7 +94,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                   setTheChild(null)
                 }}
               >
-                <div style={{ clipPath }} className="absolute bg-dim size-full" />
+                <div style={{ clipPath }} className="absolute size-full bg-dim" />
                 <PermissionTypeSelector
                   showDelete={showDelete}
                   type={permission.type}
@@ -128,14 +128,14 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       permissionDisplay = (
-        <div className="flex gap-px w-permission-display">
+        <div className="flex w-permission-display gap-px">
           <button
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
             className={`selectable ${!disabled || !input ? 'active' : ''} ${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } grow rounded-l-full h-text px-permission-mini-button-x py-permission-mini-button-y`}
+            } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={doShowPermissionTypeSelector}
           >
             {permission.type}
@@ -146,7 +146,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(disabled && error != null ? { title: error } : {})}
             className={`selectable ${permission.docs && (!disabled || !input) ? 'active' : ''} ${
               permissionsModule.DOCS_CLASS_NAME
-            } grow h-text px-permission-mini-button-x py-permission-mini-button-y`}
+            } h-text grow px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={event => {
               event.stopPropagation()
               setAction(
@@ -166,7 +166,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             {...(disabled && error != null ? { title: error } : {})}
             className={`selectable ${permission.execute && (!disabled || !input) ? 'active' : ''} ${
               permissionsModule.EXEC_CLASS_NAME
-            } grow rounded-r-full h-text px-permission-mini-button-x py-permission-mini-button-y`}
+            } h-text grow rounded-r-full px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={event => {
               event.stopPropagation()
               setAction(
@@ -192,7 +192,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           {...(disabled && error != null ? { title: error } : {})}
           className={`selectable ${!disabled || !input ? 'active' : ''} ${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } rounded-full h-text w-permission-display`}
+          } h-text w-permission-display rounded-full`}
           onClick={doShowPermissionTypeSelector}
         >
           {permission.type}

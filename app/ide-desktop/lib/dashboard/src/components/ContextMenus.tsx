@@ -24,7 +24,7 @@ export default function ContextMenus(props: ContextMenusProps) {
     <>{children}</>
   ) : (
     <Modal
-      className="absolute overflow-hidden bg-dim size-full"
+      className="absolute size-full overflow-hidden bg-dim"
       onContextMenu={innerEvent => {
         innerEvent.preventDefault()
       }}
@@ -32,7 +32,7 @@ export default function ContextMenus(props: ContextMenusProps) {
       <div
         data-testid="context-menus"
         style={{ left: event.pageX, top: event.pageY }}
-        className={`sticky flex pointer-events-none items-start gap-context-menus w-min ${
+        className={`pointer-events-none sticky flex w-min items-start gap-context-menus ${
           detect.isOnMacOS()
             ? '-translate-x-context-menu-macos-half-x'
             : '-translate-x-context-menu-half-x'

@@ -19,7 +19,7 @@ export default function ContextMenu(props: ContextMenuProps) {
   return hidden ? (
     <>{children}</>
   ) : (
-    <div className="relative rounded-default pointer-events-auto before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full">
+    <div className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default">
       <div
         className={`relative flex flex-col rounded-default ${
           detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu'

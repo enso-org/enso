@@ -85,12 +85,12 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
   return (
     <div
       style={style}
-      className="sticky pointer-events-auto w-min rounded-permission-type-selector before:absolute before:bg-selected-frame before:rounded-permission-type-selector before:backdrop-blur-default before:w-full before:h-full"
+      className="pointer-events-auto sticky w-min rounded-permission-type-selector before:absolute before:h-full before:w-full before:rounded-permission-type-selector before:bg-selected-frame before:backdrop-blur-default"
       onClick={event => {
         event.stopPropagation()
       }}
     >
-      <div className="group relative flex flex-col w-permission-type-selector p-permission-type-selector">
+      <div className="group relative flex w-permission-type-selector flex-col p-permission-type-selector">
         {PERMISSION_TYPE_DATA.filter(
           data =>
             (showDelete ? true : data.type !== permissions.Permission.delete) &&
@@ -101,15 +101,15 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
           <button
             key={data.type}
             type="button"
-            className={`flex items-start rounded-full gap-permission-type-button h-row p-permission-type-button hover:bg-black/5 ${
-              type === data.type ? 'bg-black/5 group-hover:bg-transparent hover:!bg-black/5' : ''
+            className={`flex h-row items-start gap-permission-type-button rounded-full p-permission-type-button hover:bg-black/5 ${
+              type === data.type ? 'bg-black/5 hover:!bg-black/5 group-hover:bg-transparent' : ''
             }`}
             onClick={() => {
               onChange(data.type)
             }}
           >
             <div
-              className={`rounded-full w-permission-type h-full py-permission-type-y ${
+              className={`h-full w-permission-type rounded-full py-permission-type-y ${
                 permissions.PERMISSION_CLASS_NAME[data.type]
               }`}
             >
@@ -119,7 +119,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
             {data.previous != null && (
               <>
                 <div
-                  className={`text-center rounded-full w-permission-type h-full py-permission-type-y ${
+                  className={`h-full w-permission-type rounded-full py-permission-type-y text-center ${
                     permissions.PERMISSION_CLASS_NAME[data.previous]
                   }`}
                 >

@@ -26,7 +26,7 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
           ? 'Sort by modification date descending'
           : 'Stop sorting by modification date'
       }
-      className="group flex items-center cursor-pointer gap-icon-with-text w-full h-drive-table-heading"
+      className="group flex h-drive-table-heading w-full cursor-pointer items-center gap-icon-with-text"
       onClick={event => {
         event.stopPropagation()
         if (sortColumn === columnUtils.Column.modified) {

@@ -22,7 +22,7 @@ export default function Link(props: LinkProps) {
   return (
     <router.Link
       to={to}
-      className="flex gap-auth-link items-center font-bold text-blue-500 hover:text-blue-700 focus:text-blue-700 text-xs text-center transition-all duration-auth"
+      className="flex items-center gap-auth-link text-center text-xs font-bold text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
     >
       <SvgMask src={icon} />
       {text}

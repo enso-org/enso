@@ -75,7 +75,7 @@ export default function DragModal(props: DragModalProps) {
   ])
 
   return (
-    <Modal className="absolute overflow-hidden pointer-events-none size-full">
+    <Modal className="pointer-events-none absolute size-full overflow-hidden">
       <div
         {...passthrough}
         style={{ left, top, ...style }}

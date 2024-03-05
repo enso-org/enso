@@ -54,7 +54,7 @@ export default function Spinner(props: SpinnerProps) {
         strokeLinecap="round"
         strokeWidth={3}
         className={
-          'animate-spin-ease origin-center transition-stroke-dasharray ' +
+          'origin-center animate-spin-ease transition-stroke-dasharray ' +
           `pointer-events-none ${SPINNER_CSS_CLASSES[state]}`
         }
       />

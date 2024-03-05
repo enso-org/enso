@@ -118,7 +118,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
 
   return (
     <div
-      className={`flex items-center h-full whitespace-nowrap rounded-l-full gap-name-column-icon px-name-column-x py-name-column-y min-w-max ${indent.indentClass(
+      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -137,7 +137,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         }
       }}
     >
-      <img src={ConnectorIcon} className="size-icon m-name-column-icon" />
+      <img src={ConnectorIcon} className="m-name-column-icon size-icon" />
       <EditableSpan
         editable={false}
         onSubmit={async newTitle => {
@@ -155,7 +155,7 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
         onCancel={() => {
           setRowState(object.merger({ isEditingName: false }))
         }}
-        className="bg-transparent grow text"
+        className="text grow bg-transparent"
       >
         {asset.title}
       </EditableSpan>

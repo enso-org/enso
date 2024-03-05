@@ -39,7 +39,7 @@ export default function SvgMask(props: SvgMaskProps) {
         WebkitMask: urlSrc,
       }}
       className={`inline-block ${onClick != null ? 'cursor-pointer' : ''} ${
-        className ?? 'w-max h-max'
+        className ?? 'h-max w-max'
       }`}
       onClick={onClick}
       onDragStart={event => {

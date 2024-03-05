@@ -56,7 +56,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           left: position.left + window.scrollX,
           top: position.top + window.scrollY,
         }}
-        className="relative flex flex-col gap-modal rounded-default pointer-events-auto w-new-label-modal p-modal-wide pt-modal before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-new-label-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -79,7 +79,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             autoFocus
             size={1}
             placeholder="Enter the name of the label"
-            className={`text grow bg-transparent border border-black/10 rounded-full px-input-x ${
+            className={`text grow rounded-full border border-black/10 bg-transparent px-input-x ${
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers
               color != null && color.lightness <= 50
                 ? 'text-tag-text placeholder-selected-frame'
@@ -109,7 +109,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           </div>
         </label>
         <div className="relative flex gap-buttons">
-          <button disabled={!canSubmit} type="submit" className="button text-white bg-invite">
+          <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
             Create
           </button>
           <button type="button" className="button bg-selected-frame" onClick={unsetModal}>

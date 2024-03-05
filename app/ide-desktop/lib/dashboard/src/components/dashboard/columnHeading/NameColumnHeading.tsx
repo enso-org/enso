@@ -24,7 +24,7 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
           ? 'Sort by name descending'
           : 'Stop sorting by name'
       }
-      className="group flex items-center gap-icon-with-text px-name-column-x w-full h-drive-table-heading"
+      className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
       onClick={event => {
         event.stopPropagation()
         if (sortColumn === columnUtils.Column.name) {

@@ -79,7 +79,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
       ))}
       {managesThisAsset && (
         <button
-          className="shrink-0 invisible group-hover:visible"
+          className="invisible shrink-0 group-hover:visible"
           onClick={event => {
             event.stopPropagation()
             setModal(

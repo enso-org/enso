@@ -51,7 +51,7 @@ export default function Label(props: InternalLabelProps) {
       disabled={disabled}
       className={`selectable ${
         active ? 'active' : ''
-      } relative flex items-center rounded-full whitespace-nowrap h-text px-label-x transition-all before:absolute before:rounded-full before:inset ${
+      } relative flex h-text items-center whitespace-nowrap rounded-full px-label-x transition-all before:absolute before:inset before:rounded-full ${
         negated ? 'before:border-2 before:border-delete' : ''
       } ${className} ${textColorClassName}`}
       style={{ backgroundColor: backend.lChColorToCssColor(color) }}

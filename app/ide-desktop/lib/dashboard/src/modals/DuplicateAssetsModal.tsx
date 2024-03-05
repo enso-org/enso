@@ -195,7 +195,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
       <form
         data-testid="new-label-modal"
         tabIndex={-1}
-        className="relative flex flex-col gap-modal rounded-default pointer-events-auto w-duplicate-assets-modal p-modal-wide pt-modal before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-duplicate-assets-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -225,7 +225,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             <button
               disabled={didUploadNonConflicting}
               type="button"
-              className="selectable enabled:active button relative self-start bg-selected-frame rounded-full"
+              className="selectable enabled:active button relative self-start rounded-full bg-selected-frame"
               onClick={() => {
                 doUploadNonConflicting()
                 setDidUploadNonConflicting(true)
@@ -300,7 +300,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         <div className="relative flex gap-icons">
           <button
             type="button"
-            className="button text-white bg-invite"
+            className="button bg-invite text-white"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -311,7 +311,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           </button>
           <button
             type="button"
-            className="button text-white bg-invite"
+            className="button bg-invite text-white"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()

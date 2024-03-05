@@ -47,9 +47,9 @@ export default function Labels(props: LabelsProps) {
   return (
     <div
       data-testid="labels"
-      className="flex flex-col items-start gap-sidebar-section-heading w-full"
+      className="flex w-full flex-col items-start gap-sidebar-section-heading"
     >
-      <div className="text-header font-bold text-sm px-sidebar-section-heading-x">Labels</div>
+      <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Labels</div>
       <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
         {labels
           .filter(label => !deletedLabelNames.has(label.value))
@@ -111,7 +111,7 @@ export default function Labels(props: LabelsProps) {
                     <SvgMask
                       src={Trash2Icon}
                       alt="Delete"
-                      className="transparent group-hover:active text-delete size-icon transition-all"
+                      className="transparent group-hover:active size-icon text-delete transition-all"
                     />
                   </button>
                 )}
@@ -136,7 +136,7 @@ export default function Labels(props: LabelsProps) {
           >
             {/* This is a non-standard-sized icon. */}
             {/* eslint-disable-next-line no-restricted-syntax */}
-            <img src={PlusIcon} className="size-[6px] mr-[6px]" />
+            <img src={PlusIcon} className="mr-[6px] size-[6px]" />
             <span className="text-header">new label</span>
           </Label>
         </li>

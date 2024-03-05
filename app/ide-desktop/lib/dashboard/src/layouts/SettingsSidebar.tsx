@@ -101,7 +101,7 @@ export interface SettingsSidebarProps {
 export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { settingsTab, setSettingsTab } = props
   return (
-    <div className="flex flex-col gap-settings-sidebar w-settings-sidebar overflow-y-auto shrink-0">
+    <div className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto">
       {SECTIONS.flatMap(section => {
         const tabs = section.tabs.filter(tab => tab.visible)
         return tabs.length === 0
@@ -111,16 +111,16 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                 key={section.name}
                 className="flex flex-col items-start gap-sidebar-section-heading"
               >
-                <h2 className="text-sm font-bold h-text leading-cozy px-sidebar-section-heading-x py-sidebar-section-heading-y">
+                <h2 className="h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy">
                   {section.name}
                 </h2>
                 <ul className="flex flex-col items-start">
                   {tabs.map(tab => (
                     <li
                       key={tab.settingsTab}
-                      className={`flex items-center gap-icon-with-text h-row px-button-x rounded-full hover:text-primary hover:bg-selected-frame transition-colors ${
+                      className={`flex h-row items-center gap-icon-with-text rounded-full px-button-x transition-colors hover:bg-selected-frame hover:text-primary ${
                         tab.settingsTab === settingsTab
-                          ? 'text-primary bg-selected-frame'
+                          ? 'bg-selected-frame text-primary'
                           : 'cursor-pointer text-not-selected'
                       }`}
                       onClick={() => {

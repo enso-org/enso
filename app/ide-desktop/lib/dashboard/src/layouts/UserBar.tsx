@@ -60,7 +60,7 @@ export default function UserBar(props: UserBarProps) {
 
   return (
     <div
-      className={`flex shrink-0 items-center bg-frame backdrop-blur-default rounded-full gap-user-bar h-row px-icons-x pr-profile-picture cursor-default pointer-events-auto ${
+      className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default ${
         shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''
       }`}
     >
@@ -73,7 +73,7 @@ export default function UserBar(props: UserBarProps) {
       />
       {shouldShowInviteButton && (
         <button
-          className="text my-auto text-inversed bg-share rounded-full px-button-x"
+          className="text my-auto rounded-full bg-share px-button-x text-inversed"
           onClick={event => {
             event.stopPropagation()
             setModal(<InviteUsersModal eventTarget={null} />)
@@ -84,7 +84,7 @@ export default function UserBar(props: UserBarProps) {
       )}
       {shouldShowShareButton && (
         <button
-          className="text my-auto text-inversed bg-share rounded-full px-button-x"
+          className="text my-auto rounded-full bg-share px-button-x text-inversed"
           onClick={event => {
             event.stopPropagation()
             setModal(
@@ -102,7 +102,7 @@ export default function UserBar(props: UserBarProps) {
         </button>
       )}
       <button
-        className="flex items-center select-none rounded-full overflow-clip size-profile-picture"
+        className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
         onClick={event => {
           event.stopPropagation()
           updateModal(oldModal =>

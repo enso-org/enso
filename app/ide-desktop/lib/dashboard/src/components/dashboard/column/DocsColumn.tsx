@@ -7,7 +7,7 @@ import type * as column from '#/components/dashboard/column'
 export default function DocsColumn(props: column.AssetColumnProps) {
   const { item } = props
   return (
-    <div className="flex items-center gap-column-items whitespace-nowrap overflow-hidden max-w-drive-docs-column">
+    <div className="flex max-w-drive-docs-column items-center gap-column-items overflow-hidden whitespace-nowrap">
       {item.item.description}
     </div>
   )

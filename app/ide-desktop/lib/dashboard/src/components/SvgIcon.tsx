@@ -20,7 +20,7 @@ export default function SvgIcon(props: SvgIconProps) {
   const { src, className = '', positionClassName = 'top left', onClick } = props
   return (
     <div
-      className={`inline-flex items-center justify-center absolute h-full w-auth-icon-container text-gray-400 ${className} ${positionClassName}`}
+      className={`absolute inline-flex h-full w-auth-icon-container items-center justify-center text-gray-400 ${className} ${positionClassName}`}
       onClick={onClick}
     >
       <SvgMask src={src} />

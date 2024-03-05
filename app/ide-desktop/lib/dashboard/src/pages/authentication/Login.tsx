@@ -44,9 +44,9 @@ export default function Login(props: LoginProps) {
   const shouldReportValidityRef = React.useRef(true)
 
   return (
-    <div className="flex flex-col gap-auth text-primary text-sm items-center justify-center min-h-screen">
-      <div className="flex flex-col gap-auth bg-selected-frame rounded-auth shadow-md p-auth w-full max-w-md">
-        <div className="font-medium self-center text-xl">Login to your account</div>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
+      <div className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md">
+        <div className="self-center text-xl font-medium">Login to your account</div>
         <div className="flex flex-col gap-auth">
           <button
             onMouseDown={() => {
@@ -56,7 +56,7 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGoogle()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-auth py-auth-input-y"
+            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
             Sign up or login with Google
@@ -69,7 +69,7 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGitHub()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-auth py-auth-input-y"
+            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
           >
             <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
             Sign up or login with GitHub
@@ -113,7 +113,7 @@ export default function Login(props: LoginProps) {
             />
             <router.Link
               to={appUtils.FORGOT_PASSWORD_PATH}
-              className="text-xs text-blue-500 hover:text-blue-700 focus:text-blue-700 transition-all duration-auth text-end"
+              className="text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
             >
               Forgot Your Password?
             </router.Link>

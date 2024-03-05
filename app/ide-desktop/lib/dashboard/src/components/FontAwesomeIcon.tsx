@@ -17,7 +17,7 @@ export interface FontAwesomeIconProps {
 export default function FontAwesomeIcon(props: FontAwesomeIconProps) {
   return (
     <fontawesome.FontAwesomeIcon
-      className="absolute top left text-blue-500 px-font-awesome-icon-x h-full w-icon"
+      className="absolute left top h-full w-icon px-font-awesome-icon-x text-blue-500"
       icon={props.icon}
     />
   )

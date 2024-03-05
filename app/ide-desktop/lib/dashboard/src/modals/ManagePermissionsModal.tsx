@@ -227,7 +227,7 @@ export default function ManagePermissionsModal<
     return (
       <Modal
         centered={eventTarget == null}
-        className="absolute overflow-hidden bg-dim size-full top left"
+        className="absolute left top size-full overflow-hidden bg-dim"
       >
         <div
           tabIndex={-1}
@@ -239,7 +239,7 @@ export default function ManagePermissionsModal<
                 }
               : {}
           }
-          className="sticky w-manage-permissions-modal rounded-default before:absolute before:bg-selected-frame before:backdrop-blur-default before:rounded-default before:w-full before:h-full"
+          className="sticky w-manage-permissions-modal rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
           onClick={mouseEvent => {
             mouseEvent.stopPropagation()
           }}
@@ -253,8 +253,8 @@ export default function ManagePermissionsModal<
             }
           }}
         >
-          <div className="relative flex flex-col rounded-default gap-modal p-modal">
-            <div className="flex items-center h-row gap-modal-tabs px-modal-tab-bar-x">
+          <div className="relative flex flex-col gap-modal rounded-default p-modal">
+            <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
               <h2 className="text text-sm font-bold">Invite</h2>
               {/* Space reserved for other tabs. */}
             </div>
@@ -265,7 +265,7 @@ export default function ManagePermissionsModal<
                 void doSubmit()
               }}
             >
-              <div className="flex items-center grow rounded-full border border-black/10 gap-user-permission px-manage-permissions-modal-input">
+              <div className="flex grow items-center gap-user-permission rounded-full border border-black/10 px-manage-permissions-modal-input">
                 <PermissionSelector
                   input
                   disabled={willInviteNewUser}
@@ -275,7 +275,7 @@ export default function ManagePermissionsModal<
                   assetType={item.type}
                   onChange={setAction}
                 />
-                <div className="grow -mx-button-px">
+                <div className="-mx-button-px grow">
                   <Autocomplete
                     multiple
                     autoFocus
@@ -308,16 +308,16 @@ export default function ManagePermissionsModal<
                     : users.length === 0 ||
                       (email != null && emailsOfUsersWithPermission.has(email))
                 }
-                className="selectable enabled:active button text-tag-text bg-invite px-button-x"
+                className="selectable enabled:active button bg-invite px-button-x text-tag-text"
               >
                 <div className="h-text py-modal-invite-button-text-y">
                   {willInviteNewUser ? 'Invite' : 'Share'}
                 </div>
               </button>
             </form>
-            <div className="overflow-auto px-manage-permissions-modal-input max-h-manage-permissions-modal-permissions-list">
+            <div className="max-h-manage-permissions-modal-permissions-list overflow-auto px-manage-permissions-modal-input">
               {editablePermissions.map(userPermission => (
-                <div key={userPermission.user.pk} className="flex items-center h-row">
+                <div key={userPermission.user.pk} className="flex h-row items-center">
                   <UserPermission
                     asset={item}
                     self={self}

@@ -30,7 +30,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
           disabled={!onClick}
           className={`${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } inline-block rounded-full whitespace-nowrap h-text px-permission-mini-button-x py-permission-mini-button-y ${
+          } inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y ${
             className ?? ''
           }`}
           onClick={onClick}
@@ -45,21 +45,21 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.view: {
       return (
         <button
-          className={`relative inline-block rounded-full whitespace-nowrap ${className ?? ''}`}
+          className={`relative inline-block whitespace-nowrap rounded-full ${className ?? ''}`}
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
         >
           {permission.docs && (
-            <div className="border-permission-docs clip-path-top border-2 rounded-full absolute size-full" />
+            <div className="clip-path-top absolute size-full rounded-full border-2 border-permission-docs" />
           )}
           {permission.execute && (
-            <div className="border-permission-exec clip-path-bottom border-2 rounded-full absolute size-full" />
+            <div className="clip-path-bottom absolute size-full rounded-full border-2 border-permission-exec" />
           )}
           <div
             className={`${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } rounded-full h-text px-permission-mini-button-x py-permission-mini-button-y m-permission-with-border`}
+            } m-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y`}
           >
             {children}
           </div>

@@ -39,7 +39,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col items-center gap-modal rounded-default w-confirm-delete-user-modal p-modal-wide pt-modal pointer-events-auto before:absolute before:inset before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-confirm-delete-user-modal flex-col items-center gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -53,9 +53,9 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           void onSubmit()
         }}
       >
-        <h3 className="relative font-bold text-xl h-heading py-heading">Are you sure?</h3>
+        <h3 className="py-heading relative h-heading text-xl font-bold">Are you sure?</h3>
         <span className="relative">Once deleted, this user account will be gone forever.</span>
-        <button type="submit" className="relative button bg-danger text-inversed">
+        <button type="submit" className="button relative bg-danger text-inversed">
           <span className="text">I confirm that I want to delete this user account.</span>
         </button>
       </form>

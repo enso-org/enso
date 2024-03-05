@@ -41,13 +41,13 @@ function Email(props: InternalEmailProps) {
     <div
       // This UI element does not appear anywhere else.
       // eslint-disable-next-line no-restricted-syntax
-      className={`inline-flex gap-0.5 items-center rounded-full py-0.5 px-1 m-0.5 ${
+      className={`m-0.5 inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 ${
         isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
       }`}
     >
       {email}{' '}
       <img
-        className="rounded-full cursor-pointer hover:brightness-50"
+        className="cursor-pointer rounded-full hover:brightness-50"
         src={CrossIcon}
         onClick={doDelete}
       />
@@ -111,7 +111,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   return (
     <Modal
       centered={eventTarget == null}
-      className="absolute overflow-hidden bg-dim size-full top left"
+      className="absolute left top size-full overflow-hidden bg-dim"
     >
       <div
         tabIndex={-1}
@@ -120,7 +120,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
             : {}
         }
-        className="sticky w-invite-users-modal rounded-default before:absolute before:bg-selected-frame before:backdrop-blur-default before:rounded-default before:w-full before:h-full"
+        className="sticky w-invite-users-modal rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onClick={mouseEvent => {
           mouseEvent.stopPropagation()
         }}
@@ -134,7 +134,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
           }
         }}
       >
-        <div className="relative flex flex-col rounded-default gap-modal p-modal-wide pt-modal">
+        <div className="relative flex flex-col gap-modal rounded-default p-modal-wide pt-modal">
           <h2 className="text text-sm font-bold">Invite</h2>
           <form
             className="grow"
@@ -167,7 +167,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
                 autoFocus
                 type="text"
                 placeholder="Type email to invite"
-                className="text bg-transparent max-w-full"
+                className="text max-w-full bg-transparent"
                 value={email}
                 onKeyDown={event => {
                   if (
@@ -200,7 +200,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             <button
               type="submit"
               disabled={!canSubmit}
-              className="button text-tag-text bg-invite"
+              className="button bg-invite text-tag-text"
               onClick={doSubmit}
             >
               Invite

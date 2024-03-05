@@ -112,7 +112,7 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="absolute flex flex-col h-full border-black/[0.12] border-l-2 gap-asset-panel w-asset-panel p-top-bar-margin pl-asset-panel-l"
+      className="absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
@@ -122,7 +122,7 @@ export default function AssetPanel(props: AssetPanelProps) {
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
             <button
-              className={`rounded-full leading-cozy px-button-x select-none bg-frame hover:bg-selected-frame transition-colors ${
+              className={`select-none rounded-full bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
                 tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame'
               }`}
               onClick={() => {
@@ -154,7 +154,7 @@ export default function AssetPanel(props: AssetPanelProps) {
         </div>
       </div>
       {item == null || setItem == null ? (
-        <div className="grow grid place-items-center text-lg">
+        <div className="grid grow place-items-center text-lg">
           Select exactly one asset to view its details.
         </div>
       ) : (

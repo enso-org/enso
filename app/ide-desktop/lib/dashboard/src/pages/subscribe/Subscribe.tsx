@@ -114,16 +114,16 @@ export default function Subscribe() {
   }, [sessionId])
 
   return (
-    <Modal centered className="bg-hover-bg text-primary text-xs">
+    <Modal centered className="bg-hover-bg text-xs text-primary">
       <div
         data-testid="subscribe-modal"
-        className="flex flex-col gap-modal bg-selected-frame backdrop-blur-default rounded-default p-auth w-full max-w-md max-h-screen"
+        className="flex max-h-screen w-full max-w-md flex-col gap-modal rounded-default bg-selected-frame p-auth backdrop-blur-default"
         onClick={event => {
           event.stopPropagation()
         }}
       >
         <div className="self-center text-xl">Upgrade to {string.capitalizeFirst(plan)}</div>
-        <div className="flex items-stretch rounded-full bg-gray-500/30 text-base h-row">
+        <div className="flex h-row items-stretch rounded-full bg-gray-500/30 text-base">
           {backendModule.PLANS.map(newPlan => (
             <button
               key={newPlan}

@@ -102,7 +102,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     <div
       ref={rootRef}
       tabIndex={0}
-      className={`group relative flex flex-col w-max items-center rounded-input cursor-pointer leading-cozy whitespace-nowrap ${
+      className={`group relative flex w-max cursor-pointer flex-col items-center whitespace-nowrap rounded-input leading-cozy ${
         className ?? ''
       }`}
       onFocus={event => {
@@ -118,25 +118,25 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
       onKeyDown={onKeyDown}
     >
       <div
-        className={`absolute left w-max h-full ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
+        className={`absolute left h-full w-max ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
       >
         <div
-          className={`relative before:absolute before:border before:border-black/10 before:rounded-input before:backdrop-blur-default before:top before:w-full before:transition-colors ${
+          className={`relative before:absolute before:top before:w-full before:rounded-input before:border before:border-black/10 before:backdrop-blur-default before:transition-colors ${
             isDropdownVisible
-              ? 'before:bg-frame before:h-full before:shadow-soft'
+              ? 'before:h-full before:bg-frame before:shadow-soft'
               : 'before:h-text group-hover:before:bg-frame'
           }`}
         >
           {/* Spacing. */}
-          <div className="relative padding h-text" />
+          <div className="padding relative h-text" />
           <div
-            className={`relative grid rounded-input w-full max-h-dropdown-items overflow-auto transition-grid-template-rows ${
+            className={`relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows ${
               isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
             }`}
           >
             {items.map((item, i) => (
               <div
-                className={`flex gap-dropdown-arrow rounded-input px-input-x h-text transition-colors ${
+                className={`flex h-text gap-dropdown-arrow rounded-input px-input-x transition-colors ${
                   i === visuallySelectedIndex
                     ? 'cursor-default bg-frame font-bold'
                     : 'hover:bg-selected-frame'
@@ -170,7 +170,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         </div>
       </div>
       <div
-        className={`relative flex gap-dropdown-arrow items-center h-text px-input-x ${
+        className={`relative flex h-text items-center gap-dropdown-arrow px-input-x ${
           // This style is conditionally applied so that closed dropdowns do not draw over the
           // currently opened dropdown.
           isDropdownVisible ? 'z-1' : ''

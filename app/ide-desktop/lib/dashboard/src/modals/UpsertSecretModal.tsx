@@ -46,7 +46,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       <form
         data-testid="upsert-secret-modal"
         tabIndex={-1}
-        className="relative flex flex-col gap-modal rounded-default w-upsert-secret-modal p-modal-wide pt-modal pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-upsert-secret-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -69,7 +69,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             autoFocus
             disabled={!isNameEditable}
             placeholder="Enter the name of the secret"
-            className="selectable enabled:active text grow bg-transparent border border-black/10 rounded-full px-input-x"
+            className="selectable enabled:active text grow rounded-full border border-black/10 bg-transparent px-input-x"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
@@ -81,14 +81,14 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           <input
             autoFocus={!isNameEditable}
             placeholder="Enter the value of the secret"
-            className="text grow bg-transparent border border-black/10 rounded-full px-input-x"
+            className="text grow rounded-full border border-black/10 bg-transparent px-input-x"
             onInput={event => {
               setValue(event.currentTarget.value)
             }}
           />
         </label>
         <div className="relative flex gap-buttons">
-          <button disabled={!canSubmit} type="submit" className="button text-white bg-invite">
+          <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
             {isCreatingSecret ? 'Create' : 'Update'}
           </button>
           <button type="button" className="button bg-selected-frame" onClick={unsetModal}>

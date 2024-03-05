@@ -37,25 +37,25 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   } else {
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top right backdrop-blur-default h-screen shadow-soft w-chat py-chat-y z-3 transition-transform ${
+        className={`fixed right top z-3 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${
           detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >
-        <div className="flex text-sm font-semibold mx-chat-header-x mt-chat-header-t">
+        <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
           <div className="grow" />
           <button className="mx-close-icon" onClick={doClose}>
             <img src={CloseLargeIcon} />
           </button>
         </div>
-        <div className="grow grid place-items-center">
-          <div className="flex flex-col text-base text-center gap-status-page">
+        <div className="grid grow place-items-center">
+          <div className="flex flex-col gap-status-page text-center text-base">
             <div>
               Login or register to access live chat
               <br />
               with our support team.
             </div>
             <button
-              className="button text-white bg-help self-center"
+              className="button self-center bg-help text-white"
               onClick={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
@@ -63,7 +63,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
               Login
             </button>
             <button
-              className="button text-white bg-help self-center"
+              className="button self-center bg-help text-white"
               onClick={() => {
                 navigate(appUtils.REGISTRATION_PATH)
               }}

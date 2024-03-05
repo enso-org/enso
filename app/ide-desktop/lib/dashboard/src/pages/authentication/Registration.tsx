@@ -66,9 +66,9 @@ export default function Registration() {
   }, [localStorage, redirectTo])
 
   return (
-    <div className="flex flex-col gap-auth text-primary text-sm items-center justify-center min-h-screen">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
       <form
-        className="flex flex-col gap-auth bg-selected-frame rounded-auth shadow-md p-auth w-full max-w-md"
+        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
         onSubmit={async event => {
           event.preventDefault()
           setIsSubmitting(true)
@@ -76,7 +76,7 @@ export default function Registration() {
           setIsSubmitting(false)
         }}
       >
-        <div className="font-medium self-center text-auth-heading">Create a new account</div>
+        <div className="self-center text-auth-heading font-medium">Create a new account</div>
         <Input
           required
           validate

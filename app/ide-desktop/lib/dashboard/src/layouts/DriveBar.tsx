@@ -74,13 +74,13 @@ export default function DriveBar(props: DriveBarProps) {
 
   const newProjectButton = (
     <button
-      className="flex items-center bg-frame rounded-full h-row px-new-project-button-x"
+      className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
       onClick={() => {
         unsetModal()
         doCreateProject()
       }}
     >
-      <span className="text font-semibold whitespace-nowrap">New Project</span>
+      <span className="text whitespace-nowrap font-semibold">New Project</span>
     </button>
   )
 
@@ -106,7 +106,7 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex h-row py-drive-bar-y">
           <div className="flex gap-drive-bar">
             {newProjectButton}
-            <div className="flex items-center text-black/50 bg-frame rounded-full gap-icons h-row px-drive-bar-icons-x">
+            <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
               {isCloud && (
                 <Button
                   active

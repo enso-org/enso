@@ -50,7 +50,7 @@ export default function UserPermission(props: UserPermissionProps) {
   }
 
   return (
-    <div className="flex gap-user-permission items-center">
+    <div className="flex items-center gap-user-permission">
       <PermissionSelector
         showDelete
         disabled={isOnlyOwner && userPermission.user.pk === self.user.pk}

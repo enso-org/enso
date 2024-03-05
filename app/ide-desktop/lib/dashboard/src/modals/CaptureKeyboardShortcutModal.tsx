@@ -64,7 +64,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col items-center gap-modal rounded-default w-capture-keyboard-shortcut-modal p-modal pointer-events-auto before:absolute before:inset before:rounded-default before:bg-selected-frame before:backdrop-blur-3xl before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-capture-keyboard-shortcut-modal flex-col items-center gap-modal rounded-default p-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-3xl"
         onKeyDown={event => {
           if (event.key === 'Escape' && key === 'Escape') {
             // Ignore.
@@ -114,8 +114,8 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         <span className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
         </span>
-        <div className="relative flex self-start gap-buttons">
-          <button disabled={!canSubmit} type="submit" className="button text-white bg-invite">
+        <div className="relative flex gap-buttons self-start">
+          <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
             Confirm
           </button>
           <button type="button" className="button bg-selected-frame" onClick={unsetModal}>

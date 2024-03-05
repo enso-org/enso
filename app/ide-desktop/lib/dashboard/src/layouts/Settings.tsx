@@ -74,12 +74,12 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex flex-col flex-1 gap-settings-header overflow-hidden px-page-x">
-      <div className="flex font-bold text-xl h-heading px-heading-x">
+    <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
+      <div className="flex h-heading px-heading-x text-xl font-bold">
         <span className="py-heading-y">Settings for </span>
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
-        <div className="rounded-full leading-snug bg-frame h-[2.25rem] ml-[0.625rem] px-[0.5625rem] pt-[0.125rem] pb-[0.3125rem]">
+        <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
           {settingsTab !== SettingsTab.organization
             ? user?.name ?? 'your account'
             : organization.organization_name ?? 'your organization'}

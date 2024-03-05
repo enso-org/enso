@@ -2178,7 +2178,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const itemRows = isLoading ? (
     <tr className="h-row">
       <td colSpan={columns.length} className="bg-transparent">
-        <div className="grid justify-around w-container">
+        <div className="grid w-container justify-around">
           <Spinner size={LOADING_SPINNER_SIZE_PX} state={spinnerState} />
         </div>
       </td>
@@ -2350,7 +2350,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const table = (
     <div
-      className="grow flex flex-col"
+      className="flex grow flex-col"
       onContextMenu={event => {
         event.preventDefault()
         event.stopPropagation()
@@ -2389,7 +2389,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         <thead>{headerRow}</thead>
         <tbody ref={bodyRef}>
           {itemRows}
-          <tr className="h-row hidden first:table-row">
+          <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
               {placeholder}
             </td>
@@ -2440,10 +2440,10 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="flex flex-col w-min min-w-full min-h-full">
+      <div className="flex min-h-full w-min min-w-full flex-col">
         {isCloud && (
-          <div className="sticky top h flex flex-col">
-            <div className="flex sticky right self-end px-extra-columns-panel-x py-extra-columns-panel-y">
+          <div className="sticky top flex h flex-col">
+            <div className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y">
               <div className="inline-flex gap-icons">
                 {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
                   column => (

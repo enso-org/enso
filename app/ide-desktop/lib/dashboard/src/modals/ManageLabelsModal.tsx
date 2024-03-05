@@ -111,7 +111,7 @@ export default function ManageLabelsModal<
     return (
       <Modal
         centered={eventTarget == null}
-        className="absolute overflow-hidden bg-dim size-full top left z-1"
+        className="absolute left top z-1 size-full overflow-hidden bg-dim"
       >
         <div
           tabIndex={-1}
@@ -137,9 +137,9 @@ export default function ManageLabelsModal<
             }
           }}
         >
-          <div className="absolute bg-selected-frame backdrop-blur-default rounded-default h-full w-full" />
+          <div className="absolute h-full w-full rounded-default bg-selected-frame backdrop-blur-default" />
           <form
-            className="relative flex flex-col rounded-default gap-modal p-modal"
+            className="relative flex flex-col gap-modal rounded-default p-modal"
             onSubmit={async event => {
               event.preventDefault()
               setLabels(oldLabels => [...oldLabels, backendModule.LabelName(query)])
@@ -156,12 +156,12 @@ export default function ManageLabelsModal<
               }
             }}
           >
-            <div className="flex items-center h-row gap-modal-tabs px-modal-tab-bar-x">
+            <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
               <h2 className="text text-sm font-bold">Labels</h2>
             </div>
             <div className="flex gap-input-with-button">
               <div
-                className={`flex items-center grow rounded-full border border-black/10 px-input-x ${
+                className={`flex grow items-center rounded-full border border-black/10 px-input-x ${
                   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                   canSelectColor && color != null && color.lightness <= 50
                     ? 'text-tag-text placeholder-tag-text'
@@ -189,7 +189,7 @@ export default function ManageLabelsModal<
               <button
                 type="submit"
                 disabled={!canCreateNewLabel}
-                className="button text-tag-text bg-invite px-button-x"
+                className="button bg-invite px-button-x text-tag-text"
               >
                 <div className="h-text py-modal-invite-button-text-y">Create</div>
               </button>
@@ -199,11 +199,11 @@ export default function ManageLabelsModal<
                 <ColorPicker setColor={setColor} />
               </div>
             )}
-            <div className="overflow-auto max-h-manage-labels-list">
+            <div className="max-h-manage-labels-list overflow-auto">
               {Array.from(allLabels.values())
                 .filter(label => regex.test(label.value))
                 .map(label => (
-                  <div key={label.id} className="flex items-center h-row">
+                  <div key={label.id} className="flex h-row items-center">
                     <Label
                       active={labels.includes(label.value)}
                       color={label.color}

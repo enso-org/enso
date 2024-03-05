@@ -31,7 +31,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
         disabled={isCloud}
         className={`selectable ${
           isCloud ? 'active' : ''
-        } flex flex-col items-start first:rounded-l-full last:rounded-r-full px-selector-x py-selector-y w-backend-switcher-option text-primary bg-selected-frame disabled:text-cloud`}
+        } flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary first:rounded-l-full last:rounded-r-full disabled:text-cloud`}
         onClick={() => {
           setBackendType(backendModule.BackendType.remote)
         }}
@@ -45,7 +45,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
         disabled={!isCloud}
         className={`selectable ${
           !isCloud ? 'active' : ''
-        } flex flex-col items-start first:rounded-l-full last:rounded-r-full px-selector-x py-selector-y w-backend-switcher-option bg-selected-frame text-primary disabled:text-cloud`}
+        } flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary first:rounded-l-full last:rounded-r-full disabled:text-cloud`}
         onClick={() => {
           setBackendType(backendModule.BackendType.local)
         }}

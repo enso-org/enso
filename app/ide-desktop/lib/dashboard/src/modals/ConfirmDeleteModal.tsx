@@ -43,7 +43,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col gap-modal rounded-default w-confirm-delete-modal p-modal-wide py-modal pointer-events-auto before:absolute before:inset before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-confirm-delete-modal flex-col gap-modal rounded-default p-modal-wide py-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -61,7 +61,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
       >
         <div className="relative">Are you sure you want to {actionText}?</div>
         <div className="relative flex gap-buttons">
-          <button type="submit" className="button text-white bg-delete">
+          <button type="submit" className="button bg-delete text-white">
             {actionButtonLabel}
           </button>
           <button type="button" className="button bg-selected-frame" onClick={unsetModal}>

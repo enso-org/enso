@@ -40,7 +40,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   return (
     <Modal centered className="bg-dim">
       <form
-        className="relative flex flex-col gap-modal rounded-default w-upsert-data-link-modal p-modal-wide pt-modal pointer-events-auto before:inset before:absolute before:rounded-default before:bg-selected-frame before:backdrop-blur-default before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-upsert-data-link-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -61,7 +61,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           <input
             autoFocus
             placeholder="Enter the name of the Data Link"
-            className={`text grow bg-transparent border rounded-full px-input-x ${
+            className={`text grow rounded-full border bg-transparent px-input-x ${
               name !== '' ? 'border-black/10' : 'border-red-700/60'
             }`}
             value={name}
@@ -74,7 +74,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
         <div className="relative flex gap-buttons">
-          <button type="submit" disabled={!isSubmittable} className="button text-white bg-invite">
+          <button type="submit" disabled={!isSubmittable} className="button bg-invite text-white">
             Create
           </button>
           <button type="button" className="button active bg-selected-frame" onClick={unsetModal}>

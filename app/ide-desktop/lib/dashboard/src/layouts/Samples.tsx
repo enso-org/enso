@@ -112,17 +112,17 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
       <button
         // This UI element does not appear anywhere else.
         // eslint-disable-next-line no-restricted-syntax
-        className="relative h-sample cursor-pointer before:absolute before:inset before:bg-frame before:rounded-default before:w-full before:h-full before:opacity-60"
+        className="relative h-sample cursor-pointer before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-frame before:opacity-60"
         onClick={onClick}
       >
-        <div className="relative flex rounded-default size-full">
-          <div className="flex flex-col text-center items-center gap-new-empty-project m-auto">
+        <div className="relative flex size-full rounded-default">
+          <div className="m-auto flex flex-col items-center gap-new-empty-project text-center">
             {spinnerState != null ? (
               <Spinner size={SPINNER_SIZE_PX} padding={2} state={spinnerState} />
             ) : (
               <img src={ProjectIcon} />
             )}
-            <p className="font-semibold text-sm">New empty project</p>
+            <p className="text-sm font-semibold">New empty project</p>
           </div>
         </div>
       </button>
@@ -172,21 +172,21 @@ function ProjectTile(props: InternalProjectTileProps) {
     <div className="flex flex-col gap-sample">
       <button
         key={title}
-        className="relative flex flex-col grow cursor-pointer text-left h-sample"
+        className="relative flex h-sample grow cursor-pointer flex-col text-left"
         onClick={onClick}
       >
         <div
           style={{ background }}
-          className={`rounded-t-default w-full h-sample-image ${
+          className={`h-sample-image w-full rounded-t-default ${
             background != null ? '' : 'bg-frame'
           }`}
         />
-        <div className="grow bg-frame backdrop-blur rounded-b-default w-full px-sample-description-x pt-sample-description-t pb-sample-description-b">
+        <div className="w-full grow rounded-b-default bg-frame px-sample-description-x pb-sample-description-b pt-sample-description-t backdrop-blur">
           <h2 className="text-header text-sm font-bold">{title}</h2>
-          <div className="text-xs text-ellipsis leading-snug">{description}</div>
+          <div className="text-ellipsis text-xs leading-snug">{description}</div>
         </div>
         {spinnerState != null && (
-          <div className="absolute grid w-full h-sample-image place-items-center">
+          <div className="absolute grid h-sample-image w-full place-items-center">
             <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
           </div>
         )}
@@ -194,20 +194,20 @@ function ProjectTile(props: InternalProjectTileProps) {
       {/* Although this component is instantiated multiple times, it has a unique role and hence
        * its own opacity. */}
       {/* eslint-disable-next-line no-restricted-syntax */}
-      <div className="flex justify-between text-primary h-sample-info px-sample-description-x opacity-70">
+      <div className="flex h-sample-info justify-between px-sample-description-x text-primary opacity-70">
         <div className="flex gap-samples-icon-with-text">
           <SvgMask src={Logo} className="size-icon self-end" />
-          <span className="font-bold leading-snug self-start">{author}</span>
+          <span className="self-start font-bold leading-snug">{author}</span>
         </div>
         {/* Normally `flex` */}
-        <div className="gap-icons hidden">
+        <div className="hidden gap-icons">
           <div title="Views" className="flex gap-samples-icon-with-text">
             <SvgMask alt="Views" src={OpenCountIcon} className="size-icon self-end" />
-            <span className="font-bold leading-snug self-start">{opens}</span>
+            <span className="self-start font-bold leading-snug">{opens}</span>
           </div>
           <div title="Likes" className="flex gap-samples-icon-with-text">
             <SvgMask alt="Likes" src={HeartIcon} className="size-icon self-end" />
-            <span className="font-bold leading-snug self-start">{likes}</span>
+            <span className="self-start font-bold leading-snug">{likes}</span>
           </div>
         </div>
       </div>
@@ -234,7 +234,7 @@ export default function Samples(props: SamplesProps) {
   return (
     <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
       <h2 className="text-subheading">Sample and community projects</h2>
-      <div className="grid gap-samples grid-cols-fill-samples">
+      <div className="grid grid-cols-fill-samples gap-samples">
         <ProjectsEntry createProject={createProject} />
         {SAMPLES.map(sample => (
           <ProjectTile key={sample.id} sample={sample} createProject={createProject} />

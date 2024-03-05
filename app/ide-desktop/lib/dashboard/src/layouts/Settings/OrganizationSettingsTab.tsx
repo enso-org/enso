@@ -157,19 +157,19 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   }
 
   return (
-    <div className="flex flex-col lg:flex-row flex-0 gap-settings-section h lg:h-auto">
-      <div className="flex flex-col gap-settings-subsection w-settings-main-section">
+    <div className="flex-0 flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
+      <div className="flex w-settings-main-section flex-col gap-settings-subsection">
         <div className="flex flex-col gap-settings-section-header">
           <h3 className="settings-subheading">Organization</h3>
           <div className="flex flex-col">
             <div className="flex h-row gap-settings-entry">
-              <span className="w-organization-settings-label text my-auto">
+              <span className="text my-auto w-organization-settings-label">
                 Organization display name
               </span>
-              <span className="grow font-bold text my-auto">
+              <span className="text my-auto grow font-bold">
                 <input
                   ref={nameRef}
-                  className="settings-value rounded-full font-bold w-full bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
+                  className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
                   key={organization.organization_name}
                   type="text"
                   size={1}
@@ -182,11 +182,11 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               </span>
             </div>
             <div className="flex h-row gap-settings-entry">
-              <span className="w-organization-settings-label text my-auto">Email</span>
-              <span className="grow font-bold text my-auto">
+              <span className="text my-auto w-organization-settings-label">Email</span>
+              <span className="text my-auto grow font-bold">
                 <input
                   ref={emailRef}
-                  className="settings-value rounded-full font-bold w-full bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
+                  className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
                   key={organization.email}
                   type="text"
                   size={1}
@@ -210,11 +210,11 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               </span>
             </div>
             <div className="flex h-row gap-settings-entry">
-              <span className="w-organization-settings-label text my-auto">Website</span>
-              <span className="grow font-bold text my-auto">
+              <span className="text my-auto w-organization-settings-label">Website</span>
+              <span className="text my-auto grow font-bold">
                 <input
                   ref={websiteRef}
-                  className="settings-value rounded-full font-bold w-full bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
+                  className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
                   key={organization.website}
                   type="text"
                   size={1}
@@ -227,11 +227,11 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
               </span>
             </div>
             <div className="flex h-row gap-settings-entry">
-              <span className="w-organization-settings-label text my-auto">Location</span>
-              <span className="grow font-bold text my-auto">
+              <span className="text my-auto w-organization-settings-label">Location</span>
+              <span className="text my-auto grow font-bold">
                 <input
                   ref={locationRef}
-                  className="settings-value rounded-full font-bold w-full bg-transparent hover:bg-selected-frame focus:bg-selected-frame transition-colors placeholder-black/30 invalid:border invalid:border-red-700"
+                  className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
                   key={organization.address}
                   type="text"
                   size={1}
@@ -248,7 +248,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
       </div>
       <div className="flex flex-col gap-settings-section-header">
         <h3 className="settings-subheading">Profile picture</h3>
-        <label className="flex items-center cursor-pointer rounded-full overflow-clip h-profile-picture-large w-profile-picture-large hover:bg-frame transition-colors">
+        <label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <input
             type="file"
             className="hidden"
@@ -262,7 +262,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
             className="pointer-events-none"
           />
         </label>
-        <span className="py-profile-picture-caption-y w-profile-picture-caption">
+        <span className="w-profile-picture-caption py-profile-picture-caption-y">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
           should not be a default image provided by Enso.
         </span>
