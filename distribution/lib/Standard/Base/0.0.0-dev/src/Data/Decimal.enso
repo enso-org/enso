@@ -490,7 +490,6 @@ Comparable.from (_:Decimal) = Decimal_Comparator
 Comparable.from (_:Number) = Decimal_Comparator
 
 Decimal.from (that:Text) = Decimal.from_text that
-Decimal.from (that:Float) = Decimal.new that
 Decimal.from (that:Number) = Decimal.new that
 
 attach_loss_of_numeric_precision : Float -> Any -> Any
