@@ -20,7 +20,7 @@ public class Decimal_Utils {
     return new Conversion_Result(bd, bd.compareTo(withoutMC) != 0);
   }
 
-  public static BigDecimal fromEnsoInteger(Object o) {
+  public static BigDecimal fromInteger(Object o) {
     if (o instanceof Long l) {
       // According to the BigInteger Javadocs, valueOf is preferred "because it
       // allows for reuse of frequently used BigDecimal values".
@@ -32,7 +32,7 @@ public class Decimal_Utils {
     }
   }
 
-  public static Conversion_Result fromEnsoInteger(Object o, MathContext mc) {
+  public static Conversion_Result fromInteger(Object o, MathContext mc) {
     if (o instanceof Long l) {
       BigDecimal bd = new BigDecimal(l, mc);
       BigDecimal withoutMC = new BigDecimal(l);
@@ -52,14 +52,14 @@ public class Decimal_Utils {
     return d;
   }
 
-  public static BigDecimal fromEnsoFloat(Double d) {
+  public static BigDecimal fromFloat(Double d) {
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal
     // from the result of using Double.toString(double)."
     return BigDecimal.valueOf(d);
   }
 
-  public static BigDecimal fromEnsoFloat(Double d, MathContext mc) {
+  public static BigDecimal fromFloat(Double d, MathContext mc) {
     // We do not check for precision loss here because we always attach a
     // warning when converting from float.
     return new BigDecimal(d, mc);

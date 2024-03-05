@@ -112,8 +112,8 @@ type Decimal
     from_integer : Integer -> Math_Context -> Decimal ! Loss_Of_Numeric_Precision
     from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision =
         case mc of
-            _ : Math_Context -> Decimal.Value <| handle_precision_loss i <| Decimal_Utils.fromEnsoInteger i mc.math_context
-            _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoInteger i)
+            _ : Math_Context -> Decimal.Value <| handle_precision_loss i <| Decimal_Utils.fromInteger i mc.math_context
+            _ : Nothing -> Decimal.Value (Decimal_Utils.fromInteger i)
 
     ## GROUP conversions
        Construct a `Decimal` from a `Float`.
@@ -141,8 +141,8 @@ type Decimal
             # We do not use `handle_precision_loss` here because we always attach a `Loss_Of_Numeric_Precision` warning in the Float case.
             attach_loss_of_numeric_precision f <|
                 case mc of
-                    _ : Math_Context -> Decimal.Value <| Decimal_Utils.fromEnsoFloat f mc.math_context
-                    _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
+                    _ : Math_Context -> Decimal.Value <| Decimal_Utils.fromFloat f mc.math_context
+                    _ : Nothing -> Decimal.Value (Decimal_Utils.fromFloat f)
 
     float_id : Float -> Float
     float_id f = Decimal_Utils.floatId f
