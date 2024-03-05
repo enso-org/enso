@@ -20,6 +20,7 @@ import type { TokenId } from '@/util/ast/abstract.ts'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
+import type { Opt } from '@/util/data/opt'
 import { asNot } from '@/util/data/types.ts'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
@@ -38,13 +39,13 @@ interface Tag {
   parameters?: ArgumentWidgetConfiguration[]
 }
 
-function tagFromExpression(expression: string): Tag {
+function tagFromExpression(expression: string, label?: Opt<string>): Tag {
   const qn = tryQualifiedName(expression)
-  if (!qn.ok) return { expression }
+  if (!qn.ok) return { expression, ...(label ? { label } : {}) }
   const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
   if (entry) return tagFromEntry(entry)
   return {
-    label: qnLastSegment(qn.value),
+    label: label ?? qnLastSegment(qn.value),
     expression: qn.value,
   }
 }
@@ -65,14 +66,14 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
 const staticTags = computed<Tag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
-  return tags.map(tagFromExpression)
+  return tags.map((t) => tagFromExpression(t))
 })
 
 const dynamicTags = computed<Tag[]>(() => {
   const config = props.input.dynamicConfig
   if (config?.kind !== 'Single_Choice') return []
   return config.values.map((value) => ({
-    ...tagFromExpression(value.value),
+    ...tagFromExpression(value.value, value.label),
     parameters: value.parameters,
   }))
 })
