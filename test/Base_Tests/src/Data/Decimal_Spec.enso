@@ -183,68 +183,6 @@ add_specs suite_builder =
                 (x0 != x1) . should_be_false
                 (x1 != x0) . should_be_false
 
-        vs = []
-            + [92233720368547758080.0]
-            + [9223372036854777000.0]
-            + [9223372036854776001.0]
-            + [9223372036854776000.0]
-            + [9223372036854775808.0]
-            + [9223372036854775000.0]
-            + [9223372036854774000.0]
-            + [9223372036854700000.0]
-            + [9223372036854000000.0]
-            + [9223372000000000000.0]
-            + [922337203685470000.0]
-            + [92233720368547000.0]
-            + [9223372036854700.0]
-            + [922337203685470.0]
-            + [92233720368547.0]
-            + [9223372036854.0]
-            + [922337203685.0]
-            + [92233720368.0]
-            + [9223372036.0]
-            + [922337203.0]
-            + [92233720.0]
-            + [9223372.0]
-            + [922337.0]
-            + [92233.0]
-            + [9223.0]
-            + [922.0]
-            + [-92233720368547758080.0]
-            + [-9223372036854777000.0]
-            + [-9223372036854776001.0]
-            + [-9223372036854776000.0]
-            + [-9223372036854775808.0]
-            + [-9223372036854775000.0]
-            + [-9223372036854774000.0]
-            + [-9223372036854700000.0]
-            + [-9223372036854000000.0]
-            + [-9223372000000000000.0]
-            + [-922337203685470000.0]
-            + [-92233720368547000.0]
-            + [-9223372036854700.0]
-            + [-922337203685470.0]
-            + [-92233720368547.0]
-            + [-9223372036854.0]
-            + [-922337203685.0]
-            + [-92233720368.0]
-            + [-9223372036.0]
-            + [-922337203.0]
-            + [-92233720.0]
-            + [-9223372.0]
-            + [-922337.0]
-            + [-92233.0]
-            + [-9223.0]
-            + [-922.0]
-
-        vs.map_with_index i-> v->
-            group_builder.specify "should be able to create a Decimal from a negative Float "+i.to_text <|
-                #IO.println "======== "+v.to_text
-                r = Decimal.float_id v
-                #r = identity v
-                #IO.println "float_id "+v.to_text+" "+r.to_text
-                r . should_equal r
-
         ok_values = []
             + [[0.1, 0.1]]
             + [["0.1", 0.1]]
@@ -545,6 +483,14 @@ add_specs suite_builder =
 
         group_builder.specify "should get an aritmetic error when a result is a nonterminating decimal expansion" <|
             (Decimal.new 1 / Decimal.new 3) . should_fail_with Arithmetic_Error
+
+        group_builder.specify "should negate values correctly" <|
+            Decimal.new 5 . negate . should_equal -5
+            Decimal.new -5 . negate . should_equal 5
+            Decimal.new 5.3 . negate . should_equal -5.3
+            Decimal.new -5.3 . negate . should_equal 5.3
+            Decimal.new 0 . negate . should_equal 0
+            Decimal.new -0 . negate . should_equal 0
 
 main =
     suite = Test.build suite_builder->

@@ -48,10 +48,6 @@ public class Decimal_Utils {
     }
   }
 
-  public static Double floatId(Double d) {
-    return d;
-  }
-
   public static BigDecimal fromFloat(Double d) {
     // According to the BigInteger Javadocs, valueOf is preferred because "the
     // value returned is equal to that resulting from constructing a BigDecimal

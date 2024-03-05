@@ -144,9 +144,6 @@ type Decimal
                     _ : Math_Context -> Decimal.Value <| Decimal_Utils.fromFloat f mc.math_context
                     _ : Nothing -> Decimal.Value (Decimal_Utils.fromFloat f)
 
-    float_id : Float -> Float
-    float_id f = Decimal_Utils.floatId f
-
     ## ALIAS greater than
        GROUP Operators
        ICON operators
@@ -446,25 +443,38 @@ type Decimal
     / : Decimal -> Decimal -> Decimal
     / self (that:Decimal) = self.divide that
 
+    ## GROUP Operators
+       Compute the negation of this.
+
+       > Example
+         Negate 5.1 to get -5.1.
+
+             5.1.negate
+             # => Decimal.new -5.1
+    negate : Decimal
     negate self = Decimal.Value self.big_decimal.negate
 
-    to_double self = self.big_decimal.doubleValue
-
+    # PRIVATE
     get_precision : Integer
     get_precision self = self.big_decimal.precision
 
+    # PRIVATE
     get_scale : Integer
     get_scale self = self.big_decimal.scale
 
+    # PRIVATE
     get_unscaled_value : Integer
     get_unscaled_value  self = self.big_decimal.unscaledValue
 
+    # PRIVATE
     get_internal_representation : [Integer]
     get_internal_representation self = [self.get_unscaled_value, self.get_precision, self.get_scale]
 
+    ## PRIVATE
     to_text : Text
     to_text self = self.big_decimal.toString
 
+    ## PRIVATE
     to_text_without_scientific_notation : Text
     to_text_without_scientific_notation  self = self.big_decimal.toPlainString
 
