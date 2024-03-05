@@ -24,7 +24,7 @@ v.test.each([
     string: '2001-02-03T00:00:00.000Z',
   },
 ])('Date and time serialization', ({ date, string }) => {
-  // v.expect(dateTime.toRfc3339(date)).toBe(string)
+  v.expect(dateTime.toRfc3339(date)).toBe(string)
 })
 
 v.test.each([
@@ -37,5 +37,5 @@ v.test.each([
     chatString: `03/02/2001 00:00 AM`,
   },
 ])('Date and time serialization', ({ date, chatString }) => {
-  // v.expect(dateTime.formatDateTimeChatFriendly(date)).toBe(chatString)
+  v.expect(dateTime.formatDateTimeChatFriendly(date)).toBe(chatString)
 })
