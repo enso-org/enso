@@ -370,12 +370,10 @@ add_specs suite_builder =
                 (d != expected) . should_be_false
                 (expected != d) . should_be_false
 
-            # IO.println "QQQ "+v.to_text+" "+(v.is_a Text).to_text+" "+(Meta.get_simple_type_name v)
             if v.is_a Text . not then
                 group_builder.specify "should compare correctly to Integer and Float (inequalities) "+i.to_text+" "+d.to_text+" "+(Meta.get_simple_type_name v) <|
                     lesser = if v > 10000 then v/2 else if v < -10000 then v*2 else v-1
                     greater = if v > 10000 then v*2 else if v < -10000 then v/2 else v+1
-                    IO.println "WWW"+v.to_text+" "+lesser.to_text+" "+greater.to_text
                     (v > lesser) . should_be_true
                     (v < greater) . should_be_true
 
