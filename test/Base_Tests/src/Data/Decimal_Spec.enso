@@ -435,7 +435,7 @@ add_specs suite_builder =
             fd . should_equal id
 
     suite_builder.group "arithmetic" group_builder->
-        group_builder.specify "should allow arithmetic with Decimals" <|
+        group_builder.specify "should allow arithmetic with Decimals, without Math_Context" <|
             (Decimal.new 1 + Decimal.new 2) . should_equal (Decimal.new 3)
             (Decimal.new 1.1 + Decimal.new 2.2) . should_equal (Decimal.new 3.3)
 
@@ -461,13 +461,28 @@ add_specs suite_builder =
             (Decimal.new -50.75 / Decimal.new -2.5) . should_equal (Decimal.new 20.3)
 
             (Decimal.new 213427523957 + Decimal.new 93849398884384) . should_equal (Decimal.new 94062826408341)
-            (Decimal.new 723579374753.3535345 + Decimal.new 35263659267.23434535) . should_equal (Decimal.new "758843034020.587844")
+            (Decimal.new "723579374753.3535345" + Decimal.new "35263659267.23434535") . should_equal (Decimal.new "758843034020.58787985")
 
             (Decimal.new -29388920982834 - Decimal.new 842820) . should_equal (Decimal.new -29388921825654)
-            (Decimal.new -8273762787.3535345 - Decimal.new 76287273.23434535) . should_equal (Decimal.new "-8350050060.58788035")
+            (Decimal.new "-8273762787.3535345" - Decimal.new "76287273.23434535") . should_equal (Decimal.new "-8350050060.58787985")
 
             (Decimal.new 7297927982888383 * Decimal.new 828737) . should_equal (Decimal.new 6048062942754969862271)
-            (Decimal.new 893872388.3535345 * Decimal.new 72374727737.23434535) . should_equal (Decimal.new "64693770738918459194.623193774730")
+            (Decimal.new "893872388.3535345" * Decimal.new "72374727737.23434535") . should_equal (Decimal.new "64693770738918463976.840471466139575")
+
+            (Decimal.new "909678645268840" / Decimal.new "28029830") . should_equal (Decimal.new "32453948")
+            (Decimal.new "384456406.7860325392609633764" / Decimal.new "24556.125563546") . should_equal (Decimal.new "15656.2323234234")
+
+            (Decimal.new 3948539458034580838458034803485 + Decimal.new 237957498573948579387495837459837) . should_equal (Decimal.new 241906038031983160225953872263322)
+            (Decimal.new "927349527347587934.34573495739475938745" + Decimal.new "37593874597239487593745.3457973847574") . should_equal (Decimal.new "37594801946766835181679.69153234215215938745")
+
+            (Decimal.new -239485787538745937495873495759598 - Decimal.new 273958739485793475934793745) . should_equal (Decimal.new -239486061497485423289349430553343)
+            (Decimal.new "-79237492374927979579239292.293749287928373" - Decimal.new "239729379279872947923947.234273947927397239") . should_equal (Decimal.new "-79477221754207852527163239.528023235855770239")
+
+            (Decimal.new 3745937948729837923798237 * Decimal.new 273948729872398729387) . should_equal (Decimal.new 1026194943235357770434981633846801087750690719)
+            (Decimal.new "38450830483049850394093.48579374987938934" * Decimal.new "297349287397297.2394279379287398729879234") . should_equal (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556")
+
+            (Decimal.new 1026194943235357770434981633846801087750690719 / Decimal.new 273948729872398729387) . should_equal (Decimal.new 3745937948729837923798237)
+            (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" / Decimal.new "297349287397297.2394279379287398729879234") . should_equal (Decimal.new "38450830483049850394093.48579374987938934")
 
 main =
     suite = Test.build suite_builder->
