@@ -21,9 +21,9 @@ from Standard.Table.Errors import Conversion_Failure, Floating_Point_Equality, I
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
 import project.Connection.Connection.Connection
+import project.Data.DB_Table.DB_Table
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.DB_Table.DB_Table
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column

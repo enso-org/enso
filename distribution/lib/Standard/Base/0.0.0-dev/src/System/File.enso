@@ -24,11 +24,11 @@ import project.Panic.Panic
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
-import project.System.File.Local_File_Write_Strategy
+import project.System.File.File_Permissions.File_Permissions
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.File_Write_Strategy.File_Write_Strategy
 import project.System.File.Generic.Writable_File.Writable_File
-import project.System.File.File_Permissions.File_Permissions
+import project.System.File.Local_File_Write_Strategy
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 import project.Warning.Warning
