@@ -13,7 +13,7 @@ import SortDirection, * as sortDirectionModule from '#/utilities/SortDirection'
 /** A heading for the "Modified" column. */
 export default function ModifiedColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
-  const { sortColumn, setSortColumn, sortDirection, setSortDirection } = state
+  const { sortColumn, setSortColumn, sortDirection, setSortDirection, hideColumn } = state
   const isSortActive = sortColumn === columnUtils.Column.modified && sortDirection != null
   const isDescending = sortDirection === SortDirection.descending
 
@@ -37,7 +37,15 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
         }
       }}
     >
-      <SvgMask src={TimeIcon} className="size-icon" />
+      <SvgMask
+        src={TimeIcon}
+        className="size-icon"
+        title="Hide this column"
+        onClick={event => {
+          event.stopPropagation()
+          hideColumn(columnUtils.Column.modified)
+        }}
+      />
       <span className="text-header">{columnUtils.COLUMN_NAME[columnUtils.Column.modified]}</span>
       <img
         alt={

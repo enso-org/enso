@@ -311,6 +311,7 @@ export interface AssetsTableState {
   readonly nodeMap: Readonly<
     React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
   >
+  readonly hideColumn: (column: columnUtils.Column) => void
   readonly doToggleDirectoryExpansion: (
     directoryId: backendModule.DirectoryId,
     key: backendModule.AssetId,
@@ -1828,6 +1829,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     ]
   )
 
+  const hideColumn = React.useCallback((column: columnUtils.Column) => {
+    setEnabledColumns(columns => set.withPresence(columns, column, false))
+  }, [])
+
   const hiddenContextMenu = React.useMemo(
     () => (
       <AssetsTableContextMenu
@@ -1889,6 +1894,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
       nodeMap: nodeMapRef,
+      hideColumn,
       doToggleDirectoryExpansion,
       doOpenManually,
       doOpenEditor: doOpenEditor,
@@ -1916,6 +1922,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
+      /* should never change */ hideColumn,
       /* should never change */ setAssetPanelProps,
       /* should never change */ setIsAssetPanelTemporarilyVisible,
       /* should never change */ setQuery,

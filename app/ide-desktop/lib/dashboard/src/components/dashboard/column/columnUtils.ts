@@ -45,7 +45,7 @@ export type SortableColumn = Column.modified | Column.name
 // === Constants ===
 // =================
 
-export const DEFAULT_ENABLED_COLUMNS = new Set([
+export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
   Column.name,
   Column.modified,
   Column.sharedWith,
@@ -53,11 +53,11 @@ export const DEFAULT_ENABLED_COLUMNS = new Set([
 ])
 
 /** The list of all possible columns for the local backend, in order. */
-export const LOCAL_COLUMNS = [Column.name, Column.modified] as const
+export const LOCAL_COLUMNS = Object.freeze([Column.name, Column.modified] as const)
 
 /** The list of all possible columns for the cloud backend, in order. */
 // This MUST be `as const`, to generate the `ExtraColumn` type above.
-export const CLOUD_COLUMNS = [
+export const CLOUD_COLUMNS = Object.freeze([
   Column.name,
   Column.modified,
   Column.sharedWith,
@@ -65,7 +65,7 @@ export const CLOUD_COLUMNS = [
   Column.accessedByProjects,
   Column.accessedData,
   Column.docs,
-] as const
+] as const)
 
 export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
   /* The file column does not have an icon, however this does not matter as it is not
@@ -110,7 +110,10 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 // =====================
 
 /** Return the full list of columns given the relevant current state. */
-export function getColumnList(backendType: backend.BackendType, enabledColumns: Set<Column>) {
+export function getColumnList(
+  backendType: backend.BackendType,
+  enabledColumns: ReadonlySet<Column>
+) {
   let columns: readonly Column[]
   switch (backendType) {
     case backend.BackendType.local: {

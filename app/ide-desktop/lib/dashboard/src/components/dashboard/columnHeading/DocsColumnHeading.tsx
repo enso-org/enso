@@ -3,14 +3,26 @@ import * as React from 'react'
 
 import DocsIcon from 'enso-assets/docs.svg'
 
+import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
 
 /** A heading for the "Docs" column. */
-export default function DocsColumnHeading(): JSX.Element {
+export default function DocsColumnHeading(props: column.AssetColumnHeadingProps) {
+  const { state } = props
+  const { hideColumn } = state
+
   return (
     <div className="flex items-center gap-icon-with-text w-full h-drive-table-heading">
-      <SvgMask src={DocsIcon} className="size-icon" />
+      <SvgMask
+        src={DocsIcon}
+        className="size-icon"
+        title="Hide this column"
+        onClick={event => {
+          event.stopPropagation()
+          hideColumn(columnUtils.Column.docs)
+        }}
+      />
       <span className="text-header">{columnUtils.COLUMN_NAME[columnUtils.Column.docs]}</span>
     </div>
   )

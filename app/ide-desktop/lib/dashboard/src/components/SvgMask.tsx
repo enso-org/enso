@@ -38,7 +38,9 @@ export default function SvgMask(props: SvgMaskProps) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         WebkitMask: urlSrc,
       }}
-      className={`inline-block ${className ?? 'w-max h-max'}`}
+      className={`inline-block ${onClick != null ? 'cursor-pointer' : ''} ${
+        className ?? 'w-max h-max'
+      }`}
       onClick={onClick}
       onDragStart={event => {
         event.preventDefault()
