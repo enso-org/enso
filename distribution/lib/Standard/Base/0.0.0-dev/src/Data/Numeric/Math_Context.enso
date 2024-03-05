@@ -3,10 +3,22 @@ from project.Data.Numbers import Integer
 
 polyglot java import java.math.MathContext
 
+## A wrapper around the Java
+   [`MathContext`](https://docs.oracle.com/javase/8/docs/api/java/math/MathContext.html)
+   class.
+
+   `Math_Context` is used to specify finite or infinite precision requirements
+   to operations that construct `Decimal` values, or that compute them from
+   other values.
 type Math_Context
     ## PRIVATE
     Value (math_context:MathContext)
 
+    ## Construct a `Math_Context` value.
+
+       Arguments:
+       - precision: The non-negative int precision setting
+       - rounding_mode: The rounding mode to use
     new : Integer -> Rounding_Mode -> Math_Context
     new (precision:Integer) (rounding_mode:Rounding_Mode)=Rounding_Mode.half_up =
         Math_Context.Value (MathContext.new precision rounding_mode.rounding_mode)
