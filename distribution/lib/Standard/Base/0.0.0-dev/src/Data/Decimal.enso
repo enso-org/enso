@@ -228,7 +228,7 @@ type Decimal
              a = Decimal.new "10.22"
              b = Decimal.new "20.33"
              c = a.add b
-             # => 30.55
+             # => Decimal.new 30.55
 
        > Example
          Adding 10.22 and 20.33, rounding to 3 digits of precision (1 decimal
@@ -237,7 +237,7 @@ type Decimal
              a = Decimal.new "10.22"
              b = Decimal.new "20.33"
              a.add b (Math_Context.new 3 Rounding_Mode.half_down)
-             # => 30.5
+             # => Decimal.new 30.5
     add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
         case math_context of
@@ -261,7 +261,7 @@ type Decimal
              a = Decimal.new "10.1"
              b = Decimal.new "20.2"
              a + b
-             # => 30.3
+             # => Decimal.new 30.3
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
 
@@ -285,7 +285,7 @@ type Decimal
              a = Decimal.new "20.33"
              b = Decimal.new "10.22"
              c = a.subtract b
-             # => 10.11
+             # => Decimal.new 10.11
 
        > Example
          Subtracting 10.22 from 20.33, rounding to 3 digits of precision (1
@@ -294,7 +294,7 @@ type Decimal
              a = Decimal.new "20.33"
              b = Decimal.new "10.22"
              a.subtract b (Math_Context.new 3 Rounding_Mode.half_down)
-             # => 10.1
+             # => Decimal.new 10.1
     subtract : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     subtract self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
         case math_context of
@@ -319,7 +319,7 @@ type Decimal
              a = Decimal.new "20.33"
              b = Decimal.new "10.22"
              c = a - b
-             # => 10.11
+             # => Decimal.new 10.11
     - : Decimal -> Decimal -> Decimal
     - self (that:Decimal) = self.subtract that
 
@@ -343,7 +343,7 @@ type Decimal
              a = Decimal.new "10.22"
              b = Decimal.new "20.33"
              c = a.multiply b
-             # => 207.7726
+             # => Decimal.new 207.7726
 
        > Example
          Multiplying 10.22 and 20.33, rounding to 4 digits of precision (1
@@ -352,7 +352,7 @@ type Decimal
              a = Decimal.new "10.22"
              b = Decimal.new "20.33"
              a.multiply b (Math_Context.new 4 Rounding_Mode.half_down)
-             # => 207.8
+             # => Decimal.new 207.8
     multiply : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     multiply self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
         case math_context of
@@ -376,7 +376,7 @@ type Decimal
              a = Decimal.new "10.1"
              b = Decimal.new "20.2"
              c = a * b
-             # => 204.02
+             # => Decimal.new 204.02
     * : Decimal -> Decimal -> Decimal
     * self (that:Decimal) = self.multiply that
 
@@ -405,7 +405,7 @@ type Decimal
              a = Decimal.new "1065.9378"
              b = Decimal.new "23.34"
              c = a.divide b
-             # => 45.67
+             # => Decimal.new 45.67
 
        > Example
          Dividing 1065.9378 by 23.34, rounding to 3 digits of precision (1
@@ -414,7 +414,7 @@ type Decimal
             a = Decimal.new "1065.9378"
              b = Decimal.new "23.34"
              a.divide b (Math_Context.new 3 Rounding_Mode.half_down)
-             # => 45.7
+             # => Decimal.new 45.7
     divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal | Arithmetic_Error
     divide self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
         handle_java_exception <|
@@ -439,7 +439,7 @@ type Decimal
              a = Decimal.new "1065.9378"
              b = Decimal.new "23.34"
              c = a / b
-             # => 45.67
+             # => Decimal.new 45.67
     / : Decimal -> Decimal -> Decimal
     / self (that:Decimal) = self.divide that
 
