@@ -51,20 +51,9 @@ type Decimal
     new : Text | Integer | Float -> Math_Context -> Decimal | Number_Parse_Error
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         case x of
-            _ : Text ->
-                #IO.println "AAA D.new t"
-                #IO.println x
-                Decimal.from_text x mc
-            _ : Integer ->
-                #IO.println "AAA D.new i"
-                #IO.println x
-                Decimal.from_integer x mc
-            _ : Float ->
-                r = Decimal.from_float x mc
-                #IO.println "AAA D.new f"
-                #IO.println x
-                #IO.println r
-                r
+            _ : Text -> Decimal.from_text x mc
+            _ : Integer -> Decimal.from_integer x mc
+            _ : Float -> Decimal.from_float x mc
 
     ## GROUP conversions
        Construct a `Decimal` from a `Text`.
@@ -149,20 +138,10 @@ type Decimal
         if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromEnsoFloat f mc.math_context
-                _ : Nothing ->
-                    r = Decimal.Value (Decimal_Utils.fromEnsoFloat f)
-                    #IO.println "AAA D.from_float"
-                    #IO.println f
-                    #IO.println r
-                    r
+                _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
 
     float_id : Float -> Float
-    float_id f =
-        r = Decimal_Utils.floatId f
-        #IO.println "AAA float_id"
-        #IO.println f
-        #IO.println r
-        r
+    float_id f = Decimal_Utils.floatId f
 
     ## ALIAS greater than
        GROUP Operators
@@ -490,24 +469,12 @@ handle_precision_loss original_value conversion_result:Decimal_Utils.Conversion_
 type Decimal_Comparator
     #compare x:Decimal y:Decimal =
     compare x:Decimal y:Decimal =
-        r = Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
-        IO.println "BBB dc "+x.to_text+" "+y.to_text+" "+r.to_text
-        r
+        Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
     hash x:Decimal = Decimal_Utils.hashCodeOf x.big_decimal
 
 Comparable.from (_:Decimal) = Decimal_Comparator
 Comparable.from (_:Number) = Decimal_Comparator
 
 Decimal.from (that:Text) = Decimal.from_text that
-Decimal.from (that:Float) =
-    r = Decimal.new that
-    IO.println "AAA D from F"
-    IO.println that
-    IO.println r
-    r
-Decimal.from (that:Number) =
-    r = Decimal.new that
-    IO.println "AAA D from N"
-    IO.println that
-    IO.println r
-    r
+Decimal.from (that:Float) = Decimal.new that
+Decimal.from (that:Number) = Decimal.new that
