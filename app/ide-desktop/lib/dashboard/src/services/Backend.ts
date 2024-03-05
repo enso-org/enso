@@ -13,9 +13,17 @@ import * as uniqueString from '#/utilities/uniqueString'
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
 
-/** Unique identifier for a user/organization. */
+/** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
+
+/** Unique identifier for a user in an organization. */
+export type UserId = newtype.Newtype<string, 'UserId'>
+export const UserId = newtype.newtypeConstructor<UserId>()
+
+/** Unique identifier for a user group. */
+export type UserGroupId = newtype.Newtype<string, 'UserGroupId'>
+export const UserGroupId = newtype.newtypeConstructor<UserGroupId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
@@ -100,12 +108,12 @@ export interface User {
   readonly id: OrganizationId
   readonly name: string
   readonly email: EmailAddress
-  /** A URL. */
-  readonly profilePicture: string | null
-  /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
-   * `usersMe` will not work. */
+  /** If `false`, this account is awaiting acceptance from an administrator, and endpoints other
+   * than `usersMe` will not work. */
   readonly isEnabled: boolean
   readonly rootDirectoryId: DirectoryId
+  readonly profilePicture?: HttpsUrl
+  readonly userGroups: UserGroupId[] | null
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -341,17 +349,11 @@ export interface OrganizationInfo {
   readonly picture: HttpsUrl | null
 }
 
-/** A role and its associated metadata. */
-export interface RoleInfo {
-  readonly name: string
-  readonly createdAt: dateTime.Rfc3339DateTime
-  readonly users: SimpleUser[]
-}
-
-/** Metadata for all roles. */
-export interface RolesInfo {
-  readonly roles: RoleInfo[]
-  readonly usersWithoutRoles: SimpleUser[]
+/** A user group and its associated metadata. */
+export interface UserGroupInfo {
+  readonly pk: OrganizationId
+  readonly sk: UserGroupId
+  readonly groupName: string
 }
 
 /** Metadata uniquely identifying a user inside an organization.
@@ -873,6 +875,11 @@ export interface CreateTagRequestBody {
   readonly color: LChColor
 }
 
+/** HTTP request body for the "create user group" endpoint. */
+export interface CreateUserGroupRequestBody {
+  readonly name: string
+}
+
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: string | null
@@ -997,6 +1004,12 @@ export default abstract class Backend {
   abstract deleteUser(): Promise<void>
   /** Upload a new profile picture for the current user. */
   abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
+  /** Set the list of groups a user is in. */
+  abstract changeUserGroup(
+    userId: UserId,
+    userGroups: UserGroupId[],
+    name: string | null
+  ): Promise<User>
   /** Invite a new user to the organization by email. */
   abstract inviteUser(body: InviteUserRequestBody): Promise<void>
   /** Get the details of the current organization. */
@@ -1098,8 +1111,12 @@ export default abstract class Backend {
   abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string | null): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
-  /** Return all roles in the organization, and their members. */
-  abstract listRoles(): Promise<RolesInfo>
+  /** Create a user group. */
+  abstract createUserGroup(body: CreateUserGroupRequestBody): Promise<UserGroupInfo>
+  /** Delete a user group. */
+  abstract deleteUserGroup(userGroupId: UserGroupId, name: string): Promise<void>
+  /** Return all user groups in the organization. */
+  abstract listUserGroups(): Promise<UserGroupInfo[]>
   /** Return a list of backend or IDE versions. */
   abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }
