@@ -103,7 +103,6 @@ public abstract class HashCodeNode extends Node {
   @Specialization
   long hashCodeForLong(long l) {
     // By casting long to double, we lose some precision on purpose
-    //System.out.println("AAA old hashCodeForLong d...");
     return hashCodeForDouble((double) l);
   }
 
@@ -123,10 +122,8 @@ public abstract class HashCodeNode extends Node {
       // NaN is Incomparable, just return a "random" constant
       return 456879;
     } else if (d % 1.0 != 0 || BigIntegerOps.fitsInLong(d)) {
-      //System.out.println("AAA old hashCodeForDouble D.hC");
       return Double.hashCode(d);
     } else {
-      //System.out.println("AAA old hashCodeForDouble bigDoubleHash...");
       return bigDoubleHash(d);
     }
   }
@@ -134,7 +131,6 @@ public abstract class HashCodeNode extends Node {
   @TruffleBoundary
   private static long bigDoubleHash(double d) {
     try {
-      //System.out.println("AAA old bigDoubleHash " + BigDecimal.valueOf(d).toBigIntegerExact());
       return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
     } catch (ArithmeticException e) {
       throw EnsoContext.get(null).raiseAssertionPanic(null, null, e);
@@ -144,7 +140,6 @@ public abstract class HashCodeNode extends Node {
   @Specialization
   @TruffleBoundary
   long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
-      //System.out.println("AAA old hashCodeForBigInteger BI.hC " + bigInteger.getValue());
     return bigInteger.getValue().hashCode();
   }
 
@@ -153,7 +148,6 @@ public abstract class HashCodeNode extends Node {
   long hashCodeForBigInteger(
       Object v, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
-      //System.out.println("AAA old hashCodeForBigInteger 2 BI.hC");
       return interop.asBigInteger(v).hashCode();
     } catch (UnsupportedMessageException ex) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, "Expecting BigInteger", ex);

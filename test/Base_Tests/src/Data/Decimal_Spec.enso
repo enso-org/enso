@@ -11,10 +11,6 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
 
 Decimal.should_have_rep self rep = self.get_internal_representation . should_equal rep
 
-Any.ssee self b = if self == b then Nothing else
-    #IO.println "SSEE "+(Meta.get_simple_type_name self)+" "+(Meta.get_simple_type_name b)
-    IO.println "SSEE "+self.to_text_without_scientific_notation+" "+b.to_text_without_scientific_notation
-
 add_specs suite_builder =
     suite_builder.group "construction" group_builder->
         group_builder.specify "should be able to construct a Decimal from a string" <|
