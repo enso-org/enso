@@ -1,12 +1,11 @@
 from Standard.Base import all
-
 import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Database.Data.DB_Table.DB_Table
 
-import project.Data.Table.Table
 import project.Data.Set_Mode.Set_Mode
+import project.Data.Table.Table
 from project.Errors import Missing_Input_Columns, No_Such_Column, Non_Unique_Key, Unmatched_Rows_In_Lookup
 
 replace : Table -> Table | Map -> (Text | Integer) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
