@@ -624,7 +624,13 @@ add_specs suite_builder =
             v1>v2 . should_be_false
             v2>v1 . should_be_true
 
-        group_builder.specify "Greater or equal of complex and number" <|
+            v1<=v2 . should_be_true
+            v2<=v1 . should_be_false
+
+            v1>=v2 . should_be_false
+            v2>=v1 . should_be_true
+
+        group_builder.specify "Greater or equal of complex < number" <|
             v1 = (Complex.new 3)
             v2 = 4
             v1<v2 . should_be_true
@@ -633,7 +639,13 @@ add_specs suite_builder =
             v1>v2 . should_be_false
             v2>v1 . should_be_true
 
-        group_builder.specify "Greater or equal of number and complex" <|
+            v1<=v2 . should_be_true
+            v2<=v1 . should_be_false
+
+            v1>=v2 . should_be_false
+            v2>=v1 . should_be_true
+
+        group_builder.specify "Greater or equal of complex > number" <|
             v1 = 3
             v2 = (Complex.new 4)
             v1<v2 . should_be_true
@@ -643,7 +655,25 @@ add_specs suite_builder =
             v2>v1 . should_be_true
 
             v1<=v2 . should_be_true
+            v2<=v1 . should_be_false
+
             v1>=v2 . should_be_false
+            v2>=v1 . should_be_true
+
+        group_builder.specify "Greater or equal of complex == number" <|
+            v1 = 4
+            v2 = (Complex.new 4)
+            v1<v2 . should_be_false
+            v2<v1 . should_be_false
+
+            v1>v2 . should_be_false
+            v2>v1 . should_be_false
+
+            v1<=v2 . should_be_true
+            v2<=v1 . should_be_true
+
+            v1>=v2 . should_be_true
+            v2>=v1 . should_be_true
 
     suite_builder.group "BigInts" group_builder->
         expected_value = 2002115494039257055317447151023464523838443110452722331466645440244415760562579268801894716412
