@@ -30,7 +30,7 @@ type Enso_Path
                 current_user_name = Enso_User.current.name
                 # The `if_not_error` is a workaround for https://github.com/enso-org/enso/issues/9283 and it can be removed after that is fixed.
                 current_user_name.if_not_error <|
-                    if organization_name != current_user_name then Error.throw (Unimplemented.throw "Currently only resolving paths for the current user is supported.") else
+                    if organization_name != current_user_name then Unimplemented.throw "Currently only resolving paths for the current user is supported." else
                         if segments.is_empty then Enso_Path.Value organization_name [] Nothing else
                             asset_name = segments.last
                             Enso_Path.Value organization_name (segments.drop (Index_Sub_Range.Last 1)) asset_name
