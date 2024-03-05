@@ -1,0 +1,63 @@
+[package]
+name = "enso-web"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+
+[dependencies]
+enso-debug-api = { path = "../debug-api" }
+console_error_panic_hook = { workspace = true }
+failure = { workspace = true }
+gloo-timers = { version = "0.2.1", features = ["futures"] }
+js-sys = { workspace = true }
+nalgebra = { workspace = true }
+wasm-bindgen = { workspace = true }
+derivative = { workspace = true }
+enso-logging = { path = "../logging" }
+enso-shapely = { path = "../shapely" }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+async-std = { version = "1.5.0" }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'Blob',
+  'Document',
+  'Node',
+  'Element',
+  'HtmlElement',
+  'HtmlDivElement',
+  'HtmlHeadElement',
+  'HtmlCollection',
+  'CssStyleDeclaration',
+  'HtmlCanvasElement',
+  'WebGlBuffer',
+  'WebGlRenderingContext',
+  'WebGl2RenderingContext',
+  'CanvasRenderingContext2d',
+  'WebGlProgram',
+  'WebGlShader',
+  'WebGlQuery',
+  'Window',
+  'Navigator',
+  'console',
+  'Performance',
+  'Event',
+  'MouseEvent',
+  'EventTarget',
+  'Text',
+  'DomRect',
+  'DomRectReadOnly',
+  'Location',
+  'ReadableStream',
+  'AddEventListenerOptions',
+  'EventListenerOptions',
+  'KeyboardEvent',
+  'WheelEvent',
+]
+
+[dev-dependencies]
+wasm-bindgen-test = { workspace = true }

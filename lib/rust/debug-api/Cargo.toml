@@ -1,0 +1,12 @@
+[package]
+name = "enso-debug-api"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+
+[dependencies]
+derivative = { workspace = true }
+futures = { workspace = true }
+js-sys = { workspace = true }
+wasm-bindgen = { workspace = true }
+web-sys = { version = "0.3.4", features = ["console"] }

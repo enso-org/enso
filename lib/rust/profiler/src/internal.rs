@@ -32,6 +32,7 @@ pub(crate) static METADATA_LOGS: log::ThreadLocalLog<rc::Rc<dyn MetadataSource>>
     log::ThreadLocalLog::new(METADATA_LOG_LOG);
 
 
+
 // =========================
 // === Capturing the log ===
 // =========================
@@ -84,6 +85,7 @@ pub(crate) struct LogData {
     metadata_names:   Vec<&'static str>,
     metadata_entries: Vec<Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>>,
 }
+
 
 
 // =====================
@@ -139,6 +141,7 @@ impl<'a> LogTranslator<'a> {
 }
 
 
+
 // ===================
 // === MetadataLog ===
 // ===================
@@ -164,6 +167,7 @@ impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
         Box::new(entries.into_iter())
     }
 }
+
 
 
 // ======================
@@ -196,6 +200,7 @@ impl<T: 'static + serde::Serialize> MetadataLogger<T> {
         EventLog.metadata(self.id)
     }
 }
+
 
 
 // ================
@@ -272,6 +277,7 @@ pub enum StartState {
 }
 
 
+
 // =============
 // === Event ===
 // =============
@@ -324,6 +330,7 @@ impl Event {
 }
 
 
+
 // =============
 // === Start ===
 // =============
@@ -356,6 +363,7 @@ impl fmt::Display for Label {
 }
 
 
+
 // =================
 // === Timestamp ===
 // =================
@@ -372,7 +380,7 @@ impl Timestamp {
     #[inline(always)]
     /// Return the current time, relative to the time origin.
     pub fn now() -> Self {
-        Self { ms: js::performance::now() }
+        Self { ms: now() }
     }
 
     /// Return the timestamp corresponding to an offset from the time origin, in ms.
@@ -396,7 +404,7 @@ impl Timestamp {
     /// Return the offset of the time origin from a system timestamp.
     #[inline(always)]
     pub fn time_offset() -> Self {
-        Self::from_ms(js::performance::time_origin())
+        Self::from_ms(time_origin())
     }
 }
 
@@ -410,44 +418,29 @@ impl Default for Timestamp {
 // === FFI ===
 
 #[cfg(target_arch = "wasm32")]
-/// Web APIs.
-mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        use wasm_bindgen::prelude::*;
-
-                pub fn now() -> f64 {
-                    web_sys::window().unwrap().performance().unwrap().now()
-                }
-
-                // This mock implementation returns a dummy value.
-                pub fn time_origin() -> f64 {
-                    web_sys::window().unwrap().performance().unwrap().time_origin()
-                }
+fn now() -> f64 {
+    use enso_web as web;
+    use enso_web::traits::*;
+    web::window.performance_or_panic().now()
+}
+#[cfg(not(target_arch = "wasm32"))]
+fn now() -> f64 {
+    // Monotonically-increasing timestamp, providing slightly more realistic data for tests than
+    // a constant.
+    thread_local! {
+        static NEXT_TIMESTAMP: std::cell::Cell<f64> = Default::default();
     }
+    NEXT_TIMESTAMP.with(|timestamp| {
+        let now = timestamp.get();
+        timestamp.set(now + 0.1);
+        now
+    })
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-/// Web APIs.
-mod js {
-    /// [The `Performance` API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
-    pub mod performance {
-        /// The
-        /// [performance.now](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now)
-        /// method returns a double-precision float, measured in milliseconds.
-        ///
-        /// The returned value represents the time elapsed since the time origin, which is when
-        /// the page began to load.
-        // This mock implementation returns a dummy value.
-        pub fn now() -> f64 {
-            0.0
-        }
-
-        // This mock implementation returns a dummy value.
-        pub fn time_origin() -> f64 {
-            0.0
-        }
-    }
+fn time_origin() -> f64 {
+    use enso_web as web;
+    use enso_web::traits::*;
+    web::window.performance_or_panic().time_origin()
 }
 
 
@@ -459,6 +452,7 @@ impl From<Timestamp> for format::Timestamp {
         Self::from_ms(time.into_ms())
     }
 }
+
 
 
 // ===============
@@ -495,6 +489,7 @@ impl EventId {
 }
 
 
+
 // ========================
 // === ExternalMetadata ===
 // ========================
@@ -504,6 +499,7 @@ impl EventId {
 pub struct ExternalMetadata {
     type_id: u32,
 }
+
 
 
 // ================
@@ -523,6 +519,7 @@ pub trait Profiler {
     /// Log the end of an interval in which the profiler is not active.
     fn resume(self);
 }
+
 
 
 // ===============
