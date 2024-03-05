@@ -32,9 +32,9 @@
     },
     "BooleanOrInfer": {
       "anyOf": [
-        {"title": "Infer", "const": "infer", "type": "string"},
-        {"title": "True", "const": true, "type": "boolean"},
-        {"title": "False", "const": false, "type": "boolean"}
+        { "title": "Infer", "const": "infer", "type": "string" },
+        { "title": "True", "const": true, "type": "boolean" },
+        { "title": "False", "const": false, "type": "boolean" }
       ]
     },
 
@@ -257,7 +257,8 @@
           "$comment": "I want the title to be 'Default sheet (for writing)' to make it clear without hovering, but then the label is too wide. Can we make the modal wider?",
           "description": "The default sheet used when writing a table to this data link.",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "default": "EnsoSheet"
         }
       },
       "required": ["type"]
