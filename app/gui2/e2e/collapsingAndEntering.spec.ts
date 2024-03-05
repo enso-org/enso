@@ -89,7 +89,7 @@ test('Collapsing nodes', async ({ page }) => {
   await expect(locate.graphNodeByBinding(page, 'sum')).toExist()
   await expect(locate.graphNodeByBinding(page, 'prod')).toExist()
 
-  locate
+  await locate
     .graphNodeByBinding(page, 'ten')
     .locator('.icon')
     .click({ modifiers: ['Shift'] })

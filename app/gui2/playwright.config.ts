@@ -39,13 +39,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   repeatEach: process.env.CI ? 3 : 1,
   ...(process.env.CI ? { workers: 1 } : {}),
+  timeout: 60000,
   expect: {
     timeout: 5000,
     toHaveScreenshot: { threshold: 0 },
   },
+  reporter: 'html',
   use: {
     headless: !DEBUG,
-    trace: 'on',
+    trace: 'retain-on-failure',
     viewport: { width: 1920, height: 1600 },
     ...(DEBUG ?
       {}

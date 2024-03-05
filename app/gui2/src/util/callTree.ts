@@ -2,6 +2,7 @@ import type { PortId } from '@/providers/portInfo'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
+import { DisplayMode } from '@/providers/widgetRegistry/configuration'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
@@ -23,7 +24,7 @@ export class ArgumentPlaceholder {
     public argInfo: SuggestionEntryArgument,
     public kind: ApplicationKind,
     public insertAsNamed: boolean,
-    public dynamicConfig?: WidgetConfiguration | undefined,
+    public dynamicConfig?: (WidgetConfiguration & { display?: DisplayMode }) | undefined,
   ) {}
 
   static WithRetrievedConfig(
@@ -51,6 +52,10 @@ export class ArgumentPlaceholder {
 
   get portId(): PortId {
     return `${this.callId}[${this.index}]` as PortId
+  }
+
+  get hideByDefault(): boolean {
+    return this.argInfo.hasDefault && this.dynamicConfig?.display !== DisplayMode.Always
   }
 }
 
@@ -87,6 +92,10 @@ export class ArgumentAst {
 
   get portId(): PortId {
     return this.ast.id
+  }
+
+  get hideByDefault(): boolean {
+    return false
   }
 }
 

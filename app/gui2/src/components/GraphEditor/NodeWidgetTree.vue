@@ -15,6 +15,7 @@ const props = defineProps<{
   icon: Icon
   connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
+  extended: boolean
 }>()
 const emit = defineEmits<{
   openFullMenu: []
@@ -71,6 +72,7 @@ provideWidgetTree(
   toRef(props, 'icon'),
   toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
+  toRef(props, 'extended'),
   layoutTransitions.active,
   () => {
     emit('openFullMenu')

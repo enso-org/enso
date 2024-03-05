@@ -16,6 +16,7 @@ const conf = [
       'shared/ast/generated',
       'templates',
       '.histoire',
+      'playwright-report',
     ],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),
@@ -55,6 +56,16 @@ const conf = [
     files: ['stories/*.vue'],
     rules: {
       'vue/multi-word-component-names': 0,
+    },
+  },
+  // We must make sure our E2E tests await all steps, otherwise they're flaky.
+  {
+    files: ['e2e/**/*.spec.ts'],
+    languageOptions: {
+      parser: await import('@typescript-eslint/parser'),
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 2,
     },
   },
 ]

@@ -15,6 +15,8 @@ const emit = defineEmits<{
   'update:isVisualizationVisible': [isVisualizationVisible: boolean]
   startEditing: []
   startEditingComment: []
+  openFullMenu: []
+  delete: []
 }>()
 </script>
 
@@ -25,10 +27,20 @@ const emit = defineEmits<{
     @pointerup.stop
     @click.stop
   >
+    <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
     <SvgIcon
+      v-if="isFullMenuVisible"
       name="comment"
       class="icon-container button slot2"
+      :alt="`Edit comment`"
       @click.stop="emit('startEditingComment')"
+    />
+    <SvgIcon
+      v-if="isFullMenuVisible"
+      name="trash2"
+      class="icon-container button slot4"
+      :alt="`Delete component`"
+      @click.stop="emit('delete')"
     />
     <ToggleIcon
       icon="eye"

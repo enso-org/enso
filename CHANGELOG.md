@@ -622,6 +622,7 @@
 - [Allow reading Data Links configured locally or in the Cloud.][9215]
 - [Allow using `enso://` paths in `Data.read` and other places.][9225]
 - [Update the XML methods and add more capabilities to document.][9233]
+- [Added `Data.download` and a few other changes.][9249]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -900,6 +901,7 @@
 [9215]: https://github.com/enso-org/enso/pull/9215
 [9225]: https://github.com/enso-org/enso/pull/9225
 [9233]: https://github.com/enso-org/enso/pull/9233
+[9249]: https://github.com/enso-org/enso/pull/9249
 
 #### Enso Compiler
 
