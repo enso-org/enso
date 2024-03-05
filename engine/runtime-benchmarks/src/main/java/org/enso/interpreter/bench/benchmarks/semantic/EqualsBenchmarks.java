@@ -1,6 +1,5 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -8,12 +7,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import org.enso.polyglot.MethodNames.Module;
-import org.enso.polyglot.RuntimeOptions;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -58,17 +53,7 @@ public class EqualsBenchmarks {
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
     var random = new Random(42);
 
-    var ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .option(
-                "enso.languageHomeOverride",
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
+    var ctx = SrcUtil.newContextBuilder().build();
 
     var benchmarkName = SrcUtil.findName(params);
     var codeBuilder =

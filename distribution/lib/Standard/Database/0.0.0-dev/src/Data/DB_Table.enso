@@ -12,7 +12,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Metadata import make_single_choice
+from Standard.Base.Metadata import make_single_choice, Widget
 from Standard.Base.Runtime import assert
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
@@ -145,6 +145,21 @@ type DB_Table
             _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
             _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if internal_column.is_nothing then if_missing else self.make_column internal_column
+
+    ## ALIAS get cell, cell value
+       ICON select_column
+       Gets a value from the table.
+
+       Arguments:
+       - selector: The name or index of the column.
+       - index: The index of the value to get within the column.
+       - if_missing: The value to use if the selector isn't present.
+    @selector Widget_Helpers.make_column_name_selector
+    @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
+    get_value : Text | Integer -> Integer -> Any -> Any
+    get_value self selector=0 index=0 ~if_missing=Nothing =
+        col = self.get selector if_missing=Nothing
+        if Nothing == col then if_missing else col.get index if_missing
 
     ## GROUP Standard.Base.Selections
        ICON select_column
@@ -2031,7 +2046,7 @@ type DB_Table
     @names Widget_Helpers.make_column_name_selector
     @values Widget_Helpers.make_aggregate_column_selector
     cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
-    cross_tab self group_by names values=Aggregate_Column.Count (on_problems=Report_Warning) =
+    cross_tab self group_by=[] names=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [group_by, names, values, on_problems]
@@ -2516,6 +2531,7 @@ type DB_Table
 
     ## ALIAS metadata
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and value types of

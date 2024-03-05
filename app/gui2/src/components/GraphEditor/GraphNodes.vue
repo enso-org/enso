@@ -48,6 +48,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :edited="id === graphStore.editedNodeInfo?.id"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
+    @delete="graphStore.deleteNodes([id])"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
     @outputPortClick="graphStore.createEdgeFromOutput($event)"

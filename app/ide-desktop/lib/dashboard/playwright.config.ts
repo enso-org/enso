@@ -19,8 +19,10 @@ export default test.defineConfig({
     timeout: 30_000,
   },
   timeout: 30_000,
+  reporter: 'html',
   use: {
     baseURL: 'http://localhost:8080',
+    trace: 'retain-on-failure',
     launchOptions: {
       ignoreDefaultArgs: ['--headless'],
       args: [

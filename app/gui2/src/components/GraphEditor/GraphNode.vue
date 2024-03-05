@@ -5,6 +5,7 @@ import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
@@ -117,7 +118,7 @@ const warning = computed(() => {
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
   if (!warning) return
-  return '⚠ Warning: ' + warning!
+  return 'Warning: ' + warning!
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
@@ -369,7 +370,25 @@ function openFullMenu() {
   menuVisible.value = MenuState.Full
 }
 
-const documentation = computed<string | undefined>(() => props.node.documentation)
+const editingComment = ref(false)
+
+const documentation = computed<string | undefined>({
+  get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
+  set: (text) => {
+    graph.edit((edit) => {
+      const outerExpr = edit.get(props.node.outerExprId)
+      if (text) {
+        if (outerExpr instanceof Ast.MutableDocumented) {
+          outerExpr.setDocumentationText(text)
+        } else {
+          outerExpr.update((outerExpr) => Ast.Documented.new(text, outerExpr))
+        }
+      } else if (outerExpr instanceof Ast.MutableDocumented && outerExpr.expression) {
+        outerExpr.replace(outerExpr.expression.take())
+      }
+    })
+  },
+})
 </script>
 
 <template>
@@ -408,6 +427,9 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
       :isFullMenuVisible="menuVisible === MenuState.Full"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
+      @startEditingComment="editingComment = true"
+      @openFullMenu="openFullMenu"
+      @delete="emit('delete')"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -430,7 +452,14 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
     />
-    <GraphNodeComment v-if="documentation" v-model="documentation" class="beforeNode" />
+    <Suspense>
+      <GraphNodeComment
+        v-if="documentation != null"
+        v-model="documentation"
+        v-model:editing="editingComment"
+        class="beforeNode"
+      />
+    </Suspense>
     <div
       ref="contentNode"
       class="node"
@@ -448,12 +477,16 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
         @openFullMenu="openFullMenu"
       />
     </div>
+    <div class="statuses">
+      <SvgIcon v-if="warning" name="warning" />
+    </div>
     <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
     <GraphNodeError
       v-if="warning && (nodeHovered || isSelected)"
       class="afterNode warning"
-      :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
+      :class="{ messageWithMenu: menuVisible !== MenuState.Off }"
       :message="warning"
+      icon="warning"
       type="warning"
     />
     <svg class="bgPaths" :style="bgStyleVariables">
@@ -685,11 +718,30 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
   margin-top: 4px;
 }
 
+.messageWarning {
+  margin-top: 8px;
+}
+
 .messageWithMenu {
   left: 40px;
 }
 
-.warning {
-  top: 35px;
+.statuses {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  top: 0;
+  right: 100%;
+  margin-right: 8px;
+  color: var(--color-warning);
+  transition: opacity 0.2s ease-in-out;
+}
+
+.GraphNode:is(:hover, .selected) .statuses,
+.GraphNode:has(.selection:hover) .statuses {
+  opacity: 0;
 }
 </style>
