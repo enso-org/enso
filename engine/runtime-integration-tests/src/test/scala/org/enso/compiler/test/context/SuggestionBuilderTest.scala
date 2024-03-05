@@ -2333,7 +2333,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("Unnamed.Test.S.X", "Unnamed.Test.S.Y"))
+                  Some(Seq("~X", "~Y"))
                 )
               ),
               returnType    = "Unnamed.Test.T",

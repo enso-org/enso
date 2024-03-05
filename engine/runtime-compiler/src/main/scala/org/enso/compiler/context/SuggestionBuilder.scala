@@ -1,7 +1,6 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.Compiler
-import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
@@ -298,7 +297,7 @@ final class SuggestionBuilder[A: IndexedSource](
         buildTypeSignatureFromMetadata(
           arg.getMetadata(TypeSignatures)
         ).headOption
-          .map(buildTypedArgument(arg, _))
+          .map(buildTypedArgument(arg, _, isTypeAscription = true))
           .getOrElse(buildArgument(arg))
       }.tail
 
@@ -581,7 +580,15 @@ final class SuggestionBuilder[A: IndexedSource](
           case varg +: vtail =>
             targs match {
               case targ +: ttail =>
-                go(vtail, ttail, acc :+ buildTypedArgument(varg, targ))
+                go(
+                  vtail,
+                  ttail,
+                  acc :+ buildTypedArgument(
+                    varg,
+                    targ,
+                    isTypeAscription = false
+                  )
+                )
               case _ =>
                 go(vtail, targs, acc :+ buildArgument(varg))
             }
@@ -614,7 +621,15 @@ final class SuggestionBuilder[A: IndexedSource](
           case varg +: vtail =>
             targs match {
               case targ +: ttail =>
-                go(vtail, ttail, acc :+ buildTypedArgument(varg, targ))
+                go(
+                  vtail,
+                  ttail,
+                  acc :+ buildTypedArgument(
+                    varg,
+                    targ,
+                    isTypeAscription = false
+                  )
+                )
               case _ =>
                 go(vtail, targs, acc :+ buildArgument(varg))
             }
@@ -632,7 +647,8 @@ final class SuggestionBuilder[A: IndexedSource](
     */
   private def buildTypedArgument(
     varg: DefinitionArgument,
-    targ: TypeArg
+    targ: TypeArg,
+    isTypeAscription: Boolean
   ): Suggestion.Argument =
     Suggestion.Argument(
       name         = varg.name.name,
@@ -640,20 +656,25 @@ final class SuggestionBuilder[A: IndexedSource](
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.map(buildDefaultValue),
-      tagValues    = buildTagValues(targ)
+      tagValues    = buildTagValues(targ, isTypeAscription)
     )
 
   /** Build tag values of type argument.
     *
     * @param targ the type argument
+    * @param isTypeAscription if the type ascription was used in type definition
     * @return the list of tag values
     */
-  private def buildTagValues(targ: TypeArg): Option[Seq[String]] = {
+  private def buildTagValues(
+    targ: TypeArg,
+    isTypeAscription: Boolean
+  ): Option[Seq[String]] = {
     def go(arg: TypeArg): Seq[String] = arg match {
       case TypeArg.Sum(_, List())   => Seq()
       case TypeArg.Sum(_, variants) => variants.flatMap(go)
-      case TypeArg.Value(n)         => Seq(n.toString)
-      case _                        => Seq()
+      case TypeArg.Value(n) =>
+        Seq(if (isTypeAscription) s"~${n.item}" else n.toString)
+      case _ => Seq()
     }
 
     targ match {
@@ -704,7 +725,7 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildArgument(arg: DefinitionArgument): Suggestion.Argument = {
     buildTypeSignatureFromMetadata(arg.getMetadata(TypeSignatures)) match {
       case Vector(targ) =>
-        buildTypedArgument(arg, targ)
+        buildTypedArgument(arg, targ, isTypeAscription = true)
       case _ =>
         Suggestion.Argument(
           name         = arg.name.name,
