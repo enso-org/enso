@@ -1,6 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
+/* Scoped to `.enso-dashboard .enso-chat` in tailwind config. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --row-height: 2rem;
   --page-padding-x: 0.8125rem;
@@ -462,8 +467,8 @@ body::before {
   font-feature-settings: normal;
 }
 
-.enso-dashboard *:focus,
-.enso-chat *:focus {
+.enso-dashboard :focus,
+.enso-chat :focus {
   outline: none;
 }
 
@@ -493,169 +498,3 @@ body::before {
 ::-webkit-scrollbar-corner {
   background: rgba(0, 0, 0, 0);
 }
-
-@layer components {
-  .enso-dashboard,
-  .enso-chat {
-    /* A selectable element, when hovered. */
-    .selectable {
-      @apply disabled:opacity-30 disabled:cursor-not-allowed opacity-50 hover:opacity-75 transition-all;
-    }
-
-    /* An element that is currently selected, or one that is not selectable. */
-    .active {
-      @apply opacity-100 disabled:opacity-100 hover:opacity-100 disabled:cursor-default;
-    }
-
-    .placeholder {
-      @apply opacity-75;
-    }
-
-    .read-only {
-      @apply opacity-75 cursor-not-allowed;
-    }
-
-    .transparent {
-      @apply opacity-0;
-    }
-
-    .button {
-      @apply inline-block rounded-full px-4 py-1;
-    }
-
-    .text {
-      @apply leading-cozy h-text py-px;
-    }
-
-    .text-header {
-      @apply leading-snug h-text py-0.5;
-    }
-
-    .text-subheading {
-      @apply text-xl leading-snug py-0.5;
-    }
-
-    .settings-subheading {
-      @apply font-bold text-xl h-[2.375rem] py-0.5;
-    }
-
-    .settings-value {
-      @apply leading-cozy h-text py-px px-2;
-    }
-
-    /* This rule is empty and hence unneeded at runtime. */
-    /* .visibility-visible {} */
-
-    .visibility-hidden {
-      @apply hidden;
-    }
-
-    .visibility-faded {
-      @apply opacity-50;
-    }
-
-    .clip-path-top {
-      clip-path: polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px));
-    }
-
-    .clip-path-bottom {
-      clip-path: polygon(
-        0 calc(50% + 1px),
-        100% calc(50% + 1px),
-        100% 100%,
-        0 100%
-      );
-    }
-
-    .clip-path-bottom-shadow {
-      clip-path: polygon(
-        0 0,
-        100% 0,
-        100% calc(100% + 100vh),
-        0 calc(100% + 100vh)
-      );
-    }
-
-    .dasharray-5 {
-      /* FF does not support `calc()` in `stroke-dasharray`. */
-      stroke-dasharray: 3.76992 75.3984;
-      stroke-dasharray: calc(12 * 0.05 * 6.2832) calc(12 * 6.2832);
-    }
-
-    .dasharray-75 {
-      /* FF does not support `calc()` in `stroke-dasharray`. */
-      stroke-dasharray: 56.5488 75.3984;
-      stroke-dasharray: calc(12 * 0.75 * 6.2832) calc(12 * 6.2832);
-      transition-duration: 90s;
-    }
-
-    .dasharray-100 {
-      /* FF does not support `calc()` in `stroke-dasharray`. */
-      stroke-dasharray: 75.3984 0;
-      stroke-dasharray: calc(12 * 6.2832) 0;
-    }
-
-    .scroll-hidden {
-      -ms-overflow-style: none; /* Internet Explorer 10+ */
-      scrollbar-width: none; /* Firefox */
-    }
-
-    .scroll-hidden::-webkit-scrollbar {
-      display: none; /* Safari and Chrome */
-    }
-
-    :where(
-        .rounded-rows
-          > tbody
-          > tr:nth-child(odd)
-          > td:not(.rounded-rows-skip-level),
-        .rounded-rows
-          > tbody
-          > tr:nth-child(odd)
-          > td.rounded-rows-skip-level
-          > *
-      ) {
-      background-color: rgba(0, 0, 0, 0.03);
-    }
-
-    :where(
-        .rounded-rows > tbody > tr.selected > td:not(.rounded-rows-skip-level),
-        .rounded-rows > tbody > tr.selected > td.rounded-rows-skip-level > *
-      ) {
-      background-color: rgba(255, 255, 255, 0.4);
-    }
-
-    .whatsnew-span-2.whatsnew-span-2 {
-      @media screen and (max-width: 40.5625rem) {
-        grid-column: span 1 / span 1;
-      }
-    }
-
-    .container-size {
-      container-type: size;
-    }
-  }
-}
-
-@layer components {
-  .button {
-    @apply selectable;
-  }
-
-  .visibility-faded {
-    @apply pointer-events-none-recursive;
-  }
-}
-
-.enso-dashboard,
-.enso-chat {
-  .pointer-events-none-recursive,
-  .pointer-events-none-recursive * {
-    pointer-events: none;
-  }
-}
-
-/* Scoped to `.enso-dashboard .enso-chat` in tailwind config. */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;

@@ -1,4 +1,5 @@
 /** @file Configuration for Tailwind. */
+import plugin from 'tailwindcss/plugin'
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention, @typescript-eslint/no-magic-numbers */
@@ -384,6 +385,136 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'context-menu-half-x': 'var(--context-menu-half-width)',
         'context-menu-macos-half-x': 'var(--context-menu-macos-half-width)',
       },
+      dashArray: {
+        5: '5-12',
+        75: '75-12',
+        100: '100-12',
+      },
     },
   },
+  plugins: [
+    plugin(({ addUtilities, matchUtilities, addComponents, theme }) => {
+      addUtilities({
+        '.container-size': {
+          containerType: 'size',
+        },
+        '.pointer-events-none-recursive': {
+          pointerEvents: 'none',
+          '*': { pointerEvents: 'none' },
+        },
+        '.clip-path-top': {
+          clipPath: 'polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px))',
+        },
+        '.clip-path-bottom': {
+          clipPath: `polygon(0 calc(50% + 1px), 100% calc(50% + 1px), 100% 100%, 0 100%)`,
+        },
+        '.clip-path-bottom-shadow': {
+          clipPath: `polygon(0 0, 100% 0, 100% calc(100% + 100vh), 0 calc(100% + 100vh))`,
+        },
+        '.scroll-hidden': {
+          MsOverflowStyle: 'none' /* Internet Explorer 10+ */,
+          scrollbarWidth: 'none' /* Firefox */,
+          '&::-webkit-scrollbar': {
+            display: 'none' /* Safari and Chrome */,
+          },
+        },
+
+        // === Classes affecting opacity ===
+
+        '.selectable': {
+          '@apply disabled:opacity-30 disabled:cursor-not-allowed opacity-50 hover:opacity-75 transition-all':
+            '',
+        },
+        '.active': {
+          '@apply opacity-100 disabled:opacity-100 hover:opacity-100 disabled:cursor-default': '',
+        },
+        '.placeholder': {
+          '@apply opacity-75': '',
+        },
+        '.read-only': {
+          '@apply opacity-75 cursor-not-allowed': '',
+        },
+        '.transparent': {
+          '@apply opacity-0': '',
+        },
+
+        // === Visbility classes ===
+
+        '.visibility-visible': {},
+        '.visibility-hidden': {
+          '@apply hidden': '',
+        },
+        '.visibility-faded': {
+          '@apply opacity-50 pointer-events-none-recursive': '',
+        },
+
+        // === Rounded rows ===
+
+        '.rounded-rows': {
+          [`:where(
+            & > tbody > tr:nth-child(odd) > td:not(.rounded-rows-skip-level),
+            & > tbody > tr:nth-child(odd) > td.rounded-rows-skip-level > *
+          )`]: {
+            backgroundColor: `rgba(0 0 0 / 3%)`,
+          },
+          [`:where(
+            & > tbody > tr.selected > td:not(.rounded-rows-skip-level),
+            & > tbody > tr.selected > td.rounded-rows-skip-level > *
+          )`]: {
+            backgroundColor: 'rgb(255, 255, 255, 40%)',
+          },
+        },
+
+        // === Custom column spans ===
+
+        '.col-span-2-news-item.col-span-2-news-item': {
+          '@media screen and (max-width: 40.5625rem)': {
+            gridColumn: 'span 1 / span 1',
+          },
+        },
+      })
+
+      /** One revolution, in radians. */
+      const revolution = Math.PI * 2
+      matchUtilities(
+        {
+          // Values must be pre-computed, because FF does not support `calc()` in `stroke-dasharray`.
+          // calc(12 * 0.05 * 6.2832) calc(12 * 6.2832)
+          dasharray: value => {
+            const [percentage = 0, radius = 0] = value.split('-').map(part => Number(part) || 0)
+            return {
+              strokeDasharray: `${radius * (percentage / 100) * revolution} ${
+                percentage === 1 ? 0 : radius * revolution
+              }`,
+            }
+          },
+        },
+        { values: theme('dashArray', {}) }
+      )
+
+      addComponents({
+        '.button': {
+          '@apply inline-block rounded-full px-4 py-1 selectable': '',
+        },
+
+        // === Text-related classes ===
+
+        '.text': {
+          '@apply leading-cozy h-text py-px': '',
+        },
+        '.text-header': {
+          '@apply leading-snug h-text py-0.5': '',
+        },
+        '.text-subheading': {
+          '@apply text-xl leading-snug py-0.5': '',
+        },
+        '.settings-subheading': {
+          '@apply font-bold text-xl h-[2.375rem] py-0.5': '',
+        },
+        '.settings-value': {
+          '@apply leading-cozy h-text py-px px-2': '',
+        },
+      })
+    }),
+  ],
 })
