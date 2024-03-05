@@ -25,6 +25,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     }
     return []
   })
+  conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
 
   getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
     const [id] = this.nameToId.lookup(name)

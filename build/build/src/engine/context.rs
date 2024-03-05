@@ -234,7 +234,7 @@ impl RunContext {
         ];
         for (argfile, artifact_name) in native_image_arg_files {
             if argfile.exists() {
-                ide_ci::actions::artifacts::upload_single_file(&argfile, artifact_name).await?;
+                ide_ci::actions::artifacts::upload_single_file(argfile, artifact_name).await?;
             } else {
                 warn!(
                     "Native Image Arg File for {} not found at {}",
