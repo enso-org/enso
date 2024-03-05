@@ -30,6 +30,13 @@
       },
       "required": ["type", "secretPath"]
     },
+    "BooleanOrInfer": {
+      "anyOf": [
+        {"title": "Infer", "const": "infer", "type": "string"},
+        {"title": "True", "const": true, "type": "boolean"},
+        {"title": "False", "const": false, "type": "boolean"}
+      ]
+    },
 
     "AwsAuth": {
       "title": "AWS Authentication",
@@ -207,11 +214,7 @@
         "headers": {
           "title": "Headers",
           "description": "Whether a header row containing column names is present.",
-          "anyOf": [
-            {"title": "Infer", "const": "infer", "type": "string"},
-            {"title": "True", "const": true, "type": "boolean"},
-            {"title": "False", "const": false, "type": "boolean"}
-          ]
+          "$ref": "#/$defs/BooleanOrInfer"
         }
       },
       "required": ["type", "subType", "delimiter", "headers"]
