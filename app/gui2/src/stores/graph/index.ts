@@ -237,7 +237,8 @@ export const useGraphStore = defineStore('graph', () => {
       rhs.setNodeMetadata(metadata)
       const assignment = Ast.Assignment.new(edit, ident, rhs)
       for (const conflict of conflicts) {
-        substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
+        // TODO: Sort out issues with FQN with the engine.
+        // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
       }
       edit.getVersion(method).bodyAsBlock().push(assignment)
       return asNodeId(rhs.id)
@@ -321,7 +322,8 @@ export const useGraphStore = defineStore('graph', () => {
           return
         }
         for (const conflict of conflicts) {
-          substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
+          // TODO: Sort out issues with FQN with the engine.
+          // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
         }
       }
     })
