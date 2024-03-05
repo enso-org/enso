@@ -895,7 +895,8 @@ add_datalink_specs suite_builder =
             connection = Database.connect connection_details
             Panic.with_finalizer connection.close <|
                 # We create the table that will then be accessed through the datalink, and ensure it's cleaned up afterwards.
-                example_table = (Table.new [["X", [22]], ["Y", ["o"]]]).select_into_database_table connection "DatalinkedTable" temporary=False
+                example_table = Panic.rethrow <|
+                    (Table.new [["X", [22]], ["Y", ["o"]]]).select_into_database_table connection "DatalinkedTable" temporary=False
                 Panic.with_finalizer (connection.drop_table example_table.name) <|
                     ## Now we access this table but this time through a datalink.
                        Btw. this will keep a connection open until the table is garbage collected, but that is probably fine...
