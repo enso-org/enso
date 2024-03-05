@@ -14,7 +14,7 @@ import ManagePermissionsModal from '#/layouts/dashboard/ManagePermissionsModal'
 import type * as column from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -42,7 +42,9 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const self = asset.permissions?.find(permission => permission.user.user_email === user?.email)
+  const self = asset.permissions?.find(
+    backendModule.isUserPermissionAnd(permission => permission.user.user_email === user?.email)
+  )
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
@@ -60,9 +62,12 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   )
   return (
     <div className="group flex items-center gap-1">
-      {(asset.permissions ?? []).map(otherUser => (
-        <PermissionDisplay key={otherUser.user.pk} action={otherUser.permission}>
-          {otherUser.user.user_name}
+      {(asset.permissions ?? []).map(permission => (
+        <PermissionDisplay
+          key={backendModule.getAssetPermissionName(permission)}
+          action={permission.permission}
+        >
+          {backendModule.getAssetPermissionName(permission)}
         </PermissionDisplay>
       ))}
       {managesThisAsset && (

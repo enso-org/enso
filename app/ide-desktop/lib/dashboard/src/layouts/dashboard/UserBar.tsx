@@ -44,7 +44,7 @@ export default function UserBar(props: UserBarProps) {
   const self =
     user != null
       ? projectAsset?.permissions?.find(
-          permissions => permissions.user.user_email === user.email
+          backendModule.isUserPermissionAnd(permission => permission.user.user_email === user.email)
         ) ?? null
       : null
   const shouldShowShareButton =

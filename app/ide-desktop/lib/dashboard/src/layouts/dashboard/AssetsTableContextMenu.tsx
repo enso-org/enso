@@ -82,7 +82,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       Array.from(selectedKeys, key => {
         const userPermissions = nodeMapRef.current.get(key)?.item.permissions
         const selfPermission = userPermissions?.find(
-          permission => permission.user.user_email === user.email
+          backendModule.isUserPermissionAnd(permission => permission.user.user_email === user.email)
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))

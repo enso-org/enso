@@ -1,4 +1,4 @@
-/** @file A user and their permissions for a specific asset. */
+/** @file Permissions for a specific user or user group on a specific asset. */
 import * as React from 'react'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -11,41 +11,43 @@ import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
-/** Props for a {@link UserPermissions}. */
-export interface UserPermissionsProps {
+/** Props for a {@link Permissions}. */
+export interface PermissionsProps {
   readonly asset: backendModule.Asset
   readonly self: backendModule.UserPermission
   readonly isOnlyOwner: boolean
-  readonly userPermission: backendModule.UserPermission
-  readonly setUserPermission: (userPermissions: backendModule.UserPermission) => void
-  readonly doDelete: (user: backendModule.UserInfo) => void
+  readonly permission: backendModule.AssetPermission
+  readonly setPermission: (userPermissions: backendModule.AssetPermission) => void
+  readonly doDelete: (user: backendModule.UserPermissionIdentifier) => void
 }
 
-/** A user and their permissions for a specific asset. */
-export default function UserPermissions(props: UserPermissionsProps) {
+/** Permissions for a specific user or user group on a specific asset. */
+export default function Permissions(props: PermissionsProps) {
   const { asset, self, isOnlyOwner, doDelete } = props
-  const { userPermission: initialUserPermission, setUserPermission: outerSetUserPermission } = props
+  const { permission: initialUserPermission, setPermission: outerSetUserPermission } = props
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [userPermissions, setUserPermissions] = React.useState(initialUserPermission)
+  const [permission, setPermission] = React.useState(initialUserPermission)
+  const permissionId = backendModule.getAssetPermissionId(permission)
 
   React.useEffect(() => {
-    setUserPermissions(initialUserPermission)
+    setPermission(initialUserPermission)
   }, [initialUserPermission])
 
-  const doSetUserPermission = async (newUserPermissions: backendModule.UserPermission) => {
+  const doSetPermission = async (newPermission: backendModule.AssetPermission) => {
     try {
-      setUserPermissions(newUserPermissions)
-      outerSetUserPermission(newUserPermissions)
+      setPermission(newPermission)
+      outerSetUserPermission(newPermission)
       await backend.createPermission({
-        userSubjects: [newUserPermissions.user.pk],
+        userSubjects: [backendModule.getAssetPermissionId(newPermission)],
         resourceId: asset.id,
-        action: newUserPermissions.permission,
+        action: newPermission.permission,
       })
     } catch (error) {
-      setUserPermissions(userPermissions)
-      outerSetUserPermission(userPermissions)
-      toastAndLog(`Could not set permissions of '${newUserPermissions.user.user_email}'`, error)
+      setPermission(newPermission)
+      outerSetUserPermission(newPermission)
+      const name = backendModule.getAssetPermissionName(newPermission)
+      toastAndLog(`Could not set permissions of '${name}'`, error)
     }
   }
 
@@ -53,23 +55,25 @@ export default function UserPermissions(props: UserPermissionsProps) {
     <div className="flex gap-3 items-center">
       <PermissionSelector
         showDelete
-        disabled={isOnlyOwner && userPermissions.user.pk === self.user.pk}
+        disabled={isOnlyOwner && permissionId === self.user.pk}
         error={
           isOnlyOwner
             ? `This ${backendModule.ASSET_TYPE_NAME[asset.type]} must have at least one owner.`
             : null
         }
         selfPermission={self.permission}
-        action={userPermissions.permission}
+        action={permission.permission}
         assetType={asset.type}
         onChange={async permissions => {
-          await doSetUserPermission(object.merge(userPermissions, { permission: permissions }))
+          await doSetPermission(object.merge(permission, { permission: permissions }))
         }}
         doDelete={() => {
-          doDelete(userPermissions.user)
+          doDelete(permissionId)
         }}
       />
-      <span className="leading-170 h-6 py-px">{userPermissions.user.user_name}</span>
+      <span className="leading-170 h-6 py-px">
+        {backendModule.getAssetPermissionName(permission)}
+      </span>
     </div>
   )
 }

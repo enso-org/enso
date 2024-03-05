@@ -418,7 +418,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         const owners =
           node.item.permissions
             ?.filter(permission => permission.permission === permissions.PermissionAction.own)
-            .map(owner => owner.user.user_name) ?? []
+            .map(backendModule.getAssetPermissionName) ?? []
         const globMatch = (glob: string, match: string) => {
           const regex = (globCache[glob] =
             globCache[glob] ??
@@ -708,7 +708,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             .flatMap(node =>
               (node.item.permissions ?? [])
                 .filter(permission => permission.permission === permissions.PermissionAction.own)
-                .map(permission => permission.user.user_name)
+                .map(backendModule.getAssetPermissionName)
             )
           setSuggestions(
             Array.from(

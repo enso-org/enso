@@ -85,6 +85,9 @@ export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
 export type Ami = newtype.Newtype<string, 'Ami'>
 export const Ami = newtype.newtypeConstructor<Ami>()
 
+/** An identifier for an entity with an {@link AssetPermission} for an {@link Asset}. */
+export type UserPermissionIdentifier = UserGroupId | UserId
+
 /* eslint-enable @typescript-eslint/no-redeclare */
 
 // =============
@@ -367,6 +370,49 @@ export interface UserPermission {
   readonly permission: permissions.PermissionAction
 }
 
+/** User permission for a specific user group. */
+export interface UserGroupPermission {
+  readonly userGroup: UserGroupInfo
+  readonly permission: permissions.PermissionAction
+}
+
+/** User permission for a specific user or user group. */
+export type AssetPermission = UserGroupPermission | UserPermission
+
+/** Whether an {@link AssetPermission} is a {@link UserPermission}. */
+export function isUserPermission(permission: AssetPermission): permission is UserPermission {
+  return 'user' in permission
+}
+
+/** Whether an {@link AssetPermission} is a {@link UserPermission} with an additional predicate. */
+export function isUserPermissionAnd(predicate: (permission: UserPermission) => boolean) {
+  return (permission: AssetPermission): permission is UserPermission =>
+    isUserPermission(permission) && predicate(permission)
+}
+
+/** Whether an {@link AssetPermission} is a {@link UserGroupPermission}. */
+export function isUserGroupPermission(
+  permission: AssetPermission
+): permission is UserGroupPermission {
+  return 'userGroup' in permission
+}
+
+/** Whether an {@link AssetPermission} is a {@link UserGroupPermission} with an additional predicate. */
+export function isUserGroupPermissionAnd(predicate: (permission: UserGroupPermission) => boolean) {
+  return (permission: AssetPermission): permission is UserGroupPermission =>
+    isUserGroupPermission(permission) && predicate(permission)
+}
+
+/** Get the property representing the name on an arbitrary variant of {@link UserPermission}. */
+export function getAssetPermissionName(permission: AssetPermission) {
+  return isUserPermission(permission) ? permission.user.user_name : permission.userGroup.groupName
+}
+
+/** Get the property representing the id on an arbitrary variant of {@link UserPermission}. */
+export function getAssetPermissionId(permission: AssetPermission): UserPermissionIdentifier {
+  return isUserPermission(permission) ? permission.user.pk : permission.userGroup.sk
+}
+
 /** The type returned from the "update directory" endpoint. */
 export interface UpdatedDirectory {
   readonly id: DirectoryId
@@ -525,7 +571,7 @@ export interface BaseAsset {
   /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
    * (and currently safe) to assume it is always a {@link DirectoryId}. */
   readonly parentId: DirectoryId
-  readonly permissions: UserPermission[] | null
+  readonly permissions: AssetPermission[] | null
   readonly labels: LabelName[] | null
   readonly description: string | null
 }
@@ -579,7 +625,7 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
 export function createPlaceholderFileAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: UserPermission[]
+  assetPermissions: AssetPermission[]
 ): FileAsset {
   return {
     type: AssetType.file,
@@ -598,7 +644,7 @@ export function createPlaceholderFileAsset(
 export function createPlaceholderProjectAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: UserPermission[],
+  assetPermissions: AssetPermission[],
   organization: User | null
 ): ProjectAsset {
   return {
@@ -737,36 +783,24 @@ export interface AssetVersions {
   versions: S3ObjectVersion[]
 }
 
-// ==============================
-// === compareUserPermissions ===
-// ==============================
-
-/** A value returned from a compare function passed to {@link Array.sort}, indicating that the
- * first argument was less than the second argument. */
-const COMPARE_LESS_THAN = -1
+// ===============================
+// === compareAssetPermissions ===
+// ===============================
 
 /** Return a positive number when `a > b`, a negative number when `a < b`, and `0`
  * when `a === b`. */
-export function compareUserPermissions(a: UserPermission, b: UserPermission) {
+export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) {
   const relativePermissionPrecedence =
     permissions.PERMISSION_ACTION_PRECEDENCE[a.permission] -
     permissions.PERMISSION_ACTION_PRECEDENCE[b.permission]
   if (relativePermissionPrecedence !== 0) {
     return relativePermissionPrecedence
   } else {
-    const aName = a.user.user_name
-    const bName = b.user.user_name
-    const aEmail = a.user.user_email
-    const bEmail = b.user.user_email
-    return aName < bName
-      ? COMPARE_LESS_THAN
-      : aName > bName
-      ? 1
-      : aEmail < bEmail
-      ? COMPARE_LESS_THAN
-      : aEmail > bEmail
-      ? 1
-      : 0
+    const aName = 'user' in a ? a.user.user_name : a.userGroup.groupName
+    const bName = 'user' in b ? b.user.user_name : b.userGroup.groupName
+    const aEmail = 'user' in a ? a.user.user_email : ''
+    const bEmail = 'user' in b ? b.user.user_email : ''
+    return aName < bName ? -1 : aName > bName ? 1 : aEmail < bEmail ? -1 : aEmail > bEmail ? 1 : 0
   }
 }
 
@@ -802,7 +836,7 @@ export interface InviteUserRequestBody {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly userSubjects: UserId[]
+  readonly userSubjects: UserPermissionIdentifier[]
   readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
 }
@@ -926,11 +960,8 @@ export function detectVersionLifecycle(version: string) {
 
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
 export function compareAssets(a: AnyAsset, b: AnyAsset) {
-  const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
-  if (relativeTypeOrder !== 0) {
-    return relativeTypeOrder
-  }
-  return a.title > b.title ? 1 : a.title < b.title ? COMPARE_LESS_THAN : 0
+  const typeDelta = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
+  return typeDelta !== 0 ? typeDelta : a.title > b.title ? 1 : a.title < b.title ? -1 : 0
 }
 
 // ==================

@@ -367,7 +367,7 @@ export default class RemoteBackend extends Backend {
         )
         .map(asset =>
           object.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backendModule.compareUserPermissions),
+            permissions: [...(asset.permissions ?? [])].sort(backendModule.compareAssetPermissions),
           })
         )
     }

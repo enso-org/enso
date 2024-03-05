@@ -19,7 +19,7 @@ import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import MenuEntry from '#/components/MenuEntry'
 
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as assetQuery from '#/utilities/AssetQuery'
 import * as object from '#/utilities/object'
@@ -37,12 +37,12 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { category, labels, setQuery, deletedLabelNames, doCreateLabel } = state
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const asset = item.item
-  const session = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const self = asset.permissions?.find(
-    permission => permission.user.user_email === session.user?.email
+    backendModule.isUserPermissionAnd(permission => permission.user.user_email === user?.email)
   )
   const managesThisAsset =
     category !== Category.trash &&
