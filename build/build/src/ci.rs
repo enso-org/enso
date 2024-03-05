@@ -16,6 +16,7 @@ pub mod labels {
 
 /// Names used to represent common workflow dispatch events inputs.
 pub mod inputs {
+    /// Input allowing to request a clean build for the workflow.
     pub const CLEAN_BUILD_REQUIRED: &str = "clean_build_required";
 }
 

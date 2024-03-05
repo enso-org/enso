@@ -152,7 +152,7 @@ impl RunsOn for BenchmarkRunner {
 pub enum CleaningCondition {
     /// Always clean, even if the job was canceled or failed.
     Always,
-    /// Clean only if the "Clean required" label is present on the pull request.
+    /// Clean only if the clean build was requested by the actor.
     #[default]
     OnRequest,
 }
