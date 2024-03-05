@@ -31,6 +31,7 @@ function testSchema(json: unknown, fileName: string): void {
 const REPO_ROOT = '../../../../'
 const BASE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Base_Tests/data/datalinks/')
 const S3_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/AWS_Tests/data/')
+const TABLE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Table_Tests/data/datalinks/')
 
 v.test('correctly validates example HTTP .datalink files with the schema', () => {
   const schemas = [
@@ -61,6 +62,17 @@ v.test('correctly validates example S3 .datalink files with the schema', () => {
   ]
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(S3_DATA_LINKS_ROOT, schema))
+    testSchema(json, schema)
+  }
+})
+
+v.test('correctly validates example Database .datalink files with the schema', () => {
+  const schemas = [
+    'postgres-db.datalink',
+    'postgres-table.datalink',
+  ]
+  for (const schema of schemas) {
+    const json = loadDataLinkFile(path.resolve(TABLE_DATA_LINKS_ROOT, schema))
     testSchema(json, schema)
   }
 })
