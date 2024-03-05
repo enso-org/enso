@@ -302,7 +302,7 @@ type Decimal
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.subtract that.big_decimal)
                 _ -> Decimal.Value (self.big_decimal.subtract that.big_decimal math_context.math_context)
-    
+
     ## ALIAS minus
        GROUP Operators
        ICON math
