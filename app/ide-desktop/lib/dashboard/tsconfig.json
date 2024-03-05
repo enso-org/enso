@@ -6,6 +6,7 @@
     "./**/*.json",
     "../../utils.ts",
     ".prettierrc.cjs"
+    "tailwind.config.js"
   ],
   "exclude": ["./dist"],
   "compilerOptions": {
