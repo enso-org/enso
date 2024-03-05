@@ -60,6 +60,7 @@ export function useStackNavigator() {
         }
       }
     }
+    graphStore.updateState()
   }
 
   function enterNode(id: AstId) {
@@ -84,11 +85,13 @@ export function useStackNavigator() {
       return
     }
     projectStore.executionContext.push(externalId)
+    graphStore.updateState()
     breadcrumbs.value = projectStore.executionContext.desiredStack.slice()
   }
 
   function exitNode() {
     projectStore.executionContext.pop()
+    graphStore.updateState()
   }
 
   /// Enter the next node from the history stack. This is the node that is the first greyed out item in the breadcrumbs.
@@ -100,6 +103,7 @@ export function useStackNavigator() {
       return
     }
     projectStore.executionContext.push(nextNode.expressionId)
+    graphStore.updateState()
   }
 
   onMounted(() => {

@@ -1,5 +1,6 @@
-import test, { expect, type Locator, type Page } from 'playwright/test'
+import test, { type Locator, type Page } from 'playwright/test'
 import * as actions from './actions'
+import { expect } from './customExpect'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 
@@ -32,7 +33,7 @@ test('Widget in plain AST', async ({ page }) => {
   const numberNode = locate.graphNodeByBinding(page, 'five')
   const numberWidget = numberNode.locator('.WidgetNumber')
   await expect(numberWidget).toBeVisible()
-  await expect(numberWidget.locator('.value')).toHaveValue('5')
+  await expect(numberWidget.locator('input')).toHaveValue('5')
 
   const listNode = locate.graphNodeByBinding(page, 'list')
   const listWidget = listNode.locator('.WidgetVector')
@@ -41,7 +42,7 @@ test('Widget in plain AST', async ({ page }) => {
   const textNode = locate.graphNodeByBinding(page, 'text')
   const textWidget = textNode.locator('.WidgetText')
   await expect(textWidget).toBeVisible()
-  await expect(textWidget.locator('.value')).toHaveValue("'test'")
+  await expect(textWidget.locator('input')).toHaveValue('test')
 })
 
 test('Selection widgets in Data.read node', async ({ page }) => {
@@ -97,7 +98,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await expect(page.locator('.dropdownContainer')).toBeVisible()
   await dropDown.expectVisibleWithOptions(page, ['"File 1"', '"File 2"'])
   await dropDown.clickOption(page, '"File 2"')
-  await expect(pathArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"File 2"')
+  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 2')
 
   // Change value on `path` (dynamic config)
   await mockMethodCallInfo(page, 'data', {
@@ -111,7 +112,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await page.getByText('path').click()
   await dropDown.expectVisibleWithOptions(page, ['"File 1"', '"File 2"'])
   await dropDown.clickOption(page, '"File 1"')
-  await expect(pathArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"File 1"')
+  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 1')
 })
 
 test('Managing aggregates in `aggregate` node', async ({ page }) => {
@@ -160,6 +161,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     'Aggregate_Column',
     '.',
     'Count_Distinct',
+    "'",
+    "'",
   ])
   await mockMethodCallInfo(
     page,
@@ -186,8 +189,12 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     'Aggregate_Column',
     '.',
     'Count_Distinct',
+    '"',
+    '"',
+    "'",
+    "'",
   ])
-  await expect(columnsArg.locator('.EnsoTextInputWidget > input').first()).toHaveValue('"column 1"')
+  await expect(columnsArg.locator('.WidgetText > input').first()).toHaveValue('column 1')
 
   // Add another aggregate
   await columnsArg.locator('.add-item').click()
@@ -195,6 +202,10 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
     'Aggregate_Column',
     '.',
     'Count_Distinct',
+    '"',
+    '"',
+    "'",
+    "'",
     'Aggregate_Column',
     '.',
     'Group_By',
@@ -221,8 +232,16 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await secondColumnArg.click()
   await dropDown.expectVisibleWithOptions(page, ['"column 1"', '"column 2"'])
   await dropDown.clickOption(page, '"column 2"')
-  await expect(secondItem.locator('.WidgetToken')).toHaveText(['Aggregate_Column', '.', 'Group_By'])
-  await expect(secondItem.locator('.EnsoTextInputWidget > input').first()).toHaveValue('"column 2"')
+  await expect(secondItem.locator('.WidgetToken')).toHaveText([
+    'Aggregate_Column',
+    '.',
+    'Group_By',
+    '"',
+    '"',
+    "'",
+    "'",
+  ])
+  await expect(secondItem.locator('.WidgetText > input').first()).toHaveValue('column 2')
 
   // Switch aggregates
   //TODO[ao] I have no idea how to emulate drag. Simple dragTo does not work (some element seem to capture event).

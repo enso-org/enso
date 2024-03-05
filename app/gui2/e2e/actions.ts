@@ -1,5 +1,5 @@
-import { expect, type Page } from '@playwright/test'
-import * as customExpect from './customExpect'
+import { type Page } from '@playwright/test'
+import { expect } from './customExpect'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
 
@@ -12,12 +12,13 @@ export async function goToGraph(page: Page) {
   await page.goto('/')
   await expect(page.locator('.App')).toBeVisible()
   // Wait until nodes are loaded.
-  await customExpect.toExist(locate.graphNode(page))
+  await expect(locate.graphNode(page)).toExist()
   // Wait for position initialization
-  await expect(locate.graphNode(page).first()).toHaveCSS(
-    'transform',
-    'matrix(1, 0, 0, 1, -16, -16)',
-  )
+  await expect(locate.graphNode(page).first()).toHaveCSS('transform', 'matrix(1, 0, 0, 1, -16, 64)')
+}
+
+export async function exitFunction(page: Page, x = 300, y = 300) {
+  await page.mouse.dblclick(x, y, { delay: 10 })
 }
 
 // =================

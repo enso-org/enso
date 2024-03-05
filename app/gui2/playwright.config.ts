@@ -45,7 +45,7 @@ export default defineConfig({
   },
   use: {
     headless: !DEBUG,
-    trace: 'on-first-retry',
+    trace: 'on',
     viewport: { width: 1920, height: 1600 },
     ...(DEBUG ?
       {}
