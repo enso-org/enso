@@ -39,6 +39,12 @@ const INPUT_AREA_HEIGHT = 40
 const PANELS_HEIGHT = 384
 // Height of the visualization area, starting from the bottom of the input area.
 const VISUALIZATION_HEIGHT = 190
+const PAN_MARGINS = {
+  top: 48,
+  bottom: 40,
+  left: 80,
+  right: 40,
+}
 
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
@@ -72,20 +78,24 @@ const cbOpen: Interaction = {
   },
 }
 
+function scaleValues<T extends Record<any, number>>(
+  values: T,
+  scale: number,
+): { [Key in keyof T]: number } {
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, value * scale]),
+  ) as any
+}
+
 function panIntoView() {
   // Factor that converts client-coordinate dimensions to scene-coordinate dimensions.
   const scale = 1 / props.navigator.targetScale
-  const origin = props.nodePosition.add(COMPONENT_BROWSER_TO_NODE_OFFSET)
+  const origin = props.nodePosition.add(COMPONENT_BROWSER_TO_NODE_OFFSET.scale(scale))
   const inputArea = new Rect(origin, new Vec2(WIDTH, INPUT_AREA_HEIGHT).scale(scale))
   const panelsAreaDimensions = new Vec2(WIDTH, PANELS_HEIGHT).scale(scale)
   const panelsArea = new Rect(origin.sub(new Vec2(0, panelsAreaDimensions.y)), panelsAreaDimensions)
   const vizHeight = VISUALIZATION_HEIGHT * scale
-  const margins = {
-    top: 48 * scale,
-    bottom: 40 * scale,
-    left: 80 * scale,
-    right: 40 * scale,
-  }
+  const margins = scaleValues(PAN_MARGINS, scale)
   props.navigator.panTo([
     // Always include the bottom-left of the input area.
     { x: inputArea.left, y: inputArea.bottom },
