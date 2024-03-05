@@ -623,6 +623,8 @@
 - [Allow using `enso://` paths in `Data.read` and other places.][9225]
 - [Update the XML methods and add more capabilities to document.][9233]
 - [Added `Data.download` and a few other changes.][9249]
+- [Implement Data Links to Postgres (accessing a DB connection or a table
+  directly)][9269]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -902,6 +904,7 @@
 [9225]: https://github.com/enso-org/enso/pull/9225
 [9233]: https://github.com/enso-org/enso/pull/9233
 [9249]: https://github.com/enso-org/enso/pull/9249
+[9269]: https://github.com/enso-org/enso/pull/9269
 
 #### Enso Compiler
 
