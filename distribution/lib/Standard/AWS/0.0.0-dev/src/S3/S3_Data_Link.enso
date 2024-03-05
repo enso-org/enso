@@ -9,7 +9,7 @@ from project.Internal.Data_Link_Helpers import decode_aws_credential
 ## PRIVATE
 type S3_Data_Link
     ## PRIVATE
-    Value (uri : Text) format (credentials : AWS_Credential | Nothing)
+    Value (uri : Text) format (credentials : AWS_Credential)
 
     ## PRIVATE
     parse json -> S3_Data_Link =
