@@ -67,10 +67,7 @@ v.test('correctly validates example S3 .datalink files with the schema', () => {
 })
 
 v.test('correctly validates example Database .datalink files with the schema', () => {
-  const schemas = [
-    'postgres-db.datalink',
-    'postgres-table.datalink',
-  ]
+  const schemas = ['postgres-db.datalink', 'postgres-table.datalink']
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(TABLE_DATA_LINKS_ROOT, schema))
     testSchema(json, schema)
