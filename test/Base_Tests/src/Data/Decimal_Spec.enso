@@ -524,6 +524,27 @@ add_specs suite_builder =
             (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3 Rounding_Mode.half_up)) . should_equal (Decimal.new -49.6)
             (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3 Rounding_Mode.half_down)) . should_equal (Decimal.new -49.5)
 
+        group_builder.specify "should allow mixed arithmetic" <|
+            (Decimal.new 1 + 2) . should_equal 3
+            (Decimal.new 1 - 2) . should_equal -1
+            (Decimal.new 3 * 4) . should_equal 12
+            (Decimal.new 3 / 4) . should_equal 0.75
+
+            (1 + Decimal.new 2) . should_equal 3
+            (1 - Decimal.new 2) . should_equal -1
+            (3 * Decimal.new 4) . should_equal 12
+            (3 / Decimal.new 4) . should_equal 0.75
+
+            (Decimal.new 1 + 2.0) . should_equal 3
+            (Decimal.new 1 - 2.0) . should_equal -1
+            (Decimal.new 3 * 4.0) . should_equal 12
+            (Decimal.new 3 / 4.0) . should_equal 0.75
+
+            (1 + Decimal.new 2.0) . should_equal 3
+            (1 - Decimal.new 2.0) . should_equal -1
+            (3 * Decimal.new 4.0) . should_equal 12
+            (3 / Decimal.new 4.0) . should_equal 0.75
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
