@@ -1,5 +1,17 @@
 package org.enso.interpreter.runtime.callable;
 
+import java.util.Arrays;
+import java.util.Objects;
+
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.state.State;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -9,16 +21,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import java.util.Arrays;
-import java.util.Objects;
-import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.atom.AtomConstructor;
-import org.enso.interpreter.runtime.state.State;
 
 /**
  * Value representing a by-name identified constructor of a yet unknown {@link Type}. Create new
@@ -55,7 +57,7 @@ public final class UnresolvedConstructor implements EnsoObject {
   @Override
   @CompilerDirectives.TruffleBoundary
   public String toString() {
-    return "~" + name;
+    return ".." + name;
   }
 
   @ExportMessage

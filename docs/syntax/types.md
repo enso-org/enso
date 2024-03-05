@@ -299,7 +299,7 @@ below.
 
 - **Autoscoped Constructors:** Referencing constructors via their type name may
   lead to long and boilerplate code. To simplify referencing constructors when
-  the _context is known_ a special `~` syntax is supported. Should there be a
+  the _context is known_ a special `..` syntax is supported. Should there be a
   method `describe`:
 
   ```ruby
