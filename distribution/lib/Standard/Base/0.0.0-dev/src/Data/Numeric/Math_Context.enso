@@ -4,6 +4,7 @@ from project.Data.Numbers import Integer
 polyglot java import java.math.MathContext
 
 type Math_Context
+    ## PRIVATE
     Value (math_context:MathContext)
 
     new : Integer -> Rounding_Mode -> Math_Context

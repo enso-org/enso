@@ -1,7 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
-import Standard.Base.Errors.Common.Incomparable_Values
-import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Numbers import Number_Parse_Error
@@ -544,6 +542,9 @@ add_specs suite_builder =
             (1 - Decimal.new 2.0) . should_equal -1
             (3 * Decimal.new 4.0) . should_equal 12
             (3 / Decimal.new 4.0) . should_equal 0.75
+
+        group_builder.specify "should get an aritmetic error when a result is a nonterminating decimal expansion" <|
+            (Decimal.new 1 / Decimal.new 3) . should_fail_with Arithmetic_Error
 
 main =
     suite = Test.build suite_builder->

@@ -3,6 +3,7 @@ import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Error.Error
+import project.Errors.Common.Arithmetic_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.IO
 import project.Meta
@@ -14,6 +15,7 @@ from project.Data.Numbers import Integer, Float, Number, Number_Parse_Error
 from project.Data.Ordering import Comparable, Ordering
 from project.Errors.Common import Loss_Of_Numeric_Precision
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
 polyglot java import org.enso.base.numeric.Decimal_Utils
@@ -392,6 +394,12 @@ type Decimal
        Division in Enso will undergo automatic conversions such that you need
        not convert other numeric types to `Decimal` manually.
 
+       ! Error Conditions
+
+         - If the precision specified in `math_context` is 0, or if
+           `match_context` is unspecified, and the quotient has a nonterminating
+           decimal expansion, an `Arithmetic_Error` is thrown.
+
        > Example
          Dividing 1065.9378 by 23.34.
 
@@ -404,15 +412,16 @@ type Decimal
          Dividing 1065.9378 by 23.34, rounding to 3 digits of precision (1
          decimal place), and rounding half-down.
 
-             a = Decimal.new "1065.9378"
+            a = Decimal.new "1065.9378"
              b = Decimal.new "23.34"
              a.divide b (Math_Context.new 3 Rounding_Mode.half_down)
              # => 45.7
-    divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
+    divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal | Arithmetic_Error
     divide self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
-        case math_context of
-            Nothing -> Decimal.Value (self.big_decimal.divide that.big_decimal)
-            _ -> Decimal.Value (self.big_decimal.divide that.big_decimal math_context.math_context)
+        handle_java_exception <|
+            case math_context of
+                Nothing -> Decimal.Value (self.big_decimal.divide that.big_decimal)
+                _ -> Decimal.Value (self.big_decimal.divide that.big_decimal math_context.math_context)
 
     ## GROUP Operators
        ICON math
@@ -481,3 +490,7 @@ Comparable.from (_:Number) = Decimal_Comparator
 Decimal.from (that:Text) = Decimal.from_text that
 Decimal.from (that:Float) = Decimal.new that
 Decimal.from (that:Number) = Decimal.new that
+
+handle_java_exception ~action =
+    Panic.catch ArithmeticException action caught_panic->
+        Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
