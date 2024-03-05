@@ -9,7 +9,7 @@
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 
-import * as linkedDist from 'ensogl-runner/src/runner'
+import * as linkedDist from 'enso-runner/src/runner'
 
 import * as contentConfig from 'enso-content-config'
 import * as paths from 'paths'
@@ -57,7 +57,7 @@ export class FileConsumer extends linkedDist.Consumer {
         super()
         // Create the directory if it doesn't exist, otherwise fsSync.openSync will fail.
         const logsDirectory = pathModule.dirname(logPath)
-        fsSync.mkdirSync(logsDirectory, { recursive: true })
+        fsSync.mkdirSync(logsDirectory, {recursive: true})
         this.logFilePath = logPath
         this.logFileHandle = fsSync.openSync(this.logFilePath, 'a')
     }

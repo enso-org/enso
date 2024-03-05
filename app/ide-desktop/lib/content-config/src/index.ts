@@ -2,8 +2,8 @@
 
 import * as semver from 'semver'
 
-import * as linkedDist from 'ensogl-runner/src/runner'
-import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
+import * as linkedDist from 'enso-runner/src/runner'
+import BUILD_INFO from '../../../../../build.json' assert {type: 'json'}
 
 // Aliases with the same name as the original.
 // eslint-disable-next-line no-restricted-syntax
@@ -26,7 +26,7 @@ export const VERSION = {
     devPrerelease: 'dev',
 
     /// Version of the `client` js package.
-    ide: new semver.SemVer(BUILD_INFO.version, { loose: true }),
+    ide: new semver.SemVer(BUILD_INFO.version, {loose: true}),
 
     /** Returns whether this is a development version. */
     isDev(): boolean {
@@ -41,10 +41,10 @@ export const VERSION = {
 // === Options ===
 // ===============
 
-import CONFIG from './config.json' assert { type: 'json' }
+import CONFIG from './config.json' assert {type: 'json'}
 
 export const OPTIONS = linkedDist.config.options.merge(
     // `valueEval` in `config.json` uses PascalCase scope variables for some reason.
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    linkedDist.config.objectToGroup(CONFIG, { Version: VERSION })
+    linkedDist.config.objectToGroup(CONFIG, {Version: VERSION})
 )
