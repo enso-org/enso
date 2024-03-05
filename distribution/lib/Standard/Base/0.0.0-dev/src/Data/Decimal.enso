@@ -285,30 +285,179 @@ type Decimal
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
 
-    - self (that:Decimal) = Decimal.Value (self.big_decimal.subtract that.big_decimal)
-    * self (that:Decimal) = Decimal.Value (self.big_decimal.multiply that.big_decimal)
-    / self (that:Decimal) = Decimal.Value (self.big_decimal.divide that.big_decimal)
+    ## ALIAS minus
+       GROUP Operators
+       ICON math
+       Subtract a `Decimal` or other kind of number from another `Decimal`, or
+       subtracts another kind of number from a `Decimal`. A `Math_Context` value
+       can be specified to set the precision and `Rounding_Mode`.
 
-    negate self = Decimal.Value self.big_decimal.negate
+       Arguments:
+       - that: The number to subtract from this.
+       - math_context: Used to optionally specify precision and `Rounding_Mode`.
 
-    to_double self = self.big_decimal.doubleValue
+       Subtraction in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
 
-    ##
-        / : Decimal -> Decimal -> Decimal
-        / self (that:Decimal) = self.divide that
+       > Example
+         Subtracting 10.1 from 20.2.
 
-    ##
-        == self that =
-            case that of
-                _ : Integer -> self.big_decimal.compareTo(Decimal.from_integer that . big_decimal) == 0
-                _ : Float -> self.big_decimal.compareTo(Decimal.from_float that . big_decimal) == 0
-                _ : Decimal -> self.big_decimal.compareTo(that.big_decimal) == 0
+             a = Decimal.new "20.2"
+             b = Decimal.new "10.1"
+             c = a.subtract b
+             # => 10.1
 
+       > Example
+         Subtracting 10.1 from 20.2, rounding to 3 digits of precision (1
+         decimal place), and rounding half-down.
+
+             a = Decimal.new "20.33"
+             b = Decimal.new "10.22"
+             a.subtract b (Math_Context.new 3 Rounding_Mode.half_down)
+             # => 10.1
+    subtract : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
+    subtract self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
+        case math_context of
+            Nothing -> Decimal.Value (self.big_decimal.subtract that.big_decimal)
+            _ -> Decimal.Value (self.big_decimal.subtract that.big_decimal math_context.math_context)
+    
+    ## ALIAS minus
+       GROUP Operators
+       ICON math
+       Subtract a `Decimal` or other kind of number from another `Decimal.
+
+       Arguments:
+       - that: The number to subtract from this.
+
+       Subtraction in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Subtracting 10.1 from 20.2.
+
+             a = Decimal.new "20.2"
+             b = Decimal.new "10.1"
+             c = a - b
+             # => 10.1
+    - : Decimal -> Decimal -> Decimal
+    - self (that:Decimal) = self.subtract that
+
+    ## ALIAS times
+       GROUP Operators
+       ICON math
+       Multiplies a `Decimal` by another `Decimal` or other kind of number. A
+       `Math_Context` value can be specified to set the precision and
+       `Rounding_Mode`.
+
+       Arguments:
+       - that: The number to multiply by this.
+       - math_context: Used to optionally specify precision and `Rounding_Mode`.
+
+       Multiplication in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Multiplying 10.1 and 20.2.
+
+             a = Decimal.new "10.1"
+             b = Decimal.new "20.2"
+             c = a.multiply b
+             # => 204.02
+
+       > Example
+         Multiplying 10.1 and 20.2, rounding to 4 digits of precision (1 decimal
+         place), and rounding half-down.
+
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
+             a.add b (Math_Context.new 4 Rounding_Mode.half_down)
+             # => 204.4
+    multiply : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
+    multiply self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
+        case math_context of
+            Nothing -> Decimal.Value (self.big_decimal.multiply that.big_decimal)
+            _ -> Decimal.Value (self.big_decimal.multiply that.big_decimal math_context.math_context)
+
+    ## ALIAS times
+       GROUP Operators
+       ICON math
+       Multiplies a `Decimal` by another `Decimal` or other kind of number. 
+
+       Arguments:
+       - that: The number to multiply by this.
+
+       Multiplication in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Multiplying 10.1 and 20.2.
+
+             a = Decimal.new "10.1"
+             b = Decimal.new "20.2"
+             c = a * b
+             # => 204.02
+    * : Decimal -> Decimal -> Decimal
+    * self (that:Decimal) = self.multiply that
+
+    ## GROUP Operators
+       ICON math
+       Divides a `Decimal` by another `Decimal` or other kind of number, or
+       divides another kind of number by a `Decimal`. A `Math_Context` value can
+       be specified to set the precision and `Rounding_Mode`.
+
+       Arguments:
+       - that: The number to divide by this.
+       - math_context: Used to optionally specify precision and `Rounding_Mode`.
+
+       Division in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Dividing 1065.9378 by 23.34.
+
+             a = Decimal.new "1065.9378"
+             b = Decimal.new "23.34"
+             c = a.divide b
+             # => 45.67
+
+       > Example
+         Dividing 1065.9378 by 23.34, rounding to 3 digits of precision (1
+         decimal place), and rounding half-down.
+
+             a = Decimal.new "1065.9378"
+             b = Decimal.new "23.34"
+             a.divide b (Math_Context.new 3 Rounding_Mode.half_down)
+             # => 45.7
     divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal
     divide self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal =
         case math_context of
             Nothing -> Decimal.Value (self.big_decimal.divide that.big_decimal)
             _ -> Decimal.Value (self.big_decimal.divide that.big_decimal math_context.math_context)
+
+    ## GROUP Operators
+       ICON math
+       Divides a `Decimal` by another `Decimal` or other kind of number, or
+       divides another kind of number by a `Decimal`.
+
+       Arguments:
+       - that: The number to divide by this.
+
+       Division in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Dividing 1065.9378 by 23.34.
+
+             a = Decimal.new "1065.9378"
+             b = Decimal.new "23.34"
+             c = a / b
+             # => 45.67
+    / : Decimal -> Decimal -> Decimal
+    / self (that:Decimal) = self.divide that
+
+    negate self = Decimal.Value self.big_decimal.negate
+
+    to_double self = self.big_decimal.doubleValue
 
     get_precision : Integer
     get_precision self = self.big_decimal.precision
