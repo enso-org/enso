@@ -148,6 +148,7 @@ export function useSelection<T>(
     },
     deselectAll: () => selected.clear(),
     isSelected: (element: T) => selected.has(element),
+    isChanging: computed(() => anchor.value != null),
     setSelection,
     handleSelectionOf,
     hoveredNode,

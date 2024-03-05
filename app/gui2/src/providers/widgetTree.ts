@@ -14,6 +14,7 @@ const { provideFn, injectFn } = createContextStore(
     icon: Ref<Icon>,
     connectedSelfArgumentId: Ref<Ast.AstId | undefined>,
     potentialSelfArgumentId: Ref<Ast.AstId | undefined>,
+    extended: Ref<boolean>,
     hasActiveAnimations: Ref<boolean>,
     emitOpenFullMenu: () => void,
   ) => {
@@ -25,6 +26,7 @@ const { provideFn, injectFn } = createContextStore(
       icon,
       connectedSelfArgumentId,
       potentialSelfArgumentId,
+      extended,
       nodeSpanStart,
       hasActiveAnimations,
       emitOpenFullMenu,
