@@ -157,7 +157,7 @@ impl JobArchetype for VerifyLicensePackages {
 
 #[derive(Clone, Copy, Debug)]
 pub struct ScalaTests;
-impl JobArchetype for crate::ci_gen::job::ScalaTests {
+impl JobArchetype for ScalaTests {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend test scala")
             .customize(move |step| vec![step, step::engine_test_reporter(target)])
@@ -168,7 +168,7 @@ impl JobArchetype for crate::ci_gen::job::ScalaTests {
 
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests;
-impl JobArchetype for crate::ci_gen::job::StandardLibraryTests {
+impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend test standard-library")
             .customize(move |step| {
