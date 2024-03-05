@@ -495,14 +495,6 @@ body::before {
 }
 
 @layer components {
-  .button {
-    @apply selectable;
-  }
-
-  .visibility-faded {
-    @apply pointer-events-none-recursive;
-  }
-
   .enso-dashboard,
   .enso-chat {
     /* A selectable element, when hovered. */
@@ -642,6 +634,14 @@ body::before {
     .container-size {
       container-type: size;
     }
+  }
+
+  .button {
+    @apply selectable;
+  }
+
+  .visibility-faded {
+    @apply pointer-events-none-recursive;
   }
 }
 
