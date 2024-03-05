@@ -85,10 +85,6 @@ export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
 export type Ami = newtype.Newtype<string, 'Ami'>
 export const Ami = newtype.newtypeConstructor<Ami>()
 
-/** An AWS user ID. */
-export type Subject = newtype.Newtype<string, 'Subject'>
-export const Subject = newtype.newtypeConstructor<Subject>()
-
 /* eslint-enable @typescript-eslint/no-redeclare */
 
 // =============
@@ -331,7 +327,7 @@ export interface ResourceUsage {
 /** Metadata uniquely identifying a user. */
 export interface UserInfo {
   /* eslint-disable @typescript-eslint/naming-convention */
-  readonly pk: Subject
+  readonly pk: UserId
   readonly user_name: string
   readonly user_email: EmailAddress
   readonly organization_id: OrganizationId
@@ -359,7 +355,7 @@ export interface UserGroupInfo {
 /** Metadata uniquely identifying a user inside an organization.
  * This is similar to {@link UserInfo}, but without `organization_id`. */
 export interface SimpleUser {
-  readonly id: Subject
+  readonly id: UserId
   readonly name: string
   readonly email: EmailAddress
   readonly picture?: string
@@ -806,7 +802,7 @@ export interface InviteUserRequestBody {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly userSubjects: Subject[]
+  readonly userSubjects: UserId[]
   readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
 }

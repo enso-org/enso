@@ -624,7 +624,7 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
+                  pk: backend.UserId(''),
                   /* eslint-disable @typescript-eslint/naming-convention */
                   user_name: defaultUsername,
                   user_email: defaultEmail,
@@ -662,7 +662,7 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
+                  pk: backend.UserId(''),
                   /* eslint-disable @typescript-eslint/naming-convention */
                   user_name: defaultUsername,
                   user_email: defaultEmail,
