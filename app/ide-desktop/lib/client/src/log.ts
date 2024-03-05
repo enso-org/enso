@@ -57,7 +57,7 @@ export class FileConsumer extends linkedDist.Consumer {
         super()
         // Create the directory if it doesn't exist, otherwise fsSync.openSync will fail.
         const logsDirectory = pathModule.dirname(logPath)
-        fsSync.mkdirSync(logsDirectory, {recursive: true})
+        fsSync.mkdirSync(logsDirectory, { recursive: true })
         this.logFilePath = logPath
         this.logFileHandle = fsSync.openSync(this.logFilePath, 'a')
     }

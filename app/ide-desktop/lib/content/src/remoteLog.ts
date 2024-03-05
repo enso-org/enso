@@ -54,11 +54,11 @@ export async function remoteLog(
             ['Content-Type', 'application/json'],
             ['Authorization', `Bearer ${accessToken}`],
         ]
-        const body = JSON.stringify({message, metadata})
+        const body = JSON.stringify({ message, metadata })
         const response = await fetch(REMOTE_LOG_URL, {
             method: 'POST',
             headers,
-            body
+            body,
         })
         if (!response.ok) {
             const errorMessage = `Error while sending log to a remote: Status ${response.status}.`

@@ -13,7 +13,7 @@ import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as remoteLog from './remoteLog'
-import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert {type: 'yaml'}
+import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 
@@ -72,7 +72,7 @@ function timeout(timeSeconds: number) {
 
 /** A version of `fetch` which times out after the provided time. */
 async function fetchTimeout(url: string, timeoutSeconds: number): Promise<unknown> {
-    return fetch(url, {signal: timeout(timeoutSeconds).signal}).then(response => {
+    return fetch(url, { signal: timeout(timeoutSeconds).signal }).then(response => {
         const statusCodeOK = 200
         if (response.status === statusCodeOK) {
             return response.json()
@@ -204,9 +204,9 @@ class Main implements AppRunner {
         const remoteLogger = accessToken != null ? new remoteLog.RemoteLogger(accessToken) : null
         newApp.remoteLog = (message: string, metadata: unknown) => {
             const metadataObject =
-                typeof metadata === 'object' && metadata != null ? metadata : {metadata}
+                typeof metadata === 'object' && metadata != null ? metadata : { metadata }
             const actualMetadata =
-                loggingMetadata == null ? metadata : {...loggingMetadata, ...metadataObject}
+                loggingMetadata == null ? metadata : { ...loggingMetadata, ...metadataObject }
             if (newApp.config.options.dataCollection.value && remoteLogger != null) {
                 // FIXME [sb]: https://github.com/enso-org/cloud-v2/issues/735
                 // The current GUI sends a lot of logs (over 300) every time a project is opened.
