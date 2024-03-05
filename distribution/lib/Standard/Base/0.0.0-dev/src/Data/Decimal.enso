@@ -469,7 +469,8 @@ type Decimal
 
     # PRIVATE
     get_unscaled_value : Integer
-    get_unscaled_value  self = self.big_decimal.unscaledValue
+    # This +0 is needed to allow internal represeantationst to be compared.
+    get_unscaled_value self = self.big_decimal.unscaledValue + 0
 
     # PRIVATE
     get_internal_representation : [Integer]

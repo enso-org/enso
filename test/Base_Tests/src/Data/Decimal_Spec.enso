@@ -175,8 +175,8 @@ add_specs suite_builder =
                 x1 = pr.at 1
                 ir0 = x0.get_internal_representation
                 ir1 = x1.get_internal_representation
-                # TODO: specialization error if we sipmly say (ir0 != ir1)
-                ([0, 1, 2].all i-> ((ir0.at i) == (ir1.at i))) . should_be_false
+
+                ir0 . should_not_equal ir1
 
                 (x0 == x1) . should_be_true
                 (x1 == x0) . should_be_true
