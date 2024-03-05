@@ -3,10 +3,10 @@
   "libraryName": "Standard.Database",
   "host": "HOSTNAME",
   "port": 12345,
-  "database_name": "DATABASE",
+  "database_name": "DBNAME",
   "credentials": {
     "username": "USERNAME",
     "password": "PASSWORD"
   },
-  "table": "DatalinkTable"
+  "table": "DatalinkedTable"
 }
