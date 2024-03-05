@@ -32,9 +32,8 @@ type Excel_Workbook
        Arguments:
        - file: The file to load.
        - xls_format: Whether to use the old XLS format (default is XLSX).
-       - headers: Whether to use the first row as headers (default is to infer).
-    new : File | Temporary_File -> Boolean -> Boolean | Infer -> Excel_Workbook
-    new file:(File | Temporary_File) xls_format=False headers=Infer =
+    new : File | Temporary_File -> Boolean  -> Excel_Workbook
+    new file:(File | Temporary_File) xls_format=False =
         file_for_errors = if file.is_a Temporary_File then Nothing else file
 
         continuation raw_file =
@@ -43,7 +42,7 @@ type Excel_Workbook
                 # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file` in the resulting workbook instance.
                 java_file = Java_File.new raw_file.absolute.normalize.path
                 excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
-                Excel_Workbook.Value (Ref.new excel_connection_resource) file xls_format headers
+                Excel_Workbook.Value (Ref.new excel_connection_resource) file xls_format
 
         case file of
             tmp : Temporary_File -> tmp.with_file continuation
@@ -56,16 +55,15 @@ type Excel_Workbook
        Arguments:
        - stream: The stream to load.
        - xls_format: Whether to use the old XLS format (default is XLSX).
-       - headers: Whether to use the first row as headers (default is to infer).
        - file: Optional file reference.
-    from_stream : Input_Stream -> Boolean -> Boolean | Infer -> File | Nothing -> Excel_Workbook
-    from_stream stream xls_format=False headers=Infer file=Nothing = Excel_Reader.handle_bad_format file <|
+    from_stream : Input_Stream -> Boolean -> File | Nothing -> Excel_Workbook
+    from_stream stream xls_format=False file=Nothing = Excel_Reader.handle_bad_format file <|
         temp_file = Temporary_File.from_stream_light stream
-        Excel_Workbook.new temp_file xls_format headers
+        Excel_Workbook.new temp_file xls_format
 
     ## PRIVATE
        Creates an Excel_Workbook connection.
-    Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
+    Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) xls_format:Boolean
 
     ## ICON metadata
        Returns the list of databases (or catalogs) for the connection.
@@ -91,7 +89,7 @@ type Excel_Workbook
     set_database self database =
         if database == self.database then self else
             file = File.new database
-            if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format self.headers else
+            if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format else
                 Error.throw (Illegal_Argument.Error "The specified file ('"+file.path+"') does not exist.")
 
     ## ICON metadata
@@ -177,30 +175,32 @@ type Excel_Workbook
         Table.from_rows ['Name', 'Type', 'Database', 'Schema'] filtered
 
     ## ICON data_input
-       Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
+       Read a range into a Table.
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
        - alias: optionally specify a friendly alias for the query (unused).
+       - headers: whether to use the first row as headers (default is `Infer`).
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    query : Text -> Text -> Table
-    query self query alias="" =
+    query : Text -> Text -> Boolean | Infer -> Table
+    query self (query : Text) (alias : Text = "") (headers : Boolean | Infer = Infer) =
         _ = [alias]
-        self.read query
+        self.read query headers=headers
 
     ## ALIAS range, sheet, worksheet
        GROUP Standard.Base.Input
        ICON data_input
-       Execute the query and load the results into memory as a Table.
+       Read a range into a Table.
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
        - limit: the maximum number of rows to read.
          If set to `Nothing`, all rows will be returned.
+       - headers: whether to use the first row as headers (default is `Infer`).
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
     read : Text -> Integer | Nothing -> Table
-    read self query (limit : Integer | Nothing = Nothing) =
-        java_headers = Excel_Reader.make_java_headers self.headers
+    read self (query : Text | Excel_Range) (limit : Integer | Nothing = Nothing) (headers : Boolean | Infer = Infer) =
+        java_headers = Excel_Reader.make_java_headers headers
         java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
             self.with_java_workbook java_workbook-> case query of
                 _ : Excel_Range -> ExcelReader.readRange java_workbook query.java_range java_headers 0 limit java_problem_aggregator
@@ -215,12 +215,9 @@ type Excel_Workbook
        - section: the section to read.
     read_section : Excel_Section -> (Excel_Workbook | Table | Vector)
     read_section self section =
-        java_headers = Excel_Reader.make_java_headers self.headers
         case section of
-            Excel_Section.Workbook -> self
-            Excel_Section.Sheet_Names -> self.sheet_names
-            Excel_Section.Range_Names -> self.named_ranges
-            Excel_Section.Worksheet sheet skip_rows row_limit ->
+            Excel_Section.Worksheet sheet headers skip_rows row_limit ->
+                java_headers = Excel_Reader.make_java_headers headers
                 names = self.sheet_names
                 sheet_name = case sheet of
                     _ : Text -> if names.contains sheet then sheet else Error.throw (Illegal_Argument.Error "Worksheet not found.")
@@ -232,7 +229,8 @@ type Excel_Workbook
                     self.with_java_workbook java_workbook->
                         ExcelReader.readRangeByName java_workbook sheet_name java_headers skip_rows row_limit java_problem_aggregator
                 Table.Value java_table
-            Excel_Section.Cell_Range address skip_rows row_limit ->
+            Excel_Section.Cell_Range address headers skip_rows row_limit ->
+                java_headers = Excel_Reader.make_java_headers headers
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     self.with_java_workbook java_workbook-> case address of
                         _ : Excel_Range -> ExcelReader.readRange java_workbook address.java_range java_headers skip_rows row_limit java_problem_aggregator
