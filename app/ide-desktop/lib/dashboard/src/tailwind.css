@@ -635,7 +635,9 @@ body::before {
       container-type: size;
     }
   }
+}
 
+@layer components {
   .button {
     @apply selectable;
   }
