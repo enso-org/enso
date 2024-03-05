@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "ensogl-pack"
+name = "enso-pack"
 version = "0.1.0"
