@@ -11,7 +11,6 @@ use crate::ProfilingLevel;
 
 use std::fmt;
 use std::rc;
-use crate::internal::js::performance;
 
 
 // ======================================================
