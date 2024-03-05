@@ -679,7 +679,7 @@ build_child_list java_element =
 ## PRIVATE
    Create the element selector for an XML document or element.
 child_selector : XML_Element | XML_Document -> Widget
-child_selector node:(XML_Element|XML_Document) =
+child_selector node:(XML_Element | XML_Document) =
     attributes = case node of
         _ : XML_Element -> node.attribute_names.map (n->"@"+n)
         _ -> []
