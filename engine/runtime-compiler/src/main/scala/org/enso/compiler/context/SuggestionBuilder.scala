@@ -669,17 +669,29 @@ final class SuggestionBuilder[A: IndexedSource](
     targ: TypeArg,
     isTypeAscription: Boolean
   ): Option[Seq[String]] = {
-    def go(arg: TypeArg): Seq[String] = arg match {
-      case TypeArg.Sum(_, List())   => Seq()
-      case TypeArg.Sum(_, variants) => variants.flatMap(go)
+    def mkUnqualified(name: QualifiedName): String =
+      name.item
+    def mkQualified(name: QualifiedName): String =
+      name.toString
+    def mkAutoScopeCall(name: String): String =
+      s"~$name"
+    def go(arg: TypeArg, useAutoScope: Boolean): Seq[String] = arg match {
+      case TypeArg.Sum(_, List()) => Seq()
+      case TypeArg.Sum(_, variants) =>
+        variants.flatMap(go(_, useAutoScope))
       case TypeArg.Value(n) =>
-        Seq(if (isTypeAscription) s"~${n.item}" else n.toString)
+        Seq(if (useAutoScope) mkUnqualified(n) else mkQualified(n))
       case _ => Seq()
     }
 
     targ match {
       case s: TypeArg.Sum =>
-        val tagValues = go(s)
+        val tagItems = go(s, isTypeAscription)
+        val canUseAutoScope =
+          isTypeAscription && tagItems.distinct.length == tagItems.length
+        val tagValues =
+          if (canUseAutoScope) tagItems.map(mkAutoScopeCall)
+          else go(s, useAutoScope = false)
         Option.unless(tagValues.isEmpty)(tagValues)
       case _ => None
 
