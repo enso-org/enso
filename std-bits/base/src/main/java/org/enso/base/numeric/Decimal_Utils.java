@@ -10,16 +10,14 @@ public class Decimal_Utils {
   private static final BigDecimal MIN_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MIN_VALUE);
   private static final BigDecimal MAX_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MAX_VALUE);
 
-  public static record ConversionResult(BigDecimal newValue, boolean hasPrecisionLoss) {}
-
   public static BigDecimal fromString(String s) {
     return new BigDecimal(s);
   }
 
-  public static ConversionResult fromString(String s, MathContext mc) {
+  public static Conversion_Result fromString(String s, MathContext mc) {
     BigDecimal bd = new BigDecimal(s, mc);
     BigDecimal withoutMC = new BigDecimal(s);
-    return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
+    return new Conversion_Result(bd, bd.compareTo(withoutMC) != 0);
   }
 
   public static BigDecimal fromEnsoInteger(Object o) {
@@ -34,17 +32,17 @@ public class Decimal_Utils {
     }
   }
 
-  public static ConversionResult fromEnsoInteger(Object o, MathContext mc) {
+  public static Conversion_Result fromEnsoInteger(Object o, MathContext mc) {
     if (o instanceof Long l) {
       BigDecimal bd = new BigDecimal(l, mc);
       BigDecimal withoutMC = new BigDecimal(l);
       long backToLong = bd.longValue();
-      return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
+      return new Conversion_Result(bd, bd.compareTo(withoutMC) != 0);
     } else if (o instanceof BigInteger bi) {
       BigDecimal bd = new BigDecimal(bi, mc);
       BigDecimal withoutMC = new BigDecimal(bi);
       BigInteger backToBigInteger = bd.toBigInteger();
-      return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
+      return new Conversion_Result(bd, bd.compareTo(withoutMC) != 0);
     } else {
       throw new IllegalArgumentException("Input must be Long or BigInteger");
     }
@@ -61,11 +59,10 @@ public class Decimal_Utils {
     return BigDecimal.valueOf(d);
   }
 
-  public static ConversionResult fromEnsoFloat(Double d, MathContext mc) {
-    BigDecimal bd = new BigDecimal(d, mc);
-    BigDecimal withoutMC = new BigDecimal(d);
-    double backToDouble = bd.doubleValue();
-    return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
+  public static BigDecimal fromEnsoFloat(Double d, MathContext mc) {
+    // We do not check for precision loss here because we always attach a
+    // warning when converting from float.
+    return new BigDecimal(d, mc);
   }
 
   public static boolean fitsInLong(BigDecimal bigDecimal) {

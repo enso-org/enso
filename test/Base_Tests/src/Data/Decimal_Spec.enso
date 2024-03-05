@@ -89,9 +89,9 @@ add_specs suite_builder =
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc4)
             Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc5)
 
-            Problems.not_expect_warning (Decimal.new 123.25)
+            Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc4)
-            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc5)
+            Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc5)
 
             Problems.not_expect_warning (Decimal.new 12325)
             Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc4)

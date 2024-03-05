@@ -18,6 +18,7 @@ from project.Errors.Common import Loss_Of_Numeric_Precision
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
+polyglot java import org.enso.base.numeric.Conversion_Result
 polyglot java import org.enso.base.numeric.Decimal_Utils
 
 ## Decimal is the type of decimal (base-10-scaled) nubmers in Enso. An Enso
@@ -125,9 +126,8 @@ type Decimal
 
        ! Error Conditions
 
-         - If the construction of the Decimal results in a loss of precision, a
-           `Loss_Of_Numeric_Precision` warning is attached. This can only happen
-           if a `Math_Context` value is explicitly passed.
+         - A Loss_Of_Numeric_Precision` warning is always attached when
+           converting to `Decimal` from `Float`.
          - If `f` is NaN or +/-Inf, an Illegal_Argument error is thrown.
 
         ^ Example
@@ -138,9 +138,11 @@ type Decimal
     from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision ! Illegal_Argument =
         is_exceptional = f.is_nan || f.is_infinite
         if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
-            case mc of
-                _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromEnsoFloat f mc.math_context
-                _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
+            # We do not use `handle_precision_loss` here because we always attach a `Loss_Of_Numeric_Precision` warning in the Float case.
+            attach_loss_of_numeric_precision f <|
+                case mc of
+                    _ : Math_Context -> Decimal.Value <| Decimal_Utils.fromEnsoFloat f mc.math_context
+                    _ : Nothing -> Decimal.Value (Decimal_Utils.fromEnsoFloat f)
 
     float_id : Float -> Float
     float_id f = Decimal_Utils.floatId f
@@ -472,8 +474,8 @@ handle_number_format_exception ~action =
         Error.throw (Number_Parse_Error.Error caught_panic.payload.getMessage)
 
 ## PRIVATE
-handle_precision_loss : Any -> Decimal_Utils.Conversion_Result -> Any ! Loss_Of_Numeric_Precision
-handle_precision_loss original_value conversion_result:Decimal_Utils.Conversion_Result -> Any ! Loss_Of_Numeric_Precision =
+handle_precision_loss : Any -> Conversion_Result -> Any ! Loss_Of_Numeric_Precision
+handle_precision_loss original_value conversion_result:Conversion_Result -> Any ! Loss_Of_Numeric_Precision =
     if conversion_result.hasPrecisionLoss.not then conversion_result.newValue else
         new_value = conversion_result.newValue
         Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
@@ -490,6 +492,10 @@ Comparable.from (_:Number) = Decimal_Comparator
 Decimal.from (that:Text) = Decimal.from_text that
 Decimal.from (that:Float) = Decimal.new that
 Decimal.from (that:Number) = Decimal.new that
+
+attach_loss_of_numeric_precision : Float -> Any -> Any
+attach_loss_of_numeric_precision f value =
+    Warning.attach (Loss_Of_Numeric_Precision.Warning f f) value
 
 handle_java_exception ~action =
     Panic.catch ArithmeticException action caught_panic->
