@@ -467,7 +467,7 @@ type Decimal
 
     # PRIVATE
     get_unscaled_value : Integer
-    # TODO: This +0 is needed to allow internal represeantationst to be compared. Pending https://github.com/enso-org/enso/issues/9296.
+    # TODO: This +0 is needed to allow internal represeantations to be compared.
     get_unscaled_value self = self.big_decimal.unscaledValue + 0
 
     # PRIVATE
