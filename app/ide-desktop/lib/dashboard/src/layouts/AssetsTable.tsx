@@ -98,8 +98,11 @@ const HEADER_HEIGHT_PX = 34
 const ROW_HEIGHT_PX = 32
 /** The size of the loading spinner. */
 const LOADING_SPINNER_SIZE_PX = 36
-/** The number of pixels the header bar should shrink when the extra column selector is visible. */
-const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
+/** The number of pixels the header bar should shrink when the column selector is visible,
+ * assuming 0 icons are visible in the column selector. */
+const COLUMNS_SELECTOR_BASE_WIDTH_PX = 4
+/** The number of pixels the header bar should shrink per collapsed column. */
+const COLUMNS_SELECTOR_ICON_WIDTH_PX = 28
 /** The default placeholder row. */
 const PLACEHOLDER = (
   <span className="placeholder px-cell-x">
@@ -1082,10 +1085,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       let isClipPathUpdateQueued = false
       const updateClipPath = () => {
         isClipPathUpdateQueued = false
-        const rightOffset = `${
-          scrollContainer.clientWidth + scrollContainer.scrollLeft - TABLE_HEADER_WIDTH_SHRINKAGE_PX
-        }px`
-        headerRow.style.clipPath = `polygon(0 0, ${rightOffset} 0, ${rightOffset} 100%, 0 100%)`
+        const hiddenColumnsCount = columnUtils.CLOUD_COLUMNS.length - enabledColumns.size
+        const shrinkBy =
+          COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumnsCount
+        const rightOffset = scrollContainer.clientWidth + scrollContainer.scrollLeft - shrinkBy
+
+        headerRow.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
       }
       const onScroll = () => {
         if (!isClipPathUpdateQueued) {
@@ -1104,7 +1109,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     } else {
       return
     }
-  }, [backend.type])
+  }, [enabledColumns.size, backend.type])
 
   React.useEffect(() => {
     if (initialized) {
@@ -2431,28 +2436,30 @@ export default function AssetsTable(props: AssetsTableProps) {
       <div className="flex flex-col w-min min-w-full min-h-full">
         {isCloud && (
           <div className="sticky top h flex flex-col">
-            <div className="block sticky right self-end px-extra-columns-panel-x py-extra-columns-panel-y">
+            <div className="flex sticky right self-end px-extra-columns-panel-x py-extra-columns-panel-y">
               <div className="inline-flex gap-icons">
-                {columnUtils.CLOUD_COLUMNS.map(column => (
-                  <Button
-                    key={column}
-                    active={enabledColumns.has(column)}
-                    image={columnUtils.COLUMN_ICONS[column]}
-                    alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
-                      columnUtils.COLUMN_NAME[column]
-                    }`}
-                    onClick={event => {
-                      event.stopPropagation()
-                      const newExtraColumns = new Set(enabledColumns)
-                      if (enabledColumns.has(column)) {
-                        newExtraColumns.delete(column)
-                      } else {
-                        newExtraColumns.add(column)
-                      }
-                      setEnabledColumns(newExtraColumns)
-                    }}
-                  />
-                ))}
+                {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
+                  column => (
+                    <Button
+                      key={column}
+                      active
+                      image={columnUtils.COLUMN_ICONS[column]}
+                      alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
+                        columnUtils.COLUMN_NAME[column]
+                      }`}
+                      onClick={event => {
+                        event.stopPropagation()
+                        const newExtraColumns = new Set(enabledColumns)
+                        if (enabledColumns.has(column)) {
+                          newExtraColumns.delete(column)
+                        } else {
+                          newExtraColumns.add(column)
+                        }
+                        setEnabledColumns(newExtraColumns)
+                      }}
+                    />
+                  )
+                )}
               </div>
             </div>
           </div>
