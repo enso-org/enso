@@ -36,13 +36,13 @@ export default function MembersSettingsTab() {
             <span className="text font-semibold whitespace-nowrap">Invite Members</span>
           </button>
         </div>
-        <table className="self-start table-fixed">
+        <table className="self-start table-fixed rounded-rows">
           <thead>
             <tr className="h-row">
-              <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0 text-sm font-semibold w-members-name-column">
+              <th className="text-left px-cell-x bg-clip-padding border-transparent border-x-2 last:border-r-0 text-sm font-semibold w-members-name-column">
                 Name
               </th>
-              <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0 text-sm font-semibold w-members-email-column">
+              <th className="text-left px-cell-x bg-clip-padding border-transparent border-x-2 last:border-r-0 text-sm font-semibold w-members-email-column">
                 Email
               </th>
             </tr>
@@ -50,7 +50,7 @@ export default function MembersSettingsTab() {
           <tbody className="select-text">
             {isLoading ? (
               <tr className="h-row">
-                <td colSpan={2}>
+                <td colSpan={2} className="rounded-full">
                   <div className="flex justify-center">
                     <StatelessSpinner
                       size={32}
@@ -62,8 +62,12 @@ export default function MembersSettingsTab() {
             ) : (
               members.map(member => (
                 <tr key={member.id} className="h-row">
-                  <td>{member.name}</td>
-                  <td>{member.email}</td>
+                  <td className="text bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full border-transparent border-x-2 last:border-r-0 ">
+                    {member.name}
+                  </td>
+                  <td className="text bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full border-transparent border-x-2 last:border-r-0 ">
+                    {member.email}
+                  </td>
                 </tr>
               ))
             )}

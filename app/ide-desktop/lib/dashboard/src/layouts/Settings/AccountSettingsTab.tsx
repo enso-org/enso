@@ -271,7 +271,7 @@ export default function AccountSettingsTab() {
           <h3 className="settings-subheading text-danger">Danger Zone</h3>
           <div className="flex gap-buttons">
             <button
-              className="button bg-danger text-inversed px-delete-user-account-button-x"
+              className="button opacity-full hover:opacity-full bg-danger text-inversed px-delete-user-account-button-x"
               onClick={event => {
                 event.stopPropagation()
                 setModal(

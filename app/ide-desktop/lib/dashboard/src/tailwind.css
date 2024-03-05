@@ -312,7 +312,7 @@
 
   --members-name-column-width: 8rem;
   --members-email-column-width: 12rem;
-  --keyboard-shortcuts-icon-column-width: 1rem;
+  --keyboard-shortcuts-icon-column-width: 2rem;
   --keyboard-shortcuts-name-column-width: 9rem;
   --keyboard-shortcuts-icon-column-padding-right: 0.375rem;
   /* The horizontal gap between each icon for modifying the shortcuts for a particular action. */

@@ -92,7 +92,7 @@ const AUTOSCROLL_SPEED = 100
 /** The autoscroll speed is `AUTOSCROLL_SPEED / (distance + AUTOSCROLL_DAMPENING)`. */
 const AUTOSCROLL_DAMPENING = 10
 /** The height of the header row. */
-const HEADER_HEIGHT_PX = 34
+const HEADER_HEIGHT_PX = 33
 /** The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling. */
 const ROW_HEIGHT_PX = 32
