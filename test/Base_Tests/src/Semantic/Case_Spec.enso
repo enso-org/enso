@@ -6,6 +6,7 @@ import Standard.Base.Data.Vector as Vector_Module
 polyglot java import java.lang.Class
 polyglot java import java.lang.Long as Java_Long
 polyglot java import java.lang.Object as Java_Object
+polyglot java import java.lang.StringBuilder as Java_StringBuilder
 polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.AbstractList
 polyglot java import java.util.ArrayList
@@ -301,6 +302,25 @@ add_specs suite_builder = suite_builder.group "Pattern Matches" group_builder->
         u = v.map foo
         u.should_equal ["text", "array", "array"]
 
+    group_builder.specify "should correctly pattern match strings from JS" <|
+        json = """
+            {"x": "foo"}
+        js_txt = json.parse_json.get "x"
+        r = case js_txt of
+            "foo" -> "OK"
+            other -> "not ok: "+other.to_text
+        r.should_equal "OK"
+
+    group_builder.specify "should correctly pattern match strings from Java" <|
+        sb = Java_StringBuilder.new
+        sb.append "b"
+        sb.append "ar"
+        java_txt = sb.toString
+        r = case java_txt of
+            "bar" -> "OK"
+            other -> "not ok: "+other.to_text
+        r.should_equal "OK"
+
     group_builder.specify "should correctly pattern match on supertype" <|
         case 1 of
             _ : Any -> Nothing
@@ -331,4 +351,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

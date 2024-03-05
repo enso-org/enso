@@ -6,28 +6,28 @@ import * as eventHooks from '#/hooks/eventHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 import type * as assetListEvent from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import type * as assetPanel from '#/layouts/dashboard/AssetPanel'
-import AssetPanel from '#/layouts/dashboard/AssetPanel'
-import type * as assetSearchBar from '#/layouts/dashboard/AssetSearchBar'
-import Category from '#/layouts/dashboard/CategorySwitcher/Category'
-import Chat from '#/layouts/dashboard/Chat'
-import ChatPlaceholder from '#/layouts/dashboard/ChatPlaceholder'
-import Drive from '#/layouts/dashboard/Drive'
-import Editor from '#/layouts/dashboard/Editor'
-import Home from '#/layouts/dashboard/Home'
-import * as pageSwitcher from '#/layouts/dashboard/PageSwitcher'
-import Settings from '#/layouts/dashboard/Settings'
-import TopBar from '#/layouts/dashboard/TopBar'
+import type * as assetPanel from '#/layouts/AssetPanel'
+import AssetPanel from '#/layouts/AssetPanel'
+import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import Category from '#/layouts/CategorySwitcher/Category'
+import Chat from '#/layouts/Chat'
+import ChatPlaceholder from '#/layouts/ChatPlaceholder'
+import Drive from '#/layouts/Drive'
+import Editor from '#/layouts/Editor'
+import Home from '#/layouts/Home'
+import * as pageSwitcher from '#/layouts/PageSwitcher'
+import Settings from '#/layouts/Settings'
+import TopBar from '#/layouts/TopBar'
 
 import TheModal from '#/components/dashboard/TheModal'
 import type * as spinner from '#/components/Spinner'
@@ -41,7 +41,7 @@ import AssetQuery from '#/utilities/AssetQuery'
 import HttpClient from '#/utilities/HttpClient'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
+import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ============================
 // === Global configuration ===
@@ -119,7 +119,7 @@ export default function Dashboard(props: DashboardProps) {
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
   const [page, setPage] = React.useState(() => localStorage.get('page') ?? pageSwitcher.Page.drive)
@@ -304,37 +304,39 @@ export default function Dashboard(props: DashboardProps) {
     }
   }, [/* should never change */ unsetModal])
 
-  React.useEffect(() => {
-    return shortcutManager.registerKeyboardHandlers({
-      [shortcutManagerModule.KeyboardAction.closeModal]: () => {
-        updateModal(oldModal => {
-          if (oldModal == null) {
-            queueMicrotask(() => {
-              setPage(oldPage => {
-                if (oldPage !== pageSwitcher.Page.settings) {
-                  return oldPage
-                } else {
-                  return localStorage.get('page') ?? pageSwitcher.Page.drive
-                }
+  React.useEffect(
+    () =>
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        closeModal: () => {
+          updateModal(oldModal => {
+            if (oldModal == null) {
+              queueMicrotask(() => {
+                setPage(oldPage => {
+                  if (oldPage !== pageSwitcher.Page.settings) {
+                    return oldPage
+                  } else {
+                    return localStorage.get('page') ?? pageSwitcher.Page.drive
+                  }
+                })
               })
-            })
-            return oldModal
-          } else {
-            return null
+              return oldModal
+            } else {
+              return null
+            }
+          })
+          if (modalRef.current == null) {
+            // eslint-disable-next-line no-restricted-syntax
+            return false
           }
-        })
-        if (modalRef.current == null) {
-          // eslint-disable-next-line no-restricted-syntax
-          return false
-        }
-      },
-    })
-  }, [
-    shortcutManager,
-    /* should never change */ modalRef,
-    /* should never change */ localStorage,
-    /* should never change */ updateModal,
-  ])
+        },
+      }),
+    [
+      inputBindings,
+      /* should never change */ modalRef,
+      /* should never change */ localStorage,
+      /* should never change */ updateModal,
+    ]
+  )
 
   const setBackendType = React.useCallback(
     (newBackendType: backendModule.BackendType) => {

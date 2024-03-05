@@ -133,7 +133,7 @@ test('Filling input with suggestions', async ({ page }) => {
   )
 
   // Applying suggestion
-  page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
   await customExpect.toExist(locate.componentBrowser(page))
   await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue(
     'Standard.Base.Data.read ',
@@ -181,4 +181,44 @@ test('Editing existing nodes', async ({ page }) => {
   await expect(locate.componentBrowser(page)).not.toBeVisible()
   await expect(node.locator('.WidgetToken')).toHaveText(['Data', '.', 'read'])
   await expect(node.locator('.WidgetText')).not.toBeVisible()
+})
+
+test('Visualization preview: type-based visualization selection', async ({ page }) => {
+  await actions.goToGraph(page)
+  const nodeCount = await locate.graphNode(page).count()
+  await locate.addNewNodeButton(page).click()
+  await customExpect.toExist(locate.componentBrowser(page))
+  await customExpect.toExist(locate.componentBrowserEntry(page))
+  const input = locate.componentBrowserInput(page).locator('input')
+  await input.fill('4')
+  await expect(input).toHaveValue('4')
+  await customExpect.toExist(locate.jsonVisualization(page))
+  await input.fill('Table.ne')
+  await expect(input).toHaveValue('Table.ne')
+  // The table visualization is not currently working with `executeExpression` (#9194), but we can test that the JSON
+  // visualization is no longer selected.
+  await expect(locate.jsonVisualization(page)).not.toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(locate.componentBrowser(page)).not.toBeVisible()
+  await expect(locate.graphNode(page)).toHaveCount(nodeCount)
+})
+
+test('Visualization preview: user visualization selection', async ({ page }) => {
+  await actions.goToGraph(page)
+  const nodeCount = await locate.graphNode(page).count()
+  await locate.addNewNodeButton(page).click()
+  await customExpect.toExist(locate.componentBrowser(page))
+  await customExpect.toExist(locate.componentBrowserEntry(page))
+  const input = locate.componentBrowserInput(page).locator('input')
+  await input.fill('4')
+  await expect(input).toHaveValue('4')
+  await customExpect.toExist(locate.jsonVisualization(page))
+  await locate.showVisualizationSelectorButton(page).click()
+  await page.getByRole('button', { name: 'Table' }).click()
+  // The table visualization is not currently working with `executeExpression` (#9194), but we can test that the JSON
+  // visualization is no longer selected.
+  await expect(locate.jsonVisualization(page)).not.toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(locate.componentBrowser(page)).not.toBeVisible()
+  await expect(locate.graphNode(page)).toHaveCount(nodeCount)
 })

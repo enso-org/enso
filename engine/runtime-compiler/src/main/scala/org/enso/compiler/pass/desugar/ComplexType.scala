@@ -26,7 +26,7 @@ import org.enso.compiler.pass.analyse.{
   TailCall
 }
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{LambdaConsolidate}
+import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
   IgnoredBindings,
@@ -125,6 +125,7 @@ case object ComplexType extends IRPass {
           lastAnnotations = Seq()
           res
         case _ =>
+          lastAnnotations = Seq()
           None
       }
       // TODO[MK] this is probably removable

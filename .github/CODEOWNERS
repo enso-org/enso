@@ -46,3 +46,6 @@ Cargo.toml
 
 # Dashboard, Cloud & Authentication
 /app/ide-desktop/ @PabloBuchu @indiv0 @somebody1234
+# The data-link schema is owned by the libraries team
+/app/ide-desktop/lib/dashboard/src/data/dataLinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley
+/app/ide-desktop/lib/dashboard/src/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @PabloBuchu @indiv0 @somebody1234

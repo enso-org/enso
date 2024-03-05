@@ -233,7 +233,7 @@ impl RunContext {
         ];
         for (argfile, artifact_name) in native_image_arg_files {
             if argfile.exists() {
-                ide_ci::actions::artifacts::upload_single_file(&argfile, artifact_name).await?;
+                ide_ci::actions::artifacts::upload_single_file(argfile, artifact_name).await?;
             } else {
                 warn!(
                     "Native Image Arg File for {} not found at {}",
@@ -349,12 +349,6 @@ impl RunContext {
                 tasks.push("engine-runner/buildNativeImage");
             }
 
-            if TARGET_OS != OS::Windows {
-                // FIXME [mwu] apparently this is broken on Windows because of the line endings
-                // mismatch
-                tasks.push("verifyLicensePackages");
-            }
-
             if self.config.build_project_manager_package() {
                 tasks.push("buildProjectManagerDistribution");
             }
@@ -362,7 +356,10 @@ impl RunContext {
             if self.config.build_launcher_package() {
                 tasks.push("buildLauncherDistribution");
             }
-            sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+
+            if !tasks.is_empty() {
+                sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+            }
         } else {
             // If we are run on a weak machine (like GH-hosted runner), we need to build things one
             // by one.
@@ -565,8 +562,14 @@ impl RunContext {
             runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
         }
 
+        // Verify the status of the License Review Report
+        if TARGET_OS != OS::Windows {
+            // FIXME [mwu] apparently this is broken on Windows because of the line endings
+            // mismatch
+            sbt.call_arg("verifyLicensePackages").await?;
+        }
 
-        // Verify License Packages in Distributions
+        // Verify Integrity of Generated License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
             for package in ret.packages() {

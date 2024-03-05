@@ -23,7 +23,6 @@
 pub mod arg;
 
 
-
 pub mod prelude {
     pub use crate::arg::ArgExt as _;
     pub use enso_build::prelude::*;
@@ -103,6 +102,27 @@ pub fn void<T>(_t: T) {}
 
 fn resolve_artifact_name(input: Option<String>, project: &impl IsTarget) -> String {
     input.unwrap_or_else(|| project.artifact_name())
+}
+
+/// Run the given future. After it is complete (regardless of success or failure), upload the
+/// directory as a CI artifact.
+///
+/// Does not attempt any uploads if not running in a CI environment.
+pub fn run_and_upload_dir(
+    fut: BoxFuture<'static, Result>,
+    dir_path: impl Into<PathBuf>,
+    artifact_name: impl Into<String>,
+) -> BoxFuture<'static, Result> {
+    let dir_path = dir_path.into();
+    let artifact_name = artifact_name.into();
+    async move {
+        let result = fut.await;
+        if is_in_env() {
+            ide_ci::actions::artifacts::upload_directory(dir_path, artifact_name).await?;
+        }
+        result
+    }
+    .boxed()
 }
 
 define_env_var! {
@@ -350,10 +370,20 @@ impl Processor {
         match gui.command {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui2::Command::Test =>
-                try_join(gui2::tests(&self.repo_root), gui2::dashboard_tests(&self.repo_root))
-                    .void_ok()
-                    .boxed(),
+            arg::gui2::Command::Test => {
+                let repo_root = self.repo_root.clone();
+                let gui_tests = run_and_upload_dir(
+                    gui2::tests(&repo_root),
+                    &repo_root.app.gui_2.playwright_report,
+                    "gui2-playwright-report",
+                );
+                let dashboard_tests = run_and_upload_dir(
+                    gui2::dashboard_tests(&repo_root),
+                    &repo_root.app.ide_desktop.lib.dashboard.playwright_report,
+                    "dashboard-playwright-report",
+                );
+                try_join(gui_tests, dashboard_tests).void_ok().boxed()
+            }
             arg::gui2::Command::Watch => gui2::watch(&self.repo_root),
             arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
         }
