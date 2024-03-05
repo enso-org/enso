@@ -136,7 +136,7 @@ export default function Dashboard(props: DashboardProps) {
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
   const [assetPanelProps, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
-  const [isAssetPanelVisible, setIsAssetPanelVisible] = React.useState(
+  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
@@ -146,6 +146,8 @@ export default function Dashboard(props: DashboardProps) {
     [session.user]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
+  const isAssetPanelVisible =
+    page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
 
   React.useEffect(() => {
     setInitialized(true)
@@ -283,8 +285,8 @@ export default function Dashboard(props: DashboardProps) {
   }, [projectStartupInfo, /* should never change */ localStorage])
 
   React.useEffect(() => {
-    localStorage.set('isAssetPanelVisible', isAssetPanelVisible)
-  }, [isAssetPanelVisible, /* should never change */ localStorage])
+    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
+  }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
   React.useEffect(() => {
     if (page !== pageSwitcher.Page.settings) {
@@ -457,7 +459,8 @@ export default function Dashboard(props: DashboardProps) {
             labels={labels}
             suggestions={suggestions}
             isAssetPanelVisible={isAssetPanelVisible}
-            setIsAssetPanelVisible={setIsAssetPanelVisible}
+            isAssetPanelEnabled={isAssetPanelEnabled}
+            setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             doRemoveSelf={doRemoveSelf}
             onSignOut={() => {
               if (page === pageSwitcher.Page.editor) {
@@ -516,12 +519,10 @@ export default function Dashboard(props: DashboardProps) {
         </div>
         <div
           className={`flex flex-col duration-side-panel transition-min-width ease-in-out overflow-hidden ${
-            isAssetPanelVisible || isAssetPanelTemporarilyVisible
-              ? 'min-w-side-panel'
-              : 'min-w invisible'
+            isAssetPanelVisible ? 'min-w-side-panel' : 'min-w invisible'
           }`}
         >
-          {(isAssetPanelVisible || isAssetPanelTemporarilyVisible) && (
+          {isAssetPanelVisible && (
             <AssetPanel
               supportsLocalBackend={supportsLocalBackend}
               key={assetPanelProps?.item?.item.id}
@@ -534,7 +535,7 @@ export default function Dashboard(props: DashboardProps) {
               labels={labels}
               isHelpChatOpen={isHelpChatOpen}
               setIsHelpChatOpen={setIsHelpChatOpen}
-              setVisibility={setIsAssetPanelVisible}
+              setVisibility={setIsAssetPanelEnabled}
               dispatchAssetEvent={dispatchAssetEvent}
               projectAsset={projectStartupInfo?.projectAsset ?? null}
               setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
