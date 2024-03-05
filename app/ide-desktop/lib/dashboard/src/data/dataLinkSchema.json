@@ -207,10 +207,14 @@
         "headers": {
           "title": "Headers",
           "description": "Whether a header row containing column names is present.",
-          "type": "boolean"
+          "anyOf": [
+            {"title": "Infer", "const": "infer", "type": "string"},
+            {"title": "True", "const": true, "type": "boolean"},
+            {"title": "False", "const": false, "type": "boolean"}
+          ]
         }
       },
-      "required": ["type", "subType", "delimiter"]
+      "required": ["type", "subType", "delimiter", "headers"]
     },
     "JsonFormat": {
       "title": "JSON",
