@@ -5,12 +5,64 @@
  * the API. */
 import * as detect from 'enso-common/src/detect'
 
+import * as appUtils from '#/appUtils'
+
 import Backend, * as backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
+import type * as newtype from '#/utilities/newtype'
 import * as projectManager from '#/utilities/ProjectManager'
 import ProjectManager from '#/utilities/ProjectManager'
+
+// =============
+// === Types ===
+// =============
+
+/** A string representing a UUIDv4. */
+type UUID = newtype.Newtype<string, 'UUID'>
+/** A string representing a UTC date and time. */
+type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
+
+/** Details of a project. */
+interface ProjectMetadata {
+  /** The name of the project. */
+  readonly name: string
+  /** The namespace of the project. */
+  readonly namespace: string
+  /** The project id. */
+  readonly id: UUID
+  /** The Enso Engine version to use for the project, represented by a semver version
+   * string.
+   *
+   * If the edition associated with the project could not be resolved, the
+   * engine version may be missing. */
+  readonly engineVersion?: string
+  /** The project creation time. */
+  readonly created: UTCDateTime
+  /** The last opened datetime. */
+  readonly lastOpened?: UTCDateTime
+}
+
+/** Metadata for an arbitrary file system entry. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+
+/** Metadata for a file. */
+interface FileEntry {
+  readonly path: string
+}
+
+/** Metadata for a directory. */
+interface DirectoryEntry {
+  readonly path: string
+}
+
+/** Metadata for a project. */
+interface ProjectEntry {
+  readonly path: string
+  readonly metadata: ProjectMetadata
+}
 
 // =============================
 // === ipWithSocketToAddress ===
@@ -32,6 +84,7 @@ export default class LocalBackend extends Backend {
   static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
+  private readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
 
   /** Create a {@link LocalBackend}. */
   constructor(projectManagerUrl: string | null) {
@@ -47,6 +100,17 @@ export default class LocalBackend extends Backend {
   /** Return a list of assets in a directory.
    * @throws An error if the JSON-RPC call fails. */
   override async listDirectory(): Promise<backend.AnyAsset[]> {
+    /*const entries = await this.runProjectManagerCommand<FileSystemEntry[]>(
+      '--filesystem-list',
+      query.parentId ?? '.'
+    )
+    return entries.map(entry => {
+      switch (
+        entry.type
+        //
+      ) {
+      }
+    })*/
     const result = await this.projectManager.listProjects({})
     return result.projects.map(project => ({
       type: backend.AssetType.project,
@@ -484,5 +548,18 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override getCheckoutSession() {
     return this.invalidOperation()
+  }
+
+  /** Run the Project Manager with the given command-line arguments. */
+  private async runProjectManagerCommand<T = void>(
+    name: string,
+    ...cliArguments: string[]
+  ): Promise<T> {
+    const response = await fetch(`${this.baseUrl}/api/run-project-manager-command`, {
+      body: JSON.stringify([`--${name}`, ...cliArguments]),
+    })
+    // This is SAFE, as the return type is statically known.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return await response.json()
   }
 }

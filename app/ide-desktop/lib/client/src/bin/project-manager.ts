@@ -65,10 +65,19 @@ export function spawn(
     )
 }
 
+/** Run an arbitrary command and return its output. */
+export async function runCommand(
+    args: config.Args,
+    processArgs: string[],
+    env?: NodeJS.ProcessEnv
+) {
+    return await exec(args, processArgs, env).then(t => t.stdout)
+}
+
 /** Get the Project Manager version. */
 export async function version(args: config.Args) {
     if (args.options.engine.value) {
-        return await exec(args, ['--version']).then(t => t.stdout)
+        return await runCommand(args, ['--version'])
     } else {
         return
     }

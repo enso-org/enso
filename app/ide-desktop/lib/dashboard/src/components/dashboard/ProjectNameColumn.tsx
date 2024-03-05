@@ -173,14 +173,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               ) {
                 id = await window.backendApi.importProjectFromPath(file.path)
               } else {
-                const response = await fetch('./api/upload-project', {
-                  method: 'POST',
-                  // Ideally this would use `file.stream()`, to minimize RAM
-                  // requirements. for uploading large projects. Unfortunately,
-                  // this requires HTTP/2, which is HTTPS-only, so it will not
-                  // work on `http://localhost`.
-                  body: await file.arrayBuffer(),
-                })
+                // Ideally this would use `file.stream()`, to minimize RAM
+                // requirements. for uploading large projects. Unfortunately,
+                // this requires HTTP/2, which is HTTPS-only, so it will not
+                // work on `http://localhost`.
+                const body =
+                  window.location.protocol === 'https:' ? file.stream() : await file.arrayBuffer()
+                const response = await fetch('./api/upload-project', { method: 'POST', body })
                 id = await response.text()
               }
               const listedProject = await backend.getProjectDetails(

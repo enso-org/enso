@@ -4,6 +4,7 @@ import * as fs from 'node:fs'
 import * as http from 'node:http'
 import * as path from 'node:path'
 import type * as stream from 'node:stream'
+import * as streamConsumers from 'node:stream/consumers'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
@@ -24,6 +25,7 @@ const logger = contentConfig.logger
 // =================
 
 const HTTP_STATUS_OK = 200
+const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 
 // ==============
@@ -33,6 +35,7 @@ const HTTP_STATUS_NOT_FOUND = 404
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
     readonly uploadProjectBundle: (project: stream.Readable) => Promise<string>
+    readonly runProjectManagerCommand: (cliArguments: string[]) => Promise<unknown>
 }
 
 /** Constructor parameter for the server configuration. */
@@ -183,6 +186,36 @@ export class Server {
                             ])
                             .end(id)
                     })
+                    break
+                }
+                case '/api/run-project-manager-command': {
+                    void streamConsumers
+                        .json(request)
+                        .then(cliArguments => {
+                            if (
+                                Array.isArray(cliArguments) &&
+                                cliArguments.every(
+                                    (item): item is string => typeof item === 'string'
+                                )
+                            ) {
+                                return this.config.externalFunctions.runProjectManagerCommand(
+                                    cliArguments
+                                )
+                            } else {
+                                throw new Error('Command arguments must be an array of strings')
+                            }
+                        })
+                        .then(commandOutput => {
+                            const bodyText = JSON.stringify(commandOutput)
+                            response
+                                .writeHead(HTTP_STATUS_OK, [
+                                    ['Content-Length', String(bodyText.length)],
+                                    ['Content-Type', 'application/json'],
+                                    ...common.COOP_COEP_CORP_HEADERS,
+                                ])
+                                .end(bodyText)
+                        })
+                        .catch(() => response.writeHead(HTTP_STATUS_BAD_REQUEST).end())
                     break
                 }
                 default: {
