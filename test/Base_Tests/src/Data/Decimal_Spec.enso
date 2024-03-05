@@ -492,6 +492,18 @@ add_specs suite_builder =
             Decimal.new 0 . negate . should_equal 0
             Decimal.new -0 . negate . should_equal 0
 
+        group_builder.specify "should throw Arithmetic_Error for an inexact result and Rounding_Mode.unnecessary" <|
+            unnecessary = Math_Context.new 1 rounding_mode=Rounding_Mode.unnecessary
+
+            Decimal.new "123.45" unnecessary . should_fail_with Arithmetic_Error
+            Decimal.new 123.45 unnecessary . should_fail_with Arithmetic_Error
+            Decimal.new 12345 unnecessary . should_fail_with Arithmetic_Error
+
+            (Decimal.new 3.4 . add (Decimal.new 20.05) unnecessary) . should_fail_with Arithmetic_Error
+            (Decimal.new -867.625 . subtract (Decimal.new -33.05) unnecessary) . should_fail_with Arithmetic_Error
+            (Decimal.new 49.31 . multiply (Decimal.new 5) unnecessary) . should_fail_with Arithmetic_Error
+            (Decimal.new 247.75 . divide (Decimal.new -5) unnecessary) . should_fail_with Arithmetic_Error
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
