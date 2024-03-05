@@ -1857,6 +1857,7 @@ lazy val `runtime-benchmarks` =
         "-Xlint:unchecked"
       ),
       Compile / compile := (Compile / compile)
+        .dependsOn(`runtime-fat-jar` / assembly)
         .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
         .value,
       parallelExecution := false,
