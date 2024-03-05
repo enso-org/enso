@@ -483,6 +483,12 @@ add_specs suite_builder =
             (Decimal.new 1026194943235357770434981633846801087750690719 / Decimal.new 273948729872398729387) . should_equal (Decimal.new 3745937948729837923798237)
             (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" / Decimal.new "297349287397297.2394279379287398729879234") . should_equal (Decimal.new "38450830483049850394093.48579374987938934")
 
+        group_builder.specify "should allow arithmetic with Decimals, with precision setting (examples)" <|
+             (Decimal.new "10.22") . add (Decimal.new "20.33") (Math_Context.new 3 Rounding_Mode.half_down) . should_equal (Decimal.new 30.5)
+             (Decimal.new "20.33") . subtract (Decimal.new "10.22") (Math_Context.new 3 Rounding_Mode.half_down) . should_equal (Decimal.new 10.1)
+             (Decimal.new "10.22") . multiply (Decimal.new "20.33") (Math_Context.new 4 Rounding_Mode.half_down) . should_equal (Decimal.new 207.8)
+             (Decimal.new "1065.9378") . divide (Decimal.new "23.34") (Math_Context.new 3 Rounding_Mode.half_down) . should_equal (Decimal.new 45.7)
+
         group_builder.specify "should allow arithmetic with Decimals, with precision setting" <|
             (Decimal.new 213427523957 . add (Decimal.new 93849398884384) (Math_Context.new 8)) . should_equal (Decimal.new 94062826000000 )
             (Decimal.new "723579374753.3535345" . add (Decimal.new "35263659267.23434535") (Math_Context.new 12)) . should_equal (Decimal.new "758843034021")
