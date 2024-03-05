@@ -508,6 +508,16 @@ add_specs suite_builder =
             (Decimal.new 1026194943235357770434981633846801087750690719 . divide (Decimal.new 273948729872398729387) (Math_Context.new 10)) . should_equal (Decimal.new 3745937949000000000000000)
             (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" . divide (Decimal.new "297349287397297.2394279379287398729879234") (Math_Context.new 9)) . should_equal (Decimal.new "38450830500000000000000")
 
+        group_builder.specify "should allow arithmetic with Decimals, with precision setting and rounding mode" <|
+            (Decimal.new 3.4 . add (Decimal.new 20.05) (Math_Context.new 3 Rounding_Mode.half_up)) . should_equal (Decimal.new 23.5)
+            (Decimal.new 3.4 . add (Decimal.new 20.05) (Math_Context.new 3 Rounding_Mode.half_down)) . should_equal (Decimal.new 23.4)
+            (Decimal.new -867.625 . subtract (Decimal.new -33.05) (Math_Context.new 5 Rounding_Mode.half_up)) . should_equal (Decimal.new -834.58)
+            (Decimal.new -867.625 . subtract (Decimal.new -33.05) (Math_Context.new 5 Rounding_Mode.half_down)) . should_equal (Decimal.new -834.57)
+            (Decimal.new 49.31 . multiply (Decimal.new 5) (Math_Context.new 4 Rounding_Mode.half_up)) . should_equal (Decimal.new 246.6)
+            (Decimal.new 49.31 . multiply (Decimal.new 5) (Math_Context.new 4 Rounding_Mode.half_down)) . should_equal (Decimal.new 246.5)
+            (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3 Rounding_Mode.half_up)) . should_equal (Decimal.new -49.6)
+            (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3 Rounding_Mode.half_down)) . should_equal (Decimal.new -49.5)
+
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
