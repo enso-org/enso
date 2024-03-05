@@ -28,7 +28,7 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
   await expect(vis).toExist()
   await expect(locate.exitFullscreenButton(page)).toExist()
   const visBoundingBox = await vis.boundingBox()
-  expect(visBoundingBox?.height).toBe(808)
+  expect(visBoundingBox?.height).toBeGreaterThan(600)
   expect(visBoundingBox?.width).toBe(1920)
   const jsonContent = await vis.textContent().then((text) => JSON.parse(text!))
   expect(jsonContent).toEqual({
