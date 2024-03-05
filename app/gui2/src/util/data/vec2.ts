@@ -11,12 +11,26 @@ export class Vec2 {
 
   static Zero: Vec2
 
-  static FromArr(arr: [number, number]): Vec2 {
-    return new Vec2(arr[0], arr[1])
+  static FromXY(point: Readonly<{ x: number; y: number }>): Vec2 {
+    return new Vec2(point.x, point.y)
   }
 
-  static FromDomPoint(point: DOMPoint): Vec2 {
-    return new Vec2(point.x, point.y)
+  static FromSize(point: Readonly<{ width: number; height: number }>): Vec2 {
+    return new Vec2(point.width, point.height)
+  }
+
+  static FromClientSize(point: Readonly<{ clientWidth: number; clientHeight: number }>): Vec2 {
+    return new Vec2(point.clientWidth, point.clientHeight)
+  }
+
+  static DotProduct(...values: Vec2[]): Vec2 {
+    let x = 1
+    let y = 1
+    for (const value of values) {
+      x *= value.x
+      y *= value.y
+    }
+    return new Vec2(x, y)
   }
 
   equals(other: Vec2): boolean {
@@ -39,6 +53,10 @@ export class Vec2 {
 
   inverse(): Vec2 {
     return new Vec2(-this.x, -this.y)
+  }
+
+  reciprocal(): Vec2 {
+    return new Vec2(1 / this.x, 1 / this.y)
   }
 
   add(other: Vec2): Vec2 {

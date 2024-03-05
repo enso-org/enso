@@ -354,7 +354,7 @@ function lengthTo(path: SVGPathElement, pos: Vec2): number {
   let best: number | undefined
   let bestDist: number | undefined
   const tryPos = (len: number) => {
-    const dist = pos.distanceSquared(Vec2.FromDomPoint(path.getPointAtLength(len)))
+    const dist = pos.distanceSquared(Vec2.FromXY(path.getPointAtLength(len)))
     if (bestDist == null || dist < bestDist) {
       best = len
       bestDist = dist
