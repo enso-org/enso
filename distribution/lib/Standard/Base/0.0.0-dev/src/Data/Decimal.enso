@@ -454,6 +454,9 @@ type Decimal
     to_text : Text
     to_text self = self.big_decimal.toString
 
+    to_text_without_scientific_notation : Text
+    to_text_without_scientific_notation  self = self.big_decimal.toPlainString
+
 ## PRIVATE
 handle_number_format_exception ~action =
     Panic.catch NumberFormatException action caught_panic->

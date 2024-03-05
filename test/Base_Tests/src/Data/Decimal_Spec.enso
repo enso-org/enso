@@ -14,7 +14,8 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
 Decimal.should_have_rep self rep = self.get_internal_representation . should_equal rep
 
 Any.ssee self b = if self == b then Nothing else
-    IO.println "SSEE "+self.to_text+" "+b.to_text
+    #IO.println "SSEE "+(Meta.get_simple_type_name self)+" "+(Meta.get_simple_type_name b)
+    IO.println "SSEE "+self.to_text_without_scientific_notation+" "+b.to_text_without_scientific_notation
 
 add_specs suite_builder =
     suite_builder.group "construction" group_builder->
@@ -240,10 +241,10 @@ add_specs suite_builder =
 
         vs.map_with_index i-> v->
             group_builder.specify "should be able to create a Decimal from a negative Float "+i.to_text <|
-                IO.println "======== "+v.to_text
+                #IO.println "======== "+v.to_text
                 r = Decimal.float_id v
                 #r = identity v
-                IO.println "float_id "+v.to_text+" "+r.to_text
+                #IO.println "float_id "+v.to_text+" "+r.to_text
                 r . should_equal r
 
         ok_values = []
@@ -481,6 +482,31 @@ add_specs suite_builder =
 
             (Decimal.new 1026194943235357770434981633846801087750690719 / Decimal.new 273948729872398729387) . should_equal (Decimal.new 3745937948729837923798237)
             (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" / Decimal.new "297349287397297.2394279379287398729879234") . should_equal (Decimal.new "38450830483049850394093.48579374987938934")
+
+        group_builder.specify "should allow arithmetic with Decimals, with precision setting" <|
+            (Decimal.new 213427523957 . add (Decimal.new 93849398884384) (Math_Context.new 8)) . should_equal (Decimal.new 94062826000000 )
+            (Decimal.new "723579374753.3535345" . add (Decimal.new "35263659267.23434535") (Math_Context.new 12)) . should_equal (Decimal.new "758843034021")
+
+            (Decimal.new -29388920982834 . subtract (Decimal.new 842820) (Math_Context.new 7)) . should_equal (Decimal.new -29388920000000)
+            (Decimal.new "-8273762787.3535345" . subtract (Decimal.new "76287273.23434535") (Math_Context.new 10)) . should_equal (Decimal.new "-8350050061")
+
+            (Decimal.new 7297927982888383 . multiply  (Decimal.new 828737) (Math_Context.new 6)) . should_equal (Decimal.new 6048060000000000000000 )
+            (Decimal.new "893872388.3535345" . multiply  (Decimal.new "72374727737.23434535") (Math_Context.new 14)) . should_equal (Decimal.new "64693770738918000000")
+
+            (Decimal.new "909678645268840" . divide (Decimal.new "28029830") (Math_Context.new 6)) . should_equal (Decimal.new "32453900 ")
+            (Decimal.new "384456406.7860325392609633764" . divide (Decimal.new "24556.125563546") (Math_Context.new 7)) . should_equal (Decimal.new "15656.23")
+
+            (Decimal.new 3948539458034580838458034803485 . add (Decimal.new 237957498573948579387495837459837) (Math_Context.new 20)) . should_equal (Decimal.new 241906038031983160230000000000000)
+            (Decimal.new "927349527347587934.34573495739475938745" . add (Decimal.new "37593874597239487593745.3457973847574") (Math_Context.new 24)) . should_equal (Decimal.new "37594801946766835181679.7")
+
+            (Decimal.new -239485787538745937495873495759598 . subtract (Decimal.new 273958739485793475934793745) (Math_Context.new 12)) . should_equal (Decimal.new -239486061497000000000000000000000)
+            (Decimal.new "-79237492374927979579239292.293749287928373" . subtract (Decimal.new "239729379279872947923947.234273947927397239") (Math_Context.new 16)) . should_equal (Decimal.new "-79477221754207850000000000")
+
+            (Decimal.new 3745937948729837923798237 . multiply  (Decimal.new 273948729872398729387) (Math_Context.new 21)) . should_equal (Decimal.new 1026194943235357770430000000000000000000000000)
+            (Decimal.new "38450830483049850394093.48579374987938934" . multiply  (Decimal.new "297349287397297.2394279379287398729879234") (Math_Context.new 35)) . should_equal (Decimal.new "11433327043969147404767677628296882000")
+
+            (Decimal.new 1026194943235357770434981633846801087750690719 . divide (Decimal.new 273948729872398729387) (Math_Context.new 10)) . should_equal (Decimal.new 3745937949000000000000000)
+            (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" . divide (Decimal.new "297349287397297.2394279379287398729879234") (Math_Context.new 9)) . should_equal (Decimal.new "38450830500000000000000")
 
 main =
     suite = Test.build suite_builder->
