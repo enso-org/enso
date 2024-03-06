@@ -6,6 +6,7 @@ import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
+import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 import project.Excel.Excel_Workbook.Excel_Workbook
 import project.Internal.Excel_Reader
