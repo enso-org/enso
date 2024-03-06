@@ -417,7 +417,7 @@ add_specs suite_builder =
 
                 # And should be able to add another sheet
                 table2 = Table.new [["A", [9, 10, 11, 12]], ["B", ["i", "j", "k", "l"]]]
-                table2.write file (Excel (Worksheet "MySheet2")) . should_succeed
+                table2.write file (Excel_Format.Sheet "MySheet2") . should_succeed
 
                 workbook2 = file.read
                 workbook2.sheet_names . should_equal ['EnsoSheet', 'MySheet2']

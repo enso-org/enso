@@ -280,7 +280,7 @@ type File
              from Standard.Table import Excel, Worksheet
              import Standard.Examples
 
-             example_xls_to_table = Examples.xls.read (Excel (Worksheet 'Dates'))
+             example_xls_to_table = Examples.xls.read (Excel_Format.Sheet 'Dates')
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =

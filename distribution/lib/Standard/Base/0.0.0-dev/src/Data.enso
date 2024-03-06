@@ -60,7 +60,7 @@ from project.System.File_Format import Auto_Detect, File_Format
          from Standard.Table import Excel, Worksheet
          import Standard.Examples
 
-         example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
+         example_xls_to_table = Data.read Examples.xls (Excel_Format.Sheet 'Dates')
 @path Text_Input
 @format File_Format.default_widget
 read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
