@@ -83,7 +83,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -98,7 +98,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -135,7 +135,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -152,7 +152,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -190,7 +190,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -208,7 +208,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -248,7 +248,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -262,7 +262,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -303,7 +303,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -317,7 +317,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -356,7 +356,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -370,7 +370,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -410,7 +410,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -424,7 +424,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -474,7 +474,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -488,7 +488,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: "always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -533,7 +533,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -557,7 +557,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -600,7 +600,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -637,7 +637,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -678,7 +678,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -715,7 +715,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -757,7 +757,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -783,7 +783,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -824,7 +824,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -848,7 +848,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -890,7 +890,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -927,7 +927,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -967,7 +967,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -1004,7 +1004,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
@@ -1045,7 +1045,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -1071,7 +1071,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
