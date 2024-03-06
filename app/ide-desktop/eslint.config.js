@@ -34,7 +34,7 @@ const DEFAULT_IMPORT_ONLY_MODULES =
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
-const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|${RELATIVE_MODULES}`
+const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!do[A-Z])(?!_?([A-Z][a-z0-9]*)+$)/'
@@ -244,7 +244,7 @@ export default [
     eslintJs.configs.recommended,
     {
         // Playwright build cache.
-        ignores: ['**/.cache/**'],
+        ignores: ['**/.cache/**', '**/playwright-report'],
     },
     {
         settings: {

@@ -9,8 +9,8 @@ import * as url from 'node:url'
 
 /** Read environment variables from a file. */
 export async function loadEnv() {
-  const environment = process.env.ENSO_CLOUD_ENV ?? null
-  const isProduction = environment == null || environment === 'production'
+  const environment = process.env.ENSO_CLOUD_ENV_FILE_NAME ?? null
+  const isProduction = environment == null || environment === ''
   const fileName = isProduction ? '.env' : `.${environment}.env`
   const filePath = path.join(url.fileURLToPath(new URL('.', import.meta.url)), fileName)
   try {

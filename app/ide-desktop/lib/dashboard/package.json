@@ -35,6 +35,7 @@
     "@fortawesome/free-brands-svg-icons": "^6.4.2",
     "@fortawesome/react-fontawesome": "^0.2.0",
     "@sentry/react": "^7.74.0",
+    "ajv": "^8.12.0",
     "enso-common": "^1.0.0",
     "is-network-error": "^1.0.1",
     "react": "^18.2.0",

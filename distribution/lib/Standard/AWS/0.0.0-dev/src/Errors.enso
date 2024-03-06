@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-import project.AWS_Credential.AWS_Credential
-
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
 
 ## An error in the core AWS SDK

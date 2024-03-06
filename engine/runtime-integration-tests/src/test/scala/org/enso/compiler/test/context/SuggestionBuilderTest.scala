@@ -245,6 +245,80 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       )
     }
 
+    "build method with an ascribed argument" in {
+
+      val code =
+        """import Standard.Base.Data.Text.Text
+          |
+          |foo (a : Text) = 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument(
+                  "a",
+                  "Standard.Base.Data.Text.Text",
+                  false,
+                  false,
+                  None
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build method with an ascribed and default argument" in {
+
+      val code =
+        """import Standard.Base.Data.Text.Text
+          |
+          |foo (a : Text = "42") = a""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.DefinedMethod(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument(
+                  "a",
+                  "Standard.Base.Data.Text.Text",
+                  false,
+                  true,
+                  Some("\"42\"")
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None,
+              annotations   = Seq()
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build method with a type containing higher kinds" in {
 
       val code =

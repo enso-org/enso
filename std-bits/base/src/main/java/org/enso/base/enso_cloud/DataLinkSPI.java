@@ -1,0 +1,55 @@
+package org.enso.base.enso_cloud;
+
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
+
+/**
+ * An interface for data link parser providers. A class providing this interface can register an
+ * Enso type that defines how to `parse` a specific type of datalink. The `parse` method on that
+ * type should return a configured datalink instance that can later be `read`.
+ */
+public abstract class DataLinkSPI {
+  private static final ServiceLoader<DataLinkSPI> loader =
+      ServiceLoader.load(DataLinkSPI.class, DataLinkSPI.class.getClassLoader());
+
+  public void reload() {
+    loader.reload();
+  }
+
+  public static Value findDataLinkType(String name) {
+    var providers =
+        loader.stream().filter(provider -> provider.get().getLinkTypeName().equals(name)).toList();
+    if (providers.isEmpty()) {
+      return null;
+    }
+
+    if (providers.size() > 1) {
+      var modules =
+          providers.stream()
+              .map(provider -> provider.get().getModuleName())
+              .collect(Collectors.joining(", "));
+      throw new IllegalStateException(
+          "Error: Multiple Data Link providers found for type: "
+              + name
+              + ". The clashing definitions are in the following modules: "
+              + modules
+              + ".");
+    }
+
+    return providers.get(0).get().getTypeObject();
+  }
+
+  public Value getTypeObject() {
+    final var context = Context.getCurrent().getBindings("enso");
+    final var module = context.invokeMember("get_module", getModuleName());
+    return module.invokeMember("get_type", getTypeName());
+  }
+
+  protected abstract String getModuleName();
+
+  protected abstract String getTypeName();
+
+  protected abstract String getLinkTypeName();
+}

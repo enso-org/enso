@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
+import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
@@ -54,6 +56,8 @@ const emit = defineEmits<{
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
   'update:visualizationRect': [rect: Rect | undefined]
   'update:visualizationVisible': [visible: boolean]
+  'update:visualizationFullscreen': [fullscreen: boolean]
+  'update:visualizationWidth': [width: number]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -114,10 +118,11 @@ const warning = computed(() => {
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
   if (!warning) return
-  return '⚠ Warning: ' + warning!
+  return 'Warning: ' + warning!
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+const isOnlyOneSelected = computed(() => isSelected.value && nodeSelection?.selected.size === 1)
 watch(isSelected, (selected) => {
   if (!selected) {
     menuVisible.value = MenuState.Off
@@ -125,7 +130,9 @@ watch(isSelected, (selected) => {
 })
 
 const isDocsVisible = ref(false)
+const visualizationWidth = computed(() => props.node.vis?.width ?? null)
 const isVisualizationVisible = computed(() => props.node.vis?.visible ?? false)
+const isVisualizationFullscreen = computed(() => props.node.vis?.fullscreen ?? false)
 
 watchEffect(() => {
   const size = nodeSize.value
@@ -362,6 +369,26 @@ function openFullMenu() {
   }
   menuVisible.value = MenuState.Full
 }
+
+const editingComment = ref(false)
+
+const documentation = computed<string | undefined>({
+  get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
+  set: (text) => {
+    graph.edit((edit) => {
+      const outerExpr = edit.get(props.node.outerExprId)
+      if (text) {
+        if (outerExpr instanceof Ast.MutableDocumented) {
+          outerExpr.setDocumentationText(text)
+        } else {
+          outerExpr.update((outerExpr) => Ast.Documented.new(text, outerExpr))
+        }
+      } else if (outerExpr instanceof Ast.MutableDocumented && outerExpr.expression) {
+        outerExpr.replace(outerExpr.expression.take())
+      }
+    })
+  },
+})
 </script>
 
 <template>
@@ -400,6 +427,9 @@ function openFullMenu() {
       :isFullMenuVisible="menuVisible === MenuState.Full"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
+      @startEditingComment="editingComment = true"
+      @openFullMenu="openFullMenu"
+      @delete="emit('delete')"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -408,15 +438,28 @@ function openFullMenu() {
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
       :currentType="node.vis?.identifier"
+      :isFullscreen="isVisualizationFullscreen"
       :dataSource="{ type: 'node', nodeId: externalId }"
       :typename="expressionInfo?.typename"
+      :width="visualizationWidth"
+      :isFocused="isOnlyOneSelected"
       @update:rect="
         emit('update:visualizationRect', $event),
           (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
       "
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
+      @update:fullscreen="emit('update:visualizationFullscreen', $event)"
+      @update:width="emit('update:visualizationWidth', $event)"
     />
+    <Suspense>
+      <GraphNodeComment
+        v-if="documentation != null"
+        v-model="documentation"
+        v-model:editing="editingComment"
+        class="beforeNode"
+      />
+    </Suspense>
     <div
       ref="contentNode"
       class="node"
@@ -434,12 +477,16 @@ function openFullMenu() {
         @openFullMenu="openFullMenu"
       />
     </div>
-    <GraphNodeError v-if="error" class="message" :message="error" type="error" />
+    <div class="statuses">
+      <SvgIcon v-if="warning" name="warning" />
+    </div>
+    <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
     <GraphNodeError
       v-if="warning && (nodeHovered || isSelected)"
-      class="message warning"
-      :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
+      class="afterNode warning"
+      :class="{ messageWithMenu: menuVisible !== MenuState.Off }"
       :message="warning"
+      icon="warning"
       type="warning"
     />
     <svg class="bgPaths" :style="bgStyleVariables">
@@ -658,17 +705,43 @@ function openFullMenu() {
   z-index: 1;
 }
 
-.message {
+.beforeNode {
+  position: absolute;
+  bottom: 100%;
+  left: 60px;
+  margin-bottom: 2px;
+}
+
+.afterNode {
   position: absolute;
   top: 100%;
   margin-top: 4px;
+}
+
+.messageWarning {
+  margin-top: 8px;
 }
 
 .messageWithMenu {
   left: 40px;
 }
 
-.warning {
-  top: 35px;
+.statuses {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  top: 0;
+  right: 100%;
+  margin-right: 8px;
+  color: var(--color-warning);
+  transition: opacity 0.2s ease-in-out;
+}
+
+.GraphNode:is(:hover, .selected) .statuses,
+.GraphNode:has(.selection:hover) .statuses {
+  opacity: 0;
 }
 </style>

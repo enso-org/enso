@@ -15,6 +15,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.CommandLineOptionException;
 import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 
 /** Runner class for the benchmarks. Discovers, runs and reports benchmark results. */
 public class BenchmarksRunner {
@@ -77,7 +78,12 @@ public class BenchmarksRunner {
   private static Collection<RunResult> runCompileOnly(List<String> includes)
       throws RunnerException {
     System.out.println("Running benchmarks " + includes + " in compileOnly mode");
-    var optsBuilder = new OptionsBuilder().measurementIterations(1).warmupIterations(0).forks(0);
+    var optsBuilder =
+        new OptionsBuilder()
+            .measurementTime(TimeValue.seconds(1))
+            .measurementIterations(1)
+            .warmupIterations(0)
+            .forks(0);
     includes.forEach(optsBuilder::include);
     var opts = optsBuilder.build();
     var runner = new Runner(opts);

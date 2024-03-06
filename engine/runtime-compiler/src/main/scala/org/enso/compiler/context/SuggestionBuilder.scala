@@ -702,7 +702,7 @@ final class SuggestionBuilder[A: IndexedSource](
     * @return the suggestion argument
     */
   private def buildArgument(arg: DefinitionArgument): Suggestion.Argument = {
-    buildTypeSignatureFromMetadata(arg.name.getMetadata(TypeSignatures)) match {
+    buildTypeSignatureFromMetadata(arg.getMetadata(TypeSignatures)) match {
       case Vector(targ) =>
         buildTypedArgument(arg, targ)
       case _ =>
