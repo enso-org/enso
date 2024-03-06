@@ -32,10 +32,9 @@ export const expect = baseExpect.extend({
     const assertionName = 'toBeSelected'
     let pass: boolean
     try {
-      await baseExpect(locator).toHaveClass(/(?<=^| )selected(?=$| )/, { timeout: 100 })
+      await baseExpect(locator).toHaveClass(/(?<=^| )selected(?=$| )/, { timeout: 50 })
       pass = true
     } catch (e: any) {
-      console.log(e)
       pass = false
     }
 
