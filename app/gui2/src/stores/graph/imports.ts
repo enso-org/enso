@@ -169,8 +169,8 @@ export function requiredImports(
   ]
   switch (entry.kind) {
     case SuggestionKind.Module:
-      return entry.reexportedIn
-        ? unqualifiedImport(entry.reexportedIn)
+      return entry.reexportedIn ?
+          unqualifiedImport(entry.reexportedIn)
         : [
             {
               kind: 'Qualified',
@@ -181,11 +181,11 @@ export function requiredImports(
       return unqualifiedImport(entry.reexportedIn ? entry.reexportedIn : entry.definedIn)
     case SuggestionKind.Constructor:
       if (directConImport) {
-        return entry.reexportedIn
-          ? unqualifiedImport(entry.reexportedIn)
-          : entry.memberOf
-          ? unqualifiedImport(entry.memberOf)
+        return (
+          entry.reexportedIn ? unqualifiedImport(entry.reexportedIn)
+          : entry.memberOf ? unqualifiedImport(entry.memberOf)
           : []
+        )
       } else {
         const selfType = selfTypeEntry(db, entry)
         return selfType ? requiredImports(db, selfType) : []
@@ -254,11 +254,9 @@ export function requiredImportEquals(left: RequiredImport, right: RequiredImport
 /** Check if `existing` import statement covers `required`. */
 export function covers(existing: Import, required: RequiredImport): boolean {
   const [parent, name] =
-    required.kind === 'Qualified'
-      ? qnSplit(required.module)
-      : required.kind === 'Unqualified'
-      ? [required.from, required.import]
-      : [undefined, '']
+    required.kind === 'Qualified' ? qnSplit(required.module)
+    : required.kind === 'Unqualified' ? [required.from, required.import]
+    : [undefined, '']
   const directlyImported =
     required.kind === 'Qualified' &&
     existing.imported.kind === 'Module' &&

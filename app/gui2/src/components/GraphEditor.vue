@@ -55,46 +55,64 @@ const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
 /// === UI Messages and Errors ===
+function toastOnce(id: string, ...[content, options]: Parameters<typeof toast>) {
+  if (toast.isActive(id)) toast.update(id, { ...options, render: content })
+  else toast(content, { ...options, toastId: id })
+}
+
+enum ToastId {
+  startup = 'startup',
+  connectionLost = 'connectionLost',
+  connectionError = 'connectionError',
+  lspError = 'lspError',
+  executionFailed = 'executionFailed',
+}
+
 function initStartupToast() {
-  let startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+  toastOnce(ToastId.startup, 'Initializing the project. This can take up to one minute.', {
+    type: 'info',
     autoClose: false,
   })
 
-  const removeToast = () => toast.dismiss(startupToast)
+  const removeToast = () => toast.dismiss(ToastId.startup)
   projectStore.firstExecution.then(removeToast)
   onScopeDispose(removeToast)
 }
 
 function initConnectionLostToast() {
-  let connectionLostToast = 'connectionLostToast'
   document.addEventListener(
     ProjectManagerEvents.loadingFailed,
     () => {
-      toast.error('Lost connection to Language Server.', {
+      toastOnce(ToastId.connectionLost, 'Lost connection to Language Server.', {
+        type: 'error',
         autoClose: false,
-        toastId: connectionLostToast,
       })
     },
     { once: true },
   )
   onUnmounted(() => {
-    toast.dismiss(connectionLostToast)
+    toast.dismiss(ToastId.connectionLost)
   })
 }
 
 projectStore.lsRpcConnection.then(
   (ls) => {
     ls.client.onError((err) => {
-      toast.error(`Language server error: ${err}`)
+      toastOnce(ToastId.lspError, `Language server error: ${err}`, { type: 'error' })
     })
   },
   (err) => {
-    toast.error(`Connection to language server failed: ${JSON.stringify(err)}`)
+    toastOnce(
+      ToastId.connectionError,
+      `Connection to language server failed: ${JSON.stringify(err)}`,
+      { type: 'error' },
+    )
   },
 )
 
+projectStore.executionContext.on('executionComplete', () => toast.dismiss(ToastId.executionFailed))
 projectStore.executionContext.on('executionFailed', (err) => {
-  toast.error(`Execution Failed: ${JSON.stringify(err)}`, {})
+  toastOnce(ToastId.executionFailed, `Execution Failed: ${JSON.stringify(err)}`, { type: 'error' })
 })
 
 onMounted(() => {

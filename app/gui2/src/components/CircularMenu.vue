@@ -60,9 +60,9 @@ const emit = defineEmits<{
       class="icon-container button slot7"
       :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
       :alt="`${
-        props.isOutputContextEnabledGlobally != props.isOutputContextOverridden
-          ? 'Disable'
-          : 'Enable'
+        props.isOutputContextEnabledGlobally != props.isOutputContextOverridden ?
+          'Disable'
+        : 'Enable'
       } output context`"
       :modelValue="props.isOutputContextOverridden"
       @update:modelValue="emit('update:isOutputContextOverridden', $event)"
@@ -78,6 +78,11 @@ const emit = defineEmits<{
   top: -36px;
   width: 114px;
   height: 114px;
+  pointer-events: none;
+
+  > * {
+    pointer-events: all;
+  }
 
   &:before {
     content: '';
@@ -86,6 +91,7 @@ const emit = defineEmits<{
     background: var(--color-app-bg);
     width: 100%;
     height: 100%;
+    pointer-events: all;
   }
 
   &.partial {

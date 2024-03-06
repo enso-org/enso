@@ -42,8 +42,9 @@ watchEffect(async (onCleanup) => {
   const prefixLength = props.prefix?.length ?? 0
   const directory = maybeDirectory
   const ls = await projectStore.lsRpcConnection
-  const maybeProjectRoot = (await projectStore.contentRoots).find((root) => root.type === 'Project')
-    ?.id
+  const maybeProjectRoot = (await projectStore.contentRoots).find(
+    (root) => root.type === 'Project',
+  )?.id
   if (!maybeProjectRoot) return
   const projectRoot = maybeProjectRoot
   async function walkFiles(
