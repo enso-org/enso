@@ -126,6 +126,7 @@ export interface VersionList {
 export interface OpenProjectParams {
   readonly projectId: ProjectId
   readonly missingComponentAction: MissingComponentAction
+  readonly projectsDirectory?: ProjectId
 }
 
 /** Parameters for the "close project" endpoint. */
@@ -144,17 +145,20 @@ export interface CreateProjectParams {
   readonly projectTemplate?: string
   readonly version?: string
   readonly missingComponentAction?: MissingComponentAction
+  readonly projectsDirectory?: ProjectId
 }
 
 /** Parameters for the "list samples" endpoint. */
 export interface RenameProjectParams {
   readonly projectId: ProjectId
   readonly name: ProjectName
+  readonly projectsDirectory?: ProjectId
 }
 
 /** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
   readonly projectId: ProjectId
+  readonly projectsDirectory?: ProjectId
 }
 
 // =======================
