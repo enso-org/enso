@@ -668,10 +668,9 @@ export class ByteBuffer {
   offset<T extends OffsetConstraint>(bbPos: number, vtableOffset: number): Offset<T> {
     const vtable = bbPos - this.view.getInt32(bbPos, true)
     return (
-      vtableOffset < this.view.getInt16(vtable, true)
-        ? this.view.getInt16(vtable + vtableOffset, true)
-        : 0
-    ) as Offset<T>
+      vtableOffset < this.view.getInt16(vtable, true) ?
+        this.view.getInt16(vtable + vtableOffset, true)
+      : 0) as Offset<T>
   }
 
   union(t: Table, offset: number): Table {
@@ -1311,8 +1310,8 @@ export class VisualizationUpdate implements Table {
 
   visualizationContext(obj?: VisualizationContext): VisualizationContext | null {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset
-      ? (obj ?? new VisualizationContext()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
+    return offset ?
+        (obj ?? new VisualizationContext()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
       : null
   }
 
@@ -1328,8 +1327,8 @@ export class VisualizationUpdate implements Table {
 
   dataArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 6)
-    return offset
-      ? new Uint8Array(
+    return offset ?
+        new Uint8Array(
           this.bb.view.buffer,
           this.bb.view.byteOffset + this.bb.vector(this.bbPos + offset),
           this.bb.vectorLength(this.bbPos + offset),
@@ -1414,8 +1413,8 @@ export class Path implements Table {
 
   rawSegments(index: number): ArrayBuffer {
     const offset = this.bb.offset(this.bbPos, 6)
-    return offset
-      ? this.bb.rawMessage(this.bb.vector(this.bbPos + offset) + index * 4)
+    return offset ?
+        this.bb.rawMessage(this.bb.vector(this.bbPos + offset) + index * 4)
       : new Uint8Array()
   }
 
@@ -1517,8 +1516,8 @@ export class WriteFileCommand implements Table {
 
   contentsArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 6)
-    return offset
-      ? new Uint8Array(
+    return offset ?
+        new Uint8Array(
           this.bb.view.buffer,
           this.bb.view.byteOffset + this.bb.vector(this.bbPos + offset),
           this.bb.vectorLength(this.bbPos + offset),
@@ -1662,8 +1661,8 @@ export class FileContentsReply implements Table {
 
   contentsArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset
-      ? new Uint8Array(
+    return offset ?
+        new Uint8Array(
           this.bb.view.buffer,
           this.bb.view.byteOffset + this.bb.vector(this.bbPos + offset),
           this.bb.vectorLength(this.bbPos + offset),
@@ -1761,8 +1760,8 @@ export class WriteBytesCommand implements Table {
 
   bytesArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 10)
-    return offset
-      ? new Uint8Array(
+    return offset ?
+        new Uint8Array(
           this.bb.view.buffer,
           this.bb.view.byteOffset + this.bb.vector(this.bbPos + offset),
           this.bb.vectorLength(this.bbPos + offset),
@@ -1855,8 +1854,8 @@ export class WriteBytesReply implements Table {
 
   checksum(obj?: EnsoDigest): EnsoDigest | null {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset
-      ? (obj ?? new EnsoDigest()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
+    return offset ?
+        (obj ?? new EnsoDigest()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
       : null
   }
 
@@ -1913,8 +1912,8 @@ export class ReadBytesCommand implements Table {
 
   segment(obj?: FileSegment): FileSegment | null {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset
-      ? (obj ?? new FileSegment()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
+    return offset ?
+        (obj ?? new FileSegment()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
       : null
   }
 
@@ -1962,8 +1961,8 @@ export class ReadBytesReply implements Table {
 
   checksum(obj?: EnsoDigest): EnsoDigest | null {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset
-      ? (obj ?? new EnsoDigest()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
+    return offset ?
+        (obj ?? new EnsoDigest()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
       : null
   }
 
@@ -1979,8 +1978,8 @@ export class ReadBytesReply implements Table {
 
   bytesArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 6)
-    return offset
-      ? new Uint8Array(
+    return offset ?
+        new Uint8Array(
           this.bb.view.buffer,
           this.bb.view.byteOffset + this.bb.vector(this.bbPos + offset),
           this.bb.vectorLength(this.bbPos + offset),
@@ -2064,8 +2063,8 @@ export class ChecksumBytesCommand implements Table {
 
   segment(obj?: FileSegment): FileSegment | null {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset
-      ? (obj ?? new FileSegment()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
+    return offset ?
+        (obj ?? new FileSegment()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
       : null
   }
 
@@ -2122,8 +2121,8 @@ export class ChecksumBytesReply implements Table {
 
   checksum(obj?: EnsoDigest): EnsoDigest | null {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset
-      ? (obj ?? new EnsoDigest()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
+    return offset ?
+        (obj ?? new EnsoDigest()).init(this.bb.indirect(this.bbPos + offset), this.bb!)
       : null
   }
 
@@ -2181,8 +2180,8 @@ export class EnsoDigest implements Table {
 
   bytesArray(): Uint8Array | null {
     const offset = this.bb.offset(this.bbPos, 4)
-    return offset
-      ? new Uint8Array(
+    return offset ?
+        new Uint8Array(
           this.bb.view.buffer,
           this.bb.view.byteOffset + this.bb.vector(this.bbPos + offset),
           this.bb.vectorLength(this.bbPos + offset),

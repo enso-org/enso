@@ -1,23 +1,48 @@
 <script setup lang="ts">
-import EnsoTextInputWidget from '@/components/widgets/EnsoTextInputWidget.vue'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract'
-import { asNot } from '@/util/data/types'
+import { MutableModule } from '@/util/ast/abstract'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const value = computed({
+const graph = useGraphStore()
+
+const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
+  if (props.input.value instanceof Ast.TextLiteral) return props.input.value
+  const valueStr = WidgetInput.valueRepr(props.input)
+  const parsed = valueStr != null ? Ast.parse(valueStr) : undefined
+  if (parsed instanceof Ast.TextLiteral) return parsed
+  return undefined
+})
+
+function makeNewLiteral(value: string) {
+  return Ast.TextLiteral.new(value, MutableModule.Transient())
+}
+
+const emptyTextLiteral = makeNewLiteral('')
+const shownLiteral = computed(() => inputTextLiteral.value ?? emptyTextLiteral)
+const closeToken = computed(() => shownLiteral.value.close ?? shownLiteral.value.open)
+
+const textContents = computed({
   get() {
-    const valueStr = WidgetInput.valueRepr(props.input)
-    return typeof valueStr === 'string' && Ast.parse(valueStr) instanceof Ast.TextLiteral
-      ? valueStr
-      : ''
+    return shownLiteral.value.rawTextContent
   },
   set(value) {
-    props.onUpdate({
-      portUpdate: { value: value.toString(), origin: asNot<TokenId>(props.input.portId) },
-    })
+    if (props.input.value instanceof Ast.TextLiteral) {
+      const edit = graph.startEdit()
+      edit.getVersion(props.input.value).setRawTextContent(value)
+      props.onUpdate({ edit })
+    } else {
+      props.onUpdate({
+        portUpdate: {
+          value: makeNewLiteral(value).code(),
+          origin: props.input.portId,
+        },
+      })
+    }
   },
 })
 </script>
@@ -36,13 +61,29 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown -->
-  <EnsoTextInputWidget v-model="value" class="WidgetText r-24" @pointerdown.stop />
+  <label class="WidgetText r-24" @pointerdown.stop>
+    <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
+    <AutoSizedInput v-model.lazy="textContents" />
+    <NodeWidget v-if="closeToken" :input="WidgetInput.FromAst(closeToken)" />
+  </label>
 </template>
 
 <style scoped>
 .WidgetText {
-  display: inline-block;
+  display: inline-flex;
   vertical-align: middle;
+  background: var(--color-widget);
+  border-radius: var(--radius-full);
+  position: relative;
+  user-select: none;
+  border-radius: var(--radius-full);
+  padding: 0px 4px;
+  min-width: 24px;
+  justify-content: center;
+
+  &:has(> .AutoSizedInput:focus) {
+    outline: none;
+    background: var(--color-widget-focus);
+  }
 }
 </style>

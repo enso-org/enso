@@ -59,9 +59,9 @@ const emit = defineEmits<{
         class="icon-container button slot7"
         :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
         :alt="`${
-          props.isOutputContextEnabledGlobally != props.isOutputContextOverridden
-            ? 'Disable'
-            : 'Enable'
+          props.isOutputContextEnabledGlobally != props.isOutputContextOverridden ?
+            'Disable'
+          : 'Enable'
         } output context`"
         :modelValue="props.isOutputContextOverridden"
         @update:modelValue="emit('update:isOutputContextOverridden', $event)"
@@ -89,6 +89,10 @@ const emit = defineEmits<{
   width: 114px;
   height: 114px;
 
+  > * {
+    pointer-events: all;
+  }
+
   &:before {
     content: '';
     position: absolute;
@@ -96,6 +100,7 @@ const emit = defineEmits<{
     background: var(--color-app-bg);
     width: 100%;
     height: 100%;
+    pointer-events: all;
   }
 
   &.partial {
@@ -130,7 +135,7 @@ const emit = defineEmits<{
   backdrop-filter: var(--blur-app-bg);
   background: var(--color-app-bg);
   z-index: -2;
-  pointer-events: auto;
+  pointer-events: all;
 
   &:after {
     content: '...';
@@ -149,7 +154,7 @@ const emit = defineEmits<{
   padding: 0;
   border: none;
   opacity: 30%;
-  pointer-events: auto;
+  pointer-events: all;
 }
 
 .toggledOn {
@@ -211,7 +216,7 @@ const emit = defineEmits<{
 .below-slot5 {
   position: absolute;
   top: calc(108px - 36px);
-  pointer-events: auto;
+  pointer-events: all;
 }
 
 .slot6 {

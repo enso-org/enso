@@ -49,7 +49,7 @@ function blur(event: Event) {
 
 const contentNode = ref<HTMLElement>()
 
-onMounted(() => (config.width = Math.max(config.width ?? config.nodeSize.x, MIN_WIDTH_PX)))
+onMounted(() => (config.width = MIN_WIDTH_PX))
 
 function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
@@ -61,7 +61,7 @@ const resizeRight = usePointer((pos, _, type) => {
   }
   const width =
     (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
-  config.width = Math.max(config.nodeSize.x, width, MIN_WIDTH_PX)
+  config.width = Math.max(width, MIN_WIDTH_PX)
 }, PointerButtonMask.Main)
 
 const resizeBottom = usePointer((pos, _, type) => {
@@ -80,7 +80,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   if (pos.delta.x !== 0) {
     const width =
       (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
-    config.width = Math.max(config.nodeSize.x, width)
+    config.width = Math.max(0, width)
   }
   if (pos.delta.y !== 0) {
     const height =
@@ -121,12 +121,10 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         class="content scrollable"
         :class="{ overflow: props.overflow }"
         :style="{
-          width: config.fullscreen
-            ? undefined
-            : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
-          height: config.fullscreen
-            ? undefined
-            : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
+          width:
+            config.fullscreen ? undefined : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
+          height:
+            config.fullscreen ? undefined : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
         }"
         @wheel.passive="onWheel"
       >

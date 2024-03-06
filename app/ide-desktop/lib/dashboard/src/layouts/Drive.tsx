@@ -139,10 +139,10 @@ export default function Drive(props: DriveProps) {
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
       : isCloud && sessionType === authProvider.UserSessionType.offline
-      ? DriveStatus.offline
-      : isCloud && user?.isEnabled !== true
-      ? DriveStatus.notEnabled
-      : DriveStatus.ok
+        ? DriveStatus.offline
+        : isCloud && user?.isEnabled !== true
+          ? DriveStatus.notEnabled
+          : DriveStatus.ok
 
   React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {
@@ -184,6 +184,10 @@ export default function Drive(props: DriveProps) {
     },
     [backend, user, rootDirectoryId, toastAndLog, /* should never change */ dispatchAssetListEvent]
   )
+
+  const doEmptyTrash = React.useCallback(() => {
+    dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
+  }, [/* should never change */ dispatchAssetListEvent])
 
   const doCreateProject = React.useCallback(
     (
@@ -363,6 +367,7 @@ export default function Drive(props: DriveProps) {
             <DriveBar
               category={category}
               canDownloadFiles={canDownloadFiles}
+              doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}
