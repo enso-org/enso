@@ -101,21 +101,15 @@ export class Rect {
    */
   offsetToInclude(coord: Partial<Vec2>): Rect | undefined {
     const newX =
-      coord.x == null
-        ? undefined
-        : coord.x < this.left
-        ? coord.x
-        : coord.x > this.right
-        ? coord.x - this.width
-        : undefined
+      coord.x == null ? undefined
+      : coord.x < this.left ? coord.x
+      : coord.x > this.right ? coord.x - this.width
+      : undefined
     const newY =
-      coord.y == null
-        ? undefined
-        : coord.y < this.top
-        ? coord.y
-        : coord.y > this.bottom
-        ? coord.y - this.height
-        : undefined
+      coord.y == null ? undefined
+      : coord.y < this.top ? coord.y
+      : coord.y > this.bottom ? coord.y - this.height
+      : undefined
     if (newX == null && newY == null) return
     return new Rect(new Vec2(newX ?? this.pos.x, newY ?? this.pos.y), this.size)
   }
