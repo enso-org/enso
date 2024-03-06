@@ -1,7 +1,7 @@
 /** @file Files loader. Displays a loading spinner and reports the current download progress. */
 
 import * as animation from '../animation'
-import * as html_utils from '../dom/dom'
+import * as htmlUtils from '../dom/dom'
 import * as math from '../math'
 import * as svg from '../dom/svg'
 import { Options } from '../config'
@@ -38,7 +38,7 @@ export class ProgressIndicator {
         this.ringInnerRadius = 48
         this.ringWidth = 12
 
-        this.dom = html_utils.newTopLevelDiv()
+        this.dom = htmlUtils.newTopLevelDiv()
         this.dom.id = 'loader'
         this.dom.style.position = 'fixed'
         this.dom.style.top = '0'

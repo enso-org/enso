@@ -132,10 +132,9 @@ export function graphNodeIcon(node: Node) {
 
 // === Data locators ===
 
-type SanitizeClassName<T extends string> = T extends `${infer A}.${infer B}`
-  ? SanitizeClassName<`${A}${B}`>
-  : T extends `${infer A} ${infer B}`
-  ? SanitizeClassName<`${A}${B}`>
+type SanitizeClassName<T extends string> =
+  T extends `${infer A}.${infer B}` ? SanitizeClassName<`${A}${B}`>
+  : T extends `${infer A} ${infer B}` ? SanitizeClassName<`${A}${B}`>
   : T
 
 function componentLocator<T extends string>(className: SanitizeClassName<T>) {
