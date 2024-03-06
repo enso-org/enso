@@ -29,9 +29,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
     <div className="flex shrink-0 gap-px">
       <button
         disabled={isCloud}
-        className={`selectable ${
-          isCloud ? 'active' : ''
-        } flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary first:rounded-l-full last:rounded-r-full disabled:text-cloud`}
+        className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
         onClick={() => {
           setBackendType(backendModule.BackendType.remote)
         }}
@@ -43,9 +41,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       </button>
       <button
         disabled={!isCloud}
-        className={`selectable ${
-          !isCloud ? 'active' : ''
-        } flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary first:rounded-l-full last:rounded-r-full disabled:text-cloud`}
+        className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
         onClick={() => {
           setBackendType(backendModule.BackendType.local)
         }}
