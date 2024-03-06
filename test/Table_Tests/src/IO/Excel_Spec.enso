@@ -561,10 +561,10 @@ spec_write suite_builder suffix test_sheet_name =
                 workbook.sheet_names.should_equal ["EnsoSheet"]
 
                 # If we read the table again, it has the new values in it:
-                t3 = workbook.read "EnsoSheet"
+                t3 = workbook.read "EnsoSheet" headers=True
                 t3.should_equal t2
 
-                t4 = w2.read "EnsoSheet"
+                t4 = w2.read "EnsoSheet" headers=True
                 t4.should_equal t2
 
             workbook.close
