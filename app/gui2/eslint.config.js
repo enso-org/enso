@@ -15,6 +15,7 @@ const conf = [
       'dist',
       'shared/ast/generated',
       'templates',
+      '.histoire',
       'playwright-report',
     ],
   },

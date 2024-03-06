@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import {
-  injectWidgetRegistry,
-  type WidgetInput,
-  type WidgetUpdate,
-} from '@/providers/widgetRegistry'
+import type { WidgetModule } from '@/providers/widgetRegistry'
+import { injectWidgetRegistry, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
   injectWidgetUsageInfo,
@@ -12,7 +9,7 @@ import {
 } from '@/providers/widgetUsageInfo'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { computed, proxyRefs } from 'vue'
+import { computed, getCurrentInstance, proxyRefs, shallowRef, watchEffect, withCtx } from 'vue'
 
 const props = defineProps<{
   input: WidgetInput
@@ -43,16 +40,17 @@ const sameInputParentWidgets = computed(() =>
 )
 const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest === true ? 1 : 0))
 
-const selectedWidget = computed(() => {
-  return registry.select(
+const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
+const updateSelection = withCtx(() => {
+  selectedWidget.value = registry.select(
     {
       input: props.input,
       nesting: nesting.value,
     },
     sameInputParentWidgets.value,
   )
-})
-
+}, getCurrentInstance())
+watchEffect(() => updateSelection())
 const updateHandler = computed(() => {
   const nextHandler =
     parentUsageInfo?.updateHandler ?? (() => console.log('Missing update handler'))

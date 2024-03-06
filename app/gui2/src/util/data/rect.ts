@@ -68,6 +68,13 @@ export class Rect {
     )
   }
 
+  contains(coord: Partial<Vec2>): boolean {
+    return (
+      (coord.x == null || (this.left <= coord.x && this.right >= coord.x)) &&
+      (coord.y == null || (this.top <= coord.y && this.bottom >= coord.y))
+    )
+  }
+
   center(): Vec2 {
     return this.pos.addScaled(this.size, 0.5)
   }
@@ -86,6 +93,25 @@ export class Rect {
 
   intersects(other: Rect): boolean {
     return this.intersectsX(other) && this.intersectsY(other)
+  }
+
+  /** If this `Rect` already includes `coord`, return `undefined`; otherwise, return a new `Rect` that has been shifted
+   *  by the minimum distance that causes it to include the coordinate. The coordinate may be a point or may specify
+   *  only an `x` or `y` bound to leave the other dimension unchanged.
+   */
+  offsetToInclude(coord: Partial<Vec2>): Rect | undefined {
+    const newX =
+      coord.x == null ? undefined
+      : coord.x < this.left ? coord.x
+      : coord.x > this.right ? coord.x - this.width
+      : undefined
+    const newY =
+      coord.y == null ? undefined
+      : coord.y < this.top ? coord.y
+      : coord.y > this.bottom ? coord.y - this.height
+      : undefined
+    if (newX == null && newY == null) return
+    return new Rect(new Vec2(newX ?? this.pos.x, newY ?? this.pos.y), this.size)
   }
 }
 

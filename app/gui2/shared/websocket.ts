@@ -145,8 +145,9 @@ export class WebsocketClient extends ObservableV2<WebsocketEvents> {
     this.lastMessageReceived = 0
     /** Whether to connect to other peers or not */
     this.shouldConnect = false
-    this._checkInterval = this.sendPings
-      ? setInterval(() => {
+    this._checkInterval =
+      this.sendPings ?
+        setInterval(() => {
           if (
             this.connected &&
             messageReconnectTimeout < time.getUnixTime() - this.lastMessageReceived

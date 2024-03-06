@@ -1,5 +1,5 @@
 import type { DeepReadonly } from 'vue'
-import type { AstId, Owned } from '.'
+import type { AstId, NodeChild, Owned } from '.'
 import { Ast, newExternalId } from '.'
 import { assert } from '../util/assert'
 import type { ExternalId } from '../yjsModel'
@@ -9,6 +9,10 @@ import * as RawAst from './generated/ast'
 
 export function isToken(t: unknown): t is Token {
   return t instanceof Token
+}
+
+export function isTokenChild(child: NodeChild<unknown>): child is NodeChild<Token> {
+  return isToken(child.node)
 }
 
 declare const brandTokenId: unique symbol

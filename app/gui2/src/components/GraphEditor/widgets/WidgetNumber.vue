@@ -2,8 +2,6 @@
 import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
-import { asNot } from '@/util/data/types.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -14,7 +12,7 @@ const value = computed({
   },
   set(value) {
     props.onUpdate({
-      portUpdate: { value: value.toString(), origin: asNot<TokenId>(props.input.portId) },
+      portUpdate: { value: value.toString(), origin: props.input.portId },
     })
   },
 })
