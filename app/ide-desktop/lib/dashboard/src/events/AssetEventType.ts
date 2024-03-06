@@ -14,6 +14,7 @@ enum AssetEventType {
   cancelCut = 'cancel-cut',
   move = 'move',
   delete = 'delete',
+  deleteForever = 'delete-forever',
   restore = 'restore',
   download = 'download',
   downloadSelected = 'download-selected',

@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test'
 import assert from 'assert'
-import { nextTick } from 'vue'
 import * as actions from './actions'
 import * as customExpect from './customExpect'
 import * as locate from './locate'

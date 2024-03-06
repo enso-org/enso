@@ -32,3 +32,26 @@ export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null {
     ? unknownError.message
     : null
 }
+
+// ==============
+// === assert ===
+// ==============
+
+/** Assert that a value is truthy.
+ * @throws {Error} when the value is not truthy. */
+// These literals are REQUIRED, as they are falsy.
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers, no-restricted-syntax
+export function assert<T>(makeValue: () => T | '' | 0 | 0n | false | null | undefined): T {
+  const result = makeValue()
+  // This function explicitly checks for truthiness.
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+  if (!result) {
+    throw new Error(
+      'Assertion failed: `' +
+        makeValue.toString().replace(/^\s*[(].*?[)]\s*=>\s*/, '') +
+        '` should not be `null`.'
+    )
+  } else {
+    return result
+  }
+}

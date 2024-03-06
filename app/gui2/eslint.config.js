@@ -9,7 +9,14 @@ const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
 
 const conf = [
   {
-    ignores: ['rust-ffi/pkg', 'rust-ffi/node-pkg', 'dist', 'shared/ast/generated', 'templates'],
+    ignores: [
+      'rust-ffi/pkg',
+      'rust-ffi/node-pkg',
+      'dist',
+      'shared/ast/generated',
+      'templates',
+      'playwright-report',
+    ],
   },
   ...compat.extends('plugin:vue/vue3-recommended'),
   eslintJs.configs.recommended,
@@ -48,6 +55,16 @@ const conf = [
     files: ['stories/*.vue'],
     rules: {
       'vue/multi-word-component-names': 0,
+    },
+  },
+  // We must make sure our E2E tests await all steps, otherwise they're flaky.
+  {
+    files: ['e2e/**/*.spec.ts'],
+    languageOptions: {
+      parser: await import('@typescript-eslint/parser'),
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 2,
     },
   },
 ]

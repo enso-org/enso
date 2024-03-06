@@ -77,6 +77,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))
+
   // This is not a React component even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
   const doDeleteAll = () => {
@@ -95,15 +96,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       )
     }
   }
-  // This is not a React component even though it contains JSX.
-  // eslint-disable-next-line no-restricted-syntax
-  const doRestoreAll = () => {
-    unsetModal()
-    dispatchAssetEvent({
-      type: AssetEventType.restore,
-      ids: selectedKeys,
-    })
-  }
+
   if (category === Category.trash) {
     return selectedKeys.size === 0 ? (
       <></>
@@ -114,8 +107,29 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             hidden={hidden}
             action="undelete"
             label="Restore All From Trash"
-            doAction={doRestoreAll}
+            doAction={() => {
+              unsetModal()
+              dispatchAssetEvent({ type: AssetEventType.restore, ids: selectedKeys })
+            }}
           />
+          {isCloud && (
+            <MenuEntry
+              hidden={hidden}
+              action="delete"
+              label="Delete All Forever"
+              doAction={() => {
+                setModal(
+                  <ConfirmDeleteModal
+                    actionText={`delete ${selectedKeys.size} selected ${pluralized} forever`}
+                    doDelete={() => {
+                      clearSelectedKeys()
+                      dispatchAssetEvent({ type: AssetEventType.deleteForever, ids: selectedKeys })
+                    }}
+                  />
+                )
+              }}
+            />
+          )}
         </ContextMenu>
       </ContextMenus>
     )

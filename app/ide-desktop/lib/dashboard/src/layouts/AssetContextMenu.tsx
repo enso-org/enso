@@ -95,10 +95,23 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             label="Restore From Trash"
             doAction={() => {
               unsetModal()
-              dispatchAssetEvent({
-                type: AssetEventType.restore,
-                ids: new Set([asset.id]),
-              })
+              dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set([asset.id]) })
+            }}
+          />
+          <MenuEntry
+            hidden={hidden}
+            action="delete"
+            label="Delete Forever"
+            doAction={() => {
+              setModal(
+                <ConfirmDeleteModal
+                  actionText={`delete the ${asset.type} '${asset.title}' forever`}
+                  doDelete={() => {
+                    const ids = new Set([asset.id])
+                    dispatchAssetEvent({ type: AssetEventType.deleteForever, ids })
+                  }}
+                />
+              )
             }}
           />
         </ContextMenu>

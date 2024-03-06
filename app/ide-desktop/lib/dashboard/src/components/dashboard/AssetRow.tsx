@@ -270,48 +270,51 @@ export default function AssetRow(props: AssetRowProps) {
     /* should never change */ setIsAssetPanelTemporarilyVisible,
   ])
 
-  const doDelete = React.useCallback(async () => {
-    setInsertionVisibility(Visibility.hidden)
-    if (smartAsset.type === backendModule.AssetType.directory) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.closeFolder,
-        folder: smartAsset,
-        // This is SAFE, as this asset is already known to be a directory.
-        // eslint-disable-next-line no-restricted-syntax
-        key: item.key as backendModule.DirectoryId,
-      })
-    }
-    try {
-      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
-      if (smartAsset.type === backendModule.AssetType.project && !isCloud) {
-        if (
-          smartAsset.value.projectState.type !== backendModule.ProjectState.placeholder &&
-          smartAsset.value.projectState.type !== backendModule.ProjectState.closed
-        ) {
-          await smartAsset.open()
-        }
-        try {
-          await smartAsset.close()
-        } catch {
-          // Ignored. The project was already closed.
-        }
+  const doDelete = React.useCallback(
+    async (forever = false) => {
+      setInsertionVisibility(Visibility.hidden)
+      if (smartAsset.type === backendModule.AssetType.directory) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.closeFolder,
+          folder: smartAsset,
+          // This is SAFE, as this asset is already known to be a directory.
+          // eslint-disable-next-line no-restricted-syntax
+          key: item.key as backendModule.DirectoryId,
+        })
       }
-      await smartAsset.delete()
-      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-    } catch (error) {
-      setInsertionVisibility(Visibility.visible)
-      toastAndLog(
-        errorModule.tryGetMessage(error)?.slice(0, -1) ??
-          `Could not delete ${backendModule.ASSET_TYPE_NAME[smartAsset.type]}`
-      )
-    }
-  }, [
-    isCloud,
-    dispatchAssetListEvent,
-    smartAsset,
-    /* should never change */ item.key,
-    /* should never change */ toastAndLog,
-  ])
+      try {
+        dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
+        if (smartAsset.type === backendModule.AssetType.project && !isCloud) {
+          if (
+            smartAsset.value.projectState.type !== backendModule.ProjectState.placeholder &&
+            smartAsset.value.projectState.type !== backendModule.ProjectState.closed
+          ) {
+            await smartAsset.open()
+          }
+          try {
+            await smartAsset.close()
+          } catch {
+            // Ignored. The project was already closed.
+          }
+        }
+        await smartAsset.delete(forever)
+        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+      } catch (error) {
+        setInsertionVisibility(Visibility.visible)
+        toastAndLog(
+          errorModule.tryGetMessage(error)?.slice(0, -1) ??
+            `Could not delete ${backendModule.ASSET_TYPE_NAME[smartAsset.type]}`
+        )
+      }
+    },
+    [
+      isCloud,
+      dispatchAssetListEvent,
+      smartAsset,
+      /* should never change */ item.key,
+      /* should never change */ toastAndLog,
+    ]
+  )
 
   const doRestore = React.useCallback(async () => {
     // Visually, the asset is deleted from the Trash view.
@@ -365,7 +368,13 @@ export default function AssetRow(props: AssetRowProps) {
       }
       case AssetEventType.delete: {
         if (event.ids.has(item.key)) {
-          await doDelete()
+          await doDelete(false)
+        }
+        break
+      }
+      case AssetEventType.deleteForever: {
+        if (event.ids.has(item.key)) {
+          await doDelete(true)
         }
         break
       }

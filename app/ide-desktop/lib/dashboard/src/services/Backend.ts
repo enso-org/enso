@@ -905,7 +905,7 @@ export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T
   /** Change the parent directory of an asset. */
   readonly update: (body: UpdateAssetRequestBody) => Promise<this>
   /** Move an arbitrary asset to the trash. */
-  readonly delete: () => Promise<void>
+  readonly delete: (force?: boolean) => Promise<void>
   /** Restore an arbitrary asset from the trash. */
   readonly undoDelete: () => Promise<void>
   /** Copy an arbitrary asset to another directory. */
@@ -989,8 +989,6 @@ export interface SmartDataLink extends SmartAsset<DataLinkAsset> {
   /** Return the JSON value of this Data Link. */
   readonly getValue: () => Promise<Connector>
   readonly update: (body: UpdateAssetOrDataLinkRequestBody) => Promise<this>
-  /** Delete this Data Link. */
-  readonly deleteDataLink: () => Promise<void>
 }
 
 /** A smart wrapper around a {@link SecretAsset}. */

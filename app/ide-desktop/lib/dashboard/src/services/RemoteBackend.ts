@@ -454,8 +454,9 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
   }
 
   /** Move an arbitrary asset to the trash. */
-  async delete(): Promise<void> {
-    const path = remoteBackendPaths.deleteAssetPath(this.value.id)
+  async delete(force?: boolean): Promise<void> {
+    const paramsString = new URLSearchParams([['force', String(force ?? false)]]).toString()
+    const path = remoteBackendPaths.deleteAssetPath(this.value.id) + '?' + paramsString
     const response = await this.httpDelete(path)
     if (!responseIsSuccessful(response)) {
       return this.throw(`Unable to delete '${this.value.title}'.`, response)
@@ -1211,17 +1212,6 @@ class SmartDataLink extends SmartAsset<backend.DataLinkAsset> implements backend
               ...(body.parentDirectoryId == null ? {} : { parentId: body.parentDirectoryId }),
             })
           )
-    }
-  }
-
-  /** Delete this Data Link. */
-  async deleteDataLink(): Promise<void> {
-    const path = remoteBackendPaths.deleteConnectorPath(this.value.id)
-    const response = await this.httpDelete(path)
-    if (!responseIsSuccessful(response)) {
-      return this.throw(`Could not delete Data Link '${this.value.title}'.`, response)
-    } else {
-      return
     }
   }
 }
