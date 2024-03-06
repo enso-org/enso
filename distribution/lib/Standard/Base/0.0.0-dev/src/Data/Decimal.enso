@@ -54,6 +54,9 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
    When a `Math_Context` value is used in an operation, and causes a loss of
    precision, a `Loss_Of_Numeric_Precision` warning is attached to the result.
 
+   If no `Math_Context` value is supplied, the default is to make all operations
+   exact. A `Math_Context` with a precision of `0` has the same effect.
+
    A `Decimal` can represent any `Float` precisely. However, some `Float`
    literals, such as `0.1`, cannot be represented exactly to infinite
    precision by a `Float`. For this reason, constructing a `Decimal` from

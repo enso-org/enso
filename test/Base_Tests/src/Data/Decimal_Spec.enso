@@ -333,6 +333,7 @@ add_specs suite_builder =
                         (lesser > d) . should_be_false
                         (lesser >= d) . should_be_false
 
+    suite_builder.group "edge cases" group_builder->
         group_builder.specify "can support values outside the double range" <|
             d = Decimal.new Float.max_value
             (d == Float.max_value) . should_be_true
@@ -481,4 +482,4 @@ add_specs suite_builder =
 main =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter # filter="should allow arithmetic"
+    suite.run_with_filter

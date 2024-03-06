@@ -76,8 +76,8 @@ public class Decimal_Utils {
       } else {
         // Infinite values here just means finite values outside the double
         // range. In this path, the values must fractional, and so cannot
-        // coincide with a value of any other type, so we can hash it however we
-        // want.
+        // coincide with a value of any other type (including BigInteger), so we
+        // can hash it however we want.
         return bd.hashCode();
       }
     } else {

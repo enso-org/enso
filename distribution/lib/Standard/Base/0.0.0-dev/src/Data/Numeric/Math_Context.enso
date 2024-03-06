@@ -9,7 +9,8 @@ polyglot java import java.math.MathContext
 
    `Math_Context` is used to specify finite or infinite precision requirements
    to operations that construct `Decimal` values, or that compute them from
-   other values.
+   other values. It can also specify the `Rounding_Mode` to use when rounding is
+   used to meet precision requirements. See `Decimal` for more details.
 type Math_Context
     ## PRIVATE
     Value (math_context:MathContext)
@@ -17,8 +18,9 @@ type Math_Context
     ## Construct a `Math_Context` value.
 
        Arguments:
-       - precision: The non-negative int precision setting
-       - rounding_mode: The rounding mode to use
+       - precision: The non-negative int precision setting. A value of `0`
+         specifies exact operations.
+       - rounding_mode: The rounding mode to use.
     new : Integer -> Rounding_Mode -> Math_Context
     new (precision:Integer) (rounding_mode:Rounding_Mode)=Rounding_Mode.half_up =
         Math_Context.Value (MathContext.new precision rounding_mode.rounding_mode)

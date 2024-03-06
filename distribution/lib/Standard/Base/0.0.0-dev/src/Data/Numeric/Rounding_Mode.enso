@@ -3,6 +3,9 @@ polyglot java import java.math.RoundingMode
 ## A wrapper around the Java
    [`RoundingMode`](https://docs.oracle.com/javase/8/docs/api/java/math/RoundingMode.html)
     class.
+
+   `Rounding_Mode` is used to specify the method to use for rounding a value in
+   operations on `Decimal`s.` See `Decimal` for more details.
 type Rounding_Mode
     Value (rounding_mode:RoundingMode)
 
