@@ -14,6 +14,7 @@ import org.enso.interpreter.node.expression.builtin.error.IndexOutOfBounds;
 import org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMatch;
 import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndex;
 import org.enso.interpreter.node.expression.builtin.error.InvalidConversionTarget;
+import org.enso.interpreter.node.expression.builtin.error.InvalidOperation;
 import org.enso.interpreter.node.expression.builtin.error.MapError;
 import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
 import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
@@ -58,6 +59,7 @@ public final class Error {
   private final UnsupportedArgumentTypes unsupportedArgumentsError;
   private final ModuleDoesNotExist moduleDoesNotExistError;
   private final NotInvokable notInvokable;
+  private final InvalidOperation invalidOperation;
   private final InvalidConversionTarget invalidConversionTarget;
   private final NoSuchField noSuchField;
   private final NumberParseError numberParseError;
@@ -96,6 +98,7 @@ public final class Error {
     unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
     notInvokable = builtins.getBuiltinType(NotInvokable.class);
+    invalidOperation = builtins.getBuiltinType(InvalidOperation.class);
     invalidConversionTarget = builtins.getBuiltinType(InvalidConversionTarget.class);
     noSuchField = builtins.getBuiltinType(NoSuchField.class);
     numberParseError = builtins.getBuiltinType(NumberParseError.class);
@@ -163,6 +166,10 @@ public final class Error {
 
   public Atom makeNoSuchConversion(Object target, Object that, UnresolvedConversion conversion) {
     return noSuchConversion.newInstance(target, that, conversion);
+  }
+
+  public Atom makeInvalidOperation(Object message) {
+    return invalidOperation.newInstance(message);
   }
 
   public Atom makeInvalidConversionTarget(Object target) {

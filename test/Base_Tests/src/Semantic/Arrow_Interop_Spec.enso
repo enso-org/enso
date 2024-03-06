@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
+import Standard.Base.Errors.Common.Invalid_Operation
 import Standard.Base.Data.Polyglot_Array_Builder.Polyglot_Array_Builder
 
 from Standard.Test import all
@@ -30,7 +31,8 @@ add_specs suite_builder =
             builder.set 8 128 . should_fail_with Unsupported_Argument_Types
             v = builder.build
             v.at 8 . should_equal 127
-            builder.set 1 0 . should_fail_with Unsupported_Argument_Types
+            builder.append 21 . should_fail_with Invalid_Operation
+            builder.set 1 21 . should_fail_with Invalid_Operation
             Polyglot.write_array_element array_10 1 0
             builder.at 1 . should_equal 0
             v.at 1 . should_equal 0 # dangerous but allowed

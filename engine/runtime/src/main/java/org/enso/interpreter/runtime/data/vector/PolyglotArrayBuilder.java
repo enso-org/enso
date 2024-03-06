@@ -191,8 +191,12 @@ public abstract class PolyglotArrayBuilder implements EnsoObject {
         Object element,
         @Cached.Shared(value = "interop") @CachedLibrary(limit = "3") InteropLibrary interop)
         throws InvalidArrayIndexException, UnsupportedMessageException, UnsupportedTypeException {
-      if (!interop.isArrayElementWritable(this.storage, index) || sealed) {
+      if (!interop.isArrayElementWritable(this.storage, index)) {
         throw UnsupportedMessageException.create();
+      }
+      if (this.sealed) {
+        throw UnsupportedMessageException.create(
+            new IllegalStateException("attempting to modify a sealed builder"));
       }
       interop.writeArrayElement(this.storage, index, element);
     }
