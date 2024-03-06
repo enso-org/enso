@@ -297,7 +297,7 @@ final class SuggestionBuilder[A: IndexedSource](
         buildTypeSignatureFromMetadata(
           arg.getMetadata(TypeSignatures)
         ).headOption
-          .map(buildTypedArgument(arg, _, isTypeAscription = true))
+          .map(buildTypedArgument(arg, _))
           .getOrElse(buildArgument(arg))
       }.tail
 
@@ -583,11 +583,7 @@ final class SuggestionBuilder[A: IndexedSource](
                 go(
                   vtail,
                   ttail,
-                  acc :+ buildTypedArgument(
-                    varg,
-                    targ,
-                    isTypeAscription = false
-                  )
+                  acc :+ buildTypedArgument(varg, targ)
                 )
               case _ =>
                 go(vtail, targs, acc :+ buildArgument(varg))
@@ -624,11 +620,7 @@ final class SuggestionBuilder[A: IndexedSource](
                 go(
                   vtail,
                   ttail,
-                  acc :+ buildTypedArgument(
-                    varg,
-                    targ,
-                    isTypeAscription = false
-                  )
+                  acc :+ buildTypedArgument(varg, targ)
                 )
               case _ =>
                 go(vtail, targs, acc :+ buildArgument(varg))
@@ -647,8 +639,7 @@ final class SuggestionBuilder[A: IndexedSource](
     */
   private def buildTypedArgument(
     varg: DefinitionArgument,
-    targ: TypeArg,
-    isTypeAscription: Boolean
+    targ: TypeArg
   ): Suggestion.Argument =
     Suggestion.Argument(
       name         = varg.name.name,
@@ -656,7 +647,7 @@ final class SuggestionBuilder[A: IndexedSource](
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.map(buildDefaultValue),
-      tagValues    = buildTagValues(targ, isTypeAscription)
+      tagValues    = buildTagValues(targ, varg.ascribedType.nonEmpty)
     )
 
   /** Build tag values of type argument.
@@ -737,7 +728,7 @@ final class SuggestionBuilder[A: IndexedSource](
   private def buildArgument(arg: DefinitionArgument): Suggestion.Argument = {
     buildTypeSignatureFromMetadata(arg.getMetadata(TypeSignatures)) match {
       case Vector(targ) =>
-        buildTypedArgument(arg, targ, isTypeAscription = true)
+        buildTypedArgument(arg, targ)
       case _ =>
         Suggestion.Argument(
           name         = arg.name.name,
