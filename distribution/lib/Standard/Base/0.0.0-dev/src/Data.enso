@@ -57,7 +57,6 @@ from project.System.File_Format import Auto_Detect, File_Format
      Read the sheet named `Dates` from an XLS and convert it to a table.
 
          from Standard.Table import all
-         from Standard.Table import Excel, Worksheet
          import Standard.Examples
 
          example_xls_to_table = Data.read Examples.xls (Excel_Format.Sheet 'Dates')

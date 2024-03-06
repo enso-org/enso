@@ -11,7 +11,7 @@ from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error,
 import Standard.AWS.Internal.S3_Path.S3_Path
 
 # Needed for custom formats test
-from Standard.Table import Table, Excel, Worksheet
+from Standard.Table import Table, Excel_Format
 # Needed for correct `Table.should_equal`
 import enso_dev.Table_Tests.Util
 

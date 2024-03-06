@@ -277,7 +277,6 @@ type File
          Read the sheet named `Dates` from an XLS and convert it to a table.
 
              from Standard.Table import all
-             from Standard.Table import Excel, Worksheet
              import Standard.Examples
 
              example_xls_to_table = Examples.xls.read (Excel_Format.Sheet 'Dates')
