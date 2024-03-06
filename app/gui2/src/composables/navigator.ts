@@ -93,6 +93,21 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     targetCenter.value = new Vec2(centerX, centerY)
   }
 
+  /** Pan to include the given prioritized list of coordinates.
+   *
+   *  The view will be offset to include each coordinate, unless the coordinate cannot be fit in the viewport without
+   *  losing a previous (higher-priority) coordinate; in that case, shift the viewport as close as possible to the
+   *  coordinate while still satisfying the more important constraints.
+   *
+   *  If all provided constraints can be met, the viewport will be moved the shortest distance that fits all the
+   *  coordinates in view.
+   */
+  function panTo(points: Partial<Vec2>[]) {
+    let target = viewport.value
+    for (const point of points.reverse()) target = target.offsetToInclude(point) ?? target
+    targetCenter.value = target.center()
+  }
+
   let zoomPivot = Vec2.Zero
   const zoomPointer = usePointer((pos, _event, ty) => {
     if (ty === 'start') {
@@ -225,6 +240,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       },
     },
     translate,
+    targetScale,
     scale,
     viewBox,
     transform,
@@ -234,6 +250,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     clientToScenePos,
     clientToSceneRect,
     panAndZoomTo,
+    panTo,
     viewport,
   })
 }
