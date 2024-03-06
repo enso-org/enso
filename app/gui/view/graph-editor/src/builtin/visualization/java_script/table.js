@@ -233,8 +233,8 @@ class TableVisualization extends Visualization {
                 parsedData.data && parsedData.data.length > 0
                     ? parsedData.data[0].length
                     : parsedData.indices && parsedData.indices.length > 0
-                    ? parsedData.indices[0].length
-                    : 0
+                      ? parsedData.indices[0].length
+                      : 0
             rowData = Array.apply(null, Array(rows)).map((_, i) => {
                 const row = {}
                 const shift = parsedData.indices ? parsedData.indices.length : 0

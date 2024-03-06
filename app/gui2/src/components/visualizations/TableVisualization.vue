@@ -296,11 +296,9 @@ watchEffect(() => {
     const dataHeader = ('header' in data_ ? data_.header : [])?.map(toField) ?? []
     columnDefs = [...indicesHeader, ...dataHeader]
     const rows =
-      data_.data && data_.data.length > 0
-        ? data_.data[0]?.length ?? 0
-        : data_.indices && data_.indices.length > 0
-        ? data_.indices[0]?.length ?? 0
-        : 0
+      data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0
+      : data_.indices && data_.indices.length > 0 ? data_.indices[0]?.length ?? 0
+      : 0
     rowData = Array.from({ length: rows }, (_, i) => {
       const shift = data_.indices ? data_.indices.length : 0
       return Object.fromEntries(
