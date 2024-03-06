@@ -122,7 +122,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             }}
           />
           {isCloud && (
-            <MenuEntry
+            <ContextMenuEntry
               hidden={hidden}
               action="delete"
               label="Delete All Forever"

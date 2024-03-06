@@ -254,7 +254,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               <div className="relative flex gap-icons">
                 <button
                   type="button"
-                  className="button bg-selected-frame"
+                  className="button bg-selected-frame active"
                   onClick={() => {
                     doUpdate([firstConflict])
                     switch (firstConflict.new.type) {
@@ -273,7 +273,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 </button>
                 <button
                   type="button"
-                  className="button bg-selected-frame"
+                  className="button  bg-selected-frame active"
                   onClick={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
@@ -300,7 +300,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         <div className="relative flex gap-icons">
           <button
             type="button"
-            className="button bg-invite text-white"
+            className="button bg-invite text-white active"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -311,7 +311,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           </button>
           <button
             type="button"
-            className="button bg-invite text-white"
+            className="button bg-invite text-white active"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -322,7 +322,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               ? `Rename New ${firstConflictTypeName}`
               : `Rename New ${firstConflictTypeName}s`}
           </button>
-          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
             Cancel
           </button>
         </div>

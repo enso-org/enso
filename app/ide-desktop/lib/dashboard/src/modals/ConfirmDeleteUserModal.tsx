@@ -55,7 +55,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
       >
         <h3 className="py-heading relative h-heading text-xl font-bold">Are you sure?</h3>
         <span className="relative">Once deleted, this user account will be gone forever.</span>
-        <button type="submit" className="button relative bg-danger text-inversed">
+        <button type="submit" className="button relative bg-danger text-inversed active">
           <span className="text">I confirm that I want to delete this user account.</span>
         </button>
       </form>

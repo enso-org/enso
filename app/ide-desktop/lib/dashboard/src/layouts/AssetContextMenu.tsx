@@ -112,7 +112,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set([asset.id]) })
             }}
           />
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="delete"
             label="Delete Forever"

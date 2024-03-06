@@ -109,10 +109,14 @@ export default function NewLabelModal(props: NewLabelModalProps) {
           </div>
         </label>
         <div className="relative flex gap-buttons">
-          <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
+          <button
+            disabled={!canSubmit}
+            type="submit"
+            className="button bg-invite text-white enabled:active"
+          >
             Create
           </button>
-          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
             Cancel
           </button>
         </div>

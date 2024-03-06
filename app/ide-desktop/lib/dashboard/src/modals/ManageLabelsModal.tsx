@@ -189,7 +189,7 @@ export default function ManageLabelsModal<
               <button
                 type="submit"
                 disabled={!canCreateNewLabel}
-                className="button bg-invite px-button-x text-tag-text"
+                className="button bg-invite px-button-x text-tag-text enabled:active"
               >
                 <div className="h-text py-modal-invite-button-text-y">Create</div>
               </button>

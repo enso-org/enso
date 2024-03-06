@@ -115,10 +115,14 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
         </span>
         <div className="relative flex gap-buttons self-start">
-          <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
+          <button
+            disabled={!canSubmit}
+            type="submit"
+            className="button bg-invite text-white enabled:active"
+          >
             Confirm
           </button>
-          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
             Cancel
           </button>
         </div>

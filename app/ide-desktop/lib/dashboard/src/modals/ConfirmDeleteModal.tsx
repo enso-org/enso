@@ -59,10 +59,10 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
       >
         <div className="relative">Are you sure you want to {actionText}?</div>
         <div className="relative flex gap-buttons">
-          <button type="submit" className="button bg-delete text-white">
+          <button type="submit" className="button bg-delete text-white active">
             {actionButtonLabel}
           </button>
-          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
             Cancel
           </button>
         </div>
