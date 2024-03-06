@@ -657,7 +657,7 @@ final class SuggestionBuilder[A: IndexedSource](
     def mkQualified(name: QualifiedName): String =
       name.toString
     def mkAutoScopeCall(name: String): String =
-      s"~$name"
+      s"..$name"
     def go(arg: TypeArg, useAutoScope: Boolean): Seq[String] = arg match {
       case TypeArg.Sum(_, List()) => Seq()
       case TypeArg.Sum(_, variants) =>
