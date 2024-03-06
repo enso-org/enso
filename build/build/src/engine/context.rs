@@ -702,6 +702,9 @@ pub async fn runner_sanity_test(
 ) -> Result {
     let factorial_input = "6";
     let factorial_expected_output = "720";
+    let engine_package = repo_root.built_distribution.enso_engine_triple.engine_package.as_path();
+    // The engine package is necessary for running the native runner.
+    ide_ci::fs::tokio::require_exist(engine_package).await?;
     let output = Command::new(&repo_root.runner)
         .args([
             "--run",
@@ -709,10 +712,7 @@ pub async fn runner_sanity_test(
             factorial_input,
         ])
         .set_env_opt(ENSO_JAVA, enso_java)?
-        .set_env(
-            ENSO_DATA_DIRECTORY,
-            repo_root.built_distribution.enso_engine_triple.engine_package.as_path(),
-        )?
+        .set_env(ENSO_DATA_DIRECTORY, engine_package)?
         .run_stdout()
         .await?;
     ensure!(

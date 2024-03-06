@@ -198,6 +198,7 @@ impl BuildConfigurationFlags {
             || self.build_launcher_bundle
             || self.build_project_manager_bundle
             || self.test_standard_library
+            || self.build_native_runner
     }
 
     pub fn build_project_manager_package(&self) -> bool {
