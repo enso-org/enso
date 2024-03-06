@@ -579,7 +579,6 @@ add_specs suite_builder =
             values = ok_values + bad_values
             values.map i->
                 f = i.to_float
-                IO.println 'HHH '+i.to_text+' '+f.to_text+' '+(Comparable.hash_builtin f).to_text+' '+(Comparable.hash_builtin i).to_text
                 (Comparable.hash_builtin f) . should_equal (Comparable.hash_builtin i)
 
     suite_builder.group "Number Conversions" group_builder->
