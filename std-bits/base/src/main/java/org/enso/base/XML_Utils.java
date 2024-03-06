@@ -30,9 +30,7 @@ public class XML_Utils {
     LSSerializer serializer = dom.createLSSerializer();
     DOMConfiguration config = serializer.getDomConfig();
     config.setParameter("xml-declaration", false);
-    if (prettyPrint) {
-      config.setParameter("format-pretty-print", Boolean.TRUE);
-    }
+    config.setParameter("format-pretty-print", prettyPrint);
     serializer.setNewLine("\n");
     return serializer.writeToString(element);
   }
