@@ -14,7 +14,7 @@ export async function readEnvironmentFromFile() {
     const environment = process.env.ENSO_CLOUD_ENV_FILE_NAME ?? null
     const isProduction = environment == null || environment === ''
     const fileName = isProduction ? '.env' : `.${environment}.env`
-    const filePath = path.join(url.fileURLToPath(new URL('.', import.meta.url)), fileName)
+    const filePath = path.join(url.fileURLToPath(new URL('../../..', import.meta.url)), fileName)
     try {
         const file = await fs.readFile(filePath, { encoding: 'utf-8' })
         // eslint-disable-next-line jsdoc/valid-types
@@ -38,6 +38,7 @@ export async function readEnvironmentFromFile() {
     } catch (error) {
         if (isProduction) {
             console.warn('Could not load `.env` file; disabling cloud backend.')
+            console.error(error)
             return
         } else {
             throw error
