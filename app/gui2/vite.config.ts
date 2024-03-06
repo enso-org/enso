@@ -85,7 +85,7 @@ function gatewayServer(): Plugin {
     configureServer(server) {
       if (server.httpServer == null) return
 
-      createGatewayServer(server.httpServer)
+      createGatewayServer(server.httpServer, undefined)
     },
   }
 }

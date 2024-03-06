@@ -1,4 +1,6 @@
-package org.enso.database;
+package org.enso.database.sqlite;
+
+import org.enso.database.DatabaseConnectionDetailsSPI;
 
 @org.openide.util.lookup.ServiceProvider(service = DatabaseConnectionDetailsSPI.class)
 public class SQLiteConnectionDetailsSPI extends DatabaseConnectionDetailsSPI {

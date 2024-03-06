@@ -42,7 +42,7 @@ jobs:
         run: ./run --help
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - if: (always())
         name: Clean before
         run: ./run git-clean
         env:
@@ -56,7 +56,7 @@ jobs:
       - if: failure() && runner.os != 'Windows'
         name: List files if failed (non-Windows)
         run: ls -lAR
-      - if: always()
+      - if: (always())
         name: Clean after
         run: ./run git-clean
         env:
