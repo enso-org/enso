@@ -353,7 +353,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <button
           disabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="selectable enabled:active size-project-icon"
+          className="size-project-icon selectable enabled:active"
           onClick={async clickEvent => {
             clickEvent.stopPropagation()
             unsetModal()
@@ -376,7 +376,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <button
             disabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="selectable enabled:active size-project-icon"
+            className="size-project-icon selectable enabled:active"
             onClick={async clickEvent => {
               clickEvent.stopPropagation()
               unsetModal()

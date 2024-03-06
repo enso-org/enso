@@ -435,7 +435,7 @@ export default function Dashboard(props: DashboardProps) {
         }`}
       >
         <div
-          className={`container-size relative flex h-screen grow select-none flex-col overflow-hidden ${
+          className={`relative flex h-screen grow select-none flex-col overflow-hidden container-size ${
             page === pageSwitcher.Page.home ? 'pb-home-page-b' : 'gap-top-level'
           }`}
           onContextMenu={event => {

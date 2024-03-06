@@ -51,7 +51,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       disabled={isCurrent}
       title={`Go To ${category}`}
       className={`selectable ${
-        isCurrent ? 'active bg-selected-frame' : ''
+        isCurrent ? 'bg-selected-frame active' : ''
       } group flex h-row items-center gap-icon-with-text rounded-full px-button-x transition-colors hover:bg-selected-frame`}
       onClick={onClick}
       // Required because `dragover` does not fire on `mouseenter`.

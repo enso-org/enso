@@ -77,7 +77,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           <button type="submit" disabled={!isSubmittable} className="button bg-invite text-white">
             Create
           </button>
-          <button type="button" className="button active bg-selected-frame" onClick={unsetModal}>
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
             Cancel
           </button>
         </div>

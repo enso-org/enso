@@ -507,6 +507,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
           '.button': {
             '@apply inline-block rounded-full px-4 py-1 selectable': '',
           },
+          '.icon-with-text': {
+            '@apply flex items-center justify-center gap-icon-with-text': '',
+          },
 
           // === Text-related classes ===
 

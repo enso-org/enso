@@ -23,7 +23,7 @@ export default function Button(props: ButtonProps) {
   const { alt, className, onClick } = props
 
   return (
-    <button disabled={disabled} className={`selectable group flex ${active ? 'active' : ''}`}>
+    <button disabled={disabled} className={`group flex selectable ${active ? 'active' : ''}`}>
       <SvgMask
         src={image}
         {...(!active && disabled && error != null ? { title: error } : {})}

@@ -229,7 +229,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       }}
       className="search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide"
     >
-      <img src={FindIcon} className="placeholder relative z-1" />
+      <img src={FindIcon} className="relative z-1 placeholder" />
       <input
         ref={searchRef}
         type="search"
@@ -239,7 +239,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             ? 'Type to search for projects, Data Links, users, and more.'
             : 'Type to search for projects.'
         }
-        className="text peer relative z-1 grow bg-transparent placeholder:text-center"
+        className="peer text relative z-1 grow bg-transparent placeholder:text-center"
         onChange={event => {
           if (querySource.current !== QuerySource.internal) {
             querySource.current = QuerySource.typing

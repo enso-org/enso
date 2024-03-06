@@ -36,7 +36,7 @@ export default function MembersSettingsTab() {
             <span className="text whitespace-nowrap font-semibold">Invite Members</span>
           </button>
         </div>
-        <table className="rounded-rows table-fixed self-start">
+        <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-row">
               <th className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">

@@ -122,7 +122,7 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          className={`selectable m-chat-reaction rounded-full p-chat-reaction hover:bg-hover-bg hover:grayscale-0 ${
+          className={`m-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0 ${
             selectedReactions.has(emoji) ? 'active' : 'grayscale'
           }`}
         >
@@ -330,7 +330,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`clip-path-bottom-shadow absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows ${
+          className={`absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow ${
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
@@ -795,7 +795,7 @@ export default function Chat(props: ChatProps) {
             <button
               type="submit"
               disabled={!isReplyEnabled}
-              className="selectable enabled:active rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white"
+              className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
             >
               Reply!
             </button>

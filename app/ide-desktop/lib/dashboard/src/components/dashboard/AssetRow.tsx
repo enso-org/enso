@@ -47,7 +47,7 @@ const HEADER_HEIGHT_PX = 34
 const DRAG_EXPAND_DELAY_MS = 500
 /** Placeholder row for directories that are empty. */
 const EMPTY_DIRECTORY_PLACEHOLDER = (
-  <span className="placeholder px-name-column-x">This folder is empty.</span>
+  <span className="px-name-column-x placeholder">This folder is empty.</span>
 )
 
 // ================
@@ -735,7 +735,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialLoading: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p">
+          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
               className={`flex h-row w-container justify-center rounded-full ${indent.indentClass(
                 item.depth
@@ -750,7 +750,7 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialEmpty: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p">
+          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
               className={`flex h-row items-center rounded-full ${indent.indentClass(item.depth)}`}
             >

@@ -95,7 +95,7 @@ export default function KeyboardShortcutsSettingsTab() {
       {/* There is a horizontal scrollbar for some reason without `px-px`. */}
       {/* eslint-disable-next-line no-restricted-syntax */}
       <div ref={scrollContainerRef} className="overflow-auto px-px">
-        <table className="rounded-rows table-fixed border-collapse">
+        <table className="table-fixed border-collapse rounded-rows">
           <thead className="sticky top-0">
             <tr className="h-row text-left text-sm font-semibold">
               <th className="min-w-keyboard-shortcuts-icon-column pl-cell-x pr-keyboard-shortcuts-icon-column-r">

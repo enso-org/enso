@@ -105,17 +105,17 @@ const COLUMNS_SELECTOR_BASE_WIDTH_PX = 4
 const COLUMNS_SELECTOR_ICON_WIDTH_PX = 28
 /** The default placeholder row. */
 const PLACEHOLDER = (
-  <span className="placeholder px-cell-x">
+  <span className="px-cell-x placeholder">
     You have no files. Go ahead and create one using the buttons above, or open a template from the
     home screen.
   </span>
 )
 /** A placeholder row for when a query (text or labels) is active. */
 const QUERY_PLACEHOLDER = (
-  <span className="placeholder px-cell-x">No files match the current filters.</span>
+  <span className="px-cell-x placeholder">No files match the current filters.</span>
 )
 /** The placeholder row for the Trash category. */
-const TRASH_PLACEHOLDER = <span className="placeholder px-cell-x">Your trash is empty.</span>
+const TRASH_PLACEHOLDER = <span className="px-cell-x placeholder">Your trash is empty.</span>
 
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {
@@ -2385,7 +2385,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }}
     >
-      <table className="rounded-rows table-fixed border-collapse">
+      <table className="table-fixed border-collapse rounded-rows">
         <thead>{headerRow}</thead>
         <tbody ref={bodyRef}>
           {itemRows}
@@ -2432,7 +2432,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
+    <div ref={scrollContainerRef} className="flex-1 overflow-auto container-size">
       {!hidden && (
         <SelectionBrush
           onDrag={onSelectionDrag}

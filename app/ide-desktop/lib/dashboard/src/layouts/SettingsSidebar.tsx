@@ -116,26 +116,24 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                 </h2>
                 <ul className="flex flex-col items-start">
                   {tabs.map(tab => (
-                    <li
-                      key={tab.settingsTab}
-                      className={`flex h-row items-center gap-icon-with-text rounded-full px-button-x transition-colors hover:bg-selected-frame hover:text-primary ${
-                        tab.settingsTab === settingsTab
-                          ? 'bg-selected-frame text-primary'
-                          : 'cursor-pointer text-not-selected'
-                      }`}
-                      onClick={() => {
-                        setSettingsTab(tab.settingsTab)
-                      }}
-                    >
-                      <SvgMask
-                        src={tab.icon}
-                        className={
-                          tab.settingsTab === settingsTab
-                            ? 'text-icon-selected'
-                            : 'text-icon-not-selected'
-                        }
-                      />
-                      <span className="text">{tab.name}</span>
+                    <li key={tab.settingsTab}>
+                      <button
+                        disabled={tab.settingsTab === settingsTab}
+                        className="button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame disabled:bg-selected-frame disabled:active"
+                        onClick={() => {
+                          setSettingsTab(tab.settingsTab)
+                        }}
+                      >
+                        <SvgMask
+                          src={tab.icon}
+                          className={
+                            tab.settingsTab === settingsTab
+                              ? 'text-icon-selected'
+                              : 'text-icon-not-selected'
+                          }
+                        />
+                        <span className="text">{tab.name}</span>
+                      </button>
                     </li>
                   ))}
                 </ul>

@@ -25,7 +25,7 @@ export default function Home(props: HomeProps) {
   const { hidden, createProject } = props
   return (
     <div
-      className={`scroll-hidden flex flex-1 flex-col gap-home overflow-auto ${
+      className={`flex flex-1 flex-col gap-home overflow-auto scroll-hidden ${
         hidden ? 'hidden' : ''
       }`}
     >

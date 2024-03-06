@@ -16,7 +16,7 @@ export default function WhatsNew() {
       <h2 className="text-subheading">Discover what&rsquo;s new</h2>
       <div className="grid grid-cols-fill-news-items gap-news-items">
         <a
-          className="col-span-2-news-item relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text sm:col-span-2"
+          className="relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text col-span-2-news-item sm:col-span-2"
           rel="noreferrer"
           target="_blank"
           href="https://enso.org/"
