@@ -920,7 +920,7 @@ export interface CreateCheckoutSessionRequestBody {
 
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
-  readonly parentId: string | null
+  readonly parentId: DirectoryId | null
   readonly filterBy: FilterBy | null
   readonly labels: LabelName[] | null
   readonly recentProjects: boolean

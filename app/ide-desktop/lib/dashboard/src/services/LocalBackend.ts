@@ -11,18 +11,12 @@ import Backend, * as backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
-import type * as newtype from '#/utilities/newtype'
 import * as projectManager from '#/utilities/ProjectManager'
 import ProjectManager from '#/utilities/ProjectManager'
 
 // =============
 // === Types ===
 // =============
-
-/** A string representing a UUIDv4. */
-type UUID = newtype.Newtype<string, 'UUID'>
-/** A string representing a UTC date and time. */
-type UTCDateTime = newtype.Newtype<string, 'UTCDateTime'>
 
 /** Details of a project. */
 interface ProjectMetadata {
@@ -31,7 +25,9 @@ interface ProjectMetadata {
   /** The namespace of the project. */
   readonly namespace: string
   /** The project id. */
-  readonly id: UUID
+  // This is defined as `UUID` in the Project Manager, however it is defined as `ProjectId` here
+  // for consistency with `RemoteBackend.ts`.
+  readonly id: backend.ProjectId
   /** The Enso Engine version to use for the project, represented by a semver version
    * string.
    *
@@ -39,27 +35,36 @@ interface ProjectMetadata {
    * engine version may be missing. */
   readonly engineVersion?: string
   /** The project creation time. */
-  readonly created: UTCDateTime
+  readonly created: dateTime.Rfc3339DateTime
   /** The last opened datetime. */
-  readonly lastOpened?: UTCDateTime
+  readonly lastOpened?: dateTime.Rfc3339DateTime
 }
 
 /** Metadata for an arbitrary file system entry. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+
+/** The discriminator value for {@link FileSystemEntry}. */
+enum FileSystemEntryType {
+  DirectoryEntry = 'DirectoryEntry',
+  ProjectEntry = 'ProjectEntry',
+  FileEntry = 'FileEntry',
+}
 
 /** Metadata for a file. */
 interface FileEntry {
+  readonly type: FileSystemEntryType.FileEntry
   readonly path: string
 }
 
 /** Metadata for a directory. */
 interface DirectoryEntry {
+  readonly type: FileSystemEntryType.DirectoryEntry
   readonly path: string
 }
 
 /** Metadata for a project. */
 interface ProjectEntry {
+  readonly type: FileSystemEntryType.ProjectEntry
   readonly path: string
   readonly metadata: ProjectMetadata
 }
@@ -99,38 +104,66 @@ export default class LocalBackend extends Backend {
 
   /** Return a list of assets in a directory.
    * @throws An error if the JSON-RPC call fails. */
-  override async listDirectory(): Promise<backend.AnyAsset[]> {
-    /*const entries = await this.runProjectManagerCommand<FileSystemEntry[]>(
+  override async listDirectory(
+    query: backend.ListDirectoryRequestParams
+  ): Promise<backend.AnyAsset[]> {
+    const entries = await this.runProjectManagerCommand<FileSystemEntry[]>(
       '--filesystem-list',
       query.parentId ?? '.'
     )
+    const modifiedAt = dateTime.toRfc3339(new Date())
+    const parentId = query.parentId ?? backend.DirectoryId('.')
     return entries.map(entry => {
-      switch (
-        entry.type
-        //
-      ) {
+      switch (entry.type) {
+        case FileSystemEntryType.DirectoryEntry: {
+          return {
+            type: backend.AssetType.directory,
+            id: backend.DirectoryId(entry.path),
+            modifiedAt,
+            parentId,
+            title: entry.path,
+            permissions: [],
+            projectState: null,
+            labels: [],
+            description: null,
+          } satisfies backend.DirectoryAsset
+        }
+        case FileSystemEntryType.ProjectEntry: {
+          return {
+            type: backend.AssetType.project,
+            id: entry.metadata.id,
+            title: entry.metadata.name,
+            modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
+            parentId,
+            permissions: [],
+            projectState: {
+              type: LocalBackend.currentlyOpenProjects.has(entry.metadata.id)
+                ? backend.ProjectState.opened
+                : entry.metadata.id === LocalBackend.currentlyOpeningProjectId
+                ? backend.ProjectState.openInProgress
+                : backend.ProjectState.closed,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              volume_id: '',
+            },
+            labels: [],
+            description: null,
+          } satisfies backend.ProjectAsset
+        }
+        case FileSystemEntryType.FileEntry: {
+          return {
+            type: backend.AssetType.file,
+            id: backend.FileId(entry.path),
+            title: entry.path,
+            modifiedAt,
+            parentId,
+            permissions: [],
+            projectState: null,
+            labels: [],
+            description: null,
+          } satisfies backend.FileAsset
+        }
       }
-    })*/
-    const result = await this.projectManager.listProjects({})
-    return result.projects.map(project => ({
-      type: backend.AssetType.project,
-      id: project.id,
-      title: project.name,
-      modifiedAt: project.lastOpened ?? project.created,
-      parentId: backend.DirectoryId(''),
-      permissions: [],
-      projectState: {
-        type: LocalBackend.currentlyOpenProjects.has(project.id)
-          ? backend.ProjectState.opened
-          : project.id === LocalBackend.currentlyOpeningProjectId
-          ? backend.ProjectState.openInProgress
-          : backend.ProjectState.closed,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
-      },
-      labels: [],
-      description: null,
-    }))
+    })
   }
 
   /** Return a list of projects belonging to the current user.
