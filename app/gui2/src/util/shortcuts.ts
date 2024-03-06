@@ -198,7 +198,8 @@ const allKeys = [
 type Key = (typeof allKeys)[number]
 type LowercaseKey = Lowercase<Key>
 type KeybindSegment = Modifier | Pointer | Key
-const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
+/** @internal */
+export const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
   [...allModifiers, ...allPointers, ...allKeys].map((entry) => [entry.toLowerCase(), entry]),
 )
 normalizedKeyboardSegmentLookup[''] = '+'
@@ -390,7 +391,8 @@ function includesPredicate<T extends U, U>(array: readonly T[]) {
 const isModifier = includesPredicate(allModifiers)
 const isPointer = includesPredicate(allPointers)
 
-function decomposeKeybindString(string: string): ModifierStringDecomposition {
+/** @internal */
+export function decomposeKeybindString(string: string): ModifierStringDecomposition {
   const parts = string
     .trim()
     .split(/[\s+]+/)
@@ -435,51 +437,4 @@ interface Mousebind {
   type: 'mousebind'
   key: PointerButtonFlags
   modifierFlags: ModifierFlags
-}
-
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-  test.each([
-    { keybind: 'A', expected: { modifiers: [], key: 'A' } },
-    { keybind: 'b', expected: { modifiers: [], key: 'B' } },
-    { keybind: 'Space', expected: { modifiers: [], key: ' ' } },
-    { keybind: 'Mod+Space', expected: { modifiers: ['Mod'], key: ' ' } },
-    // `+`
-    { keybind: 'Mod++', expected: { modifiers: ['Mod'], key: '+' } },
-    // `+` and capitalization
-    { keybind: 'mod++', expected: { modifiers: ['Mod'], key: '+' } },
-    {
-      keybind: 'Mod+Alt+Shift+PointerMain',
-      expected: { modifiers: ['Mod', 'Alt', 'Shift'], key: 'PointerMain' },
-    },
-    // Misspelling. Assume it is an unknown key
-    {
-      keybind: 'shift+Alt+Mode+PointerMain',
-      expected: { modifiers: ['Shift', 'Alt'], key: 'Mode' },
-    },
-    // Capitalization
-    {
-      keybind: 'meta+shift+alt+mod+pointermain',
-      expected: { modifiers: ['Meta', 'Shift', 'Alt', 'Mod'], key: 'PointerMain' },
-    },
-    // Repeated keys
-    {
-      keybind: 'A+A+A+A+A+A+A+A+A+A+A+A+A+A',
-      expected: { modifiers: [], key: 'A' },
-    },
-    {
-      keybind: 'mod++++++++++++++++',
-      expected: { modifiers: ['Mod'], key: '+' },
-    },
-    // Misc tests
-    {
-      keybind: 'osDEleTE',
-      // The specific key is OS-dependent. Look it up in the samee lookup used by
-      // `decomposeKeybindString` so that it is guaranteed to be the right key on all systems.
-      expected: { modifiers: [], key: normalizedKeyboardSegmentLookup['osdelete'] },
-    },
-  ])('Keybinds should be parsed correctly', ({ keybind, expected }) => {
-    const decomposed = decomposeKeybindString(keybind)
-    expect(decomposed).toEqual(expected)
-  })
 }
