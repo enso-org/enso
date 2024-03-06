@@ -781,7 +781,7 @@ add_specs suite_builder =
             table = xlsx_sheet.read (Excel_Format.Sheet 1)
             check_table table
 
-            table_2 = xlsx_sheet.read (Excel_Format.Sheet 1 (table.row_count - col_a.length))
+            table_2 = xlsx_sheet.read (Excel_Format.Sheet 1 skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2
 
@@ -789,7 +789,7 @@ add_specs suite_builder =
             table = xlsx_sheet.read (Excel_Format.Sheet "Sheet1")
             check_table table
 
-            table_2 = xlsx_sheet.read (Excel_Format.Sheet "Sheet1" (table.row_count - col_a.length))
+            table_2 = xlsx_sheet.read (Excel_Format.Sheet "Sheet1" skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2
 
@@ -800,7 +800,7 @@ add_specs suite_builder =
             table = xls_sheet.read (Excel_Format.Sheet 1)
             check_table table
 
-            table_2 = xls_sheet.read (Excel_Format.Sheet 1 (table.row_count - col_a.length))
+            table_2 = xls_sheet.read (Excel_Format.Sheet 1 skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2
 
@@ -815,7 +815,7 @@ add_specs suite_builder =
             table = xlsx_sheet.read (Excel_Format.Range "Sheet1!A:C")
             check_table table 3
 
-            table_2 = xlsx_sheet.read (Excel_Format.Range "Sheet1!A:C" (table.row_count - col_a.length))
+            table_2 = xlsx_sheet.read (Excel_Format.Range "Sheet1!A:C" skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2 3
 
