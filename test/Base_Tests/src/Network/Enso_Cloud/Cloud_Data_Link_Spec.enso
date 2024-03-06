@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
 
 from Standard.Test import all
@@ -14,7 +15,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             ## We assume that the cloud has a sample data-link called `TestDataLink` present
                TODO in future iterations this file will be created by the test suite itself, to make it self-contained
             assets = Enso_File.root.list
-            datalink = assets.find a-> a.name.starts_with "TestDataLink"
+            datalink = assets.find a-> a.name.starts_with "TestDataLink-HTTP"
             datalink.should_be_a Enso_File
             datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
 
@@ -22,6 +23,16 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             r = datalink.read
             r.should_be_a Text
             r.should_contain "Cupcake"
+
+        group_builder.specify "will report which library is missing if a datalink relying on other library is accessed" <|
+            assets = Enso_File.root.list
+            datalink = assets.find a-> a.name.starts_with "TestDataLink-S3"
+            datalink.should_be_a Enso_File
+            datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
+
+            r = datalink.read
+            r.should_fail_with Illegal_State
+            r.catch.to_display_text . should_contain "The data link for S3 is provided by the library Standard.AWS which is not loaded."
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
