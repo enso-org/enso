@@ -113,7 +113,7 @@ export function makeType(fqn: string): SuggestionEntry {
   return makeSimpleEntry(SuggestionKind.Type, definedIn, name, fqn)
 }
 
-export function makeCon(fqn: string): SuggestionEntry {
+export function makeConstructor(fqn: string): SuggestionEntry {
   assert(isQualifiedName(fqn))
   const [type, name] = qnSplit(fqn)
   assert(type != null)

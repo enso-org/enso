@@ -1,8 +1,8 @@
-import { expect, test, type Page } from '@playwright/test'
+import { test, type Page } from '@playwright/test'
 import assert from 'assert'
 import os from 'os'
 import * as actions from './actions'
-import * as customExpect from './customExpect'
+import { expect } from './customExpect'
 import * as locate from './locate'
 
 const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
@@ -15,8 +15,8 @@ async function deselectAllNodes(page: Page) {
 
 async function expectAndCancelBrowser(page: Page, expectedInput: string) {
   const nodeCount = await locate.graphNode(page).count()
-  await customExpect.toExist(locate.componentBrowser(page))
-  await customExpect.toExist(locate.componentBrowserEntry(page))
+  await expect(locate.componentBrowser(page)).toExist()
+  await expect(locate.componentBrowserEntry(page)).toExist()
   await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue(expectedInput)
   await expect(locate.componentBrowserInput(page).locator('input')).toBeInViewport()
   await page.keyboard.press('Escape')
@@ -113,7 +113,7 @@ test('Accepting suggestion', async ({ page }) => {
     '.',
     'read_text',
   ])
-  await customExpect.toBeSelected(locate.graphNode(page).last())
+  await expect(locate.graphNode(page).last()).toBeSelected()
 
   // Clicking at highlighted entry
   nodeCount = await locate.graphNode(page).count()
@@ -127,7 +127,7 @@ test('Accepting suggestion', async ({ page }) => {
     '.',
     'read',
   ])
-  await customExpect.toBeSelected(locate.graphNode(page).last())
+  await expect(locate.graphNode(page).last()).toBeSelected()
 
   // Accepting with Enter
   nodeCount = await locate.graphNode(page).count()
@@ -141,7 +141,7 @@ test('Accepting suggestion', async ({ page }) => {
     '.',
     'read',
   ])
-  await customExpect.toBeSelected(locate.graphNode(page).last())
+  await expect(locate.graphNode(page).last()).toBeSelected()
 })
 
 test('Accepting any written input', async ({ page }) => {
@@ -161,14 +161,14 @@ test('Filling input with suggestions', async ({ page }) => {
 
   // Entering module
   await locate.componentBrowserEntryByLabel(page, 'Standard.Base.Data').click()
-  await customExpect.toExist(locate.componentBrowser(page))
+  await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue(
     'Standard.Base.Data.',
   )
 
   // Applying suggestion
-  page.keyboard.press('Tab')
-  await customExpect.toExist(locate.componentBrowser(page))
+  await page.keyboard.press('Tab')
+  await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue(
     'Standard.Base.Data.read ',
   )
@@ -201,8 +201,8 @@ test('Editing existing nodes', async ({ page }) => {
   await expect(input).toHaveValue(`Data.read ${ADDED_PATH}`)
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).not.toBeVisible()
-  await expect(node.locator('.WidgetToken')).toHaveText(['Data', '.', 'read'])
-  await expect(node.locator('.WidgetText input')).toHaveValue(ADDED_PATH)
+  await expect(node.locator('.WidgetToken')).toHaveText(['Data', '.', 'read', '"', '"'])
+  await expect(node.locator('.WidgetText input')).toHaveValue(ADDED_PATH.replaceAll('"', ''))
 
   // Edit again, using "edit" button
   await locate.graphNodeIcon(node).click()
@@ -221,12 +221,12 @@ test('Visualization preview: type-based visualization selection', async ({ page 
   await actions.goToGraph(page)
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
-  await customExpect.toExist(locate.componentBrowser(page))
-  await customExpect.toExist(locate.componentBrowserEntry(page))
+  await expect(locate.componentBrowser(page)).toExist()
+  await expect(locate.componentBrowserEntry(page)).toExist()
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('4')
   await expect(input).toHaveValue('4')
-  await customExpect.toExist(locate.jsonVisualization(page))
+  await expect(locate.jsonVisualization(page)).toExist()
   await input.fill('Table.ne')
   await expect(input).toHaveValue('Table.ne')
   // The table visualization is not currently working with `executeExpression` (#9194), but we can test that the JSON
@@ -241,12 +241,12 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   await actions.goToGraph(page)
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
-  await customExpect.toExist(locate.componentBrowser(page))
-  await customExpect.toExist(locate.componentBrowserEntry(page))
+  await expect(locate.componentBrowser(page)).toExist()
+  await expect(locate.componentBrowserEntry(page)).toExist()
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('4')
   await expect(input).toHaveValue('4')
-  await customExpect.toExist(locate.jsonVisualization(page))
+  await expect(locate.jsonVisualization(page)).toExist()
   await locate.showVisualizationSelectorButton(page).click()
   await page.getByRole('button', { name: 'Table' }).click()
   // The table visualization is not currently working with `executeExpression` (#9194), but we can test that the JSON
