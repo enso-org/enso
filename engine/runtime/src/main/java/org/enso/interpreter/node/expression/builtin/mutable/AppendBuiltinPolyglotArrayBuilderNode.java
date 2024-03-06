@@ -11,29 +11,27 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
-import org.enso.interpreter.runtime.data.vector.ArrowArrayBuilder;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
-    type = "Arrow_Array_Builder",
-    name = "set_builtin",
-    description = "Set a value at a given index.")
-public abstract class SetBuiltinArrowArrayBuilderNode extends Node {
-  static SetBuiltinArrowArrayBuilderNode build() {
-    return SetBuiltinArrowArrayBuilderNodeGen.create();
+    type = "Polyglot_Array_Builder",
+    name = "append_builtin",
+    description = "Appends a value at a next available index.")
+public abstract class AppendBuiltinPolyglotArrayBuilderNode extends Node {
+  static AppendBuiltinPolyglotArrayBuilderNode build() {
+    return AppendBuiltinPolyglotArrayBuilderNodeGen.create();
   }
 
-  abstract Object execute(Object arr, long index, Object value);
+  abstract Object execute(Object arr, Object value);
 
   @Specialization
   Object fromObject(
-      ArrowArrayBuilder arr,
-      long index,
+      org.enso.interpreter.runtime.data.vector.PolyglotArrayBuilder arr,
       Object value,
       @CachedLibrary(limit = "1") InteropLibrary interop,
       @Cached ArrayLikeLengthNode lengthNode) {
     try {
-      interop.writeArrayElement(arr, index, value);
+      arr.append(value, interop);
     } catch (UnsupportedMessageException e) {
       var err =
           EnsoContext.get(interop)
@@ -48,7 +46,7 @@ public abstract class SetBuiltinArrowArrayBuilderNode extends Node {
           EnsoContext.get(this)
               .getBuiltins()
               .error()
-              .makeIndexOutOfBounds(index, lengthNode.executeLength(arr));
+              .makeIndexOutOfBounds(arr.getCurrentIndex(), lengthNode.executeLength(arr));
       return DataflowError.withoutTrace(err, this);
     }
     return EnsoContext.get(this).getBuiltins().nothing();

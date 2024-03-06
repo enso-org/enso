@@ -5,14 +5,15 @@ import project.Internal.Array_Like_Helpers
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Nothing.Nothing
 
+
 @Builtin_Type
-type Arrow_Array_Builder
+type Polyglot_Array_Builder
     ## PRIVATE
 
         Appends a value at a next available index.
     append : Any -> Nothing ! Index_Out_Of_Bounds
     append self value =
-        Arrow_Array_Builder.append_builtin self value
+        Polyglot_Array_Builder.append_builtin self value
 
     ## PRIVATE
 
@@ -34,11 +35,11 @@ type Arrow_Array_Builder
         The builder is marked as sealed and cannot be modified further.
     build : Vector
     build self =
-        Arrow_Array_Builder.build_builtin self
+        Polyglot_Array_Builder.build_builtin self
 
     ## PRIVATE
 
-        Returns a mutable builder backed by the provided Arrow array.
-    from_arrow_array : Any -> Arrow_Array_Builder
-    from_arrow_array arr =
-        Arrow_Array_Builder.from_arrow_array_builtin arr
+        Returns a mutable builder backed by the provided polyglot array.
+    from_polyglot_array : Any -> Polyglot_Array_Builder
+    from_polyglot_array arr =
+        Polyglot_Array_Builder.from_polyglot_array_builtin arr

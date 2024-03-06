@@ -1,14 +1,14 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
-import Standard.Base.Data.Arrow_Array_Builder.Arrow_Array_Builder
+import Standard.Base.Data.Polyglot_Array_Builder.Polyglot_Array_Builder
 
 from Standard.Test import all
 
 foreign arrow new_arrow = """
     new[Int8]
 
-Arrow_Array_Builder.set self index value = Arrow_Array_Builder.set_builtin self index value
+Polyglot_Array_Builder.set self index value = Polyglot_Array_Builder.set_builtin self index value
 
 add_specs suite_builder =
     pending = if Polyglot.is_language_installed "arrow" then Nothing else """
@@ -18,7 +18,7 @@ add_specs suite_builder =
         group_builder.specify "should allow for creating a new fixed Array in Arrow" <|
             arrow_array_constructor = new_arrow
             array_10 = arrow_array_constructor.new 10
-            builder = Arrow_Array_Builder.from_arrow_array array_10
+            builder = Polyglot_Array_Builder.from_polyglot_array array_10
 
             builder.length . should_equal 10
             builder.at 1 . should_equal Nothing
@@ -33,6 +33,7 @@ add_specs suite_builder =
             builder.set 1 0 . should_fail_with Unsupported_Argument_Types
             Polyglot.write_array_element array_10 1 0
             builder.at 1 . should_equal 0
+            v.at 1 . should_equal 0 # dangerous but allowed
 
 main =
     suite = Test.build suite_builder->

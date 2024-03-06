@@ -11,21 +11,21 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Arrow_Array_Builder",
-    name = "from_arrow_array_builtin",
+    type = "Polyglot_Array_Builder",
+    name = "from_polyglot_array_builtin",
     description = "Creates an Arrow_Array_Builder from a polyglot array.",
     autoRegister = true)
-public abstract class FromArrowArrayBuiltinArrowArrayBuilderNode extends Node {
+public abstract class FromPolyglotArrayBuiltinPolyglotArrayBuilderNode extends Node {
 
-  static FromArrowArrayBuiltinArrowArrayBuilderNode build() {
-    return FromArrowArrayBuiltinArrowArrayBuilderNodeGen.create();
+  static FromPolyglotArrayBuiltinPolyglotArrayBuilderNode build() {
+    return FromPolyglotArrayBuiltinPolyglotArrayBuilderNodeGen.create();
   }
 
   abstract EnsoObject execute(Object arr);
 
   @Specialization(guards = "interop.hasArrayElements(arr)")
   EnsoObject doObject(Object arr, @CachedLibrary(limit = "1") InteropLibrary interop) {
-    return org.enso.interpreter.runtime.data.vector.ArrowArrayBuilder.fromArrowArray(arr);
+    return org.enso.interpreter.runtime.data.vector.PolyglotArrayBuilder.fromArray(arr);
   }
 
   @Fallback

@@ -9,21 +9,21 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Arrow_Array_Builder",
+    type = "Polyglot_Array_Builder",
     name = "build_builtin",
-    description = "Creates a Vector from this Arrow_Array_Builder.",
+    description = "Creates a Vector from this Polyglot_Array_Builder.",
     autoRegister = true)
-public abstract class BuildBuiltinArrowArrayBuilderNode extends Node {
+public abstract class BuildBuiltinPolyglotArrayBuilderNode extends Node {
 
-  static BuildBuiltinArrowArrayBuilderNode build() {
-    return BuildBuiltinArrowArrayBuilderNodeGen.create();
+  static BuildBuiltinPolyglotArrayBuilderNode build() {
+    return BuildBuiltinPolyglotArrayBuilderNodeGen.create();
   }
 
   abstract EnsoObject execute(Object arr);
 
   @Specialization
   EnsoObject doArrowArrayBuilder(
-      org.enso.interpreter.runtime.data.vector.ArrowArrayBuilder builder) {
+      org.enso.interpreter.runtime.data.vector.PolyglotArrayBuilder builder) {
     builder.seal();
     return org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers.asVectorFromArray(builder);
   }

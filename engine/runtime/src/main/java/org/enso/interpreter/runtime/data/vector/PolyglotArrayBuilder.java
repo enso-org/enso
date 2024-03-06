@@ -22,8 +22,10 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.ArrowArrayBuilder.ArrowArrayBuilder")
-public abstract class ArrowArrayBuilder implements EnsoObject {
+@Builtin(
+    pkg = "mutable",
+    stdlibName = "Standard.Base.Data.Polyglot_Array_Builder.Polyglot_Array_Builder")
+public abstract class PolyglotArrayBuilder implements EnsoObject {
 
   protected boolean sealed = false;
 
@@ -91,7 +93,7 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
 
   @ExportMessage
   Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().arrowArrayBuilder();
+    return EnsoContext.get(thisLib).getBuiltins().polyglotArrayBuilder();
   }
 
   @ExportMessage
@@ -110,7 +112,7 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib, @Cached("1") int ignore) {
-    return EnsoContext.get(thisLib).getBuiltins().arrowArrayBuilder();
+    return EnsoContext.get(thisLib).getBuiltins().polyglotArrayBuilder();
   }
 
   //
@@ -125,7 +127,7 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
 
   @ExportLibrary(InteropLibrary.class)
   @ExportLibrary(WarningsLibrary.class)
-  static final class GenericArrowArray extends ArrowArrayBuilder {
+  static final class GenericArrowArray extends PolyglotArrayBuilder {
     private final Object storage;
     private int index;
 
@@ -134,12 +136,10 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
         if (!InteropLibrary.getUncached().hasArrayElements(storage)) {
           throw EnsoContext.get(null)
               .raiseAssertionPanic(
-                  null, "Arrow_Array_Builder needs array-like delegate, but got: " + storage, null);
+                  null,
+                  "Polyglot_Array_Builder needs array-like delegate, but got: " + storage,
+                  null);
         }
-      }
-      if (!EnsoContext.get(null).isLanguageInstalled("arrow")) {
-        throw EnsoContext.get(null)
-            .raiseAssertionPanic(null, "Arrow_Array_Builder requires arrow language.", null);
       }
       this.storage = storage;
       this.index = 0;
@@ -259,7 +259,7 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
     }
   }
 
-  public static EnsoObject fromArrowArray(Object arrowArray) {
-    return new ArrowArrayBuilder.GenericArrowArray(arrowArray);
+  public static EnsoObject fromArray(Object arrowArray) {
+    return new PolyglotArrayBuilder.GenericArrowArray(arrowArray);
   }
 }
