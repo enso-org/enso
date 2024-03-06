@@ -66,6 +66,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -76,7 +77,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
         // Ignored. These events should all be unrelated to projects.
-        // `deleteMultiple`, `restoreMultiple`, `download`, and `downloadSelected`
+        // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
         // are handled by `AssetRow`.
         break
       }

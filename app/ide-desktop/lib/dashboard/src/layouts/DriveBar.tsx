@@ -19,6 +19,7 @@ import Category from '#/layouts/CategorySwitcher/Category'
 
 import Button from '#/components/Button'
 
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
@@ -34,6 +35,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 export interface DriveBarProps {
   readonly category: Category
   readonly canDownloadFiles: boolean
+  readonly doEmptyTrash: () => void
   readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
   readonly doCreateSecret: (name: string, value: string) => void
@@ -45,7 +47,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { category, canDownloadFiles, doCreateProject, doCreateDirectory } = props
+  const { category, canDownloadFiles, doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -72,18 +74,6 @@ export default function DriveBar(props: DriveBarProps) {
     })
   }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
 
-  const newProjectButton = (
-    <button
-      className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-      onClick={() => {
-        unsetModal()
-        doCreateProject()
-      }}
-    >
-      <span className="text whitespace-nowrap font-semibold">New Project</span>
-    </button>
-  )
-
   switch (effectiveCategory) {
     case Category.recent: {
       // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
@@ -97,7 +87,22 @@ export default function DriveBar(props: DriveBarProps) {
     case Category.trash: {
       return (
         <div className="flex h-row py-drive-bar-y">
-          <div className="flex gap-drive-bar" />
+          <div className="flex gap-drive-bar">
+            <button
+              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              onClick={event => {
+                event.stopPropagation()
+                setModal(
+                  <ConfirmDeleteModal
+                    actionText="all trashed items forever"
+                    doDelete={doEmptyTrash}
+                  />
+                )
+              }}
+            >
+              <span className="text whitespace-nowrap font-semibold">Clear Trash</span>
+            </button>
+          </div>
         </div>
       )
     }
@@ -105,7 +110,15 @@ export default function DriveBar(props: DriveBarProps) {
       return (
         <div className="flex h-row py-drive-bar-y">
           <div className="flex gap-drive-bar">
-            {newProjectButton}
+            <button
+              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              onClick={() => {
+                unsetModal()
+                doCreateProject()
+              }}
+            >
+              <span className="text whitespace-nowrap font-semibold">New Project</span>
+            </button>
             <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
               {isCloud && (
                 <Button

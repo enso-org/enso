@@ -1735,11 +1735,20 @@ export default function AssetsTable(props: AssetsTableProps) {
         deleteAsset(event.key)
         break
       }
+      case AssetListEventType.emptyTrash: {
+        if (category !== Category.trash) {
+          toastAndLog('Can only empty trash when in Trash')
+        } else if (assetTree.children != null) {
+          const ids = new Set(assetTree.children.map(child => child.item.id))
+          // This is required to prevent an infinite loop,
+          window.setTimeout(() => {
+            dispatchAssetEvent({ type: AssetEventType.deleteForever, ids })
+          })
+        }
+        break
+      }
       case AssetListEventType.removeSelf: {
-        dispatchAssetEvent({
-          type: AssetEventType.removeSelf,
-          id: event.id,
-        })
+        dispatchAssetEvent({ type: AssetEventType.removeSelf, id: event.id })
         break
       }
       case AssetListEventType.closeFolder: {
