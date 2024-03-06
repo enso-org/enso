@@ -54,8 +54,6 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         }}
         onSubmit={event => {
           event.preventDefault()
-          // Consider not calling `onSubmit()` here to make it harder to accidentally
-          // delete an important asset.
           onSubmit()
         }}
       >

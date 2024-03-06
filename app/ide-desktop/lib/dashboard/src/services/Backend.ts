@@ -1079,7 +1079,7 @@ export default abstract class Backend {
     title: string | null
   ): Promise<void>
   /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, title: string | null): Promise<void>
+  abstract deleteAsset(assetId: AssetId, force: boolean, title: string | null): Promise<void>
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */

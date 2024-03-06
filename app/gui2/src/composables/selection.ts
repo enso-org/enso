@@ -1,13 +1,12 @@
 /** @file A Vue composable for keeping track of selected DOM elements. */
-
 import { selectionMouseBindings } from '@/bindings'
 import { useEvent, usePointer } from '@/composables/events'
-import type { NavigatorComposable } from '@/composables/navigator'
 import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
+import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, reactive, ref, shallowRef, watch, type Ref } from 'vue'
+import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
@@ -72,7 +71,7 @@ export function useSelection<T>(
     add: execAdd,
     remove: execRemove,
     toggle() {
-      const numCommon = countCommonInSets(initiallySelected, elementsToSelect.value)
+      const numCommon = intersectionSize(initiallySelected, elementsToSelect.value)
       const adding = numCommon * 2 <= elementsToSelect.value.size
       if (adding) execAdd()
       else execRemove()
@@ -149,31 +148,12 @@ export function useSelection<T>(
     },
     deselectAll: () => selected.clear(),
     isSelected: (element: T) => selected.has(element),
+    isChanging: computed(() => anchor.value != null),
     setSelection,
     handleSelectionOf,
     hoveredNode,
     hoveredPort,
     mouseHandler: selectionEventHandler,
     events: pointer.events,
-  })
-}
-
-function countCommonInSets(a: Set<unknown>, b: Set<unknown>): number {
-  let count = 0
-  for (const item of a) count += +b.has(item)
-  return count
-}
-
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-  test.each`
-    left         | right        | expected
-    ${[]}        | ${[]}        | ${0}
-    ${[3]}       | ${[]}        | ${0}
-    ${[]}        | ${[3]}       | ${0}
-    ${[3]}       | ${[3]}       | ${1}
-    ${[1, 2, 3]} | ${[2, 3, 4]} | ${2}
-  `('Count common in sets $left and $right', ({ left, right, expected }) => {
-    expect(countCommonInSets(new Set(left), new Set(right))).toBe(expected)
   })
 }

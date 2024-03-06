@@ -4,7 +4,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
-  makeCon,
+  makeConstructor,
   makeFunction,
   makeLocal,
   makeMethod,
@@ -184,7 +184,7 @@ const baseCases: ApplySuggestionCase[] = [
   },
   {
     code: '',
-    suggestion: makeCon('local.Project.Main.Option.Some'),
+    suggestion: makeConstructor('local.Project.Main.Option.Some'),
     expected: 'Option.Some ',
   },
   {
@@ -287,11 +287,14 @@ test.each([
   ({ code, cursorPos, suggestion, expected, expectedCursorPos }) => {
     cursorPos = cursorPos ?? code.length
     expectedCursorPos = expectedCursorPos ?? expected.length
+    const db = new SuggestionDb()
+    const dummyId = 1
+    db.set(dummyId, suggestion)
     const graphMock = GraphDb.Mock()
-    const input = useComponentBrowserInput(graphMock, new SuggestionDb())
+    const input = useComponentBrowserInput(graphMock, db)
     input.code.value = code
     input.selection.value = { start: cursorPos, end: cursorPos }
-    input.applySuggestion(suggestion)
+    input.applySuggestion(dummyId)
     expect(input.code.value).toEqual(expected)
     expect(input.selection.value).toStrictEqual({
       start: expectedCursorPos,
@@ -350,13 +353,12 @@ test.each([
     const db = new SuggestionDb()
     db.set(1, makeModule('Standard.Base'))
     db.set(2, makeType('Standard.Base.Table'))
-    db.set(3, makeCon('Standard.Base.Table.new'))
+    db.set(3, makeConstructor('Standard.Base.Table.new'))
     const graphMock = GraphDb.Mock(undefined, db)
     const input = useComponentBrowserInput(graphMock, db)
     input.code.value = initialCode
     input.selection.value = { start: initialCode.length, end: initialCode.length }
-    const suggestion = db.get(suggestionId)!
-    input.applySuggestion(suggestion)
+    input.applySuggestion(suggestionId)
     if (manuallyEditedCode != null) {
       input.code.value = manuallyEditedCode
     }

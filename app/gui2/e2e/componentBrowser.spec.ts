@@ -133,7 +133,7 @@ test('Filling input with suggestions', async ({ page }) => {
   )
 
   // Applying suggestion
-  page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
   await customExpect.toExist(locate.componentBrowser(page))
   await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue(
     'Standard.Base.Data.read ',

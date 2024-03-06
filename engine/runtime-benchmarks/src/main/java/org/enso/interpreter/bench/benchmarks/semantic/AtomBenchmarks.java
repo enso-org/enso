@@ -1,13 +1,9 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
-import java.nio.file.Paths;
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import org.enso.interpreter.bench.Utils;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -59,9 +55,28 @@ public class AtomBenchmarks {
       import Standard.Base.Data.Numbers
 
       main = length ->
-          generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
+          qualified_generator = acc -> i -> if i == 0 then acc else
+              @Tail_Call qualified_generator (List.Cons i acc) (i - 1)
 
-          res = generator List.Nil length
+          res = qualified_generator List.Nil length
+          res
+      """;
+
+  private static final String GENERATE_LIST_AUTOSCOPING_CODE =
+      """
+      import Standard.Base.Data.List.List
+      import Standard.Base.Data.Numbers
+      import Standard.Base.Data.Numbers.Integer
+
+      main = length ->
+          autoscoped_generator x i:Integer =
+              acc = x:List
+              if i == 0 then acc else
+                c = ..Cons i acc
+                i1 = i - 1
+                @Tail_Call autoscoped_generator c i1
+
+          res = autoscoped_generator ..Nil length
           res
       """;
   private static final String REVERSE_LIST_CODE =
@@ -174,6 +189,7 @@ public class AtomBenchmarks {
   private Value millionElementsList;
   private Value generateList;
   private Value generateListQualified;
+  private Value generateListAutoscoping;
   private Value reverseList;
   private Value reverseListMethods;
   private Value sumList;
@@ -184,31 +200,54 @@ public class AtomBenchmarks {
   private Value mapReverseListCurry;
 
   @Setup
-  public void initializeBenchmarks(BenchmarkParams params) {
-    this.context =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
+  public void initializeBenchmarks(BenchmarkParams params) throws IOException {
+    this.context = SrcUtil.newContextBuilder().build();
 
-    var millionElemListMethod = Utils.getMainMethod(context, MILLION_ELEMENT_LIST);
+    var millionElemListMethod = mainMethod(context, "millionElementList", MILLION_ELEMENT_LIST);
     this.millionElementsList = millionElemListMethod.execute();
-    this.generateList = Utils.getMainMethod(context, GENERATE_LIST_CODE);
-    this.generateListQualified = Utils.getMainMethod(context, GENERATE_LIST_QUALIFIED_CODE);
-    this.reverseList = Utils.getMainMethod(context, REVERSE_LIST_CODE);
-    this.reverseListMethods = Utils.getMainMethod(context, REVERSE_LIST_METHODS_CODE);
-    this.sumList = Utils.getMainMethod(context, SUM_LIST_CODE);
-    this.sumListLeftFold = Utils.getMainMethod(context, SUM_LIST_LEFT_FOLD_CODE);
-    this.sumListFallback = Utils.getMainMethod(context, SUM_LIST_FALLBACK_CODE);
-    this.sumListMethods = Utils.getMainMethod(context, SUM_LIST_METHODS_CODE);
-    this.mapReverseList = Utils.getMainMethod(context, MAP_REVERSE_LIST_CODE);
-    this.mapReverseListCurry = Utils.getMainMethod(context, MAP_REVERSE_LIST_CURRY_CODE);
+
+    var lastDot = params.getBenchmark().lastIndexOf('.');
+    var name = params.getBenchmark().substring(lastDot + 1);
+    switch (name) {
+      case "benchGenerateList" -> {
+        this.generateList = mainMethod(context, name, GENERATE_LIST_CODE);
+      }
+      case "benchGenerateListQualified" -> {
+        this.generateListQualified = mainMethod(context, name, GENERATE_LIST_QUALIFIED_CODE);
+      }
+      case "benchGenerateListAutoscoping" -> {
+        this.generateListAutoscoping = mainMethod(context, name, GENERATE_LIST_AUTOSCOPING_CODE);
+      }
+      case "benchReverseList" -> {
+        this.reverseList = mainMethod(context, name, REVERSE_LIST_CODE);
+      }
+      case "benchReverseListMethods" -> {
+        this.reverseListMethods = mainMethod(context, name, REVERSE_LIST_METHODS_CODE);
+      }
+      case "benchSumList" -> {
+        this.sumList = mainMethod(context, name, SUM_LIST_CODE);
+      }
+      case "benchSumListLeftFold" -> {
+        this.sumListLeftFold = mainMethod(context, name, SUM_LIST_LEFT_FOLD_CODE);
+      }
+      case "benchSumListFallback" -> {
+        this.sumListFallback = mainMethod(context, name, SUM_LIST_FALLBACK_CODE);
+      }
+      case "benchSumListMethods" -> {
+        this.sumListMethods = mainMethod(context, name, SUM_LIST_METHODS_CODE);
+      }
+      case "benchMapReverseList" -> {
+        this.mapReverseList = mainMethod(context, name, MAP_REVERSE_LIST_CODE);
+      }
+      case "benchMapReverseListCurry" -> {
+        this.mapReverseListCurry = mainMethod(context, name, MAP_REVERSE_LIST_CURRY_CODE);
+      }
+      default -> throw new IllegalArgumentException(name);
+    }
+  }
+
+  private static Value mainMethod(Context context, String name, String code) throws IOException {
+    return SrcUtil.getMainMethod(context, name, code);
   }
 
   @Benchmark
@@ -220,6 +259,12 @@ public class AtomBenchmarks {
   @Benchmark
   public void benchGenerateListQualified(Blackhole bh) {
     var res = generateListQualified.execute(MILLION);
+    bh.consume(res);
+  }
+
+  @Benchmark
+  public void benchGenerateListAutoscoping(Blackhole bh) {
+    var res = generateListAutoscoping.execute(MILLION);
     bh.consume(res);
   }
 
@@ -245,7 +290,7 @@ public class AtomBenchmarks {
   }
 
   @Benchmark
-  public void sumListLeftFold(Blackhole bh) {
+  public void benchSumListLeftFold(Blackhole bh) {
     var res = sumListLeftFold.execute(millionElementsList);
     if (!res.fitsInLong()) {
       throw new AssertionError("Should return a number");
@@ -278,7 +323,7 @@ public class AtomBenchmarks {
   }
 
   @Benchmark
-  public void benchMapReverseCurryList(Blackhole bh) {
+  public void benchMapReverseListCurry(Blackhole bh) {
     var res = mapReverseListCurry.execute(millionElementsList);
     bh.consume(res);
   }
