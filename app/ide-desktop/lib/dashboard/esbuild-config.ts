@@ -34,7 +34,7 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 // === Global setup ===
 // ====================
 
-await env.loadEnv()
+await env.readEnvironmentFromFile()
 
 // =============================
 // === Environment variables ===

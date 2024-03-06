@@ -6,7 +6,7 @@ import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
-import { loadEnv } from '../ide-desktop/lib/dashboard/env'
+import { readEnvironmentFromFile } from '../ide-desktop/lib/dashboard/env'
 import { globals } from '../ide-desktop/lib/dashboard/globals'
 // @ts-expect-error
 import * as tailwindConfig from 'enso-dashboard/tailwind.config'
@@ -16,7 +16,7 @@ const projectManagerUrl = 'ws://127.0.0.1:30535'
 
 const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
 
-await loadEnv()
+await readEnvironmentFromFile()
 
 // https://vitejs.dev/config/
 export default defineConfig({

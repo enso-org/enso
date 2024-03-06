@@ -14,7 +14,7 @@ import * as globals from './globals'
 // === Configuration ===
 // =====================
 
-await env.loadEnv()
+await env.readEnvironmentFromFile()
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export default vite.defineConfig(viteEnv => {

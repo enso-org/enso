@@ -11,7 +11,7 @@ import * as paths from './paths'
 // === Global setup ===
 // ====================
 
-await env.loadEnv()
+await env.readEnvironmentFromFile()
 
 // ================
 // === Bundling ===
