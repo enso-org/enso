@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 
 import project.Excel.Excel_Range.Excel_Range
