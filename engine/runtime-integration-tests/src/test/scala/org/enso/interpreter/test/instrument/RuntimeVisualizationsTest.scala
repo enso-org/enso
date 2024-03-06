@@ -1331,21 +1331,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
 
     context.send(
       Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(4, 8), model.Position(4, 9)),
-              "7"
-            )
-          ),
-          execute = true
-        )
-      )
-    )
-
-    context.send(
-      Api.Request(
         requestId,
         Api.AttachVisualization(
           visualizationId2,
@@ -1359,6 +1344,21 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             ),
             "Enso_Test.Test.Visualization"
           )
+        )
+      )
+    )
+
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(4, 8), model.Position(4, 9)),
+              "7"
+            )
+          ),
+          execute = true
         )
       )
     )
