@@ -15,6 +15,8 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.File
 import project.System.File.File_Access.File_Access
+import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.Input_Stream.Input_Stream
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
@@ -191,7 +193,7 @@ type XML_Document
     outer_xml : Text ! XML_Error
     outer_xml self =
         XML_Error.handle_java_exceptions <|
-            XML_Utils.outerXML self.java_document
+            XML_Utils.outerXML self.java_document Boolean.False Boolean.False
 
     ## Gets the raw XML of the document.
 
@@ -204,6 +206,12 @@ type XML_Document
     inner_xml self =
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_document
+
+    write : Writable_File -> Existing_File_Behavior -> File
+    write self path:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+        XML_Error.handle_java_exceptions <|
+            s = XML_Utils.outerXML self.java_document Boolean.True Boolean.True
+            s.write path on_existing_file
 
     ## GROUP Selections
        Gets the child elements of an XML document.
@@ -480,7 +488,7 @@ type XML_Element
     outer_xml : Text ! XML_Error
     outer_xml self =
         XML_Error.handle_java_exceptions <|
-            XML_Utils.outerXML self.java_element
+            XML_Utils.outerXML self.java_element Boolean.False Boolean.False
 
     ## Gets the raw XML of the contents of the element, not including the
        outermost tag and attributes.
