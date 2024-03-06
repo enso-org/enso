@@ -625,6 +625,7 @@
 - [Added `Data.download` and a few other changes.][9249]
 - [Implement Data Links to Postgres (accessing a DB connection or a table
   directly)][9269]
+- [Added `Xml_Document.write`][9299]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -905,6 +906,7 @@
 [9233]: https://github.com/enso-org/enso/pull/9233
 [9249]: https://github.com/enso-org/enso/pull/9249
 [9269]: https://github.com/enso-org/enso/pull/9269
+[9299]: https://github.com/enso-org/enso/pull/9299
 
 #### Enso Compiler
 
