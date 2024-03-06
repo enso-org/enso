@@ -580,11 +580,7 @@ final class SuggestionBuilder[A: IndexedSource](
           case varg +: vtail =>
             targs match {
               case targ +: ttail =>
-                go(
-                  vtail,
-                  ttail,
-                  acc :+ buildTypedArgument(varg, targ)
-                )
+                go(vtail, ttail, acc :+ buildTypedArgument(varg, targ))
               case _ =>
                 go(vtail, targs, acc :+ buildArgument(varg))
             }
@@ -617,11 +613,7 @@ final class SuggestionBuilder[A: IndexedSource](
           case varg +: vtail =>
             targs match {
               case targ +: ttail =>
-                go(
-                  vtail,
-                  ttail,
-                  acc :+ buildTypedArgument(varg, targ)
-                )
+                go(vtail, ttail, acc :+ buildTypedArgument(varg, targ))
               case _ =>
                 go(vtail, targs, acc :+ buildArgument(varg))
             }
@@ -653,12 +645,12 @@ final class SuggestionBuilder[A: IndexedSource](
   /** Build tag values of type argument.
     *
     * @param targ the type argument
-    * @param isTypeAscription if the type ascription was used in type definition
+    * @param hasTypeAscription if the type ascription was used in type definition
     * @return the list of tag values
     */
   private def buildTagValues(
     targ: TypeArg,
-    isTypeAscription: Boolean
+    hasTypeAscription: Boolean
   ): Option[Seq[String]] = {
     def mkUnqualified(name: QualifiedName): String =
       name.item
@@ -677,9 +669,9 @@ final class SuggestionBuilder[A: IndexedSource](
 
     targ match {
       case s: TypeArg.Sum =>
-        val tagItems = go(s, isTypeAscription)
+        val tagItems = go(s, hasTypeAscription)
         val canUseAutoScope =
-          isTypeAscription && tagItems.distinct.length == tagItems.length
+          hasTypeAscription && tagItems.distinct.length == tagItems.length
         val tagValues =
           if (canUseAutoScope) tagItems.map(mkAutoScopeCall)
           else go(s, useAutoScope = false)
