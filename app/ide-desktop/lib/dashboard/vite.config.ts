@@ -6,7 +6,6 @@ import vitePluginReact from '@vitejs/plugin-react'
 import * as vite from 'vite'
 
 import * as common from 'enso-common'
-
 import * as appConfig from 'enso-common/src/appConfig'
 
 // =====================

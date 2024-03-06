@@ -129,16 +129,16 @@ pub mod env {
         ENSO_CLOUD_STRIPE_KEY, String;
 
         /// The ID of the Amplify user pool for authentication.
-        ENSO_CLOUD_AMPLIFY_USER_POOL_ID, String;
+        ENSO_CLOUD_COGNITO_USER_POOL_ID, String;
 
         /// The client-side key for the Amplify user pool.
-        ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID, String;
+        ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID, String;
 
         /// The domain for Amplify requests.
-        ENSO_CLOUD_AMPLIFY_DOMAIN, String;
+        ENSO_CLOUD_COGNITO_DOMAIN, String;
 
         /// The AWS region for Amplify configuration, matching the domain region.
-        ENSO_CLOUD_AMPLIFY_REGION, String;
+        ENSO_CLOUD_COGNITO_REGION, String;
     }
 }
 

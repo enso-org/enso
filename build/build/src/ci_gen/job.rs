@@ -119,10 +119,10 @@ pub fn expose_cloud_vars(step: Step) -> Step {
         .with_variable_exposed(ENSO_CLOUD_CHAT_URL)
         .with_variable_exposed(ENSO_CLOUD_SENTRY_DSN)
         .with_variable_exposed(ENSO_CLOUD_STRIPE_KEY)
-        .with_variable_exposed(ENSO_CLOUD_AMPLIFY_USER_POOL_ID)
-        .with_variable_exposed(ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID)
-        .with_variable_exposed(ENSO_CLOUD_AMPLIFY_DOMAIN)
-        .with_variable_exposed(ENSO_CLOUD_AMPLIFY_REGION)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_ID)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_DOMAIN)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_REGION)
 }
 
 #[derive(Clone, Copy, Debug)]
