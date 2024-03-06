@@ -1,4 +1,4 @@
-package org.enso.base.numeric;
+package org.enso.base_test_helpers;
 
 public class Number_Utils {
   // For testing only.

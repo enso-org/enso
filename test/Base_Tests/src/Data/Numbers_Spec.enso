@@ -12,7 +12,7 @@ import project.Data.Round_Spec
 
 polyglot java import java.math.BigInteger
 polyglot java import java.math.BigDecimal
-polyglot java import org.enso.base.numeric.Number_Utils
+polyglot java import org.enso.base_test_helpers.Number_Utils
 
 Integer.is_even self = self % 2 == 0
 
