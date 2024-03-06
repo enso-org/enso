@@ -38,10 +38,10 @@ These are environment variables related to the cloud backend. If these variables
 are not set, the build will still work, however access to the cloud backend will
 be disabled.
 
-Note that `ENSO_CLOUD_ENV` may be set to instead load the files from a `.env`
-file. If `ENSO_CLOUD_ENV` is not set, or it is `production`, then variables are
-attempted to be read from `.env`. If it is set to any other value (say, `foo`),
-then it is loaded from `.foo.env`.
+Note that `ENSO_CLOUD_ENVIRONMENT` may be set to instead load the files from a
+`.env` file. If `ENSO_CLOUD_ENVIRONMENT` is not set, or it is `production`,
+then variables are attempted to be read from `.env`. If it is set to any other
+value (say, `foo`), then it is loaded from `.foo.env`.
 
 (While the convention in the Node.js ecosystem is to name the variants like
 `.env.foo`, `.foo.env` has been chosen here because `.env` should be more like
