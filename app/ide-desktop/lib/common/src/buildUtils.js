@@ -15,38 +15,38 @@ export const INDENT_SIZE = 4
 // ===================
 
 /** Get the environment variable value.
- * @param name - The name of the environment variable.
- * @returns The value of the environment variable.
+ * @param {string} name - The name of the environment variable.
+ * @returns {string} The value of the environment variable.
  * @throws {Error} If the environment variable is not set. */
-export function requireEnv(name: string) {
-    return (
-        // This evaluates to `never` because of the index signature.
-        // eslint-disable-next-line no-restricted-syntax
-        (process.env[name] as string | undefined) ??
-        (() => {
-            throw Error(`Missing ${name} environment variable.`)
-        })()
-    )
+export function requireEnv(name) {
+    const value = process.env[name]
+    if (value == null) {
+        throw new Error(`Could not find the environment variable '${name}'.`)
+    } else {
+        return value
+    }
 }
 
 /** Read the path from environment variable and resolve it.
- * @param name - The name of the environment variable.
- * @returns The resolved path.
+ * @param {string} name - The name of the environment variable.
+ * @returns {string} The resolved path.
  * @throws {Error} If the environment variable is not set. */
-export function requireEnvResolvedPath(name: string) {
+export function requireEnvResolvedPath(name) {
     return path.resolve(requireEnv(name))
 }
 
 /** Read the path from environment variable and resolve it. Verify that it exists.
- * @param name - The name of the environment variable.
- * @returns The resolved path.
+ * @param {string} name - The name of the environment variable.
+ * @returns {string} The resolved path.
  * @throws {Error} If the environment variable is not set or path does not exist. */
-export function requireEnvPathExist(name: string) {
+export function requireEnvPathExist(name) {
     const value = requireEnv(name)
     if (fs.existsSync(value)) {
         return value
     } else {
-        throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
+        throw Error(
+            `Could not find the file at '${value}' defined by the environment variable '${name}'.`
+        )
     }
 }
 
@@ -54,8 +54,11 @@ export function requireEnvPathExist(name: string) {
 // === String Helpers ===
 // ======================
 
-/** Get the common prefix of the two strings. */
-export function getCommonPrefix(a: string, b: string): string {
+/** Get the common prefix of the two strings.
+ * @param {string} a - the first string.
+ * @param {string} b - the second string.
+ * @returns {string} The common prefix. */
+export function getCommonPrefix(a, b) {
     let i = 0
     while (i < a.length && i < b.length && a[i] === b[i]) {
         i++

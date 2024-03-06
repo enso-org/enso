@@ -1,14 +1,6 @@
 {
   "extends": "../../tsconfig.json",
-  "include": [
-    "../types",
-    ".",
-    "./**/*.json",
-    "../../utils.ts",
-    ".prettierrc.cjs",
-    "../common/src/env.js",
-    "../common/src/appConfig.js"
-  ],
+  "include": ["../types", ".", "./**/*.json", ".prettierrc.cjs"],
   "exclude": ["./dist"],
   "compilerOptions": {
     "composite": true,

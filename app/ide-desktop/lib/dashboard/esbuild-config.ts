@@ -20,8 +20,8 @@ import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
 import * as appConfig from 'enso-common/src/appConfig'
+import * as buildUtils from 'enso-common/src/buildUtils'
 
-import * as utils from '../../utils'
 import * as tailwindConfig from './tailwind.config'
 
 // =================
@@ -48,7 +48,7 @@ export interface Arguments {
 
 /** Get arguments from the environment. */
 export function argumentsFromEnv(): Arguments {
-  const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
+  const outputPath = path.resolve(buildUtils.requireEnv('ENSO_BUILD_GUI'), 'assets')
   return { outputPath }
 }
 

@@ -4,14 +4,14 @@ import * as path from 'node:path'
 import type * as esbuild from 'esbuild'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as env from '../common/src/env'
+import * as appConfig from 'enso-common/src/appConfig'
 import * as paths from './paths'
 
 // ====================
 // === Global setup ===
 // ====================
 
-await env.readEnvironmentFromFile()
+await appConfig.readEnvironmentFromFile()
 
 // ================
 // === Bundling ===

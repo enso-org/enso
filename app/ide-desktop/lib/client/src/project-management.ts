@@ -17,10 +17,11 @@ import * as electron from 'electron'
 import * as tar from 'tar'
 
 import * as common from 'enso-common'
+import * as buildUtils from 'enso-common/src/buildUtils'
 import * as config from 'enso-content-config'
+
+import * as paths from 'paths'
 import * as fileAssociations from '../file-associations'
-import * as paths from './paths'
-import * as utils from '../../../utils'
 
 const logger = config.logger
 
@@ -228,7 +229,7 @@ export function getMetadata(projectRoot: string): ProjectMetadata | null {
 export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
     const metadataPath = pathModule.join(projectRoot, paths.PROJECT_METADATA_RELATIVE)
     fs.mkdirSync(pathModule.dirname(metadataPath), { recursive: true })
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, utils.INDENT_SIZE))
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, buildUtils.INDENT_SIZE))
 }
 
 /** Update the project's metadata.
@@ -271,7 +272,8 @@ export function prefixInBundle(bundlePath: string): string | null {
         sync: true,
         onentry: entry => {
             const path = entry.path
-            commonPrefix = commonPrefix == null ? path : utils.getCommonPrefix(commonPrefix, path)
+            commonPrefix =
+                commonPrefix == null ? path : buildUtils.getCommonPrefix(commonPrefix, path)
         },
     })
 

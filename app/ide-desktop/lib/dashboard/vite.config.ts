@@ -7,7 +7,7 @@ import * as vite from 'vite'
 
 import * as common from 'enso-common'
 
-import * as appConfig from '../common/src/appConfig'
+import * as appConfig from 'enso-common/src/appConfig'
 
 // =====================
 // === Configuration ===

@@ -21,7 +21,7 @@ import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
 import * as appConfig from 'enso-common/src/appConfig'
-import * as utils from '../../utils'
+import * as buildUtils from 'enso-common/src/buildUtils'
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =================
@@ -62,9 +62,9 @@ export interface Arguments extends PassthroughArguments {
 
 /** Get arguments from the environment. */
 export function argumentsFromEnv(passthroughArguments: PassthroughArguments): Arguments {
-    const wasmArtifacts = utils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
-    const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
-    const outputPath = pathModule.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
+    const wasmArtifacts = buildUtils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
+    const assetsPath = buildUtils.requireEnv('ENSO_BUILD_GUI_ASSETS')
+    const outputPath = pathModule.resolve(buildUtils.requireEnv('ENSO_BUILD_GUI'), 'assets')
     return { ...passthroughArguments, wasmArtifacts, assetsPath, outputPath }
 }
 
