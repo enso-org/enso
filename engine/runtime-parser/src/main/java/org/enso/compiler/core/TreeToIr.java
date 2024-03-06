@@ -609,7 +609,7 @@ final class TreeToIr {
     );
   }
 
-  private Expression translateCall(Tree ast, boolean isMethod) {
+  private Expression translateCall(Tree ast, boolean isMethod) throws SyntaxException {
     var args = new java.util.ArrayList<CallArgument>();
     var hasDefaultsSuspended = false;
     var tree = ast;
@@ -670,6 +670,16 @@ final class TreeToIr {
               var loc = getIdentifiedLocation(oprApp.getLhs());
               args.add(new CallArgument.Specified(Option.empty(), self, loc, meta(), diag()));
             }
+          } else if (tree instanceof Tree.OprApp oprApp
+                  && isDotDotOperator(oprApp.getOpr().getRight())
+                  && oprApp.getRhs() instanceof Tree.Ident ident) {
+              var methodName = buildName(ident);
+              func = new Name.MethodReference(
+                Option.empty(),
+                methodName,
+                methodName.location(),
+                meta(), diag()
+              );
           } else if (args.isEmpty()) {
             return null;
           } else {
@@ -1030,16 +1040,6 @@ final class TreeToIr {
           }
           case null -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("Strange unary -"));
         };
-      case Tree.UnaryOprApp un when "~".equals(un.getOpr().codeRepr()) -> {
-        var methodName = buildName(un.getRhs());
-        var methodRef = new Name.MethodReference(
-          Option.empty(),
-          methodName,
-          methodName.location(),
-          meta(), diag()
-        );
-        yield methodRef;
-      }
       case Tree.TypeSignature sig -> {
         var methodName = buildName(sig.getVariable());
         var methodReference = new CallArgument.Specified(
@@ -1878,6 +1878,10 @@ final class TreeToIr {
 
   private static boolean isDotOperator(Token.Operator op) {
     return op != null && ".".equals(op.codeRepr());
+  }
+
+  private static boolean isDotDotOperator(Token.Operator op) {
+    return op != null && "..".equals(op.codeRepr());
   }
 
   private static Tree maybeManyParensed(Tree t) {
