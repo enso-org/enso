@@ -567,6 +567,11 @@ spec_write suite_builder suffix test_sheet_name =
                 t4 = w2.read "EnsoSheet" headers=True
                 t4.should_equal t2
 
+            # And finally test appending:
+            (Table.new [["Z", ["a", "b"]]]).write out on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+            (Table.new [["Z", ["c", "d"]]]).write out on_existing_file=Existing_File_Behavior.Append . should_succeed
+            w2.read "EnsoSheet" headers=True . should_equal (Table.new [["Z", ["a", "b", "c", "d"]]])
+
             workbook.close
             w2.close
 

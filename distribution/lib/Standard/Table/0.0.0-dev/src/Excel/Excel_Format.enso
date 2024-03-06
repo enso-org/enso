@@ -167,7 +167,9 @@ xls_format_from_metadata (metadata : File_Format_Metadata) =
    Converts this format to a corresponding `Excel_Section`.
 as_section (format : Excel_Format) -> Excel_Section = case format of
     Excel_Format.Workbook _ default_sheet ->
-        Excel_Section.Worksheet default_sheet
+        ## This case is only used for when writing to the workbook.
+           This results in writing to the default sheet, and we always write headers (ignored with append).
+        Excel_Section.Worksheet default_sheet headers=True
     Excel_Format.Sheet sheet headers skip_rows row_limit _ ->
         Excel_Section.Worksheet sheet headers skip_rows row_limit
     Excel_Format.Range address headers skip_rows row_limit _ ->
