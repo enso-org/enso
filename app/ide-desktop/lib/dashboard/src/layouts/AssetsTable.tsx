@@ -960,101 +960,80 @@ export default function AssetsTable(props: AssetsTableProps) {
   asyncEffectHooks.useAsyncEffect(
     null,
     async signal => {
-      switch (backend.type) {
-        case backendModule.BackendType.local: {
-          const newAssets = await backend.listDirectory(
-            {
-              parentId: null,
-              filterBy: CATEGORY_TO_FILTER_BY[category],
-              recentProjects: category === Category.recent,
-              labels: null,
-            },
-            null
-          )
-          if (!signal.aborted) {
-            setIsLoading(false)
-            overwriteNodes(newAssets)
-          }
-          break
+      const queuedDirectoryListings = new Map<backendModule.AssetId, backendModule.AnyAsset[]>()
+      const withChildren = (node: AssetTreeNode): AssetTreeNode => {
+        const queuedListing = queuedDirectoryListings.get(node.item.id)
+        if (queuedListing == null || !backendModule.assetIsDirectory(node.item)) {
+          return node
+        } else {
+          const directoryAsset = node.item
+          const depth = node.depth + 1
+          return node.with({
+            children: queuedListing.map(asset =>
+              withChildren(
+                AssetTreeNode.fromAsset(asset, directoryAsset.id, directoryAsset.id, depth)
+              )
+            ),
+          })
         }
-        case backendModule.BackendType.remote: {
-          const queuedDirectoryListings = new Map<backendModule.AssetId, backendModule.AnyAsset[]>()
-          const withChildren = (node: AssetTreeNode): AssetTreeNode => {
-            const queuedListing = queuedDirectoryListings.get(node.item.id)
-            if (queuedListing == null || !backendModule.assetIsDirectory(node.item)) {
-              return node
-            } else {
-              const directoryAsset = node.item
-              const depth = node.depth + 1
-              return node.with({
-                children: queuedListing.map(asset =>
-                  withChildren(
-                    AssetTreeNode.fromAsset(asset, directoryAsset.id, directoryAsset.id, depth)
-                  )
-                ),
-              })
-            }
-          }
-          for (const entry of nodeMapRef.current.values()) {
-            if (backendModule.assetIsDirectory(entry.item) && entry.children != null) {
-              const id = entry.item.id
-              void backend
-                .listDirectory(
-                  {
-                    parentId: id,
-                    filterBy: CATEGORY_TO_FILTER_BY[category],
-                    recentProjects: category === Category.recent,
-                    labels: null,
-                  },
-                  entry.item.title
-                )
-                .then(
-                  assets => {
-                    setAssetTree(oldTree => {
-                      let found = signal.aborted
-                      const newTree = signal.aborted
-                        ? oldTree
-                        : oldTree.map(oldAsset => {
-                            if (oldAsset.key === entry.key) {
-                              found = true
-                              return withChildren(oldAsset)
-                            } else {
-                              return oldAsset
-                            }
-                          })
-                      if (!found) {
-                        queuedDirectoryListings.set(entry.key, assets)
-                      }
-                      return newTree
-                    })
-                  },
-                  error => {
-                    toastAndLog(null, error)
-                  }
-                )
-            }
-          }
-          try {
-            const newAssets = await backend.listDirectory(
+      }
+      for (const entry of nodeMapRef.current.values()) {
+        if (backendModule.assetIsDirectory(entry.item) && entry.children != null) {
+          const id = entry.item.id
+          void backend
+            .listDirectory(
               {
-                parentId: null,
+                parentId: id,
                 filterBy: CATEGORY_TO_FILTER_BY[category],
                 recentProjects: category === Category.recent,
                 labels: null,
               },
-              null
+              entry.item.title
             )
-            if (!signal.aborted) {
-              setIsLoading(false)
-              overwriteNodes(newAssets)
-            }
-          } catch (error) {
-            if (!signal.aborted) {
-              setIsLoading(false)
-              toastAndLog(null, error)
-            }
-          }
-          break
+            .then(
+              assets => {
+                setAssetTree(oldTree => {
+                  let found = signal.aborted
+                  const newTree = signal.aborted
+                    ? oldTree
+                    : oldTree.map(oldAsset => {
+                        if (oldAsset.key === entry.key) {
+                          found = true
+                          return withChildren(oldAsset)
+                        } else {
+                          return oldAsset
+                        }
+                      })
+                  if (!found) {
+                    queuedDirectoryListings.set(entry.key, assets)
+                  }
+                  return newTree
+                })
+              },
+              error => {
+                toastAndLog(null, error)
+              }
+            )
+        }
+      }
+      try {
+        const newAssets = await backend.listDirectory(
+          {
+            parentId: null,
+            filterBy: CATEGORY_TO_FILTER_BY[category],
+            recentProjects: category === Category.recent,
+            labels: null,
+          },
+          null
+        )
+        if (!signal.aborted) {
+          setIsLoading(false)
+          overwriteNodes(newAssets)
+        }
+      } catch (error) {
+        if (!signal.aborted) {
+          setIsLoading(false)
+          toastAndLog(null, error)
         }
       }
     },
