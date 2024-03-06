@@ -2,11 +2,13 @@
   "extends": "../../tsconfig.json",
   "include": [
     "src",
+    "e2e",
     "../types",
     "./**/*.json",
     "../../utils.ts",
     ".prettierrc.cjs",
-    "tailwind.config.js"
+    "*.js",
+    "*.ts"
   ],
   "exclude": ["./dist"],
   "compilerOptions": {
