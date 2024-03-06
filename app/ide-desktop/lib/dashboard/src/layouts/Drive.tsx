@@ -191,6 +191,10 @@ export default function Drive(props: DriveProps) {
     ]
   )
 
+  const doEmptyTrash = React.useCallback(() => {
+    dispatchAssetListEvent({ type: AssetListEventType.emptyTrash })
+  }, [/* should never change */ dispatchAssetListEvent])
+
   const doCreateProject = React.useCallback(
     (
       templateId: string | null = null,
@@ -366,6 +370,7 @@ export default function Drive(props: DriveProps) {
             <DriveBar
               category={category}
               canDownloadFiles={canDownloadFiles}
+              doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
               doCreateDirectory={doCreateDirectory}

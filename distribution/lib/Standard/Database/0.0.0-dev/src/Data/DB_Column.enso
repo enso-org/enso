@@ -88,6 +88,7 @@ type DB_Column
 
     ## ALIAS metadata
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count

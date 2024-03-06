@@ -123,5 +123,8 @@ with_retries ~action =
                 if i % 10 == 0 then
                     IO.println "Still failing after "+i.to_text+" retries. ("+loc.to_display_text+")"
                 Thread.sleep (1000*sleep_time . floor)
-                @Tail_Call go (i+1)
+                ## TODO This used to be
+                        @Tail_Call go (i+1)
+                   We should re-add the tail call once https://github.com/enso-org/enso/issues/9251 is fixed.
+                go (i+1)
     go 1

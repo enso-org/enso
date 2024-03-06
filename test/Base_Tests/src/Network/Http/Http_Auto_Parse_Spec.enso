@@ -4,8 +4,9 @@ import Standard.Base.Errors.Encoding_Error.Encoding_Error
 
 import Standard.Base.Network.HTTP.Response.Response
 
-
 from Standard.Test import all
+
+from project.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
 
 main filter=Nothing =
     suite = Test.build suite_builder->
@@ -14,15 +15,6 @@ main filter=Nothing =
 
 
 add_specs suite_builder =
-    ## To run this test locally:
-       $ sbt 'http-test-helper/run localhost 8080'
-       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
-    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
-    pending_has_url = if base_url != Nothing then Nothing else
-        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
-    base_url_with_slash = base_url.if_not_nothing <|
-        if base_url.ends_with "/" then base_url else base_url + "/"
-
     suite_builder.group "Format Detection in HTTP Fetch" pending=pending_has_url group_builder->
         content_utf = '["x", "Hello! 😊👍 ąę"]'
         content_windows_1250 = '["y", "Hello! ąę"]'

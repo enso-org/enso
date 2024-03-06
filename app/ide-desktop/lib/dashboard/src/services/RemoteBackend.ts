@@ -457,8 +457,9 @@ export default class RemoteBackend extends Backend {
 
   /** Delete an arbitrary asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteAsset(assetId: backendModule.AssetId, title: string) {
-    const path = remoteBackendPaths.deleteAssetPath(assetId)
+  override async deleteAsset(assetId: backendModule.AssetId, force: boolean, title: string) {
+    const paramsString = new URLSearchParams([['force', String(force)]]).toString()
+    const path = remoteBackendPaths.deleteAssetPath(assetId) + '?' + paramsString
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'deleteAssetBackendError', title)

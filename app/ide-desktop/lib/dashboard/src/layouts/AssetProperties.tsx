@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
-import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
-
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -14,24 +12,18 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as assetEvent from '#/events/assetEvent'
 
 import type Category from '#/layouts/CategorySwitcher/Category'
-import DataLinkInput from '#/layouts/DataLinkInput'
 
 import Button from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
+import DataLinkInput from '#/components/dashboard/DataLinkInput'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
-import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-
-// =================
-// === Constants ===
-// =================
-
-const DEFS: Record<string, object> = SCHEMA.$defs
+import * as validateDataLink from '#/utilities/validateDataLink'
 
 // =======================
 // === AssetProperties ===
@@ -62,7 +54,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   )
   const [isDataLinkFetched, setIsDataLinkFetched] = React.useState(false)
   const isDataLinkSubmittable = React.useMemo(
-    () => jsonSchema.isMatch(DEFS, SCHEMA.$defs.DataLink, dataLinkValue),
+    () => validateDataLink.validateDataLink(dataLinkValue),
     [dataLinkValue]
   )
   const setItem = React.useCallback(

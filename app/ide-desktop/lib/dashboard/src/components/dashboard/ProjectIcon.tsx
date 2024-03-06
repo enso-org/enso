@@ -233,6 +233,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -242,9 +243,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.addLabels:
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
-        // Ignored. Any missing project-related events should be handled by
-        // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
-        // and `downloadSelected` are handled by `AssetRow`.
+        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
       case AssetEventType.openProject: {

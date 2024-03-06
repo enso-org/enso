@@ -233,7 +233,7 @@ impl RunContext {
         ];
         for (argfile, artifact_name) in native_image_arg_files {
             if argfile.exists() {
-                ide_ci::actions::artifacts::upload_single_file(&argfile, artifact_name).await?;
+                ide_ci::actions::artifacts::upload_single_file(argfile, artifact_name).await?;
             } else {
                 warn!(
                     "Native Image Arg File for {} not found at {}",
@@ -356,7 +356,10 @@ impl RunContext {
             if self.config.build_launcher_package() {
                 tasks.push("buildLauncherDistribution");
             }
-            sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+
+            if !tasks.is_empty() {
+                sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+            }
         } else {
             // If we are run on a weak machine (like GH-hosted runner), we need to build things one
             // by one.

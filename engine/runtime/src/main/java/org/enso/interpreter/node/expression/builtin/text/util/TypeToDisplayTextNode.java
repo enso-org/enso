@@ -54,7 +54,12 @@ public final class TypeToDisplayTextNode extends Node {
         throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
       }
     } else {
-      return "a polyglot object";
+      try {
+        var res = iop.toDisplayString(value);
+        return iop.asString(res);
+      } catch (UnsupportedMessageException ex) {
+        return "a polyglot object";
+      }
     }
   }
 }

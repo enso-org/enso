@@ -800,24 +800,21 @@ add_specs suite_builder =
             f.delete
 
     suite_builder.group "folder operations" group_builder->
-        resolve files =
-            base = enso_project.data
-            files.map str->
-                (base / str) . to_text
-
         group_builder.specify "should check if file is a directory" <|
             sample_file.is_directory.should_be_false
             enso_project.root.is_directory.should_be_true
 
         group_builder.specify "should list files in a directory" <|
-            immediate = enso_project.data.list . map .to_text
-            immediate.sort.should_equal (resolve ["books.json", "helloworld.txt", "sample-json.weird-extension", "sample-malformed.json", "sample.json", "sample.png", "sample.txt", "sample.xxx", "transient", "tree", "windows.log", "windows.txt", 'xml'])
+            root = enso_project.data / "tree"
+            immediate = root.list.map .to_text . sort
+            expected = [root / "sample.csv", root / "sample.txt", root / "subdirectory"].map .to_text . sort
+            immediate.should_equal expected
 
-            filtered1 = enso_project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
-            filtered1.should_equal (resolve ["sample.txt"])
+            filtered1 = root.list name_filter="s[a-cw]mple.{t?t,md}"
+            filtered1.should_equal [root / "sample.txt"]
 
-            filtered2 = Data.list_directory enso_project.data name_filter="*re*" . map .to_text
-            filtered2.should_equal (resolve ["tree"])
+            filtered2 = Data.list_directory root name_filter="*di*"
+            filtered2.should_equal [root / "subdirectory"]
 
         group_builder.specify "should list files in a directory recursively" <|
             root = enso_project.data / "tree"

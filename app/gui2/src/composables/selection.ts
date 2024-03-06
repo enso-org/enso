@@ -2,12 +2,11 @@
 
 import { selectionMouseBindings } from '@/bindings'
 import { useEvent, usePointer } from '@/composables/events'
-import type { NavigatorComposable } from '@/composables/navigator'
 import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, reactive, ref, shallowRef, watch, type Ref } from 'vue'
+import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
@@ -149,6 +148,7 @@ export function useSelection<T>(
     },
     deselectAll: () => selected.clear(),
     isSelected: (element: T) => selected.has(element),
+    isChanging: computed(() => anchor.value != null),
     setSelection,
     handleSelectionOf,
     hoveredNode,

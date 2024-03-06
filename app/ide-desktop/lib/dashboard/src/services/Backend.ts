@@ -1061,7 +1061,7 @@ export default abstract class Backend {
   /** Change the parent directory of an asset. */
   abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string): Promise<void>
   /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, title: string): Promise<void>
+  abstract deleteAsset(assetId: AssetId, force: boolean, title: string): Promise<void>
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
   /** Copy an arbitrary asset to another directory. */
