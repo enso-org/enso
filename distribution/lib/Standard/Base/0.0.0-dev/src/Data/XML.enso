@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Boolean.Boolean
 import project.Data.Json.Extensions
 import project.Data.Json.JS_Object
 import project.Data.Map.Map
@@ -21,6 +20,7 @@ import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.Input_Stream.Input_Stream
 import project.System.File.Write_Extensions
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Metadata import make_single_choice, Widget
