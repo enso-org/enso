@@ -233,51 +233,54 @@ export default function AssetRow(props: AssetRowProps) {
     /* should never change */ setIsAssetPanelTemporarilyVisible,
   ])
 
-  const doDelete = React.useCallback(async () => {
-    setInsertionVisibility(Visibility.hidden)
-    if (asset.type === backendModule.AssetType.directory) {
-      dispatchAssetListEvent({
-        type: AssetListEventType.closeFolder,
-        id: asset.id,
-        // This is SAFE, as this asset is already known to be a directory.
-        // eslint-disable-next-line no-restricted-syntax
-        key: item.key as backendModule.DirectoryId,
-      })
-    }
-    try {
-      dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
-      if (
-        asset.type === backendModule.AssetType.project &&
-        backend.type === backendModule.BackendType.local
-      ) {
-        if (
-          asset.projectState.type !== backendModule.ProjectState.placeholder &&
-          asset.projectState.type !== backendModule.ProjectState.closed
-        ) {
-          await backend.openProject(asset.id, null, asset.title)
-        }
-        try {
-          await backend.closeProject(asset.id, asset.title)
-        } catch {
-          // Ignored. The project was already closed.
-        }
+  const doDelete = React.useCallback(
+    async (forever = false) => {
+      setInsertionVisibility(Visibility.hidden)
+      if (asset.type === backendModule.AssetType.directory) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.closeFolder,
+          id: asset.id,
+          // This is SAFE, as this asset is already known to be a directory.
+          // eslint-disable-next-line no-restricted-syntax
+          key: item.key as backendModule.DirectoryId,
+        })
       }
-      await backend.deleteAsset(asset.id, asset.title)
-      dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-    } catch (error) {
-      setInsertionVisibility(Visibility.visible)
-      toastAndLog(
-        errorModule.tryGetMessage(error)?.slice(0, -1) ??
-          `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
-      )
-    }
-  }, [
-    backend,
-    dispatchAssetListEvent,
-    asset,
-    /* should never change */ item.key,
-    /* should never change */ toastAndLog,
-  ])
+      try {
+        dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
+        if (
+          asset.type === backendModule.AssetType.project &&
+          backend.type === backendModule.BackendType.local
+        ) {
+          if (
+            asset.projectState.type !== backendModule.ProjectState.placeholder &&
+            asset.projectState.type !== backendModule.ProjectState.closed
+          ) {
+            await backend.openProject(asset.id, null, asset.title)
+          }
+          try {
+            await backend.closeProject(asset.id, asset.title)
+          } catch {
+            // Ignored. The project was already closed.
+          }
+        }
+        await backend.deleteAsset(asset.id, forever, asset.title)
+        dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+      } catch (error) {
+        setInsertionVisibility(Visibility.visible)
+        toastAndLog(
+          errorModule.tryGetMessage(error)?.slice(0, -1) ??
+            `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
+        )
+      }
+    },
+    [
+      backend,
+      dispatchAssetListEvent,
+      asset,
+      /* should never change */ item.key,
+      /* should never change */ toastAndLog,
+    ]
+  )
 
   const doRestore = React.useCallback(async () => {
     // Visually, the asset is deleted from the Trash view.
@@ -337,7 +340,13 @@ export default function AssetRow(props: AssetRowProps) {
       }
       case AssetEventType.delete: {
         if (event.ids.has(item.key)) {
-          await doDelete()
+          await doDelete(false)
+        }
+        break
+      }
+      case AssetEventType.deleteForever: {
+        if (event.ids.has(item.key)) {
+          await doDelete(true)
         }
         break
       }
