@@ -21,12 +21,10 @@
 #![warn(missing_debug_implementations)]
 
 
-
 extern crate proc_macro;
 
 mod before_main;
 mod derive_clone_ref;
-mod derive_entry_point;
 mod derive_for_each_variant;
 mod derive_iterator;
 mod derive_no_clone;
@@ -153,18 +151,6 @@ pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::To
     derive_for_each_variant::derive(input)
 }
 
-/// Exposes the function as an application entry point. Entry points are alternative application
-/// running modes that you can access by adding `?entry=` to the end of the application URL. If no
-/// explicit name is provided to this macro (as an argument), the crate name will be used as the
-/// entry point name.
-#[proc_macro_attribute]
-pub fn entry_point(
-    args: proc_macro::TokenStream,
-    item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    derive_entry_point::derive(args, item)
-}
-
 #[allow(missing_docs)]
 #[proc_macro_attribute]
 pub fn overlappable(
@@ -199,7 +185,7 @@ pub fn tagged_enum(
 ///     ...
 //  }
 /// ```
-/// 
+///
 /// This macro will generate the following code:
 /// ```text
 /// fn modify_column_count(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
@@ -212,7 +198,7 @@ pub fn tagged_enum(
 ///     self.modify_column_count(|t| *t = v.into())
 /// }
 /// ```
-/// 
+///
 ///
 /// ## Hierarchical update and set functions generation.
 ///
@@ -226,7 +212,7 @@ pub fn tagged_enum(
 ///     self
 /// }
 /// ```
-/// 
+///
 /// The following output will be generated:
 /// ```text
 /// fn modify_position(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
@@ -248,7 +234,7 @@ pub fn tagged_enum(
 ///     self.modify_position(|t| f(&mut t.y))
 /// }
 /// ```
-/// 
+///
 /// You can skip generation of field modifiers by providing the `skip_fields` argument to the macro:
 /// ```text
 /// #[enso_shapely::gen(update, set, skip_fields)]
@@ -257,7 +243,7 @@ pub fn tagged_enum(
 ///     self
 /// }
 /// ```
-/// 
+///
 ///
 /// ## Custom conversions
 /// By default, the `set` and `update` methods will use `Into` trait to convert the resulting value
@@ -270,7 +256,7 @@ pub fn tagged_enum(
 ///     self
 /// }
 /// ```
-/// 
+///
 /// Will result in the following code:
 /// ```text
 /// fn modify_gap(&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
@@ -295,7 +281,7 @@ pub fn tagged_enum(
 ///     self.modify_gap(|t| f(&mut t.y))
 /// }
 /// ```
-/// 
+///
 ///
 ///
 /// # Debugging the macro
