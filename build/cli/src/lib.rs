@@ -453,17 +453,10 @@ impl Processor {
                 let context = self.prepare_backend_context(config);
                 async move { context.await?.build().void_ok().await }.boxed()
             }
-            arg::backend::Command::Sbt { command } => {
+            arg::backend::Command::Sbt { args } => {
                 let context = self.prepare_backend_context(default());
                 async move {
-                    let mut command_pieces = vec![OsString::from("sbt")];
-                    command_pieces.extend(command.into_iter().map(into));
-
-                    let operation =
-                        enso_build::engine::Operation::Run(enso_build::engine::RunOperation {
-                            command_pieces,
-                        });
-
+                    let operation = enso_build::engine::Operation::Sbt(args);
                     let context = context.await?;
                     context.execute(operation).await
                 }
@@ -471,9 +464,6 @@ impl Processor {
             }
             arg::backend::Command::CiCheck {} => {
                 let config = enso_build::engine::BuildConfigurationFlags {
-                    test_scala: true,
-                    test_standard_library: true,
-                    test_java_generated_from_rust: true,
                     build_benchmarks: true,
                     // Windows is not yet supported for the native runner.
                     build_native_runner: enso_build::ci::big_memory_machine()

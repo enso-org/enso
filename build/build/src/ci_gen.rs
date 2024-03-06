@@ -601,8 +601,11 @@ pub fn backend() -> Result<Workflow> {
     let on = typical_check_triggers();
     let mut workflow = Workflow { name: "Engine CI".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
+    workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
     for target in CHECKED_TARGETS {
         workflow.add(target, job::CiCheckBackend);
+        workflow.add(target, job::ScalaTests);
+        workflow.add(target, job::StandardLibraryTests);
     }
     Ok(workflow)
 }
