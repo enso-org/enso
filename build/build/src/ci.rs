@@ -26,7 +26,7 @@ pub mod inputs {
 ///
 /// Certain CI operations are only performed on big machines, as they require a lot of memory.
 pub fn big_memory_machine() -> bool {
-    let github_hosted_macos_memory = 15_032_385;
+    let github_hosted_macos_memory = 15_032_385_536;
     let mut system = sysinfo::System::new();
     system.refresh_memory();
     system.total_memory() > github_hosted_macos_memory
