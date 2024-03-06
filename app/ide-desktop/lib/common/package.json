@@ -5,6 +5,7 @@
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js",
+    "./src/appConfig": "./src/appConfig.js",
     "./src/detect": "./src/detect.ts",
     "./src/gtag": "./src/gtag.ts"
   }

@@ -20,9 +20,7 @@ import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as globals from '../dashboard/globals'
-
-import * as env from '../dashboard/env'
+import * as appConfig from 'enso-common/src/appConfig'
 import * as utils from '../../utils'
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
@@ -36,7 +34,7 @@ const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import
 // === Global setup ===
 // ====================
 
-await env.readEnvironmentFromFile()
+await appConfig.readEnvironmentFromFile()
 
 // =============================
 // === Environment variables ===
@@ -45,8 +43,6 @@ await env.readEnvironmentFromFile()
 /** Arguments that must always be supplied, because they are not defined as
  * environment variables. */
 export interface PassthroughArguments {
-    /** `true` if in development mode (live-reload), `false` if in production mode. */
-    readonly devMode: boolean
     /** Whether the application may have the local backend running. */
     readonly supportsLocalBackend: boolean
     /** Whether the application supports deep links. This is only true when using
@@ -92,14 +88,7 @@ function git(command: string): string {
 
 /** Generate the builder options. */
 export function bundlerOptions(args: Arguments) {
-    const {
-        outputPath,
-        wasmArtifacts,
-        assetsPath,
-        devMode,
-        supportsLocalBackend,
-        supportsDeepLinks,
-    } = args
+    const { outputPath, wasmArtifacts, assetsPath, supportsLocalBackend, supportsDeepLinks } = args
     const buildOptions = {
         // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
@@ -169,11 +158,10 @@ export function bundlerOptions(args: Arguments) {
             BUILD_INFO: JSON.stringify(BUILD_INFO),
             SUPPORTS_LOCAL_BACKEND: JSON.stringify(supportsLocalBackend),
             SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
-            ...globals.globals(devMode),
+            ...appConfig.getDefines(),
         },
         pure: ['assert'],
         sourcemap: true,
-        minify: !devMode,
         metafile: true,
         format: 'esm',
         platform: 'browser',

@@ -5,7 +5,9 @@
     ".",
     "./**/*.json",
     "../../utils.ts",
-    ".prettierrc.cjs"
+    ".prettierrc.cjs",
+    "../common/src/env.js",
+    "../common/src/appConfig.js"
   ],
   "exclude": ["./dist"],
   "compilerOptions": {

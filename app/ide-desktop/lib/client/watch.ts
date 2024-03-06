@@ -94,7 +94,6 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
 
         console.log('Bundling content.')
         const contentOpts = contentBundler.bundlerOptionsFromEnv({
-            devMode: true,
             supportsLocalBackend: true,
             supportsDeepLinks: false,
         })

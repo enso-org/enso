@@ -19,9 +19,9 @@ import postcss from 'postcss'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting/index.js'
 
+import * as appConfig from 'enso-common/src/appConfig'
+
 import * as utils from '../../utils'
-import * as env from './env'
-import * as globals from './globals'
 import * as tailwindConfig from './tailwind.config'
 
 // =================
@@ -34,7 +34,7 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 // === Global setup ===
 // ====================
 
-await env.readEnvironmentFromFile()
+await appConfig.readEnvironmentFromFile()
 
 // =============================
 // === Environment variables ===
@@ -44,14 +44,12 @@ await env.readEnvironmentFromFile()
 export interface Arguments {
   /** Path where bundled files are output. */
   readonly outputPath: string
-  /** `true` if in development mode (live-reload), `false` if in production mode. */
-  readonly devMode: boolean
 }
 
 /** Get arguments from the environment. */
 export function argumentsFromEnv(): Arguments {
   const outputPath = path.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
-  return { outputPath, devMode: false }
+  return { outputPath }
 }
 
 // =======================
@@ -93,7 +91,7 @@ export function esbuildPluginGenerateTailwind(): esbuild.Plugin {
 
 /** Generate the bundler options. */
 export function bundlerOptions(args: Arguments) {
-  const { outputPath, devMode } = args
+  const { outputPath } = args
   // This is required to prevent TypeScript from narrowing `true` to `boolean`.
   // eslint-disable-next-line no-restricted-syntax
   const trueBoolean = true as boolean
@@ -129,10 +127,9 @@ export function bundlerOptions(args: Arguments) {
     alias: {
       '#': './src',
     },
-    define: globals.globals(devMode),
+    define: appConfig.getDefines(),
     pure: ['assert'],
     sourcemap: true,
-    minify: !devMode,
     metafile: trueBoolean,
     format: 'esm',
     platform: 'browser',

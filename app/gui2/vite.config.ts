@@ -1,13 +1,12 @@
 /// <reference types="histoire" />
 
 import vue from '@vitejs/plugin-vue'
+import { getDefines, readEnvironmentFromFile } from 'enso-common/src/appConfig'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defineConfig, type Plugin } from 'vite'
-import { readEnvironmentFromFile } from '../ide-desktop/lib/dashboard/env'
-import { globals } from '../ide-desktop/lib/dashboard/globals'
 // @ts-expect-error
 import * as tailwindConfig from 'enso-dashboard/tailwind.config'
 import { createGatewayServer } from './ydoc-server'
@@ -42,7 +41,7 @@ export default defineConfig({
     },
   },
   define: {
-    ...globals(!IS_CLOUD_BUILD, localServerPort),
+    ...getDefines(localServerPort),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
     RUNNING_VITEST: false,
