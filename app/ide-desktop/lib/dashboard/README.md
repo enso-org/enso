@@ -60,10 +60,10 @@ a file extension. Visual Studio Code also understands `.foo.env` but not
 - `ENSO_CLOUD_STRIPE_KEY`: Stripe's publishable client-side key.
 - `ENSO_CLOUD_CHAT_URL`: The URL for the WebSocket server serving as the chat
   backend.
-- `ENSO_CLOUD_AMPLIFY_USER_POOL_ID`: The ID of the Amplify user pool.
-- `ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID`: The client-side key of the
-  Amplify user pool.
-- `ENSO_CLOUD_AMPLIFY_DOMAIN`: The domain which all Amplify requests should go
+- `ENSO_CLOUD_COGNITO_USER_POOL_ID`: The ID of the Cognito user pool.
+- `ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID`: The client-side key of the
+  Cognito user pool.
+- `ENSO_CLOUD_COGNITO_DOMAIN`: The domain which all Cognito requests should go
   to.
-- `ENSO_CLOUD_AMPLIFY_REGION`: The AWS region for which Amplify is configured.
-  Should match the region of the domain in `ENSO_CLOUD_AMPLIFY_DOMAIN`.
+- `ENSO_CLOUD_COGNITO_REGION`: The AWS region for which Cognito is configured.
+  Should match the region of the domain in `ENSO_CLOUD_COGNITO_DOMAIN`.

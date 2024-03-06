@@ -114,13 +114,13 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_STRIPE_KEY?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_AMPLIFY_USER_POOL_ID?: string
+            readonly ENSO_CLOUD_COGNITO_USER_POOL_ID?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID?: string
+            readonly ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_AMPLIFY_DOMAIN?: string
+            readonly ENSO_CLOUD_COGNITO_DOMAIN?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_AMPLIFY_REGION?: string
+            readonly ENSO_CLOUD_COGNITO_REGION?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_SUPPORTS_VIBRANCY?: string
             /* eslint-enable @typescript-eslint/naming-convention */

@@ -170,16 +170,16 @@ function loadAmplifyConfig(
   const signInOutRedirect = supportsDeepLinks
     ? `${common.DEEP_LINK_SCHEME}://auth`
     : process.env.ENSO_CLOUD_REDIRECT
-  return process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_ID == null ||
-    process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID == null ||
-    process.env.ENSO_CLOUD_AMPLIFY_DOMAIN == null ||
-    process.env.ENSO_CLOUD_AMPLIFY_REGION == null
+  return process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID == null ||
+    process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID == null ||
+    process.env.ENSO_CLOUD_COGNITO_DOMAIN == null ||
+    process.env.ENSO_CLOUD_COGNITO_REGION == null
     ? null
     : {
-        userPoolId: process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_ID,
-        userPoolWebClientId: process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID,
-        domain: process.env.ENSO_CLOUD_AMPLIFY_DOMAIN,
-        region: process.env.ENSO_CLOUD_AMPLIFY_REGION,
+        userPoolId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID,
+        userPoolWebClientId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        domain: process.env.ENSO_CLOUD_COGNITO_DOMAIN,
+        region: process.env.ENSO_CLOUD_COGNITO_REGION,
         redirectSignIn: signInOutRedirect,
         redirectSignOut: signInOutRedirect,
         scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],

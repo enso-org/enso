@@ -41,10 +41,10 @@ export default vite.defineConfig(env =>
         'process.env.ENSO_CLOUD_SENTRY_DSN': JSON.stringify(''),
         'process.env.ENSO_CLOUD_STRIPE_KEY': JSON.stringify(''),
         'process.env.ENSO_CLOUD_CHAT_URL': JSON.stringify(''),
-        'process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_ID': JSON.stringify(''),
-        'process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID': JSON.stringify(''),
-        'process.env.ENSO_CLOUD_AMPLIFY_DOMAIN': JSON.stringify(''),
-        'process.env.ENSO_CLOUD_AMPLIFY_REGION': JSON.stringify(''),
+        'process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID': JSON.stringify(''),
+        'process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID': JSON.stringify(''),
+        'process.env.ENSO_CLOUD_COGNITO_DOMAIN': JSON.stringify(''),
+        'process.env.ENSO_CLOUD_COGNITO_REGION': JSON.stringify(''),
       },
     })
   )

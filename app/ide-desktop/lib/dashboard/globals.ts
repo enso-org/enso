@@ -39,14 +39,14 @@ export function globals(devMode: boolean, serverPort = 8080) {
     'process.env.ENSO_CLOUD_SENTRY_DSN': stringify(process.env.ENSO_CLOUD_SENTRY_DSN),
     'process.env.ENSO_CLOUD_STRIPE_KEY': stringify(process.env.ENSO_CLOUD_STRIPE_KEY),
     'process.env.ENSO_CLOUD_CHAT_URL': stringify(process.env.ENSO_CLOUD_CHAT_URL),
-    'process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_ID': stringify(
-      process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_ID
+    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID': stringify(
+      process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID
     ),
-    'process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID': stringify(
-      process.env.ENSO_CLOUD_AMPLIFY_USER_POOL_WEB_CLIENT_ID
+    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID': stringify(
+      process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID
     ),
-    'process.env.ENSO_CLOUD_AMPLIFY_DOMAIN': stringify(process.env.ENSO_CLOUD_AMPLIFY_DOMAIN),
-    'process.env.ENSO_CLOUD_AMPLIFY_REGION': stringify(process.env.ENSO_CLOUD_AMPLIFY_REGION),
+    'process.env.ENSO_CLOUD_COGNITO_DOMAIN': stringify(process.env.ENSO_CLOUD_COGNITO_DOMAIN),
+    'process.env.ENSO_CLOUD_COGNITO_REGION': stringify(process.env.ENSO_CLOUD_COGNITO_REGION),
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 }
