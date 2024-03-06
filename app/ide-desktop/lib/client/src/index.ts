@@ -75,10 +75,15 @@ class App {
             this.setChromeOptions(chromeOptions)
             security.enableAll()
             electron.app.on('before-quit', () => (this.isQuitting = true))
-            electron.app.whenReady().then(() => {
-                logger.log('Electron application is ready.')
-                void this.main(windowSize)
-            })
+            electron.app.whenReady().then(
+                () => {
+                    logger.log('Electron application is ready.')
+                    void this.main(windowSize)
+                },
+                err => {
+                    logger.error('Failed to initialize electron.', err)
+                }
+            )
             this.registerShortcuts()
         }
     }
