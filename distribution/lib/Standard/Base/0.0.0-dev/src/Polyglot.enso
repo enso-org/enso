@@ -28,6 +28,7 @@ type Polyglot
        Reads the element in a given polyglot array object.
 
        Arguments:
+       - array: The array on which to perform the operation.
        - index: The index to get the element from.
     read_array_element : Any -> Integer -> Any
     read_array_element array index = @Builtin_Method "Polyglot.read_array_element"
@@ -37,8 +38,9 @@ type Polyglot
        Writes the element to a polyglot array object at a given index.
 
        Arguments:
+       - array: The array on which to perform the operation.
        - index: The index to get the element from.
-       - element: The element to write to.
+       - element: The element to write.
     write_array_element : Any -> Integer -> Any -> Nothing
     write_array_element array index element = @Builtin_Method "Polyglot.write_array_element"
 
