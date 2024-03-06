@@ -194,12 +194,12 @@ type Excel_Workbook
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
+       - headers: whether to use the first row as headers (default is `Infer`).
        - limit: the maximum number of rows to read.
          If set to `Nothing`, all rows will be returned.
-       - headers: whether to use the first row as headers (default is `Infer`).
     @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map t-> Option t t.pretty))
-    read : Text -> Integer | Nothing -> Table
-    read self (query : Text | Excel_Range) (limit : Integer | Nothing = Nothing) (headers : Boolean | Infer = Infer) =
+    read : Text -> Boolean | Infer -> Integer | Nothing -> Table
+    read self (query : Text | Excel_Range) (headers : Boolean | Infer = Infer) (limit : Integer | Nothing = Nothing) =
         java_headers = Excel_Reader.make_java_headers headers
         java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
             self.with_java_workbook java_workbook-> case query of
