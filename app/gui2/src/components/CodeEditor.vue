@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { ChangeSet, Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
-import { Annotation, StateEffect, StateField } from '@/components/CodeEditor/codemirror'
 import { usePointer } from '@/composables/events'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -18,6 +17,9 @@ import { computed, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect }
 
 // Use dynamic imports to aid code splitting. The codemirror dependency is quite large.
 const {
+  Annotation,
+  StateEffect,
+  StateField,
   bracketMatching,
   foldGutter,
   lintGutter,
@@ -33,6 +35,7 @@ const {
   forceLinting,
   lsDiagnosticsToCMDiagnostics,
   hoverTooltip,
+  textEditToChangeSpec,
 } = await import('@/components/CodeEditor/codemirror')
 
 const projectStore = useProjectStore()
@@ -184,9 +187,6 @@ function changeSetToTextEdits(changes: ChangeSet) {
     textEdits.push({ range: [from, to], insert: insert.toString() }),
   )
   return textEdits
-}
-function textEditToChangeSpec({ range: [from, to], insert }: SourceRangeEdit) {
-  return { from, to, insert }
 }
 
 let pendingChanges: ChangeSet | undefined

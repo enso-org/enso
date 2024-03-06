@@ -6,7 +6,6 @@ import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Errors.Not_Logged_In
 import project.Data.Json.Invalid_JSON
-import project.Data.Json.JS_Object
 import project.Data.Map.Map
 import project.Data.Pair.Pair
 import project.Data.Text.Text
@@ -68,6 +67,10 @@ projects_api = cloud_root_uri + "projects"
 secrets_api = cloud_root_uri + "secrets"
 
 ## PRIVATE
+   Root address for DataLinks API
+datalinks_api = cloud_root_uri + "connectors"
+
+## PRIVATE
    The current project directory that will be used as the working directory,
    if the user is running in the Cloud.
 internal_cloud_project_directory = AuthenticationProvider.getCurrentWorkingDirectory
@@ -109,10 +112,3 @@ http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_B
             case handler of
                 Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error response.code payload)
                 _ : Function -> handler json_payload
-
-## PRIVATE
-   A helper that extracts a field from a response and handles unexpected
-   response structure.
-get_required_field key js_object = case js_object of
-    _ : JS_Object -> js_object.get key if_missing=(Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing required field `"+key+"` in "+js_object.to_display_text+"."))
-    _ -> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+js_object.to_display_text+".")

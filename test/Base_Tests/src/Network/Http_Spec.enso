@@ -15,6 +15,8 @@ from Standard.Base.Network.HTTP import resolve_headers
 from Standard.Test import all
 from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
+from project.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+
 type Test_Type
     Aaa (s:Text)
     Bbb (i:Integer)
@@ -28,16 +30,10 @@ remove_fields json =
     json.set_value  "headers" (json.at "headers" . set_value "User-Agent" "")
 compare_responses a b = (remove_fields a).should_equal (remove_fields b)
 
+## To run this test locally:
+   $ sbt 'http-test-helper/run localhost 8080'
+   $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
 add_specs suite_builder =
-    ## To run this test locally:
-       $ sbt 'http-test-helper/run localhost 8080'
-       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
-    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
-    pending_has_url = if base_url != Nothing then Nothing else
-        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
-    base_url_with_slash = base_url.if_not_nothing <|
-        if base_url.ends_with "/" then base_url else base_url + "/"
-
     suite_builder.group "HTTP_Method parse" group_builder->
         group_builder.specify "should be able to parse a string value into a method" <|
             "GET" . to HTTP_Method . should_equal (HTTP_Method.Get)

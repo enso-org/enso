@@ -77,14 +77,6 @@ const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
 const baseNodeSize = computed(() => new Vec2(contentNode.value?.scrollWidth ?? 0, nodeSize.value.y))
 
-/** The menu can be full, partial or off */
-enum MenuState {
-  Full,
-  Partial,
-  Off,
-}
-const menuVisible = ref(MenuState.Off)
-
 const error = computed(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
   if (!externalId) return
@@ -107,16 +99,25 @@ const warning = computed(() => {
   const info = projectStore.computedValueRegistry.db.get(externalId)
   const warning = info?.payload.type === 'Value' ? info.payload.warnings?.value : undefined
   if (!warning) return
-  return '⚠ Warning: ' + warning!
+  return 'Warning: ' + warning!
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
-const isOnlyOneSelected = computed(() => isSelected.value && nodeSelection?.selected.size === 1)
-watch(isSelected, (selected) => {
-  if (!selected) {
-    menuVisible.value = MenuState.Off
-  }
+const isOnlyOneSelected = computed(
+  () => isSelected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
+)
+
+const menuVisible = isOnlyOneSelected
+const menuFull = ref(false)
+
+watch(menuVisible, (visible) => {
+  if (!visible) menuFull.value = false
 })
+
+function openFullMenu() {
+  menuFull.value = true
+  nodeSelection?.setSelection(new Set([nodeId.value]))
+}
 
 const isDocsVisible = ref(false)
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
@@ -171,7 +172,6 @@ const dragPointer = usePointer((pos, event, type) => {
       ) {
         nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
         handleNodeClick(event)
-        menuVisible.value = MenuState.Partial
       }
       startEvent = null
       startEpochMs.value = 0
@@ -321,14 +321,25 @@ function portGroupStyle(port: PortData) {
   }
 }
 
-function openFullMenu() {
-  if (!nodeSelection?.isSelected(nodeId.value)) {
-    nodeSelection?.setSelection(new Set([nodeId.value]))
-  }
-  menuVisible.value = MenuState.Full
-}
+const editingComment = ref(false)
 
-const documentation = computed<string | undefined>(() => props.node.documentation)
+const documentation = computed<string | undefined>({
+  get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
+  set: (text) => {
+    graph.edit((edit) => {
+      const outerExpr = edit.get(props.node.outerExprId)
+      if (text) {
+        if (outerExpr instanceof Ast.MutableDocumented) {
+          outerExpr.setDocumentationText(text)
+        } else {
+          outerExpr.update((outerExpr) => Ast.Documented.new(text, outerExpr))
+        }
+      } else if (outerExpr instanceof Ast.MutableDocumented && outerExpr.expression) {
+        outerExpr.replace(outerExpr.expression.take())
+      }
+    })
+  },
+})
 </script>
 
 <template>
@@ -359,28 +370,31 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
       {{ node.pattern?.code() ?? '' }}
     </div>
     <button
-      v-if="menuVisible === MenuState.Off && isRecordingOverridden"
+      v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
       @click="isRecordingOverridden = false"
     >
       <SvgIcon name="record" />
     </button>
     <CircularMenu
-      v-if="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
+      v-if="menuVisible"
       v-model:isRecordingOverridden="isRecordingOverridden"
       v-model:isDocsVisible="isDocsVisible"
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationVisible="isVisualizationVisible"
-      :isFullMenuVisible="menuVisible === MenuState.Full"
+      :isFullMenuVisible="menuVisible && menuFull"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
+      @startEditingComment="editingComment = true"
+      @openFullMenu="openFullMenu"
+      @delete="emit('delete')"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
       :nodeSize="baseNodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
-      :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
+      :isCircularMenuVisible="menuVisible"
       :currentType="props.node.vis?.identifier"
       :isFullscreen="isVisualizationFullscreen"
       :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
@@ -396,7 +410,14 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
     />
-    <GraphNodeComment v-if="documentation" v-model="documentation" class="beforeNode" />
+    <Suspense>
+      <GraphNodeComment
+        v-if="documentation != null"
+        v-model="documentation"
+        v-model:editing="editingComment"
+        class="beforeNode"
+      />
+    </Suspense>
     <div
       ref="contentNode"
       class="node"
@@ -411,15 +432,20 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
+        :extended="isOnlyOneSelected"
         @openFullMenu="openFullMenu"
       />
+    </div>
+    <div class="statuses">
+      <SvgIcon v-if="warning" name="warning" />
     </div>
     <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
     <GraphNodeError
       v-if="warning && (nodeHovered || isSelected)"
       class="afterNode warning"
-      :class="menuVisible === MenuState.Off ? '' : 'messageWithMenu'"
+      :class="{ messageWithMenu: menuVisible }"
       :message="warning"
+      icon="warning"
       type="warning"
     />
     <svg class="bgPaths" :style="bgStyleVariables">
@@ -651,12 +677,31 @@ const documentation = computed<string | undefined>(() => props.node.documentatio
   margin-top: 4px;
 }
 
+.messageWarning {
+  margin-top: 8px;
+}
+
 .messageWithMenu {
   left: 40px;
 }
 
-.warning {
-  top: 35px;
+.statuses {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  top: 0;
+  right: 100%;
+  margin-right: 8px;
+  color: var(--color-warning);
+  transition: opacity 0.2s ease-in-out;
+}
+
+.GraphNode:is(:hover, .selected) .statuses,
+.GraphNode:has(.selection:hover) .statuses {
+  opacity: 0;
 }
 
 .overrideRecordButton {
