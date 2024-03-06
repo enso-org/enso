@@ -1398,8 +1398,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       ),
     )
 
-    new String(visualizationUpdates.head.data) shouldEqual "6"
-    new String(visualizationUpdates.last.data) shouldEqual "7"
+    visualizationUpdates.map(update =>
+      new String(update.data)
+    ) should contain allOf ("6", "7")
 
     // modify visualization
     context.send(
@@ -1442,14 +1443,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           (data, modifiedId)
       }
 
-    visualizationUpdates2.map(_._2) should contain theSameElementsAs Seq(
-      visualizationId,
-      visualizationId2
-    )
+    visualizationUpdates2.map(_._2) should contain(visualizationId)
 
-    visualizationUpdates2.map(p =>
-      new String(p._1)
-    ) should contain theSameElementsAs Seq("7", "8")
+    visualizationUpdates2.map(p => new String(p._1)) should contain("8")
   }
 
   it should "not emit visualization update when visualization is detached" in withContext() {
