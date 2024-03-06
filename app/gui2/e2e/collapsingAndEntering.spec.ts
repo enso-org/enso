@@ -11,36 +11,38 @@ test('Entering nodes', async ({ page }) => {
   await actions.goToGraph(page)
   await mockCollapsedFunctionInfo(page, 'final', 'func1')
   await expectInsideMain(page)
-  await expect(locate.navBreadcrumb(page)).toHaveText(['main'])
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project'])
 
   await locate.graphNodeByBinding(page, 'final').dblclick()
   await mockCollapsedFunctionInfo(page, 'f2', 'func2')
   await expectInsideFunc1(page)
-  await expect(locate.navBreadcrumb(page)).toHaveText(['main', 'func1'])
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
 
   await locate.graphNodeByBinding(page, 'f2').dblclick()
   await expectInsideFunc2(page)
-  await expect(locate.navBreadcrumb(page)).toHaveText(['main', 'func1', 'func2'])
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
 })
 
 test('Leaving entered nodes', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
 
-  await locate.graphEditor(page).dblclick()
+  await page.mouse.dblclick(100, 100)
   await expectInsideFunc1(page)
 
-  await locate.graphEditor(page).dblclick()
+  await page.mouse.dblclick(100, 100)
   await expectInsideMain(page)
 })
 
 test('Using breadcrumbs to navigate', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
-  await locate.graphEditor(page).dblclick()
-  await locate.graphEditor(page).dblclick()
+  await page.mouse.dblclick(100, 100)
+  await expectInsideFunc1(page)
+  await page.mouse.dblclick(100, 100)
+  await expectInsideMain(page)
   // Breadcrumbs still have all the crumbs, but the last two are dimmed.
-  await expect(locate.navBreadcrumb(page)).toHaveText(['main', 'func1', 'func2'])
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
   await expect(locate.navBreadcrumb(page, (f) => f.class('inactive'))).toHaveText([
     'func1',
     'func2',
@@ -49,7 +51,7 @@ test('Using breadcrumbs to navigate', async ({ page }) => {
   await locate.navBreadcrumb(page).filter({ hasText: 'func2' }).click()
   await expectInsideFunc2(page)
 
-  await locate.navBreadcrumb(page).filter({ hasText: 'main' }).click()
+  await locate.navBreadcrumb(page).filter({ hasText: 'Mock Project' }).click()
   await expectInsideMain(page)
 
   await locate.navBreadcrumb(page).filter({ hasText: 'func1' }).click()
@@ -61,9 +63,19 @@ test('Collapsing nodes', async ({ page }) => {
   const initialNodesCount = await locate.graphNode(page).count()
   await mockCollapsedFunctionInfo(page, 'final', 'func1')
 
-  await locate.graphNodeByBinding(page, 'ten').click({ modifiers: ['Shift'] })
-  await locate.graphNodeByBinding(page, 'sum').click({ modifiers: ['Shift'] })
-  await locate.graphNodeByBinding(page, 'prod').click({ modifiers: ['Shift'] })
+  // Widgets may "steal" clicks, so we always click at icon.
+  await locate
+    .graphNodeByBinding(page, 'ten')
+    .locator('.icon')
+    .click({ modifiers: ['Shift'] })
+  await locate
+    .graphNodeByBinding(page, 'sum')
+    .locator('.icon')
+    .click({ modifiers: ['Shift'] })
+  await locate
+    .graphNodeByBinding(page, 'prod')
+    .locator('.icon')
+    .click({ modifiers: ['Shift'] })
 
   await page.keyboard.press(COLLAPSE_SHORTCUT)
   await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 2)
@@ -77,7 +89,10 @@ test('Collapsing nodes', async ({ page }) => {
   await customExpect.toExist(locate.graphNodeByBinding(page, 'sum'))
   await customExpect.toExist(locate.graphNodeByBinding(page, 'prod'))
 
-  locate.graphNodeByBinding(page, 'ten').click({ modifiers: ['Shift'] })
+  await locate
+    .graphNodeByBinding(page, 'ten')
+    .locator('.icon')
+    .click({ modifiers: ['Shift'] })
   // Wait till node is selected.
   await expect(locate.graphNodeByBinding(page, 'ten').and(page.locator('.selected'))).toHaveCount(1)
   await page.keyboard.press(COLLAPSE_SHORTCUT)
@@ -118,6 +133,8 @@ async function expectInsideFunc2(page: Page) {
 async function enterToFunc2(page: Page) {
   await mockCollapsedFunctionInfo(page, 'final', 'func1')
   await locate.graphNodeByBinding(page, 'final').dblclick()
+  await expectInsideFunc1(page)
   await mockCollapsedFunctionInfo(page, 'f2', 'func2')
   await locate.graphNodeByBinding(page, 'f2').dblclick()
+  await expectInsideFunc2(page)
 }

@@ -527,10 +527,10 @@ spec_with suite_builder name create_new_date parse_date pending=Nothing =
 
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 parseNormally x y = (Date.parse x y) . to_text

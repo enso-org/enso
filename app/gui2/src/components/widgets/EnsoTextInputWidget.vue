@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@/composables/events'
-import { escape, unescape } from '@/util/ast/abstract'
+import { escape, unescape } from '@/util/ast/text'
 import { blurIfNecessary } from '@/util/autoBlur'
 import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'

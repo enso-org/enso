@@ -1030,6 +1030,16 @@ final class TreeToIr {
           }
           case null -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("Strange unary -"));
         };
+      case Tree.UnaryOprApp un when "~".equals(un.getOpr().codeRepr()) -> {
+        var methodName = buildName(un.getRhs());
+        var methodRef = new Name.MethodReference(
+          Option.empty(),
+          methodName,
+          methodName.location(),
+          meta(), diag()
+        );
+        yield methodRef;
+      }
       case Tree.TypeSignature sig -> {
         var methodName = buildName(sig.getVariable());
         var methodReference = new CallArgument.Specified(

@@ -33,12 +33,12 @@ interface AssetEvents {
   readonly newSecret: AssetNewSecretEvent
   readonly openProject: AssetOpenProjectEvent
   readonly closeProject: AssetCloseProjectEvent
-  readonly cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
   readonly copy: AssetCopyEvent
   readonly cut: AssetCutEvent
   readonly cancelCut: AssetCancelCutEvent
   readonly move: AssetMoveEvent
   readonly delete: AssetDeleteEvent
+  readonly deleteForever: AssetDeleteForeverEvent
   readonly restore: AssetRestoreEvent
   readonly download: AssetDownloadEvent
   readonly downloadSelected: AssetDownloadSelectedEvent
@@ -105,10 +105,6 @@ export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.cl
   readonly id: backendModule.ProjectId
 }
 
-/** A signal to cancel automatically opening any project that is currently opening. */
-export interface AssetCancelOpeningAllProjectsEvent
-  extends AssetBaseEvent<AssetEventType.cancelOpeningAllProjects> {}
-
 /** A signal that multiple assets should be copied. `ids` are the `Id`s of the newly created
  * placeholder items. */
 export interface AssetCopyEvent extends AssetBaseEvent<AssetEventType.copy> {
@@ -136,6 +132,11 @@ export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
 
 /** A signal to delete assets. */
 export interface AssetDeleteEvent extends AssetBaseEvent<AssetEventType.delete> {
+  readonly ids: ReadonlySet<backendModule.AssetId>
+}
+
+/** A signal to delete assets forever. */
+export interface AssetDeleteForeverEvent extends AssetBaseEvent<AssetEventType.deleteForever> {
   readonly ids: ReadonlySet<backendModule.AssetId>
 }
 

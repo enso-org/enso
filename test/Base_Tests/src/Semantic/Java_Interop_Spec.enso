@@ -91,8 +91,8 @@ add_specs suite_builder =
             err.to_text . contains "NON_EXISTING" . should_be_true
             err.to_text . contains "is not visible in this scope" . should_be_true
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

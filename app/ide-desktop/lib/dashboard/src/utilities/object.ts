@@ -47,7 +47,7 @@ export function unsafeMutable<T extends object>(object: T): Mutable<T> {
  * extra keys. */
 export function unsafeEntries<T extends object>(
   object: T
-): { [K in keyof T]: [K, T[K]] }[keyof T][] {
+): readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
 }

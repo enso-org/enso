@@ -1,13 +1,25 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { useTransitioning } from '@/composables/animation'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
+import type { Icon } from '@/util/iconName'
 import { computed, toRef } from 'vue'
 
-const props = defineProps<{ ast: Ast.Ast; nodeId: NodeId }>()
+const props = defineProps<{
+  ast: Ast.Ast
+  nodeId: NodeId
+  icon: Icon
+  connectedSelfArgumentId: Ast.AstId | undefined
+  potentialSelfArgumentId: Ast.AstId | undefined
+  extended: boolean
+}>()
+const emit = defineEmits<{
+  openFullMenu: []
+}>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
   const input = WidgetInput.FromAst(props.ast)
@@ -52,11 +64,29 @@ function handleWidgetUpdates(update: WidgetUpdate) {
 }
 
 const layoutTransitions = useTransitioning(observedLayoutTransitions)
-provideWidgetTree(toRef(props, 'ast'), toRef(props, 'nodeId'), layoutTransitions.active)
+provideWidgetTree(
+  toRef(props, 'ast'),
+  toRef(props, 'nodeId'),
+  toRef(props, 'icon'),
+  toRef(props, 'connectedSelfArgumentId'),
+  toRef(props, 'potentialSelfArgumentId'),
+  toRef(props, 'extended'),
+  layoutTransitions.active,
+  () => {
+    emit('openFullMenu')
+  },
+)
 </script>
 
 <template>
   <div class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
+    <!-- Display an icon for the node if no widget in the tree provides one. -->
+    <SvgIcon
+      v-if="!props.connectedSelfArgumentId"
+      class="icon grab-handle"
+      :name="props.icon"
+      @click.right.stop.prevent="emit('openFullMenu')"
+    />
     <NodeWidget :input="rootPort" @update="handleWidgetUpdates" />
   </div>
 </template>
@@ -64,7 +94,6 @@ provideWidgetTree(toRef(props, 'ast'), toRef(props, 'nodeId'), layoutTransitions
 <style scoped>
 .NodeWidgetTree {
   color: white;
-  margin-left: 4px;
 
   outline: none;
   height: 24px;
@@ -82,5 +111,14 @@ provideWidgetTree(toRef(props, 'ast'), toRef(props, 'nodeId'), layoutTransitions
 
 .GraphEditor.draggingEdge .NodeWidgetTree {
   transition: margin 0.2s ease;
+}
+
+.icon {
+  margin-right: 4px;
+}
+
+.grab-handle {
+  color: white;
+  margin: 0 4px;
 }
 </style>

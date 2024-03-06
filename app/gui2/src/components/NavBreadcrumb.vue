@@ -1,11 +1,10 @@
 <script setup lang="ts">
 const props = defineProps<{ text: string; active: boolean }>()
-const emit = defineEmits<{ click: [] }>()
 </script>
 
 <template>
   <div :class="['NavBreadcrumb', { inactive: !props.active }]">
-    <span @click="emit('click')" v-text="props.text"></span>
+    <span v-text="props.text"></span>
   </div>
 </template>
 

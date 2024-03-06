@@ -6,7 +6,4 @@ type Column_Ref
     Name name:Text
 
     ## Reference to a column by index in a table.
-    Index index:Integer
-
-    ## Representation of an expression derived in a table.
-    Expression expression:Text
+    Index index:Integer=0

@@ -7,7 +7,7 @@ from Standard.Test import all
 
 type Test_Data
     Value ~data
-    
+
     test_file self = self.data.at 0
     document self = self.data.at 1
     root self = self.data.at 2
@@ -56,6 +56,8 @@ add_specs suite_builder =
 
     suite_builder.group "at/get" group_builder->
         group_builder.specify "Can get children by index" <|
+            data.document.at 0 . name . should_equal "class"
+
             data.root.at 0 . name . should_equal "teacher"
 
             data.root.at 0 . at 0 . name . should_equal "firstname"
@@ -91,44 +93,45 @@ add_specs suite_builder =
             data.root.at 3 . attributes . should_equal (Map.from_vector [["studentId", "1001"], ["year", "3"]])
 
         group_builder.specify "Can get nodes via xpath" <|
-            classes = data.root.at "/class"
+            classes = data.root.get_xpath "/class"
             classes.length . should_equal 1
             classes.at 0 . name . should_equal "class"
 
-            teachers = data.root.at "/class/teacher"
+            teachers = data.root.get_xpath "/class/teacher"
             teachers.length . should_equal 2
             teachers.at 0 . at "@id" . should_equal "100"
             teachers.at 1 . at "@id" . should_equal "101"
 
-            students = data.root.at "/class/student"
+            students = data.root.get_xpath "/class/student"
             students.length . should_equal 3
             students.at 0 . at "@studentId" . should_equal "1000"
             students.at 1 . at "@studentId" . should_equal "1001"
 
-            data.root.at "/class/teacher[1]/firstname" . at 0 . text . should_equal "Mary"
-            data.root.at "/class/teacher[2]/firstname" . at 0 . text . should_equal "Bob"
-            data.root.at "/class/teacher[1]/firstname/text()" . should_equal ["Mary"]
-            data.root.at "/class/teacher[2]/firstname/text()" . should_equal ["Bob"]
-            data.root.at "/class/teacher/firstname/text()" . should_equal ["Mary", "Bob"]
-            data.root.at "/class/teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
-            data.root.at "/class/teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
-            data.root.get "/class/teacher[23]" . should_equal []
+            data.root.get_xpath "/class/teacher[1]/firstname" . at 0 . text . should_equal "Mary"
+            data.root.get_xpath "/class/teacher[2]/firstname" . at 0 . text . should_equal "Bob"
+            data.root.get_xpath "/class/teacher[1]/firstname/text()" . should_equal ["Mary"]
+            data.root.get_xpath "/class/teacher[2]/firstname/text()" . should_equal ["Bob"]
+            data.root.get_xpath "/class/teacher/firstname/text()" . should_equal ["Mary", "Bob"]
+            data.root.get_xpath "/class/teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
+            data.root.get_xpath "/class/teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
+            data.root.get_xpath "/class/teacher[23]" . should_equal []
 
-            data.root.at "teacher[1]/firstname" . at 0 . text . should_equal "Mary"
-            data.root.at "teacher[2]/firstname" . at 0 . text . should_equal "Bob"
-            data.root.at "teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
-            data.root.at "teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
+            data.root.get_xpath "teacher[1]/firstname" . at 0 . text . should_equal "Mary"
+            data.root.get_xpath "teacher[2]/firstname" . at 0 . text . should_equal "Bob"
+            data.root.get_xpath "teacher[1]/bio" . at 0 . text . should_equal '\n            Blah blah\n        '
+            data.root.get_xpath "teacher[2]/bio" . at 0 . text . should_equal '\n            This that\n        '
+
+            data.root.get_xpath "/class/teacher[1]/firstname" . get 0 . text . should_equal "Mary"
 
         group_builder.specify "Can get children using .get" <|
             data.root.get 0 . get 0 . name . should_equal "firstname"
             data.root.get 0 . get "@id" . should_equal "100"
-            data.root.get "/class/teacher[1]/firstname" . get 0 . text . should_equal "Mary"
 
             data.root.get 0 . get 32 "if_missing" . should_equal "if_missing"
             data.root.get 0 . get "@not_there" "if_missing" . should_equal "if_missing"
 
         group_builder.specify "Can handle a bad xpath" <|
-            data.root.at "/qqq[[[[1" . at 0 . text . should_fail_with XML_Error
+            data.root.get_xpath "/qqq[[[[1" . at 0 . text . should_fail_with XML_Error
 
     suite_builder.group "tag name" group_builder->
         group_builder.specify "Can get the tag name" <|
@@ -156,20 +159,26 @@ add_specs suite_builder =
 
     suite_builder.group "inner / outer xml" group_builder->
         group_builder.specify "Can get the inner xml" <|
-            (data.root.at "/class/teacher[1]" . at 0 . inner_xml) . should_equal '\n        <firstname>Mary</firstname>\n        <lastname>Smith</lastname>\n        <bio>\n            Blah blah\n        </bio>\n    '
-            (data.root.at "/class/teacher[1]/bio" . at 0 . inner_xml) . should_equal '\n            Blah blah\n        '
-            (data.root.at "/class/teacher[2]/bio" . at 0 . inner_xml) . should_equal '\n            This that\n        '
-            (data.root.at "/class/teacher[2]" . at 0 . inner_xml) . should_equal '\n        <firstname>Bob</firstname>\n        <lastname>Jones</lastname>\n        <bio>\n            This that\n        </bio>\n    '
+            (data.root.get_xpath "/class/teacher[1]" . at 0 . inner_xml) . should_equal '\n        <firstname>Mary</firstname>\n        <lastname>Smith</lastname>\n        <bio>\n            Blah blah\n        </bio>\n    '
+            (data.root.get_xpath "/class/teacher[1]/bio" . at 0 . inner_xml) . should_equal '\n            Blah blah\n        '
+            (data.root.get_xpath "/class/teacher[2]/bio" . at 0 . inner_xml) . should_equal '\n            This that\n        '
+            (data.root.get_xpath "/class/teacher[2]" . at 0 . inner_xml) . should_equal '\n        <firstname>Bob</firstname>\n        <lastname>Jones</lastname>\n        <bio>\n            This that\n        </bio>\n    '
 
         group_builder.specify "Can get the outer xml" <|
-            (data.root.at "/class/teacher[1]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            Blah blah\n        </bio>'
-            (data.root.at "/class/teacher[2]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            This that\n        </bio>'
+            (data.root.get_xpath "/class/teacher[1]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            Blah blah\n        </bio>'
+            (data.root.get_xpath "/class/teacher[2]/bio" . at 0 . outer_xml) . should_equal '<bio>\n            This that\n        </bio>'
 
-    suite_builder.group "get_elements_by_tag_name" group_builder->
+    suite_builder.group "Get by tag name" group_builder->
         group_builder.specify "Can get elements by tag name" <|
-            teachers = data.root.get_elements_by_tag_name "teacher"
-            students = data.root.get_elements_by_tag_name "student"
-            gpas = data.root.get_elements_by_tag_name "gpa"
+            class = data.document.get_children_by_tag_name "class"
+            class.length . should_equal 1
+
+            teacher_direct = data.root.get_children_by_tag_name "teacher"
+            teacher_direct.length . should_equal 2
+
+            teachers = data.document.get_descendants_by_tag_name "teacher"
+            students = data.root.get_descendants_by_tag_name "student"
+            gpas = data.root.get_descendants_by_tag_name "gpa"
 
             teachers.length . should_equal 2
             students.length . should_equal 3
@@ -187,12 +196,14 @@ add_specs suite_builder =
         group_builder.specify "Can get nested elements" <|
             test_file = enso_project.data / "xml" / "nested.xml"
             root = XML_Document.from_file test_file . root_element
-            bars = root.get_elements_by_tag_name "bar"
+            bars = root.get_descendants_by_tag_name "bar"
             bars.length . should_equal 4
             bars.map (t-> t.at "@id") . should_equal ["2", "4", "5", "6"]
+            root.get_children_by_tag_name "bar" . length . should_equal 2
 
         group_builder.specify "Can get elements by name with a wildcard" <|
-            data.root.get_elements_by_tag_name "*" . length . should_equal 20
+            data.root.get_children_by_tag_name "*" . length . should_equal 5
+            data.root.get_descendants_by_tag_name "*" . length . should_equal 20
 
     suite_builder.group "Data.read / File_Format" group_builder->
         group_builder.specify "Can read from a file" <|
@@ -236,8 +247,8 @@ add_specs suite_builder =
             js = root.to_js_object
             js.should_equal expected
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

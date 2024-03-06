@@ -21,7 +21,7 @@ import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/even
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
-import { provideInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -38,7 +38,6 @@ import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vu
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
 
-const EXECUTION_MODES = ['design', 'live']
 // Assumed size of a newly created node. This is used to place the component browser.
 const DEFAULT_NODE_SIZE = new Vec2(0, 24)
 const gapBetweenNodes = 48.0
@@ -111,7 +110,7 @@ const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects
 
 const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
-  click: (e) => (e instanceof MouseEvent ? interaction.handleClick(e, graphNavigator) : false),
+  click: (e) => (e instanceof PointerEvent ? interaction.handleClick(e, graphNavigator) : false),
 })
 
 // Return the environment for the placement of a new node. The passed nodes should be the nodes that are
@@ -163,7 +162,8 @@ function sourcePortForSelection() {
 }
 
 useEvent(window, 'keydown', (event) => {
-  ;(!keyboardBusy() && (interactionBindingsHandler(event) || graphBindingsHandler(event))) ||
+  interactionBindingsHandler(event) ||
+    (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
 useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
@@ -209,7 +209,7 @@ const graphBindingsHandler = graphBindings.handler({
   openComponentBrowser() {
     if (keyboardBusy()) return false
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
-      interaction.setCurrent(creatingNode)
+      showComponentBrowser()
     }
   },
   newNode() {
@@ -239,15 +239,22 @@ const graphBindingsHandler = graphBindings.handler({
     graphStore.stopCapturingUndo()
   },
   toggleVisualization() {
-    if (keyboardBusy()) return false
     graphStore.transact(() => {
       const allVisible = set
         .toArray(nodeSelection.selected)
         .every((id) => !(graphStore.db.nodeIdToNode.get(id)?.vis?.visible !== true))
 
       for (const nodeId of nodeSelection.selected) {
-        graphStore.setNodeVisualizationVisible(nodeId, !allVisible)
+        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
+    })
+  },
+  toggleVisualizationFullscreen() {
+    if (nodeSelection.selected.size !== 1) return
+    graphStore.transact(() => {
+      const selected = set.first(nodeSelection.selected)
+      const isFullscreen = graphStore.db.nodeIdToNode.get(selected)?.vis?.fullscreen
+      graphStore.setNodeVisualization(selected, { visible: true, fullscreen: !isFullscreen })
     })
   },
   copyNode() {
@@ -317,15 +324,17 @@ const graphBindingsHandler = graphBindings.handler({
   },
 })
 
-const handleClick = useDoubleClick(
+const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
     graphBindingsHandler(e)
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
   },
   () => {
-    if (keyboardBusy()) return false
     stackNavigator.exitNode()
   },
-).handleClick
+)
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
 const codeEditorHandler = codeEditorBindings.handler({
@@ -334,8 +343,8 @@ const codeEditorHandler = codeEditorBindings.handler({
   },
 })
 
-/** Track play button presses. */
-function onPlayButtonPress() {
+/** Handle record-once button presses. */
+function onRecordOnceButtonPress() {
   projectStore.lsRpcConnection.then(async () => {
     const modeValue = projectStore.executionMode
     if (modeValue == undefined) {
@@ -361,66 +370,29 @@ const groupColors = computed(() => {
   return styles
 })
 
-const editingNode: Interaction = {
-  init: () => {
-    // component browser usage is set in `graphStore.editedNodeInfo` watch
-    componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
-  },
-  cancel: () => {
-    hideComponentBrowser()
-    graphStore.editedNodeInfo = undefined
-  },
-}
-const nodeIsBeingEdited = computed(() => graphStore.editedNodeInfo != null)
-interaction.setWhen(nodeIsBeingEdited, editingNode)
-
-const creatingNode: Interaction = {
-  init: () => {
-    componentBrowserUsage.value = { type: 'newNode', sourcePort: sourcePortForSelection() }
-    componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
-    componentBrowserVisible.value = true
-  },
-  cancel: hideComponentBrowser,
+function showComponentBrowser(nodePosition?: Vec2, usage?: Usage) {
+  componentBrowserUsage.value = usage ?? { type: 'newNode', sourcePort: sourcePortForSelection() }
+  componentBrowserNodePosition.value = nodePosition ?? targetComponentBrowserNodePosition()
+  componentBrowserVisible.value = true
 }
 
-const creatingNodeFromButton: Interaction = {
-  init: () => {
-    componentBrowserUsage.value = { type: 'newNode', sourcePort: sourcePortForSelection() }
-    let targetPos = placementPositionForSelection()
-    if (targetPos == undefined) {
-      targetPos = nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
-    }
-    componentBrowserNodePosition.value = targetPos
-    componentBrowserVisible.value = true
-  },
-  cancel: hideComponentBrowser,
-}
-
-const creatingNodeFromPortDoubleClick: Interaction = {
-  init: () => {
-    // component browser usage is set in event handler
-    componentBrowserVisible.value = true
-  },
-  cancel: hideComponentBrowser,
-}
-
-const creatingNodeFromEdgeDrop: Interaction = {
-  init: () => {
-    // component browser usage is set in event handler
-    componentBrowserVisible.value = true
-  },
-  cancel: hideComponentBrowser,
+function startCreatingNodeFromButton() {
+  const targetPos =
+    placementPositionForSelection() ??
+    nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
+  showComponentBrowser(targetPos)
 }
 
 function hideComponentBrowser() {
+  graphStore.editedNodeInfo = undefined
   componentBrowserVisible.value = false
 }
 
-function onComponentBrowserCommit(content: string, requiredImports: RequiredImport[]) {
+function commitComponentBrowser(content: string, requiredImports: RequiredImport[]) {
   if (content != null) {
     if (graphStore.editedNodeInfo) {
       // We finish editing a node.
-      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content)
+      graphStore.setNodeContent(graphStore.editedNodeInfo.id, content, requiredImports)
     } else if (content != '') {
       // We finish creating a new node.
       const metadata = undefined
@@ -433,13 +405,7 @@ function onComponentBrowserCommit(content: string, requiredImports: RequiredImpo
       if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
     }
   }
-  // Finish interaction. This should also hide component browser.
-  interaction.setCurrent(undefined)
-}
-
-function onComponentBrowserCancel() {
-  // Finish interaction. This should also hide component browser.
-  interaction.setCurrent(undefined)
+  hideComponentBrowser()
 }
 
 // Watch the `editedNode` in the graph store
@@ -447,15 +413,13 @@ watch(
   () => graphStore.editedNodeInfo,
   (editedInfo) => {
     if (editedInfo) {
-      componentBrowserNodePosition.value = targetComponentBrowserNodePosition()
-      componentBrowserUsage.value = {
+      showComponentBrowser(undefined, {
         type: 'editNode',
         node: editedInfo.id,
         cursorPos: editedInfo.initialCursorPos,
-      }
-      componentBrowserVisible.value = true
+      })
     } else {
-      componentBrowserVisible.value = false
+      hideComponentBrowser()
     }
   },
 )
@@ -600,30 +564,23 @@ async function readNodeFromExcelClipboard(
 }
 
 function handleNodeOutputPortDoubleClick(id: AstId) {
-  componentBrowserUsage.value = { type: 'newNode', sourcePort: id }
   const srcNode = graphStore.db.getPatternExpressionNodeId(id)
   if (srcNode == null) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
     return
   }
   const placementEnvironment = environmentForNodes([srcNode].values())
-  componentBrowserNodePosition.value = previousNodeDictatedPlacement(
-    DEFAULT_NODE_SIZE,
-    placementEnvironment,
-    {
-      horizontalGap: gapBetweenNodes,
-      verticalGap: gapBetweenNodes,
-    },
-  ).position
-  interaction.setCurrent(creatingNodeFromPortDoubleClick)
+  const position = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment, {
+    horizontalGap: gapBetweenNodes,
+    verticalGap: gapBetweenNodes,
+  }).position
+  showComponentBrowser(position, { type: 'newNode', sourcePort: id })
 }
 
 const stackNavigator = useStackNavigator()
 
 function handleEdgeDrop(source: AstId, position: Vec2) {
-  componentBrowserUsage.value = { type: 'newNode', sourcePort: source }
-  componentBrowserNodePosition.value = position
-  interaction.setCurrent(creatingNodeFromEdgeDrop)
+  showComponentBrowser(position, { type: 'newNode', sourcePort: source })
 }
 </script>
 
@@ -653,14 +610,11 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       :navigator="graphNavigator"
       :nodePosition="componentBrowserNodePosition"
       :usage="componentBrowserUsage"
-      @accepted="onComponentBrowserCommit"
-      @closed="onComponentBrowserCommit"
-      @canceled="onComponentBrowserCancel"
+      @accepted="commitComponentBrowser"
+      @canceled="hideComponentBrowser"
     />
     <TopBar
-      v-model:mode="projectStore.executionMode"
-      :title="projectStore.displayName"
-      :modes="EXECUTION_MODES"
+      v-model:recordMode="projectStore.recordMode"
       :breadcrumbs="stackNavigator.breadcrumbLabels.value"
       :allowNavigationLeft="stackNavigator.allowNavigationLeft.value"
       :allowNavigationRight="stackNavigator.allowNavigationRight.value"
@@ -668,12 +622,12 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @breadcrumbClick="stackNavigator.handleBreadcrumbClick"
       @back="stackNavigator.exitNode"
       @forward="stackNavigator.enterNextNodeFromHistory"
-      @execute="onPlayButtonPress()"
+      @recordOnce="onRecordOnceButtonPress()"
       @fitToAllClicked="zoomToSelected"
       @zoomIn="graphNavigator.scale *= 1.1"
       @zoomOut="graphNavigator.scale *= 0.9"
     />
-    <PlusButton @pointerdown="interaction.setCurrent(creatingNodeFromButton)" />
+    <PlusButton @pointerdown.stop @click.stop="startCreatingNodeFromButton()" @pointerup.stop />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" />
@@ -688,6 +642,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   position: relative;
   contain: layout;
   overflow: clip;
+  user-select: none;
   --group-color-fallback: #006b8a;
   --node-color-no-type: #596b81;
 }

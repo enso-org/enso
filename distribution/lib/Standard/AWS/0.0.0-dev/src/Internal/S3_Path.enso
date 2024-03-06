@@ -1,0 +1,161 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Errors.S3_Error
+import project.S3.S3
+
+## PRIVATE
+   An abstraction for S3 paths, holding the bucket name and the key.
+
+   This helper implements resolving paths in a folder-like structure as
+   described at https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
+type S3_Path
+    ## PRIVATE
+    Value (bucket : Text) (key : Text)
+
+    ## PRIVATE
+    parse (uri : Text) -> S3_Path ! Illegal_Argument =
+        if uri.starts_with S3.uri_prefix . not then Error.throw (Illegal_Argument.Error "An S3 path must start with `"+S3.uri_prefix+"`.") else
+            without_prefix = uri.drop S3.uri_prefix.length
+            first_slash_index = without_prefix.index_of S3_Path.delimiter
+            if first_slash_index == 0 then Error.throw (Illegal_Argument.Error "Invalid S3 path: empty bucket name.") else
+                if first_slash_index.is_nothing then S3_Path.Value without_prefix "" else
+                    bucket = (without_prefix.take first_slash_index)
+                    key = (without_prefix.drop first_slash_index+1)
+                    normalized = Decomposed_S3_Path.parse key . normalize . key
+                    S3_Path.Value bucket normalized
+
+    ## PRIVATE
+    to_text self -> Text =
+        S3.uri_prefix + self.bucket + S3_Path.delimiter + self.key
+
+    ## PRIVATE
+    to_display_text self -> Text = self.to_text.to_display_text
+
+    ## PRIVATE
+       Checks if this path represents the root directory of a bucket.
+    is_root self -> Boolean = self.key.is_empty
+
+    ## PRIVATE
+       Checks if this path represents a directory.
+    is_directory self -> Boolean = self.is_root || (self.key.ends_with S3_Path.delimiter)
+
+    ## PRIVATE
+       Resolves a subdirectory entry.
+       This only makes logical sense for paths for which `path.is_directory == True`,
+       but it is not forbidden to call it on other types of paths.
+
+       Note that the newly returned path will be a directory or not depending on
+       if `subpath` ends with the delimiter.
+    resolve self (subpath : Text) -> S3_Path =
+        joined = Decomposed_S3_Path.join [Decomposed_S3_Path.parse self.key, Decomposed_S3_Path.parse subpath]
+        new_key = joined.normalize.key
+        S3_Path.Value self.bucket new_key
+
+    ## PRIVATE
+    join self (subpaths : Vector) -> S3_Path =
+        joined = Decomposed_S3_Path.join (([self.key]+subpaths).map Decomposed_S3_Path.parse)
+        new_key = joined.normalize.key
+        S3_Path.Value self.bucket new_key
+
+
+    ## PRIVATE
+       Returns the parent directory.
+       It will return `Nothing` for the root directory.
+    parent self -> S3_Path | Nothing =
+        if self.is_root then Nothing else
+            decomposed = Decomposed_S3_Path.parse self.key
+            S3_Path.Value self.bucket decomposed.parent.key
+
+    ## PRIVATE
+       Returns the 'file name' of this path.
+       If the path is a regular file, it will be its name.
+       If the path is a directory, it will be the name of that directory,
+       without the trailing delimiter.
+    file_name self -> Text =
+        if self.is_root then S3_Path.delimiter else
+            trimmed = if self.key.ends_with S3_Path.delimiter then self.key.drop (Last 1) else self.key
+            last_index = trimmed.last_index_of S3_Path.delimiter
+            if last_index == Nothing then trimmed else trimmed.drop (First last_index+1)
+
+    ## PRIVATE
+       Checks if the given other path is inside of this path.
+       A directory is not a descendant of itself.
+    is_descendant_of self (other : S3_Path) -> Boolean =
+        (self != other) && other.is_directory && self.to_text.starts_with other.to_text
+
+    ## PRIVATE
+       The delimiter used for path emulation.
+
+       S3 does not treat `/` in any special way, it allows using any character as a
+       path delimiter. In the future we could allow customizing it.
+    delimiter -> Text = "/"
+
+## PRIVATE
+type Path_Entry
+    ## PRIVATE
+    Directory (name : Text)
+
+    ## PRIVATE
+    File (name : Text)
+
+    ## PRIVATE
+    is_directory self -> Boolean = case self of
+        Path_Entry.Directory _ -> True
+        Path_Entry.File _      -> False
+
+## PRIVATE
+type Decomposed_S3_Path
+    ## PRIVATE
+    Value (parts : Vector Path_Entry) (go_to_root : Boolean)
+
+    ## PRIVATE
+       Reconstructs the original path.
+    key self -> Text =
+        add_directory_suffix = self.parts.not_empty && self.parts.last.is_directory
+        suffix = if add_directory_suffix then S3_Path.delimiter else ""
+        self.parts.map .name . join separator=S3_Path.delimiter suffix=suffix
+
+    ## PRIVATE
+    parse (key : Text) -> Decomposed_S3_Path =
+        has_directory_suffix = key.ends_with S3_Path.delimiter
+        has_root_prefix = key.starts_with S3_Path.delimiter
+        parts = key.split S3_Path.delimiter . filter (p-> p.is_empty.not)
+        entries = case has_directory_suffix of
+            True -> parts.map Path_Entry.Directory
+            False ->
+                if parts.is_empty then [] else
+                    (parts.drop (Last 1) . map Path_Entry.Directory) + [Path_Entry.File parts.last]
+        Decomposed_S3_Path.Value entries has_root_prefix
+
+    ## PRIVATE
+    join (paths : Vector Decomposed_S3_Path) -> Decomposed_S3_Path =
+        if paths.is_empty then Error.throw (Illegal_Argument.Error "Cannot join an empty list of paths.") else
+            last_root_ix = paths.last_index_of (.go_to_root)
+            without_ignored_paths = if last_root_ix.is_nothing then paths else
+                paths.drop last_root_ix
+            flattened = without_ignored_paths.flat_map .parts
+            # Any `File` parts from the middle are now transformed to `Directory`:
+            aligned = flattened.map_with_index ix-> part-> case part of
+                Path_Entry.Directory _ -> part
+                Path_Entry.File name ->
+                    is_last = ix == flattened.length-1
+                    if is_last then part else Path_Entry.Directory name
+            Decomposed_S3_Path.Value aligned (last_root_ix.is_nothing.not)
+
+    ## PRIVATE
+    normalize self -> Decomposed_S3_Path ! S3_Error =
+        new_stack = self.parts.fold List.Nil stack-> part-> case part.name of
+            "." -> stack
+            ".." -> case stack of
+                List.Nil -> Error.throw (S3_Error.Error "Cannot move above root folder." Nothing)
+                List.Cons _ tail -> tail
+            _ -> List.Cons part stack
+        new_parts = new_stack.to_vector.reverse
+        Decomposed_S3_Path.Value new_parts self.go_to_root
+
+    ## PRIVATE
+    parent self -> Decomposed_S3_Path | Nothing =
+        if self.parts.is_empty then Nothing else
+            new_parts = self.parts.drop (Last 1)
+            Decomposed_S3_Path.Value new_parts self.go_to_root

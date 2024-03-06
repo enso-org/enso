@@ -348,8 +348,8 @@ add_specs suite_builder =
             Statistic.covariance_matrix series . should_fail_with Illegal_Argument
             Statistic.pearson_correlation series . should_fail_with Illegal_Argument
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

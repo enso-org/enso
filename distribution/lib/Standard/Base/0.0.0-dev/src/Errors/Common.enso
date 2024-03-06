@@ -79,7 +79,15 @@ type Type_Error
                         _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
                _ -> tpe.to_text
 
-        "Type error: expected "+self.comment+" to be "+self.expected.to_display_text+", but got "+type_of_actual+"."
+        got = if type_of_actual.is_a Text then type_of_actual else "<ERR>"
+        exp = self.expected.to_display_text
+        msg = self.comment
+            . replace "{exp}" exp
+            . replace "{got}" got
+        "Type error: "+msg+"."
+
+    to_text : Text
+    to_text self = self.to_display_text
 
 @Builtin_Type
 type Compile_Error

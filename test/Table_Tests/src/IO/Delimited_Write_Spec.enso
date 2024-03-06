@@ -601,8 +601,8 @@ add_specs suite_builder =
             f.read Plain_Text . should_equal "Initial Content"
             f.delete
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -269,7 +269,11 @@ export default class LocalBackend extends Backend {
 
   /** Delete an arbitrary asset.
    * @throws An error if the JSON-RPC call fails. */
-  override async deleteAsset(assetId: backend.AssetId, title: string | null): Promise<void> {
+  override async deleteAsset(
+    assetId: backend.AssetId,
+    _force: boolean,
+    title: string | null
+  ): Promise<void> {
     // This is SAFE, as the only asset type on the local backend is projects.
     // eslint-disable-next-line no-restricted-syntax
     const projectId = assetId as backend.ProjectId
@@ -479,5 +483,15 @@ export default class LocalBackend extends Backend {
   /** Do nothing. This function should never need to be called. */
   override deleteTag() {
     return Promise.resolve()
+  }
+
+  /** Invalid operation. */
+  override createCheckoutSession() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getCheckoutSession() {
+    return this.invalidOperation()
   }
 }

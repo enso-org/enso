@@ -88,6 +88,7 @@ type DB_Column
 
     ## ALIAS metadata
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
@@ -1306,7 +1307,7 @@ type DB_Column
         Value_Type.expect_text self <| Value_Type.expect_integer n <|
             n2 = n.max 0
             new_name = self.naming_helper.function_name "text_right" [self, n]
-            self.make_binary_op "RIGHT" n2 new_name           
+            self.make_binary_op "RIGHT" n2 new_name
 
     ## GROUP Standard.Base.Logical
        ICON preparation

@@ -1,6 +1,5 @@
-import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret
-import project.Data.Enso_Cloud.Enso_Secret.Enso_Secret_Error
-import project.Data.Enso_Cloud.Utils as Cloud_Utils
+import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Enso_Cloud.Enso_Secret.Enso_Secret_Error
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
@@ -18,7 +17,7 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean.Boolean import False, True
-from project.Data.Enso_Cloud.Enso_Secret import as_hideable_value
+from project.Enso_Cloud.Enso_Secret import as_hideable_value
 from project.Data.Text.Extensions import all
 
 polyglot java import java.net.URI as Java_URI

@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
 import scala.util.{Success, Try}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.jsonrpc._
@@ -53,14 +53,14 @@ class LibraryGetMetadataHandler(
             libraryName
           )
         case LibraryEntry.PublishedLibraryVersion(version, repositoryUrl) =>
-          SemVer(version) match {
-            case Some(semVerVersion) =>
+          SemVer.parse(version) match {
+            case Success(semVerVersion) =>
               getOrFetchPublishedMetadata(
                 libraryName,
                 semVerVersion,
                 repositoryUrl
               ) pipeTo self
-            case None =>
+            case _ =>
               self ! LocalLibraryManagerProtocol.InvalidSemverVersionError(
                 version
               )

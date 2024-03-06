@@ -578,8 +578,8 @@ add_specs suite_builder = suite_builder.group "Range" group_builder->
         invalid_range . find _->True . should_fail_with Illegal_State
         invalid_range . contains 0 . should_fail_with Illegal_State
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

@@ -4,8 +4,11 @@ import type { WidgetUpdate } from '@/providers/widgetRegistry'
 import { GraphDb, asNodeId, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
+  detectImportConflicts,
   filterOutRedundantImports,
   readImports,
+  type DetectedConflict,
+  type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
@@ -19,7 +22,7 @@ import type {
   NodeMetadata,
   NodeMetadataFields,
 } from '@/util/ast/abstract'
-import { MutableModule, isIdentifier } from '@/util/ast/abstract'
+import { MutableModule, isIdentifier, substituteQualifiedName } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -29,16 +32,16 @@ import { iteratorFilter } from 'lib0/iterator'
 import { defineStore } from 'pinia'
 import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
-import type {
-  LocalOrigin,
-  SourceRangeKey,
-  VisualizationIdentifier,
-  VisualizationMetadata,
-} from 'shared/yjsModel'
+import type { LocalOrigin, SourceRangeKey, VisualizationMetadata } from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { computed, markRaw, reactive, ref, toRef, watch, type ShallowRef } from 'vue'
 
-export { type Node, type NodeId } from '@/stores/graph/graphDatabase'
+export type {
+  Node,
+  NodeDataFromAst,
+  NodeDataFromMetadata,
+  NodeId,
+} from '@/stores/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: NodeId
@@ -229,24 +232,61 @@ export const useGraphStore = defineStore('graph', () => {
     const ident = generateUniqueIdent()
     metadata.position = { x: position.x, y: position.y }
     return edit((edit) => {
-      if (withImports) addMissingImports(edit, withImports)
+      const conflicts = withImports ? addMissingImports(edit, withImports) ?? [] : []
       const rhs = Ast.parse(expression, edit)
       rhs.setNodeMetadata(metadata)
       const assignment = Ast.Assignment.new(edit, ident, rhs)
+      for (const conflict of conflicts) {
+        substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
+      }
       edit.getVersion(method).bodyAsBlock().push(assignment)
       return asNodeId(rhs.id)
     })
   }
 
-  function addMissingImports(edit: MutableModule, newImports: RequiredImport[]) {
-    if (!newImports.length) return
+  /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
+  function addMissingImports(
+    edit: MutableModule,
+    newImports: RequiredImport[],
+  ): DetectedConflict[] | undefined {
     const topLevel = edit.getVersion(moduleRoot.value!)
     if (!(topLevel instanceof Ast.MutableBodyBlock)) {
       console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
       return
     }
     const existingImports = readImports(topLevel)
-    const importsToAdd = filterOutRedundantImports(existingImports, newImports)
+
+    const conflicts = []
+    const nonConflictingImports = []
+    for (const newImport of newImports) {
+      const conflictInfo = detectImportConflicts(suggestionDb.entries, existingImports, newImport)
+      if (conflictInfo?.detected) {
+        conflicts.push(conflictInfo)
+      } else {
+        nonConflictingImports.push(newImport)
+      }
+    }
+    addMissingImportsDisregardConflicts(edit, nonConflictingImports, existingImports)
+
+    if (conflicts.length > 0) return conflicts
+  }
+
+  /* Adds imports, ignores any possible conflicts.
+   * `existingImports` are optional and will be used instead of `readImports(topLevel)` if provided. */
+  function addMissingImportsDisregardConflicts(
+    edit: MutableModule,
+    imports: RequiredImport[],
+    existingImports?: Import[] | undefined,
+  ) {
+    if (!imports.length) return
+    const topLevel = edit.getVersion(moduleRoot.value!)
+    if (!(topLevel instanceof Ast.MutableBodyBlock)) {
+      console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
+      return
+    }
+    const existingImports_ = existingImports ?? readImports(topLevel)
+
+    const importsToAdd = filterOutRedundantImports(existingImports_, imports)
     if (!importsToAdd.length) return
     addImports(edit.getVersion(topLevel), importsToAdd)
   }
@@ -267,11 +307,23 @@ export const useGraphStore = defineStore('graph', () => {
     )
   }
 
-  function setNodeContent(id: NodeId, content: string) {
+  function setNodeContent(id: NodeId, content: string, withImports?: RequiredImport[] | undefined) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
       edit.getVersion(node.rootSpan).syncToCode(content)
+      if (withImports) {
+        const conflicts = addMissingImports(edit, withImports)
+        if (conflicts == null) return
+        const wholeAssignment = edit.getVersion(node.rootSpan)?.mutableParent()
+        if (wholeAssignment == null) {
+          console.error('Cannot find parent of the node expression. Conflict resolution failed.')
+          return
+        }
+        for (const conflict of conflicts) {
+          substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
+        }
+      }
     })
   }
 
@@ -295,34 +347,31 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function normalizeVisMetadata(
-    id: Opt<VisualizationIdentifier>,
-    visible: boolean | undefined,
+    partial: Partial<VisualizationMetadata>,
   ): VisualizationMetadata | undefined {
-    const vis: VisualizationMetadata = { identifier: id ?? null, visible: visible ?? false }
-    if (visMetadataEquals(vis, { identifier: null, visible: false })) return undefined
+    const empty: VisualizationMetadata = {
+      identifier: null,
+      visible: false,
+      fullscreen: false,
+      width: null,
+    }
+    const vis: VisualizationMetadata = { ...empty, ...partial }
+    if (visMetadataEquals(vis, empty)) return undefined
     else return vis
   }
 
-  function setNodeVisualizationId(nodeId: NodeId, vis: Opt<VisualizationIdentifier>) {
+  function setNodeVisualization(nodeId: NodeId, vis: Partial<VisualizationMetadata>) {
     const nodeAst = syncModule.value?.tryGet(nodeId)
     if (!nodeAst) return
-    editNodeMetadata(nodeAst, (metadata) =>
-      metadata.set(
-        'visualization',
-        normalizeVisMetadata(vis, metadata.get('visualization')?.visible),
-      ),
-    )
-  }
-
-  function setNodeVisualizationVisible(nodeId: NodeId, visible: boolean) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
-    if (!nodeAst) return
-    editNodeMetadata(nodeAst, (metadata) =>
-      metadata.set(
-        'visualization',
-        normalizeVisMetadata(metadata.get('visualization')?.identifier, visible),
-      ),
-    )
+    editNodeMetadata(nodeAst, (metadata) => {
+      const data: Partial<VisualizationMetadata> = {
+        identifier: vis.identifier ?? metadata.get('visualization')?.identifier ?? null,
+        visible: vis.visible ?? metadata.get('visualization')?.visible ?? false,
+        fullscreen: vis.fullscreen ?? metadata.get('visualization')?.fullscreen ?? false,
+        width: vis.width ?? metadata.get('visualization')?.width ?? null,
+      }
+      metadata.set('visualization', normalizeVisMetadata(data))
+    })
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
@@ -551,6 +600,10 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
+  function isConnectedTarget(portId: PortId): boolean {
+    return db.connections.reverseLookup(portId as AstId).size > 0
+  }
+
   return {
     transact,
     db: markRaw(db),
@@ -575,8 +628,7 @@ export const useGraphStore = defineStore('graph', () => {
     ensureCorrectNodeOrder,
     setNodeContent,
     setNodePosition,
-    setNodeVisualizationId,
-    setNodeVisualizationVisible,
+    setNodeVisualization,
     stopCapturingUndo,
     topLevel,
     updateNodeRect,
@@ -593,6 +645,8 @@ export const useGraphStore = defineStore('graph', () => {
     edit,
     viewModule,
     addMissingImports,
+    addMissingImportsDisregardConflicts,
+    isConnectedTarget,
   }
 })
 

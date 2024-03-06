@@ -10,20 +10,14 @@ import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
-import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import * as random from 'lib0/random'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
-import {
-  isUuid,
-  sourceRangeKey,
-  visMetadataEquals,
-  type ExternalId,
-  type SourceRange,
-  type VisualizationMetadata,
-} from 'shared/yjsModel'
+import type { Opt } from 'shared/util/data/opt'
+import type { ExternalId, SourceRange, VisualizationMetadata } from 'shared/yjsModel'
+import { isUuid, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
 import { reactive, ref, type Ref } from 'vue'
 
 export interface BindingInfo {
@@ -325,6 +319,10 @@ export class GraphDb {
     }
   }
 
+  /**
+   * Note that the `dirtyNodes` are visited and updated in the order that they appear in the module AST, irrespective of
+   * the iteration order of the `dirtyNodes` set.
+   **/
   readFunctionAst(
     functionAst_: Ast.Function,
     rawFunction: RawAst.Tree.Function,
@@ -333,6 +331,8 @@ export class GraphDb {
     dirtyNodes: Set<AstId>,
   ) {
     const functionChanged = functionAst_.id !== this.currentFunction
+    // Note: `subtrees` returns a set that has the iteration order of all `Ast.ID`s in the order they appear in the
+    // module AST. This is important to ensure that nodes are updated in the correct order.
     const knownDirtySubtrees = functionChanged ? null : subtrees(functionAst_.module, dirtyNodes)
     const subtreeDirty = (id: AstId) => !knownDirtySubtrees || knownDirtySubtrees.has(id)
     this.currentFunction = functionAst_.id
@@ -342,23 +342,40 @@ export class GraphDb {
       if (!newNode) continue
       const nodeId = asNodeId(newNode.rootSpan.id)
       const node = this.nodeIdToNode.get(nodeId)
-      const nodeMeta = (node ?? newNode).rootSpan.nodeMetadata
       currentNodeIds.add(nodeId)
       if (node == null) {
+        let metadataFields: NodeDataFromMetadata = {
+          position: new Vec2(0, 0),
+          vis: undefined,
+        }
         // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
         // when we switch to a different function.
         if (functionChanged) {
+          const nodeMeta = newNode.rootSpan.nodeMetadata
           const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
-          newNode.position = new Vec2(pos.x, pos.y)
-          newNode.vis = nodeMeta.get('visualization')
+          metadataFields = {
+            position: new Vec2(pos.x, pos.y),
+            vis: nodeMeta.get('visualization'),
+          }
         }
-        this.nodeIdToNode.set(nodeId, newNode)
+        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields })
       } else {
+        const { outerExprId, pattern, rootSpan, primarySubject, documentation } = newNode
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
-        if (differentOrDirty(node.pattern, newNode.pattern)) node.pattern = newNode.pattern
-        if (node.outerExprId !== newNode.outerExprId) node.outerExprId = newNode.outerExprId
-        if (differentOrDirty(node.rootSpan, newNode.rootSpan)) node.rootSpan = newNode.rootSpan
+        if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
+        if (differentOrDirty(node.rootSpan, rootSpan)) node.rootSpan = rootSpan
+        if (node.outerExprId !== outerExprId) node.outerExprId = outerExprId
+        if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
+        if (node.documentation !== documentation) node.documentation = documentation
+        // Ensure new fields can't be added to `NodeAstData` without this code being updated.
+        const _allFieldsHandled = {
+          outerExprId,
+          pattern,
+          rootSpan,
+          primarySubject,
+          documentation,
+        } satisfies NodeDataFromAst
       }
     }
     for (const nodeId of this.nodeIdToNode.keys()) {
@@ -426,11 +443,10 @@ export class GraphDb {
   mockNode(binding: string, id: Ast.AstId, code?: string): Node {
     const pattern = Ast.parse(binding)
     const node: Node = {
+      ...baseMockNode,
       outerExprId: id,
       pattern,
       rootSpan: Ast.parse(code ?? '0'),
-      position: Vec2.Zero,
-      vis: undefined,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(asNodeId(id), node)
@@ -445,23 +461,37 @@ export function asNodeId(id: Ast.AstId): NodeId {
   return id as NodeId
 }
 
-export interface Node {
+export interface NodeDataFromAst {
   outerExprId: Ast.AstId
   pattern: Ast.Ast | undefined
   rootSpan: Ast.Ast
+  /** A child AST in a syntactic position to be a self-argument input to the node. */
+  primarySubject: Ast.AstId | undefined
+  documentation: string | undefined
+}
+
+export interface NodeDataFromMetadata {
   position: Vec2
   vis: Opt<VisualizationMetadata>
+}
+
+export interface Node extends NodeDataFromAst, NodeDataFromMetadata {}
+
+const baseMockNode = {
+  position: Vec2.Zero,
+  vis: undefined,
+  primarySubject: undefined,
+  documentation: undefined,
 }
 
 /** This should only be used for supplying as initial props when testing.
  * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
 export function mockNode(exprId?: Ast.AstId): Node {
   return {
+    ...baseMockNode,
     outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
     pattern: undefined,
     rootSpan: Ast.parse('0'),
-    position: Vec2.Zero,
-    vis: undefined,
   }
 }
 

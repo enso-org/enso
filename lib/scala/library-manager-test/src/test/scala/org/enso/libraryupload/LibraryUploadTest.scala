@@ -1,6 +1,6 @@
 package org.enso.libraryupload
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.librarymanager.published.repository.{
@@ -32,7 +32,7 @@ class LibraryUploadTest
       val repoRoot    = getTestDirectory.resolve("repo")
 
       val libraryName    = LibraryName("tester", "Upload_Test")
-      val libraryVersion = SemVer(1, 2, 3)
+      val libraryVersion = SemVer.of(1, 2, 3)
       PackageManager.Default.create(
         projectRoot.toFile,
         name      = libraryName.name,

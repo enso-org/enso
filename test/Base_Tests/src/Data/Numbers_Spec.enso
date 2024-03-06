@@ -701,10 +701,10 @@ add_specs suite_builder =
                 [x, y, z, w].each b->
                     a+b . should_equal 20
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
 
 foreign js to_js_bigint n = """

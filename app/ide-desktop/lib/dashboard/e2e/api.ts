@@ -59,6 +59,7 @@ export async function mockApi({ page }: MockParams) {
     rootDirectoryId: defaultDirectoryId,
   }
   let currentUser: backend.User | null = defaultUser
+  let currentOrganization: backend.OrganizationInfo | null = null
   const assetMap = new Map<backend.AssetId, backend.AnyAsset>()
   const deletedAssets = new Set<backend.AssetId>()
   const assets: backend.AnyAsset[] = []
@@ -578,8 +579,13 @@ export async function mockApi({ page }: MockParams) {
       }
     )
     await page.route(BASE_URL + remoteBackendPaths.USERS_ME_PATH + '*', async route => {
+      await route.fulfill({ json: currentUser })
+    })
+    await page.route(BASE_URL + remoteBackendPaths.GET_ORGANIZATION_PATH + '*', async route => {
       await route.fulfill({
-        json: currentUser,
+        json: currentOrganization,
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        status: currentOrganization == null ? 404 : 200,
       })
     })
     await page.route(BASE_URL + remoteBackendPaths.CREATE_TAG_PATH + '*', async route => {
@@ -695,6 +701,14 @@ export async function mockApi({ page }: MockParams) {
     },
     setCurrentUser: (user: backend.User | null) => {
       currentUser = user
+    },
+    /** Returns the current value of `currentUser`. This is a getter, so its return value
+     * SHOULD NOT be cached. */
+    get currentOrganization() {
+      return currentOrganization
+    },
+    setCurrentOrganization: (user: backend.OrganizationInfo | null) => {
+      currentOrganization = user
     },
     addAsset,
     deleteAsset,

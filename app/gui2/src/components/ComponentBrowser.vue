@@ -11,19 +11,22 @@ import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useEvent, useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
+import { targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
 import { Vec2 } from '@/util/data/vec2'
 import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
-import { computed, onMounted, ref, watch, type ComputedRef, type Ref } from 'vue'
+import type { VisualizationIdentifier } from 'shared/yjsModel'
+import { computed, onMounted, reactive, ref, watch, type Ref } from 'vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -34,6 +37,7 @@ const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
+const interaction = injectInteractionHandler()
 
 const props = defineProps<{
   nodePosition: Vec2
@@ -43,11 +47,27 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   accepted: [searcherExpression: string, requiredImports: RequiredImport[]]
-  closed: [searcherExpression: string, requiredImports: RequiredImport[]]
   canceled: []
 }>()
 
+const cbOpen: Interaction = {
+  cancel: () => {
+    emit('canceled')
+  },
+  click: (e: PointerEvent) => {
+    if (targetIsOutside(e, cbRoot)) {
+      if (input.anyChange.value) {
+        acceptInput()
+      } else {
+        interaction.cancel(cbOpen)
+      }
+    }
+    return false
+  },
+}
+
 onMounted(() => {
+  interaction.setCurrent(cbOpen)
   input.reset(props.usage)
   if (inputField.value != null) {
     inputField.value.focus({ preventScroll: true })
@@ -107,8 +127,10 @@ function readInputFieldSelection() {
     inputField.value.selectionStart != null &&
     inputField.value.selectionEnd != null
   ) {
-    input.selection.value.start = inputField.value.selectionStart
-    input.selection.value.end = inputField.value.selectionEnd
+    input.selection.value = {
+      start: inputField.value.selectionStart,
+      end: inputField.value.selectionEnd,
+    }
   }
 }
 // HTMLInputElement's same event is not supported in chrome yet. We just react for any
@@ -146,18 +168,16 @@ function handleDefocus(e: FocusEvent) {
   }
 }
 
-useEvent(
-  window,
-  'pointerdown',
-  (event) => {
-    if (event.button !== 0) return
-    if (!(event.target instanceof Element)) return
-    if (!cbRoot.value?.contains(event.target)) {
-      emit('closed', input.code.value, input.importsToAdd())
-    }
-  },
-  { capture: true },
-)
+/** Prevent default on an event if input is not its target.
+ *
+ * The mouse events emitted on other elements may make input selection disappear, what we want to
+ * avoid.
+ */
+function preventNonInputDefault(e: Event) {
+  if (inputField.value != null && e.target !== inputField.value) {
+    e.preventDefault()
+  }
+}
 
 const inputElement = ref<HTMLElement>()
 const inputSize = useResizeObserver(inputElement, false)
@@ -240,23 +260,43 @@ function selectWithoutScrolling(index: number) {
 
 // === Preview ===
 
-const previewedExpression = debouncedGetter(() => {
-  if (selectedSuggestion.value == null) return input.code.value
-  else return input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode
+type PreviewState = { expression: string; suggestionId?: SuggestionId }
+const previewed = debouncedGetter<PreviewState>(() => {
+  if (selectedSuggestionId.value == null || selectedSuggestion.value == null)
+    return { expression: input.code.value }
+  else
+    return {
+      expression: input.inputAfterApplyingSuggestion(selectedSuggestion.value).newCode,
+      suggestionId: selectedSuggestionId.value,
+    }
 }, 200)
 
-const previewDataSource: ComputedRef<VisualizationDataSource | undefined> = computed(() => {
-  if (!previewedExpression.value.trim()) return
+const previewedSuggestionReturnType = computed(() => {
+  const id = previewed.value.suggestionId
+  if (id == null) return
+  return suggestionDbStore.entries.get(id)?.returnType
+})
+
+const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
+  if (!previewed.value.expression.trim()) return
   if (!graphStore.methodAst) return
   const body = graphStore.methodAst.body
   if (!body) return
 
   return {
     type: 'expression',
-    expression: previewedExpression.value,
+    expression: previewed.value.expression,
     contextId: body.externalId,
   }
 })
+
+const visualizationSelections = reactive(new Map<SuggestionId | null, VisualizationIdentifier>())
+const previewedVisualizationId = computed(() => {
+  return visualizationSelections.get(previewed.value.suggestionId ?? null)
+})
+function setVisualization(visualization: VisualizationIdentifier) {
+  visualizationSelections.set(previewed.value.suggestionId ?? null, visualization)
+}
 
 // === Scrolling ===
 
@@ -303,23 +343,24 @@ watch(selectedSuggestionId, (id) => {
 
 // === Accepting Entry ===
 
-function applySuggestion(component: Opt<Component> = null): SuggestionEntry | null {
+function applySuggestion(component: Opt<Component> = null) {
+  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
+  if (suggestionId == null) return
+  input.applySuggestion(suggestionId)
+}
+
+function acceptSuggestion(component: Opt<Component> = null) {
+  applySuggestion(component)
   const providedSuggestion =
     component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
   const suggestion = providedSuggestion ?? selectedSuggestion.value
-  if (suggestion == null) return null
-  input.applySuggestion(suggestion)
-  return suggestion
-}
-
-function acceptSuggestion(index: Opt<Component> = null) {
-  const applied = applySuggestion(index)
-  const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
+  const shouldFinish = suggestion != null && suggestion.kind !== SuggestionKind.Module
   if (shouldFinish) acceptInput()
 }
 
 function acceptInput() {
   emit('accepted', input.code.value.trim(), input.importsToAdd())
+  interaction.end(cbOpen)
 }
 
 // === Key Events Handler ===
@@ -349,9 +390,6 @@ const handler = componentBrowserBindings.handler({
     }
     scrolling.scrollWithTransition({ type: 'selected' })
   },
-  cancelEditing() {
-    emit('canceled')
-  },
 })
 </script>
 
@@ -363,7 +401,9 @@ const handler = componentBrowserBindings.handler({
     tabindex="-1"
     @focusout="handleDefocus"
     @keydown="handler"
-    @pointerdown.stop
+    @pointerdown.stop="preventNonInputDefault"
+    @pointerup.stop="preventNonInputDefault"
+    @click.stop="preventNonInputDefault"
     @keydown.enter.stop
     @keydown.backspace.stop
     @keydown.delete.stop
@@ -401,10 +441,7 @@ const handler = componentBrowserBindings.handler({
                   :style="{ color: componentColor(item.component) }"
                 />
                 <span>
-                  <span
-                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
-                    v-text="item.component.label"
-                  ></span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
                     v-for="range in allRanges(
                       item.component.matchedRanges,
@@ -432,10 +469,7 @@ const handler = componentBrowserBindings.handler({
               >
                 <SvgIcon :name="item.component.icon" />
                 <span>
-                  <span
-                    v-if="!item.component.matchedRanges || item.component.matchedAlias"
-                    v-text="item.component.label"
-                  ></span>
+                  <span v-if="!item.component.matchedRanges" v-text="item.component.label"></span>
                   <span
                     v-for="range in allRanges(
                       item.component.matchedRanges,
@@ -464,7 +498,13 @@ const handler = componentBrowserBindings.handler({
         :nodePosition="nodePosition"
         :scale="1"
         :isCircularMenuVisible="false"
+        :isFullscreen="false"
+        :isFocused="true"
+        :width="null"
         :dataSource="previewDataSource"
+        :typename="previewedSuggestionReturnType"
+        :currentType="previewedVisualizationId"
+        @update:id="setVisualization($event)"
       />
       <div ref="inputElement" class="CBInput">
         <input

@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.test
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.scalatest.{BeforeAndAfterAll, Suite}
 

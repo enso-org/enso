@@ -1,5 +1,5 @@
 # This file is used to generate `target/<profile>/build/enso-build-<hash>/out/paths.rs`.
-# Generation logic is in `ci_utils/src/paths.rs`.
+# Generation logic is in `build/macros/lib/src/paths.rs`.
 
 <repo_root>/:
   .github/:
@@ -17,6 +17,7 @@
     gui/:
     gui2/: # The new, Vue-based GUI.
       dist/:
+      playwright-report/: # Test results for the new GUI that we want to keep as artifacts.
       public/:
         font-enso/:
         font-mplus1/:
@@ -33,6 +34,8 @@
         content-config/:
           src/:
             config.json:
+        dashboard/:
+          playwright-report/: # Test results for the dashboard that we want to keep as artifacts.
         icons/:
         project-manager/:
   build/:
@@ -89,8 +92,13 @@
         test/:
           resources/:
             Factorial.enso:
+      target/:
+        native-image-args.txt:
     runtime/:
       target/:
+    launcher/:
+      target/:
+        native-image-args.txt:
     runtime-benchmarks/:
       bench-report.xml:
   lib/:
@@ -98,6 +106,10 @@
       parser/:
         generate-java/:
           java/:
+    scala/:
+      project-manager/:
+        target/:
+          native-image-args.txt:
   target/:
     ensogl-pack/:
       dist/: # Here ensogl-pack outputs its artifacts

@@ -2,9 +2,9 @@ package org.enso.distribution.config
 
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.cli.arguments.{Argument, OptsParseError}
-import org.enso.editions.SemVerJson._
+import org.enso.semver.SemVerJson._
 
 /** Default version that is used when launching Enso outside of projects and
   * when creating new projects.
@@ -63,7 +63,13 @@ object DefaultVersion {
     * version string.
     */
   implicit val semverArgument: Argument[SemVer] = (string: String) =>
-    SemVer(string).toRight(
-      OptsParseError(s"`$string` is not a valid semantic version string.")
-    )
+    SemVer
+      .parse(string)
+      .fold(
+        _ =>
+          Left(
+            OptsParseError(s"`$string` is not a valid semantic version string.")
+          ),
+        v => Right(v)
+      )
 }
