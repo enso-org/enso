@@ -8,23 +8,22 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as shortcutManagerProvider from '#/providers/ShortcutManagerProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import UpsertSecretModal from '#/layouts/dashboard/UpsertSecretModal'
-
 import type * as column from '#/components/dashboard/column'
 import SvgMask from '#/components/SvgMask'
+
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
 
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as shortcutManagerModule from '#/utilities/ShortcutManager'
 import Visibility from '#/utilities/visibility'
 
 // =====================
@@ -43,7 +42,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
-  const { shortcutManager } = shortcutManagerProvider.useShortcutManager()
+  const inputBindings = inputBindingsProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.secret) {
     // eslint-disable-next-line no-restricted-syntax
@@ -60,12 +59,12 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       case AssetEventType.openProject:
       case AssetEventType.updateFiles:
       case AssetEventType.closeProject:
-      case AssetEventType.cancelOpeningAllProjects:
       case AssetEventType.copy:
       case AssetEventType.cut:
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -76,8 +75,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
         // Ignored. These events should all be unrelated to secrets.
-        // `deleteMultiple`, `restoreMultiple`, `download`,
-        // and `downloadSelected` are handled by `AssetRow`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
       case AssetEventType.newSecret: {
@@ -108,6 +107,12 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
     }
   })
 
+  const handleClick = inputBindings.handler({
+    editName: () => {
+      setRowState(object.merger({ isEditingName: true }))
+    },
+  })
+
   return (
     <div
       className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
@@ -119,11 +124,9 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
       onClick={event => {
-        if (
-          eventModule.isSingleClick(event) &&
-          (selected ||
-            shortcutManager.matchesMouseAction(shortcutManagerModule.MouseAction.editName, event))
-        ) {
+        if (handleClick(event)) {
+          // Already handled.
+        } else if (eventModule.isSingleClick(event) && selected) {
           setRowState(object.merger({ isEditingName: true }))
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()

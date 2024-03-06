@@ -9,7 +9,7 @@ add_specs suite_builder =
     Data_Formatter_Spec.add_specs suite_builder
     Parse_Values_Spec.add_specs suite_builder
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter

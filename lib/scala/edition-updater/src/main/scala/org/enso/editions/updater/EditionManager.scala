@@ -1,10 +1,10 @@
 package org.enso.editions.updater
 
-import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.config.GlobalConfigurationManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions
 import org.enso.editions.{EditionResolver, Editions}
+import org.enso.semver.SemVer
 
 import java.nio.file.Path
 import scala.util.Try

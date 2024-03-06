@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import java.nio.file.Path
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 
 /** A base class for exceptions caused by [[RuntimeVersionManager]] logic.
   */

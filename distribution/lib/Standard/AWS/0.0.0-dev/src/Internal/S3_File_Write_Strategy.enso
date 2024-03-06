@@ -6,10 +6,12 @@ import Standard.Base.Errors.File_Error.File_Error
 from Standard.Base.System.File.Generic.File_Write_Strategy import File_Write_Strategy, default_overwrite, default_append, default_raise_error, generic_remote_write_with_local_file
 
 import project.Errors.S3_Error
+import project.S3.S3
+import project.S3.S3_File.S3_File
 
 ## PRIVATE
 instance =
-    File_Write_Strategy.Value default_overwrite default_append default_raise_error s3_backup create_dry_run_file remote_write_with_local_file
+    File_Write_Strategy.Value default_overwrite default_append default_raise_error s3_backup create_dry_run_file remote_write_with_local_file copy_from_local
 
 ## PRIVATE
 create_dry_run_file file copy_original =
@@ -46,6 +48,12 @@ s3_backup file action = recover_errors <|
 
     with_failure_handler revert_backup <|
         file.with_output_stream [File_Access.Write, File_Access.Truncate_Existing] action
+
+## PRIVATE
+copy_from_local (source : File) (destination : S3_File) (replace_existing : Boolean) =
+    if replace_existing.not && destination.exists then Error.throw (File_Error.Already_Exists destination) else
+        S3.upload_file source destination.s3_path.bucket destination.s3_path.key destination.credentials . if_not_error <|
+            destination
 
 ## PRIVATE
 with_failure_handler ~failure_action ~action =

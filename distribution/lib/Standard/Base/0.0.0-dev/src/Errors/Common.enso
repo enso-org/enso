@@ -79,7 +79,15 @@ type Type_Error
                         _ -> ". Try to apply " + (missing_args.join ", ") + " arguments"
                _ -> tpe.to_text
 
-        "Type error: expected "+self.comment+" to be "+self.expected.to_display_text+", but got "+type_of_actual+"."
+        got = if type_of_actual.is_a Text then type_of_actual else "<ERR>"
+        exp = self.expected.to_display_text
+        msg = self.comment
+            . replace "{exp}" exp
+            . replace "{got}" got
+        "Type error: "+msg+"."
+
+    to_text : Text
+    to_text self = self.to_display_text
 
 @Builtin_Type
 type Compile_Error
@@ -380,16 +388,17 @@ type No_Conversion_Currying
 @Builtin_Type
 type Forbidden_Operation
     ## PRIVATE
-       An error that occurs when the action is not allowed to perform the operation in the given context.
+       An error that occurs when the action is not allowed to perform the
+       operation in the given context.
 
        Arguments:
-       - operation: attempted context that is not allowed.
-    Error operation
+       - message: message describing the operation that was not allowed.
+    Error message
 
     ## PRIVATE
        Convert the Forbidden_Operation error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Forbidden operation: "+self.operation+"."
+    to_display_text self = "Forbidden operation: "+self.message
 
 type Dry_Run_Operation
     ## PRIVATE

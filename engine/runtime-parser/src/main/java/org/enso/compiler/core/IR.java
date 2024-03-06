@@ -1,6 +1,5 @@
 package org.enso.compiler.core;
 
-import java.io.Serializable;
 import java.util.UUID;
 import java.util.function.Function;
 import org.enso.compiler.core.ir.DiagnosticStorage;
@@ -28,9 +27,7 @@ import scala.collection.immutable.List;
  *
  * <p>See also: Note [IR Equality and hashing]
  */
-public interface IR extends Serializable {
-
-  long serialVersionUID = 9057L; // Scala to Java
+public interface IR {
 
   /**
    * Storage for metadata that the node has been tagged with as the result of various compiler

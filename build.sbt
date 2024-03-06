@@ -27,11 +27,11 @@ val scalacVersion = "2.13.11"
 // source version of the Java language
 val javaVersion = "21"
 // version of the GraalVM JDK
-val graalVersion = "21.0.1"
+val graalVersion = "21.0.2"
 // Version used for the Graal/Truffle related Maven packages
 // Keep in sync with GraalVM.version. Do not change the name of this variable,
 // it is used by the Rust build script via regex matching.
-val graalMavenPackagesVersion = "23.1.0"
+val graalMavenPackagesVersion = "23.1.2"
 val targetJavaVersion         = "17"
 val defaultDevEnsoVersion     = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -47,9 +47,24 @@ val currentEdition = sys.env.getOrElse(
 val stdLibVersion       = defaultDevEnsoVersion
 val targetStdlibVersion = ensoVersion
 
-Global / onLoad := GraalVM.addVersionCheck(
-  graalMavenPackagesVersion
-)((Global / onLoad).value)
+lazy val graalVMVersionCheck = taskKey[Unit]("Check GraalVM and Java versions")
+graalVMVersionCheck := {
+  GraalVM.versionCheck(
+    graalVersion,
+    graalMavenPackagesVersion,
+    javaVersion,
+    state.value.log
+  )
+}
+
+// Inspired by https://www.scala-sbt.org/1.x/docs/Howto-Startup.html#How+to+take+an+action+on+startup
+lazy val startupStateTransition: State => State = { s: State =>
+  "graalVMVersionCheck" :: s
+}
+Global / onLoad := {
+  val old = (Global / onLoad).value
+  startupStateTransition compose old
+}
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -303,12 +318,14 @@ lazy val enso = (project in file("."))
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
+    semver,
     `distribution-manager`,
     `edition-updater`,
     `edition-uploader`,
     `library-manager`,
     `library-manager-test`,
     `connected-lock-manager`,
+    `connected-lock-manager-server`,
     syntax,
     testkit,
     `common-polyglot-core-utils`,
@@ -470,7 +487,6 @@ val zio = Seq(
 // === Other ==================================================================
 
 val bcpkixJdk15Version      = "1.70"
-val bumpVersion             = "0.1.3"
 val declineVersion          = "2.4.1"
 val directoryWatcherVersion = "0.18.0"
 val flatbuffersVersion      = "1.12.0"
@@ -734,8 +750,7 @@ lazy val `logging-service` = project
     libraryDependencies ++= Seq(
       "org.slf4j"      % "slf4j-api" % slf4jVersion,
       "com.typesafe"   % "config"    % typesafeConfigVersion,
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-      akkaHttp
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     )
   )
   .dependsOn(`logging-utils`)
@@ -1383,7 +1398,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`json-rpc-server`)
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`library-manager`)
-  .dependsOn(`connected-lock-manager`)
+  .dependsOn(`connected-lock-manager-server`)
   .dependsOn(`edition-updater`)
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
@@ -1800,6 +1815,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
     .dependsOn(testkit % Test)
+    .dependsOn(`connected-lock-manager-server`)
 
 /** A project that holds only benchmarks for `runtime`. Unlike `runtime-integration-tests`, its execution requires
   * the whole `runtime-fat-jar` assembly, as we want to be as close to the enso distribution as possible.
@@ -1817,6 +1833,7 @@ lazy val `runtime-benchmarks` =
         "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
         "com.sun.xml.bind"    % "jaxb-impl"                % jaxbVersion,
         "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-dsl-processor"    % graalMavenPackagesVersion % "provided",
         "org.slf4j"           % "slf4j-api"                % slf4jVersion,
         "org.slf4j"           % "slf4j-nop"                % slf4jVersion
       ),
@@ -1832,6 +1849,14 @@ lazy val `runtime-benchmarks` =
         frgaalSourceLevel,
         "--enable-preview"
       ),
+      javacOptions ++= Seq(
+        "-s",
+        (Compile / sourceManaged).value.getAbsolutePath,
+        "-Xlint:unchecked"
+      ),
+      Compile / compile := (Compile / compile)
+        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+        .value,
       parallelExecution := false,
       modulePath := {
         val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
@@ -2222,7 +2247,6 @@ lazy val launcher = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.typelevel"              %% "cats-core"        % catsVersion,
-      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaSLF4J
@@ -2452,12 +2476,42 @@ lazy val editions = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "nl.gn0s1s"                  %% "bump"          % bumpVersion,
       "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(
+        Def.task {
+          Editions.writeEditionConfig(
+            editionsRoot   = file("distribution") / "editions",
+            ensoVersion    = ensoVersion,
+            editionName    = currentEdition,
+            libraryVersion = stdLibVersion,
+            log            = streams.value.log
+          )
+        }
+      )
+      .value,
+    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
+  )
+  .dependsOn(semver)
+  .dependsOn(testkit % Test)
+
+lazy val semver = project
+  .in(file("lib/scala/semver"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging"   % scalaLoggingVersion,
+      "io.circe"                   %% "circe-yaml"      % circeYamlVersion,
+      "org.scalatest"              %% "scalatest"       % scalatestVersion % Test,
+      "junit"                       % "junit"           % junitVersion     % Test,
+      "com.github.sbt"              % "junit-interface" % junitIfVersion   % Test
     )
   )
   .settings(
@@ -2481,19 +2535,23 @@ lazy val editions = project
 lazy val downloader = (project in file("lib/scala/downloader"))
   .settings(
     frgaalJavaCompilerSetting,
+    // Fork the tests to make sure that the withDebug command works (we can
+    // attach debugger to the subprocess)
+    (Test / fork) := true,
+    commands += WithDebugCommand.withDebug,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "commons-io"                  % "commons-io"       % commonsIoVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
-      akkaActor,
-      akkaStream,
-      akkaHttp,
-      akkaSLF4J
+      "junit"                       % "junit"            % junitVersion     % Test,
+      "com.github.sbt"              % "junit-interface"  % junitIfVersion   % Test,
+      "org.hamcrest"                % "hamcrest-all"     % hamcrestVersion  % Test
     )
   )
   .dependsOn(cli)
+  .dependsOn(`http-test-helper`)
 
 lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
@@ -2542,6 +2600,7 @@ lazy val `library-manager-test` = project
   .settings(
     frgaalJavaCompilerSetting,
     Test / fork := true,
+    commands += WithDebugCommand.withDebug,
     Test / javaOptions ++= testLogProviderOptions,
     Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
@@ -2556,6 +2615,22 @@ lazy val `library-manager-test` = project
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .dependsOn(`distribution-manager`)
+  .dependsOn(`connected-lock-manager-server` % "test->test")
+  .dependsOn(`polyglot-api`)
+
+/** Unlike `connected-lock-manager` project, has a dependency on akka.
+  */
+lazy val `connected-lock-manager-server` = project
+  .in(file("lib/scala/connected-lock-manager-server"))
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
@@ -2579,7 +2654,6 @@ lazy val `runtime-version-manager` = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
       "org.typelevel"              %% "cats-core"        % catsVersion,
-      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
       "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaHttp

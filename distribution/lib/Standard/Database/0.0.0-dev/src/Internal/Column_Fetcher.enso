@@ -9,6 +9,7 @@ import Standard.Table.Internal.Java_Exports
 from project.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.ResultSet
+polyglot java import java.time.LocalDate as Java_Local_Date
 polyglot java import java.time.LocalTime as Java_Local_Time
 
 polyglot java import org.enso.database.JDBCUtils
@@ -130,6 +131,16 @@ fallback_fetcher =
     Column_Fetcher.Value fetch_value make_builder
 
 ## PRIVATE
+date_fetcher =
+    fetch_value rs i =
+        time = rs.getObject i Java_Local_Date.class
+        if rs.wasNull then Nothing else time
+    make_builder initial_size _ =
+        java_builder = Java_Exports.make_date_builder initial_size
+        make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
 time_fetcher =
     fetch_value rs i =
         time = rs.getObject i Java_Local_Time.class
@@ -172,6 +183,7 @@ default_fetcher_for_value_type value_type =
         Value_Type.Char _ _ -> text_fetcher value_type
         Value_Type.Boolean -> boolean_fetcher
         Value_Type.Time -> time_fetcher
+        Value_Type.Date -> date_fetcher
         # We currently don't distinguish timestamps without a timezone on the Enso value side.
         Value_Type.Date_Time has_timezone ->
             if has_timezone then date_time_fetcher else local_date_time_fetcher

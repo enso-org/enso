@@ -36,7 +36,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <EnsoTextInputWidget v-model="value" class="WidgetText r-24" />
+  <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown -->
+  <EnsoTextInputWidget v-model="value" class="WidgetText r-24" @pointerdown.stop />
 </template>
 
 <style scoped>

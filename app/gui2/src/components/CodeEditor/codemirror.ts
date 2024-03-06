@@ -13,7 +13,7 @@ export {
 } from '@codemirror/language'
 export { forceLinting, lintGutter, linter, type Diagnostic } from '@codemirror/lint'
 export { highlightSelectionMatches } from '@codemirror/search'
-export { EditorState } from '@codemirror/state'
+export { Annotation, EditorState, StateEffect, StateField, type ChangeSet } from '@codemirror/state'
 export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
@@ -28,6 +28,7 @@ import {
   syntaxTree,
 } from '@codemirror/language'
 import { type Diagnostic } from '@codemirror/lint'
+import type { ChangeSpec } from '@codemirror/state'
 import { hoverTooltip as originalHoverTooltip, type TooltipView } from '@codemirror/view'
 import {
   NodeProp,
@@ -42,6 +43,8 @@ import {
 import { styleTags, tags } from '@lezer/highlight'
 import { EditorView } from 'codemirror'
 import type { Diagnostic as LSDiagnostic } from 'shared/languageServerTypes'
+import { tryGetSoleValue } from 'shared/util/data/iterable'
+import type { SourceRangeEdit } from 'shared/util/data/text'
 
 export function lsDiagnosticsToCMDiagnostics(
   source: string,
@@ -57,15 +60,17 @@ export function lsDiagnosticsToCMDiagnostics(
   }
   for (const diagnostic of diagnostics) {
     if (!diagnostic.location) continue
-    results.push({
-      from:
-        (lineStartIndices[diagnostic.location.start.line] ?? 0) +
-        diagnostic.location.start.character,
-      to: (lineStartIndices[diagnostic.location.end.line] ?? 0) + diagnostic.location.end.character,
-      message: diagnostic.message,
-      severity:
-        diagnostic.kind === 'Error' ? 'error' : diagnostic.kind === 'Warning' ? 'warning' : 'info',
-    })
+    const from =
+      (lineStartIndices[diagnostic.location.start.line] ?? 0) + diagnostic.location.start.character
+    const to =
+      (lineStartIndices[diagnostic.location.end.line] ?? 0) + diagnostic.location.end.character
+    if (to > source.length || from > source.length) {
+      // Suppress temporary errors if the source is not the version of the document the LS is reporting diagnostics for.
+      continue
+    }
+    const severity =
+      diagnostic.kind === 'Error' ? 'error' : diagnostic.kind === 'Warning' ? 'warning' : 'info'
+    results.push({ from, to, message: diagnostic.message, severity })
   }
   return results
 }
@@ -115,8 +120,7 @@ function astToCodeMirrorTree(
   const [start, end] = ast.span()
   const children = ast.children()
 
-  const hasSingleTokenChild = children.length === 1 && children[0]!.isToken()
-  const childrenToConvert = hasSingleTokenChild ? [] : children
+  const childrenToConvert = tryGetSoleValue(children)?.isToken() ? [] : children
 
   const tree = new Tree(
     nodeSet.types[ast.inner.type + (ast.isToken() ? RawAst.Tree.typeNames.length : 0)]!,
@@ -190,4 +194,8 @@ export function hoverTooltip(
       create: typeof domOrCreate !== 'function' ? () => domOrCreate : domOrCreate,
     }
   })
+}
+
+export function textEditToChangeSpec({ range: [from, to], insert }: SourceRangeEdit): ChangeSpec {
+  return { from, to, insert }
 }

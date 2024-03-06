@@ -9,11 +9,10 @@ import {
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { MutableModule } from '@/util/ast/abstract'
+import { MutableModule, parseIdent, parseIdents, parseQualifiedName } from '@/util/ast/abstract'
 import { unwrap } from '@/util/data/result'
 import {
-  normalizeQualifiedName,
-  qnFromSegments,
+  qnLastSegment,
   qnSegments,
   qnSplit,
   tryIdentifier,
@@ -25,63 +24,6 @@ import {
 // ========================
 // === Imports analysis ===
 // ========================
-
-/** If the input is a chain of applications of the given left-associative operator, and all the leaves of the
- *  operator-application tree are identifier expressions, return the identifiers from left to right.
- *  This is analogous to `ast.code().split(operator)`, but type-enforcing.
- */
-function unrollOprChain(
-  ast: Ast.Ast,
-  leftAssociativeOperator: string,
-): IdentifierOrOperatorIdentifier[] | null {
-  const idents: IdentifierOrOperatorIdentifier[] = []
-  let ast_: Ast.Ast | undefined = ast
-  while (
-    ast_ instanceof Ast.OprApp &&
-    ast_.operator.ok &&
-    ast_.operator.value.code() === leftAssociativeOperator
-  ) {
-    if (!(ast_.rhs instanceof Ast.Ident)) return null
-    idents.unshift(ast_.rhs.code())
-    ast_ = ast_.lhs
-  }
-  if (!(ast_ instanceof Ast.Ident)) return null
-  idents.unshift(ast_.code())
-  return idents
-}
-
-/** If the input is a chain of property accesses (uses of the `.` operator with a syntactic identifier on the RHS), and
- *  the value at the beginning of the sequence is an identifier expression, return all the identifiers from left to
- *  right. This is analogous to `ast.code().split('.')`, but type-enforcing.
- */
-function unrollPropertyAccess(ast: Ast.Ast): IdentifierOrOperatorIdentifier[] | null {
-  const idents: IdentifierOrOperatorIdentifier[] = []
-  let ast_: Ast.Ast | undefined = ast
-  while (ast_ instanceof Ast.PropertyAccess) {
-    idents.unshift(ast_.rhs.code())
-    ast_ = ast_.lhs
-  }
-  if (!(ast_ instanceof Ast.Ident)) return null
-  idents.unshift(ast_.code())
-  return idents
-}
-
-function parseIdent(ast: Ast.Ast): IdentifierOrOperatorIdentifier | null {
-  if (ast instanceof Ast.Ident) {
-    return ast.code()
-  } else {
-    return null
-  }
-}
-
-function parseIdents(ast: Ast.Ast): IdentifierOrOperatorIdentifier[] | null {
-  return unrollOprChain(ast, ',')
-}
-
-function parseQualifiedName(ast: Ast.Ast): QualifiedName | null {
-  const idents = unrollPropertyAccess(ast)
-  return idents && normalizeQualifiedName(qnFromSegments(idents))
-}
 
 /** Parse import statement. */
 export function recognizeImport(ast: Ast.Import): Import | null {
@@ -296,6 +238,14 @@ function definedInEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEnt
   return db.getEntryByQualifiedName(entry.definedIn)
 }
 
+function entryFQNFromRequiredImport(importStatement: RequiredImport): QualifiedName {
+  if (importStatement.kind === 'Qualified') {
+    return importStatement.module
+  } else {
+    return unwrap(tryQualifiedName(`${importStatement.from}.${importStatement.import}`))
+  }
+}
+
 export function requiredImportEquals(left: RequiredImport, right: RequiredImport): boolean {
   if (left.kind != right.kind) return false
   switch (left.kind) {
@@ -339,6 +289,47 @@ export function filterOutRedundantImports(
   required: RequiredImport[],
 ): RequiredImport[] {
   return required.filter((info) => !existing.some((existing) => covers(existing, info)))
+}
+
+/* Information about detected conflict import, and advisory on resolution. */
+export interface DetectedConflict {
+  /* Always true, for more expressive API usage. */
+  detected: boolean
+  /* Advisory to replace the following name (qualified name or single ident)… */
+  pattern: QualifiedName | IdentifierOrOperatorIdentifier
+  /* … with this fully qualified name. */
+  fullyQualified: QualifiedName
+}
+
+export type ConflictInfo = DetectedConflict | undefined
+
+/* Detect possible name clash when adding `importsForEntry` with `existingImports` present. */
+export function detectImportConflicts(
+  suggestionDb: SuggestionDb,
+  existingImports: Import[],
+  importToCheck: RequiredImport,
+): ConflictInfo {
+  const entryFQN = entryFQNFromRequiredImport(importToCheck)
+  const [entryId] = suggestionDb.nameToId.lookup(entryFQN)
+  if (entryId == null) return
+  const name = qnLastSegment(entryFQN)
+  const conflictingIds = suggestionDb.conflictingNames.lookup(name)
+  // Obviously, the entry doesn’t conflict with itself.
+  conflictingIds.delete(entryId)
+
+  for (const id of conflictingIds) {
+    const e = suggestionDb.get(id)
+    const required = e ? requiredImports(suggestionDb, e) : []
+    for (const req of required) {
+      if (existingImports.some((existing) => covers(existing, req))) {
+        return {
+          detected: true,
+          pattern: name,
+          fullyQualified: entryFQN,
+        }
+      }
+    }
+  }
 }
 
 if (import.meta.vitest) {
@@ -455,7 +446,7 @@ if (import.meta.vitest) {
     const db = new SuggestionDb()
     const reexportedModule = makeModule('Standard.AWS.Connections')
     reexportedModule.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
-    const reexportedType = makeModule('Standard.Database.Table.Table')
+    const reexportedType = makeModule('Standard.Database.DB_Table.DB_Table')
     reexportedType.reexportedIn = unwrap(tryQualifiedName('Standard.Base'))
     const extensionMethod = makeMethod('Standard.Network.URI.fetch')
     extensionMethod.definedIn = unwrap(tryQualifiedName('Standard.Base'))
@@ -468,9 +459,53 @@ if (import.meta.vitest) {
     db.set(7, makeMethod('Standard.Base.Type.method'))
     db.set(8, makeType('Standard.Network.URI'))
     db.set(9, extensionMethod)
+    db.set(10, makeType('Standard.Base.Vector'))
+    db.set(11, makeStaticMethod('Standard.Base.Vector.new'))
+    db.set(12, makeModule('Project.Foo'))
+    db.set(13, makeType('Project.Foo.Vector'))
+    db.set(14, makeStaticMethod('Project.Foo.Vector.new'))
+    db.set(15, makeModule('Project.Foo.Base'))
 
     return db
   }
+
+  const qn = (s: string) => unwrap(tryQualifiedName(s))
+  test.each([
+    {
+      description: 'Conflicting Vector',
+      importing: {
+        kind: 'Unqualified',
+        from: qn('Project.Foo'),
+        import: 'Vector',
+      } as RequiredImport,
+      alreadyImported: [
+        { from: qn('Standard.Base'), imported: { kind: 'List', names: ['Vector'] } } as Import,
+      ],
+      expected: { name: 'Vector', fullyQualified: 'Project.Foo.Vector' },
+    },
+    {
+      description: 'Conflicting Vector (2)',
+      importing: {
+        kind: 'Unqualified',
+        from: qn('Project.Foo'),
+        import: 'Vector',
+      } as RequiredImport,
+      alreadyImported: [
+        { from: qn('Standard.Base'), imported: { kind: 'All', except: [] } } as Import,
+      ],
+      expected: { name: 'Vector', fullyQualified: 'Project.Foo.Vector' },
+    },
+  ])('Conflicting imports: $description', ({ importing, alreadyImported, expected }) => {
+    const db = mockDb()
+
+    const existingImports: Import[] = alreadyImported
+    const conflicts = detectImportConflicts(db, existingImports, importing)
+    expect(conflicts).toEqual({
+      detected: true,
+      pattern: expected.name,
+      fullyQualified: expected.fullyQualified,
+    } as ConflictInfo)
+  })
 
   test.each([
     {
@@ -508,7 +543,7 @@ if (import.meta.vitest) {
         {
           kind: 'Unqualified',
           from: unwrap(tryQualifiedName('Standard.Base')),
-          import: unwrap(tryIdentifier('Table')),
+          import: unwrap(tryIdentifier('DB_Table')),
         },
       ],
     },

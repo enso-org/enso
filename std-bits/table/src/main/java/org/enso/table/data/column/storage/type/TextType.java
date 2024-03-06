@@ -10,6 +10,21 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
     }
   }
 
+  @Override
+  public boolean isNumeric() {
+    return false;
+  }
+
+  @Override
+  public boolean hasDate() {
+    return false;
+  }
+
+  @Override
+  public boolean hasTime() {
+    return false;
+  }
+
   public static final TextType VARIABLE_LENGTH = new TextType(-1, false);
 
   public static TextType fixedLength(long length) {

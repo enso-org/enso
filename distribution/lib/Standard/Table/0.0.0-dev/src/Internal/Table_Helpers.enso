@@ -6,6 +6,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Blank_Selector.Blank_Selector
 import project.Data.Column.Column
+import project.Data.Expression.Expression
 import project.Data.Position.Position
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
@@ -14,7 +15,7 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Problem_Builder.Problem_Builder
-from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, Too_Many_Column_Names_Provided
+from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, No_Such_Column, Too_Many_Column_Names_Provided
 
 polyglot java import java.util.HashSet
 
@@ -177,16 +178,18 @@ type Table_Column_Helper
 
        It may allow selection of columns by index, name or computing a derived
        expression.
-    resolve_column_or_expression : (Integer | Text) -> Problem_Builder -> Any | Nothing
+    resolve_column_or_expression : (Integer | Text | Expression) -> Problem_Builder -> Any | Nothing
     resolve_column_or_expression self selector problem_builder = case selector of
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
                 if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "Bug in Table library: A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
-                    (self.table.evaluate_expression selector).catch Any expression_error->
-                        invalid_column = Invalid_Aggregate_Column.Error selector expression_error
-                        problem_builder.report_other_warning invalid_column
-                        Nothing
+                    problem_builder.report_other_warning (Invalid_Aggregate_Column.Error selector (No_Such_Column.Error selector))
+                    Nothing
+        _ : Expression ->
+            (self.table.evaluate_expression selector).catch Any expression_error->
+                problem_builder.report_other_warning (Invalid_Aggregate_Column.Error selector.expression expression_error)
+                Nothing
         _ : Integer -> case is_index_valid self.internal_columns.length selector of
             True -> self.internal_columns.at selector
             False ->

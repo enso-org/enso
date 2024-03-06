@@ -10,6 +10,8 @@ const compression = require('compression')
 const yargs = require('yargs')
 const semverValid = require('semver/functions/valid')
 
+const LOG_REQUESTS = false
+
 const argv = yargs
     .usage(
         '$0',
@@ -38,6 +40,16 @@ const argv = yargs
 const libraryRoot = path.join(argv.root, 'libraries')
 
 const app = express()
+if (LOG_REQUESTS) {
+    app.use((req, res, next) => {
+        console.log(`Received [${req.method}] ${req.originalUrl}`)
+        console.log(`  Headers: ${JSON.stringify(req.headers)}`)
+        console.log(`  Query: ${JSON.stringify(req.query)}`)
+        console.log(`  Body: ${JSON.stringify(req.body)}`)
+        next()
+    })
+}
+
 const tmpDir = path.join(os.tmpdir(), 'enso-library-repo-uploads')
 const upload = multer({ dest: tmpDir })
 app.use(compression({ filter: shouldCompress }))
@@ -102,7 +114,9 @@ function shouldCompress(req, res) {
 async function handleUpload(req, res) {
     function fail(code, message) {
         res.status(code).json({ error: message })
-        cleanFiles(req.files)
+        if (req.files !== undefined) {
+            cleanFiles(req.files)
+        }
     }
 
     if (token !== null) {

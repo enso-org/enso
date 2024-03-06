@@ -1,14 +1,10 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.logging.Level;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -36,18 +32,7 @@ public class NestedPatternCompilationBenchmarks {
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
-    ctx =
-        Context.newBuilder()
-            .allowExperimentalOptions(true)
-            .allowIO(IOAccess.ALL)
-            .allowAllAccess(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .option(
-                "enso.languageHomeOverride",
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
-
+    ctx = SrcUtil.newContextBuilder().build();
     benchmarkName = SrcUtil.findName(params);
     code =
         """

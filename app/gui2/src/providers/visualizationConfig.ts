@@ -14,6 +14,7 @@ export interface VisualizationConfig {
   readonly isCircularMenuVisible: boolean
   readonly nodeSize: Vec2
   readonly scale: number
+  readonly isFocused: boolean
   isBelowToolbar: boolean
   width: number | null
   height: number

@@ -1,7 +1,7 @@
 package org.enso.runtimeversionmanager.runner
 
 import com.typesafe.scalalogging.Logger
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
@@ -292,7 +292,9 @@ class Runner(
       case Some(project) =>
         // TODO [RW] properly get the default edition, see #1864
         val version = project.edition
-          .map(edition => editionManager.resolveEngineVersion(edition).get)
+          .flatMap(edition =>
+            editionManager.resolveEngineVersion(edition).toOption
+          )
           .map(SemVerEnsoVersion)
           .getOrElse(DefaultEnsoVersion)
         version match {

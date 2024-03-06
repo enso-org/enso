@@ -14,11 +14,34 @@ const emit = defineEmits<{
   'update:isDocsVisible': [isDocsVisible: boolean]
   'update:isVisualizationVisible': [isVisualizationVisible: boolean]
   startEditing: []
+  startEditingComment: []
+  openFullMenu: []
+  delete: []
 }>()
 </script>
 
 <template>
-  <div :class="`${props.isFullMenuVisible ? 'CircularMenu full' : 'CircularMenu partial'}`">
+  <div
+    :class="`${props.isFullMenuVisible ? 'CircularMenu full' : 'CircularMenu partial'}`"
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop
+  >
+    <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
+    <SvgIcon
+      v-if="isFullMenuVisible"
+      name="comment"
+      class="icon-container button slot2"
+      :alt="`Edit comment`"
+      @click.stop="emit('startEditingComment')"
+    />
+    <SvgIcon
+      v-if="isFullMenuVisible"
+      name="trash2"
+      class="icon-container button slot4"
+      :alt="`Delete component`"
+      @click.stop="emit('delete')"
+    />
     <ToggleIcon
       icon="eye"
       class="icon-container button slot5"
@@ -26,7 +49,12 @@ const emit = defineEmits<{
       :modelValue="props.isVisualizationVisible"
       @update:modelValue="emit('update:isVisualizationVisible', $event)"
     />
-    <SvgIcon name="edit" class="icon-container button slot6" @pointerdown="emit('startEditing')" />
+    <SvgIcon
+      name="edit"
+      class="icon-container button slot6"
+      data-testid="edit-button"
+      @click.stop="emit('startEditing')"
+    />
     <ToggleIcon
       :icon="props.isOutputContextEnabledGlobally ? 'no_auto_replay' : 'auto_replay'"
       class="icon-container button slot7"

@@ -12,7 +12,6 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -47,6 +46,7 @@ const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingSlow,
+  [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -59,6 +59,7 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
   [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingMedium,
+  [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 
@@ -74,17 +75,17 @@ export interface ProjectIconProps {
   readonly assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
   readonly doOpenManually: (projectId: backendModule.ProjectId) => void
-  readonly onClose: () => void
-  readonly openIde: (switchPage: boolean) => void
+  readonly doCloseEditor: () => void
+  readonly doOpenEditor: (switchPage: boolean) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { keyProp: key, item, setItem, assetEvents, doOpenManually, onClose, openIde } = props
+  const { keyProp: key, item, setItem, assetEvents, doOpenManually } = props
+  const { doCloseEditor, doOpenEditor } = props
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const state = item.projectState.type
   const setState = React.useCallback(
@@ -99,7 +100,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         let newProjectState: backendModule.ProjectStateType = object.merge(oldItem.projectState, {
           type: newState,
         })
-        if (!backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[newState]) {
+        if (!backendModule.IS_OPENING_OR_OPENED[newState]) {
           // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
           const { opened_by, ...newProjectState2 } = newProjectState
           newProjectState = newProjectState2
@@ -145,10 +146,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               }
               await backend.openProject(
                 item.id,
-                {
-                  forceCreate: false,
-                  executeAsync: shouldRunInBackground,
-                },
+                { executeAsync: shouldRunInBackground },
                 item.title
               )
             }
@@ -166,14 +164,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             break
           }
           case backendModule.BackendType.local: {
-            await backend.openProject(
-              item.id,
-              {
-                forceCreate: false,
-                executeAsync: shouldRunInBackground,
-              },
-              item.title
-            )
+            await backend.openProject(item.id, { executeAsync: shouldRunInBackground }, item.title)
             setState(oldState =>
               oldState === backendModule.ProjectState.openInProgress
                 ? backendModule.ProjectState.opened
@@ -243,6 +234,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -252,17 +244,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.addLabels:
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
-        // Ignored. Any missing project-related events should be handled by
-        // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
-        // and `downloadSelected` are handled by `AssetRow`.
+        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
       case AssetEventType.openProject: {
         if (event.id !== item.id) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
-            if (!isOtherUserUsingProject) {
-              void closeProject(false)
+            if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
+              // void closeProject(false)
             }
           }
         } else {
@@ -280,19 +272,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
         break
       }
-      case AssetEventType.cancelOpeningAllProjects: {
-        if (!isRunningInBackground) {
-          setShouldOpenWhenReady(false)
-          onSpinnerStateChange?.(null)
-          setOnSpinnerStateChange(null)
-          openProjectAbortController?.abort()
-          setOpenProjectAbortController(null)
-          if (!isOtherUserUsingProject) {
-            void closeProject(false)
-          }
-        }
-        break
-      }
       case AssetEventType.newProject: {
         if (event.placeholderId === key) {
           setOnSpinnerStateChange(() => event.onSpinnerStateChange)
@@ -307,18 +286,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
   React.useEffect(() => {
     if (state === backendModule.ProjectState.opened) {
       if (shouldOpenWhenReady) {
-        openIde(shouldSwitchPage)
+        doOpenEditor(shouldSwitchPage)
         setShouldOpenWhenReady(false)
       }
     }
-    // `openIde` is a callback, not a dependency.
+    // `doOpenEditor` is a callback, not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldOpenWhenReady, shouldSwitchPage, state])
 
   const closeProject = async (triggerOnClose = true) => {
     if (triggerOnClose) {
-      onClose()
-      localStorage.delete('projectStartupInfo')
+      doCloseEditor()
     }
     setToastId(null)
     setShouldOpenWhenReady(false)
@@ -329,7 +307,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     setOpenProjectAbortController(null)
     const abortController = new AbortController()
     setCloseProjectAbortController(abortController)
-    if (backendModule.DOES_PROJECT_STATE_INDICATE_VM_EXISTS[state]) {
+    if (backendModule.IS_OPENING_OR_OPENED[state]) {
       try {
         if (
           backend.type === backendModule.BackendType.local &&
@@ -371,6 +349,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         </button>
       )
     case backendModule.ProjectState.openInProgress:
+    case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
     case backendModule.ProjectState.placeholder:
       return (
@@ -422,7 +401,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               onClick={clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()
-                openIde(true)
+                doOpenEditor(true)
               }}
             >
               <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />

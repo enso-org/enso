@@ -385,8 +385,8 @@ final class TruffleCompilerContext implements CompilerContext {
         return saved != null;
       } catch (Throwable e) {
         logSerializationManager(
-            e instanceof IOException ? Level.WARNING : Level.SEVERE,
-            "Serialization of module `" + name + "` failed: " + e.getMessage() + "`",
+            e instanceof IOException ? Level.FINE : Level.SEVERE,
+            "Serialization of module `" + name + "` failed: " + e.getMessage(),
             e);
         throw e;
       } finally {
@@ -399,7 +399,6 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public boolean deserializeModule(Compiler compiler, CompilerContext.Module module) {
-    var level = Level.FINE;
     if (module.getPackage() != null) {
       var library = module.getPackage().libraryName();
       var bindings = known.get(library);
@@ -432,13 +431,11 @@ final class TruffleCompilerContext implements CompilerContext {
           return true;
         }
       }
-      level = "Standard".equals(library.namespace()) ? Level.WARNING : Level.FINE;
     }
     try {
       var result = deserializeModuleDirect(module);
       loggerSerializationManager.log(
-          result ? level : Level.FINE,
-          "Deserializing module " + module.getName() + " from IR file: " + result);
+          Level.FINE, "Deserializing module " + module.getName() + " from IR file: " + result);
       return result;
     } catch (InterruptedException e) {
       loggerSerializationManager.log(

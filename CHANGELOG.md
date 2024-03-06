@@ -615,7 +615,14 @@
 - [Allow removing rows using a Filter_Condition.][8861]
 - [Added `Table.to_xml`.][8979]
 - [Implemented Write support for `S3_File`.][8921]
+- [Implemented `Table.replace` for the database backend.][8986]
 - [Separate `Group_By` from `columns` into new argument on `aggregate`.][9027]
+- [Allow `copy_to` and `move_to` to work between local and S3 files.][9054]
+- [Adjusted expression handling and new `Simple_Expression` type.][9128]
+- [Allow reading Data Links configured locally or in the Cloud.][9215]
+- [Allow using `enso://` paths in `Data.read` and other places.][9225]
+- [Update the XML methods and add more capabilities to document.][9233]
+- [Added `Data.download` and a few other changes.][9249]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -885,9 +892,16 @@
 [8865]: https://github.com/enso-org/enso/pull/8865
 [8935]: https://github.com/enso-org/enso/pull/8935
 [8861]: https://github.com/enso-org/enso/pull/8861
-[8979]: https://github.com/enso-org/enso/pull/8979
 [8921]: https://github.com/enso-org/enso/pull/8921
+[8979]: https://github.com/enso-org/enso/pull/8979
+[8986]: https://github.com/enso-org/enso/pull/8986
 [9027]: https://github.com/enso-org/enso/pull/9027
+[9054]: https://github.com/enso-org/enso/pull/9054
+[9128]: https://github.com/enso-org/enso/pull/9128
+[9215]: https://github.com/enso-org/enso/pull/9215
+[9225]: https://github.com/enso-org/enso/pull/9225
+[9233]: https://github.com/enso-org/enso/pull/9233
+[9249]: https://github.com/enso-org/enso/pull/9249
 
 #### Enso Compiler
 
@@ -1047,6 +1061,7 @@
 - [Add run_google_report method][8907]
 - [Execute and debug individual Enso files in VSCode extension][8923]
 - [Check type of `self` when calling a method using the static syntax][8867]
+- [Autoscoped constructors][9190]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1205,6 +1220,7 @@
 [8907]: https://github.com/enso-org/enso/pull/8907
 [8923]: https://github.com/enso-org/enso/pull/8923
 [8867]: https://github.com/enso-org/enso/pull/8867
+[9190]: https://github.com/enso-org/enso/pull/9190
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

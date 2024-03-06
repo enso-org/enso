@@ -27,11 +27,6 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public int countMissing() {
-    return underlyingStorage.countMissing();
-  }
-
-  @Override
   public StorageType getType() {
     return AnyObjectType.INSTANCE;
   }
@@ -47,24 +42,13 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public boolean isNa(long idx) {
-    return underlyingStorage.isNa(idx);
+  public boolean isNothing(long idx) {
+    return underlyingStorage.isNothing(idx);
   }
 
   @Override
   public Object getItemBoxed(int idx) {
     return underlyingStorage.getItemBoxed(idx);
-  }
-
-  @Override
-  public boolean isUnaryOpVectorized(String name) {
-    return underlyingStorage.isUnaryOpVectorized(name);
-  }
-
-  @Override
-  public Storage<?> runVectorizedUnaryMap(
-      String name, MapOperationProblemAggregator problemAggregator) {
-    return underlyingStorage.runVectorizedUnaryMap(name, problemAggregator);
   }
 
   @Override

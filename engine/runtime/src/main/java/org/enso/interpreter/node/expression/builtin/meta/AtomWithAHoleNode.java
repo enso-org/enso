@@ -197,12 +197,17 @@ public abstract class AtomWithAHoleNode extends Node {
 
     @CompilerDirectives.TruffleBoundary
     private int findHoleIndexLoop(Atom atom, HoleInAtom lazy) {
+      int holeIdx = -1;
       for (int i = 0; i < atom.getConstructor().getArity(); i++) {
         if (structs.getField(atom, i) == lazy) {
-          return i;
+          if (holeIdx != -1) {
+            // More than one hole found - this is an error
+            return -1;
+          }
+          holeIdx = i;
         }
       }
-      return -1;
+      return holeIdx;
     }
 
     Function createFn(HoleInAtom lazy) {

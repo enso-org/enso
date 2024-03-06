@@ -15,7 +15,7 @@ import project.Visualization_Spec
 import project.Widgets_Spec
 import project.Lazy_Table_Spec
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         Default_Visualizations_Spec.add_specs suite_builder
         Geo_Map_Spec.add_specs suite_builder
@@ -29,5 +29,5 @@ main =
         Table_Spec.add_specs suite_builder
         Visualization_Spec.add_specs suite_builder
         Widgets_Spec.add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

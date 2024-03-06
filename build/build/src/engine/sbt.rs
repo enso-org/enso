@@ -41,6 +41,10 @@ impl CommandProvider for Context {
         }
         // This prevents https://github.com/sbt/sbt-assembly/issues/496
         cmd.env(ide_ci::env::known::LC_ALL, ide_ci::env::known::C_UTF8);
+        // This prevents https://github.com/sbt/sbt/issues/6777#issuecomment-1613316167
+        cmd.set_env(ide_ci::programs::sbt::SBT_SERVER_FORCESTART, &true)?;
+        // Again. Preferably there should be no sbt server spawned at all.
+        cmd.apply(&sbt::ServerAutostart(false));
         Ok(cmd)
     }
 }

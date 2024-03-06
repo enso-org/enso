@@ -7,6 +7,7 @@ from Standard.Base.Widget_Helpers import make_format_chooser, make_regex_text_wi
 
 import Standard.Table.Data.Column.Column
 import Standard.Table.Data.Constants.Previous_Value
+import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
@@ -22,7 +23,7 @@ from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table
+import project.Data.DB_Table.DB_Table
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -81,18 +82,19 @@ type DB_Column
 
     ## ICON data_input
        Converts this column into a single-column table.
-    to_table : Table
+    to_table : DB_Table
     to_table self =
-        Table.Value self.name self.connection [self.as_internal] self.context
+        DB_Table.Value self.name self.connection [self.as_internal] self.context
 
     ## ALIAS metadata
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
        of non-null items and the value type.
     info : Table
-    info self = self.to_table.info
+    info self -> Table = self.to_table.info
 
     ## GROUP Standard.Base.Input
        ICON data_input
@@ -1305,7 +1307,7 @@ type DB_Column
         Value_Type.expect_text self <| Value_Type.expect_integer n <|
             n2 = n.max 0
             new_name = self.naming_helper.function_name "text_right" [self, n]
-            self.make_binary_op "RIGHT" n2 new_name           
+            self.make_binary_op "RIGHT" n2 new_name
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1455,7 +1457,7 @@ type DB_Column
        Returns a column of `Integer` type.
     year : DB_Column ! Invalid_Value_Type
     year self = Value_Type.expect_has_date self <|
-        simple_unary_op self "year"
+        self.make_unary_op "year"
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1465,7 +1467,7 @@ type DB_Column
        Returns a column of `Integer` type.
     month : DB_Column ! Invalid_Value_Type
     month self = Value_Type.expect_has_date self <|
-        simple_unary_op self "month"
+        self.make_unary_op "month"
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1476,7 +1478,7 @@ type DB_Column
        Returns a column of `Integer` type.
     day : DB_Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self <|
-        simple_unary_op self "day"
+        self.make_unary_op "day"
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1486,7 +1488,7 @@ type DB_Column
        Returns a column of `Integer` type.
     hour : DB_Column ! Invalid_Value_Type
     hour self = Value_Type.expect_has_time self <|
-        simple_unary_op self "hour"
+        self.make_unary_op "hour"
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1496,7 +1498,7 @@ type DB_Column
        Returns a column of `Integer` type.
     minute : DB_Column ! Invalid_Value_Type
     minute self = Value_Type.expect_has_time self <|
-        simple_unary_op self "minute"
+        self.make_unary_op "minute"
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -1506,7 +1508,7 @@ type DB_Column
        Returns a column of `Integer` type.
     second : DB_Column ! Invalid_Value_Type
     second self = Value_Type.expect_has_time self <|
-        simple_unary_op self "second"
+        self.make_unary_op "second"
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1516,7 +1518,7 @@ type DB_Column
     @period Date_Time_Helpers.make_period_selector_for_column
     date_part : Date_Period | Time_Period -> DB_Column ! Invalid_Value_Type | Illegal_Argument
     date_part self period =
-        Date_Time_Helpers.make_date_part_function self period simple_unary_op self.naming_helper
+        Date_Time_Helpers.make_date_part_function self period (column->op_name-> column.make_unary_op op_name) self.naming_helper
 
     ## GROUP Standard.Base.DateTime
        ICON date_and_time
@@ -1911,11 +1913,6 @@ adapt_unified_column column expected_type =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
     DB_Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
-
-## PRIVATE
-   A shorthand to be able to share the implementations between in-memory and
-   database.
-simple_unary_op column op_kind = column.make_unary_op op_kind
 
 ## PRIVATE
 Column.from (that:DB_Column) =

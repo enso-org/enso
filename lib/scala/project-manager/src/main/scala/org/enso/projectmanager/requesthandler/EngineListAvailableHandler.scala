@@ -1,7 +1,8 @@
 package org.enso.projectmanager.requesthandler
 
 import akka.actor.Props
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
+import org.enso.semver.SemVerOrdering._
 import org.enso.jsonrpc.Unused
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._

@@ -14,6 +14,10 @@ const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
 
+const props = defineProps<{
+  navigator: GraphNavigator
+}>()
+
 const emits = defineEmits<{
   createNodeFromEdge: [source: AstId, position: Vec2]
 }>()
@@ -22,7 +26,7 @@ const editingEdge: Interaction = {
   cancel() {
     graph.clearUnconnected()
   },
-  click(_e: MouseEvent, graphNavigator: GraphNavigator): boolean {
+  click(_e: PointerEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
     let source: AstId | undefined
     let sourceNode: NodeId | undefined
@@ -99,5 +103,36 @@ function createEdge(source: AstId, target: PortId) {
 </script>
 
 <template>
-  <GraphEdge v-for="(edge, index) in graph.edges" :key="index" :edge="edge" />
+  <div>
+    <svg :viewBox="props.navigator.viewBox" class="overlay behindNodes">
+      <GraphEdge v-for="edge in graph.connectedEdges" :key="edge.target" :edge="edge" />
+    </svg>
+    <svg
+      v-if="graph.unconnectedEdge"
+      :viewBox="props.navigator.viewBox"
+      class="overlay aboveNodes nonInteractive"
+    >
+      <GraphEdge :edge="graph.unconnectedEdge" maskSource />
+    </svg>
+  </div>
 </template>
+
+<style scoped>
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.overlay.behindNodes {
+  z-index: -1;
+}
+
+.overlay.aboveNodes {
+  z-index: 20;
+}
+
+.nonInteractive {
+  pointer-events: none;
+}
+</style>

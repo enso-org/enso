@@ -1,10 +1,12 @@
 private
+
 from Standard.Base import all
 from Standard.Base.System.File import file_as_java
+import Standard.Base.Errors.File_Error.File_Error
 
 polyglot java import software.amazon.awssdk.core.sync.RequestBody
 
 ## PRIVATE
-from_local_file (file : File) =
+from_local_file (file : File) = File_Error.handle_java_exceptions file <|
     java_file = file_as_java file
     RequestBody.fromFile java_file

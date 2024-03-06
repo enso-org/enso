@@ -1,0 +1,77 @@
+/** @file Settings tab for viewing and editing all users in the organization. */
+import * as React from 'react'
+
+import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+
+import * as backendProvider from '#/providers/BackendProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+
+import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+
+import InviteUsersModal from '#/modals/InviteUsersModal'
+
+// ==========================
+// === MembersSettingsTab ===
+// ==========================
+
+/** Settings tab for viewing and editing organization members. */
+export default function MembersSettingsTab() {
+  const { backend } = backendProvider.useBackend()
+  const { setModal } = modalProvider.useSetModal()
+  const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
+  const isLoading = members == null
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-2.5">
+        <h3 className="font-bold text-xl h-9.5 py-0.5">Members</h3>
+        <div className="flex gap-2.5">
+          <button
+            className="flex items-center bg-frame rounded-full h-8 px-2.5"
+            onClick={event => {
+              event.stopPropagation()
+              setModal(<InviteUsersModal eventTarget={null} />)
+            }}
+          >
+            <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">
+              Invite Members
+            </span>
+          </button>
+        </div>
+        <table className="rounded-rows self-start table-fixed">
+          <thead>
+            <tr className="h-8">
+              <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 text-sm font-semibold w-32">
+                Name
+              </th>
+              <th className="text-left bg-clip-padding border-transparent border-l-2 text-sm font-semibold w-48">
+                Email
+              </th>
+            </tr>
+          </thead>
+          <tbody className="select-text">
+            {isLoading ? (
+              <tr className="h-8">
+                <td colSpan={2} className="bg-transparent">
+                  <div className="flex justify-center">
+                    <StatelessSpinner
+                      size={32}
+                      state={statelessSpinner.SpinnerState.loadingMedium}
+                    />
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              members.map(member => (
+                <tr key={member.id} className="h-8">
+                  <td className="rounded-l-full">{member.name}</td>
+                  <td className="rounded-r-full">{member.email}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}

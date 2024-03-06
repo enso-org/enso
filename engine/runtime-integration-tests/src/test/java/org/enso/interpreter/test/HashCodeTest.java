@@ -38,7 +38,7 @@ public class HashCodeTest extends TestBase {
         context,
         () -> {
           hashCodeNode = HashCodeNode.build();
-          equalsNode = EqualsNode.build();
+          equalsNode = EqualsNode.create();
           hostValueToEnsoNode = HostValueToEnsoNode.build();
           testRootNode = new TestRootNode();
           testRootNode.insertChildren(hashCodeNode, equalsNode, hostValueToEnsoNode);
@@ -94,7 +94,7 @@ public class HashCodeTest extends TestBase {
         () -> {
           long firstHash = hashCodeNode.execute(firstValue);
           long secondHash = hashCodeNode.execute(secondValue);
-          Object valuesAreEqual = equalsNode.execute(firstValue, secondValue);
+          Object valuesAreEqual = equalsNode.execute(null, firstValue, secondValue);
           // if o1 == o2 then hash(o1) == hash(o2)
           if (isTrue(valuesAreEqual)) {
             assertEquals(

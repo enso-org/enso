@@ -61,8 +61,8 @@ add_specs suite_builder = suite_builder.group "Function Ascribed Parameters" gro
         with_type_error (t4 "hi") . should_fail_with Type_Error
 
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 

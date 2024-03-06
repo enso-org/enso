@@ -12,7 +12,7 @@ from Standard.Test import all
 
 from project.Common_Table_Operations.Util import expect_column_names, run_default_backend, within_table
 
-main = run_default_backend add_specs
+main filter=Nothing = run_default_backend add_specs filter
 
 type My_Type
     Value x y
@@ -769,8 +769,8 @@ add_specs suite_builder setup =
         group_builder.specify "should work correctly when the join is performed on a transformed table" <|
             t1 = table_builder [["X", [1, 2, 3]]]
 
-            t1_2 = t1.set "10*[X]+1" new_name="A"
-            t1_3 = t1.set "[X]+20" new_name="B"
+            t1_2 = t1.set (expr "10*[X]+1") as="A"
+            t1_3 = t1.set (expr "[X]+20") as="B"
 
             t2 = t1_2.join t1_3 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "A" "B")
             t2.at "A" . to_vector . should_equal [21]
@@ -781,7 +781,7 @@ add_specs suite_builder setup =
             t4 = table_builder [["X", [1, 2, 3]], ["Y", [10, 20, 30]]]
             t5 = table_builder [["X", [5, 7, 1]], ["Z", [100, 200, 300]]]
 
-            t4_2 = t4.set "2*[X]+1" new_name="C"
+            t4_2 = t4.set (expr "2*[X]+1") as="C"
             t6 = t4_2.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Inner
             expect_column_names ["X", "Y", "C", "Right X", "Z"] t6
             r2 = materialize t6 . order_by ["Y"] . rows . map .to_vector
@@ -805,7 +805,7 @@ add_specs suite_builder setup =
             t4 = table_builder [["X", [1, 2, 3]], ["Y", [10, 20, 30]]]
             t5 = table_builder [["X", [5, 7, 1]], ["Z", [100, 200, 300]]]
 
-            t4_2 = t4.set "2*[X]+1" new_name="C"
+            t4_2 = t4.set (expr "2*[X]+1") as="C"
             t6 = t4_2.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Full
             expect_column_names ["X", "Y", "C", "Right X", "Z"] t6
             r2 = materialize t6 . order_by ["Y"] . rows . map .to_vector
@@ -816,7 +816,7 @@ add_specs suite_builder setup =
             r2.at 3 . should_equal [3, 30, 7, 7, 200]
 
             t4_3 = table_builder [["X", [Nothing, 2, 3]], ["Y", [10, 20, 30]]]
-            t4_4 = t4_3.set (t4_3.at "X" . fill_nothing 7) new_name="C"
+            t4_4 = t4_3.set (t4_3.at "X" . fill_nothing 7) as="C"
             t7 = t4_4.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Full
             within_table t7 <|
                 expect_column_names ["X", "Y", "C", "Right X", "Z"] t7

@@ -12,6 +12,7 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 
 polyglot java import java.io.FileNotFoundException
 polyglot java import java.io.IOException
+polyglot java import java.io.UncheckedIOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.nio.file.NoSuchFileException
@@ -71,8 +72,13 @@ type File_Error
 
        Utility method for running an action with Java exceptions mapping.
     handle_java_exceptions (file : File | Nothing) ~action =
-        Panic.catch IOException action caught_panic->
+        handle_io_exception caught_panic =
             File_Error.wrap_io_exception file caught_panic.payload
+        handle_unchecked_io_exception caught_panic =
+            File_Error.wrap_io_exception file caught_panic.payload.getCause
+        Panic.catch IOException handler=handle_io_exception <|
+            Panic.catch UncheckedIOException handler=handle_unchecked_io_exception <|
+                action
 
     ## PRIVATE
        Raises an error indicating that the user does not have permission to

@@ -10,7 +10,7 @@ import scala.collection.immutable.Seq
   */
 object GraalVM {
   // Keep in sync with graalMavenPackagesVersion in build.sbt
-  val version: String = "23.1.0"
+  val version: String = "23.1.2"
 
   /** The list of modules that are included in the `component` directory in engine distribution.
     * When invoking the `java` command, these modules need to be put on the module-path.
@@ -105,25 +105,67 @@ object GraalVM {
     *
     * @param graalVersion  the GraalVM version that should be used for
     *                      building this project
-    * @param oldTransition the state transition to be augmented
+    * @param graalPackagesVersion Version of Truffle and GraalVM packages that
+    *                             will be downloaded from Maven
+    * @param javaVersion Version of the Java source code
     * @return an augmented state transition that does all the state changes of
     *         oldTransition but also runs the version checks
     */
-  def addVersionCheck(
-    graalVersion: String
-  )(
-    oldTransition: State => State
-  ): State => State =
-    (state: State) => {
-      val newState = oldTransition(state)
-      val logger   = newState.log
-      if (graalVersion != version) {
-        logger.error("GraalVM version check failed.")
-        throw new IllegalStateException(
-          s"Expected GraalVM version $version, but got $graalVersion. " +
-          s"Version specified in build.sbt and GraalVM.scala must be in sync"
-        )
-      }
-      newState
+  def versionCheck(
+    graalVersion: String,
+    graalPackagesVersion: String,
+    javaVersion: String,
+    log: ManagedLogger
+  ): Unit = {
+    if (graalPackagesVersion != version) {
+      log.error(
+        s"Expected GraalVM packages version $version, but got $graalPackagesVersion. " +
+        s"Version specified in build.sbt and GraalVM.scala must be in sync"
+      )
+      throw new IllegalStateException("GraalVM version check failed")
     }
+    val javaVendor = System.getProperty("java.vendor")
+    if (javaVendor != "GraalVM Community") {
+      log.warn(
+        s"Running on non-GraalVM JVM (The actual java.vendor is $javaVendor). " +
+        s"Expected GraalVM Community java.vendor."
+      )
+    }
+
+    val javaSpecVersion = System.getProperty("java.specification.version")
+    if (javaSpecVersion != javaVersion) {
+      log.error(
+        s"Running on Java version $javaSpecVersion. " +
+        s"Expected Java version $javaVersion."
+      )
+      throw new IllegalStateException("java.specification.vendor check failed")
+    }
+
+    val vmVersion = System.getProperty("java.vm.version")
+    tryParseJavaVMVersion(vmVersion) match {
+      case Some(version) =>
+        if (version != graalVersion) {
+          log.error(
+            s"Running on GraalVM version $version. " +
+            s"Expected GraalVM version $graalVersion."
+          )
+          throw new IllegalStateException("java.vm.version check failed")
+        }
+      case None =>
+        log.error(
+          s"Could not parse GraalVM version from java.vm.version: $vmVersion."
+        )
+        throw new IllegalStateException("java.vm.version check failed")
+    }
+  }
+
+  private def tryParseJavaVMVersion(
+    version: String
+  ): Option[String] = {
+    if (version.contains('+')) {
+      Some(version.split('+')(0))
+    } else {
+      None
+    }
+  }
 }

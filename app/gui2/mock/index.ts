@@ -35,6 +35,7 @@ export function guiConfig(app: App) {
       },
       window: {
         topBarOffset: 96,
+        vibrancy: false,
       },
       authentication: {
         enabled: true,
@@ -67,7 +68,7 @@ export function projectStore() {
   const mod = projectStore.projectModel.createNewModule('Main.enso')
   mod.doc.ydoc.emit('load', [])
   const syncModule = new Ast.MutableModule(mod.doc.ydoc)
-  mod.transact(() => {
+  syncModule.transact(() => {
     const root = Ast.parseBlock('main =\n', syncModule)
     syncModule.replaceRoot(root)
   })

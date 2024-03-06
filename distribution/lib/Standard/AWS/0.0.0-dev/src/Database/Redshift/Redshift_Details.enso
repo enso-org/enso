@@ -64,6 +64,7 @@ type Redshift_Details
     jdbc_properties self =
         credentials = case self.credentials of
             Nothing -> Pgpass.read self.host self.port self.schema
+            AWS_Credential.Default -> Pgpass.read self.host self.port self.schema
             AWS_Credential.Profile profile ->
                 [Pair.new 'user' self.db_user] + (if profile == '' then [] else [Pair.new 'profile' profile])
             AWS_Credential.Key access_key_id secret_access_key ->

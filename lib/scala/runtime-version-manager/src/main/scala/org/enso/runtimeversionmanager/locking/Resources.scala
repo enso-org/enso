@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.locking
 
-import nl.gn0s1s.bump.SemVer
+import org.enso.semver.SemVer
 import org.enso.distribution.locking.Resource
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 

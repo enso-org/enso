@@ -56,8 +56,8 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         r_3 = Panic.recover Any <| Managed_Resource.bracket 42 (_-> Nothing) (_-> Panic.throw "action")
         r_3.catch . should_equal "action"
 
-main =
+main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter
+    suite.run_with_filter filter
 
