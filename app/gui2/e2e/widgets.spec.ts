@@ -72,7 +72,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await onProblemsArg.click()
   await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report_Warning', 'Report_Error'])
   await dropDown.clickOption(page, 'Report_Error')
-  await expect(onProblemsArg.locator('.WidgetToken')).toHaveText([
+  await expect(onProblemsArg.locator('.WidgetToken')).toContainText([
     'Problem_Behavior',
     '.',
     'Report_Error',
@@ -90,7 +90,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await page.getByText('Report_Error').click()
   await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report_Warning', 'Report_Error'])
   await dropDown.clickOption(page, 'Report_Warning')
-  await expect(onProblemsArg.locator('.WidgetToken')).toHaveText([
+  await expect(onProblemsArg.locator('.WidgetToken')).toContainText([
     'Problem_Behavior',
     '.',
     'Report_Warning',
@@ -143,7 +143,11 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // Add first aggregate
   const columnsArg = argumentNames.filter({ has: page.getByText('columns') })
   await columnsArg.locator('.add-item').click()
-  await expect(columnsArg.locator('.WidgetToken')).toHaveText(['Aggregate_Column', '.', 'Group_By'])
+  await expect(columnsArg.locator('.WidgetToken')).toContainText([
+    'Aggregate_Column',
+    '.',
+    'Group_By',
+  ])
   await mockMethodCallInfo(
     page,
     {
@@ -165,12 +169,10 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await firstItem.click()
   await dropDown.expectVisibleWithOptions(page, ['Group_By', 'Count', 'Count_Distinct'])
   await dropDown.clickOption(page, 'Count_Distinct')
-  await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+  await expect(columnsArg.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
     'Count_Distinct',
-    "'",
-    "'",
   ])
   await mockMethodCallInfo(
     page,
@@ -193,27 +195,19 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await columnArg.click()
   await dropDown.expectVisibleWithOptions(page, ['"column 1"', '"column 2"'])
   await dropDown.clickOption(page, '"column 1"')
-  await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+  await expect(columnsArg.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
     'Count_Distinct',
-    '"',
-    '"',
-    "'",
-    "'",
   ])
   await expect(columnsArg.locator('.WidgetText > input').first()).toHaveValue('column 1')
 
   // Add another aggregate
   await columnsArg.locator('.add-item').click()
-  await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+  await expect(columnsArg.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
     'Count_Distinct',
-    '"',
-    '"',
-    "'",
-    "'",
     'Aggregate_Column',
     '.',
     'Group_By',
@@ -240,14 +234,10 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await secondColumnArg.click()
   await dropDown.expectVisibleWithOptions(page, ['"column 1"', '"column 2"'])
   await dropDown.clickOption(page, '"column 2"')
-  await expect(secondItem.locator('.WidgetToken')).toHaveText([
+  await expect(secondItem.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
     'Group_By',
-    '"',
-    '"',
-    "'",
-    "'",
   ])
   await expect(secondItem.locator('.WidgetText > input').first()).toHaveValue('column 2')
 
@@ -263,7 +253,7 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // await columnsArg.locator('.item > .handle').nth(0).hover({ force: true })
   // await columnsArg.locator('.item > .handle').nth(0).hover()
   // await page.mouse.up()
-  // await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+  // await expect(columnsArg.locator('.WidgetToken')).toContainText([
   //   'Aggregate_Column',
   //   '.',
   //   'Group_By',

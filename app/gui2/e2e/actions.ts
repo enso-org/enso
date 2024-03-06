@@ -14,7 +14,17 @@ export async function goToGraph(page: Page) {
   // Wait until nodes are loaded.
   await expect(locate.graphNode(page)).toExist()
   // Wait for position initialization
-  await expect(locate.graphNode(page).first()).toHaveCSS('transform', 'matrix(1, 0, 0, 1, -16, 64)')
+  await expectNodePositionsInitialized(page, 64)
+}
+
+export async function expectNodePositionsInitialized(page: Page, yPos: number) {
+  // TODO: The yPos should not need to be a variable. Instead, first automatically positioned nodes
+  // should always have constant known position. This is a bug caused by incorrect layout after
+  // entering a function. To be fixed with #
+  await expect(locate.graphNode(page).first()).toHaveCSS(
+    'transform',
+    `matrix(1, 0, 0, 1, -16, ${yPos})`,
+  )
 }
 
 export async function exitFunction(page: Page, x = 300, y = 300) {

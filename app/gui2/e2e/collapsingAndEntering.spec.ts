@@ -107,6 +107,7 @@ test('Collapsing nodes', async ({ page }) => {
 })
 
 async function expectInsideMain(page: Page) {
+  await actions.expectNodePositionsInitialized(page, 64)
   await expect(locate.graphNode(page)).toHaveCount(10)
   await expect(locate.graphNodeByBinding(page, 'five')).toExist()
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
@@ -120,12 +121,14 @@ async function expectInsideMain(page: Page) {
 }
 
 async function expectInsideFunc1(page: Page) {
+  await actions.expectNodePositionsInitialized(page, 192)
   await expect(locate.graphNode(page)).toHaveCount(3)
   await expect(locate.graphNodeByBinding(page, 'f2')).toExist()
   await expect(locate.graphNodeByBinding(page, 'result')).toExist()
 }
 
 async function expectInsideFunc2(page: Page) {
+  await actions.expectNodePositionsInitialized(page, 128)
   await expect(locate.graphNode(page)).toHaveCount(2)
   await expect(locate.graphNodeByBinding(page, 'r')).toExist()
 }
