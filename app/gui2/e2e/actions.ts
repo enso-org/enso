@@ -20,7 +20,7 @@ export async function goToGraph(page: Page) {
 export async function expectNodePositionsInitialized(page: Page, yPos: number) {
   // TODO: The yPos should not need to be a variable. Instead, first automatically positioned nodes
   // should always have constant known position. This is a bug caused by incorrect layout after
-  // entering a function. To be fixed with #
+  // entering a function. To be fixed with #9255
   await expect(locate.graphNode(page).first()).toHaveCSS(
     'transform',
     `matrix(1, 0, 0, 1, -16, ${yPos})`,
