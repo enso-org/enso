@@ -198,7 +198,8 @@ const allKeys = [
 type Key = (typeof allKeys)[number]
 type LowercaseKey = Lowercase<Key>
 type KeybindSegment = Modifier | Pointer | Key
-const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
+/** @internal */
+export const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
   [...allModifiers, ...allPointers, ...allKeys].map((entry) => [entry.toLowerCase(), entry]),
 )
 normalizedKeyboardSegmentLookup[''] = '+'
@@ -208,24 +209,21 @@ type NormalizeKeybindSegment = {
   [K in KeybindSegment as Lowercase<K>]: K
 }
 type SuggestedKeybindSegment = ModifierPlus | Pointer | Key
-type AutocompleteKeybind<T extends string, Key extends string = never> = T extends '+'
-  ? T
-  : T extends `${infer First}+${infer Rest}`
-  ? Lowercase<First> extends LowercaseModifier
-    ? `${NormalizeKeybindSegment[Lowercase<First>] & string}+${AutocompleteKeybind<Rest>}`
-    : Lowercase<First> extends LowercasePointer | LowercaseKey
-    ? AutocompleteKeybind<Rest, NormalizeKeybindSegment[Lowercase<First>] & string>
+type AutocompleteKeybind<T extends string, Key extends string = never> =
+  T extends '+' ? T
+  : T extends `${infer First}+${infer Rest}` ?
+    Lowercase<First> extends LowercaseModifier ?
+      `${NormalizeKeybindSegment[Lowercase<First>] & string}+${AutocompleteKeybind<Rest>}`
+    : Lowercase<First> extends LowercasePointer | LowercaseKey ?
+      AutocompleteKeybind<Rest, NormalizeKeybindSegment[Lowercase<First>] & string>
     : `${Modifier}+${AutocompleteKeybind<Rest>}`
-  : T extends ''
-  ? SuggestedKeybindSegment
-  : Lowercase<T> extends LowercasePointer | LowercaseKey
-  ? NormalizeKeybindSegment[Lowercase<T>]
-  : Lowercase<T> extends LowercaseModifier
-  ? [Key] extends [never]
-    ? `${NormalizeKeybindSegment[Lowercase<T>] & string}+${SuggestedKeybindSegment}`
+  : T extends '' ? SuggestedKeybindSegment
+  : Lowercase<T> extends LowercasePointer | LowercaseKey ? NormalizeKeybindSegment[Lowercase<T>]
+  : Lowercase<T> extends LowercaseModifier ?
+    [Key] extends [never] ?
+      `${NormalizeKeybindSegment[Lowercase<T>] & string}+${SuggestedKeybindSegment}`
     : `${NormalizeKeybindSegment[Lowercase<T>] & string}+${Key}`
-  : [Key] extends [never]
-  ? SuggestedKeybindSegment
+  : [Key] extends [never] ? SuggestedKeybindSegment
   : Key
 
 type AutocompleteKeybinds<T extends string[]> = {
@@ -234,8 +232,9 @@ type AutocompleteKeybinds<T extends string[]> = {
 
 // `never extends T ? Result : InferenceSource` is a trick to unify `T` with the actual type of the
 // argument.
-type Keybinds<T extends Record<K, string[]>, K extends keyof T = keyof T> = never extends T
-  ? {
+type Keybinds<T extends Record<K, string[]>, K extends keyof T = keyof T> =
+  never extends T ?
+    {
       [K in keyof T]: AutocompleteKeybinds<T[K]>
     }
   : T
@@ -352,9 +351,9 @@ export function defineKeybinds<
     return (event, stopAndPrevent = true) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
       const keybinds =
-        event instanceof KeyboardEvent
-          ? keyboardShortcuts[event.key.toLowerCase() as Key_]?.[eventModifierFlags]
-          : mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
+        event instanceof KeyboardEvent ?
+          keyboardShortcuts[event.key.toLowerCase() as Key_]?.[eventModifierFlags]
+        : mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
       let handle = handlers[DefaultHandler]
       if (keybinds != null) {
         for (const bindingName in handlers) {
@@ -390,7 +389,8 @@ function includesPredicate<T extends U, U>(array: readonly T[]) {
 const isModifier = includesPredicate(allModifiers)
 const isPointer = includesPredicate(allPointers)
 
-function decomposeKeybindString(string: string): ModifierStringDecomposition {
+/** @internal */
+export function decomposeKeybindString(string: string): ModifierStringDecomposition {
   const parts = string
     .trim()
     .split(/[\s+]+/)
@@ -435,51 +435,4 @@ interface Mousebind {
   type: 'mousebind'
   key: PointerButtonFlags
   modifierFlags: ModifierFlags
-}
-
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-  test.each([
-    { keybind: 'A', expected: { modifiers: [], key: 'A' } },
-    { keybind: 'b', expected: { modifiers: [], key: 'B' } },
-    { keybind: 'Space', expected: { modifiers: [], key: ' ' } },
-    { keybind: 'Mod+Space', expected: { modifiers: ['Mod'], key: ' ' } },
-    // `+`
-    { keybind: 'Mod++', expected: { modifiers: ['Mod'], key: '+' } },
-    // `+` and capitalization
-    { keybind: 'mod++', expected: { modifiers: ['Mod'], key: '+' } },
-    {
-      keybind: 'Mod+Alt+Shift+PointerMain',
-      expected: { modifiers: ['Mod', 'Alt', 'Shift'], key: 'PointerMain' },
-    },
-    // Misspelling. Assume it is an unknown key
-    {
-      keybind: 'shift+Alt+Mode+PointerMain',
-      expected: { modifiers: ['Shift', 'Alt'], key: 'Mode' },
-    },
-    // Capitalization
-    {
-      keybind: 'meta+shift+alt+mod+pointermain',
-      expected: { modifiers: ['Meta', 'Shift', 'Alt', 'Mod'], key: 'PointerMain' },
-    },
-    // Repeated keys
-    {
-      keybind: 'A+A+A+A+A+A+A+A+A+A+A+A+A+A',
-      expected: { modifiers: [], key: 'A' },
-    },
-    {
-      keybind: 'mod++++++++++++++++',
-      expected: { modifiers: ['Mod'], key: '+' },
-    },
-    // Misc tests
-    {
-      keybind: 'osDEleTE',
-      // The specific key is OS-dependent. Look it up in the samee lookup used by
-      // `decomposeKeybindString` so that it is guaranteed to be the right key on all systems.
-      expected: { modifiers: [], key: normalizedKeyboardSegmentLookup['osdelete'] },
-    },
-  ])('Keybinds should be parsed correctly', ({ keybind, expected }) => {
-    const decomposed = decomposeKeybindString(keybind)
-    expect(decomposed).toEqual(expected)
-  })
 }

@@ -72,7 +72,7 @@ import { useAutoBlur } from '@/util/autoBlur'
 import { VisualizationContainer } from '@/util/visualizationBuiltins'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
-import { Grid, type ColumnResizedEvent } from 'ag-grid-community'
+import { Grid, type ColumnResizedEvent, type ICellRendererParams } from 'ag-grid-community'
 import type { ColDef, GridOptions, HeaderValueGetterParams } from 'ag-grid-enterprise'
 import { computed, onMounted, onUnmounted, reactive, ref, watchEffect, type Ref } from 'vue'
 const { LicenseManager } = await import('ag-grid-enterprise')
@@ -152,10 +152,12 @@ function escapeHTML(str: string) {
   return str.replace(/[&<>"']/g, (m) => mapping[m]!)
 }
 
-function cellRenderer(params: { value: string | null }) {
+function cellRenderer(params: ICellRendererParams) {
   if (params.value === null) return '<span style="color:grey; font-style: italic;">Nothing</span>'
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
+  else if (typeof params.value === 'number')
+    return params.value.toLocaleString(undefined, { maximumFractionDigits: 12 })
   else return escapeHTML(params.value.toString())
 }
 
@@ -294,11 +296,9 @@ watchEffect(() => {
     const dataHeader = ('header' in data_ ? data_.header : [])?.map(toField) ?? []
     columnDefs = [...indicesHeader, ...dataHeader]
     const rows =
-      data_.data && data_.data.length > 0
-        ? data_.data[0]?.length ?? 0
-        : data_.indices && data_.indices.length > 0
-        ? data_.indices[0]?.length ?? 0
-        : 0
+      data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0
+      : data_.indices && data_.indices.length > 0 ? data_.indices[0]?.length ?? 0
+      : 0
     rowData = Array.from({ length: rows }, (_, i) => {
       const shift = data_.indices ? data_.indices.length : 0
       return Object.fromEntries(

@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import {
-  makeCon,
+  makeConstructor,
   makeFunction,
   makeLocal,
   makeMethod,
@@ -46,7 +46,7 @@ test.each([
 test.each([
   makeModuleMethod('local.Project.Module.module_method'),
   makeType('local.Project.Module.Type'),
-  makeCon('local.Project.Module.Type.Con'),
+  makeConstructor('local.Project.Module.Type.Con'),
   makeStaticMethod('local.Project.Module.Type.method'),
   makeModule('local.Project.Module.Submodule'),
   makeModuleMethod('another.Project.Local.Project.Module.module_method_with_matching_suffix'),
@@ -89,7 +89,7 @@ test.each([
   makeModuleMethod('local.Project.Module.Submodule.foo_in_submodule'),
   makeModuleMethod('local.Project.Module.Submodule.Nested.foo_nested'),
   makeType('local.Project.Module.Submodule.Nested.Foo_Type'),
-  makeCon('local.Project.Module.Submodule.Nested.Foo_Type.Foo_Con'),
+  makeConstructor('local.Project.Module.Submodule.Nested.Foo_Type.Foo_Con'),
   makeStaticMethod('local.Project.Module.Submodule.Nested.Foo_Type.foo_method'),
   makeModule('local.Project.Module.Foo_Direct_Submodule'),
   makeModule('local.Project.Module.Submodule.Foo_Nested'),
@@ -123,7 +123,7 @@ test.each([
 
 test.each([
   makeStaticMethod('local.Project.Module.Type.foo_method'),
-  makeCon('local.Project.Module.Type.Foo_Con'),
+  makeConstructor('local.Project.Module.Type.Foo_Con'),
   {
     ...makeStaticMethod('local.Project.Module.Type.foo_extension'),
     definedIn: 'local.Project.Another_Module' as QualifiedName,
@@ -169,7 +169,7 @@ test('An Instance method is shown when self arg matches', () => {
 test.each([
   makeModule('Standard.Base.Data.Vector'),
   makeStaticMethod('Standard.Base.Data.Vector.Vector.new'),
-  makeCon('Standard.Base.Data.Vector.Vector.Vector_Con'),
+  makeConstructor('Standard.Base.Data.Vector.Vector.Vector_Con'),
   makeLocal('Standard.Base.Data.Vector', 'get'),
   makeFunction('Standard.Base.Data.Vector', 'func'),
   makeMethod('Standard.Base.Data.Vector.Vecto.get'),
@@ -346,7 +346,7 @@ test('Unstable filtering', () => {
 test.each([
   makeModuleMethod('local.Project.Module.func1'),
   makeType('local.Project.Module.Type'),
-  makeCon('local.Project.Module.Type.Con'),
+  makeConstructor('local.Project.Module.Type.Con'),
   makeStaticMethod('local.Project.Module.Type.method'),
   makeLocal('local.Project.Module', 'operator1'),
   makeFunction('local.Project.Module', 'func2'),
