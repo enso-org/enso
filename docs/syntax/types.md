@@ -299,7 +299,7 @@ below.
 
 - **Autoscoped Constructors:** Referencing constructors via their type name may
   lead to long and boilerplate code. To simplify referencing constructors when
-  the _context is known_ a special `~` syntax is supported. Should there be a
+  the _context is known_ a special `..` syntax is supported. Should there be a
   method `describe`:
 
   ```ruby
@@ -310,13 +310,13 @@ below.
   may use _autoscoped constructors_ and call
 
   ```ruby
-  describe (~Just 5)
+  describe (..Just 5)
   ```
 
-  the argument `(~Just 5)` is _recorded but not executed_ until it is send to
+  the argument `(..Just 5)` is _recorded but not executed_ until it is send to
   the `describe` method. The argument of the `describe` method is known to be of
   type `Maybe` and have `Just` constructor. The _scope_ is now known and the so
-  far deferred `~` value gets evaluated. `Maybe.Just 5` atom is constructed and
+  far deferred `..` value gets evaluated. `Maybe.Just 5` atom is constructed and
   execution of `describe` method continues with such atom.
 
 - **Body Without Atom Definitions:** If you provide a body and do not define any

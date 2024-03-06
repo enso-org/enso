@@ -1,4 +1,4 @@
-package org.enso.database;
+package org.enso.database.sqlite;
 
 import org.enso.base.file_format.FileFormatSPI;
 
