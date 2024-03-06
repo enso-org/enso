@@ -285,7 +285,7 @@ add_specs suite_builder =
             values = ok_values # + problematic_values
             _ = [problematic_values]
 
-            values.map_with_index i-> pr->
+            values.map pr->
                 v = pr.at 0
                 d = Decimal.new v
                 expected = pr.at 1
