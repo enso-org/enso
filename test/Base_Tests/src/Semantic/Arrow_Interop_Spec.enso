@@ -2,16 +2,13 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Data.Arrow_Array_Builder.Arrow_Array_Builder
+
 from Standard.Test import all
 
 foreign arrow new_arrow = """
     new[Int8]
 
-## Used only for testing immutability
-Vector.set self at item = set_builtin self at item
-
-set_builtin : (Vector | Array) -> Integer -> Any -> Nothing
-set_builtin vector at item = @Builtin_Method "Array_Like_Helpers.set_builtin"
+Arrow_Array_Builder.set self index value = Arrow_Array_Builder.set_builtin self index value
 
 add_specs suite_builder =
     pending = if Polyglot.is_language_installed "arrow" then Nothing else """
@@ -26,14 +23,16 @@ add_specs suite_builder =
             builder.length . should_equal 10
             builder.at 1 . should_equal Nothing
             builder.at 10 . should_fail_with Index_Out_Of_Bounds
-            builder.set 1 10
+            builder.append 2
+            builder.append 10
             builder.at 1 . should_equal 10
             builder.set 8 127
             builder.set 8 128 . should_fail_with Unsupported_Argument_Types
             v = builder.build
-            v.set 8 10 . should_fail_with Unsupported_Argument_Types
             v.at 8 . should_equal 127
             builder.set 1 0 . should_fail_with Unsupported_Argument_Types
+            Polyglot.write_array_element array_10 1 0
+            builder.at 1 . should_equal 0
 
 main =
     suite = Test.build suite_builder->

@@ -11,12 +11,13 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.data.vector.ArrowArrayBuilder;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
     type = "Arrow_Array_Builder",
     name = "set_builtin",
-    description = "Sets a value into the Vector at the specified index.")
+    description = "Set a value at a given index.")
 public abstract class SetBuiltinArrowArrayBuilderNode extends Node {
   static SetBuiltinArrowArrayBuilderNode build() {
     return SetBuiltinArrowArrayBuilderNodeGen.create();
@@ -26,7 +27,7 @@ public abstract class SetBuiltinArrowArrayBuilderNode extends Node {
 
   @Specialization
   Object fromObject(
-      Object arr,
+      ArrowArrayBuilder arr,
       long index,
       Object value,
       @CachedLibrary(limit = "1") InteropLibrary interop,

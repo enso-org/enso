@@ -11,29 +11,28 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.data.vector.ArrowArrayBuilder;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(
-    type = "Array_Like_Helpers",
-    name = "set_builtin",
-    description = "Sets a value into the Vector at the specified index.",
-    autoRegister = false)
-public abstract class SetBuiltinVectorNode extends Node {
-  static SetBuiltinVectorNode build() {
-    return SetBuiltinVectorNodeGen.create();
+    type = "Arrow_Array_Builder",
+    name = "append_builtin",
+    description = "Appends a value at a next available index.")
+public abstract class AppendBuiltinArrowArrayBuilderNode extends Node {
+  static AppendBuiltinArrowArrayBuilderNode build() {
+    return AppendBuiltinArrowArrayBuilderNodeGen.create();
   }
 
-  abstract Object execute(Object vec, long index, Object value);
+  abstract Object execute(Object arr, Object value);
 
   @Specialization
   Object fromObject(
-      Object vec,
-      long index,
+      ArrowArrayBuilder arr,
       Object value,
       @CachedLibrary(limit = "1") InteropLibrary interop,
       @Cached ArrayLikeLengthNode lengthNode) {
     try {
-      interop.writeArrayElement(vec, index, value);
+      arr.append(value, interop);
     } catch (UnsupportedMessageException e) {
       var err =
           EnsoContext.get(interop)
@@ -48,7 +47,7 @@ public abstract class SetBuiltinVectorNode extends Node {
           EnsoContext.get(this)
               .getBuiltins()
               .error()
-              .makeIndexOutOfBounds(index, lengthNode.executeLength(vec));
+              .makeIndexOutOfBounds(arr.getCurrentIndex(), lengthNode.executeLength(arr));
       return DataflowError.withoutTrace(err, this);
     }
     return EnsoContext.get(this).getBuiltins().nothing();

@@ -52,9 +52,6 @@ flatten array_like = @Builtin_Method "Array_Like_Helpers.flatten"
 insert_builtin : (Vector | Array) -> Integer -> (Vector | Array) -> Vector
 insert_builtin vector at items = @Builtin_Method "Array_Like_Helpers.insert_builtin"
 
-set_builtin : (Vector | Array) -> Integer -> Any -> Nothing
-set_builtin vector at item = @Builtin_Method "Array_Like_Helpers.set_builtin"
-
 remove_builtin : (Vector | Array) -> Integer -> Vector
 remove_builtin vector at = @Builtin_Method "Array_Like_Helpers.remove_builtin"
 

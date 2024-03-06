@@ -9,10 +9,10 @@ import project.Nothing.Nothing
 type Arrow_Array_Builder
     ## PRIVATE
 
-        Sets a provided value at a given index.
-    set : Integer -> Any -> Nothing ! Index_Out_Of_Bounds
-    set self index value =
-        Arrow_Array_Builder.set_builtin self index value
+        Appends a value at a next available index.
+    append : Any -> Nothing ! Index_Out_Of_Bounds
+    append self value =
+        Arrow_Array_Builder.append_builtin self value
 
     ## PRIVATE
 

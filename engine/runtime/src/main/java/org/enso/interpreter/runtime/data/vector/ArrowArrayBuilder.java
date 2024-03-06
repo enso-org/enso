@@ -22,10 +22,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(
-    pkg = "mutable",
-    stdlibName = "Standard.Base.Data.ArrowArrayBuilder.ArrowArrayBuilder",
-    containsValues = false)
+@Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.ArrowArrayBuilder.ArrowArrayBuilder")
 public abstract class ArrowArrayBuilder implements EnsoObject {
 
   protected boolean sealed = false;
@@ -34,6 +31,11 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
     sealed = true;
   }
 
+  public abstract void append(Object element, InteropLibrary interop)
+      throws InvalidArrayIndexException, UnsupportedMessageException, UnsupportedTypeException;
+
+  public abstract int getCurrentIndex();
+
   @ExportMessage
   boolean hasArrayElements() {
     return true;
@@ -41,12 +43,12 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
 
   @ExportMessage
   boolean isArrayElementModifiable(long index) {
-    return true;
+    throw CompilerDirectives.shouldNotReachHere();
   }
 
   @ExportMessage
   boolean isArrayElementReadable(long index) {
-    return true;
+    throw CompilerDirectives.shouldNotReachHere();
   }
 
   @ExportMessage
@@ -61,7 +63,7 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
   }
 
   @ExportMessage
-  final void writeArrayElement(long index, Object value) throws UnsupportedMessageException {
+  void writeArrayElement(long index, Object value) throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }
 
@@ -125,6 +127,7 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
   @ExportLibrary(WarningsLibrary.class)
   static final class GenericArrowArray extends ArrowArrayBuilder {
     private final Object storage;
+    private int index;
 
     private GenericArrowArray(Object storage) {
       if (CompilerDirectives.inInterpreter()) {
@@ -134,7 +137,12 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
                   null, "Arrow_Array_Builder needs array-like delegate, but got: " + storage, null);
         }
       }
+      if (!EnsoContext.get(null).isLanguageInstalled("arrow")) {
+        throw EnsoContext.get(null)
+            .raiseAssertionPanic(null, "Arrow_Array_Builder requires arrow language.", null);
+      }
       this.storage = storage;
+      this.index = 0;
     }
 
     final Object toArray() {
@@ -199,12 +207,14 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
     boolean isArrayElementReadable(
         long index,
         @Cached.Shared(value = "interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
-      try {
-        var size = interop.getArraySize(storage);
-        return index < size && index >= 0;
-      } catch (UnsupportedMessageException e) {
-        return false;
-      }
+      return interop.isArrayElementReadable(this.storage, index);
+    }
+
+    @ExportMessage
+    boolean isArrayElementModifiable(
+        long index,
+        @Cached.Shared(value = "interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
+      return interop.isArrayElementModifiable(this.storage, index);
     }
 
     @ExportMessage
@@ -233,6 +243,19 @@ public abstract class ArrowArrayBuilder implements EnsoObject {
     boolean isLimitReached(
         @Cached.Shared(value = "warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
       return warnings.isLimitReached(this.storage);
+    }
+
+    @Override
+    public void append(Object element, InteropLibrary interop)
+        throws InvalidArrayIndexException, UnsupportedMessageException, UnsupportedTypeException {
+      var current = index;
+      this.writeArrayElement(current, element, interop);
+      this.index = current + 1;
+    }
+
+    @Override
+    public int getCurrentIndex() {
+      return index;
     }
   }
 

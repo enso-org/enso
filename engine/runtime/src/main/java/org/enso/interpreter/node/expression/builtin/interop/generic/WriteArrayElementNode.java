@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Polyglot",
     name = "write_array_element",
-    description = "Write a value from the array specified by the index.",
+    description = "Write a value to the array specified by the index.",
     autoRegister = false)
 public class WriteArrayElementNode extends Node {
   private @Child InteropLibrary library =
