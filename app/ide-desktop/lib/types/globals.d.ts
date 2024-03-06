@@ -95,14 +95,13 @@ declare global {
             readonly ENSO_BUILD_ICONS?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly npm_package_name?: string
-            // Cloud environment variables.
-            // This variable is a convenience feature, designed to be used ON DEV BUILDS ONLY.
-            // When unset, the `.env` loader tries to load `.env.` rather than `.<name>.env`.
-            // Set to the empty string to load `.env`.
-            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly ENSO_CLOUD_ENV_FILE_NAME?: string
+
+            // === Cloud environment variables ===
+
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_REDIRECT: string
+            // When unset, the `.env` loader tries to load `.env` rather than `.<name>.env`.
+            // Set to the empty string to load `.env`.
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_CLOUD_ENVIRONMENT: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
