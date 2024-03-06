@@ -117,7 +117,7 @@ export default function Drive(props: DriveProps) {
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
+  const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [category, setCategory] = React.useState(
     () => localStorage.get('driveCategory') ?? Category.home
@@ -366,7 +366,7 @@ export default function Drive(props: DriveProps) {
             </h1>
             <DriveBar
               category={category}
-              canDownloadFiles={canDownloadFiles}
+              canDownload={canDownload}
               doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
@@ -399,7 +399,7 @@ export default function Drive(props: DriveProps) {
               hidden={hidden}
               query={query}
               setQuery={setQuery}
-              setCanDownloadFiles={setCanDownloadFiles}
+              setCanDownload={setCanDownload}
               category={category}
               allLabels={allLabels}
               setSuggestions={setSuggestions}
