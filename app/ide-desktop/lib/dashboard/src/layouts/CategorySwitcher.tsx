@@ -5,7 +5,6 @@ import Home2Icon from 'enso-assets/home2.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -46,6 +45,7 @@ interface InternalCategorySwitcherItemProps {
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { category, isCurrent, onClick } = props
   const { onDragOver, onDrop } = props
+
   return (
     <button
       disabled={isCurrent}
@@ -89,11 +89,6 @@ export interface CategorySwitcherProps {
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
-  const { localStorage } = localStorageProvider.useLocalStorage()
-
-  React.useEffect(() => {
-    localStorage.set('driveCategory', category)
-  }, [category, /* should never change */ localStorage])
 
   return (
     <div className="flex w-full flex-col gap-sidebar-section-heading">

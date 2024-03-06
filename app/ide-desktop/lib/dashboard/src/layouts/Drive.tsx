@@ -1,11 +1,15 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
+import * as routerDom from 'react-router-dom'
+
 import * as common from 'enso-common'
 
 import * as appUtils from '#/appUtils'
 
+import { useEventCallback } from '#/hooks/eventCallback'
 import * as navigateHooks from '#/hooks/navigateHooks'
+import { useSearchParamsState } from '#/hooks/searchParamsState'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -114,13 +118,15 @@ export default function Drive(props: DriveProps) {
   const { setIsAssetPanelTemporarilyVisible } = props
 
   const navigate = navigateHooks.useNavigate()
+  const [searchParams, setSearchParams] = routerDom.useSearchParams()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-  const [category, setCategory] = React.useState(
+  const [category, setCategory] = useSearchParamsState(
+    'driveCategory',
     () => localStorage.get('driveCategory') ?? Category.home
   )
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
@@ -144,6 +150,11 @@ export default function Drive(props: DriveProps) {
         : isCloud && user?.isEnabled !== true
           ? DriveStatus.notEnabled
           : DriveStatus.ok
+
+  const onSetCategory = useEventCallback((value: Category) => {
+    localStorage.set('driveCategory', value)
+    setCategory(value)
+  })
 
   React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {
@@ -379,7 +390,7 @@ export default function Drive(props: DriveProps) {
               <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
                 <CategorySwitcher
                   category={category}
-                  setCategory={setCategory}
+                  setCategory={onSetCategory}
                   dispatchAssetEvent={dispatchAssetEvent}
                 />
                 <Labels
