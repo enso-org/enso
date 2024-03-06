@@ -1,9 +1,11 @@
 import {
   addImports,
   covers,
+  detectImportConflicts,
   recognizeImport,
   requiredImportToAst,
   requiredImports,
+  type ConflictInfo,
   type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
@@ -144,9 +146,53 @@ const mockDb = () => {
   db.set(7, makeMethod('Standard.Base.Type.method'))
   db.set(8, makeType('Standard.Network.URI'))
   db.set(9, extensionMethod)
+  db.set(10, makeType('Standard.Base.Vector'))
+  db.set(11, makeStaticMethod('Standard.Base.Vector.new'))
+  db.set(12, makeModule('Project.Foo'))
+  db.set(13, makeType('Project.Foo.Vector'))
+  db.set(14, makeStaticMethod('Project.Foo.Vector.new'))
+  db.set(15, makeModule('Project.Foo.Base'))
 
   return db
 }
+
+const qn = (s: string) => unwrap(tryQualifiedName(s))
+test.each([
+  {
+    description: 'Conflicting Vector',
+    importing: {
+      kind: 'Unqualified',
+      from: qn('Project.Foo'),
+      import: 'Vector',
+    } as RequiredImport,
+    alreadyImported: [
+      { from: qn('Standard.Base'), imported: { kind: 'List', names: ['Vector'] } } as Import,
+    ],
+    expected: { name: 'Vector', fullyQualified: 'Project.Foo.Vector' },
+  },
+  {
+    description: 'Conflicting Vector (2)',
+    importing: {
+      kind: 'Unqualified',
+      from: qn('Project.Foo'),
+      import: 'Vector',
+    } as RequiredImport,
+    alreadyImported: [
+      { from: qn('Standard.Base'), imported: { kind: 'All', except: [] } } as Import,
+    ],
+    expected: { name: 'Vector', fullyQualified: 'Project.Foo.Vector' },
+  },
+])('Conflicting imports: $description', ({ importing, alreadyImported, expected }) => {
+  const db = mockDb()
+
+  const existingImports: Import[] = alreadyImported
+  const conflicts = detectImportConflicts(db, existingImports, importing)
+  expect(conflicts).toEqual({
+    detected: true,
+    pattern: expected.name,
+    fullyQualified: expected.fullyQualified,
+  } as ConflictInfo)
+})
 
 test.each([
   {
