@@ -2,6 +2,7 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
+import { injectCustomDropdownItems } from '@/providers/customDropdownItems'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
@@ -22,13 +23,14 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import { asNot } from '@/util/data/types.ts'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type ComputedRef } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
 const interaction = injectInteractionHandler()
 const widgetRoot = ref<HTMLElement>()
+const customItems = injectCustomDropdownItems(true)
 
 interface Tag {
   /** If not set, the label is same as expression */
@@ -62,6 +64,11 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
   }
 }
 
+function tagFromCustomItem(label: string | ComputedRef<string>): Tag {
+  const expression = typeof label === 'string' ? label : label.value
+  return { expression }
+}
+
 const staticTags = computed<Tag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
@@ -77,7 +84,12 @@ const dynamicTags = computed<Tag[]>(() => {
   }))
 })
 
-const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
+const customTagsCount = computed(() => customItems ? customItems.items.length : 0)
+const tags = computed(() => {
+  const standardTags = (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value)
+  const customTags = customItems?.items.map(tagFromCustomItem) ?? []
+  return customTags.concat(standardTags)
+})
 const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
 
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
@@ -129,7 +141,11 @@ function toggleDropdownWidget() {
 }
 
 function onClick(index: number, keepOpen: boolean) {
-  selectedIndex.value = index
+  if (index < customTagsCount.value && customItems != null) {
+    customItems.onClick(index)
+  } else {
+    selectedIndex.value = index
+  }
   showDropdownWidget.value = keepOpen
 }
 

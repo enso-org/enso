@@ -11,12 +11,15 @@ import * as ipc from 'ipc'
 // === Constants ===
 // =================
 
-/** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
+/** Name given to the {@link BACKEND_API} object, when it is exposed on the Electron main
  * window. */
 const BACKEND_API_KEY = 'backendApi'
 /** Name given to the {@link AUTHENTICATION_API} object, when it is exposed on the Electron main
  * window. */
 const AUTHENTICATION_API_KEY = 'authenticationApi'
+/** Name given to the {@link FILE_BROWSER_API} object, when it is exposed on the Electron main
+ * window. */
+const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 
 // =============================
 // === importProjectFromPath ===
@@ -24,14 +27,15 @@ const AUTHENTICATION_API_KEY = 'authenticationApi'
 
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<string, (projectId: string) => void>()
 
-electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, {
+const BACKEND_API = {
     importProjectFromPath: (projectPath: string) => {
         electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath)
         return new Promise<string>(resolve => {
             IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
         })
     },
-})
+}
+electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, BACKEND_API)
 
 electron.ipcRenderer.on(
     ipc.Channel.importProjectFromPath,
@@ -151,3 +155,8 @@ const AUTHENTICATION_API = {
     },
 }
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
+
+const FILE_BROWSER_API = {
+  openFileBrowser: (kind: 'file' | 'directory' | 'any') => electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind)
+}
+electron.contextBridge.exposeInMainWorld(FILE_BROWSER_API_KEY, FILE_BROWSER_API)
