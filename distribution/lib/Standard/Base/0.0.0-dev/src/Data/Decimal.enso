@@ -21,6 +21,58 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
 
 ## Decimal is the type of decimal (base-10-scaled) nubmers in Enso. An Enso
    `Decimal` is a wrapper around a Java `BigDecimal`.
+
+   `Decimal` values have more overhead than standard `Float` values, but they
+   have the advantage of being able to precisely specify values such as `0.1`,
+   which is important for certain kinds of calculations, such as currency.
+
+   A `Decimal` value is represented internally by a Java `BigInteger` "unscaled
+   value" and a "scale value". The numerical value of the `Decimal` is
+   `(unscaledValue * 10^(-scale))`. Scale values are maintained automatically by
+   the constructors and numerical operations.
+
+   Scale values can allow distinctions between values that would be identical as
+   `Float`s. For example, the following values have different internal
+   representations:
+
+       a = Decimal.new "2.0"
+       b = Decimal.new "2.00"
+       a == b
+       # => True
+
+   These two values have different internal representations, but they are still
+   considered the same value by `==`.
+
+   All of the constructors, and many of the operations, can take an additional
+   `Math_Context` value, which can specify two things:
+
+   - precision: the number of decimal digits to use to represent a value or
+     result; results are rounded to this precision.
+   - rounding_mode: the method to use for rounding. See `Rounding_Mode` for
+     details about each rounding method.
+
+   When a `Math_Context` value is used in an operation, and causes a loss of
+   precision, a `Loss_Of_Numeric_Precision` warning is attached to the result.
+
+   A `Decimal` can represent any `Float` precisely. However, some `Float`
+   literals, such as `0.1`, cannot be represented exactly to infinite
+   precision by a `Float`. For this reason, constructing a `Decimal` from
+   a `Float` always attaches a `Loss_Of_Numeric_Precision` warning to the
+   result. To avoid this problem, it is recommended to create `Decimal`s from
+   fractional values by passing the value in as a `Text`, where possible and
+   convenient.
+
+   The `Decimal` class provides arithmetic operations `add`, `subtract`,
+   `multiply`, and `divide`, which can take a `Math_Context` argument. You can
+   also use the usual operators `+`, `-`, `*`, `/`, which are the same as the
+   named methods, but which cannot take a `Math_Context`.
+
+   In the case of `divide`, it is possible that the result will have a
+   non-terminating deicmal expansion. If the operation did not specify a
+   `Math_Context`, or specified an explicit `Math_Context` with infinite
+   precision, then it is impossible to represent the result as requested, and an
+   `Arithmetic_Error` will be thrown. In this case, the solution is to specify
+   an explicit precision using a `Math_Context`.
 type Decimal
     Value (big_decimal:BigDecimal)
 
@@ -124,9 +176,17 @@ type Decimal
          If a `Math_Context` is used, there is a possibility of a loss of
          precision.
 
+       ? Precision Loss
+
+         A `Decimal` can represent any `Float` precisely. However, some `Float`
+         literals, such as `0.1`, cannot be represented exactly to infinite
+         precision by a `Float`. For this reason, constructing a `Decimal` from
+         a `Float` always attaches a `Loss_Of_Numeric_Precision` warning to the
+         result.
+
        ! Error Conditions
 
-         - A Loss_Of_Numeric_Precision` warning is always attached when
+         - A `Loss_Of_Numeric_Precision` warning is always attached when
            converting to `Decimal` from `Float`.
          - If `f` is NaN or +/-Inf, an Illegal_Argument error is thrown.
 
@@ -157,7 +217,8 @@ type Decimal
 
              Decimal.new 10 > 7
              # => True
-    > self (that:Decimal) = Decimal_Comparator.compare self that == Ordering.Greater
+    > : Decimal -> Boolean
+    > self (that:Decimal) -> Boolean = Decimal_Comparator.compare self that == Ordering.Greater
 
     ## ALIAS greater than or equal
        GROUP Operators
@@ -172,7 +233,8 @@ type Decimal
 
              Decimal.new 10 >= 7
              # => True
-    >= self (that:Decimal) =
+    >= : Decimal -> Boolean
+    >= self (that:Decimal) -> Boolean =
         ordering = Decimal_Comparator.compare self that
         ordering == Ordering.Greater || ordering == Ordering.Equal
 
@@ -189,7 +251,8 @@ type Decimal
 
              Decimal.new 10 < 7
              # => False
-    < self (that:Decimal) = Decimal_Comparator.compare self that == Ordering.Less
+    < : Decimal -> Boolean
+    < self (that:Decimal) -> Boolean = Decimal_Comparator.compare self that == Ordering.Less
 
     ## ALIAS less than or equal
        GROUP Operators
@@ -204,7 +267,8 @@ type Decimal
 
              Decimal.new 10 <= 7
              # => False
-    <= self (that:Decimal) =
+    <= : Decimal -> Boolean
+    <= self (that:Decimal) -> Boolean =
         ordering = Decimal_Comparator.compare self that
         ordering == Ordering.Less || ordering == Ordering.Equal
 
@@ -257,12 +321,12 @@ type Decimal
        not convert other numeric types to `Decimal` manually.
 
        > Example
-         Adding 10.1 and 20.2.
+         Adding 10.22 and 20.33.
 
-             a = Decimal.new "10.1"
-             b = Decimal.new "20.2"
-             a + b
-             # => Decimal.new 30.3
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
+             c = a + b
+             # => Decimal.new 30.55
     + : Decimal -> Decimal -> Decimal
     + self (that:Decimal) = self.add that
 
@@ -270,7 +334,7 @@ type Decimal
        GROUP Operators
        ICON math
        Subtract a `Decimal` or other kind of number from another `Decimal`, or
-       subtracts another kind of number from a `Decimal`. A `Math_Context` value
+       subtract  a `Decimal` from another kind of number. A `Math_Context` value
        can be specified to set the precision and `Rounding_Mode`.
 
        Arguments:
@@ -294,7 +358,7 @@ type Decimal
 
              a = Decimal.new "20.33"
              b = Decimal.new "10.22"
-             a.subtract b (Math_Context.new 3 Rounding_Mode.half_down)
+             c = a.subtract b (Math_Context.new 3 Rounding_Mode.half_down)
              # => Decimal.new 10.1
     subtract : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     subtract self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
@@ -307,7 +371,7 @@ type Decimal
        GROUP Operators
        ICON math
        Subtract a `Decimal` or other kind of number from another `Decimal`, or
-       subtracts another kind of number from a `Decimal`.
+       subtract  a `Decimal` from another kind of number.
 
        Arguments:
        - that: The number to subtract from this.
@@ -353,7 +417,7 @@ type Decimal
 
              a = Decimal.new "10.22"
              b = Decimal.new "20.33"
-             a.multiply b (Math_Context.new 4 Rounding_Mode.half_down)
+             c = a.multiply b (Math_Context.new 4 Rounding_Mode.half_down)
              # => Decimal.new 207.8
     multiply : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     multiply self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
@@ -374,19 +438,19 @@ type Decimal
        not convert other numeric types to `Decimal` manually.
 
        > Example
-         Multiplying 10.1 and 20.2.
+         Multiplying 10.22 and 20.33.
 
-             a = Decimal.new "10.1"
-             b = Decimal.new "20.2"
+             a = Decimal.new "10.22"
+             b = Decimal.new "20.33"
              c = a * b
-             # => Decimal.new 204.02
+             # => Decimal.new 207.7726
     * : Decimal -> Decimal -> Decimal
     * self (that:Decimal) = self.multiply that
 
     ## GROUP Operators
        ICON math
-       Divides a `Decimal` by another `Decimal` or other kind of number, or
-       divides another kind of number by a `Decimal`. A `Math_Context` value can
+       Divide a `Decimal` by another `Decimal` or other kind of number, or
+       divide another kind of number by a `Decimal`. A `Math_Context` value can
        be specified to set the precision and `Rounding_Mode`.
 
        Arguments:
@@ -399,8 +463,8 @@ type Decimal
        ! Error Conditions
 
          - If the precision specified in `math_context` is 0, or if
-           `match_context` is unspecified, and the quotient has a nonterminating
-           decimal expansion, an `Arithmetic_Error` is thrown.
+         `match_context` is unspecified, and the quotient has a non-terminating
+         decimal expansion, an `Arithmetic_Error` is thrown.
 
        > Example
          Dividing 1065.9378 by 23.34.
@@ -416,7 +480,7 @@ type Decimal
 
             a = Decimal.new "1065.9378"
              b = Decimal.new "23.34"
-             a.divide b (Math_Context.new 3 Rounding_Mode.half_down)
+             c = a.divide b (Math_Context.new 3 Rounding_Mode.half_down)
              # => Decimal.new 45.7
     divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal | Arithmetic_Error
     divide self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
@@ -494,6 +558,14 @@ handle_precision_loss original_value conversion_result:Conversion_Result -> Any 
         new_value = conversion_result.newValue
         Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
 
+attach_loss_of_numeric_precision : Float -> Any -> Any
+attach_loss_of_numeric_precision f value =
+    Warning.attach (Loss_Of_Numeric_Precision.Warning f f) value
+
+handle_java_exception ~action =
+    Panic.catch ArithmeticException action caught_panic->
+        Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
+
 type Decimal_Comparator
     #compare x:Decimal y:Decimal =
     compare x:Decimal y:Decimal =
@@ -505,11 +577,3 @@ Comparable.from (_:Number) = Decimal_Comparator
 
 Decimal.from (that:Text) = Decimal.from_text that
 Decimal.from (that:Number) = Decimal.new that
-
-attach_loss_of_numeric_precision : Float -> Any -> Any
-attach_loss_of_numeric_precision f value =
-    Warning.attach (Loss_Of_Numeric_Precision.Warning f f) value
-
-handle_java_exception ~action =
-    Panic.catch ArithmeticException action caught_panic->
-        Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
