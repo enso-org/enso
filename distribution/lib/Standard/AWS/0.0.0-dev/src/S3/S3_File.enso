@@ -30,12 +30,12 @@ type S3_File
          If the path contains `.` or `..` segments, they will be normalized.
        - credentials: The credentials to use when accessing the file.
          If not specified, the default credentials are used.
-    new : Text -> AWS_Credential | Nothing -> S3_File ! Illegal_Argument
-    new (uri : Text = S3.uri_prefix) (credentials : AWS_Credential | Nothing = Nothing) =
+    new : Text -> AWS_Credential -> S3_File ! Illegal_Argument
+    new (uri : Text = S3.uri_prefix) credentials:AWS_Credential=AWS_Credential.Default =
         S3_File.Value (S3_Path.parse uri) credentials
 
     ## PRIVATE
-    Value (s3_path : S3_Path) (credentials : AWS_Credential | Nothing)
+    Value (s3_path : S3_Path) credentials:AWS_Credential
 
     ## GROUP Standard.Base.Metadata
        Gets the URI of this file

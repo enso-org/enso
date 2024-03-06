@@ -55,7 +55,7 @@ public final class UnresolvedConstructor implements EnsoObject {
   @Override
   @CompilerDirectives.TruffleBoundary
   public String toString() {
-    return "~" + name;
+    return ".." + name;
   }
 
   @ExportMessage

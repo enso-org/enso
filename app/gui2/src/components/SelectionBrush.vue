@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useApproach } from '@/composables/animation'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, watch, type Ref } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 
 const props = defineProps<{
   position: Vec2
@@ -9,7 +9,15 @@ const props = defineProps<{
 }>()
 
 const hidden = computed(() => props.anchor == null)
-const lastSetAnchor: Ref<Vec2 | undefined> = computed(() => props.anchor ?? lastSetAnchor.value)
+const lastSetAnchor = shallowRef<Vec2>()
+watch(
+  () => props.anchor,
+  (anchor) => {
+    if (anchor !== null && lastSetAnchor.value !== anchor) {
+      lastSetAnchor.value = anchor
+    }
+  },
+)
 
 const anchorAnimFactor = useApproach(() => (props.anchor != null ? 1 : 0), 60)
 watch(

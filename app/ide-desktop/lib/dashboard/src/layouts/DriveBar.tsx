@@ -19,6 +19,7 @@ import Category from '#/layouts/CategorySwitcher/Category'
 
 import Button from '#/components/Button'
 
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
@@ -34,6 +35,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 export interface DriveBarProps {
   readonly category: Category
   readonly canDownloadFiles: boolean
+  readonly doEmptyTrash: () => void
   readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
   readonly doCreateSecret: (name: string, value: string) => void
@@ -45,7 +47,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { category, canDownloadFiles, doCreateProject, doCreateDirectory } = props
+  const { category, canDownloadFiles, doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -72,7 +74,23 @@ export default function DriveBar(props: DriveBarProps) {
     })
   }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
 
-  return (
+  return category === Category.trash ? (
+    <div className="flex h-8 py-0.5">
+      <div className="flex gap-2.5">
+        <button
+          className="flex items-center bg-frame rounded-full h-8 px-2.5"
+          onClick={event => {
+            event.stopPropagation()
+            setModal(
+              <ConfirmDeleteModal actionText="all trashed items forever" doDelete={doEmptyTrash} />
+            )
+          }}
+        >
+          <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">Clear Trash</span>
+        </button>
+      </div>
+    </div>
+  ) : (
     <div className="flex h-8 py-0.5">
       <div className="flex gap-2.5">
         <button
@@ -169,11 +187,7 @@ export default function DriveBar(props: DriveBarProps) {
             disabled={!canDownloadFiles}
             image={DataDownloadIcon}
             alt="Download Files"
-            error={
-              category === Category.trash
-                ? 'You cannot download files from Trash.'
-                : 'You currently can only download files.'
-            }
+            error="You currently can only download files."
             disabledOpacityClassName="opacity-20"
             onClick={event => {
               event.stopPropagation()
