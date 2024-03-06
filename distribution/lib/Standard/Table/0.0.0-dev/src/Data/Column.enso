@@ -1750,7 +1750,7 @@ type Column
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
-    parse self type=Auto format:(Text|Data_Formatter)="" on_problems=Report_Warning =
+    parse self type=Auto format:(Text | Data_Formatter)="" on_problems=Report_Warning =
         Value_Type.expect_text self <|
             formatter = case format of
                 _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
