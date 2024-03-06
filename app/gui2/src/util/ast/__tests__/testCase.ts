@@ -1,5 +1,5 @@
-import { assert, assertDefined } from 'shared/util/assert'
-import { Ast } from '..'
+import { assert, assertDefined } from '@/util/assert'
+import { Ast } from '@/util/ast'
 
 export type StringsWithTypeValues = Record<string, any>
 export type WithValuesInstantiated<Spec extends StringsWithTypeValues> = {
