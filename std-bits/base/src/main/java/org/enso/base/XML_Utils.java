@@ -23,7 +23,7 @@ public class XML_Utils {
    * @throws IllegalAccessException if the DOM implementation class cannot be accessed.
    * @throws InstantiationException if the DOM implementation class cannot be instantiated.
    */
-  public static String outerXML(Node element, boolean prettyPrint, boolean xmlDeclaration)
+  public static String outerXML(Node element, boolean prettyPrint)
       throws ClassNotFoundException, IllegalAccessException, InstantiationException {
     DOMImplementationLS dom =
         (DOMImplementationLS) DOMImplementationRegistry.newInstance().getDOMImplementation("LS");
@@ -32,9 +32,6 @@ public class XML_Utils {
     config.setParameter("xml-declaration", false);
     if (prettyPrint) {
       config.setParameter("format-pretty-print", Boolean.TRUE);
-    }
-    if (xmlDeclaration) {
-      config.setParameter("xml-declaration", true);
     }
     serializer.setNewLine("\n");
     return serializer.writeToString(element);

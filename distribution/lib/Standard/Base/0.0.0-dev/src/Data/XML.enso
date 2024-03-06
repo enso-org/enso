@@ -4,6 +4,7 @@ import project.Data.Json.Extensions
 import project.Data.Json.JS_Object
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
+import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -18,6 +19,7 @@ import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.Input_Stream.Input_Stream
+import project.System.File.Write_Extensions
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Metadata import make_single_choice, Widget
@@ -193,7 +195,7 @@ type XML_Document
     outer_xml : Text ! XML_Error
     outer_xml self =
         XML_Error.handle_java_exceptions <|
-            XML_Utils.outerXML self.java_document Boolean.False Boolean.False
+            XML_Utils.outerXML self.java_document Boolean.False
 
     ## Gets the raw XML of the document.
 
@@ -207,11 +209,13 @@ type XML_Document
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_document
 
-    write : Writable_File -> Existing_File_Behavior -> File
-    write self path:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+    @encoding Encoding.default_widget
+    write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> File
+    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) =
+        header = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
         XML_Error.handle_java_exceptions <|
-            s = XML_Utils.outerXML self.java_document Boolean.True Boolean.True
-            s.write path on_existing_file
+            s = header + XML_Utils.outerXML self.java_document Boolean.True
+            Text.write s path encoding on_existing_file
 
     ## GROUP Selections
        Gets the child elements of an XML document.
@@ -488,7 +492,7 @@ type XML_Element
     outer_xml : Text ! XML_Error
     outer_xml self =
         XML_Error.handle_java_exceptions <|
-            XML_Utils.outerXML self.java_element Boolean.False Boolean.False
+            XML_Utils.outerXML self.java_element Boolean.False
 
     ## Gets the raw XML of the contents of the element, not including the
        outermost tag and attributes.
