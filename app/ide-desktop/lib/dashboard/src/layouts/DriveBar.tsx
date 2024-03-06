@@ -187,7 +187,7 @@ export default function DriveBar(props: DriveBarProps) {
             disabled={!canDownload}
             image={DataDownloadIcon}
             alt="Download Files"
-            error="You can only download files and Data Links."
+            error="Select assets to download. Note that you cannot download folders."
             disabledOpacityClassName="opacity-20"
             onClick={event => {
               event.stopPropagation()

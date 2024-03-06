@@ -361,11 +361,29 @@ export default function AssetRow(props: AssetRowProps) {
         if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
           if (isCloud) {
             switch (asset.type) {
+              case backendModule.AssetType.project: {
+                try {
+                  const details = await backend.getProjectDetails(asset.id, asset.title)
+                  if (details.url != null) {
+                    download.download(details.url, asset.title)
+                  } else {
+                    toastAndLog(
+                      `Could not download project '${asset.title}': project has no source files`
+                    )
+                  }
+                } catch (error) {
+                  toastAndLog(`Could not download project '${asset.title}'`, error)
+                }
+                break
+              }
               case backendModule.AssetType.file: {
                 try {
                   const details = await backend.getFileDetails(asset.id, asset.title)
-                  const file = details.file
-                  download.download(download.s3URLToHTTPURL(file.path), asset.title)
+                  if (details.url != null) {
+                    download.download(details.url, asset.title)
+                  } else {
+                    toastAndLog(`Could not download file '${asset.title}': file not found`)
+                  }
                 } catch (error) {
                   toastAndLog(`Could not download file '${asset.title}'`, error)
                 }

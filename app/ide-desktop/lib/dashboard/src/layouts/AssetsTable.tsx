@@ -858,6 +858,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             Array.from(newSelectedKeys).every(key => {
               const node = nodeMapRef.current.get(key)
               return (
+                node?.item.type === backendModule.AssetType.project ||
                 node?.item.type === backendModule.AssetType.file ||
                 node?.item.type === backendModule.AssetType.dataLink
               )
