@@ -1,6 +1,7 @@
 /** @file A styled dropdown. */
 import * as React from 'react'
 
+import CheckMarkIcon from 'enso-assets/check_mark.svg'
 import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import SvgMask from '#/components/SvgMask'
@@ -63,13 +64,6 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     return item != null ? [item] : []
   })
   const visuallySelectedIndex = tempSelectedIndex ?? selectedIndex
-  const visuallySelectedIndices = multiple
-    ? tempSelectedIndex != null
-      ? [...selectedIndices, tempSelectedIndex]
-      : selectedIndices
-    : visuallySelectedIndex != null
-      ? [visuallySelectedIndex]
-      : []
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
   React.useEffect(() => {
@@ -155,7 +149,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     <div
       ref={rootRef}
       tabIndex={0}
-      className={`group relative flex flex-col w-max items-start rounded-xl cursor-pointer leading-5 whitespace-nowrap ${
+      className={`group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-xl leading-5 ${
         className ?? ''
       }`}
       onFocus={event => {
@@ -166,7 +160,6 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
       }}
       onBlur={event => {
         // TODO: should not blur when `multiple` and clicking on option
-        console.log(event.target, event.currentTarget, event.relatedTarget)
         if (!readOnly && event.target === event.currentTarget) {
           setIsDropdownVisible(false)
         }
@@ -175,12 +168,15 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
       onKeyUp={() => {
         justFocusedRef.current = false
       }}
+      onClick={event => {
+        event.stopPropagation()
+      }}
     >
       <div
-        className={`absolute left-0 w-full min-w-max h-full ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
+        className={`absolute left-0 h-full w-full min-w-max ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
       >
         <div
-          className={`relative before:absolute before:border before:border-black/10 before:rounded-xl before:backdrop-blur-3xl before:top-0 before:w-full before:transition-all ${
+          className={`relative before:absolute before:top-0 before:w-full before:rounded-xl before:border before:border-black/10 before:backdrop-blur-3xl before:transition-all ${
             isDropdownVisible
               ? 'before:h-full before:shadow-soft'
               : 'before:h-6 group-hover:before:bg-frame'
@@ -188,7 +184,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         >
           {/* Spacing. */}
           <div
-            className="relative padding h-6"
+            className="padding relative h-6"
             onClick={event => {
               event.stopPropagation()
               if (!justFocusedRef.current && !readOnly) {
@@ -198,7 +194,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
             }}
           />
           <div
-            className={`relative grid rounded-xl w-full max-h-10lh transition-grid-template-rows ${
+            className={`max-h-10lh relative grid w-full rounded-xl transition-grid-template-rows ${
               isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
             }`}
           >
@@ -206,9 +202,9 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
               {items.map((item, i) => (
                 <div
                   tabIndex={-1}
-                  className={`flex gap-1 rounded-xl px-2 h-6 transition-colors ${
-                    visuallySelectedIndices.includes(i)
-                      ? `${multiple ? 'hover:font-semibold' : 'cursor-default'} bg-frame font-bold`
+                  className={`flex h-6 items-center gap-1 rounded-xl px-2 transition-colors ${multiple ? 'hover:font-semibold' : ''} ${
+                    i === visuallySelectedIndex
+                      ? `cursor-default bg-frame font-bold`
                       : 'hover:bg-frame-selected'
                   }`}
                   key={i}
@@ -251,7 +247,11 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                     }
                   }}
                 >
-                  <SvgMask src={TriangleDownIcon} className="invisible" />
+                  {selectedIndices.includes(i) ? (
+                    <SvgMask src={CheckMarkIcon} />
+                  ) : (
+                    <SvgMask src={TriangleDownIcon} className="invisible" />
+                  )}
                   <Child item={item} />
                 </div>
               ))}
@@ -260,8 +260,8 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         </div>
       </div>
       <div
-        className={`relative flex gap-1 items-center h-6 px-2 ${isDropdownVisible ? 'z-1' : ''} ${
-          readOnly ? 'opacity-75 cursor-not-allowed' : ''
+        className={`relative flex h-6 items-center gap-1 px-2 ${isDropdownVisible ? 'z-1' : ''} ${
+          readOnly ? 'cursor-not-allowed opacity-75' : ''
         }`}
         onClick={event => {
           event.stopPropagation()
@@ -279,6 +279,26 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
             multiple && <props.renderMultiple items={selectedItems} render={Child} />
           )}
         </div>
+      </div>
+      {/* Hidden, but required to exist for the width of the parent element to be correct. */}
+      <div className="flex h-0 flex-col overflow-hidden">
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className={`flex h-6 items-center gap-1 rounded-xl px-2 transition-colors ${
+              i === visuallySelectedIndex
+                ? `cursor-default bg-frame font-bold`
+                : 'hover:bg-frame-selected'
+            }`}
+          >
+            {selectedIndices.includes(i) ? (
+              <SvgMask src={CheckMarkIcon} />
+            ) : (
+              <SvgMask src={TriangleDownIcon} className="invisible" />
+            )}
+            <Child item={item} />
+          </div>
+        ))}
       </div>
     </div>
   )

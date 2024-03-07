@@ -16,6 +16,8 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
+import * as dateTime from '#/utilities/dateTime'
+
 // ==============================
 // === ActivityLogSettingsTab ===
 // ==============================
@@ -58,7 +60,7 @@ export default function ActivityLogSettingsTab() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Activity Log</h3>
+        <h3 className="h-9.5 py-0.5 text-xl font-bold">Activity Log</h3>
         <div className="flex gap-3">
           <div className="flex items-center gap-2">
             Types
@@ -70,9 +72,9 @@ export default function ActivityLogSettingsTab() {
               renderMultiple={props =>
                 props.items.length === 0 || props.items.length === backendModule.EVENT_TYPES.length
                   ? 'All'
-                  : props.items.map(item => EVENT_TYPE_NAME[item]).join(', ')
+                  : (props.items[0] != null ? EVENT_TYPE_NAME[props.items[0]] : '') +
+                    (props.items.length <= 1 ? '' : ` (+${props.items.length - 1})`)
               }
-              className="min-w-30"
               onClick={(items, indices) => {
                 setTypes(items)
                 setTypeIndices(indices)
@@ -92,7 +94,6 @@ export default function ActivityLogSettingsTab() {
                   : (props.items[0] ?? '') +
                     (props.items.length <= 1 ? '' : `(+${props.items.length - 1})`)
               }
-              className="min-w-30"
               onClick={(items, indices) => {
                 setEmails(items)
                 setEmailIndices(indices)
@@ -100,15 +101,18 @@ export default function ActivityLogSettingsTab() {
             />
           </div>
         </div>
-        <table className="self-start table-fixed rounded-rows">
+        <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-8">
-              <th className="text-left bg-clip-padding border-transparent border-x-2 last:border-r-0 text-sm font-semibold w-8 pl-2 pr-1.5" />
-              <th className="text-left bg-clip-padding border-transparent border-x-2 last:border-r-0 text-sm font-semibold w-32 px-2">
-                Event
+              <th className="w-8 border-x-2 border-transparent bg-clip-padding pl-2 pr-1.5 text-left text-sm font-semibold last:border-r-0" />
+              <th className="w-32 border-x-2 border-transparent bg-clip-padding px-2 text-left text-sm font-semibold last:border-r-0">
+                Type
               </th>
-              <th className="text-left bg-clip-padding border-transparent border-x-2 last:border-r-0 text-sm font-semibold w-48 px-2">
+              <th className="w-48 border-x-2 border-transparent bg-clip-padding px-2 text-left text-sm font-semibold last:border-r-0">
                 Email
+              </th>
+              <th className="w-36 border-x-2 border-transparent bg-clip-padding px-2 text-left text-sm font-semibold last:border-r-0">
+                Timestamp
               </th>
             </tr>
           </thead>
@@ -127,16 +131,19 @@ export default function ActivityLogSettingsTab() {
             ) : (
               filteredLogs.map((log, i) => (
                 <tr key={i} className="h-8">
-                  <td className="pl-2 pr-1.5 bg-clip-padding border-transparent border-x-2 last:border-r-0 first:rounded-l-full last:rounded-r-full">
+                  <td className="border-x-2 border-transparent bg-clip-padding pl-2 pr-1.5 first:rounded-l-full last:rounded-r-full last:border-r-0">
                     <div className="flex items-center">
                       <SvgMask src={EVENT_TYPE_ICON[log.metadata.type]} />
                     </div>
                   </td>
-                  <td className="px-2 bg-clip-padding border-transparent border-x-2 last:border-r-0 first:rounded-l-full last:rounded-r-full">
+                  <td className="border-x-2 border-transparent bg-clip-padding px-2 first:rounded-l-full last:rounded-r-full last:border-r-0">
                     {EVENT_TYPE_NAME[log.metadata.type]}
                   </td>
-                  <td className="px-2 bg-clip-padding border-transparent border-x-2 last:border-r-0 first:rounded-l-full last:rounded-r-full">
+                  <td className="border-x-2 border-transparent bg-clip-padding px-2 first:rounded-l-full last:rounded-r-full last:border-r-0">
                     {log.userEmail}
+                  </td>
+                  <td className="border-x-2 border-transparent bg-clip-padding px-2 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                    {log.timestamp ? dateTime.formatDateTime(new Date(log.timestamp)) : ''}
                   </td>
                 </tr>
               ))
