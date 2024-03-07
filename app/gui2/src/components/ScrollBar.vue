@@ -19,7 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const BAR_END_MARGIN = 2
-const BAR_WIDTH = 11
+const BAR_WIDTH = 6
 
 const xStart = ref('')
 const yStart = ref('')
@@ -115,18 +115,6 @@ export type ScrollbarEvent =
   pointer-events: none;
 }
 
-.bar {
-  border-radius: v-bind('`${BAR_WIDTH / 2}px`');
-  pointer-events: all;
-  background-color: rgba(190 190 190 / 50%);
-  &:hover {
-    background-color: rgba(170 170 170 / 75%);
-  }
-  &:active {
-    background-color: rgba(170 170 170 / 100%);
-  }
-}
-
 .vertical {
   position: absolute;
   top: v-bind('yStart');
@@ -147,10 +135,30 @@ export type ScrollbarEvent =
   margin-right: v-bind('`${BAR_WIDTH + BAR_END_MARGIN}px`');
 }
 
-.full {
-  opacity: 0;
-  &:hover,
+.bar {
+  border-radius: v-bind('`${BAR_WIDTH / 2}px`');
+  pointer-events: all;
+  background-color: rgba(170 170 170 / 50%);
+  transition: background-color 0.2s ease-in;
+  &:hover {
+    transition: background-color 0.2s ease-in;
+    background-color: rgba(150 150 150 / 75%);
+  }
   &:active {
+    transition: none;
+    background-color: rgba(130 130 130 / 100%);
+  }
+}
+
+.full {
+  transition: opacity 0.2s ease-in;
+  opacity: 0;
+  &:hover {
+    transition: opacity 0.2s ease-in;
+    opacity: 1;
+  }
+  &:active {
+    transition: none;
     opacity: 1;
   }
 }
