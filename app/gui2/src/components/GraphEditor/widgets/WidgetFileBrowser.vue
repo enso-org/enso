@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { provideCustomDropdownItems } from '@/providers/customDropdownItems'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -8,7 +7,8 @@ import { Ast } from '@/util/ast'
 import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { asNot } from '@/util/data/types.ts'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
+import { CustomDropdownItemsKey, type CustomDropdownItem } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -48,9 +48,9 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
   }
 }
 
-provideCustomDropdownItems({
-  items: [label],
-  onClick: async (_idx: number) => {
+const item = computed<CustomDropdownItem>(() => ({
+  label: label.value,
+  onClick: async () => {
     const kind = strictlyDirectory.value ? 'directory' : strictlyFile.value ? 'file' : 'any'
     const selected = await window.fileBrowserApi.openFileBrowser(kind)
     if (selected != null && selected[0] != null) {
@@ -64,14 +64,14 @@ provideCustomDropdownItems({
         },
       })
     }
-  },
-})
+  }
+}))
 
 const innerWidgetInput = computed(() => {
-  const info = props.input[ArgumentInfoKey]?.info
-  // Ensure tagValues is initialized, so a child dropdown widget will be created.
-  if (info != null && info.tagValues == null) {
-    info.tagValues = []
+  if (props.input[CustomDropdownItemsKey] != null) {
+    props.input[CustomDropdownItemsKey].push(item.value)
+  } else {
+    props.input[CustomDropdownItemsKey] = [item.value]
   }
   return props.input
 })

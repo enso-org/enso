@@ -2,7 +2,6 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { injectCustomDropdownItems } from '@/providers/customDropdownItems'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
@@ -23,14 +22,13 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import { asNot } from '@/util/data/types.ts'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { computed, ref, watch, type ComputedRef } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
 const interaction = injectInteractionHandler()
 const widgetRoot = ref<HTMLElement>()
-const customItems = injectCustomDropdownItems(true)
 
 interface Tag {
   /** If not set, the label is same as expression */
@@ -38,6 +36,7 @@ interface Tag {
   expression: string
   requiredImports?: RequiredImport[]
   parameters?: ArgumentWidgetConfiguration[]
+  onClick?: () => void
 }
 
 function tagFromExpression(expression: string): Tag {
@@ -64,9 +63,9 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
   }
 }
 
-function tagFromCustomItem(label: string | ComputedRef<string>): Tag {
-  const expression = typeof label === 'string' ? label : label.value
-  return { expression }
+function tagFromCustomItem(item: CustomDropdownItem): Tag {
+  const expression = item.label
+  return { expression, onClick: item.onClick }
 }
 
 const staticTags = computed<Tag[]>(() => {
@@ -84,11 +83,10 @@ const dynamicTags = computed<Tag[]>(() => {
   }))
 })
 
-const customTagsCount = computed(() => (customItems ? customItems.items.length : 0))
+const customTags = computed(() => props.input[CustomDropdownItemsKey]?.map(tagFromCustomItem) ?? [])
 const tags = computed(() => {
   const standardTags = dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value
-  const customTags = customItems?.items.map(tagFromCustomItem) ?? []
-  return customTags.concat(standardTags)
+  return customTags.value.concat(standardTags)
 })
 const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
 
@@ -141,8 +139,8 @@ function toggleDropdownWidget() {
 }
 
 function onClick(index: number, keepOpen: boolean) {
-  if (index < customTagsCount.value && customItems != null) {
-    customItems.onClick(index)
+  if (index < customTags.value.length) {
+    customTags.value[index]!.onClick!()
   } else {
     selectedIndex.value = index
   }
@@ -186,6 +184,7 @@ function hasBooleanTagValues(parameter: SuggestionEntryArgument): boolean {
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 50,
   score: (props) => {
+    if (props.input[CustomDropdownItemsKey] != null) return Score.Perfect
     if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
     // Boolean arguments also have tag values, but the checkbox widget should handle them.
     if (
@@ -196,6 +195,21 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     return Score.Mismatch
   },
 })
+
+/** Custom item added to dropdown. These items can’t be selected, but can be clicked. */
+export interface CustomDropdownItem {
+  /** Displayed label. */
+  label: string
+  /** Action to perform when clicked. */
+  onClick: () => void
+}
+
+export const CustomDropdownItemsKey: unique symbol = Symbol('CustomDropdownItems')
+declare module '@/providers/widgetRegistry' {
+  export interface WidgetInput {
+    [CustomDropdownItemsKey]?: CustomDropdownItem[]
+  }
+}
 </script>
 
 <template>
