@@ -3,9 +3,9 @@ import { Ast } from '@/util/ast'
 
 export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
   const { nodeCode, documentation } =
-    ast instanceof Ast.Documented
-      ? { nodeCode: ast.expression, documentation: ast.documentation() }
-      : { nodeCode: ast, documentation: undefined }
+    ast instanceof Ast.Documented ?
+      { nodeCode: ast.expression, documentation: ast.documentation() }
+    : { nodeCode: ast, documentation: undefined }
   if (!nodeCode) return
   const pattern = nodeCode instanceof Ast.Assignment ? nodeCode.pattern : undefined
   const rootSpan = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode

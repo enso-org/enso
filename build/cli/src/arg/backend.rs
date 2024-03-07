@@ -50,7 +50,7 @@ pub enum Command {
     /// Run an SBT command.
     Sbt {
         #[clap(last = true)]
-        command: Vec<String>,
+        args: Vec<String>,
     },
     /// Perform the CI check routine for the backend.
     CiCheck {},

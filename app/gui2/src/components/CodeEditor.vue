@@ -227,9 +227,8 @@ function updateListener() {
         commitPendingChanges()
         currentModule = newModule
       } else if (transaction.docChanged && currentModule) {
-        pendingChanges = pendingChanges
-          ? pendingChanges.compose(transaction.changes)
-          : transaction.changes
+        pendingChanges =
+          pendingChanges ? pendingChanges.compose(transaction.changes) : transaction.changes
         // Defer the update until after pending events have been processed, so that if changes are arriving faster than
         // we would be able to apply them individually we coalesce them to keep up.
         debouncer(commitPendingChanges)
@@ -282,8 +281,9 @@ function observeSourceChange(textEdits: SourceRangeEdit[], origin: Origin | unde
 // too quickly can result in incorrect ranges, but at idle it should correct itself when we receive new diagnostics.
 watch([viewInitialized, () => projectStore.diagnostics], ([ready, diagnostics]) => {
   if (!ready) return
-  executionContextDiagnostics.value = graphStore.moduleSource.text
-    ? lsDiagnosticsToCMDiagnostics(graphStore.moduleSource.text, diagnostics)
+  executionContextDiagnostics.value =
+    graphStore.moduleSource.text ?
+      lsDiagnosticsToCMDiagnostics(graphStore.moduleSource.text, diagnostics)
     : []
 })
 
@@ -403,7 +403,7 @@ const editorStyle = computed(() => {
   }
 }
 
-.CodeEditor :is(.cm-editor) {
+.CodeEditor :deep(.cm-editor) {
   position: relative;
   color: white;
   width: 100%;
@@ -420,11 +420,11 @@ const editorStyle = computed(() => {
   transition: outline 0.1s ease-in-out;
 }
 
-.CodeEditor :is(.cm-focused) {
+.CodeEditor :deep(.cm-focused) {
   outline: 1px solid rgba(0, 0, 0, 0.5);
 }
 
-.CodeEditor :is(.cm-tooltip-hover) {
+.CodeEditor :deep(.cm-tooltip-hover) {
   padding: 4px;
   border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.4);
@@ -438,7 +438,7 @@ const editorStyle = computed(() => {
   }
 }
 
-.CodeEditor :is(.cm-gutters) {
+.CodeEditor :deep(.cm-gutters) {
   border-radius: 3px 0 0 3px;
 }
 </style>

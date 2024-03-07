@@ -30,17 +30,16 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      ...(process.env.E2E === 'true'
-        ? { '/src/main.ts': fileURLToPath(new URL('./e2e/main.ts', import.meta.url)) }
-        : {}),
+      ...(process.env.E2E === 'true' ?
+        { '/src/main.ts': fileURLToPath(new URL('./e2e/main.ts', import.meta.url)) }
+      : {}),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   define: {
-    REDIRECT_OVERRIDE: IS_CLOUD_BUILD
-      ? 'undefined'
-      : JSON.stringify(`http://localhost:${localServerPort}`),
+    REDIRECT_OVERRIDE:
+      IS_CLOUD_BUILD ? 'undefined' : JSON.stringify(`http://localhost:${localServerPort}`),
     IS_CLOUD_BUILD: JSON.stringify(IS_CLOUD_BUILD),
     PROJECT_MANAGER_URL: JSON.stringify(projectManagerUrl),
     IS_DEV_MODE: JSON.stringify(process.env.NODE_ENV === 'development'),

@@ -10,16 +10,13 @@ import { injectWidgetTree } from '@/providers/widgetTree'
 import { PortViewInstance, useGraphStore } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
-import { asNot } from '@/util/data/types.ts'
 import { cachedGetter } from '@/util/reactivity'
 import { uuidv4 } from 'lib0/random'
 import { isUuid } from 'shared/yjsModel'
 import {
   computed,
-  markRaw,
   nextTick,
   onUpdated,
   proxyRefs,
@@ -66,7 +63,7 @@ const isTarget = computed(
 )
 
 const rootNode = shallowRef<HTMLElement>()
-const nodeSize = useResizeObserver(rootNode, false)
+const nodeSize = useResizeObserver(rootNode)
 
 // Compute the scene-space bounding rectangle of the expression's widget. Those bounds are later
 // used for edge positioning. Querying and updating those bounds is relatively expensive, so we only
@@ -82,7 +79,7 @@ const randomUuid = uuidv4() as PortId
 // effects depending on the port ID value will not be re-triggered unnecessarily.
 const portId = cachedGetter<PortId>(() => {
   assert(!isUuid(props.input.portId))
-  return asNot<TokenId>(props.input.portId)
+  return props.input.portId
 })
 
 const innerWidget = computed(() => {
@@ -100,7 +97,7 @@ const randSlice = randomUuid.slice(0, 4)
 watchEffect(
   (onCleanup) => {
     const id = portId.value
-    const instance = markRaw(new PortViewInstance(portRect, tree.nodeId, props.onUpdate))
+    const instance = new PortViewInstance(portRect, tree.nodeId, props.onUpdate)
     graph.addPortInstance(id, instance)
     onCleanup(() => graph.removePortInstance(id, instance))
   },
@@ -109,7 +106,7 @@ watchEffect(
 
 function updateRect() {
   let domNode = rootNode.value
-  const rootDomNode = domNode?.closest('.node')
+  const rootDomNode = domNode?.closest('.GraphNode')
   if (domNode == null || rootDomNode == null) return
 
   const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())

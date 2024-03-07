@@ -1,5 +1,6 @@
 # This file is used to generate `target/<profile>/build/enso-build-<hash>/out/paths.rs`.
 # Generation logic is in `build/macros/lib/src/paths.rs`.
+# @formatter:off
 
 <repo_root>/:
   .github/:
@@ -111,7 +112,7 @@
         target/:
           native-image-args.txt:
   target/:
-    ensogl-pack/:
+    enso-pack/:
       dist/: # Here ensogl-pack outputs its artifacts
     generated-java/:
     test-results/:

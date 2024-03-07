@@ -50,7 +50,7 @@ write_file table format (file : Writable_File) on_existing_file match_columns on
    against the ones already in the file.
 
    If the file does not exist or is empty, it acts like a regular overwrite.
-append_to_file : Table -> Delimited_Format -> File -> Match_Columns -> Problem_Behavior -> Any
+append_to_file : Table -> Delimited_Format -> Writable_File -> Match_Columns -> Problem_Behavior -> Any
 append_to_file table format (file : Writable_File) match_columns on_problems =
     if file.is_local then append_to_local_file table format file.file match_columns on_problems else
         ## TODO in the future, if we have remote backends that _do support_ proper append, we could avoid downloading
