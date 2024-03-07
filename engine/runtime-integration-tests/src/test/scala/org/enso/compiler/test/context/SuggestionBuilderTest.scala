@@ -941,7 +941,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("~A", "~B", "~Auto"))
+                  Some(Seq("..A", "..B", "..Auto"))
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -1033,7 +1033,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("~A", "~B", "~Auto"))
+                  Some(Seq("..A", "..B", "..Auto"))
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -1537,8 +1537,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                     Some("Boolean.True"),
                     Some(
                       List(
-                        "~True",
-                        "~False"
+                        "..True",
+                        "..False"
                       )
                     )
                   )
@@ -2640,7 +2640,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(Seq("~X", "~Y"))
+                  Some(Seq("..X", "..Y"))
                 )
               ),
               returnType    = "Unnamed.Test.T",
