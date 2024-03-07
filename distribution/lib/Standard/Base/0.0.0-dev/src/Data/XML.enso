@@ -251,7 +251,7 @@ type XML_Document
 
            This allows for building the workflow without affecting the real files.
     @encoding Encoding.default_widget
-    write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> File
+    write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
     write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
         declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
         XML_Error.handle_java_exceptions <|
