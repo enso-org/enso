@@ -763,15 +763,11 @@ object BindingsMap {
   ) extends DefinedEntity {
     override def canExport: Boolean = true
 
-    def toAbstract: Type =
-      this.copy(members = null)
+    def toAbstract: Type = this
 
     def toConcrete(concreteModule: ModuleReference.Concrete): Option[Type] = {
-      // TODO this seems to not work because ir is null at this stage :(
-      val ir = concreteModule.unsafeAsModule().getIr
-      ir.bindings.collectFirst {
-        case typeIr: Definition.Type if typeIr.name.name == name => typeIr
-      }.map { typeIr => Type.fromIr(typeIr, builtinType) }
+      val _ = concreteModule
+      Some(this)
     }
   }
 
