@@ -2,9 +2,9 @@ import { createContextStore } from '@/providers'
 import { identity } from '@vueuse/core'
 import type { ComputedRef } from 'vue'
 
-/** Custom items for WidgetSelection which will be added at the top of the list. 
-  * They can’t be selected permanently, but they can be clicked.
-  */
+/** Custom items for WidgetSelection which will be added at the top of the list.
+ * They can’t be selected permanently, but they can be clicked.
+ */
 interface CustomDropdownItems {
   /** Labels for items. */
   items: (string | ComputedRef<string>)[]

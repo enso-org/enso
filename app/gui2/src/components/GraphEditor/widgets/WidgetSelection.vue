@@ -84,9 +84,9 @@ const dynamicTags = computed<Tag[]>(() => {
   }))
 })
 
-const customTagsCount = computed(() => customItems ? customItems.items.length : 0)
+const customTagsCount = computed(() => (customItems ? customItems.items.length : 0))
 const tags = computed(() => {
-  const standardTags = (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value)
+  const standardTags = dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value
   const customTags = customItems?.items.map(tagFromCustomItem) ?? []
   return customTags.concat(standardTags)
 })

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { asNot } from '@/util/data/types.ts'
 import { provideCustomDropdownItems } from '@/providers/customDropdownItems'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
-import type { TokenId } from '@/util/ast/abstract.ts'
-import { ArgumentInfoKey } from '@/util/callTree'
-import { computed, ref } from 'vue'
-import { Ast } from '@/util/ast'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
+import { Ast } from '@/util/ast'
+import type { TokenId } from '@/util/ast/abstract.ts'
+import { ArgumentInfoKey } from '@/util/callTree'
+import { asNot } from '@/util/data/types.ts'
+import { computed, ref } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -27,7 +27,7 @@ const insertAsFileConstructor = computed(() => {
 })
 const strictlyFile = computed(() => props.input.dynamicConfig?.kind === 'File_Browse')
 const strictlyDirectory = computed(() => props.input.dynamicConfig?.kind === 'Folder_Browse')
-const label = computed(() => strictlyDirectory.value ? 'Choose directory…' : 'Choose file…')
+const label = computed(() => (strictlyDirectory.value ? 'Choose directory…' : 'Choose file…'))
 
 const FILE_CONSTRUCTOR = FILE_TYPE + '.new'
 const FILE_SHORT_CONSTRUCTOR = 'File.new'
@@ -38,7 +38,7 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
     const requiredImport = {
       kind: 'Unqualified',
       from: FILE_MODULE,
-      import: 'File'
+      import: 'File',
     } as RequiredImport
     const conflicts = graph.addMissingImports(edit, [requiredImport])
     const constructor = conflicts != null ? FILE_CONSTRUCTOR : FILE_SHORT_CONSTRUCTOR
@@ -61,10 +61,10 @@ provideCustomDropdownItems({
         portUpdate: {
           value,
           origin: asNot<TokenId>(props.input.portId),
-        }
+        },
       })
     }
-  }
+  },
 })
 
 const innerWidgetInput = computed(() => {
@@ -85,7 +85,11 @@ const FILE_TYPE = FILE_MODULE + '.File'
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 49,
   score: (props) => {
-    if (props.input.dynamicConfig?.kind === 'File_Browse' || props.input.dynamicConfig?.kind === 'Folder_Browse') return Score.Perfect
+    if (
+      props.input.dynamicConfig?.kind === 'File_Browse' ||
+      props.input.dynamicConfig?.kind === 'Folder_Browse'
+    )
+      return Score.Perfect
     if (props.input[ArgumentInfoKey]?.info?.reprType.includes(FILE_TYPE)) return Score.Perfect
     return Score.Mismatch
   },
