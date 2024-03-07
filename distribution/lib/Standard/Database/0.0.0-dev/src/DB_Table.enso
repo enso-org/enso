@@ -49,11 +49,11 @@ from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 
 import project.Connection.Connection.Connection
-import project.Data.DB_Column.DB_Column
-import project.Data.SQL_Query.SQL_Query
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
-import project.Data.Take_Drop_Helpers
+import project.DB_Column.DB_Column
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
+import project.Take_Drop_Helpers
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
@@ -69,7 +69,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Data.Take_Drop_Helpers import Take_Drop
+from project.Take_Drop_Helpers import Take_Drop
 from project.Errors import Integrity_Error, SQL_Error, Table_Not_Found, Unsupported_Database_Operation
 
 polyglot java import java.sql.JDBCType
@@ -652,7 +652,7 @@ type DB_Table
     filter_by_expression self expression:Text on_problems=Report_Warning =
         column = self.evaluate_expression (Expression.Value expression) on_problems
         result = self.filter column Filter_Condition.Is_True
-        Warning.attach (Deprecated.Warning "Standard.Database.Data.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
+        Warning.attach (Deprecated.Warning "Standard.Database.DB_Table.DB_Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
     ## ALIAS first, last, sample, slice
        GROUP Standard.Base.Selections
@@ -945,7 +945,7 @@ type DB_Table
     evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self (expression:Text|Expression) on_problems=Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
         get_column name = self.at name
-        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.Data.DB_Column" "DB_Column" DB_Column.var_args_functions
+        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
         on_problems.attach_problems_before problems <|

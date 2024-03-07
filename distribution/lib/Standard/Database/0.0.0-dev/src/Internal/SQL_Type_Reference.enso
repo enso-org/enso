@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Connection.Connection.Connection
-import project.Data.SQL_Type.SQL_Type
+import project.SQL_Type.SQL_Type
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression

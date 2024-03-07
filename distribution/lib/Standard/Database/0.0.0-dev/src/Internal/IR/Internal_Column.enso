@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Data.SQL_Type.SQL_Type
+import project.SQL_Type.SQL_Type
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 

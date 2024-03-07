@@ -7,9 +7,9 @@ import project.Connection.SQLite_Details.In_Memory
 import project.Connection.SQLite_Details.SQLite_Details
 import project.Connection.SQLite_Format.SQLite_Format
 import project.Connection.SSL_Mode.SSL_Mode
-import project.Data.Column_Description.Column_Description
-import project.Data.SQL_Query.SQL_Query
-import project.Data.Update_Action.Update_Action
+import project.Column_Description.Column_Description
+import project.SQL_Query.SQL_Query
+import project.Update_Action.Update_Action
 from project.Connection.Postgres_Details.Postgres_Details import Postgres
 from project.Connection.SQLite_Details.SQLite_Details import SQLite
 from project.Extensions.Upload_Database_Table import all
@@ -24,9 +24,9 @@ export project.Connection.SQLite_Details.In_Memory
 export project.Connection.SQLite_Details.SQLite_Details
 export project.Connection.SQLite_Format.SQLite_Format
 export project.Connection.SSL_Mode.SSL_Mode
-export project.Data.Column_Description.Column_Description
-export project.Data.SQL_Query.SQL_Query
-export project.Data.Update_Action.Update_Action
+export project.Column_Description.Column_Description
+export project.SQL_Query.SQL_Query
+export project.Update_Action.Update_Action
 from project.Connection.Postgres_Details.Postgres_Details export Postgres
 from project.Connection.SQLite_Details.SQLite_Details export SQLite
 from project.Extensions.Upload_Database_Table export all

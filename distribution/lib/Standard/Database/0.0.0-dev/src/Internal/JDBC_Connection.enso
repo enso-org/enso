@@ -9,8 +9,8 @@ from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
 
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.SQL_Warning_Helper

@@ -1,8 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Data.Column_Constraint.Column_Constraint
-import project.Data.SQL.SQL_Builder
+import project.Column_Constraint.Column_Constraint
+import project.SQL.SQL_Builder
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Nulls_Order.Nulls_Order
