@@ -6,6 +6,11 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, proxyRefs, shallowRef, type Ref } from 'vue'
 
+type ScaleRange = readonly [number, number]
+const WHEEL_SCALE_RANGE: ScaleRange = [0.5, 10]
+const DRAG_SCALE_RANGE: ScaleRange = [0.1, 10]
+const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]
+
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element) {
     const domRect = target.getBoundingClientRect()
@@ -76,7 +81,11 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     return new Rect(pos, size)
   }
 
-  function panAndZoomTo(rect: Rect, minScale = 0.1, maxScale = 1) {
+  function panAndZoomTo(
+    rect: Rect,
+    minScale = PAN_AND_ZOOM_DEFAULT_SCALE_RANGE[0],
+    maxScale = PAN_AND_ZOOM_DEFAULT_SCALE_RANGE[1],
+  ) {
     if (!viewportNode.value) return
     targetScale.value = Math.max(
       minScale,
@@ -115,7 +124,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     }
 
     const prevScale = scale.value
-    scale.value = Math.max(0.1, Math.min(10, scale.value * Math.exp(-pos.delta.y / 100)))
+    updateScale((oldValue) => oldValue * Math.exp(-pos.delta.y / 100), DRAG_SCALE_RANGE)
     center.value = center.value
       .sub(zoomPivot)
       .scale(prevScale / scale.value)
@@ -198,6 +207,38 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     { capture: true },
   )
 
+  let ctrlPressed = false
+  useEvent(
+    window,
+    'keydown',
+    (event) => {
+      if (event.key === 'Control') ctrlPressed = true
+      return false
+    },
+    { capture: true },
+  )
+  useEvent(
+    window,
+    'keyup',
+    (event) => {
+      if (event.key === 'Control') ctrlPressed = false
+      return false
+    },
+    { capture: true },
+  )
+
+  /** Clamp the value to the given bounds, except if it is already outside the bounds allow the new value to be less
+   *  outside the bounds. */
+  function directedClamp(oldValue: number, newValue: number, [min, max]: ScaleRange): number {
+    if (newValue > oldValue) return Math.min(max, newValue)
+    else return Math.max(min, newValue)
+  }
+
+  function updateScale(f: (value: number) => number, range: ScaleRange) {
+    const oldValue = scale.value
+    scale.value = directedClamp(oldValue, f(oldValue), range)
+  }
+
   return proxyRefs({
     events: {
       dragover(e: DragEvent) {
@@ -226,10 +267,18 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       },
       wheel(e: WheelEvent) {
         e.preventDefault()
-        // When using a macbook trackpad, e.ctrlKey indicates a pinch gesture.
         if (e.ctrlKey) {
-          const s = Math.exp(-e.deltaY / 100)
-          scale.value = Math.min(Math.max(0.5, scale.value * s), 10)
+          // A pinch gesture is represented by setting `e.ctrlKey`. It can be distinguished from an actual Ctrl+wheel
+          // combination because the real Ctrl key emits keyup/keydown events.
+          const isGesture = !ctrlPressed
+          const updater =
+            isGesture ?
+              // OS X trackpad events provide usable rate-of-change information.
+              (oldValue: number) => oldValue * Math.exp(-e.deltaY / 100)
+              // Mouse wheel rate information is unreliable. We just look at the sign and step by a factor of sqrt(2).
+            : (oldValue: number) =>
+                Math.pow(2, (Math.round(Math.log2(oldValue) * 2) - Math.sign(e.deltaY)) / 2)
+          updateScale(updater, WHEEL_SCALE_RANGE)
         } else {
           const delta = new Vec2(e.deltaX, e.deltaY)
           center.value = center.value.addScaled(delta, 1 / scale.value)
