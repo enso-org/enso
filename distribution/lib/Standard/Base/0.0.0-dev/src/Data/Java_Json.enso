@@ -119,7 +119,8 @@ type Jackson_Object
     field_names : Vector
     field_names self = self.field_array
 
-    ## Maps a function over each value in this object
+    ## ICON dataframe_map_column
+       Maps a function over each value in this object
 
        Arguments:
        - function: The function to apply to each value in the map, taking a

@@ -1,6 +1,6 @@
 from Standard.Base import all
-from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
 from Standard.Base.Enso_Cloud.Data_Link import parse_format
+from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
 
 import project.AWS_Credential.AWS_Credential
 import project.S3.S3_File.S3_File
@@ -9,7 +9,7 @@ from project.Internal.Data_Link_Helpers import decode_aws_credential
 ## PRIVATE
 type S3_Data_Link
     ## PRIVATE
-    Value (uri : Text) format (credentials : AWS_Credential | Nothing)
+    Value (uri : Text) format (credentials : AWS_Credential)
 
     ## PRIVATE
     parse json -> S3_Data_Link =

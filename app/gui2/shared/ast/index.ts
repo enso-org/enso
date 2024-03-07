@@ -7,6 +7,7 @@ import { App, Ast, Group, MutableAst, OprApp, Wildcard } from './tree'
 
 export * from './mutableModule'
 export * from './parse'
+export * from './text'
 export * from './token'
 export * from './tree'
 

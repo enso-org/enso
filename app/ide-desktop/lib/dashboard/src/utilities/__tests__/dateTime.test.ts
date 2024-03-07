@@ -28,7 +28,10 @@ v.test.each([
 })
 
 v.test.each([
-  { date: new Date(TIMEZONE_OFFSET_HOURS * HOUR_MS), chatString: `01/01/1970 00:00 AM` },
+  {
+    date: new Date(TIMEZONE_OFFSET_HOURS * HOUR_MS),
+    chatString: `01/01/1970 00:00 AM`,
+  },
   {
     date: new Date(2001, 1, 3),
     chatString: `03/02/2001 00:00 AM`,

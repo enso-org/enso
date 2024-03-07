@@ -21,9 +21,9 @@ from Standard.Table.Errors import Conversion_Failure, Floating_Point_Equality, I
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
 import project.Connection.Connection.Connection
+import project.Data.DB_Table.DB_Table
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.DB_Table.DB_Table
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -88,6 +88,7 @@ type DB_Column
 
     ## ALIAS metadata
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count
@@ -1668,7 +1669,7 @@ type DB_Column
     @type (Widget_Helpers.parse_type_selector include_auto=False)
     @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> DB_Column
-    parse self type format:(Text|Data_Formatter)="" on_problems=Report_Warning =
+    parse self type format:(Text | Data_Formatter)="" on_problems=Report_Warning =
         if type == Auto then Error.throw (Unsupported_Database_Operation.Error "The `Auto` parse type is not supported by the Database backend. Either pick a specific type or materialize the table to memory using `.read`.") else
             if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting is not supported by the Database backend. Please set the format to `''` to use the default settings, or if custom formatting is needed, materialize the table to memory using `.read` first.") else
                 Value_Type.expect_text self <|
@@ -1682,7 +1683,7 @@ type DB_Column
        Formatting values is not supported in database columns.
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
-    format : Text | Date_Time_Formatter | DB_Column | Nothing -> Locale -> DB_Column ! Illegal_Argument
+    format : Text | Date_Time_Formatter | DB_Column -> Locale -> DB_Column ! Illegal_Argument
     format self format:(Text | Date_Time_Formatter | DB_Column)="" locale=Locale.default =
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "`DB_Column.format` is not implemented yet for the Database backends."

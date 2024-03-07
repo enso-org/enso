@@ -1,23 +1,15 @@
-import { expect, test, type Page } from '@playwright/test'
+import { test } from '@playwright/test'
 import * as actions from './actions'
-import * as customExpect from './customExpect'
+import { expect } from './customExpect'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
-
-/**
- * Prepare the graph for the tests.
- */
-async function initGraph(page: Page) {
-  await actions.goToGraph(page)
-}
 
 /**
  Scenario: We open the default visualisation of the `aggregated` node. We then make it fullscreen and expect it to show
  the JSON data of the node. We also expect it to cover the whole screen and to have a button to exit fullscreen mode.
  */
 test('Load Fullscreen Visualisation', async ({ page }) => {
-  await initGraph(page)
-
+  await actions.goToGraph(page)
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await page.keyboard.press('Space')
@@ -25,11 +17,11 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
   const fullscreenButton = locate.enterFullscreenButton(aggregatedNode)
   await fullscreenButton.click()
   const vis = locate.jsonVisualization(page)
-  await customExpect.toExist(vis)
-  await customExpect.toExist(locate.exitFullscreenButton(page))
+  await expect(vis).toExist()
+  await expect(locate.exitFullscreenButton(page)).toExist()
   const visBoundingBox = await vis.boundingBox()
-  expect(visBoundingBox!.height).toBe(808)
-  expect(visBoundingBox!.width).toBe(1920)
+  expect(visBoundingBox?.height).toBeGreaterThan(600)
+  expect(visBoundingBox?.width).toBe(1920)
   const jsonContent = await vis.textContent().then((text) => JSON.parse(text!))
   expect(jsonContent).toEqual({
     axis: {

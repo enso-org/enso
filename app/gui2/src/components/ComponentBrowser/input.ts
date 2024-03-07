@@ -7,6 +7,7 @@ import {
   SuggestionKind,
   entryQn,
   type SuggestionEntry,
+  type SuggestionId,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
 import { RawAst, RawAstExtended, astContainingChar } from '@/util/ast'
@@ -261,14 +262,16 @@ export function useComponentBrowserInput(
   }
 
   /** Apply given suggested entry to the input. */
-  function applySuggestion(entry: SuggestionEntry) {
+  function applySuggestion(id: SuggestionId) {
+    const entry = suggestionDb.get(id)
+    if (!entry) return
     const { newCode, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
     code.value = newCode
     selection.value = { start: newCursorPos, end: newCursorPos }
     if (requiredImport) {
-      const [id] = suggestionDb.nameToId.lookup(requiredImport)
-      if (id) {
-        const requiredEntry = suggestionDb.get(id)
+      const [importId] = suggestionDb.nameToId.lookup(requiredImport)
+      if (importId) {
+        const requiredEntry = suggestionDb.get(importId)
         if (requiredEntry) {
           imports.value = imports.value.concat(requiredImports(suggestionDb, requiredEntry))
         }
@@ -363,9 +366,9 @@ export function useComponentBrowserInput(
     const ctx = context.value
     const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
     const oprAppSpacing =
-      ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0
-        ? ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
-        : ''
+      ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0 ?
+        ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
+      : ''
     const extendingAccessOprChain = opr != null && opr.repr() === '.'
     // Modules are special case, as we want to encourage user to continue writing path.
     if (entry.kind === SuggestionKind.Module) {

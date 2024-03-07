@@ -11,15 +11,18 @@ import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useEvent, useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorStyle, useSuggestionDbStore } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
+import { targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { allRanges } from '@/util/data/range'
+import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
@@ -31,10 +34,22 @@ const TOP_BAR_HEIGHT = 32
 // Difference in position between the component browser and a node for the input of the component browser to
 // be placed at the same position as the node.
 const COMPONENT_BROWSER_TO_NODE_OFFSET = new Vec2(-4, -4)
+const WIDTH = 600
+const INPUT_AREA_HEIGHT = 40
+const PANELS_HEIGHT = 384
+// Height of the visualization area, starting from the bottom of the input area.
+const VISUALIZATION_HEIGHT = 190
+const PAN_MARGINS = {
+  top: 48,
+  bottom: 40,
+  left: 80,
+  right: 40,
+}
 
 const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
+const interaction = injectInteractionHandler()
 
 const props = defineProps<{
   nodePosition: Vec2
@@ -47,7 +62,57 @@ const emit = defineEmits<{
   canceled: []
 }>()
 
+const cbOpen: Interaction = {
+  cancel: () => {
+    emit('canceled')
+  },
+  click: (e: PointerEvent) => {
+    if (targetIsOutside(e, cbRoot)) {
+      if (input.anyChange.value) {
+        acceptInput()
+      } else {
+        interaction.cancel(cbOpen)
+      }
+    }
+    return false
+  },
+}
+
+function scaleValues<T extends Record<any, number>>(
+  values: T,
+  scale: number,
+): { [Key in keyof T]: number } {
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, value * scale]),
+  ) as any
+}
+
+function panIntoView() {
+  // Factor that converts client-coordinate dimensions to scene-coordinate dimensions.
+  const scale = 1 / props.navigator.targetScale
+  const origin = props.nodePosition.add(COMPONENT_BROWSER_TO_NODE_OFFSET.scale(scale))
+  const inputArea = new Rect(origin, new Vec2(WIDTH, INPUT_AREA_HEIGHT).scale(scale))
+  const panelsAreaDimensions = new Vec2(WIDTH, PANELS_HEIGHT).scale(scale)
+  const panelsArea = new Rect(origin.sub(new Vec2(0, panelsAreaDimensions.y)), panelsAreaDimensions)
+  const vizHeight = VISUALIZATION_HEIGHT * scale
+  const margins = scaleValues(PAN_MARGINS, scale)
+  props.navigator.panTo([
+    // Always include the bottom-left of the input area.
+    { x: inputArea.left, y: inputArea.bottom },
+    // Try to reach the top-right corner of the panels.
+    { x: inputArea.right, y: panelsArea.top },
+    // Extend down to include the visualization.
+    { y: inputArea.bottom + vizHeight },
+    // Top (and left) margins are more important than bottom (and right) margins because the screen has controls across
+    // the top and on the left.
+    { x: inputArea.left - margins.left, y: panelsArea.top - margins.top },
+    // If the screen is very spacious, even the bottom right gets some breathing room.
+    { x: inputArea.right + margins.right, y: inputArea.bottom + vizHeight + margins.bottom },
+  ])
+}
+
 onMounted(() => {
+  interaction.setCurrent(cbOpen)
   input.reset(props.usage)
   if (inputField.value != null) {
     inputField.value.focus({ preventScroll: true })
@@ -56,6 +121,7 @@ onMounted(() => {
       'Component Browser input element was not mounted. This is not expected and may break the Component Browser',
     )
   }
+  panIntoView()
 })
 
 // === Position ===
@@ -158,23 +224,6 @@ function preventNonInputDefault(e: Event) {
     e.preventDefault()
   }
 }
-
-useEvent(
-  window,
-  'pointerdown',
-  (event) => {
-    if (event.button !== 0) return
-    if (!(event.target instanceof Element)) return
-    if (!cbRoot.value?.contains(event.target)) {
-      if (input.anyChange.value) {
-        emit('accepted', input.code.value, input.importsToAdd())
-      } else {
-        emit('canceled')
-      }
-    }
-  },
-  { capture: true },
-)
 
 const inputElement = ref<HTMLElement>()
 const inputSize = useResizeObserver(inputElement, false)
@@ -340,23 +389,24 @@ watch(selectedSuggestionId, (id) => {
 
 // === Accepting Entry ===
 
-function applySuggestion(component: Opt<Component> = null): SuggestionEntry | null {
+function applySuggestion(component: Opt<Component> = null) {
+  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
+  if (suggestionId == null) return
+  input.applySuggestion(suggestionId)
+}
+
+function acceptSuggestion(component: Opt<Component> = null) {
+  applySuggestion(component)
   const providedSuggestion =
     component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
   const suggestion = providedSuggestion ?? selectedSuggestion.value
-  if (suggestion == null) return null
-  input.applySuggestion(suggestion)
-  return suggestion
-}
-
-function acceptSuggestion(index: Opt<Component> = null) {
-  const applied = applySuggestion(index)
-  const shouldFinish = applied != null && applied.kind !== SuggestionKind.Module
+  const shouldFinish = suggestion != null && suggestion.kind !== SuggestionKind.Module
   if (shouldFinish) acceptInput()
 }
 
 function acceptInput() {
   emit('accepted', input.code.value.trim(), input.importsToAdd())
+  interaction.end(cbOpen)
 }
 
 // === Key Events Handler ===
@@ -385,9 +435,6 @@ const handler = componentBrowserBindings.handler({
       selected.value -= 1
     }
     scrolling.scrollWithTransition({ type: 'selected' })
-  },
-  cancelEditing() {
-    emit('canceled')
   },
 })
 </script>

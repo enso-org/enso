@@ -2,6 +2,7 @@ import type { PortId } from '@/providers/portInfo'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
+import { DisplayMode } from '@/providers/widgetRegistry/configuration'
 import type { SuggestionEntry, SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
@@ -23,7 +24,7 @@ export class ArgumentPlaceholder {
     public argInfo: SuggestionEntryArgument,
     public kind: ApplicationKind,
     public insertAsNamed: boolean,
-    public dynamicConfig?: WidgetConfiguration | undefined,
+    public dynamicConfig?: (WidgetConfiguration & { display?: DisplayMode }) | undefined,
   ) {}
 
   static WithRetrievedConfig(
@@ -51,6 +52,10 @@ export class ArgumentPlaceholder {
 
   get portId(): PortId {
     return `${this.callId}[${this.index}]` as PortId
+  }
+
+  get hideByDefault(): boolean {
+    return this.argInfo.hasDefault && this.dynamicConfig?.display !== DisplayMode.Always
   }
 }
 
@@ -87,6 +92,10 @@ export class ArgumentAst {
 
   get portId(): PortId {
     return this.ast.id
+  }
+
+  get hideByDefault(): boolean {
+    return false
   }
 }
 
@@ -169,8 +178,8 @@ export class ArgumentApplication {
     const argFor = (key: 'lhs' | 'rhs', index: number) => {
       const tree = interpreted[key]
       const info = tryGetIndex(suggestion?.arguments, index) ?? unknownArgInfoNamed(key)
-      return tree != null
-        ? ArgumentAst.WithRetrievedConfig(tree, index, info, kind, widgetCfg)
+      return tree != null ?
+          ArgumentAst.WithRetrievedConfig(tree, index, info, kind, widgetCfg)
         : ArgumentPlaceholder.WithRetrievedConfig(callId, index, info, kind, false, widgetCfg)
     }
     return new ArgumentApplication(
@@ -299,9 +308,9 @@ export class ArgumentApplication {
         })
       } else {
         const argumentFromDefinition =
-          argumentInCode.argName == null
-            ? takeNextArgumentFromDefinition()
-            : takeNamedArgumentFromDefinition(argumentInCode.argName)
+          argumentInCode.argName == null ?
+            takeNextArgumentFromDefinition()
+          : takeNamedArgumentFromDefinition(argumentInCode.argName)
         const { index, info } = argumentFromDefinition ?? {}
         resolvedArgs.push({
           appTree: argumentInCode.appTree,
@@ -309,9 +318,9 @@ export class ArgumentApplication {
             argumentInCode.argument,
             index,
             info ??
-              (argumentInCode.argName != null
-                ? unknownArgInfoNamed(argumentInCode.argName)
-                : undefined),
+              (argumentInCode.argName != null ?
+                unknownArgInfoNamed(argumentInCode.argName)
+              : undefined),
             ApplicationKind.Prefix,
             widgetCfg,
           ),
@@ -366,9 +375,9 @@ export class ArgumentApplication {
   toWidgetInput(): WidgetInput {
     return {
       portId:
-        this.argument instanceof ArgumentAst
-          ? this.appTree.id
-          : (`app:${this.argument.portId}` as PortId),
+        this.argument instanceof ArgumentAst ?
+          this.appTree.id
+        : (`app:${this.argument.portId}` as PortId),
       value: this.appTree,
       [ArgumentApplicationKey]: this,
     }

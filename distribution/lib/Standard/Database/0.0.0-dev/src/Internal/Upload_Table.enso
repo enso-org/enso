@@ -14,9 +14,9 @@ from Standard.Table.Errors import all
 import project.Connection.Connection.Connection
 import project.Data.Column_Constraint.Column_Constraint
 import project.Data.Column_Description.Column_Description
+import project.Data.DB_Table.DB_Table
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
-import project.Data.DB_Table.DB_Table
 import project.Data.Update_Action.Update_Action
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor

@@ -105,6 +105,27 @@ fn resolve_artifact_name(input: Option<String>, project: &impl IsTarget) -> Stri
     input.unwrap_or_else(|| project.artifact_name())
 }
 
+/// Run the given future. After it is complete (regardless of success or failure), upload the
+/// directory as a CI artifact.
+///
+/// Does not attempt any uploads if not running in a CI environment.
+pub fn run_and_upload_dir(
+    fut: BoxFuture<'static, Result>,
+    dir_path: impl Into<PathBuf>,
+    artifact_name: impl Into<String>,
+) -> BoxFuture<'static, Result> {
+    let dir_path = dir_path.into();
+    let artifact_name = artifact_name.into();
+    async move {
+        let result = fut.await;
+        if is_in_env() {
+            ide_ci::actions::artifacts::upload_directory(dir_path, artifact_name).await?;
+        }
+        result
+    }
+    .boxed()
+}
+
 define_env_var! {
     ENSO_BUILD_KIND, enso_build::version::Kind;
 }
@@ -350,10 +371,20 @@ impl Processor {
         match gui.command {
             arg::gui2::Command::Build(job) => self.build(job),
             arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui2::Command::Test =>
-                try_join(gui2::tests(&self.repo_root), gui2::dashboard_tests(&self.repo_root))
-                    .void_ok()
-                    .boxed(),
+            arg::gui2::Command::Test => {
+                let repo_root = self.repo_root.clone();
+                let gui_tests = run_and_upload_dir(
+                    gui2::tests(&repo_root),
+                    &repo_root.app.gui_2.playwright_report,
+                    "gui2-playwright-report",
+                );
+                let dashboard_tests = run_and_upload_dir(
+                    gui2::dashboard_tests(&repo_root),
+                    &repo_root.app.ide_desktop.lib.dashboard.playwright_report,
+                    "dashboard-playwright-report",
+                );
+                try_join(gui_tests, dashboard_tests).void_ok().boxed()
+            }
             arg::gui2::Command::Watch => gui2::watch(&self.repo_root),
             arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
         }
@@ -422,17 +453,10 @@ impl Processor {
                 let context = self.prepare_backend_context(config);
                 async move { context.await?.build().void_ok().await }.boxed()
             }
-            arg::backend::Command::Sbt { command } => {
+            arg::backend::Command::Sbt { args } => {
                 let context = self.prepare_backend_context(default());
                 async move {
-                    let mut command_pieces = vec![OsString::from("sbt")];
-                    command_pieces.extend(command.into_iter().map(into));
-
-                    let operation =
-                        enso_build::engine::Operation::Run(enso_build::engine::RunOperation {
-                            command_pieces,
-                        });
-
+                    let operation = enso_build::engine::Operation::Sbt(args);
                     let context = context.await?;
                     context.execute(operation).await
                 }
@@ -440,9 +464,6 @@ impl Processor {
             }
             arg::backend::Command::CiCheck {} => {
                 let config = enso_build::engine::BuildConfigurationFlags {
-                    test_scala: true,
-                    test_standard_library: true,
-                    test_java_generated_from_rust: true,
                     build_benchmarks: true,
                     // Windows is not yet supported for the native runner.
                     build_native_runner: enso_build::ci::big_memory_machine()
@@ -965,10 +986,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                     &ctx.triple.versions.version,
                 )
                 .await?;
-            }
-            Action::DeployGui(args) => {
-                let crate::arg::release::DeployGui {} = args;
-                enso_build::release::upload_gui_to_cloud_good(&ctx).await?;
             }
             Action::Publish => {
                 enso_build::release::publish_release(&ctx).await?;

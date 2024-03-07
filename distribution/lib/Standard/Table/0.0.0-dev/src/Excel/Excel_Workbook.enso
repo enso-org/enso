@@ -67,11 +67,13 @@ type Excel_Workbook
        Creates an Excel_Workbook connection.
     Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) xls_format:Boolean headers:(Boolean|Infer)
 
-    ## Returns the list of databases (or catalogs) for the connection.
+    ## ICON metadata
+       Returns the list of databases (or catalogs) for the connection.
     databases : Nothing
     databases self = Nothing
 
-    ## Returns the name of the current database (or catalog).
+    ## ICON metadata
+       Returns the name of the current database (or catalog).
     database : Text
     database self = case self.file of
         regular_file : File -> regular_file.path
@@ -79,7 +81,8 @@ type Excel_Workbook
            just an implementation detail - it is coming form a stream so there is no logical file it is associated with.
         _ -> ""
 
-    ## Returns a new Connection with the specified database set as default.
+    ## ICON data_input
+       Returns a new Connection with the specified database set as default.
 
        Arguments:
         - database: The name of the database to connect to.
@@ -91,15 +94,18 @@ type Excel_Workbook
             if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format self.headers else
                 Error.throw (Illegal_Argument.Error "The specified file ('"+file.path+"') does not exist.")
 
-    ## Returns the list of schemas for the connection within the current database (or catalog).
+    ## ICON metadata
+       Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector (Text | Nothing)
     schemas self = [Nothing]
 
-    ## Returns the name of the current schema.
+    ## ICON metadata
+       Returns the name of the current schema.
     schema : Text | Nothing
     schema self = Nothing
 
-    ## Returns a new Connection with the specified schema set as default.
+    ## ICON data_input
+       Returns a new Connection with the specified schema set as default.
 
        Arguments:
         - schema: The name of the schema to connect to.
@@ -110,32 +116,38 @@ type Excel_Workbook
             Error.throw (Illegal_Argument.Error "Changing schema is not supported.")
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the number of sheets.
     sheet_count : Integer
     sheet_count self = self.with_java_workbook .getNumberOfSheets
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the names of all the sheets.
     sheet_names : Vector Text
     sheet_names self = self.with_java_workbook java_workbook->
         Vector.from_polyglot_array (ExcelReader.readSheetNames java_workbook)
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the number of named ranges.
     named_ranges_count : Integer
     named_ranges_count self = self.with_java_workbook .getNumberOfNames
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the names of all the named ranges.
     named_ranges : Vector Text
     named_ranges self = self.with_java_workbook java_workbook->
         Vector.from_polyglot_array (ExcelReader.readRangeNames java_workbook)
 
-    ## Gets a list of the table types.
+    ## ICON metadata
+       Gets a list of the table types.
     table_types : Vector Text
     table_types self = ['Worksheet', 'Named Range']
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a materialised Table of all the matching views and tables.
 
        Arguments:
@@ -164,7 +176,8 @@ type Excel_Workbook
 
         Table.from_rows ['Name', 'Type', 'Database', 'Schema'] filtered
 
-    ## Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
+    ## ICON data_input
+       Set up a query returning a Table object, which can be used to work with data within the database or load it into memory.
 
        Arguments:
        - query: sheet name, range name or address to read from the workbook.
@@ -228,6 +241,7 @@ type Excel_Workbook
 
     ## ALIAS get, worksheet
        GROUP Standard.Base.Input
+       ICON data_input
        Reads a worksheet from the workbook.
 
        Arguments:
