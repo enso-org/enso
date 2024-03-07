@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -234,7 +233,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
           isTail,
           thisArgumentPosition);
     } catch (UnsupportedMessageException ex) {
-      throw CompilerDirectives.shouldNotReachHere(ex);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, ex);
     }
   }
 
@@ -276,7 +276,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
           argumentsExecutionMode,
           isTail);
     } catch (UnsupportedMessageException ex) {
-      throw CompilerDirectives.shouldNotReachHere(ex);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, ex);
     }
   }
 
