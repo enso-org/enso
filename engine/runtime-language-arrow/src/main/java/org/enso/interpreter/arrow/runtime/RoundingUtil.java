@@ -19,7 +19,7 @@
 
 package org.enso.interpreter.arrow.runtime;
 
-public class RoundingUtil {
+class RoundingUtil {
 
   /** The mask for rounding an integer to a multiple of 8. (i.e. clear the lowest 3 bits) */
   static int ROUND_8_MASK_INT = 0xFFFFFFF8;

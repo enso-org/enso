@@ -106,7 +106,6 @@ public final class Builtins {
   private final Builtin text;
   private final Builtin array;
   private final Builtin vector;
-
   private final Builtin map;
   private final Builtin dataflowError;
   private final Builtin ref;

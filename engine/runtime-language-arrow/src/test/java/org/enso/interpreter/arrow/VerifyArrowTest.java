@@ -266,7 +266,6 @@ public class VerifyArrowTest {
     var len = arr.getArraySize();
     for (int i = 0; i < len; i++) {
       arr.invokeMember("append", startDate.plus(2, java.time.temporal.ChronoUnit.DAYS));
-      // arr.setArrayElement(i, startDate.plus(2, java.time.temporal.ChronoUnit.DAYS));
     }
   }
 

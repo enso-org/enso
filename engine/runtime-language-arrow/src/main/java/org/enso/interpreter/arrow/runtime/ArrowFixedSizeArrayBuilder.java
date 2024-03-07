@@ -46,7 +46,6 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
   public boolean isMemberInvocable(String member) {
     return switch (member) {
       case "build", "append" -> !this.sealed;
-      case "test" -> true;
       default -> false;
     };
   }
@@ -82,8 +81,6 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
           }
           receiver.index += 1;
           return NullValue.get();
-        case "test":
-          return NullValue.get();
         default:
           throw UnknownIdentifierException.create(name);
       }
@@ -116,10 +113,10 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
           throw UnknownIdentifierException.create(name);
       }
     }
-  }
 
-  static boolean isDateLayout(LogicalLayout layout) {
-    return layout == LogicalLayout.Date32 || layout == LogicalLayout.Date64;
+    static boolean isDateLayout(LogicalLayout layout) {
+      return layout == LogicalLayout.Date32 || layout == LogicalLayout.Date64;
+    }
   }
 
   @ExportMessage
@@ -200,7 +197,7 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
       if (!iop.isDate(value)) {
         throw UnsupportedMessageException.create();
       }
-      var at = typeAdjustedIndex(index, 4);
+      var at = ArrowFixedArrayDate.typeAdjustedIndex(index, 4);
       var time = iop.asDate(value).toEpochDay();
       receiver.buffer.putInt(at, Math.toIntExact(time));
     }
@@ -219,16 +216,22 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
         throw UnsupportedMessageException.create();
       }
 
-      var at = typeAdjustedIndex(index, 8);
+      var at = ArrowFixedArrayDate.typeAdjustedIndex(index, 8);
       if (iop.isTimeZone(value)) {
         var zoneDateTimeInstant =
-            instantForZone(iop.asDate(value), iop.asTime(value), iop.asTimeZone(value), UTC);
+            instantForZone(
+                iop.asDate(value),
+                iop.asTime(value),
+                iop.asTimeZone(value),
+                ArrowFixedArrayDate.UTC);
         var secondsPlusNano =
-            zoneDateTimeInstant.getEpochSecond() * NANO_DIV + zoneDateTimeInstant.getNano();
+            zoneDateTimeInstant.getEpochSecond() * ArrowFixedArrayDate.NANO_DIV
+                + zoneDateTimeInstant.getNano();
         receiver.buffer.putLong(at, secondsPlusNano);
       } else {
         var dateTime = instantForOffset(iop.asDate(value), iop.asTime(value), ZoneOffset.UTC);
-        var secondsPlusNano = dateTime.getEpochSecond() * NANO_DIV + dateTime.getNano();
+        var secondsPlusNano =
+            dateTime.getEpochSecond() * ArrowFixedArrayDate.NANO_DIV + dateTime.getNano();
         receiver.buffer.putLong(at, secondsPlusNano);
       }
     }
@@ -344,15 +347,7 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
     return index >= 0 && index < size;
   }
 
-  private static int typeAdjustedIndex(long index, int sizeInBytes) {
-    return Math.toIntExact(index * sizeInBytes);
-  }
-
   private static int typeAdjustedIndex(long index, SizeInBytes unit) {
-    return typeAdjustedIndex(index, unit.sizeInBytes());
+    return ArrowFixedArrayDate.typeAdjustedIndex(index, unit.sizeInBytes());
   }
-
-  private static final long NANO_DIV = 1000000000L;
-
-  private static final ZoneId UTC = ZoneId.of("UTC");
 }

@@ -78,9 +78,9 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     }
     var at = typeAdjustedIndex(index, 8);
     var secondsPlusNanoSinceEpoch = buffer.getLong(at);
-    var seconds = Math.floorDiv(secondsPlusNanoSinceEpoch, nanoDiv);
-    var nano = Math.floorMod(secondsPlusNanoSinceEpoch, nanoDiv);
-    var zonedDateTime = zonedDateTimeFromSeconds(seconds, nano, utc);
+    var seconds = Math.floorDiv(secondsPlusNanoSinceEpoch, NANO_DIV);
+    var nano = Math.floorMod(secondsPlusNanoSinceEpoch, NANO_DIV);
+    var zonedDateTime = zonedDateTimeFromSeconds(seconds, nano, UTC);
     return new ArrowZonedDateTime(zonedDateTime);
   }
 
@@ -162,11 +162,11 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     return Instant.ofEpochSecond(seconds, nano).atZone(zone);
   }
 
-  private static final long nanoDiv = 1000000000L;
+  public static final long NANO_DIV = 1000000000L;
 
-  private static final ZoneId utc = ZoneId.of("UTC");
+  public static final ZoneId UTC = ZoneId.of("UTC");
 
-  private static int typeAdjustedIndex(long index, int daySizeInBytes) {
+  public static int typeAdjustedIndex(long index, int daySizeInBytes) {
     return Math.toIntExact(index * daySizeInBytes);
   }
 }
