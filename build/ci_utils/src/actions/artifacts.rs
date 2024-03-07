@@ -138,7 +138,37 @@ pub fn single_file_provider(
     Ok(futures::stream::iter([file]))
 }
 
-/// Uploads recursively directory with its subtree as a single artifact.
+/// Scan recursively directory with its subtree for files to upload to the artifact.
+///
+/// The directory name will be preserved in the artifact container.
+///
+/// # Example
+/// ```
+/// # use ide_ci::prelude::*;
+/// # use tempfile::TempDir;
+/// # use ide_ci::actions::artifacts::single_dir_provider;
+/// # use std::path::Path;
+///
+/// # #[tokio::main]
+/// # async fn main() -> Result {
+/// let dir = TempDir::new()?;
+/// let dir = dir.path().join("uploaded_dir");
+/// let file1 = dir.join("file");
+/// let file2 = dir.join_iter(["subdir/nested_file"]);
+/// ide_ci::fs::create_dir_all(&dir)?;
+/// ide_ci::fs::create(&file1)?;
+/// ide_ci::fs::create(&file2)?;
+///
+/// let stream = single_dir_provider(&dir)?;
+/// let found_files = stream.collect::<Vec<_>>().await;
+/// assert_eq!(found_files.len(), 2);
+/// assert_eq!(found_files[0].local_path, file1);
+/// assert_eq!(found_files[0].remote_path, Path::new("uploaded_dir/file"));
+/// assert_eq!(found_files[1].local_path, file2);
+/// assert_eq!(found_files[1].remote_path, Path::new("uploaded_dir/subdir/nested_file"));
+/// # Ok(())
+/// # }
+/// ```
 pub fn single_dir_provider(path: &Path) -> Result<impl Stream<Item = FileToUpload> + 'static> {
     // TODO not optimal, could discover files at the same time as handling them.
     let parent_path = path.try_parent()?;
@@ -233,19 +263,6 @@ mod tests {
         // artifacts::upload_path(path_to_upload).await?;
         Ok(())
         //let client = reqwest::Client::builder().default_headers().
-    }
-
-    #[tokio::test]
-    async fn discover_files_in_dir() -> Result {
-        let dir = TempDir::new()?;
-        let dir = dir.path().join("uploaded_dir");
-        crate::fs::create_dir_all(&dir)?;
-        crate::fs::create(dir.join_iter(["file"]))?;
-        crate::fs::create(dir.join_iter(["subdir/nested_file"]))?;
-        let stream = single_dir_provider(&dir)?;
-        let v = stream.collect::<Vec<_>>().await;
-        dbg!(v);
-        Ok(())
     }
 
     #[test]
