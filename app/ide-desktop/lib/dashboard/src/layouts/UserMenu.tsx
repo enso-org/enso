@@ -54,7 +54,7 @@ export default function UserMenu(props: UserMenuProps) {
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'p-user-menu w-user-menu' : 'size-row-h p-profile-picture'}`}
+        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'}`}
         onClick={event => {
           event.stopPropagation()
         }}
