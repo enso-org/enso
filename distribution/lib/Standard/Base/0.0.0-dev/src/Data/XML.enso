@@ -14,12 +14,12 @@ import project.Errors.No_Such_Key.No_Such_Key
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
-import project.System.File.Existing_File_Behavior.Existing_File_Behavior
-import project.System.Input_Stream.Input_Stream
 import project.System.File.Write_Extensions
+import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
@@ -222,7 +222,7 @@ type XML_Document
 
        Appending will probably not work as expected for XML documents, as it will
        append after the root element, which is not valid XML.
-   
+
        Arguments:
        - path: The path to the target file.
        - encoding: The encoding to use when writing the file.
@@ -230,7 +230,7 @@ type XML_Document
        - include_xml_declaration: Specifies whether to include the XML declaration
          in the output. (e.g. `<?xml version="1.0" encoding="UTF-8"?>`)
        - on_problems: Specifies how to handle any encountered problems.
-   
+
        If a character cannot be converted to a byte, an `Encoding_Error` is raised.
        If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with
        a substitute (either '�' (if Unicode) or '?' depending on the encoding).
@@ -240,18 +240,18 @@ type XML_Document
        If another error occurs, such as access denied, an `File_Error.IO_Error` is
        raised.
        Otherwise, the file is created with the encoded xlm written to it.
-   
+
        The method returns a `File` object for the written file.
-   
+
        ? Dry Run
-   
+
            If writing to Output context is not enabled (such as in "Design" mode),
            then this function will write to a temporary file. This temporary file will
            be automatically deleted on exit of the Enso process.
-   
+
            This allows for building the workflow without affecting the real files.
     @encoding Encoding.default_widget
-    write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> File
+    write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
     write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
         declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
         XML_Error.handle_java_exceptions <|

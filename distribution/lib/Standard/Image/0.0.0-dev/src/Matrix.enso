@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import project.Data.Image.Image
-import project.Data.Matrix_Error.Matrix_Error
+import project.Image.Image
+import project.Matrix_Error.Matrix_Error
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
 polyglot java import org.opencv.core.Mat
