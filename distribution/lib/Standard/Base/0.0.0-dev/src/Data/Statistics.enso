@@ -305,7 +305,8 @@ Vector.compute : Statistic -> Any
 Vector.compute self statistic=Statistic.Count =
     self.compute_bulk [statistic] . first
 
-## Compute statistics on the vector (ignoring Nothing and NaN values).
+## ICON add_column
+   Compute statistics on the vector (ignoring Nothing and NaN values).
 
    Arguments:
    - statistics: Set of statistics to calculate.
@@ -314,6 +315,7 @@ Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.compute_bulk self statistics
 
 ## GROUP Statistics
+   ICON math
    Compute a single running statistic on the vector (ignoring Nothing and NaN
    values).
 
@@ -323,7 +325,8 @@ Vector.running : Statistic -> Vector Any
 Vector.running self statistic=Statistic.Count =
     Statistic.running self statistic
 
-## Compute a set running statistics on the vector (ignoring Nothing and NaN
+## ICON math
+   Compute a set running statistics on the vector (ignoring Nothing and NaN
    values).
 
    Arguments:
@@ -333,6 +336,7 @@ Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.running_bulk self statistics
 
 ## GROUP Statistics
+   ICON add_column
    Assigns a rank to each value of data, dealing with equal values according to
    the method.
 
