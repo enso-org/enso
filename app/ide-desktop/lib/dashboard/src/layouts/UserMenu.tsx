@@ -54,14 +54,16 @@ export default function UserMenu(props: UserMenuProps) {
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame px-user-menu-x py-user-menu-y backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu' : 'size-row-h'}`}
+        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'p-user-menu w-user-menu' : 'size-row-h p-profile-picture'}`}
         onClick={event => {
           event.stopPropagation()
         }}
       >
         {user != null ? (
           <>
-            <div className="flex items-center gap-icons overflow-hidden px-menu-entry">
+            <div
+              className={`flex items-center gap-icons overflow-hidden transition-all duration-user-menu ${initialized ? 'px-menu-entry' : ''}`}
+            >
               <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
