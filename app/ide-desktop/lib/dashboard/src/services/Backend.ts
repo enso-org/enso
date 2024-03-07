@@ -451,11 +451,11 @@ export interface Event {
 
 /** Possible types of event in an audit log. */
 export enum EventType {
-  GetSecret = 'GetSecret',
-  DeleteAssets = 'DeleteAssets',
-  ListSecrets = 'ListSecrets',
-  OpenProject = 'OpenProject',
-  UploadFile = 'UploadFile',
+  GetSecret = 'getSecret',
+  DeleteAssets = 'deleteAssets',
+  ListSecrets = 'listSecrets',
+  OpenProject = 'openProject',
+  UploadFile = 'uploadFile',
 }
 
 /** An event indicating that a secret was accessed. */
