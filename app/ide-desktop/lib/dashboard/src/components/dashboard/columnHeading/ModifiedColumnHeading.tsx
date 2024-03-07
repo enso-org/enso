@@ -23,8 +23,8 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
         !isSortActive
           ? 'Sort by modification date'
           : sortDirection === SortDirection.ascending
-          ? 'Sort by modification date descending'
-          : 'Stop sorting by modification date'
+            ? 'Sort by modification date descending'
+            : 'Stop sorting by modification date'
       }
       className="group flex h-drive-table-heading w-full cursor-pointer items-center gap-icon-with-text"
       onClick={event => {

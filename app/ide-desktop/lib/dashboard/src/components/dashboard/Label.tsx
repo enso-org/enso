@@ -41,10 +41,10 @@ export default function Label(props: InternalLabelProps) {
   const textColorClassName = /\btext-/.test(className)
     ? '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     : color.lightness <= 50
-    ? 'text-tag-text'
-    : active
-    ? 'text-primary'
-    : 'text-not-selected'
+      ? 'text-tag-text'
+      : active
+        ? 'text-primary'
+        : 'text-not-selected'
   return (
     <button
       data-testid={dataTestId}

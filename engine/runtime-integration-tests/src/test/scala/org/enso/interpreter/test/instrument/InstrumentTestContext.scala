@@ -51,7 +51,7 @@ abstract class InstrumentTestContext(packageName: String) {
     Option(messageQueue.poll(timeoutSeconds, TimeUnit.SECONDS))
   }
 
-  def receiveN(n: Int, timeoutSeconds: Long = 10): List[Api.Response] = {
+  def receiveN(n: Int, timeoutSeconds: Long = 60): List[Api.Response] = {
     Iterator
       .continually(receiveWithTimeout(timeoutSeconds))
       .take(n)

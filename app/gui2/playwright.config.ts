@@ -49,31 +49,31 @@ export default defineConfig({
     headless: !DEBUG,
     trace: 'retain-on-failure',
     viewport: { width: 1920, height: 1600 },
-    ...(DEBUG
-      ? {}
-      : {
-          launchOptions: {
-            ignoreDefaultArgs: ['--headless'],
-            args: [
-              // Much closer to headful Chromium than classic headless.
-              '--headless=new',
-              // Required for `backdrop-filter: blur` to work.
-              '--use-angle=swiftshader',
-              // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
-              // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
-              // MUST stay as CI does not have a GPU.
-              '--disable-gpu',
-              // Fully disable GPU process.
-              '--disable-software-rasterizer',
-              // Disable text subpixel antialiasing.
-              '--font-render-hinting=none',
-              '--disable-skia-runtime-opts',
-              '--disable-system-font-check',
-              '--disable-font-subpixel-positioning',
-              '--disable-lcd-text',
-            ],
-          },
-        }),
+    ...(DEBUG ?
+      {}
+    : {
+        launchOptions: {
+          ignoreDefaultArgs: ['--headless'],
+          args: [
+            // Much closer to headful Chromium than classic headless.
+            '--headless=new',
+            // Required for `backdrop-filter: blur` to work.
+            '--use-angle=swiftshader',
+            // FIXME: `--disable-gpu` disables `backdrop-filter: blur`, which is not handled by
+            // the software (CPU) compositor. This SHOULD be fixed eventually, but this flag
+            // MUST stay as CI does not have a GPU.
+            '--disable-gpu',
+            // Fully disable GPU process.
+            '--disable-software-rasterizer',
+            // Disable text subpixel antialiasing.
+            '--font-render-hinting=none',
+            '--disable-skia-runtime-opts',
+            '--disable-system-font-check',
+            '--disable-font-subpixel-positioning',
+            '--disable-lcd-text',
+          ],
+        },
+      }),
   },
   // projects: [
   // {
@@ -112,9 +112,9 @@ export default defineConfig({
       E2E: 'true',
     },
     command:
-      process.env.CI || process.env.PROD
-        ? `npx vite build && npx vite preview --port ${PORT} --strictPort`
-        : `npx vite dev --port ${PORT}`,
+      process.env.CI || process.env.PROD ?
+        `npx vite build && npx vite preview --port ${PORT} --strictPort`
+      : `npx vite dev --port ${PORT}`,
     // Build from scratch apparently can take a while on CI machines.
     timeout: 120 * 1000,
     port: PORT,

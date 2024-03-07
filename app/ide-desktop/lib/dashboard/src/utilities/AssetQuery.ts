@@ -242,11 +242,8 @@ export default class AssetQuery {
         }
       }
       if (toRemove != null) {
-        const termsAfterRemovals = terms.filter(
-          term =>
-            toRemove?.every(
-              otherTerm => !array.shallowEqual([...term].sort(), [...otherTerm].sort())
-            )
+        const termsAfterRemovals = terms.filter(term =>
+          toRemove?.every(otherTerm => !array.shallowEqual([...term].sort(), [...otherTerm].sort()))
         )
         if (termsAfterRemovals.length !== terms.length) {
           terms = termsAfterRemovals

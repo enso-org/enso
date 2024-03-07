@@ -43,13 +43,14 @@ export default defineConfig({
     order(a, b) {
       const aIndex = order.indexOf(a)
       const bIndex = order.indexOf(b)
-      return aIndex != null
-        ? bIndex != null
-          ? aIndex - bIndex
+      return (
+        aIndex != null ?
+          bIndex != null ?
+            aIndex - bIndex
           : -1
-        : bIndex != null
-        ? 1
+        : bIndex != null ? 1
         : a.localeCompare(b)
+      )
     },
   },
   vite: {
