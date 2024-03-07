@@ -12,4 +12,7 @@ define_env_var! {
 
     /// Whether flaku tests should be run.
     CI_TEST_FLAKY_ENABLE, bool;
+
+    /// Java vendor, e.g. "Oracle Corporation", or "GraalVM Community".
+    JAVA_VENDOR, String;
 }
