@@ -8,6 +8,8 @@ use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
 
+use crate::engine::env;
+
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
@@ -17,6 +19,8 @@ use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
+
+use ide_ci::cache::goodie::graalvm;
 
 
 
@@ -157,21 +161,42 @@ impl JobArchetype for VerifyLicensePackages {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ScalaTests;
+pub struct ScalaTests {
+    graal_edition: graalvm::Edition,
+}
+impl ScalaTests {
+    pub fn with_graal_edition(graal_edition: graalvm::Edition) -> Self {
+        Self { graal_edition }
+    }
+}
 impl JobArchetype for ScalaTests {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend test scala")
+        let job_name = format!("Scala Tests ({})", self.graal_edition);
+        let mut job = RunStepsBuilder::new("backend test scala")
             .customize(move |step| vec![step, step::engine_test_reporter(target)])
-            .build_job("Scala Tests", target)
-            .with_permission(Permission::Checks, Access::Write)
+            .build_job(job_name, target)
+            .with_permission(Permission::Checks, Access::Write);
+        match self.graal_edition {
+            graalvm::Edition::Community => job.env(env::JAVA_VENDOR, graalvm::Edition::Community.to_string()),
+            graalvm::Edition::Enterprise => job.env(env::JAVA_VENDOR, graalvm::Edition::Enterprise.to_string()),
+        }
+        job
     }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct StandardLibraryTests;
+pub struct StandardLibraryTests {
+    graal_edition: graalvm::Edition,
+}
+impl StandardLibraryTests {
+    pub fn with_graal_edition(graal_edition: graalvm::Edition) -> Self {
+        Self { graal_edition }
+    }
+}
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend test standard-library")
+        let job_name = format!("Standard Library Tests ({})", self.graal_edition);
+        let mut job = RunStepsBuilder::new("backend test standard-library")
             .customize(move |step| {
                 let main_step = step
                     .with_secret_exposed_as(
@@ -188,8 +213,14 @@ impl JobArchetype for StandardLibraryTests {
                     );
                 vec![main_step, step::stdlib_test_reporter(target)]
             })
-            .build_job("Standard Library Tests", target)
-            .with_permission(Permission::Checks, Access::Write)
+            .build_job(job_name, target)
+            .with_permission(Permission::Checks, Access::Write);
+        match self.graal_edition {
+            graalvm::Edition::Community => job.env(env::JAVA_VENDOR, graalvm::Edition::Community.to_string()),
+            graalvm::Edition::Enterprise => job.env(env::JAVA_VENDOR, graalvm::Edition::Enterprise.to_string()),
+
+        }
+        job
     }
 }
 

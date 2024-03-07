@@ -1,3 +1,4 @@
+use crate::engine::env;
 use crate::prelude::*;
 
 use crate::ci_gen::job::plain_job;
@@ -36,6 +37,7 @@ use ide_ci::actions::workflow::definition::WorkflowDispatch;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
 use ide_ci::actions::workflow::definition::WorkflowToWrite;
+use ide_ci::cache::goodie::graalvm;
 use strum::IntoEnumIterator;
 
 
@@ -604,21 +606,24 @@ pub fn backend() -> Result<Workflow> {
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
     for target in CHECKED_TARGETS {
         workflow.add(target, job::CiCheckBackend);
-        workflow.add(target, job::ScalaTests);
-        workflow.add(target, job::StandardLibraryTests);
+        workflow.add(target, job::ScalaTests::with_graal_edition(graalvm::Edition::Community));
+        workflow.add(target, job::StandardLibraryTests::with_graal_edition(graalvm::Edition::Community));
     }
+    // Oracle GraalVM jobs run only on Linux
+    workflow.add(PRIMARY_TARGET, job::ScalaTests::with_graal_edition(graalvm::Edition::Enterprise));
+    workflow.add(PRIMARY_TARGET, job::StandardLibraryTests::with_graal_edition(graalvm::Edition::Enterprise));
     Ok(workflow)
 }
 
 pub fn engine_benchmark() -> Result<Workflow> {
-    benchmark("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
+    benchmark_workflow("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
 }
 
 pub fn std_libs_benchmark() -> Result<Workflow> {
-    benchmark("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
+    benchmark_workflow("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
 }
 
-fn benchmark(name: &str, command_line: &str, timeout_minutes: Option<u32>) -> Result<Workflow> {
+fn benchmark_workflow(name: &str, command_line: &str, timeout_minutes: Option<u32>) -> Result<Workflow> {
     let just_check_input_name = "just-check";
     let just_check_input = WorkflowDispatchInput {
         r#type: WorkflowDispatchInputType::Boolean { default: Some(false) },
@@ -639,12 +644,24 @@ fn benchmark(name: &str, command_line: &str, timeout_minutes: Option<u32>) -> Re
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
 
-    let mut benchmark_job = RunStepsBuilder::new(command_line)
-        .cleaning(CleaningCondition::Always)
-        .build_job(name, BenchmarkRunner);
-    benchmark_job.timeout_minutes = timeout_minutes;
-    workflow.add_job(benchmark_job);
+    for graal_edition in vec![graalvm::Edition::Community, graalvm::Edition::Enterprise] {
+        let job_name = format!("{} ({})", name, graal_edition);
+        let job = benchmark_job(&job_name, command_line, timeout_minutes, graal_edition);
+        workflow.add_job(job);
+    }
     Ok(workflow)
+}
+
+fn benchmark_job(job_name: &str, command_line: &str, timeout_minutes: Option<u32>, graal_edition: graalvm::Edition) -> Job {
+    let mut job = RunStepsBuilder::new(command_line)
+        .cleaning(CleaningCondition::Always)
+        .build_job(job_name, BenchmarkRunner);
+    job.timeout_minutes = timeout_minutes;
+    match graal_edition {
+        graalvm::Edition::Community => job.env(env::JAVA_VENDOR, graalvm::Edition::Community.to_string()),
+        graalvm::Edition::Enterprise => job.env(env::JAVA_VENDOR, graalvm::Edition::Enterprise.to_string()),
+    }
+    job
 }
 
 
