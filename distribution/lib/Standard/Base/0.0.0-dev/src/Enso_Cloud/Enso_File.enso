@@ -320,6 +320,7 @@ type Enso_File
 
     ## UNSTABLE
        GROUP Operators
+       ICON folder
        Resolves a file or directory within this directory.
     / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =

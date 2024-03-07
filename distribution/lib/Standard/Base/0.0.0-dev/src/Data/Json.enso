@@ -172,7 +172,8 @@ type JS_Object
     field_names self =
         Vector.from_polyglot_array (get_property_names self.js_object)
 
-    ## Maps a function over each value in this object
+    ## ICON dataframe_map_column
+       Maps a function over each value in this object
 
        Arguments:
        - function: The function to apply to each value in the map, taking a
@@ -250,6 +251,7 @@ type JS_Object
         render self
 
     ## GROUP Conversions
+       ICON convert
        Creates an Enso object from the JS_Object.
     into : Any -> Any
     into self target_type = case target_type of

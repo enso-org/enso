@@ -131,6 +131,7 @@ type URI
         self.to_java_representation.getPath
 
     ## GROUP Operators
+       ICON folder
        Extends the path of this URI with an additional segment.
 
        Arguments:
