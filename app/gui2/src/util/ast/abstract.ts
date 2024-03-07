@@ -1,4 +1,3 @@
-import { parseEnso } from '@/util/ast'
 import { normalizeQualifiedName, qnFromSegments } from '@/util/qualifiedName'
 import type {
   AstId,
@@ -20,7 +19,6 @@ import {
   OprApp,
   PropertyAccess,
   Token,
-  abstract,
   isTokenId,
   print,
 } from 'shared/ast'
@@ -28,13 +26,9 @@ export * from 'shared/ast'
 
 export function deserialize(serialized: string): Owned {
   const parsed: SerializedPrintedSource = JSON.parse(serialized)
-  const module = MutableModule.Transient()
-  const tree = parseEnso(parsed.code)
-  const ast = abstract(module, tree, parsed.code)
-  // const nodes = new Map(unsafeEntries(parsed.info.nodes))
-  // const tokens = new Map(unsafeEntries(parsed.info.tokens))
-  // TODO: ast <- nodes,tokens
-  return ast.root
+  // Not implemented: restoring serialized external IDs. This is not the best approach anyway;
+  // Y.Js can't merge edits to objects when they're being serialized and deserialized.
+  return Ast.parse(parsed.code)
 }
 
 interface SerializedInfoMap {

@@ -95,11 +95,13 @@ const innerInput = computed(() => {
   }
 })
 
-const escapeString = (str: string): string => {
-  const escaped = str.replaceAll(/([\\'])/g, '\\$1')
-  return `'${escaped}'`
+function vectorOfTextLiterals(values: string[]): Ast.Owned {
+  const edit = Ast.MutableModule.Transient()
+  return Ast.Vector.new(
+    edit,
+    values.map((text) => Ast.TextLiteral.new(text, edit)),
+  )
 }
-const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
 
 const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
   const analyzed = interpretCall(props.input.value, true)
@@ -136,7 +138,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
       definedOnType: 'Standard.Visualization.Widgets',
       name: 'get_widget_json',
     },
-    positionalArgumentsExpressions: [`.${name}`, makeArgsList(args)],
+    positionalArgumentsExpressions: [`.${name}`, vectorOfTextLiterals(args).code()],
   }
 })
 

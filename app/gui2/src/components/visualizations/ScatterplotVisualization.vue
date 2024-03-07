@@ -2,6 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useEvent } from '@/composables/events'
 import { useVisualizationConfig } from '@/providers/visualizationConfig'
+import { Ast } from '@/util/ast'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { VisualizationContainer, defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
@@ -231,12 +232,27 @@ const yLabelLeft = computed(
 )
 const yLabelTop = computed(() => -margin.value.left + 15)
 
+function vectorOfNumericLiterals(values: number[]): Ast.Owned | undefined {
+  const edit = Ast.MutableModule.Transient()
+  const numbers = new Array<Ast.Owned>()
+  for (const value of values) {
+    const literal = Ast.NumericLiteral.tryParse(value.toString(), edit)
+    if (!literal) {
+      console.warn(`Not a simple number: ${value}`)
+      return undefined
+    }
+    numbers.push(literal)
+  }
+  return Ast.Vector.new(edit, numbers)
+}
+
 watchEffect(() => {
+  const boundsExpression = bounds.value != null ? vectorOfNumericLiterals(bounds.value) : undefined
   emit(
     'update:preprocessor',
     'Standard.Visualization.Scatter_Plot',
     'process_to_json_text',
-    bounds.value == null ? 'Nothing' : '[' + bounds.value.join(',') + ']',
+    boundsExpression?.code() ?? 'Nothing',
     limit.value.toString(),
   )
 })
