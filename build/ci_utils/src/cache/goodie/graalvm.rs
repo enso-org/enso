@@ -22,17 +22,60 @@ crate::define_env_var! {
     GRAALVM_HOME, PathBuf;
 }
 
-pub fn graal_version_from_version_string(version_string: &str) -> Result<Version> {
-    let line = version_string.lines().find(|line| line.contains("GraalVM CE")).context(
-        "There is a Java environment available but it is not recognizable as GraalVM one.",
-    )?;
-    Version::find_in_text(line)
+const CE_JAVA_VENDOR: &str = "GraalVM Community";
+const EE_JAVA_VENDOR: &str = "Oracle GraalVM";
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Edition {
+    /// GraalVM CE (Community Edition).
+    Community,
+    /// Oracle GraalVM (Formerly GraalVM EE, Enterprise Edition)
+    Enterprise,
 }
 
-pub async fn find_graal_version() -> Result<Version> {
+impl std::str::FromStr for Edition {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            CE_JAVA_VENDOR => Ok(Edition::Community),
+            EE_JAVA_VENDOR => Ok(Edition::Enterprise),
+            _ => bail!("Unknown GraalVM edition: {}", s),
+        }
+    }
+
+}
+
+impl Display for Edition {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match *self {
+            Edition::Community => write!(f, "{}", CE_JAVA_VENDOR),
+            Edition::Enterprise => write!(f, "{}", EE_JAVA_VENDOR),
+        }
+    }
+}
+
+
+fn graal_version_from_version_string(version_string: &str) -> Result<(Version, Edition)> {
+    let line = version_string.lines().find(|line| line.contains(CE_JAVA_VENDOR) || line.contains(EE_JAVA_VENDOR)).context(
+        "There is a Java environment available but it is not recognizable as GraalVM one.",
+    )?;
+    let edition = if line.contains(CE_JAVA_VENDOR) {
+        Edition::Community
+    } else if line.contains(EE_JAVA_VENDOR) {
+        Edition::Enterprise
+    } else {
+        bail!("Unknown GraalVM edition")
+    };
+    let version = Version::find_in_text(line);
+    version.map(|version| (version, edition)).context("Failed to find GraalVM version")
+}
+
+async fn find_graal_version() -> Result<(Version, Edition)> {
     let text = Java.version_string().await?;
     graal_version_from_version_string(&text)
 }
+
 
 /// Description necessary to download and install GraalVM.
 #[derive(Clone, Debug)]
@@ -40,6 +83,7 @@ pub struct GraalVM {
     /// Used to query GitHub about releases.
     pub client:        Octocrab,
     pub graal_version: Version,
+    pub edition:       Edition,
     pub os:            OS,
     pub arch:          Arch,
 }
@@ -53,7 +97,7 @@ impl Goodie for GraalVM {
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {
         let expected_graal_version = self.graal_version.clone();
         async move {
-            let found_version = find_graal_version().await?;
+            let (found_version, _) = find_graal_version().await?;
             ensure!(found_version == expected_graal_version, "GraalVM version mismatch. Expected {expected_graal_version}, found {found_version}.");
             Result::Ok(true)
         }
@@ -102,7 +146,7 @@ impl GraalVM {
     }
 
     pub fn platform_string(&self) -> String {
-        let Self { graal_version: _graal_version, arch, os, client: _client } = &self;
+        let Self { graal_version: _graal_version, arch, os, client: _client , ..} = &self;
         let os_name = match *os {
             OS::Linux => "linux",
             OS::Windows => "windows",
@@ -147,7 +191,7 @@ mod tests {
 OpenJDK Runtime Environment GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12)
 OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, mixed mode, sharing)"#;
 
-        let found_graal = graal_version_from_version_string(version_string).unwrap();
+        let (found_graal_version, found_graal_edition) = graal_version_from_version_string(version_string).unwrap();
         let expected_graal_version = Version {
             major: 17,
             minor: 0,
@@ -155,10 +199,32 @@ OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, m
             pre:   Prerelease::EMPTY,
             build: BuildMetadata::new("7.1").unwrap(),
         };
-        assert_eq!(found_graal, expected_graal_version);
+        assert_eq!(found_graal_version, expected_graal_version);
+        assert_eq!(found_graal_edition, Edition::Community);
 
         let found_java = Java.parse_version(version_string).unwrap();
         assert_eq!(found_java, Version::new(17, 0, 7));
+    }
+
+    #[test]
+    fn enterprise_version_recognize() {
+        let version_string = r#"java version "21.0.2" 2024-01-16 LTS
+Java(TM) SE Runtime Environment Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LTS-jvmci-23.1-b30)
+Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LTS-jvmci-23.1-b30, mixed mode, sharing)"#;
+
+        let (found_graal_version, found_graal_edition) = graal_version_from_version_string(version_string).unwrap();
+        let expected_graal_version = Version {
+            major: 21,
+            minor: 0,
+            patch: 2,
+            pre:   Prerelease::EMPTY,
+            build: BuildMetadata::new("13.1").unwrap(),
+        };
+        assert_eq!(found_graal_version, expected_graal_version);
+        assert_eq!(found_graal_edition, Edition::Enterprise);
+
+        let found_java = Java.parse_version(version_string).unwrap();
+        assert_eq!(found_java, Version::new(21, 0, 2));
     }
 
     #[test]
