@@ -7,11 +7,15 @@ const [model, modifiers] = defineModel<string>()
 const props = defineProps<{ autoSelect?: boolean }>()
 const emit = defineEmits<{
   input: [value: string | undefined]
+  change: [value: string | undefined]
 }>()
 
 const innerModel = modifiers.lazy ? ref(model.value) : model
 if (modifiers.lazy) watch(model, (newVal) => (innerModel.value = newVal))
-const onChange = modifiers.lazy ? () => (model.value = innerModel.value) : undefined
+function onChange() {
+  if (modifiers.lazy) model.value = innerModel.value
+  emit('change', innerModel.value)
+}
 
 const inputNode = ref<HTMLInputElement>()
 useAutoBlur(inputNode)

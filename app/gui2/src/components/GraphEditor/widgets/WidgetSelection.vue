@@ -2,14 +2,8 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { injectInteractionHandler } from '@/providers/interactionHandler'
-import {
-  Score,
-  WidgetInput,
-  defineWidget,
-  widgetProps,
-  type Editing,
-} from '@/providers/widgetRegistry'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   singleChoiceConfiguration,
   type ArgumentWidgetConfiguration,
@@ -34,7 +28,9 @@ const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
 const interaction = injectInteractionHandler()
 const widgetRoot = ref<HTMLElement>()
+
 const filter = ref<string>()
+const innerWidgetInteraction = ref<Interaction>()
 const isHovered = ref(false)
 
 interface Tag {
@@ -63,11 +59,9 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
   return {
     label: entry.name,
     expression:
-      entry.selfType != null
-        ? `_.${entry.name}`
-        : entry.memberOf
-        ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
-        : entry.name,
+      entry.selfType != null ? `_.${entry.name}`
+      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+      : entry.name,
     requiredImports: requiredImports(suggestions.entries, entry),
   }
 }
@@ -122,7 +116,11 @@ const selectedTag = computed(() => {
     // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
     const sortedTags = tags.value
       .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
-      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+      .sort(([a], [b]) =>
+        a < b ? 1
+        : a > b ? -1
+        : 0,
+      )
     const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
     return index != null ? tags.value[index] : undefined
   }
@@ -132,21 +130,37 @@ const selectedLabel = computed(() => {
   return selectedTag.value?.label
 })
 const innerWidgetInput = computed(() => {
-  if (props.input.dynamicConfig == null) return props.input
+  const newInput: WidgetInput = {
+    ...props.input,
+    editing: {
+      onStarted: (interaction) => {
+        innerWidgetInteraction.value = interaction
+        showDropdownWidget.value = true
+      },
+      onEdited: (value) => {
+        filter.value = value instanceof Ast.Ast ? value.code() : value
+      },
+      onFinished: () => {
+        showDropdownWidget.value = false
+      },
+    },
+  }
+  if (props.input.dynamicConfig == null) return newInput
   const config = props.input.dynamicConfig
-  if (config.kind !== 'Single_Choice') return props.input
-  return { ...props.input, dynamicConfig: singleChoiceConfiguration(config) }
+  if (config.kind !== 'Single_Choice') return newInput
+  newInput.dynamicConfig = singleChoiceConfiguration(config)
+  return newInput
 })
 const showDropdownWidget = ref(false)
-interaction.setWhen(showDropdownWidget, {
-  cancel: () => {
-    showDropdownWidget.value = false
-  },
-  click: (e: PointerEvent) => {
-    if (targetIsOutside(e, widgetRoot)) showDropdownWidget.value = false
-    return false
-  },
-})
+// interaction.setWhen(showDropdownWidget, {
+//   cancel: () => {
+//     showDropdownWidget.value = false
+//   },
+//   click: (e: PointerEvent) => {
+//     if (targetIsOutside(e, widgetRoot)) showDropdownWidget.value = false
+//     return false
+//   },
+// })
 
 function toggleDropdownWidget() {
   showDropdownWidget.value = !showDropdownWidget.value
@@ -159,6 +173,9 @@ function onClick(index: number, keepOpen: boolean) {
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
+  if (innerWidgetInteraction.value != null) {
+    interaction.end(innerWidgetInteraction.value)
+  }
   let edit: Ast.MutableModule | undefined
   // Unless import conflict resolution is needed, we use the selected expression as is.
   let value = selectedTag.value?.expression
@@ -172,28 +189,6 @@ watch(selectedIndex, (_index) => {
   }
   props.onUpdate({ edit, portUpdate: { value, origin: props.input.portId } })
 })
-
-function handleEdit(edit: Editing) {
-  console.log('Handle edit', edit)
-  switch (edit.type) {
-    case 'started':
-      if (edit.origin !== props.input.portId) return false
-      showDropdownWidget.value = true
-      break
-    case 'edited':
-      if (edit.edit.origin !== props.input.portId) return false
-      if (edit.edit.value != null)
-        filter.value = edit.edit.value instanceof Ast.Ast ? edit.edit.value.code() : edit.edit.value
-      break
-    case 'ended':
-      if (edit.origin !== props.input.portId) return false
-      filter.value = undefined
-      showDropdownWidget.value = false
-      break
-  }
-  console.log(filter.value)
-  return false
-}
 </script>
 
 <script lang="ts">
@@ -231,7 +226,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"
   >
-    <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" @edit="handleEdit" />
+    <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
     <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
       v-if="showDropdownWidget"

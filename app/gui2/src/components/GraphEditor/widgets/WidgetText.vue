@@ -1,14 +1,50 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
+import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
+const interaction = injectInteractionHandler()
+const input = ref<HTMLElement>()
+
+const editing: Interaction = {
+  cancel: () => {
+    input.value?.blur()
+  },
+}
+
+function editingStarted() {
+  interaction.setCurrent(editing)
+  props.input.editing?.onStarted(editing)
+}
+
+function editingEnded() {
+  interaction.end(editing)
+  props.input.editing?.onFinished()
+}
+
+function accepted(value: string) {
+  if (interaction.isActive(editing)) {
+    if (props.input.value instanceof Ast.TextLiteral) {
+      const edit = graph.startEdit()
+      edit.getVersion(props.input.value).setRawTextContent(value)
+      props.onUpdate({ edit })
+    } else {
+      props.onUpdate({
+        portUpdate: {
+          value: makeNewLiteral(value).code(),
+          origin: props.input.portId,
+        },
+      })
+    }
+  }
+}
 
 const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   if (props.input.value instanceof Ast.TextLiteral) return props.input.value
@@ -36,25 +72,7 @@ const emptyTextLiteral = makeNewLiteral('')
 const shownLiteral = computed(() => inputTextLiteral.value ?? emptyTextLiteral)
 const closeToken = computed(() => shownLiteral.value.close ?? shownLiteral.value.open)
 
-const textContents = computed({
-  get() {
-    return shownLiteral.value.rawTextContent
-  },
-  set(value) {
-    if (props.input.value instanceof Ast.TextLiteral) {
-      const edit = graph.startEdit()
-      edit.getVersion(props.input.value).setRawTextContent(value)
-      props.onUpdate({ edit })
-    } else {
-      props.onUpdate({
-        portUpdate: {
-          value: makeNewLiteral(value).code(),
-          origin: props.input.portId,
-        },
-      })
-    }
-  },
-})
+const textContents = computed(() => shownLiteral.value.rawTextContent)
 </script>
 
 <script lang="ts">
@@ -74,18 +92,15 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   <label class="WidgetText r-24" @pointerdown.stop>
     <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
     <AutoSizedInput
+      ref="input"
       v-model.lazy="textContents"
       @pointerdown.stop
       @pointerup.stop
       @click.stop
-      @focusin="props.onEdit({ type: 'started', origin: props.input.portId })"
-      @focusout="props.onEdit({ type: 'ended', origin: props.input.portId })"
-      @input="
-        props.onEdit({
-          type: 'edited',
-          edit: { value: makeLiteralFromValue($event ?? ''), origin: props.input.portId },
-        })
-      "
+      @focusin="editingStarted"
+      @focusout="editingEnded"
+      @input="props.input.editing?.onEdited(makeLiteralFromValue($event ?? ''))"
+      @changed="accepted"
     />
     <NodeWidget v-if="closeToken" :input="WidgetInput.FromAst(closeToken)" />
   </label>

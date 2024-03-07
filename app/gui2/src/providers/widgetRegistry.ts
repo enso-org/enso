@@ -6,6 +6,7 @@ import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract.ts'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
+import type { Interaction } from './interactionHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
@@ -104,6 +105,11 @@ export interface WidgetInput {
   dynamicConfig?: WidgetConfiguration | undefined
   /** Force the widget to be a connectible port. */
   forcePort?: boolean
+  editing?: {
+    onStarted: (interaction: Interaction) => void
+    onEdited: (value: Ast.Owned | string) => void
+    onFinished: () => void
+  }
 }
 
 /**
@@ -153,11 +159,6 @@ export interface WidgetUpdate {
   }
 }
 
-export type Editing =
-  | { type: 'started'; origin: PortId }
-  | { type: 'edited'; edit: PortUpdate }
-  | { type: 'ended'; origin: PortId }
-
 /**
  * Create Vue props definition for a widget component. This cannot be done automatically by using
  * typed `defineProps`, because vue compiler is not able to resolve conditional types. As a
@@ -175,22 +176,16 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
       type: Function as PropType<(update: WidgetUpdate) => void>,
       required: true,
     },
-    onEdit: {
-      type: Function as PropType<(edit: Editing) => void>,
-      required: true,
-    },
   } as const
 }
 
 type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T
 type InputMatcher<T extends WidgetInput> = keyof WidgetInput | InputMatcherFn<T>
 
-type InputTy<M> = M extends (infer T)[]
-  ? InputTy<T>
-  : M extends InputMatcherFn<infer T>
-  ? T
-  : M extends keyof WidgetInput
-  ? WidgetInput & Required<Pick<WidgetInput, M>>
+type InputTy<M> =
+  M extends (infer T)[] ? InputTy<T>
+  : M extends InputMatcherFn<infer T> ? T
+  : M extends keyof WidgetInput ? WidgetInput & Required<Pick<WidgetInput, M>>
   : never
 
 export interface WidgetOptions<T extends WidgetInput> {
