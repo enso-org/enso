@@ -9,11 +9,11 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
+import project.DB_Table.DB_Table
 import project.Dialect
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
-import project.DB_Table.DB_Table
 import project.Internal.Base_Generator
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Column_Fetcher.Column_Fetcher

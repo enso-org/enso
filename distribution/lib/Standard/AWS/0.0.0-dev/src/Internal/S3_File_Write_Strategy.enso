@@ -3,7 +3,7 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
-from Standard.Base.System.File.Generic.File_Write_Strategy import File_Write_Strategy, default_overwrite, default_append, default_raise_error, generic_remote_write_with_local_file
+from Standard.Base.System.File.Generic.File_Write_Strategy import default_append, default_overwrite, default_raise_error, File_Write_Strategy, generic_remote_write_with_local_file
 
 import project.Errors.S3_Error
 import project.S3.S3

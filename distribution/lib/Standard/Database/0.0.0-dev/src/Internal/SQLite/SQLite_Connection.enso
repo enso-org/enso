@@ -9,11 +9,11 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Connection.Connection.Connection
 import project.Column_Description.Column_Description
+import project.DB_Table.DB_Table
 import project.Dialect
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
-import project.DB_Table.DB_Table
 import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -43,22 +43,26 @@ type SQLite_Connection
        - connection: the underlying connection.
     Value connection
 
-    ## Closes the connection releasing the underlying database resources
+    ## ICON data_input
+       Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
        The connection is not usable afterwards.
     close : Nothing
     close self = self.connection.close
 
-    ## Returns the list of databases (or catalogs) for the connection.
+    ## ICON metadata
+       Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
     databases self = [Nothing]
 
-    ## Returns the name of the current database (or catalog).
+    ## ICON metadata
+       Returns the name of the current database (or catalog).
     database : Text
     database self = self.connection.database
 
-    ## Returns a new Connection with the specified database set as default.
+    ## ICON data_input
+       Returns a new Connection with the specified database set as default.
 
        Arguments:
         - database: The name of the database to connect to.
@@ -68,15 +72,18 @@ type SQLite_Connection
         if database == self.database then self else
             SQL_Error.throw_sql_error "Changing database is not supported."
 
-    ## Returns the list of schemas for the connection within the current database (or catalog).
+    ## ICON metadata
+       Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector Text
     schemas self = [Nothing]
 
-    ## Returns the name of the current schema.
+    ## ICON metadata
+       Returns the name of the current schema.
     schema : Text
     schema self = self.connection.schema
 
-    ## Returns a new Connection with the specified schema set as default.
+    ## ICON data_input
+       Returns a new Connection with the specified schema set as default.
 
        Arguments:
         - schema: The name of the schema to connect to.
@@ -87,11 +94,13 @@ type SQLite_Connection
             SQL_Error.throw_sql_error "Changing schema is not supported."
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets a list of the table types
     table_types : Vector Text
     table_types self = self.connection.table_types
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a materialized Table of all the matching views and tables.
 
        ? Temporary Tables
@@ -116,6 +125,7 @@ type SQLite_Connection
         self.connection.tables name_like database schema types all_fields
 
     ## GROUP Standard.Base.Input
+       ICON data_input
        Set up a query returning a Table object, which can be used to work with
        data within the database or load it into memory.
 
@@ -210,6 +220,7 @@ type SQLite_Connection
 
     ## ADVANCED
        GROUP Standard.Base.Output
+       ICON data_output
 
        Executes a raw update query. If the query was inserting, updating or
        deleting rows, the number of affected rows is returned; otherwise it
