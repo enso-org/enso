@@ -63,6 +63,13 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     return item != null ? [item] : []
   })
   const visuallySelectedIndex = tempSelectedIndex ?? selectedIndex
+  const visuallySelectedIndices = multiple
+    ? tempSelectedIndex != null
+      ? [...selectedIndices, tempSelectedIndex]
+      : selectedIndices
+    : visuallySelectedIndex != null
+      ? [visuallySelectedIndex]
+      : []
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
   React.useEffect(() => {
@@ -158,6 +165,8 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         }
       }}
       onBlur={event => {
+        // TODO: should not blur when `multiple` and clicking on option
+        console.log(event.target, event.currentTarget, event.relatedTarget)
         if (!readOnly && event.target === event.currentTarget) {
           setIsDropdownVisible(false)
         }
@@ -196,9 +205,10 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
             <div className="overflow-hidden">
               {items.map((item, i) => (
                 <div
+                  tabIndex={-1}
                   className={`flex gap-1 rounded-xl px-2 h-6 transition-colors ${
-                    i === visuallySelectedIndex
-                      ? 'cursor-default bg-frame font-bold'
+                    visuallySelectedIndices.includes(i)
+                      ? `${multiple ? 'hover:font-semibold' : 'cursor-default'} bg-frame font-bold`
                       : 'hover:bg-frame-selected'
                   }`}
                   key={i}
@@ -222,6 +232,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                           }),
                           newIndices
                         )
+                        rootRef.current?.focus()
                       } else {
                         setIsDropdownVisible(false)
                         props.onClick(item, i)
