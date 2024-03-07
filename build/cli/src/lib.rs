@@ -23,6 +23,7 @@
 pub mod arg;
 
 
+
 pub mod prelude {
     pub use crate::arg::ArgExt as _;
     pub use enso_build::prelude::*;
@@ -985,10 +986,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                     &ctx.triple.versions.version,
                 )
                 .await?;
-            }
-            Action::DeployGui(args) => {
-                let crate::arg::release::DeployGui {} = args;
-                enso_build::release::upload_gui_to_cloud_good(&ctx).await?;
             }
             Action::Publish => {
                 enso_build::release::publish_release(&ctx).await?;
