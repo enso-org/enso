@@ -14,7 +14,6 @@ use ide_ci::actions::workflow::definition::WorkflowToWrite;
 
 pub mod prelude {
     pub use enso_build::prelude::*;
-    pub use enso_build_shader_tools::prelude::*;
 }
 
 /// Generate the comment that is at the top of each generated workflow file.
@@ -33,8 +32,7 @@ async fn main() -> Result {
     setup_logging()?;
     let repo_root = deduce_repository_path()?;
     let workflows_dir = RepoRootGithub::new_under(&repo_root).workflows;
-    let mut workflows = enso_build::ci_gen::generate(&workflows_dir)?;
-    workflows.push(enso_build_shader_tools::ci::generate_workflow(&workflows_dir.shader_tools_yml));
+    let workflows = enso_build::ci_gen::generate(&workflows_dir)?;
 
     for WorkflowToWrite { source, path, workflow } in workflows {
         let preamble = preamble(&source);

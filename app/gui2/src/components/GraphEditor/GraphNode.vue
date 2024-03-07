@@ -61,13 +61,12 @@ const outputPortsSet = computed(() => {
   return bindings
 })
 
-const widthOverridePx = ref<number>()
 const nodeId = computed(() => asNodeId(props.node.rootExpr.id))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
-  potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value)
-    ? potentialSelfArgumentId.value
-    : undefined,
+  potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value) ?
+    potentialSelfArgumentId.value
+  : undefined,
 )
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
@@ -75,7 +74,6 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const baseNodeSize = computed(() => new Vec2(contentNode.value?.scrollWidth ?? 0, nodeSize.value.y))
 
 const error = computed(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
@@ -187,9 +185,9 @@ const isRecordingOverridden = computed({
   set(shouldOverride) {
     const edit = props.node.rootExpr.module.edit()
     const replacement =
-      shouldOverride && !projectStore.isRecordingEnabled
-        ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
-        : undefined
+      shouldOverride && !projectStore.isRecordingEnabled ?
+        [Ast.TextLiteral.new(projectStore.executionMode, edit)]
+      : undefined
     prefixes.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
@@ -348,10 +346,7 @@ const documentation = computed<string | undefined>({
     class="GraphNode"
     :style="{
       transform,
-      width:
-        widthOverridePx != null && isVisualizationVisible
-          ? `${Math.max(widthOverridePx, contentNode?.scrollWidth ?? 0)}px`
-          : undefined,
+      minWidth: isVisualizationVisible ? `${visualizationWidth}px` : undefined,
       '--node-group-color': color,
     }"
     :class="{
@@ -391,7 +386,7 @@ const documentation = computed<string | undefined>({
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
-      :nodeSize="baseNodeSize"
+      :nodeSize="nodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
@@ -401,10 +396,7 @@ const documentation = computed<string | undefined>({
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
       :isFocused="isOnlyOneSelected"
-      @update:rect="
-        emit('update:visualizationRect', $event),
-          (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
-      "
+      @update:rect="emit('update:visualizationRect', $event)"
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
@@ -420,7 +412,7 @@ const documentation = computed<string | undefined>({
     </Suspense>
     <div
       ref="contentNode"
-      class="node"
+      class="content"
       v-on="dragPointer.events"
       @click.stop
       @pointerdown.stop
@@ -567,6 +559,7 @@ const documentation = computed<string | undefined>({
   position: absolute;
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
+  box-sizing: border-box;
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
   }
@@ -576,7 +569,7 @@ const documentation = computed<string | undefined>({
   display: none;
 }
 
-.node {
+.content {
   font-family: var(--font-code);
   position: relative;
   top: 0;
@@ -584,7 +577,7 @@ const documentation = computed<string | undefined>({
   caret-shape: bar;
   height: var(--node-height);
   border-radius: var(--node-border-radius);
-  display: inline-flex;
+  display: flex;
   flex-direction: row;
   align-items: center;
   white-space: nowrap;

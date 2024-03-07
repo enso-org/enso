@@ -6,7 +6,7 @@ import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
+import { computed, proxyRefs, ref, shallowReactive, shallowRef } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
@@ -20,7 +20,7 @@ export function useSelection<T>(
 ) {
   const anchor = shallowRef<Vec2>()
   const initiallySelected = new Set<T>()
-  const selected = reactive(new Set<T>())
+  const selected = shallowReactive(new Set<T>())
   const hoveredNode = ref<NodeId>()
   const hoveredPort = ref<PortId>()
 
@@ -28,11 +28,13 @@ export function useSelection<T>(
     if (event.target instanceof Element) {
       const widgetPort = event.target.closest('.WidgetPort')
       hoveredPort.value =
-        widgetPort instanceof HTMLElement &&
-        'port' in widgetPort.dataset &&
-        typeof widgetPort.dataset.port === 'string'
-          ? (widgetPort.dataset.port as PortId)
-          : undefined
+        (
+          widgetPort instanceof HTMLElement &&
+          'port' in widgetPort.dataset &&
+          typeof widgetPort.dataset.port === 'string'
+        ) ?
+          (widgetPort.dataset.port as PortId)
+        : undefined
     }
   })
 
@@ -125,18 +127,19 @@ export function useSelection<T>(
   const pointer = usePointer((_pos, event, eventType) => {
     if (eventType === 'start') {
       readInitiallySelected()
+    } else if (eventType === 'stop') {
+      if (anchor.value == null) {
+        // If there was no drag, we want to handle "clicking-off" selected nodes.
+        selectionEventHandler(event)
+      } else {
+        anchor.value = undefined
+      }
+      initiallySelected.clear()
     } else if (pointer.dragging) {
       if (anchor.value == null) {
         anchor.value = navigator.sceneMousePos?.copy()
       }
       selectionEventHandler(event)
-    } else if (eventType === 'stop') {
-      if (anchor.value == null) {
-        // If there was no drag, we want to handle "clicking-off" selected nodes.
-        selectionEventHandler(event)
-      }
-      anchor.value = undefined
-      initiallySelected.clear()
     }
   })
 

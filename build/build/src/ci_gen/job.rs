@@ -110,8 +110,24 @@ pub fn plain_job(
     RunStepsBuilder::new(command_line).build_job(name, runs_on)
 }
 
+/// Pretty print arguments to `./run` that will invoke SBT with the given command.
+///
+/// Meant to be used together with [`RunStepsBuilder::new`].
+///
+/// ```
+/// use enso_build::ci_gen::job::sbt_command;
+/// assert_eq!(sbt_command("verifyLicensePackages"), "backend sbt '--' verifyLicensePackages");
+/// ```
+pub fn sbt_command(command: impl AsRef<str>) -> String {
+    // Note that we put -- in quotes to avoid issues with powershell (which is default on Windows).
+    // Otherwise, pwsh would handle `--` by itself, rather than passing it to build script's args.
+    // See: https://stackoverflow.com/questions/15780174/powershell-command-line-parameters-and
+    format!("backend sbt '--' {}", command.as_ref())
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct CancelWorkflow;
+
 impl JobArchetype for CancelWorkflow {
     fn job(&self, _target: Target) -> Job {
         Job {
@@ -132,7 +148,54 @@ impl JobArchetype for CancelWorkflow {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct VerifyLicensePackages;
+impl JobArchetype for VerifyLicensePackages {
+    fn job(&self, target: Target) -> Job {
+        RunStepsBuilder::new(sbt_command("verifyLicensePackages"))
+            .build_job("Verify License Packages", target)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ScalaTests;
+impl JobArchetype for ScalaTests {
+    fn job(&self, target: Target) -> Job {
+        RunStepsBuilder::new("backend test scala")
+            .customize(move |step| vec![step, step::engine_test_reporter(target)])
+            .build_job("Scala Tests", target)
+            .with_permission(Permission::Checks, Access::Write)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct StandardLibraryTests;
+impl JobArchetype for StandardLibraryTests {
+    fn job(&self, target: Target) -> Job {
+        RunStepsBuilder::new("backend test standard-library")
+            .customize(move |step| {
+                let main_step = step
+                    .with_secret_exposed_as(
+                        secret::ENSO_LIB_S3_AWS_REGION,
+                        crate::aws::env::AWS_REGION,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
+                        crate::aws::env::AWS_ACCESS_KEY_ID,
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
+                        crate::aws::env::AWS_SECRET_ACCESS_KEY,
+                    );
+                vec![main_step, step::stdlib_test_reporter(target)]
+            })
+            .build_job("Standard Library Tests", target)
+            .with_permission(Permission::Checks, Access::Write)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct Lint;
+
 impl JobArchetype for Lint {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "Lint", "lint")
@@ -141,6 +204,7 @@ impl JobArchetype for Lint {
 
 #[derive(Clone, Copy, Debug)]
 pub struct NativeTest;
+
 impl JobArchetype for NativeTest {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "Native GUI tests", "wasm test --no-wasm")
@@ -149,6 +213,7 @@ impl JobArchetype for NativeTest {
 
 #[derive(Clone, Copy, Debug)]
 pub struct NewGuiTest;
+
 impl JobArchetype for NewGuiTest {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "New (Vue) GUI tests", "gui2 test")
@@ -157,6 +222,7 @@ impl JobArchetype for NewGuiTest {
 
 #[derive(Clone, Copy, Debug)]
 pub struct NewGuiBuild;
+
 impl JobArchetype for NewGuiBuild {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "New (Vue) GUI build", "gui2 build")
@@ -165,6 +231,7 @@ impl JobArchetype for NewGuiBuild {
 
 #[derive(Clone, Copy, Debug)]
 pub struct WasmTest;
+
 impl JobArchetype for WasmTest {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "WASM GUI tests", "wasm test --no-native")
@@ -173,6 +240,7 @@ impl JobArchetype for WasmTest {
 
 #[derive(Clone, Copy, Debug)]
 pub struct IntegrationTest;
+
 impl JobArchetype for IntegrationTest {
     fn job(&self, target: Target) -> Job {
         plain_job(
@@ -185,6 +253,7 @@ impl JobArchetype for IntegrationTest {
 
 #[derive(Clone, Copy, Debug)]
 pub struct BuildWasm;
+
 impl JobArchetype for BuildWasm {
     fn job(&self, target: Target) -> Job {
         let command = "wasm build --wasm-upload-artifact ${{ runner.os == 'Linux' }}";
@@ -196,6 +265,7 @@ impl JobArchetype for BuildWasm {
 
 #[derive(Clone, Copy, Debug)]
 pub struct BuildBackend;
+
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "Build Backend", "backend get")
@@ -204,6 +274,7 @@ impl JobArchetype for BuildBackend {
 
 #[derive(Clone, Copy, Debug)]
 pub struct UploadBackend;
+
 impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend upload")
@@ -214,6 +285,7 @@ impl JobArchetype for UploadBackend {
 
 #[derive(Clone, Copy, Debug)]
 pub struct DeployRuntime;
+
 impl JobArchetype for DeployRuntime {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("release deploy-runtime")
@@ -234,26 +306,6 @@ impl JobArchetype for DeployRuntime {
             .build_job("Upload Runtime to ECR", target)
     }
 }
-
-#[derive(Clone, Copy, Debug)]
-pub struct DeployGui;
-impl JobArchetype for DeployGui {
-    fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("release deploy-gui")
-            .customize(|step| {
-                vec![step
-                    .with_secret_exposed_as(secret::CI_PRIVATE_TOKEN, ide_ci::github::GITHUB_TOKEN)
-                    .with_secret_exposed_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID")
-                    .with_secret_exposed_as(
-                        secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
-                        "AWS_SECRET_ACCESS_KEY",
-                    )
-                    .with_secret_exposed_as(secret::ENSO_ADMIN_TOKEN, crate::env::ENSO_ADMIN_TOKEN)]
-            })
-            .build_job("Upload GUI to S3", target)
-    }
-}
-
 
 pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     match os {
@@ -330,6 +382,7 @@ pub fn with_packaging_steps(os: OS) -> impl FnOnce(Step) -> Vec<Step> {
 
 #[derive(Clone, Copy, Debug)]
 pub struct PackageNewIde;
+
 impl JobArchetype for PackageNewIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
@@ -342,30 +395,9 @@ impl JobArchetype for PackageNewIde {
 
 #[derive(Clone, Copy, Debug)]
 pub struct CiCheckBackend;
+
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend ci-check")
-            .customize(move |step| {
-                let main_step = step
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_REGION,
-                        crate::aws::env::AWS_REGION,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_ACCESS_KEY_ID,
-                        crate::aws::env::AWS_ACCESS_KEY_ID,
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
-                        crate::aws::env::AWS_SECRET_ACCESS_KEY,
-                    );
-                vec![
-                    main_step,
-                    step::engine_test_reporter(target),
-                    step::stdlib_test_reporter(target),
-                ]
-            })
-            .build_job("Engine", target)
-            .with_permission(Permission::Checks, Access::Write)
+        RunStepsBuilder::new("backend ci-check").build_job("Engine", target)
     }
 }

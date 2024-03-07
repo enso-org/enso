@@ -366,9 +366,9 @@ export function useComponentBrowserInput(
     const ctx = context.value
     const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
     const oprAppSpacing =
-      ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0
-        ? ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
-        : ''
+      ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0 ?
+        ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
+      : ''
     const extendingAccessOprChain = opr != null && opr.repr() === '.'
     // Modules are special case, as we want to encourage user to continue writing path.
     if (entry.kind === SuggestionKind.Module) {

@@ -4,7 +4,7 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { MutableModule, type TokenId } from '@/util/ast/abstract.ts'
+import { MutableModule } from '@/util/ast/abstract.ts'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
@@ -92,7 +92,7 @@ export interface WidgetInput {
    *
    * Also, used as usage key (see {@link usageKeyForInput})
    */
-  portId: PortId | TokenId
+  portId: PortId
   /**
    * An expected widget value. If Ast.Ast or Ast.Token, the widget represents an existing part of
    * code. If string, it may be e.g. a default value of an argument.
@@ -171,12 +171,10 @@ export function widgetProps<T extends WidgetInput>(_def: WidgetDefinition<T>) {
 type InputMatcherFn<T extends WidgetInput> = (input: WidgetInput) => input is T
 type InputMatcher<T extends WidgetInput> = keyof WidgetInput | InputMatcherFn<T>
 
-type InputTy<M> = M extends (infer T)[]
-  ? InputTy<T>
-  : M extends InputMatcherFn<infer T>
-  ? T
-  : M extends keyof WidgetInput
-  ? WidgetInput & Required<Pick<WidgetInput, M>>
+type InputTy<M> =
+  M extends (infer T)[] ? InputTy<T>
+  : M extends InputMatcherFn<infer T> ? T
+  : M extends keyof WidgetInput ? WidgetInput & Required<Pick<WidgetInput, M>>
   : never
 
 export interface WidgetOptions<T extends WidgetInput> {

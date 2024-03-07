@@ -1,12 +1,12 @@
-import { expect, test } from '@playwright/test'
+import { test } from '@playwright/test'
 import * as actions from './actions'
-import * as customExpect from './customExpect'
+import { expect } from './customExpect'
 import * as locate from './locate'
 
 test('graph can open and render nodes', async ({ page }) => {
   await actions.goToGraph(page)
-  await customExpect.toExist(locate.graphEditor(page))
-  await customExpect.toExist(locate.graphNode(page))
+  await expect(locate.graphEditor(page)).toExist()
+  await expect(locate.graphNode(page)).toExist()
 
   // check simple node's content (without input widgets)
   const sumNode = locate.graphNodeByBinding(page, 'sum')

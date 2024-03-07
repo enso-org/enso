@@ -21,16 +21,13 @@
 #![warn(missing_debug_implementations)]
 
 
-
 extern crate proc_macro;
 
 mod before_main;
 mod derive_clone_ref;
-mod derive_entry_point;
 mod derive_for_each_variant;
 mod derive_iterator;
 mod derive_no_clone;
-mod gen;
 mod overlappable;
 mod root_call_path;
 mod tagged_enum;
@@ -153,18 +150,6 @@ pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::To
     derive_for_each_variant::derive(input)
 }
 
-/// Exposes the function as an application entry point. Entry points are alternative application
-/// running modes that you can access by adding `?entry=` to the end of the application URL. If no
-/// explicit name is provided to this macro (as an argument), the crate name will be used as the
-/// entry point name.
-#[proc_macro_attribute]
-pub fn entry_point(
-    args: proc_macro::TokenStream,
-    item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    derive_entry_point::derive(args, item)
-}
-
 #[allow(missing_docs)]
 #[proc_macro_attribute]
 pub fn overlappable(
@@ -184,137 +169,6 @@ pub fn tagged_enum(
 ) -> proc_macro::TokenStream {
     tagged_enum::run(attr, input)
 }
-
-/// A macro allowing generation of variety of things. For now it supports a few cases, however, it
-/// is meant to be a hub for other extensions.
-///
-///
-/// # Update and set functions generation.
-/// This macro allows generation of `update` and `set` function given its `modify` version. Let's
-/// consider the following usage:
-///
-/// ```text
-/// #[gen(update, set)]
-/// fn modify_column_count(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
-///     ...
-//  }
-/// ```
-/// 
-/// This macro will generate the following code:
-/// ```text
-/// fn modify_column_count(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
-///     ...
-/// }
-/// fn update_column_count(&self, f: impl FnOnce(Option<usize>) -> Option<usize>) -> &Self {
-///     self.modify_column_count(|t| *t = f(*t))
-/// }
-/// fn set_column_count(&self, v: impl Into<Option<usize>>) -> &Self {
-///     self.modify_column_count(|t| *t = v.into())
-/// }
-/// ```
-/// 
-///
-/// ## Hierarchical update and set functions generation.
-///
-/// In case the modify field type is `Vector2`, `Vector3`, or `Vector4`, the `update` and `set`
-/// functions will be generated for the `x`, `y`, `z`, and `w` fields as well. Consider the
-/// following example:
-/// ```text
-/// #[enso_shapely::gen(update, set)]
-/// fn modify_position(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
-///     self.display_object().modify_auto_layout(|l| f(&mut l.columns_and_rows_count.x));
-///     self
-/// }
-/// ```
-/// 
-/// The following output will be generated:
-/// ```text
-/// fn modify_position(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
-///     self.display_object().modify_auto_layout(|l| f(&mut l.columns_and_rows_count.x));
-///     self
-/// }
-/// fn update_position(&self, f: impl FnOnce(Vector2<f32>) -> Vector2<f32>) -> &Self {
-///     self.modify_position(|t| *t = f(*t))
-/// }
-/// fn set_position(&self, v: impl Into<Vector2<f32>>) -> &Self {
-///     self.modify_position(|t| *t = v.into())
-/// }
-/// #[enso_shapely::gen(update, set)]
-/// fn modify_position_x(&self, f: impl FnOnce(&mut f32)) -> &Self {
-///     self.modify_position(|t| f(&mut t.x))
-/// }
-/// #[enso_shapely::gen(update, set)]
-/// fn modify_position_y(&self, f: impl FnOnce(&mut f32)) -> &Self {
-///     self.modify_position(|t| f(&mut t.y))
-/// }
-/// ```
-/// 
-/// You can skip generation of field modifiers by providing the `skip_fields` argument to the macro:
-/// ```text
-/// #[enso_shapely::gen(update, set, skip_fields)]
-/// fn modify_position(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
-///     self.display_object().modify_auto_layout(|l| f(&mut l.columns_and_rows_count.x));
-///     self
-/// }
-/// ```
-/// 
-///
-/// ## Custom conversions
-/// By default, the `set` and `update` methods will use `Into` trait to convert the resulting value
-/// to the expected one. This behavior can be overriden by setting `trait` and `fn` properties of
-/// the `set` argument. For example, the following code:
-/// ```text
-/// #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Unit>", fn = "into_vector_trans()"))]
-/// fn modify_gap(&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
-///     self.display_object().modify_auto_layout(|l| f(&mut l.gap));
-///     self
-/// }
-/// ```
-/// 
-/// Will result in the following code:
-/// ```text
-/// fn modify_gap(&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
-///     self.display_object().modify_auto_layout(|l| f(&mut l.gap));
-///     self
-/// }
-/// fn update_gap<Out: IntoVectorTrans2<Unit>>(
-///     &self,
-///     f: impl FnOnce(Vector2<Unit>) -> Out,
-/// ) -> &Self {
-///     self.modify_gap(|t| *t = f(*t).into_vector_trans())
-/// }
-/// fn set_gap(&self, v: impl IntoVectorTrans2<Unit>) -> &Self {
-///     self.modify_gap(|t| *t = v.into_vector_trans())
-/// }
-/// #[enso_shapely::gen(update, set)]
-/// fn modify_gap_x(&self, f: impl FnOnce(&mut Unit)) -> &Self {
-///     self.modify_gap(|t| f(&mut t.x))
-/// }
-/// #[enso_shapely::gen(update, set)]
-/// fn modify_gap_y(&self, f: impl FnOnce(&mut Unit)) -> &Self {
-///     self.modify_gap(|t| f(&mut t.y))
-/// }
-/// ```
-/// 
-///
-///
-/// # Debugging the macro
-/// You can use the `debug` parameter to cause the macro to panic and print to the console its
-/// generated code. In order to do so, simply use the `debug` parameter among other ones:
-/// ```text
-/// #[gen(debug, update, set)]
-/// fn modify_column_count(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
-///     ...
-//  }
-/// ```
-#[proc_macro_attribute]
-pub fn gen(
-    attr: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    gen::run(attr, input)
-}
-
 
 /// A macro allowing running functions after WASM initialization, before the main function. In order
 /// to run a function before main, simply use this attribute (please note that the function has to

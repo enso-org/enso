@@ -348,6 +348,7 @@ pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
 
 #[derive(Clone, Copy, Debug)]
 pub struct DraftRelease;
+
 impl JobArchetype for DraftRelease {
     fn job(&self, target: Target) -> Job {
         let name = "Create a release draft.".into();
@@ -377,6 +378,7 @@ impl DraftRelease {
 
 #[derive(Clone, Copy, Debug)]
 pub struct PublishRelease;
+
 impl JobArchetype for PublishRelease {
     fn job(&self, target: Target) -> Job {
         let mut ret = plain_job(target, "Publish release", "release publish");
@@ -390,21 +392,10 @@ impl JobArchetype for PublishRelease {
     }
 }
 
-/// Build IDE and upload it as a release asset.
-#[derive(Clone, Copy, Debug)]
-pub struct UploadIde;
-impl JobArchetype for UploadIde {
-    fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}")
-            .cleaning(RELEASE_CLEANING_POLICY)
-            .customize(with_packaging_steps(target.0))
-            .build_job("Build Old IDE", target)
-    }
-}
-
 /// Build new IDE and upload it as a release asset.
 #[derive(Clone, Copy, Debug)]
 pub struct UploadIde2;
+
 impl JobArchetype for UploadIde2 {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
@@ -418,6 +409,7 @@ impl JobArchetype for UploadIde2 {
 
 #[derive(Clone, Copy, Debug)]
 pub struct PromoteReleaseJob;
+
 impl JobArchetype for PromoteReleaseJob {
     fn job(&self, target: Target) -> Job {
         let command = format!("release promote {}", get_input_expression(DESIGNATOR_INPUT_NAME));
@@ -438,6 +430,7 @@ impl JobArchetype for PromoteReleaseJob {
         ret
     }
 }
+
 impl PromoteReleaseJob {
     pub const PROMOTE_STEP_ID: &'static str = "promote";
 }
@@ -475,38 +468,16 @@ pub fn nightly() -> Result<Workflow> {
 
 fn add_release_steps(workflow: &mut Workflow) -> Result {
     let prepare_job_id = workflow.add(PRIMARY_TARGET, DraftRelease);
-    let build_wasm_job_id = workflow.add(PRIMARY_TARGET, job::BuildWasm);
     let mut packaging_job_ids = vec![];
 
     // Assumed, because Linux is necessary to deploy ECR runtime image.
     assert!(RELEASE_TARGETS.into_iter().any(|(os, _)| os == OS::Linux));
     for target in RELEASE_TARGETS {
         let backend_job_id = workflow.add_dependent(target, job::UploadBackend, [&prepare_job_id]);
-        let build_ide_job_id = workflow.add_dependent(target, UploadIde, [
-            &prepare_job_id,
-            &backend_job_id,
-            &build_wasm_job_id,
-        ]);
-        packaging_job_ids.push(build_ide_job_id.clone());
 
         let build_ide2_job_id =
             workflow.add_dependent(target, UploadIde2, [&prepare_job_id, &backend_job_id]);
         packaging_job_ids.push(build_ide2_job_id.clone());
-
-        // Deploying our release to cloud needs to be done only once.
-        // We could do this on any platform, but we choose Linux, because it's most easily
-        // available and performant.
-        if target.0 == OS::Linux {
-            let runtime_requirements = [&prepare_job_id, &backend_job_id];
-            let upload_runtime_job_id =
-                workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
-            packaging_job_ids.push(upload_runtime_job_id);
-
-            let gui_requirements = [build_ide_job_id];
-            let deploy_gui_job_id =
-                workflow.add_dependent(target, job::DeployGui, gui_requirements);
-            packaging_job_ids.push(deploy_gui_job_id);
-        }
     }
 
     let publish_deps = {
@@ -630,8 +601,11 @@ pub fn backend() -> Result<Workflow> {
     let on = typical_check_triggers();
     let mut workflow = Workflow { name: "Engine CI".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
+    workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
     for target in CHECKED_TARGETS {
         workflow.add(target, job::CiCheckBackend);
+        workflow.add(target, job::ScalaTests);
+        workflow.add(target, job::StandardLibraryTests);
     }
     Ok(workflow)
 }
@@ -647,7 +621,7 @@ pub fn std_libs_benchmark() -> Result<Workflow> {
 fn benchmark(name: &str, command_line: &str, timeout_minutes: Option<u32>) -> Result<Workflow> {
     let just_check_input_name = "just-check";
     let just_check_input = WorkflowDispatchInput {
-        r#type: WorkflowDispatchInputType::Boolean{default: Some(false)},
+        r#type: WorkflowDispatchInputType::Boolean { default: Some(false) },
         ..WorkflowDispatchInput::new("If set, benchmarks will be only checked to run correctly, not to measure actual performance.", true)
     };
     let on = Event {

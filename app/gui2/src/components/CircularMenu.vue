@@ -58,7 +58,7 @@ const emit = defineEmits<{
     <ToggleIcon
       icon="record"
       class="icon-container button slot7"
-      :class="{ 'output-context-overridden': props.isRecordingOverridden }"
+      :class="{ 'recording-overridden': props.isRecordingOverridden }"
       :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
       :modelValue="props.isRecordingOverridden"
       @update:modelValue="emit('update:isRecordingOverridden', $event)"
@@ -74,6 +74,11 @@ const emit = defineEmits<{
   top: -36px;
   width: 114px;
   height: 114px;
+  pointer-events: none;
+
+  > * {
+    pointer-events: all;
+  }
 
   &:before {
     content: '';
@@ -82,6 +87,7 @@ const emit = defineEmits<{
     background: var(--color-app-bg);
     width: 100%;
     height: 100%;
+    pointer-events: all;
   }
 
   &.partial {
@@ -145,7 +151,7 @@ const emit = defineEmits<{
   opacity: 10%;
 }
 
-.output-context-overridden {
+.recording-overridden {
   opacity: 100%;
   color: red;
 }

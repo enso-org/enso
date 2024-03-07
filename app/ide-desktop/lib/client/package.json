@@ -41,7 +41,7 @@
     "esbuild": "^0.19.3",
     "fast-glob": "^3.2.12",
     "portfinder": "^1.0.32",
-    "tsx": "^3.12.6"
+    "tsx": "^4.7.1"
   },
   "optionalDependencies": {
     "@esbuild/darwin-x64": "^0.17.15",

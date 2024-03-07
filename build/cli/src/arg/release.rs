@@ -11,9 +11,6 @@ pub struct DeployRuntime {
     pub ecr_repository: String,
 }
 
-#[derive(Args, Clone, Copy, Debug)]
-pub struct DeployGui {}
-
 /// Structure that represents `promote` subcommand arguments.
 #[derive(Args, Clone, Copy, Debug)]
 pub struct Promote {
@@ -28,8 +25,6 @@ pub enum Action {
     CreateDraft,
     /// Build the runtime image and push it to ECR.
     DeployRuntime(DeployRuntime),
-    /// Upload the GUI to the S3 Bucket and notify.
-    DeployGui(DeployGui),
     Publish,
     Promote(Promote),
 }

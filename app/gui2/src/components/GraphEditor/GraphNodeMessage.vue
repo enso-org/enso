@@ -29,7 +29,7 @@ const iconForType: Record<GraphNodeMessageType, Icon | undefined> = {
 
 <template>
   <div class="GraphNodeMessage" :class="styleClassForType[props.type]">
-    <SvgIcon class="icon" :name="icon" />
+    <SvgIcon v-if="icon" class="icon" :name="icon" />
     <div v-text="props.message"></div>
   </div>
 </template>
