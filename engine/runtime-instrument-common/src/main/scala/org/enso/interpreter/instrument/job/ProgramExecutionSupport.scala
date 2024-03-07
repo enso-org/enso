@@ -395,12 +395,8 @@ object ProgramExecutionSupport {
                 )
               val warningsCount = warnings.length
               val warning =
-                if (warningsCount == 1) {
-                  Option(
-                    ctx.executionService.toDisplayString(warnings(0).getValue)
-                  )
-                } else {
-                  None
+                Option.when(warningsCount > 0) {
+                  WarningPreview.execute(warnings(0).getValue)
                 }
 
               Api.ExpressionUpdate.Payload.Value
