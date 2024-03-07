@@ -4,56 +4,62 @@
  * Search params state hook store a value in the URL search params.
  */
 
-import { type SetStateAction } from 'react'
+import type * as React from 'react'
 
-import { useSearchParams } from 'react-router-dom'
+import * as reactRouterDom from 'react-router-dom'
 
-import { useEventCallback } from '#/hooks/eventCallback'
+import * as eventCallback from '#/hooks/eventCallback'
 
-import { useLazyMemo } from './useLazyMemo'
+import * as safeJsonParse from '#/utilities/safeJsonParse'
 
-/**
- *
- */
-export type ParamKeyValuePair = [string, string]
+import * as lazyMemo from './useLazyMemo'
 
 /**
- *
+ * The return type of the `useSearchParamsState` hook.
  */
-export function useSearchParamsState<T = any>(key: string, defaultValue: T | (() => T)) {
-  const [searchParams, setSearchParams] = useSearchParams()
+type SearchParamsStateReturnType<T> = Readonly<
+  [value: T, setValue: (nextValue: React.SetStateAction<T>) => void, clear: () => void]
+>
 
-  const lazyDefaultValueInitializer = useLazyMemo(defaultValue, [defaultValue])
+/**
+ * Hook that synchronize a state in the URL search params. It returns the value, a setter and a clear function.
+ * @param key - The key to store the value in the URL search params.
+ * @param defaultValue - The default value to use if the key is not present in the URL search params.
+ */
+export function useSearchParamsState<T = unknown>(
+  key: string,
+  defaultValue: T | (() => T)
+): SearchParamsStateReturnType<T> {
+  const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
 
-  const value = (() => {
+  const lazyDefaultValueInitializer = lazyMemo.useLazyMemo(defaultValue, [defaultValue])
+
+  const value: T = (() => {
     const maybeValue = searchParams.get(key)
-    const _default = lazyDefaultValueInitializer()
+    const defaultValueFrom = lazyDefaultValueInitializer()
 
-    return maybeValue != null ? JSON.parse(maybeValue) : _default
+    return maybeValue != null
+      ? safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
+      : defaultValueFrom
   })()
 
-  const setValue = useEventCallback((nextValue: SetStateAction<T>) => {
+  const setValue = eventCallback.useEventCallback((nextValue: React.SetStateAction<T>) => {
     if (nextValue instanceof Function) {
       nextValue = nextValue(value)
     }
 
-    if (nextValue === value) {
-      return
-    }
-
     if (nextValue === lazyDefaultValueInitializer()) {
       clear()
-      return
+    } else {
+      searchParams.set(key, JSON.stringify(nextValue))
+      setSearchParams(searchParams)
     }
-
-    searchParams.set(key, JSON.stringify(nextValue))
-    setSearchParams(searchParams)
   })
 
-  const clear = useEventCallback(() => {
+  const clear = eventCallback.useEventCallback(() => {
     searchParams.delete(key)
     setSearchParams(searchParams)
   })
 
-  return [value, setValue, clear] as const
+  return [value, setValue, clear]
 }
