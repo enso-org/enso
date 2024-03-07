@@ -50,6 +50,7 @@ type Array
     at self index = Array_Like_Helpers.at self index
 
     ## GROUP Metadata
+       ICON metadata
        Returns the number of elements stored in this array.
 
        > Example
@@ -70,6 +71,7 @@ type Array
 
     ## ALIAS order_by
        GROUP Calculations
+       ICON order
        Sort the array.
 
        Arguments:
@@ -179,6 +181,7 @@ type Array
         Array_Like_Helpers.drop self range
 
     ## GROUP Calculations
+       ICON add_row
        Inserts the given item into the array at the given index.
 
        Arguments:
@@ -199,6 +202,7 @@ type Array
         Array_Like_Helpers.insert self at item
 
     ## GROUP Selections
+       ICON select_column
        Removes the item at the given index from the array.
 
        Arguments:
@@ -247,6 +251,7 @@ type Array
     last self = self.at -1
 
     ## GROUP Values
+       ICON find
        Returns the index of an element in the array.
        Returns Nothing if the element is not found.
 
@@ -270,6 +275,7 @@ type Array
         Array_Like_Helpers.index_of self condition start
 
     ## GROUP Values
+       ICON find
        Returns the last index of an element in the array.
        Returns `Nothing` if the element is not found.
 
@@ -303,11 +309,12 @@ type Array
     is_empty : Boolean
     is_empty self = self.length == 0
 
-    ## Converts the array to a list with the same elements.
+    ## ICON convert
+       Converts the array to a list with the same elements.
     to_list : List
     to_list self = Array_Like_Helpers.to_list self
 
-    ## ALIAS unique, deduplicate
+    ## ALIAS deduplicate, unique
        GROUP Selections
        ICON preparation
        Keeps only unique elements within the array, removing any duplicates.
@@ -430,6 +437,7 @@ type Array
     filter self filter = Array_Like_Helpers.filter self filter
 
     ## GROUP Calculations
+       ICON dataframes_union
        Transforms an array of arrays into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested arrays.
 
@@ -446,7 +454,8 @@ type Array
     short_display_text self max_entries=10 =
         Array_Like_Helpers.short_display_text self max_entries
 
-    ## Combines all the elements of the array, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the array, by iteratively applying the
        passed function with the next element of the array. After each step the
        value is stored resulting in a new array of the same size as self.
 
@@ -501,6 +510,7 @@ type Array
         Array_Like_Helpers.fold_with_index self init function
 
     ## GROUP Calculations
+       ICON dataframes_union
        Extend `self` array to the length of `n` appending elements `elem` to
        the end.
 
@@ -552,7 +562,8 @@ type Array
     partition self condition =
         Array_Like_Helpers.partition self condition
 
-    ## Partitions the array into `Vector`s of elements which satisfy a given
+    ## ICON preparation
+       Partitions the array into `Vector`s of elements which satisfy a given
        predicate and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
@@ -609,7 +620,8 @@ type Array
     transpose self =
         Array_Like_Helpers.transpose self
 
-    ## Applies a function to each element of the array, returning the `Vector`
+    ## ICON dataframe_map_column
+       Applies a function to each element of the array, returning the `Vector`
        of results.
 
        Arguments:
@@ -667,6 +679,7 @@ type Array
         Array_Like_Helpers.slice self start end
 
     ## GROUP Selections
+       ICON find
        Returns the first element of the array that satisfies the condition or
        `if_missing` if no elements of the array satisfy it.
 
@@ -875,11 +888,13 @@ type Array
         len = self.length.min that.length
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
-    ## Returns the array as a `Vector`.
+    ## ICON convert
+       Returns the array as a `Vector`.
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array self
 
     ## GROUP Selections
+       ICON order
        Reverses the array, returning a `Vector` with the same elements, but in
        the opposite order.
 

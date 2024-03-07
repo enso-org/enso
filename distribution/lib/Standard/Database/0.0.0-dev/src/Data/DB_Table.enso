@@ -943,7 +943,7 @@ type DB_Table
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
     evaluate_expression : Text | Expression -> Problem_Behavior -> DB_Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    evaluate_expression self (expression:Text|Expression) on_problems=Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
+    evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.Data.DB_Column" "DB_Column" DB_Column.var_args_functions
         problems = Warning.get_all new_column . map .value
@@ -1591,7 +1591,7 @@ type DB_Table
              #    2 | 30 | c | g
              #    3 | 40 | d | h
     @column Widget_Helpers.make_column_name_selector
-    replace : DB_Table | Map -> (Text | Integer) -> (Text | Integer) -> (Text | Integer) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace : DB_Table | Map -> (Text | Integer) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:(DB_Table | Map) column:(Text | Integer) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         Replace_Helpers.replace self lookup_table column from_column to_column allow_unmatched_rows on_problems
 
@@ -2109,7 +2109,7 @@ type DB_Table
     @columns Widget_Helpers.make_column_name_vector_selector
     @format (make_format_chooser include_number=False)
     parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> DB_Table
-    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format:(Text|Data_Formatter)='' error_on_missing_columns=True on_problems=Report_Warning =
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format:(Text | Data_Formatter)='' error_on_missing_columns=True on_problems=Report_Warning =
         selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
         selected.fold self table-> column_to_parse->
             new_column = column_to_parse.parse type format on_problems
