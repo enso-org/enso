@@ -35,11 +35,18 @@ export interface UserMenuProps {
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, setPage, supportsLocalBackend, onSignOut } = props
+  const [initialized, setInitialized] = React.useState(false)
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+
+  React.useEffect(() => {
+    requestAnimationFrame(() => {
+      setInitialized(true)
+    })
+  }, [])
 
   return (
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
@@ -47,15 +54,15 @@ export default function UserMenu(props: UserMenuProps) {
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className="absolute right-top-bar-margin top-top-bar-margin flex w-user-menu flex-col gap-user-menu rounded-default bg-selected-frame px-user-menu-x py-user-menu-y backdrop-blur-default"
+        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame px-user-menu-x py-user-menu-y backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu' : 'size-row-h'}`}
         onClick={event => {
           event.stopPropagation()
         }}
       >
         {user != null ? (
           <>
-            <div className="flex items-center gap-icons px-menu-entry">
-              <div className="flex size-profile-picture items-center overflow-clip rounded-full">
+            <div className="flex items-center gap-icons px-menu-entry overflow-hidden">
+              <div className="flex shrink-0 size-profile-picture items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
                   className="pointer-events-none size-profile-picture"
@@ -63,38 +70,42 @@ export default function UserMenu(props: UserMenuProps) {
               </div>
               <span className="text">{user.name}</span>
             </div>
-            <div className="flex flex-col">
-              {!supportsLocalBackend && (
+            <div
+              className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
+            >
+              <div className="flex flex-col overflow-hidden">
+                {!supportsLocalBackend && (
+                  <MenuEntry
+                    action="downloadApp"
+                    doAction={async () => {
+                      unsetModal()
+                      const downloadUrl = await github.getDownloadUrl()
+                      if (downloadUrl == null) {
+                        toastAndLog('Could not find a download link for the current OS')
+                      } else {
+                        download.download(downloadUrl)
+                      }
+                    }}
+                  />
+                )}
                 <MenuEntry
-                  action="downloadApp"
-                  doAction={async () => {
+                  action="settings"
+                  doAction={() => {
                     unsetModal()
-                    const downloadUrl = await github.getDownloadUrl()
-                    if (downloadUrl == null) {
-                      toastAndLog('Could not find a download link for the current OS')
-                    } else {
-                      download.download(downloadUrl)
-                    }
+                    setPage(pageSwitcher.Page.settings)
                   }}
                 />
-              )}
-              <MenuEntry
-                action="settings"
-                doAction={() => {
-                  unsetModal()
-                  setPage(pageSwitcher.Page.settings)
-                }}
-              />
-              <MenuEntry
-                action="signOut"
-                doAction={() => {
-                  onSignOut()
-                  // Wait until React has switched back to drive view, before signing out.
-                  window.setTimeout(() => {
-                    void signOut()
-                  }, 0)
-                }}
-              />
+                <MenuEntry
+                  action="signOut"
+                  doAction={() => {
+                    onSignOut()
+                    // Wait until React has switched back to drive view, before signing out.
+                    window.setTimeout(() => {
+                      void signOut()
+                    }, 0)
+                  }}
+                />
+              </div>
             </div>
           </>
         ) : (

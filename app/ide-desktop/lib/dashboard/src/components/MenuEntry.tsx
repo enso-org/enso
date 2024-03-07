@@ -66,7 +66,7 @@ export default function MenuEntry(props: MenuEntryProps) {
         doAction()
       }}
     >
-      <div className="flex items-center gap-menu-entry">
+      <div className="flex items-center gap-menu-entry whitespace-nowrap">
         <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
         {label ?? info.name}
       </div>
