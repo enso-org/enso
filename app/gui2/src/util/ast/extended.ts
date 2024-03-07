@@ -18,9 +18,8 @@ import { tryGetSoleValue } from 'shared/util/data/iterable'
 import type { ExternalId, IdMap, SourceRange } from 'shared/yjsModel'
 import { markRaw } from 'vue'
 
-type ExtractType<V, T> = T extends ReadonlyArray<infer Ts>
-  ? Extract<V, { type: Ts }>
-  : Extract<V, { type: T }>
+type ExtractType<V, T> =
+  T extends ReadonlyArray<infer Ts> ? Extract<V, { type: Ts }> : Extract<V, { type: T }>
 
 type OneOrArray<T> = T | readonly T[]
 
@@ -149,8 +148,8 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
   }
 
   whitespaceLength() {
-    return 'whitespaceLengthInCodeBuffer' in this.inner
-      ? this.inner.whitespaceLengthInCodeBuffer
+    return 'whitespaceLengthInCodeBuffer' in this.inner ?
+        this.inner.whitespaceLengthInCodeBuffer
       : this.inner.whitespaceLengthInCodeParsed
   }
 
@@ -179,10 +178,9 @@ export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends
   }
 }
 
-type CondType<T, Cond extends boolean> = Cond extends true
-  ? T
-  : Cond extends false
-  ? undefined
+type CondType<T, Cond extends boolean> =
+  Cond extends true ? T
+  : Cond extends false ? undefined
   : T | undefined
 
 class AstExtendedCtx<HasIdMap extends boolean> {

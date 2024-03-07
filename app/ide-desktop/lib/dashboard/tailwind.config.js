@@ -29,6 +29,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         youtube: '#c62421',
         discord: '#404796',
         danger: '#d33b0b',
+        // Equivalent to `lch(70% 0 0 / 0.5)`
+        'selection-brush': 'rgba(171 171 171 / 0.5)',
         dim: 'rgba(0, 0, 0, 0.25)',
         'dim-darker': 'rgba(0, 0, 0, 0.40)',
         frame: 'rgba(255, 255, 255, 0.40)',
@@ -103,6 +105,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         115.25: '28.8125rem',
         120: '30rem',
         140: '35rem',
+        155: '38.75rem',
         '10lh': '10lh',
       },
       minHeight: {
@@ -112,9 +115,11 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         container: '100cqw',
       },
       minWidth: {
+        4: '1rem',
         31.5: '7.875rem',
         32: '8rem',
         33.25: '8.3125rem',
+        36: '9rem',
         40: '10rem',
         61.25: '15.3125rem',
         80: '20rem',
@@ -135,7 +140,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
       backdropBlur: {
         xs: '2px',
       },
-      borderWidth: { 0.5: '0.5px' },
+      borderWidth: { 0.5: '0.5px', 6: '6px' },
       boxShadow: {
         soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \
@@ -149,6 +154,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'min-width': 'min-width',
         'stroke-dasharray': 'stroke-dasharray',
         'grid-template-rows': 'grid-template-rows',
+        'border-margin': 'border, margin',
       },
       transitionDuration: {
         400: '400ms',

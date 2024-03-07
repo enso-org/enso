@@ -1,8 +1,10 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { tryQualifiedName } from '@/util/qualifiedName'
 import { initializeFFI } from 'shared/ast/ffi'
+import { unwrap } from 'shared/util/data/result'
 import { expect, test } from 'vitest'
-import { MutableModule, escape, unescape, type Identifier } from '../abstract'
+import { MutableModule, substituteQualifiedName, type Identifier } from '../abstract'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
@@ -507,23 +509,6 @@ test('Construct app', () => {
   expect(namedApp.code()).toBe('func name=arg')
 })
 
-test.each([
-  ['Hello, World!', 'Hello, World!'],
-  ['Hello\t\tWorld!', 'Hello\\t\\tWorld!'],
-  ['He\nllo, W\rorld!', 'He\\nllo, W\\rorld!'],
-  ['Hello,\vWorld!', 'Hello,\\vWorld!'],
-  ['Hello, \\World!', 'Hello, \\World!'],
-  ['Hello, `World!`', 'Hello, ``World!``'],
-  ["'Hello, World!'", "\\'Hello, World!\\'"],
-  ['"Hello, World!"', '\\"Hello, World!\\"'],
-  ['Hello, \fWorld!', 'Hello, \\fWorld!'],
-  ['Hello, \bWorld!', 'Hello, \\bWorld!'],
-])('Text literals escaping and unescaping', (original, expectedEscaped) => {
-  const escaped = escape(original)
-  expect(escaped).toBe(expectedEscaped)
-  expect(unescape(escaped)).toBe(original)
-})
-
 test('Automatic parenthesis', () => {
   const block = Ast.parseBlock('main = func arg1 arg2')
   let arg1: Ast.MutableAst | undefined
@@ -787,4 +772,106 @@ test('Code edit merging', () => {
   module.applyEdit(editA)
   module.applyEdit(editB)
   expect(module.root()?.code()).toBe('a = 10\nb = 20')
+})
+
+test('Analyze app-like', () => {
+  const appLike = Ast.parse('(Preprocessor.default_preprocessor 3 _ 5 _ <| 4) <| 6')
+  const { func, args } = Ast.analyzeAppLike(appLike)
+  expect(func.code()).toBe('Preprocessor.default_preprocessor')
+  expect(args.map((ast) => ast.code())).toEqual(['3', '4', '5', '6'])
+})
+
+test.each([
+  {
+    original: 'Vector.new',
+    pattern: 'Vector.new',
+    substitution: 'Standard.Base.Vector.new',
+    expected: 'Standard.Base.Vector.new',
+  },
+  {
+    original: 'x = Table.from_vec (Vector.new 1 2 3)',
+    pattern: 'Vector.new',
+    substitution: 'NotReallyVector.create',
+    expected: 'x = Table.from_vec (NotReallyVector.create 1 2 3)',
+  },
+  {
+    original: 'x',
+    pattern: 'x',
+    substitution: 'y',
+    expected: 'y',
+  },
+  {
+    original: 'x + y',
+    pattern: 'x',
+    substitution: 'z',
+    expected: 'z + y',
+  },
+  {
+    original: 'Data.Table.new',
+    pattern: 'Data',
+    substitution: 'Project.Foo.Data',
+    expected: 'Project.Foo.Data.Table.new',
+  },
+  {
+    original: 'Data.Table.new',
+    pattern: 'Table',
+    substitution: 'ShouldNotWork',
+    expected: 'Data.Table.new',
+  },
+])('Substitute $pattern insde $original', ({ original, pattern, substitution, expected }) => {
+  const expression = Ast.parse(original)
+  expression.module.replaceRoot(expression)
+  const edit = expression.module.edit()
+  substituteQualifiedName(
+    edit,
+    expression,
+    pattern as Ast.QualifiedName,
+    unwrap(tryQualifiedName(substitution)),
+  )
+  expect(edit.root()?.code()).toEqual(expected)
+})
+
+const docEditCases = [
+  { code: '## Simple\nnode', documentation: 'Simple' },
+  {
+    code: '## Preferred indent\n   2nd line\n   3rd line\nnode',
+    documentation: 'Preferred indent\n2nd line\n3rd line',
+  },
+  {
+    code: '## Extra-indented child\n 2nd line\n   3rd line\nnode',
+    documentation: 'Extra-indented child\n2nd line\n3rd line',
+    normalized: '## Extra-indented child\n   2nd line\n   3rd line\nnode',
+  },
+  {
+    code: '## Extra-indented child, beyond 4th column\n 2nd line\n        3rd line\nnode',
+    documentation: 'Extra-indented child, beyond 4th column\n2nd line\n    3rd line',
+    normalized: '## Extra-indented child, beyond 4th column\n   2nd line\n       3rd line\nnode',
+  },
+  {
+    code: '##Preferred indent, no initial space\n  2nd line\n  3rd line\nnode',
+    documentation: 'Preferred indent, no initial space\n2nd line\n3rd line',
+    normalized: '## Preferred indent, no initial space\n   2nd line\n   3rd line\nnode',
+  },
+  {
+    code: '## Minimum indent\n 2nd line\n 3rd line\nnode',
+    documentation: 'Minimum indent\n2nd line\n3rd line',
+    normalized: '## Minimum indent\n   2nd line\n   3rd line\nnode',
+  },
+]
+test.each(docEditCases)('Documentation edit round trip: $code', (docCase) => {
+  const { code, documentation } = docCase
+  const parsed = Ast.Documented.tryParse(code)
+  assert(parsed != null)
+  const parsedDocumentation = parsed.documentation()
+  expect(parsedDocumentation).toBe(documentation)
+  const edited = MutableModule.Transient().copy(parsed)
+  edited.setDocumentationText(parsedDocumentation)
+  expect(edited.code()).toBe(docCase.normalized ?? code)
+})
+
+test('Adding comments', () => {
+  const expr = Ast.parse('2 + 2')
+  expr.module.replaceRoot(expr)
+  expr.update((expr) => Ast.Documented.new('Calculate five', expr))
+  expect(expr.module.root()?.code()).toBe('## Calculate five\n2 + 2')
 })

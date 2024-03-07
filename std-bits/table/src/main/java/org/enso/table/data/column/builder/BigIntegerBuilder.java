@@ -113,7 +113,7 @@ public class BigIntegerBuilder extends TypedBuilderImpl<BigInteger> {
       if (storage instanceof AbstractLongStorage longStorage) {
         int n = longStorage.size();
         for (int i = 0; i < n; i++) {
-          if (storage.isNa(i)) {
+          if (storage.isNothing(i)) {
             data[currentSize++] = null;
           } else {
             long item = longStorage.getItem(i);

@@ -49,7 +49,7 @@ function blur(event: Event) {
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 
-onMounted(() => (config.width = Math.max(config.nodeSize.x, MIN_WIDTH_PX)))
+onMounted(() => (config.width = MIN_WIDTH_PX))
 
 function hideSelector() {
   requestAnimationFrame(() => (isSelectorVisible.value = false))
@@ -61,7 +61,7 @@ const resizeRight = usePointer((pos, _, type) => {
   }
   const width =
     (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
-  config.width = Math.max(config.nodeSize.x, width, MIN_WIDTH_PX)
+  config.width = Math.max(width, MIN_WIDTH_PX)
 }, PointerButtonMask.Main)
 
 const resizeBottom = usePointer((pos, _, type) => {
@@ -80,7 +80,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
   if (pos.delta.x !== 0) {
     const width =
       (pos.absolute.x - (contentNode.value?.getBoundingClientRect().left ?? 0)) / config.scale
-    config.width = Math.max(config.nodeSize.x, width)
+    config.width = Math.max(0, width)
   }
   if (pos.delta.y !== 0) {
     const height =
@@ -105,6 +105,9 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         '--color-visualization-bg': config.background,
         '--node-height': `${config.nodeSize.y}px`,
       }"
+      @pointerdown.stop
+      @pointerup.stop
+      @click.stop
     >
       <div class="resizer-right" v-on="resizeRight.stop.events"></div>
       <div class="resizer-bottom" v-on="resizeBottom.stop.events"></div>
@@ -114,12 +117,10 @@ const resizeBottomRight = usePointer((pos, _, type) => {
         class="content scrollable"
         :class="{ overflow: props.overflow }"
         :style="{
-          width: config.fullscreen
-            ? undefined
-            : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
-          height: config.fullscreen
-            ? undefined
-            : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
+          width:
+            config.fullscreen ? undefined : `${Math.max(config.width ?? 0, config.nodeSize.x)}px`,
+          height:
+            config.fullscreen ? undefined : `${Math.max(config.height ?? 0, config.nodeSize.y)}px`,
         }"
         @wheel.passive="onWheel"
       >
@@ -132,22 +133,18 @@ const resizeBottomRight = usePointer((pos, _, type) => {
             invisible: config.isCircularMenuVisible,
             hidden: config.fullscreen,
           }"
+          @pointerdown.stop
+          @pointerup.stop
+          @click.stop
         >
-          <button
-            class="image-button active"
-            @pointerdown.stop="config.hide()"
-            @click="config.hide()"
-          >
+          <button class="image-button active" @click.stop="config.hide()">
             <SvgIcon class="icon" name="eye" alt="Hide visualization" />
           </button>
         </div>
         <div class="toolbar">
           <button
             class="image-button active"
-            @pointerdown.stop="(config.fullscreen = !config.fullscreen), blur($event)"
-            @click.prevent="
-              isTriggeredByKeyboard($event) && (config.fullscreen = !config.fullscreen)
-            "
+            @click.stop.prevent="(config.fullscreen = !config.fullscreen), blur($event)"
           >
             <SvgIcon
               class="icon"
@@ -158,9 +155,9 @@ const resizeBottomRight = usePointer((pos, _, type) => {
           <div class="icon-container">
             <button
               class="image-button active"
-              @pointerdown.stop="!isSelectorVisible && (isSelectorVisible = !isSelectorVisible)"
-              @click.prevent="
-                isTriggeredByKeyboard($event) && (isSelectorVisible = !isSelectorVisible)
+              @click.stop.prevent="
+                (!isSelectorVisible || isTriggeredByKeyboard($event)) &&
+                  (isSelectorVisible = !isSelectorVisible)
               "
             >
               <SvgIcon
@@ -227,7 +224,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen.below-toolbar {
-  padding-top: 78px;
+  padding-top: 40px;
 }
 
 .toolbars {
@@ -257,7 +254,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
 }
 
 .VisualizationContainer.fullscreen .toolbars {
-  top: 40px;
+  top: 4px;
 }
 
 .toolbar {

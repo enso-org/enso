@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { visualizationBindings } from '@/bindings'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
+import { focusIsIn, useEvent } from '@/composables/events'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
-import { useGraphStore } from '@/stores/graph'
 import { useProjectStore, type NodeVisualizationConfiguration } from '@/stores/project'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
@@ -11,6 +12,7 @@ import {
   type VisualizationDataSource,
 } from '@/stores/visualization'
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
+import { Ast } from '@/util/ast'
 import { toError } from '@/util/data/error'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -19,9 +21,11 @@ import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
 import { computedAsync } from '@vueuse/core'
-import type { VisualizationIdentifier } from 'shared/yjsModel'
+import { isIdentifier } from 'shared/ast'
+import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
 import {
   computed,
+  nextTick,
   onErrorCaptured,
   onUnmounted,
   ref,
@@ -34,35 +38,34 @@ import {
 const TOP_WITHOUT_TOOLBAR_PX = 36
 const TOP_WITH_TOOLBAR_PX = 72
 
+// Used for testing.
+type RawDataSource = { type: 'raw'; data: any }
+
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
   isCircularMenuVisible: boolean
   nodePosition: Vec2
   nodeSize: Vec2
+  width: Opt<number>
   scale: number
+  isFocused: boolean
+  isFullscreen: boolean
   typename?: string | undefined
-  dataSource?: VisualizationDataSource | undefined
-  data?: any | undefined
+  dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
 const emit = defineEmits<{
   'update:rect': [rect: Rect | undefined]
   'update:id': [id: VisualizationIdentifier]
   'update:visible': [visible: boolean]
+  'update:fullscreen': [fullscreen: boolean]
+  'update:width': [width: number]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
 const vueError = ref<Error>()
 
 const projectStore = useProjectStore()
-const graphStore = useGraphStore()
 const visualizationStore = useVisualizationStore()
-
-const expressionInfo = computed(() =>
-  props.dataSource?.type === 'node'
-    ? graphStore.db.getExpressionInfo(props.dataSource.nodeId)
-    : undefined,
-)
-const typeName = computed(() => expressionInfo.value?.typename ?? 'Any')
 
 const configForGettingDefaultVisualization = computed<NodeVisualizationConfiguration | undefined>(
   () => {
@@ -80,22 +83,25 @@ const defaultVisualizationRaw = projectStore.useVisualizationData(
   configForGettingDefaultVisualization,
 ) as ShallowRef<Result<{ library: { name: string } | null; name: string } | undefined>>
 
-const defaultVisualization = computed<VisualizationIdentifier | undefined>(() => {
-  const raw = defaultVisualizationRaw.value
-  if (!raw?.ok || !raw.value) return
-  return {
-    name: raw.value.name,
-    module:
-      raw.value.library == null
-        ? { kind: 'Builtin' }
+const defaultVisualizationForCurrentNodeSource = computed<VisualizationIdentifier | undefined>(
+  () => {
+    const raw = defaultVisualizationRaw.value
+    if (!raw?.ok || !raw.value) return
+    return {
+      name: raw.value.name,
+      module:
+        raw.value.library == null ?
+          { kind: 'Builtin' }
         : { kind: 'Library', name: raw.value.library.name },
-  }
-})
+    }
+  },
+)
 
 const currentType = computed(() => {
   if (props.currentType) return props.currentType
-  if (defaultVisualization.value) return defaultVisualization.value
-  const [id] = visualizationStore.types(typeName.value)
+  if (defaultVisualizationForCurrentNodeSource.value)
+    return defaultVisualizationForCurrentNodeSource.value
+  const [id] = visualizationStore.types(props.typename)
   return id
 })
 
@@ -107,36 +113,49 @@ onErrorCaptured((error) => {
   return false
 })
 
-const visualizationData = projectStore.useVisualizationData(() => {
-  return props.data == null && props.dataSource?.type === 'node'
-    ? {
-        ...visPreprocessor.value,
-        expressionId: props.dataSource.nodeId,
-      }
-    : null
+const nodeVisualizationData = projectStore.useVisualizationData(() => {
+  if (props.dataSource?.type !== 'node') return
+  return {
+    ...visPreprocessor.value,
+    expressionId: props.dataSource.nodeId,
+  }
 })
 
 const expressionVisualizationData = computedAsync(() => {
   if (props.dataSource?.type !== 'expression') return
+  if (preprocessorLoading.value) return
   const preprocessor = visPreprocessor.value
   const args = preprocessor.positionalArgumentsExpressions
-  const argsCode = args.length ? `(${args.join(') (')})` : ''
+  const tempModule = Ast.MutableModule.Transient()
+  const preprocessorModule = Ast.parse(preprocessor.visualizationModule, tempModule)
   // TODO[ao]: it work with builtin visualization, but does not work in general case.
   // Tracked in https://github.com/orgs/enso-org/discussions/6832#discussioncomment-7754474.
-  const preprocessorCode = `${preprocessor.visualizationModule}.${preprocessor.expression} _ ${argsCode}`
-  const expression = `${preprocessorCode} <| ${props.dataSource.expression}`
-  return projectStore.executeExpression(props.dataSource.contextId, expression)
+  if (!isIdentifier(preprocessor.expression)) {
+    console.error(`Unsupported visualization preprocessor definition`, preprocessor)
+    return
+  }
+  const preprocessorQn = Ast.PropertyAccess.new(
+    tempModule,
+    preprocessorModule,
+    preprocessor.expression,
+  )
+  const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
+    Ast.Wildcard.new(tempModule),
+    ...args.map((arg) => Ast.Group.new(tempModule, Ast.parse(arg, tempModule))),
+  ])
+  const rhs = Ast.parse(props.dataSource.expression, tempModule)
+  const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+  return projectStore.executeExpression(props.dataSource.contextId, expression.code())
 })
 
 const effectiveVisualizationData = computed(() => {
   const name = currentType.value?.name
-  if (props.data) return props.data
+  if (props.dataSource?.type === 'raw') return props.dataSource.data
   if (vueError.value) return { name, error: vueError.value }
-  if (visualizationData.value && !visualizationData.value.ok)
-    return { name, error: new Error(visualizationData.value.error.payload) }
-  if (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
-    return { name, error: new Error(expressionVisualizationData.value.error.payload) }
-  return visualizationData.value?.value ?? expressionVisualizationData.value?.value
+  const visualizationData = nodeVisualizationData.value ?? expressionVisualizationData.value
+  if (!visualizationData) return
+  if (visualizationData.ok) return visualizationData.value
+  else return { name, error: new Error(visualizationData.error.payload) }
 })
 
 function updatePreprocessor(
@@ -158,7 +177,11 @@ watch(
   () => (vueError.value = undefined),
 )
 
+// Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
+// prepared asynchronously.
+const preprocessorLoading = ref(false)
 watchEffect(async () => {
+  preprocessorLoading.value = true
   if (currentType.value == null) return
   visualization.value = undefined
   icon.value = undefined
@@ -197,43 +220,54 @@ watchEffect(async () => {
   } catch (caughtError) {
     vueError.value = toError(caughtError)
   }
+  preprocessorLoading.value = false
 })
 
 const isBelowToolbar = ref(false)
-let width = ref<number | null>(null)
-let height = ref(150)
+let userSetHeight = ref(150)
 
-watchEffect(() =>
-  emit(
-    'update:rect',
+const rect = computed(
+  () =>
     new Rect(
       props.nodePosition,
       new Vec2(
-        width.value ?? props.nodeSize.x,
-        height.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
+        Math.max(props.width ?? 0, props.nodeSize.x),
+        userSetHeight.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
       ),
     ),
-  ),
 )
 
-onUnmounted(() => emit('update:rect', undefined))
+watchEffect(() => emit('update:rect', rect.value))
+onUnmounted(() => {
+  emit('update:rect', undefined)
+})
+
+const allTypes = computed(() => Array.from(visualizationStore.types(props.typename)))
 
 provideVisualizationConfig({
-  fullscreen: false,
+  get isFocused() {
+    return props.isFocused
+  },
+  get fullscreen() {
+    return props.isFullscreen
+  },
+  set fullscreen(value) {
+    emit('update:fullscreen', value)
+  },
   get scale() {
     return props.scale
   },
   get width() {
-    return width.value
+    return rect.value.width
   },
   set width(value) {
-    width.value = value
+    emit('update:width', value)
   },
   get height() {
-    return height.value
+    return userSetHeight.value
   },
   set height(value) {
-    height.value = value
+    userSetHeight.value = value
   },
   get isBelowToolbar() {
     return isBelowToolbar.value
@@ -242,7 +276,7 @@ provideVisualizationConfig({
     isBelowToolbar.value = value
   },
   get types() {
-    return Array.from(visualizationStore.types(props.typename))
+    return allTypes.value
   },
   get isCircularMenuVisible() {
     return props.isCircularMenuVisible
@@ -263,7 +297,7 @@ provideVisualizationConfig({
 const effectiveVisualization = computed(() => {
   if (
     vueError.value ||
-    (visualizationData.value && !visualizationData.value.ok) ||
+    (nodeVisualizationData.value && !nodeVisualizationData.value.ok) ||
     (expressionVisualizationData.value && !expressionVisualizationData.value.ok)
   ) {
     return LoadingErrorVisualization
@@ -273,10 +307,49 @@ const effectiveVisualization = computed(() => {
   }
   return visualization.value
 })
+
+const root = ref<HTMLElement>()
+
+const keydownHandler = visualizationBindings.handler({
+  nextType: () => {
+    if (props.isFocused || focusIsIn(root.value)) {
+      const currentIndex = allTypes.value.findIndex((type) =>
+        visIdentifierEquals(type, currentType.value),
+      )
+      const nextIndex = (currentIndex + 1) % allTypes.value.length
+      emit('update:id', allTypes.value[nextIndex]!)
+    } else {
+      return false
+    }
+  },
+  toggleFullscreen: () => {
+    if (props.isFocused || focusIsIn(root.value)) {
+      emit('update:fullscreen', !props.isFullscreen)
+    } else {
+      return false
+    }
+  },
+  exitFullscreen: () => {
+    if (props.isFullscreen) {
+      emit('update:fullscreen', false)
+    } else {
+      return false
+    }
+  },
+})
+
+useEvent(window, 'keydown', (event) => keydownHandler(event))
+
+watch(
+  () => props.isFullscreen,
+  (f) => {
+    f && nextTick(() => root.value?.focus())
+  },
+)
 </script>
 
 <template>
-  <div class="GraphVisualization">
+  <div ref="root" class="GraphVisualization" tabindex="-1">
     <Suspense>
       <template #fallback><LoadingVisualization :data="{}" /></template>
       <component

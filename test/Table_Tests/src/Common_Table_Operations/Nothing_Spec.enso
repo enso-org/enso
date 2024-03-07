@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import all
 
-import Standard.Database.Data.DB_Column.DB_Column
+import Standard.Database.DB_Column.DB_Column
 
 from Standard.Test import Test
 import Standard.Test.Extensions
@@ -32,11 +32,13 @@ add_specs suite_builder setup =
 
     zone = Time_Zone.parse "Z"
 
-    mixed_values = if setup.is_database then [] else [[My_Type.Value "1", My_Type.Value "2", Value_Type.Mixed]]
-        + [[[1], [2], Value_Type.Mixed]]
-    date_time_values = if setup.test_selection.date_time.not then [] else [[Date.new 2024 1 3, Date.new 2024 1 4, Value_Type.Date]]
-        + [[Date_Time.new 2024 1 3 2 30 10 zone=zone, Date_Time.new 2024 1 3 2 30 11 zone=zone, Value_Type.Date_Time]]
-        + [[Time_Of_Day.new 2 30 10, Time_Of_Day.new 2 30 11, Value_Type.Time]]
+    mixed_values = if setup.is_database then [] else
+        [[My_Type.Value "1", My_Type.Value "2", Value_Type.Mixed]]
+            + [[[1], [2], Value_Type.Mixed]]
+    date_time_values = if setup.test_selection.date_time.not then [] else
+        [[Date.new 2024 1 3, Date.new 2024 1 4, Value_Type.Date]]
+            + [[Date_Time.new 2024 1 3 2 30 10 zone=zone, Date_Time.new 2024 1 3 2 30 11 zone=zone, Value_Type.Date_Time]]
+            + [[Time_Of_Day.new 2 30 10, Time_Of_Day.new 2 30 11, Value_Type.Time]]
     values_without_nothing = [[False, True, Value_Type.Boolean]]
             + [["abcd", "efgh", Value_Type.Char]]
             + [[12, 13, Value_Type.Integer]]

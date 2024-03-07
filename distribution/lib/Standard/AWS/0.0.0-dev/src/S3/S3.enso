@@ -8,8 +8,8 @@ import project.AWS_Credential.AWS_Credential
 import project.Errors.AWS_SDK_Error
 import project.Errors.More_Records_Available
 import project.Errors.S3_Bucket_Not_Found
-import project.Errors.S3_Key_Not_Found
 import project.Errors.S3_Error
+import project.Errors.S3_Key_Not_Found
 import project.Internal.Request_Body
 
 polyglot java import java.io.IOException
@@ -32,9 +32,8 @@ polyglot java import software.amazon.awssdk.services.s3.S3Client
    Arguments:
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
-@credentials AWS_Credential.default_widget
-list_buckets : AWS_Credential | Nothing -> Vector Text ! S3_Error
-list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
+list_buckets : AWS_Credential -> Vector Text ! S3_Error
+list_buckets credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors <|
     client = make_client credentials
     buckets = client.listBuckets.buckets
     buckets.map b->b.name
@@ -48,17 +47,21 @@ list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <
    - max_count: the maximum number of items to return. The default is 1000.
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
-@credentials AWS_Credential.default_widget
-list_objects : Text -> Text -> AWS_Credential | Nothing -> Integer -> Vector Text ! S3_Error
-list_objects bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing max_count=1000 =
+list_objects : Text -> Text -> AWS_Credential -> Integer -> Vector Text ! S3_Error
+list_objects bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default max_count=1000 =
     read_bucket bucket prefix credentials delimiter="" max_count=max_count . second
 
 ## PRIVATE
    Reads an S3 bucket returning a pair of vectors, one with common prefixes and
    one with object keys.
-@credentials AWS_Credential.default_widget
-read_bucket : Text -> Text -> AWS_Credential | Nothing -> Integer -> Text -> Pair Vector Vector ! S3_Error
-read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
+
+   Arguments:
+   - bucket: The name of the bucket.
+   - prefix: The prefix to use when searching for keys to return.
+   - credentials: The credentials for the AWS resource.
+   - delimiter: The delimiter used to deduce common prefixes.
+read_bucket : Text -> Text -> AWS_Credential -> Integer -> Text -> Pair Vector Vector ! S3_Error
+read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default delimiter="/" max_count=1000 = handle_s3_errors bucket=bucket <|
     client = make_client credentials
 
     per_request = Math.min max_count 1000
@@ -89,8 +92,8 @@ read_bucket bucket prefix="" credentials:(AWS_Credential | Nothing)=Nothing deli
    - key: the key of the object.
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
-head : Text -> Text -> AWS_Credential | Nothing -> Map Text Any ! S3_Error
-head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing =
+head : Text -> Text -> AWS_Credential -> Map Text Any ! S3_Error
+head bucket key="" credentials:AWS_Credential=AWS_Credential.Default =
     response = raw_head bucket key credentials
     pairs = response.sdkFields.map f-> [f.memberName, f.getValueOrDefault response]
     Map.from_vector pairs
@@ -102,7 +105,7 @@ head bucket key="" credentials:(AWS_Credential | Nothing)=Nothing =
    - bucket: the name of the bucket.
    - key: the key of the object.
    - credentials: AWS credentials.
-raw_head : Text -> Text -> AWS_Credential | Nothing -> Map Text Any ! S3_Error
+raw_head : Text -> Text -> AWS_Credential -> Map Text Any ! S3_Error
 raw_head bucket key credentials =
     client = make_client credentials
     case key == "" of
@@ -122,8 +125,9 @@ raw_head bucket key credentials =
    - key: the key of the object.
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
-get_object : Text -> Text -> AWS_Credential | Nothing -> Response_Body ! S3_Error
-get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing delimiter="/" = handle_s3_errors bucket=bucket key=key <|
+   - delimiter: The delimiter to use for deducing the filename from the path.
+get_object : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
+get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = handle_s3_errors bucket=bucket key=key <|
     request = GetObjectRequest.builder.bucket bucket . key key . build
 
     client = make_client credentials
@@ -140,26 +144,26 @@ get_object bucket key credentials:(AWS_Credential | Nothing)=Nothing delimiter="
     Response_Body.Raw_Stream input_stream metadata s3_uri
 
 ## PRIVATE
-put_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing request_body = handle_s3_errors bucket=bucket key=key <|
+put_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default request_body = handle_s3_errors bucket=bucket key=key <|
     client = make_client credentials
     request = PutObjectRequest.builder.bucket bucket . key key . build
     client.putObject request request_body . if_not_error Nothing
 
 ## PRIVATE
-upload_file (local_file : File) (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
+upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=bucket key=key <|
     request_body = Request_Body.from_local_file local_file
     put_object bucket key credentials request_body
 
 ## PRIVATE
    Deletes the object.
    It will not raise any errors if the object does not exist.
-delete_object (bucket : Text) (key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=bucket key=key <|
+delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=bucket key=key <|
     client = make_client credentials
     request = DeleteObjectRequest.builder . bucket bucket . key key . build
     client.deleteObject request . if_not_error Nothing
 
 ## PRIVATE
-copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors bucket=source_bucket key=source_key <|
+copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=source_bucket key=source_key <|
     client = make_client credentials
     request = CopyObjectRequest.builder
         . destinationBucket target_bucket
@@ -182,8 +186,8 @@ handle_s3_errors ~action bucket="" key="" =
     AWS_SDK_Error.handle_java_errors <| s3_handler <| action
 
 ## PRIVATE
-make_client : (AWS_Credential | Nothing) -> S3Client
-make_client credentials:(AWS_Credential | Nothing) =
+make_client : AWS_Credential -> S3Client
+make_client credentials:AWS_Credential =
     builder = ClientBuilder.new (AWS_Credential.as_java credentials)
     builder.buildS3Client
 

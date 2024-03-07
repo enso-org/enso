@@ -33,13 +33,13 @@ function shrinkFactor(index: number): number {
         name="arrow_left"
         draggable="false"
         :class="['icon', 'button', 'arrow', { inactive: !props.canGoBackward }]"
-        @pointerdown="emit('backward')"
+        @click.stop="emit('backward')"
       />
       <SvgIcon
         name="arrow_right"
         draggable="false"
         :class="['icon', 'button', 'arrow', { inactive: !props.canGoForward }]"
-        @pointerdown="emit('forward')"
+        @click.stop="emit('forward')"
       />
     </div>
     <TransitionGroup name="breadcrumbs">

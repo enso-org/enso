@@ -33,8 +33,8 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_string_builder
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
+polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsInfiniteOperation
@@ -44,6 +44,7 @@ polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
+polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -160,7 +161,7 @@ type Column
         num_rows = java_col.getSize
         display_rows = num_rows.min show_rows
         items = Vector.new display_rows num->
-            row = if storage.isNa num then "Nothing" else
+            row = if storage.isNothing num then "Nothing" else
                 get_item_string storage num
             [num.to_text, row]
         table = print_table ["", col_name] items 1 format_terminal
@@ -1749,7 +1750,7 @@ type Column
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
-    parse self type=Auto format:(Text|Data_Formatter)="" on_problems=Report_Warning =
+    parse self type=Auto format:(Text | Data_Formatter)="" on_problems=Report_Warning =
         Value_Type.expect_text self <|
             formatter = case format of
                 _ : Text -> if format == "" then Data_Formatter.Value else Data_Formatter.Value.with_format type format
@@ -2085,7 +2086,7 @@ type Column
 
              example_count_nothing = Examples.text_column_2.count_nothing
     count_nothing : Integer
-    count_nothing self = self.java_column.getStorage.countMissing
+    count_nothing self = CountNothing.apply self.java_column
 
     ## GROUP Standard.Base.Metadata
        Returns the number of non-null items in this column.
@@ -2140,7 +2141,7 @@ type Column
         valid_index = (index >= 0) && (index < self.length)
         if valid_index.not then default else
             storage = self.java_column.getStorage
-            if storage.isNa index then Nothing else
+            if storage.isNothing index then Nothing else
                 storage.getItem index
 
     ## ICON data_input
@@ -2222,6 +2223,7 @@ type Column
 
     ## ALIAS metadata
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns a Table describing this column's contents.
 
        The table behaves like `Table.info` - it lists the column name, the count

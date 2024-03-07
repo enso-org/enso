@@ -24,11 +24,11 @@ import project.Panic.Panic
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
-import project.System.File.Local_File_Write_Strategy
+import project.System.File.File_Permissions.File_Permissions
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.File_Write_Strategy.File_Write_Strategy
 import project.System.File.Generic.Writable_File.Writable_File
-import project.System.File.File_Permissions.File_Permissions
+import project.System.File.Local_File_Write_Strategy
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 import project.Warning.Warning
@@ -56,6 +56,7 @@ file_types = Vector.from_polyglot_array (FileSystemSPI.get_types False)
 type File
     ## ALIAS new file
        GROUP Input
+       ICON data_input
 
        Creates a new file object, pointing to the given path.
 
@@ -84,7 +85,8 @@ type File
                 Error.throw (Type_Error.Error File path "path")
 
 
-    ## Creates a temporary file which will be deleted when Enso exits.
+    ## ICON folder_add
+       Creates a temporary file which will be deleted when Enso exits.
     create_temporary_file : Text -> Text -> File
     create_temporary_file prefix="temp" suffix=".tmp" =
         java_file = Java_File.createTempFile prefix suffix
@@ -118,10 +120,11 @@ type File
                         temp.delete_if_exists
 
             ## Attach a warning to the file that it is a dry run
-            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file."
+            warning = Dry_Run_Operation.Warning "Only a dry run has occurred, with data written to a temporary file.  Press the Record Once button ❙⬤❙ to write the actual file."
             Warning.attach warning temp
 
     ## ALIAS current directory
+       ICON metadata
 
        Returns the current working directory (CWD) of the current program.
 
@@ -135,6 +138,7 @@ type File
     current_directory = get_cwd
 
     ## ALIAS home directory
+       ICON folder
 
        Returns the home directory of the current user.
 
@@ -323,7 +327,7 @@ type File
         Text.from_bytes bytes encoding on_problems
 
     ## GROUP Operators
-       ICON math
+       ICON folder
        Join two path segments together.
 
        Arguments:
@@ -340,6 +344,7 @@ type File
     / self subpath = self.resolve subpath
 
     ## GROUP Calculations
+       ICON folder
        Join two or more path segments together, normalizing the `..` and `.` subpaths.
 
        Arguments:
@@ -385,6 +390,7 @@ type File
         JS_Object.from_pairs [type_pair, cons_pair, ["path", self.path]]
 
     ## GROUP Metadata
+       ICON metadata
        Checks whether the file exists.
 
        > Example
@@ -397,6 +403,7 @@ type File
     exists self = @Builtin_Method "File.exists"
 
     ## GROUP Metadata
+       ICON metadata
        Gets the size of a file in bytes.
 
        > Example
@@ -439,6 +446,7 @@ type File
         File_Error.handle_java_exceptions self <| self.creation_time_builtin
 
     ## GROUP Metadata
+       ICON metadata
        Gets the last modified time of a file.
 
        > Example
@@ -451,7 +459,8 @@ type File
     last_modified_time self =
         File_Error.handle_java_exceptions self <| self.last_modified_time_builtin
 
-    ## Gets the POSIX permissions associated with the file.
+    ## ICON metadata
+       Gets the POSIX permissions associated with the file.
 
        > Example
          Check if the file is readable by the user's group.
@@ -464,6 +473,7 @@ type File
         File_Permissions.from_java_set self.posix_permissions_builtin
 
     ## GROUP Metadata
+       ICON metadata
        Checks whether the file exists and is a directory.
 
        > Example
@@ -475,7 +485,8 @@ type File
     is_directory : Boolean
     is_directory self = @Builtin_Method "File.is_directory"
 
-    ## Creates the directory represented by this file if it did not exist.
+    ## ICON folder_add
+       Creates the directory represented by this file if it did not exist.
 
        It also creates parent directories if they did not exist.
 
@@ -498,6 +509,7 @@ type File
     create_directory_builtin self = @Builtin_Method "File.create_directory_builtin"
 
     ## GROUP Metadata
+       ICON metadata
        Checks whether the file exists and is a regular file.
 
        ? Regular Files
@@ -515,6 +527,7 @@ type File
     is_regular_file self = @Builtin_Method "File.is_regular_file"
 
     ## GROUP Metadata
+       ICON metadata
        Checks whether it the file can be written to.
 
        ? Read-only Files
@@ -524,6 +537,7 @@ type File
     is_writable self = @Builtin_Method "File.is_writable"
 
     ## GROUP Metadata
+       ICON metadata
        Resolves the parent filesystem node of this file.
 
        > Example
@@ -536,6 +550,7 @@ type File
     parent self = @Builtin_Method "File.parent"
 
     ## GROUP Metadata
+       ICON metadata
        Returns the path of this file.
 
        > Example
@@ -548,6 +563,7 @@ type File
     path self = @Builtin_Method "File.path"
 
     ## GROUP Metadata
+       ICON metadata
        Returns the name of this file.
 
        > Example
@@ -560,6 +576,7 @@ type File
     name self = @Builtin_Method "File.name"
 
     ## GROUP Metadata
+       ICON metadata
        Returns the extension of the file.
 
        > Example
@@ -576,7 +593,8 @@ type File
             extension = name.drop (Index_Sub_Range.First last_dot.start)
             if extension == "." then "" else extension
 
-    ## Converts this file to an equivalent file represented with an absolute
+    ## ICON metadata
+       Converts this file to an equivalent file represented with an absolute
        path.
 
        > Example
@@ -588,7 +606,8 @@ type File
     absolute : File
     absolute self = @Builtin_Method "File.absolute"
 
-    ## Checks is this file's path is absolute.
+    ## ICON metadata
+       Checks is this file's path is absolute.
 
        > Example
          Check if a file is represented by an absolute path.
@@ -599,7 +618,8 @@ type File
     is_absolute : Boolean
     is_absolute self = @Builtin_Method "File.is_absolute"
 
-    ## Normalizes the filepath.
+    ## ICON convert
+       Normalizes the filepath.
 
        > Example
          Normalize a file path.
@@ -610,7 +630,8 @@ type File
     normalize : File
     normalize self = @Builtin_Method "File.normalize"
 
-    ## Deletes the file.
+    ## ICON data_output
+       Deletes the file.
 
        If the file is a directory, it must be empty, otherwise a `Panic` will
        be thrown.
@@ -629,7 +650,8 @@ type File
         Context.Output.if_enabled disabled_message="File deleting is forbidden as the Output context is disabled." panic=False <|
             File_Error.handle_java_exceptions self self.delete_builtin
 
-    ## Copies the file to the specified destination.
+    ## ICON data_output
+       Copies the file to the specified destination.
 
        Arguments:
        - destination: the destination to move the file to.
@@ -642,7 +664,8 @@ type File
                 _ : File -> local_file_copy self destination.file replace_existing
                 _ -> destination.copy_from_local self replace_existing
 
-    ## Moves the file to the specified destination.
+    ## ICON data_output
+       Moves the file to the specified destination.
 
        Arguments:
        - destination: the destination to move the file to.
@@ -658,7 +681,8 @@ type File
                     r.if_not_error <|
                         self.delete . if_not_error r
 
-    ## Deletes the file if it exists on disk.
+    ## ICON data_output
+       Deletes the file if it exists on disk.
 
        If the file is a directory, it must be empty, otherwise a `Panic` will
        be thrown.
@@ -689,6 +713,7 @@ type File
             Vector.from_polyglot_array (self.read_last_bytes_builtin n)
 
     ## GROUP Input
+       ICON data_input
        Lists files contained in the directory denoted by this file.
 
        Arguments:
@@ -754,11 +779,13 @@ type File
                     matcher.matches (Path.of pathStr)
 
     ## GROUP Metadata
+       ICON metadata
        Checks if `self` is a descendant of `other`.
     is_descendant_of : File -> Boolean
     is_descendant_of self other = self.starts_with other
 
-    ## Transforms `child` to a relative path with respect to `self`.
+    ## ICON convert
+       Transforms `child` to a relative path with respect to `self`.
     relativize : File -> Boolean
     relativize self child = @Builtin_Method "File.relativize"
 

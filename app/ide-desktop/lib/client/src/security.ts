@@ -66,6 +66,37 @@ function rejectPermissionRequests() {
     })
 }
 
+/** This Electron app is configured with extra CORS headers. Those headers are added because they
+ * increase security and enable higher resolution for `performance.now()` timers. However, one of
+ * these headers (i.e., `Cross-Origin-Embedder-Policy: require-corp`), breaks the Stripe.js library.
+ * This is because Stripe.js does not provide a `Cross-Origin-Resource-Policy` header or
+ * `Cross-Origin-Embedder-Policy` header on resources hosted at `https://js.stripe.com`. Without
+ * these headers, the browser will not load the resources. To fix this without compromising security
+ * or profiling capabilities, add the missing headers to the Stripe.js resources by intercepting the
+ * response headers.
+ *
+ * At the time of writing, these are the Stripe.js resources in question:
+ *
+ * - https://js.stripe.com/v3/m-outer-3437aaddcdf6922d623e172c2d6f9278.html
+ * - https://js.stripe.com/v3/fingerprinted/js/embedded-checkout-outer-d5c7fe9d44281b88cdffdf803de759f1.js
+ * - https://js.stripe.com/v3/controller-a8f00e403bc9538a7c1880ae6b6a2dc3.html
+ *
+ * The missing headers are added more generally to all resources hosted at `https://js.stripe.com`.
+ * This is because the resources are fingerprinted and the fingerprint changes every time the
+ * resources are updated. Additionally, Stripe.js may choose to add more resources in the future. */
+function addMissingCorsHeaders() {
+    void electron.app.whenReady().then(() => {
+        electron.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+            details.responseHeaders = details.responseHeaders ?? {}
+            if (details.url.includes('https://js.stripe.com/v3/')) {
+                details.responseHeaders['Cross-Origin-Resource-Policy'] = ['cross-origin']
+                details.responseHeaders['Cross-Origin-Embedder-Policy'] = ['require-corp']
+            }
+            callback({ responseHeaders: details.responseHeaders })
+        })
+    })
+}
+
 /** A WebView created in a renderer process that does not have Node.js integration enabled will not
  * be able to enable integration itself. However, a WebView will always create an independent
  * renderer process with its own webPreferences. It is a good idea to control the creation of new
@@ -131,6 +162,7 @@ function disableNewWindowsCreation() {
 export function enableAll() {
     enableGlobalSandbox()
     rejectPermissionRequests()
+    addMissingCorsHeaders()
     limitWebViewCreation()
     preventNavigation()
     disableNewWindowsCreation()

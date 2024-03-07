@@ -113,12 +113,28 @@ export function exitFullscreenButton(page: Locator | Page) {
 
 export const toggleFullscreenButton = or(enterFullscreenButton, exitFullscreenButton)
 
+// === Nodes ===
+
+declare const nodeLocatorBrand: unique symbol
+export type Node = Locator & { [nodeLocatorBrand]: never }
+
+export function graphNode(page: Page | Locator): Node {
+  return page.locator('.GraphNode') as Node
+}
+export function graphNodeByBinding(page: Locator | Page, binding: string): Node {
+  return graphNode(page).filter({
+    has: page.locator('.binding').and(page.getByText(binding)),
+  }) as Node
+}
+export function graphNodeIcon(node: Node) {
+  return node.locator('.icon')
+}
+
 // === Data locators ===
 
-type SanitizeClassName<T extends string> = T extends `${infer A}.${infer B}`
-  ? SanitizeClassName<`${A}${B}`>
-  : T extends `${infer A} ${infer B}`
-  ? SanitizeClassName<`${A}${B}`>
+type SanitizeClassName<T extends string> =
+  T extends `${infer A}.${infer B}` ? SanitizeClassName<`${A}${B}`>
+  : T extends `${infer A} ${infer B}` ? SanitizeClassName<`${A}${B}`>
   : T
 
 function componentLocator<T extends string>(className: SanitizeClassName<T>) {
@@ -128,10 +144,6 @@ function componentLocator<T extends string>(className: SanitizeClassName<T>) {
 }
 
 export const graphEditor = componentLocator('GraphEditor')
-export const graphNode = componentLocator('GraphNode')
-export function graphNodeByBinding(page: Locator | Page, binding: string) {
-  return graphNode(page).filter({ has: page.locator('.binding').and(page.getByText(binding)) })
-}
 // @ts-expect-error
 export const anyVisualization = componentLocator('GraphVisualization > *')
 export const circularMenu = componentLocator('CircularMenu')

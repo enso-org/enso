@@ -15,6 +15,7 @@ const props = defineProps<{
   icon: Icon
   connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
+  extended: boolean
 }>()
 const emit = defineEmits<{
   openFullMenu: []
@@ -47,7 +48,9 @@ function handleWidgetUpdates(update: WidgetUpdate) {
     const { value, origin } = update.portUpdate
     if (Ast.isAstId(origin)) {
       const ast =
-        value instanceof Ast.Ast ? value : value == null ? Ast.Wildcard.new(edit) : undefined
+        value instanceof Ast.Ast ? value
+        : value == null ? Ast.Wildcard.new(edit)
+        : undefined
       if (ast) {
         edit.replaceValue(origin as Ast.AstId, ast)
       } else if (typeof value === 'string') {
@@ -69,6 +72,7 @@ provideWidgetTree(
   toRef(props, 'icon'),
   toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
+  toRef(props, 'extended'),
   layoutTransitions.active,
   () => {
     emit('openFullMenu')
@@ -83,7 +87,7 @@ provideWidgetTree(
       v-if="!props.connectedSelfArgumentId"
       class="icon grab-handle"
       :name="props.icon"
-      @pointerdown.right.stop="emit('openFullMenu')"
+      @click.right.stop.prevent="emit('openFullMenu')"
     />
     <NodeWidget :input="rootPort" @update="handleWidgetUpdates" />
   </div>
@@ -103,7 +107,7 @@ provideWidgetTree(
   }
 
   &:has(.WidgetPort.newToConnect > .r-24:only-child) {
-    margin-left: 4px;
+    margin-left: 0px;
   }
 }
 

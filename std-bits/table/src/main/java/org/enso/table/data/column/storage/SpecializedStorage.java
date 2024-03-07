@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage;
 import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
+import org.enso.table.data.column.operation.CountNothing;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -43,23 +44,6 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   /**
-   * @inheritDoc
-   */
-  @Override
-  public int countMissing() {
-    Context context = Context.getCurrent();
-    int count = 0;
-    for (int i = 0; i < size; i++) {
-      if (data[i] == null) {
-        count += 1;
-      }
-
-      context.safepoint();
-    }
-    return count;
-  }
-
-  /**
    * @param idx an index
    * @return the data item contained at the given index.
    */
@@ -72,11 +56,8 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     return data[idx];
   }
 
-  /**
-   * @inheritDoc
-   */
   @Override
-  public boolean isNa(long idx) {
+  public boolean isNothing(long idx) {
     return data[(int) idx] == null;
   }
 
@@ -161,7 +142,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   @Override
   public Storage<T> fillMissingFromPrevious(BoolStorage missingIndicator) {
-    if (missingIndicator != null && missingIndicator.countMissing() > 0) {
+    if (missingIndicator != null && CountNothing.anyNothing(missingIndicator)) {
       throw new IllegalArgumentException(
           "Missing indicator must not contain missing values itself.");
     }
@@ -173,7 +154,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       boolean isCurrentValueMissing =
-          missingIndicator == null ? isNa(i) : missingIndicator.getItem(i);
+          missingIndicator == null ? isNothing(i) : missingIndicator.getItem(i);
       if (!isCurrentValueMissing) {
         previous = data[i];
         hasPrevious = true;

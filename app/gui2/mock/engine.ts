@@ -1,4 +1,5 @@
 import * as random from 'lib0/random'
+import * as Ast from 'shared/ast'
 import {
   Builder,
   EnsoUUID,
@@ -322,15 +323,15 @@ function createId(id: Uuid) {
 function sendVizData(id: Uuid, config: VisualizationConfiguration) {
   const vizDataHandler =
     mockVizData[
-      typeof config.expression === 'string'
-        ? `${config.visualizationModule}.${config.expression}`
-        : `${config.expression.definedOnType}.${config.expression.name}`
+      typeof config.expression === 'string' ?
+        `${config.visualizationModule}.${config.expression}`
+      : `${config.expression.definedOnType}.${config.expression.name}`
     ]
   if (!vizDataHandler || !sendData) return
   const vizData =
-    vizDataHandler instanceof Uint8Array
-      ? vizDataHandler
-      : vizDataHandler(config.positionalArgumentsExpressions ?? [])
+    vizDataHandler instanceof Uint8Array ? vizDataHandler : (
+      vizDataHandler(config.positionalArgumentsExpressions ?? [])
+    )
   const builder = new Builder()
   const exprId = visualizationExprIds.get(id)
   const visualizationContextOffset = VisualizationContext.createVisualizationContext(
@@ -403,6 +404,25 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       }
       visualizations.set(data_.visualizationId, data_.visualizationConfig)
       sendVizData(data_.visualizationId, data_.visualizationConfig)
+      return
+    }
+    case 'executionContext/executeExpression': {
+      const data_ = data as {
+        executionContextId: ContextId
+        visualizationId: Uuid
+        expressionId: ExpressionId
+        expression: string
+      }
+      const { func, args } = Ast.analyzeAppLike(Ast.parse(data_.expression))
+      if (!(func instanceof Ast.PropertyAccess && func.lhs)) return
+      const visualizationConfig: VisualizationConfiguration = {
+        executionContextId: data_.executionContextId,
+        visualizationModule: func.lhs.code(),
+        expression: func.rhs.code(),
+        positionalArgumentsExpressions: args.map((ast) => ast.code()),
+      }
+      visualizationExprIds.set(data_.visualizationId, data_.expressionId)
+      sendVizData(data_.visualizationId, visualizationConfig)
       return
     }
     case 'search/getSuggestionsDatabase':

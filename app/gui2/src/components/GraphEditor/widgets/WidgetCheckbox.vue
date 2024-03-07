@@ -1,14 +1,14 @@
 <script setup lang="ts">
+import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImportsByFQN } from '@/stores/graph/imports'
-import { SuggestionDb, useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
-import { asNot } from '@/util/data/types.ts'
-import { type Identifier, type QualifiedName } from '@/util/qualifiedName.ts'
+import { ArgumentInfoKey } from '@/util/callTree'
+import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -49,22 +49,26 @@ const value = computed({
         edit,
         portUpdate: {
           value: value ? 'True' : 'False',
-          origin: asNot<TokenId>(props.input.portId),
+          origin: props.input.portId,
         },
       })
     }
   },
+})
+
+const primary = computed(() => props.nesting < 2)
+const argumentName = computed(() => {
+  if (ArgumentNameShownKey in props.input) return
+  return props.input[ArgumentInfoKey]?.info?.name
 })
 </script>
 
 <script lang="ts">
 function isBoolNode(ast: Ast.Ast) {
   const candidate =
-    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean'
-      ? ast.rhs
-      : ast instanceof Ast.Ident
-      ? ast.token
-      : undefined
+    ast instanceof Ast.PropertyAccess && ast.lhs?.code() === 'Boolean' ? ast.rhs
+    : ast instanceof Ast.Ident ? ast.token
+    : undefined
   return candidate && ['True', 'False'].includes(candidate.code())
 }
 function setBoolNode(ast: Ast.Mutable, value: Identifier): { requiresImport: boolean } {
@@ -82,18 +86,37 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 500,
   score: (props) => {
     if (props.input.value instanceof Ast.Ast && isBoolNode(props.input.value)) return Score.Perfect
-    return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean'
-      ? Score.Good
+    return props.input.expectedType === 'Standard.Base.Data.Boolean.Boolean' ?
+        Score.Good
       : Score.Mismatch
   },
 })
 </script>
 
 <template>
-  <CheckboxWidget
-    v-model="value"
-    class="WidgetCheckbox"
-    contenteditable="false"
-    @beforeinput.stop
-  />
+  <div class="CheckboxContainer r-24" :class="{ primary }">
+    <span v-if="argumentName" class="name" v-text="argumentName" />
+    <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
+    <CheckboxWidget
+      v-model="value"
+      class="WidgetCheckbox"
+      contenteditable="false"
+      @beforeinput.stop
+      @pointerdown.stop
+      @pointerup.stop
+    />
+  </div>
 </template>
+
+<style scoped>
+.CheckboxContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.name {
+  color: rgb(255 255 255 / 0.5);
+  margin-right: 8px;
+}
+</style>

@@ -1833,6 +1833,7 @@ lazy val `runtime-benchmarks` =
         "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
         "com.sun.xml.bind"    % "jaxb-impl"                % jaxbVersion,
         "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-dsl-processor"    % graalMavenPackagesVersion % "provided",
         "org.slf4j"           % "slf4j-api"                % slf4jVersion,
         "org.slf4j"           % "slf4j-nop"                % slf4jVersion
       ),
@@ -1848,6 +1849,14 @@ lazy val `runtime-benchmarks` =
         frgaalSourceLevel,
         "--enable-preview"
       ),
+      javacOptions ++= Seq(
+        "-s",
+        (Compile / sourceManaged).value.getAbsolutePath,
+        "-Xlint:unchecked"
+      ),
+      Compile / compile := (Compile / compile)
+        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+        .value,
       parallelExecution := false,
       modulePath := {
         val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(

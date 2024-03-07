@@ -32,6 +32,7 @@ import type {
   ExplicitCall,
   ExpressionId,
   ExpressionUpdate,
+  MethodPointer,
   StackItem,
   VisualizationConfiguration,
 } from 'shared/languageServerTypes'
@@ -44,7 +45,6 @@ import {
   shallowRef,
   watch,
   watchEffect,
-  type ShallowRef,
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
@@ -219,9 +219,9 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
               executionContextId: this.id,
               expression: config.expression,
               visualizationModule: config.visualizationModule,
-              ...(config.positionalArgumentsExpressions
-                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
-                : {}),
+              ...(config.positionalArgumentsExpressions ?
+                { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+              : {}),
             }),
           'Failed to attach visualization',
         ).then(() => {
@@ -236,9 +236,9 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
               executionContextId: this.id,
               expression: config.expression,
               visualizationModule: config.visualizationModule,
-              ...(config.positionalArgumentsExpressions
-                ? { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
-                : {}),
+              ...(config.positionalArgumentsExpressions ?
+                { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
+              : {}),
             }),
           'Failed to modify visualization',
         ).then(() => {
@@ -548,12 +548,15 @@ export const useProjectStore = defineStore('project', () => {
     return mod
   })
 
-  function createExecutionContextForMain(): ExecutionContext {
+  const entryPoint = computed<MethodPointer>(() => {
     const projectName = fullName.value
     const mainModule = `${projectName}.Main`
-    const entryPoint = { module: mainModule, definedOnType: mainModule, name: 'main' }
+    return { module: mainModule, definedOnType: mainModule, name: 'main' }
+  })
+
+  function createExecutionContextForMain(): ExecutionContext {
     return new ExecutionContext(lsRpcConnection, {
-      methodPointer: entryPoint,
+      methodPointer: entryPoint.value,
       positionalArgumentsExpressions: [],
     })
   }
@@ -578,9 +581,7 @@ export const useProjectStore = defineStore('project', () => {
     diagnostics.value = newDiagnostics
   })
 
-  function useVisualizationData(
-    configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
-  ): ShallowRef<Result<{}> | undefined> {
+  function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
     const id = random.uuidv4() as Uuid
 
     watch(
@@ -594,28 +595,30 @@ export const useProjectStore = defineStore('project', () => {
       { immediate: true, flush: 'post' },
     )
 
-    return shallowRef(
-      computed(() => {
-        const json = visualizationDataRegistry.getRawData(id)
-        if (!json?.ok) return json ?? undefined
-        else return Ok(JSON.parse(json.value))
-      }),
-    )
+    return computed(() => {
+      const json = visualizationDataRegistry.getRawData(id)
+      if (!json?.ok) return json ?? undefined
+      const parsed = Ok(JSON.parse(json.value))
+      markRaw(parsed)
+      return parsed
+    })
   }
 
   const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
-    if (info.payload.type !== 'DataflowError') return
-    const data = useVisualizationData(
-      ref({
-        expressionId: id,
-        visualizationModule: 'Standard.Visualization.Preprocessor',
-        expression: {
-          module: 'Standard.Visualization.Preprocessor',
-          definedOnType: 'Standard.Visualization.Preprocessor',
-          name: 'error_preprocessor',
-        },
-      }),
+    const config = computed(() =>
+      info.payload.type === 'DataflowError' ?
+        {
+          expressionId: id,
+          visualizationModule: 'Standard.Visualization.Preprocessor',
+          expression: {
+            module: 'Standard.Visualization.Preprocessor',
+            definedOnType: 'Standard.Visualization.Preprocessor',
+            name: 'error_preprocessor',
+          },
+        }
+      : null,
     )
+    const data = useVisualizationData(config)
     return computed<{ kind: 'Dataflow'; message: string } | undefined>(() => {
       const visResult = data.value
       if (!visResult) return
@@ -681,6 +684,15 @@ export const useProjectStore = defineStore('project', () => {
     yDocsProvider = undefined
   }
 
+  const recordMode = computed({
+    get() {
+      return executionMode.value === 'live'
+    },
+    set(value) {
+      executionMode.value = value ? 'live' : 'design'
+    },
+  })
+
   return {
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -693,6 +705,7 @@ export const useProjectStore = defineStore('project', () => {
     diagnostics,
     module,
     modulePath,
+    entryPoint,
     projectModel,
     contentRoots,
     awareness: markRaw(awareness),
@@ -703,6 +716,7 @@ export const useProjectStore = defineStore('project', () => {
     isOutputContextEnabled,
     stopCapturingUndo,
     executionMode,
+    recordMode,
     dataflowErrors,
     executeExpression,
     disposeYDocsProvider,

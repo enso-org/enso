@@ -135,9 +135,8 @@ const SCALE_TO_D3_SCALE: Record<ScaleType, () => d3.ScaleContinuousNumeric<numbe
 
 const data = computed<Data>(() => {
   let rawData = props.data
-  const unfilteredData = Array.isArray(rawData)
-    ? rawData.map((y, index) => ({ x: index, y }))
-    : rawData.data ?? []
+  const unfilteredData =
+    Array.isArray(rawData) ? rawData.map((y, index) => ({ x: index, y })) : rawData.data ?? []
   const data: Point[] = unfilteredData.filter(
     (point) =>
       typeof point.x === 'number' &&
@@ -203,15 +202,15 @@ const margin = computed(() => {
   }
 })
 const width = computed(() =>
-  config.fullscreen
-    ? containerNode.value?.parentElement?.clientWidth ?? 0
-    : Math.max(config.width ?? 0, config.nodeSize.x),
+  config.fullscreen ?
+    containerNode.value?.parentElement?.clientWidth ?? 0
+  : Math.max(config.width ?? 0, config.nodeSize.x),
 )
 
 const height = computed(() =>
-  config.fullscreen
-    ? containerNode.value?.parentElement?.clientHeight ?? 0
-    : config.height ?? (config.nodeSize.x * 3) / 4,
+  config.fullscreen ?
+    containerNode.value?.parentElement?.clientHeight ?? 0
+  : config.height ?? (config.nodeSize.x * 3) / 4,
 )
 
 const boxWidth = computed(() => Math.max(0, width.value - margin.value.left - margin.value.right))
@@ -291,7 +290,9 @@ const zoom = computed(() =>
       const medDelta = 0.05
       const maxDelta = 1
       const wheelSpeedMultiplier =
-        event.deltaMode === 1 ? medDelta : event.deltaMode ? maxDelta : minDelta
+        event.deltaMode === 1 ? medDelta
+        : event.deltaMode ? maxDelta
+        : minDelta
       return -event.deltaY * wheelSpeedMultiplier
     })
     .scaleExtent(ZOOM_EXTENT)
@@ -535,10 +536,10 @@ useEvent(document, 'keydown', bindings.handler({ zoomToSelected: () => zoomToSel
   <VisualizationContainer :belowToolbar="true">
     <template #toolbar>
       <button class="image-button active">
-        <SvgIcon name="show_all" alt="Fit all" @pointerdown="zoomToSelected(false)" />
+        <SvgIcon name="show_all" alt="Fit all" @click.stop="zoomToSelected(false)" />
       </button>
       <button class="image-button" :class="{ active: brushExtent != null }">
-        <SvgIcon name="find" alt="Zoom to selected" @pointerdown="zoomToSelected" />
+        <SvgIcon name="find" alt="Zoom to selected" @click.stop="zoomToSelected" />
       </button>
     </template>
     <div ref="containerNode" class="ScatterplotVisualization" @pointerdown.stop>

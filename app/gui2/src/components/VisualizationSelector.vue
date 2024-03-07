@@ -40,6 +40,9 @@ onMounted(() => setTimeout(() => rootNode.value?.querySelector('button')?.focus(
     ref="rootNode"
     class="VisualizationSelector"
     @focusout="$event.relatedTarget == null && emit('hide')"
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop
   >
     <div class="background"></div>
     <ul>
@@ -47,7 +50,7 @@ onMounted(() => setTimeout(() => rootNode.value?.querySelector('button')?.focus(
         v-for="type_ in props.types"
         :key="visIdKey(type_)"
         :class="{ selected: visIdentifierEquals(props.modelValue, type_) }"
-        @pointerdown.stop="emit('update:modelValue', type_)"
+        @click.stop="emit('update:modelValue', type_)"
       >
         <button>
           <SvgIcon class="icon" :name="visualizationStore.icon(type_) ?? 'columns_increasing'" />

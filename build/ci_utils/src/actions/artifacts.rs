@@ -67,36 +67,47 @@ pub fn discover_recursive(
     rx.into_stream()
 }
 
-pub async fn upload(
+
+pub fn upload(
     file_provider: impl Stream<Item = FileToUpload> + Send + 'static,
-    artifact_name: impl AsRef<str>,
+    artifact_name: impl Into<String>,
     options: UploadOptions,
-) -> Result {
-    let handler =
-        ArtifactUploader::new(SessionClient::new_from_env()?, artifact_name.as_ref()).await?;
-    let result = handler.upload_artifact_to_file_container(file_provider, &options).await;
-    // We want to patch size even if there were some failures.
-    handler.patch_artifact_size().await?;
-    result
+) -> BoxFuture<'static, Result> {
+    let artifact_name = artifact_name.into();
+    let span = info_span!("Artifact upload", artifact_name);
+    async move {
+        let handler = ArtifactUploader::new(SessionClient::new_from_env()?, artifact_name).await?;
+        let result = handler.upload_artifact_to_file_container(file_provider, &options).await;
+        // We want to patch size even if there were some failures.
+        handler.patch_artifact_size().await?;
+        result
+    }
+    .instrument(span)
+    .boxed()
 }
 
 pub fn upload_single_file(
     file: impl Into<PathBuf>,
-    artifact_name: impl AsRef<str>,
-) -> impl Future<Output = Result> {
+    artifact_name: impl Into<String>,
+) -> BoxFuture<'static, Result> {
     let file = file.into();
-    let files = single_file_provider(file);
-    (async move || -> Result { upload(files?, artifact_name, default()).await })()
+    let artifact_name = artifact_name.into();
+    info!("Uploading file {} as artifact {artifact_name}.", file.display());
+    single_file_provider(file)
+        .and_then_async(move |stream| upload(stream, artifact_name, default()))
+        .boxed()
 }
 
 pub fn upload_directory(
     dir: impl Into<PathBuf>,
-    artifact_name: impl AsRef<str>,
-) -> impl Future<Output = Result> {
+    artifact_name: impl Into<String>,
+) -> BoxFuture<'static, Result> {
     let dir = dir.into();
-    info!("Uploading directory {}.", dir.display());
-    let files = single_dir_provider(&dir);
-    (async move || -> Result { upload(files?, artifact_name, default()).await })()
+    let artifact_name = artifact_name.into();
+    info!("Uploading directory {} as artifact {artifact_name}.", dir.display());
+    single_dir_provider(&dir)
+        .and_then_async(move |stream| upload(stream, artifact_name, default()))
+        .boxed()
 }
 
 #[tracing::instrument(skip_all , fields(artifact_name = %artifact_name.as_ref(), target = %target.as_ref().display()), err)]

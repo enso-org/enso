@@ -46,9 +46,9 @@ const dragMetaMimePrefix = 'application/x-enso-list-item;item='
 
 function stringToHex(str: string) {
   return Array.from(str, (c) =>
-    c.charCodeAt(0) < 128
-      ? c.charCodeAt(0).toString(16)
-      : encodeURIComponent(c).replace(/%/g, '').toLowerCase(),
+    c.charCodeAt(0) < 128 ?
+      c.charCodeAt(0).toString(16)
+    : encodeURIComponent(c).replace(/%/g, '').toLowerCase(),
   ).join('')
 }
 
@@ -404,14 +404,7 @@ watchPostEffect(() => {
       <SvgIcon
         class="add-item"
         name="vector_add"
-        @pointerdown="
-          !$event.ctrlKey &&
-            !$event.shiftKey &&
-            !$event.altKey &&
-            !$event.metaKey &&
-            $event.stopImmediatePropagation()
-        "
-        @click="emit('update:modelValue', [...props.modelValue, props.default()])"
+        @click.stop="emit('update:modelValue', [...props.modelValue, props.default()])"
       />
       <span class="token">]</span>
     </div>

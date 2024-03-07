@@ -10,7 +10,7 @@ enum SortDirection {
 }
 
 const props = defineProps<{ color: string; selectedValue: string | undefined; values: string[] }>()
-const emit = defineEmits<{ click: [index: number] }>()
+const emit = defineEmits<{ click: [index: number, keepOpen: boolean] }>()
 
 const sortDirection = ref<SortDirection>(SortDirection.none)
 
@@ -21,10 +21,18 @@ const sortedValuesAndIndices = computed(() => {
   ])
   switch (sortDirection.value) {
     case SortDirection.ascending: {
-      return valuesAndIndices.sort((a, b) => (a[0] > b[0] ? 1 : a[0] < b[0] ? -1 : 0))
+      return valuesAndIndices.sort((a, b) =>
+        a[0] > b[0] ? 1
+        : a[0] < b[0] ? -1
+        : 0,
+      )
     }
     case SortDirection.descending: {
-      return valuesAndIndices.sort((a, b) => (a[0] > b[0] ? -1 : a[0] < b[0] ? 1 : 0))
+      return valuesAndIndices.sort((a, b) =>
+        a[0] > b[0] ? -1
+        : a[0] < b[0] ? 1
+        : 0,
+      )
     }
     case SortDirection.none:
     default: {
@@ -44,23 +52,26 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
   [SortDirection.ascending]: SortDirection.descending,
   [SortDirection.descending]: SortDirection.none,
 }
+
+// Currently unused.
+const enableSortButton = ref(false)
 </script>
 
 <template>
-  <div class="Dropdown">
-    <ul class="list" :style="{ background: color }" @wheel.stop>
+  <div class="Dropdown" @pointerdown.stop @pointerup.stop @click.stop>
+    <ul class="list scrollable" :style="{ background: color, borderColor: color }" @wheel.stop>
       <template v-for="[value, index] in sortedValuesAndIndices" :key="value">
         <li v-if="value === selectedValue">
-          <div class="selected-item button" @pointerdown="emit('click', index)">
+          <div class="selected-item button" @click.stop="emit('click', index, $event.altKey)">
             <span v-text="value"></span>
           </div>
         </li>
-        <li v-else class="selectable-item button" @pointerdown="emit('click', index)">
+        <li v-else class="selectable-item button" @click.stop="emit('click', index, $event.altKey)">
           <span v-text="value"></span>
         </li>
       </template>
     </ul>
-    <div class="sort button">
+    <div v-if="enableSortButton" class="sort button">
       <div class="sort-background" :style="{ background: color }"></div>
       <SvgIcon
         :name="ICON_LOOKUP[sortDirection]"
@@ -75,21 +86,21 @@ const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
   position: absolute;
   top: 100%;
   margin-top: 8px;
-  height: 136px;
+  overflow: visible;
 }
 
 .list {
   position: relative;
   user-select: none;
   overflow: auto;
-  border-radius: 8px;
+  border-radius: 16px;
   width: min-content;
-  height: 100%;
-  scrollbar-width: none;
-  scrollbar-gutter: stable both-edges;
+  max-height: 152px;
   list-style-type: none;
   color: var(--color-text-light);
+  scrollbar-width: thin;
   padding: 4px 0;
+  border: 2px solid;
 }
 
 li {
@@ -101,33 +112,9 @@ li {
 }
 
 .list span {
-  vertical-align: text-bottom;
-}
-
-.list::-webkit-scrollbar {
-  -webkit-appearance: none;
-  width: 8px;
-}
-
-.list::-webkit-scrollbar-track {
-  -webkit-box-shadow: none;
-}
-
-.list::-webkit-scrollbar-thumb {
-  border: 2px solid #0000;
-  border-left-width: 1px;
-  border-right-width: 3px;
-  background-clip: padding-box;
-  border-radius: var(--radius-full);
-  background-color: rgba(0, 0, 0, 0.2);
-}
-
-.list::-webkit-scrollbar-corner {
-  background: rgba(0, 0, 0, 0);
-}
-
-.list::-webkit-scrollbar-button {
-  height: 4px;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 3px 0;
 }
 
 .sort-background {
@@ -162,6 +149,7 @@ li {
   padding-left: 8px;
   padding-right: 8px;
   width: min-content;
+  margin-left: 8px;
 }
 
 .selectable-item {

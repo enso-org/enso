@@ -5,7 +5,7 @@
 import * as semver from 'semver'
 import * as toastify from 'react-toastify'
 
-import * as app from 'ensogl-runner/src/runner'
+import * as app from 'enso-runner/src/runner'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 import * as dashboard from 'enso-dashboard'
@@ -13,7 +13,7 @@ import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as remoteLog from './remoteLog'
-import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
+import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 
@@ -151,6 +151,7 @@ export interface StringConfig {
 
 /** Configuration options for the authentication flow and dashboard. */
 interface AuthenticationConfig {
+    readonly supportsVibrancy: boolean
     readonly projectManagerUrl: string | null
     readonly isInAuthenticationFlow: boolean
     readonly shouldUseAuthentication: boolean
@@ -266,6 +267,7 @@ class Main implements AppRunner {
             localStorage.setItem(INITIAL_URL_KEY, location.href)
         }
         if (parseOk) {
+            const supportsVibrancy = configOptions.groups.window.options.vibrancy.value
             const shouldUseAuthentication = configOptions.options.authentication.value
             const isOpeningMainEntryPoint =
                 configOptions.groups.startup.options.entry.value ===
@@ -284,6 +286,7 @@ class Main implements AppRunner {
             }
             if (shouldUseAuthentication && isOpeningMainEntryPoint) {
                 this.runAuthentication({
+                    supportsVibrancy,
                     isInAuthenticationFlow,
                     projectManagerUrl,
                     shouldUseAuthentication,
@@ -319,6 +322,7 @@ class Main implements AppRunner {
         dashboard.run({
             appRunner: this,
             logger,
+            vibrancy: config.supportsVibrancy,
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
             projectManagerUrl: config.projectManagerUrl,
