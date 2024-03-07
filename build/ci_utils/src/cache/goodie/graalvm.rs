@@ -22,7 +22,7 @@ crate::define_env_var! {
     GRAALVM_HOME, PathBuf;
 }
 
-const CE_JAVA_VENDOR: &str = "GraalVM Community";
+const CE_JAVA_VENDOR: &str = "GraalVM CE";
 const EE_JAVA_VENDOR: &str = "Oracle GraalVM";
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -96,9 +96,11 @@ impl Goodie for GraalVM {
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {
         let expected_graal_version = self.graal_version.clone();
+        let expected_graal_edition = self.edition.clone();
         async move {
-            let (found_version, _) = find_graal_version().await?;
+            let (found_version, found_edition) = find_graal_version().await?;
             ensure!(found_version == expected_graal_version, "GraalVM version mismatch. Expected {expected_graal_version}, found {found_version}.");
+            ensure!(found_edition == expected_graal_edition, "GraalVM edition mismatch. Expected {expected_graal_edition}, found {found_edition}.");
             Result::Ok(true)
         }
         .boxed()
@@ -134,32 +136,53 @@ impl Goodie for GraalVM {
 
 impl GraalVM {
     pub fn url(&self) -> BoxFuture<'static, Result<Url>> {
-        let platform_string = self.platform_string();
-        let graal_version_tag = self.graal_version.to_string_core();
-        let client = self.client.clone();
-        async move {
-            let repo = CE_BUILDS_REPOSITORY.handle(&client);
-            let release = repo.find_release_by_text(&graal_version_tag).await?;
-            crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
+        match self.edition {
+            Edition::Community => {
+                let platform_string = self.platform_string();
+                let graal_version_tag = self.graal_version.to_string_core();
+                let client = self.client.clone();
+                async move {
+                    let repo = CE_BUILDS_REPOSITORY.handle(&client);
+                    let release = repo.find_release_by_text(&graal_version_tag).await?;
+                    crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
+                }
+                .boxed()
+            },
+            Edition::Enterprise => {
+                let graal_version_tag = self.graal_version.to_string_core();
+                let url = format!(
+                    "https://download.oracle.com/graalvm/{}/archive/graalvm-jdk-{}_{}_bin.tar.gz",
+                    self.graal_version.major,
+                    graal_version_tag,
+                    self.os_arch_string(),
+                );
+                Box::pin(ready(
+                    Url::parse(&url).context("Failed to parse URL")
+                ))
+            }
         }
-        .boxed()
     }
 
-    pub fn platform_string(&self) -> String {
-        let Self { graal_version: _graal_version, arch, os, client: _client , ..} = &self;
-        let os_name = match *os {
+    fn os_arch_string(&self) -> String {
+        let os_name = match self.os {
             OS::Linux => "linux",
             OS::Windows => "windows",
             OS::MacOS => "macos",
             other_os => unimplemented!("System `{}` is not supported!", other_os),
         };
-        let arch_name = match *arch {
+        let arch_name = match self.arch {
             Arch::X86_64 => "x64",
             Arch::AArch64 => "aarch64",
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };
+        format!("{}-{}", os_name, arch_name)
+    }
+
+    pub fn platform_string(&self) -> String {
+        let Self { graal_version: _graal_version, client: _client , ..} = &self;
+        let os_arch = self.os_arch_string();
         let java_version = format!("jdk-{}", _graal_version.to_string_core());
-        format!("{PACKAGE_PREFIX_URL}-{java_version}_{os_name}-{arch_name}")
+        format!("{PACKAGE_PREFIX_URL}-{java_version}_{os_arch}")
     }
 }
 
@@ -240,5 +263,44 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
             build: BuildMetadata::new("7.1").unwrap(),
         };
         assert_eq!(graal_version, expected_graal_version);
+    }
+
+    #[tokio::test]
+    async fn correct_url_for_enterprise_edition_21() {
+        let graalvm = GraalVM {
+            client:        Octocrab::default(),
+            graal_version: Version::new(21, 0, 2),
+            edition:       Edition::Enterprise,
+            os:            OS::Linux,
+            arch:          Arch::X86_64,
+        };
+        let url = graalvm.url().await.unwrap();
+        assert_eq!(url.to_string(), "https://download.oracle.com/graalvm/21/archive/graalvm-jdk-21.0.2_linux-x64_bin.tar.gz");
+    }
+
+    #[tokio::test]
+    async fn correct_url_for_enterprise_edition_17() {
+        let graalvm = GraalVM {
+            client:        Octocrab::default(),
+            graal_version: Version::new(17, 0, 7),
+            edition:       Edition::Enterprise,
+            os:            OS::Linux,
+            arch:          Arch::X86_64,
+        };
+        let url = graalvm.url().await.unwrap();
+        assert_eq!(url.to_string(), "https://download.oracle.com/graalvm/17/archive/graalvm-jdk-17.0.7_linux-x64_bin.tar.gz");
+    }
+
+    #[tokio::test]
+    async fn correct_url_for_community_edition() {
+        let graalvm = GraalVM {
+            client:        Octocrab::default(),
+            graal_version: Version::new(21, 0, 2),
+            edition:       Edition::Community,
+            os:            OS::Linux,
+            arch:          Arch::X86_64,
+        };
+        let url = graalvm.url().await.unwrap();
+        assert_eq!(url.to_string(), "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-21.0.2/graalvm-community-jdk-21.0.2_linux-x64_bin.tar.gz");
     }
 }
