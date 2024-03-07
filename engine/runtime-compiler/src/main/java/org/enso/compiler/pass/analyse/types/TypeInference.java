@@ -16,6 +16,7 @@ import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.JavaInteropHelpers;
 import org.enso.compiler.pass.resolve.*;
+import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -468,6 +469,10 @@ public final class TypeInference implements IRPass {
     } else {
       return null;
     }
+  }
+
+  private TypeRepresentation resolveTypeExpression(Persistance.Reference<Expression> ref) {
+    return resolveTypeExpression(ref.get(Expression.class));
   }
 
   private TypeRepresentation resolveTypeExpression(Expression type) {

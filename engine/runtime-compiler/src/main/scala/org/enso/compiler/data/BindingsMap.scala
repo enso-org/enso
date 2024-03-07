@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.MethodDefinitions
+import org.enso.persist.Persistance.Reference
 import org.enso.pkg.QualifiedName
 
 import java.io.ObjectOutputStream
@@ -746,7 +747,7 @@ object BindingsMap {
     def anyFieldsDefaulted: Boolean = arguments.exists(_.hasDefaultValue)
   }
 
-  case class Argument(name: String, hasDefaultValue: Boolean, typ: Option[Expression])
+  case class Argument(name: String, hasDefaultValue: Boolean, typ: Option[Reference[Expression]])
 
   /** A representation of a sum type
     *
@@ -782,9 +783,13 @@ object BindingsMap {
         ir.members.map(m =>
           Cons(
             m.name.name,
-            m.arguments.map(arg =>
-              BindingsMap.Argument(arg.name.name, arg.defaultValue.isDefined, arg.ascribedType)
-            )
+            m.arguments.map { arg =>
+              val ascribedType: Option[Reference[Expression]] = arg.ascribedType match {
+                case Some(value) => Some(Reference.of(value))
+                case None => None
+              }
+              BindingsMap.Argument(arg.name.name, arg.defaultValue.isDefined, ascribedType)
+            }
           )
         ),
         isBuiltinType
