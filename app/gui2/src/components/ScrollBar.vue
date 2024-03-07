@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { usePointer } from '@/composables/events'
+import { usePointer, useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { assertDefined } from 'shared/util/assert'
 import { computed, ref, watchEffect } from 'vue'
 
 const element = ref<HTMLElement>()
@@ -21,18 +20,25 @@ const emit = defineEmits<{
 const BAR_END_MARGIN = 2
 const BAR_WIDTH = 6
 
+const viewportSize = useResizeObserver(element)
+
+const range = computed(
+  () =>
+    Rect.Bounding(new Rect(Vec2.Zero, props.size), new Rect(props.position, viewportSize.value))
+      .size,
+)
+
 const xStart = ref('')
 const yStart = ref('')
 const xLength = ref('')
 const yLength = ref('')
 const xFull = ref(false)
 const yFull = ref(false)
+
 watchEffect(() => {
-  if (!element.value) return
-  const viewportSize = Vec2.FromSize(element.value.getBoundingClientRect())
-  const viewportFraction = Vec2.DotProduct(viewportSize, range.value.reciprocal())
+  const viewportFraction = Vec2.DotProduct(viewportSize.value, range.value.reciprocal())
   const barStartFraction = Vec2.DotProduct(props.position, range.value.reciprocal())
-  const trackLength = viewportSize.sub(
+  const trackLength = viewportSize.value.sub(
     new Vec2(BAR_END_MARGIN * 2 + BAR_WIDTH, BAR_END_MARGIN * 2 + BAR_WIDTH),
   )
   const barStart = Vec2.DotProduct(trackLength, barStartFraction).max(Vec2.Zero)
@@ -42,25 +48,17 @@ watchEffect(() => {
   xLength.value = `${barEnd.x - barStart.x}px`
   yStart.value = `${barStart.y}px`
   yLength.value = `${barEnd.y - barStart.y}px`
-  xFull.value = viewportSize.x === range.value.x
-  yFull.value = viewportSize.y === range.value.y
-})
-const range = computed(() => {
-  if (!element.value) return Vec2.Zero
-  const clientRect = Rect.FromDomRect(element.value.getBoundingClientRect())
-  return Rect.Bounding(new Rect(Vec2.Zero, props.size), new Rect(props.position, clientRect.size))
-    .size
+  xFull.value = range.value.x === viewportSize.value.x
+  yFull.value = range.value.y === viewportSize.value.y
 })
 
 const dragging = ref<Vec2>()
 
 function dragEventsHandler(axis: 'x' | 'y') {
   return usePointer((pos, _event, eventType) => {
-    assertDefined(element.value)
     switch (eventType) {
       case 'start': {
-        const boundingRect = element.value.getBoundingClientRect()
-        const factor = Vec2.DotProduct(range.value, Vec2.FromSize(boundingRect).reciprocal())
+        const factor = Vec2.DotProduct(range.value, viewportSize.value.reciprocal())
         const speed = new Vec2(axis === 'x' ? factor.x : 0, axis === 'y' ? factor.y : 0)
         if (speed.isZero()) return
         dragging.value = speed
