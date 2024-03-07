@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+from Standard.Base.Metadata.Choice import Option
 
 import project.Connection.Database
 import project.Connection.SQLite_Details.SQLite_Details
@@ -35,6 +36,10 @@ type SQLite_Format
             ".db" -> SQLite_Format.For_File
             ".sqlite" -> SQLite_Format.For_File
             _ -> Nothing
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "SQLite Database File" (Meta.get_qualified_type_name SQLite_Format)+".For_File"]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`

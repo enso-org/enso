@@ -3,6 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Text_Input, Numeric_Input
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
@@ -32,6 +34,7 @@ type Excel_Format
          `Infer` will attempt to deduce this from the extension of the filename.
        - default_sheet: The default sheet to use when writing a table to a file
          with these format settings.
+    @default_sheet Text_Input
     Workbook (xls_format : Boolean | Infer = Infer) (default_sheet : Text = "EnsoSheet")
 
     ## Reads a sheet from an Excel file as a `Table`.
@@ -50,6 +53,7 @@ type Excel_Format
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
+    @sheet Text_Input
     Sheet (sheet:(Integer|Text)=1) (headers:(Boolean|Infer)=Infer) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing) (xls_format:Boolean|Infer=Infer)
 
     ## Reads a range from an Excel file as a `Table`.
@@ -68,6 +72,7 @@ type Excel_Format
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
+    @address Text_Input
     Range (address:(Text|Excel_Range)) (headers:(Boolean|Infer)=Infer) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing) (xls_format : Boolean | Infer = Infer)
 
     ## PRIVATE
@@ -82,6 +87,15 @@ type Excel_Format
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : Writable_File -> Excel_Format | Nothing
     for_file_write file = Excel_Format.for_read file
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options =
+        fqn = Meta.get_qualified_type_name Excel_Format
+        workbook = Option "Excel Workbook" fqn+".Workbook"
+        sheet = Option "Excel Sheet" fqn+".Sheet"
+        range = Option "Excel Range" fqn+".Range"
+        [workbook, sheet, range]
 
     ## PRIVATE
        ADVANCED

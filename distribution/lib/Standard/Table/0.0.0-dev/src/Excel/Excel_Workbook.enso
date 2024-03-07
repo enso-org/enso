@@ -280,12 +280,11 @@ type Excel_Workbook
        Provides a JS object representation for use in visualizations.
     to_js_object : JS_Object
     to_js_object self =
-        headers = if self.headers == Infer then "Infer" else self.headers
         additional_fields = case self.file of
             regular_file : File -> [["file", regular_file.path]]
             _ -> []
         JS_Object.from_pairs <|
-            [["type", "Excel_Workbook"], ["headers", headers], ["xls_format", self.xls_format]] + additional_fields
+            [["type", "Excel_Workbook"], ["xls_format", self.xls_format]] + additional_fields
 
     ## PRIVATE
     with_java_workbook : (Workbook -> Any) -> Any ! Illegal_State
