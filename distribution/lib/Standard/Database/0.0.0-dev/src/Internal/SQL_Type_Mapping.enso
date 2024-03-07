@@ -5,9 +5,9 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import project.SQL_Type.SQL_Type
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.SQL_Type.SQL_Type
 
 ## PRIVATE
 type SQL_Type_Mapping

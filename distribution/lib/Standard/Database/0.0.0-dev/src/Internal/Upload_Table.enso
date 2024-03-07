@@ -11,17 +11,17 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 from Standard.Table.Errors import all
 
-import project.Connection.Connection.Connection
 import project.Column_Constraint.Column_Constraint
 import project.Column_Description.Column_Description
+import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
-import project.SQL_Query.SQL_Query
-import project.SQL_Statement.SQL_Statement
-import project.Update_Action.Update_Action
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+import project.Update_Action.Update_Action
 from project.Errors import all
 from project.Internal.Result_Set import result_set_to_table
 

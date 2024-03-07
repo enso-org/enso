@@ -15,10 +15,6 @@ import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Dialect
-import project.SQL.SQL_Builder
-import project.SQL.SQL_Fragment
-import project.SQL_Statement.SQL_Statement
-import project.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Column_Fetcher.Column_Fetcher
@@ -39,6 +35,10 @@ import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
+import project.SQL.SQL_Builder
+import project.SQL.SQL_Fragment
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 

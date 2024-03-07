@@ -9,11 +9,11 @@ import Standard.Table.Data.Type.Value_Type_Helpers
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.DB_Column.DB_Column
-import project.SQL_Type.SQL_Type
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.SQL_Type.SQL_Type
 from project.Errors import Unsupported_Database_Operation
 
 polyglot java import java.sql.Types

@@ -50,10 +50,6 @@ from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
-import project.SQL_Query.SQL_Query
-import project.SQL_Statement.SQL_Statement
-import project.SQL_Type.SQL_Type
-import project.Take_Drop_Helpers
 import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
@@ -69,8 +65,12 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Take_Drop_Helpers import Take_Drop
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
+import project.Take_Drop_Helpers
 from project.Errors import Integrity_Error, SQL_Error, Table_Not_Found, Unsupported_Database_Operation
+from project.Take_Drop_Helpers import Take_Drop
 
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
@@ -146,7 +146,7 @@ type DB_Table
             _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if internal_column.is_nothing then if_missing else self.make_column internal_column
 
-    ## ALIAS get cell, cell value
+    ## ALIAS cell value, get cell
        ICON select_column
        Gets a value from the table.
 
@@ -833,7 +833,7 @@ type DB_Table
         new_ctx = self.context.set_limit max_rows
         self.updated_context new_ctx
 
-    ## ALIAS add column, new column, update column, formula
+    ## ALIAS add column, formula, new column, update column
        GROUP Standard.Base.Values
        ICON dataframe_map_column
        Sets the column value at the given name.
@@ -1222,7 +1222,7 @@ type DB_Table
         # If the key is a result of a join, union or a subquery then it has no notion of primary key.
         _ -> Nothing
 
-    ## ALIAS unique, deduplicate
+    ## ALIAS deduplicate, unique
        GROUP Standard.Base.Selections
        ICON preparation
        Returns the distinct set of rows within the specified columns from the
