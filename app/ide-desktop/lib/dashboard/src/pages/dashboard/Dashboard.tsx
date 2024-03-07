@@ -462,12 +462,7 @@ export default function Dashboard(props: DashboardProps) {
             isAssetPanelEnabled={isAssetPanelEnabled}
             setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             doRemoveSelf={doRemoveSelf}
-            onSignOut={() => {
-              if (page === pageSwitcher.Page.editor) {
-                setPage(pageSwitcher.Page.drive)
-              }
-              setProjectStartupInfo(null)
-            }}
+            onSignOut={onSignOut}
           />
           <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
           <Drive
@@ -524,23 +519,13 @@ export default function Dashboard(props: DashboardProps) {
         >
           {isAssetPanelVisible && (
             <AssetPanel
-              supportsLocalBackend={supportsLocalBackend}
               key={assetPanelProps?.item?.item.id}
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
-              page={page}
-              setPage={setPage}
               setQuery={setQuery}
               category={Category.home}
               labels={labels}
-              isHelpChatOpen={isHelpChatOpen}
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              setVisibility={setIsAssetPanelEnabled}
               dispatchAssetEvent={dispatchAssetEvent}
-              projectAsset={projectStartupInfo?.projectAsset ?? null}
-              setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
-              doRemoveSelf={doRemoveSelf}
-              onSignOut={onSignOut}
             />
           )}
         </div>

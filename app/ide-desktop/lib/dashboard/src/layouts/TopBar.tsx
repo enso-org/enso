@@ -1,6 +1,8 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
+import * as reactDom from 'react-dom'
+
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import BackendSwitcher from '#/layouts/BackendSwitcher'
@@ -48,6 +50,7 @@ export default function TopBar(props: TopBarProps) {
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, isAssetPanelVisible } = props
   const { isAssetPanelEnabled, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
+  const [root] = React.useState(() => document.getElementById('enso-dashboard'))
 
   return (
     <div className="relative z-3 m-top-bar mb flex h-row gap-top-bar">
@@ -68,8 +71,10 @@ export default function TopBar(props: TopBarProps) {
           />
         </div>
       )}
-      {!isAssetPanelVisible && (
-        <div className="flex gap-top-bar-right">
+      <div
+        className={`grid transition-all duration-side-panel ${isAssetPanelVisible ? 'grid-cols-0fr' : 'grid-cols-1fr'}`}
+      >
+        <div className="flex gap-top-bar-right overflow-hidden pointer-events-none-recursive transparent">
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
               isAssetPanelVisible={isAssetPanelEnabled}
@@ -88,7 +93,32 @@ export default function TopBar(props: TopBarProps) {
             onSignOut={onSignOut}
           />
         </div>
-      )}
+      </div>
+      {root &&
+        reactDom.createPortal(
+          <div className="fixed right top z-1 m-top-bar text-xs text-primary">
+            <div className="flex gap-top-bar-right">
+              {page === pageSwitcher.Page.drive && (
+                <AssetInfoBar
+                  isAssetPanelVisible={isAssetPanelEnabled}
+                  setIsAssetPanelVisible={setIsAssetPanelEnabled}
+                />
+              )}
+              <UserBar
+                supportsLocalBackend={supportsLocalBackend}
+                page={page}
+                setPage={setPage}
+                isHelpChatOpen={isHelpChatOpen}
+                setIsHelpChatOpen={setIsHelpChatOpen}
+                projectAsset={projectAsset}
+                setProjectAsset={setProjectAsset}
+                doRemoveSelf={doRemoveSelf}
+                onSignOut={onSignOut}
+              />
+            </div>
+          </div>,
+          root
+        )}
     </div>
   )
 }

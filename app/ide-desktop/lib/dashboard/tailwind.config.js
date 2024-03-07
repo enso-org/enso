@@ -379,6 +379,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         '1fr': '1fr',
       },
       gridTemplateColumns: {
+        '0fr': '0fr',
+        '1fr': '1fr',
         'fill-news-items': 'repeat(auto-fill, minmax(var(--news-items-column-width), 1fr))',
         'fill-samples': 'repeat(auto-fill, minmax(var(--samples-column-width), 1fr))',
       },

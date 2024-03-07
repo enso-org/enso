@@ -8,10 +8,6 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
-import type * as pageSwitcher from '#/layouts/PageSwitcher'
-import UserBar from '#/layouts/UserBar'
-
-import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
 import * as backend from '#/services/Backend'
 
@@ -58,27 +54,15 @@ export interface AssetPanelRequiredProps {
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
-  readonly supportsLocalBackend: boolean
-  readonly page: pageSwitcher.Page
-  readonly setPage: (page: pageSwitcher.Page) => void
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly labels: backend.Label[]
-  readonly isHelpChatOpen: boolean
-  readonly setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
-  readonly setVisibility: React.Dispatch<React.SetStateAction<boolean>>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  readonly projectAsset: backend.ProjectAsset | null
-  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backend.ProjectAsset>> | null
-  readonly doRemoveSelf: () => void
-  readonly onSignOut: () => void
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { item, setItem, supportsLocalBackend, page, setPage, setQuery, category, labels } = props
-  const { isHelpChatOpen, setIsHelpChatOpen, setVisibility } = props
-  const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
+  const { item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
 
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [initialized, setInitialized] = React.useState(false)
@@ -122,8 +106,8 @@ export default function AssetPanel(props: AssetPanelProps) {
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
             <button
-              className={`select-none rounded-full bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
-                tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame'
+              className={`button select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
+                tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
               }`}
               onClick={() => {
                 setTab(oldTab =>
@@ -136,22 +120,8 @@ export default function AssetPanel(props: AssetPanelProps) {
               Versions
             </button>
           )}
-        {/* Spacing. */}
+        {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
-        <div className="flex gap-top-bar-right">
-          <AssetInfoBar isAssetPanelVisible setIsAssetPanelVisible={setVisibility} />
-          <UserBar
-            supportsLocalBackend={supportsLocalBackend}
-            isHelpChatOpen={isHelpChatOpen}
-            setIsHelpChatOpen={setIsHelpChatOpen}
-            onSignOut={onSignOut}
-            page={page}
-            setPage={setPage}
-            projectAsset={projectAsset}
-            setProjectAsset={setProjectAsset}
-            doRemoveSelf={doRemoveSelf}
-          />
-        </div>
       </div>
       {item == null || setItem == null ? (
         <div className="grid grow place-items-center text-lg">
