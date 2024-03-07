@@ -458,6 +458,8 @@ export enum EventType {
   UploadFile = 'uploadFile',
 }
 
+export const EVENT_TYPES = Object.freeze(Object.values(EventType))
+
 /** An event indicating that a secret was accessed. */
 interface GetSecretEventMetadata {
   readonly type: EventType.GetSecret

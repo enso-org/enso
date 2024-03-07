@@ -14,23 +14,54 @@ interface InternalChildProps<T> {
   readonly item: T
 }
 
-/** Props for a {@link Dropdown}. */
-export interface DropdownProps<T> {
+/** Props for the display of the currently selected item, when the dropdown supports multiple children. */
+interface InternalChildrenProps<T> {
+  readonly items: T[]
+  /** This is the value passed as {@link DropdownProps.render}. */
+  readonly render: (props: InternalChildProps<T>) => React.ReactNode
+}
+
+/** Props for a {@link Dropdown} shared between all variants. */
+interface InternalBaseDropdownProps<T> {
   readonly readOnly?: boolean
   readonly className?: string
-  readonly items: T[]
-  readonly selectedIndex: number | null
+  readonly items: readonly T[]
   readonly render: (props: InternalChildProps<T>) => React.ReactNode
+}
+
+/** Props for a {@link Dropdown}, when `multiple` is `false` or absent. */
+interface InternalSingleDropdownProps<T> extends InternalBaseDropdownProps<T> {
+  readonly multiple?: false
+  readonly selectedIndex: number | null
   readonly onClick: (item: T, index: number) => void
 }
 
+/** Props for a {@link Dropdown}, when `multiple` is `true`. */
+interface InternalMultipleDropdownProps<T> extends InternalBaseDropdownProps<T> {
+  readonly multiple: true
+  readonly selectedIndices: readonly number[]
+  readonly renderMultiple: (props: InternalChildrenProps<T>) => React.ReactNode
+  readonly onClick: (items: readonly T[], indices: readonly number[]) => void
+}
+
+/** Props for a {@link Dropdown}. */
+export type DropdownProps<T> = InternalMultipleDropdownProps<T> | InternalSingleDropdownProps<T>
+
 /** A styled dropdown. */
 export default function Dropdown<T>(props: DropdownProps<T>) {
-  const { readOnly = false, className, items, selectedIndex, render: Child, onClick } = props
+  const { readOnly = false, className, items, render: Child } = props
   const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
   const [tempSelectedIndex, setTempSelectedIndex] = React.useState<number | null>(null)
   const rootRef = React.useRef<HTMLDivElement>(null)
+  const justFocusedRef = React.useRef(false)
   const isMouseDown = React.useRef(false)
+  const multiple = props.multiple === true
+  const selectedIndex = 'selectedIndex' in props ? props.selectedIndex : null
+  const selectedIndices = 'selectedIndices' in props ? props.selectedIndices : []
+  const selectedItems = selectedIndices.flatMap(index => {
+    const item = items[index]
+    return item != null ? [item] : []
+  })
   const visuallySelectedIndex = tempSelectedIndex ?? selectedIndex
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
@@ -68,10 +99,25 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
           if (tempSelectedIndex != null) {
             const item = items[tempSelectedIndex]
             if (item != null) {
-              onClick(item, tempSelectedIndex)
+              if (multiple) {
+                const newIndices = selectedIndices.includes(tempSelectedIndex)
+                  ? selectedIndices.filter(index => index !== tempSelectedIndex)
+                  : [...selectedIndices, tempSelectedIndex]
+                props.onClick(
+                  newIndices.flatMap(index => {
+                    const otherItem = items[index]
+                    return otherItem != null ? [otherItem] : []
+                  }),
+                  newIndices
+                )
+              } else {
+                props.onClick(item, tempSelectedIndex)
+              }
             }
           }
-          setIsDropdownVisible(false)
+          if (event.key !== 'Enter' || !multiple) {
+            setIsDropdownVisible(false)
+          }
           break
         }
         case 'ArrowUp': {
@@ -102,12 +148,13 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     <div
       ref={rootRef}
       tabIndex={0}
-      className={`group relative flex flex-col w-max items-center rounded-xl cursor-pointer leading-5 whitespace-nowrap ${
+      className={`group relative flex flex-col w-max items-start rounded-xl cursor-pointer leading-5 whitespace-nowrap ${
         className ?? ''
       }`}
       onFocus={event => {
         if (!readOnly && event.target === event.currentTarget) {
           setIsDropdownVisible(true)
+          justFocusedRef.current = true
         }
       }}
       onBlur={event => {
@@ -116,56 +163,88 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         }
       }}
       onKeyDown={onKeyDown}
+      onKeyUp={() => {
+        justFocusedRef.current = false
+      }}
     >
       <div
-        className={`absolute left-0 w-max h-full ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
+        className={`absolute left-0 w-full min-w-max h-full ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
       >
         <div
-          className={`relative before:absolute before:border before:border-black/10 before:rounded-xl before:backdrop-blur-3xl before:top-0 before:w-full before:transition-colors ${
+          className={`relative before:absolute before:border before:border-black/10 before:rounded-xl before:backdrop-blur-3xl before:top-0 before:w-full before:transition-all ${
             isDropdownVisible
               ? 'before:h-full before:shadow-soft'
               : 'before:h-6 group-hover:before:bg-frame'
           }`}
         >
           {/* Spacing. */}
-          <div className="relative padding h-6" />
+          <div
+            className="relative padding h-6"
+            onClick={event => {
+              event.stopPropagation()
+              if (!justFocusedRef.current && !readOnly) {
+                setIsDropdownVisible(false)
+              }
+              justFocusedRef.current = false
+            }}
+          />
           <div
             className={`relative grid rounded-xl w-full max-h-10lh transition-grid-template-rows ${
               isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
             }`}
           >
-            {items.map((item, i) => (
-              <div
-                className={`flex gap-1 rounded-xl px-2 h-6 transition-colors ${
-                  i === visuallySelectedIndex
-                    ? 'cursor-default bg-frame font-bold'
-                    : 'hover:bg-frame-selected'
-                }`}
-                key={i}
-                onMouseDown={event => {
-                  event.preventDefault()
-                  isMouseDown.current = true
-                }}
-                onMouseUp={() => {
-                  isMouseDown.current = false
-                }}
-                onClick={() => {
-                  if (i !== visuallySelectedIndex) {
-                    setIsDropdownVisible(false)
-                    onClick(item, i)
-                  }
-                }}
-                onFocus={() => {
-                  if (!isMouseDown.current) {
-                    // This is from keyboard navigation.
-                    onClick(item, i)
-                  }
-                }}
-              >
-                <SvgMask src={TriangleDownIcon} className="invisible" />
-                <Child item={item} />
-              </div>
-            ))}
+            <div className="overflow-hidden">
+              {items.map((item, i) => (
+                <div
+                  className={`flex gap-1 rounded-xl px-2 h-6 transition-colors ${
+                    i === visuallySelectedIndex
+                      ? 'cursor-default bg-frame font-bold'
+                      : 'hover:bg-frame-selected'
+                  }`}
+                  key={i}
+                  onMouseDown={event => {
+                    event.preventDefault()
+                    isMouseDown.current = true
+                  }}
+                  onMouseUp={() => {
+                    isMouseDown.current = false
+                  }}
+                  onClick={() => {
+                    if (i !== visuallySelectedIndex) {
+                      if (multiple) {
+                        const newIndices = selectedIndices.includes(i)
+                          ? selectedIndices.filter(index => index !== i)
+                          : [...selectedIndices, i]
+                        props.onClick(
+                          newIndices.flatMap(index => {
+                            const otherItem = items[index]
+                            return otherItem != null ? [otherItem] : []
+                          }),
+                          newIndices
+                        )
+                      } else {
+                        setIsDropdownVisible(false)
+                        props.onClick(item, i)
+                      }
+                    }
+                  }}
+                  onFocus={() => {
+                    if (!isMouseDown.current) {
+                      // This is from keyboard navigation.
+                      if (multiple) {
+                        // FIXME: Is this correct behavior?
+                        props.onClick([item], [i])
+                      } else {
+                        props.onClick(item, i)
+                      }
+                    }
+                  }}
+                >
+                  <SvgMask src={TriangleDownIcon} className="invisible" />
+                  <Child item={item} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -173,10 +252,21 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         className={`relative flex gap-1 items-center h-6 px-2 ${isDropdownVisible ? 'z-1' : ''} ${
           readOnly ? 'opacity-75 cursor-not-allowed' : ''
         }`}
+        onClick={event => {
+          event.stopPropagation()
+          if (!justFocusedRef.current && !readOnly) {
+            setIsDropdownVisible(false)
+          }
+          justFocusedRef.current = false
+        }}
       >
         <SvgMask src={TriangleDownIcon} />
         <div className="grow">
-          {visuallySelectedItem != null && <Child item={visuallySelectedItem} />}
+          {visuallySelectedItem != null ? (
+            <Child item={visuallySelectedItem} />
+          ) : (
+            multiple && <props.renderMultiple items={selectedItems} render={Child} />
+          )}
         </div>
       </div>
     </div>
