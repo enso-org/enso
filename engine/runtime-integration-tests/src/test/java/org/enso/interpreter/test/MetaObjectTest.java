@@ -108,7 +108,6 @@ public class MetaObjectTest extends TestBase {
       }
     }
     expecting.remove(ConstantsGen.ARRAY_LIKE_HELPERS);
-    expecting.remove(ConstantsGen.POLYGLOT_ARRAY_BUILDER);
     var w = new StringBuilder();
     var f = new StringWriter();
     var err = new PrintWriter(f);

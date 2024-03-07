@@ -298,17 +298,6 @@ type Not_Invokable
     to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
 
 @Builtin_Type
-type Invalid_Operation
-    ## PRIVATE
-       An error that occurs when an invalid operation is attempted..
-
-       Arguments:
-       - message: A detailed message.
-    Error message
-
-    to_display_text self = self.message.to_text
-
-@Builtin_Type
 type Unsupported_Argument_Types
     ## PRIVATE
        An error that occurs when arguments used in a function call are invalid

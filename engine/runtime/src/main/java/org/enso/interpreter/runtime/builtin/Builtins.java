@@ -40,7 +40,6 @@ import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
-import org.enso.interpreter.node.expression.builtin.mutable.PolyglotArrayBuilder;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
 import org.enso.interpreter.node.expression.builtin.ordering.Comparable;
 import org.enso.interpreter.node.expression.builtin.ordering.DefaultComparator;
@@ -108,7 +107,6 @@ public final class Builtins {
   private final Builtin array;
   private final Builtin vector;
 
-  private final Builtin polyglotArrayBuilder;
   private final Builtin map;
   private final Builtin dataflowError;
   private final Builtin ref;
@@ -159,7 +157,6 @@ public final class Builtins {
     text = builtins.get(Text.class);
     array = builtins.get(Array.class);
     vector = builtins.get(Vector.class);
-    polyglotArrayBuilder = builtins.get(PolyglotArrayBuilder.class);
     map = builtins.get(org.enso.interpreter.node.expression.builtin.Map.class);
     dataflowError = builtins.get(org.enso.interpreter.node.expression.builtin.Error.class);
     ref = builtins.get(Ref.class);
@@ -680,10 +677,6 @@ public final class Builtins {
 
   public Type vector() {
     return vector.getType();
-  }
-
-  public Type polyglotArrayBuilder() {
-    return polyglotArrayBuilder.getType();
   }
 
   public Type map() {

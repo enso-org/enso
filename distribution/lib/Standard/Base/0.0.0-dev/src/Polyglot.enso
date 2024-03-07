@@ -35,17 +35,6 @@ type Polyglot
 
     ## PRIVATE
        ADVANCED
-       Writes the element to a polyglot array object at a given index.
-
-       Arguments:
-       - array: The array on which to perform the operation.
-       - index: The index to get the element from.
-       - element: The element to write.
-    write_array_element : Any -> Integer -> Any -> Nothing
-    write_array_element array index element = @Builtin_Method "Polyglot.write_array_element"
-
-    ## PRIVATE
-       ADVANCED
        Executes a polyglot function object (e.g. a lambda).
 
        Arguments:

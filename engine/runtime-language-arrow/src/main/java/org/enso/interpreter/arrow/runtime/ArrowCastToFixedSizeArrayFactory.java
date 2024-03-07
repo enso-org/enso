@@ -42,7 +42,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayDate.DateUnit.Day;
+      var unit = LogicalLayout.Date32;
       return new ArrowFixedArrayDate(pointer(args, iop, unit), unit);
     }
 
@@ -52,7 +52,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayDate.DateUnit.Millisecond;
+      var unit = LogicalLayout.Date64;
       return new ArrowFixedArrayDate(pointer(args, iop, unit), unit);
     }
 
@@ -62,7 +62,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayInt.IntUnit.Byte1;
+      var unit = LogicalLayout.Int8;
       return new ArrowFixedArrayInt(pointer(args, iop, unit), unit);
     }
 
@@ -72,7 +72,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayInt.IntUnit.Byte2;
+      var unit = LogicalLayout.Int16;
       return new ArrowFixedArrayInt(pointer(args, iop, unit), unit);
     }
 
@@ -82,7 +82,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayInt.IntUnit.Byte4;
+      var unit = LogicalLayout.Int32;
       return new ArrowFixedArrayInt(pointer(args, iop, unit), unit);
     }
 
@@ -92,7 +92,7 @@ public class ArrowCastToFixedSizeArrayFactory implements TruffleObject {
         Object[] args,
         @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
         throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-      var unit = ArrowFixedArrayInt.IntUnit.Byte8;
+      var unit = LogicalLayout.Int64;
       return new ArrowFixedArrayInt(pointer(args, iop, unit), unit);
     }
 

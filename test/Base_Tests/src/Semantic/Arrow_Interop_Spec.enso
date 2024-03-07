@@ -1,15 +1,14 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
-import Standard.Base.Errors.Common.Invalid_Operation
-import Standard.Base.Data.Polyglot_Array_Builder.Polyglot_Array_Builder
+import Standard.Base.Errors.Common.Not_Invokable
+import Standard.Base.Errors.Common.No_Such_Method
 
 from Standard.Test import all
 
 foreign arrow new_arrow = """
     new[Int8]
 
-Polyglot_Array_Builder.set self index value = Polyglot_Array_Builder.set_builtin self index value
 
 add_specs suite_builder =
     pending = if Polyglot.is_language_installed "arrow" then Nothing else """
@@ -18,8 +17,7 @@ add_specs suite_builder =
     suite_builder.group "Arrow" pending=pending group_builder->
         group_builder.specify "should allow for creating a new fixed Array in Arrow" <|
             arrow_array_constructor = new_arrow
-            array_10 = arrow_array_constructor.new 10
-            builder = Polyglot_Array_Builder.from_polyglot_array array_10
+            builder = arrow_array_constructor.new 10
 
             builder.length . should_equal 10
             builder.at 1 . should_equal Nothing
@@ -27,15 +25,14 @@ add_specs suite_builder =
             builder.append 2
             builder.append 10
             builder.at 1 . should_equal 10
-            builder.set 8 127
-            builder.set 8 128 . should_fail_with Unsupported_Argument_Types
+            builder.append 127
+
+            # Check that the value that will not fit into a byte is rejected
+            Test.expect_panic_with (builder.append 128) Not_Invokable
             v = builder.build
-            v.at 8 . should_equal 127
-            builder.append 21 . should_fail_with Invalid_Operation
-            builder.set 1 21 . should_fail_with Invalid_Operation
-            Polyglot.write_array_element array_10 1 0
-            builder.at 1 . should_equal 0
-            v.at 1 . should_equal 0 # dangerous but allowed
+            v.at 2 . should_equal 127
+            Test.expect_panic_with (builder.append 21) No_Such_Method
+            v.at 4 . should_equal Nothing
 
 main =
     suite = Test.build suite_builder->
