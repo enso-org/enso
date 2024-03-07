@@ -5,8 +5,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.File_Like.File_Like
-import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 import Standard.Base.System.Output_Stream.Output_Stream
 from Standard.Base.System.File import find_extension_from_name
@@ -22,7 +22,8 @@ import project.S3.S3
 ## Represents an S3 file or folder
    If the path ends with a slash, it is a folder. Otherwise, it is a file.
 type S3_File
-    ## Given an S3 URI create a file representation.
+    ## ICON data_input
+       Given an S3 URI create a file representation.
 
        Arguments:
        - uri: The URI of the file.
@@ -38,11 +39,13 @@ type S3_File
     Value (s3_path : S3_Path) credentials:AWS_Credential
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the URI of this file
     uri : Text
     uri self -> Text = self.s3_path.to_text
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the folder or file exists
     exists : Boolean
     exists self = if self.s3_path.bucket == "" then True else
@@ -51,6 +54,7 @@ type S3_File
             pair.second.contains self.s3_path.key
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if this is a folder.
     is_directory : Boolean
     is_directory self = self.s3_path.is_directory
@@ -61,6 +65,7 @@ type S3_File
     is_regular_file self = self.is_directory.not
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Gets the size of a file in bytes.
     size : Integer
     size self =
@@ -221,6 +226,7 @@ type S3_File
                 self.delete.if_not_error r
 
     ## GROUP Standard.Base.Operators
+       ICON folder
        Join two path segments together, normalizing the `..` and `.` subpaths.
 
        Arguments:
@@ -246,6 +252,7 @@ type S3_File
         S3_File.Value (self.s3_path.resolve subpath) self.credentials
 
     ## GROUP Standard.Base.Calculations
+       ICON folder
        Join two or more path segments together, normalizing the `..` and `.` subpaths.
 
        Arguments:
@@ -277,11 +284,13 @@ type S3_File
     path self = self.s3_path.to_text
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the name of this file.
     name : Text
     name self = self.s3_path.file_name
 
     ## GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the extension of the file.
     extension : Text
     extension self = if self.is_directory then Error.throw (S3_Error.Error "Directories do not have extensions." self.uri) else
@@ -303,6 +312,7 @@ type S3_File
                 instant.at_zone Time_Zone.system
 
     ## GROUP Standard.Base.Input
+       ICON data_input
        Lists files contained in the directory denoted by this file.
 
        Arguments:

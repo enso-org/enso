@@ -2,10 +2,8 @@
 // === Export ===
 // ==============
 
-pub use crate::entry_point;
 pub use crate::CloneRef;
 pub use crate::NoCloneBecauseOfCustomDrop;
-
 
 
 // ================

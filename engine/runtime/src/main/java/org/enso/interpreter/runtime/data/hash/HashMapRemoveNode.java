@@ -97,7 +97,7 @@ public abstract class HashMapRemoveNode extends Node {
   }
 
   /** A special case of equals - we want to be able to remove NaN from the map. */
-  private static boolean polyglotEquals(
+  private boolean polyglotEquals(
       Object obj1, Object obj2, VirtualFrame frame, EqualsNode equalsNode, InteropLibrary interop) {
     if (isNan(obj1, interop) && isNan(obj2, interop)) {
       return true;
@@ -106,11 +106,12 @@ public abstract class HashMapRemoveNode extends Node {
     }
   }
 
-  private static boolean isNan(Object obj, InteropLibrary interop) {
+  private boolean isNan(Object obj, InteropLibrary interop) {
     try {
       return interop.fitsInDouble(obj) && Double.isNaN(interop.asDouble(obj));
     } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, e);
     }
   }
 }

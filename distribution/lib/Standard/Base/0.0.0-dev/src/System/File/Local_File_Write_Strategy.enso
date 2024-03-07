@@ -10,7 +10,7 @@ import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
-from project.System.File.Generic.File_Write_Strategy import File_Write_Strategy, default_overwrite, default_append, default_raise_error
+from project.System.File.Generic.File_Write_Strategy import default_append, default_overwrite, default_raise_error, File_Write_Strategy
 
 ## PRIVATE
 instance =

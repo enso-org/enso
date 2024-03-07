@@ -13,6 +13,7 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 ## Defines a simple expression based off an input column and an operation to perform.
 type Simple_Expression
+    ## A simple expression based off an input column and an operation to perform.
     From (input : Column_Ref|Expression|Any = Column_Ref.Index) (operation : Simple_Calculation)
 
     ## PRIVATE

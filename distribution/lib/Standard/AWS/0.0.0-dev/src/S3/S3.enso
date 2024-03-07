@@ -8,8 +8,8 @@ import project.AWS_Credential.AWS_Credential
 import project.Errors.AWS_SDK_Error
 import project.Errors.More_Records_Available
 import project.Errors.S3_Bucket_Not_Found
-import project.Errors.S3_Key_Not_Found
 import project.Errors.S3_Error
+import project.Errors.S3_Key_Not_Found
 import project.Internal.Request_Body
 
 polyglot java import java.io.IOException
@@ -126,7 +126,7 @@ raw_head bucket key credentials =
    - credentials: AWS credentials. If not provided, the default credentials will
      be used.
    - delimiter: The delimiter to use for deducing the filename from the path.
-get_object : Text -> Text -> AWS_Credential -> Response_Body ! S3_Error
+get_object : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
 get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = handle_s3_errors bucket=bucket key=key <|
     request = GetObjectRequest.builder.bucket bucket . key key . build
 
