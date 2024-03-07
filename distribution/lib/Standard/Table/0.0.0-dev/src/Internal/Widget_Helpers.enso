@@ -188,7 +188,8 @@ parse_type_selector include_auto=True =
     choice = names.map n-> if n=='Auto' then (Meta.get_qualified_type_name Auto) else fqn+'.'+n
 
     options = names.zip choice . map pair-> Option pair.first pair.second
-    Single_Choice display=Display.Always values=options
+    display = if include_auto then Display.Always else Display.When_Modified
+    Single_Choice display=display values=options
 
 ## PRIVATE
    Selector for writing a table to a file.
@@ -198,7 +199,7 @@ write_table_selector =
         Meta.meta type . methods . contains "write_table"
     all_types = [Auto_Detect] + (format_types.filter can_write)
     make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
-    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
+    Single_Choice display=Display.When_Modified values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
 
 ## PRIVATE
    Make format selector based off value type

@@ -5,6 +5,7 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Meta
+import project.Metadata.Display
 import project.Metadata.Widget
 from project.Data.Boolean import Boolean, False, True
 from project.Metadata import make_single_choice
@@ -111,4 +112,4 @@ make_format_chooser include_number:Boolean=True include_date:Boolean=True includ
     time = if include_time.not then [] else
         ['HH:mm[:ss]', 'h:mm[:ss] a'].map f-> [f + " (e.g. " + (Time_Of_Day.new 13 30 55 123).format f + ")", f.pretty]
     boolean = if include_boolean.not then [] else ['Yes|No', '1|0'].map f-> [f + " (Boolean)", f.pretty]
-    make_single_choice (numeric + date + date_time + time + custom_locale_format + boolean)
+    make_single_choice (numeric + date + date_time + time + custom_locale_format + boolean) display=Display.When_Modified
