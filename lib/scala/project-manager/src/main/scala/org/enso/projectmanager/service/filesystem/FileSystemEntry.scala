@@ -13,6 +13,9 @@ sealed trait FileSystemEntry {
 
   /** A path to the file system entry. */
   def path: File
+
+  /** An attributes of the file system entry. */
+  def attributes: Attributes
 }
 
 object FileSystemEntry {
@@ -20,28 +23,38 @@ object FileSystemEntry {
   /** A file.
     *
     * @param path the path to the file
+    * @param attributes the attributes of the file
     */
-  case class FileEntry(path: File) extends FileSystemEntry
+  case class FileEntry(path: File, attributes: Attributes)
+      extends FileSystemEntry
 
   /** A directory.
     *
     * @param path the path to the directory
+    * @param attributes the attributes of the directory
     */
-  case class DirectoryEntry(path: File) extends FileSystemEntry
+  case class DirectoryEntry(path: File, attributes: Attributes)
+      extends FileSystemEntry
 
   /** A directory containing a project.
     *
     * @param path the path to the directory
+    * @param attributes the attributes of the directory
     * @param metadata the project metadata
     */
-  case class ProjectEntry(path: File, metadata: ProjectMetadata)
-      extends FileSystemEntry
+  case class ProjectEntry(
+    path: File,
+    attributes: Attributes,
+    metadata: ProjectMetadata
+  ) extends FileSystemEntry
 
   private object CodecField {
 
     val Type = "type"
 
     val Path = "path"
+
+    val Attributes = "attributes"
 
     val Metadata = "metadata"
   }
@@ -57,21 +70,24 @@ object FileSystemEntry {
 
   implicit val encoder: Encoder[FileSystemEntry] =
     Encoder.instance[FileSystemEntry] {
-      case FileEntry(path) =>
+      case FileEntry(path, attributes) =>
         Json.obj(
-          CodecField.Type -> CodecType.File.asJson,
-          CodecField.Path -> path.asJson
+          CodecField.Type       -> CodecType.File.asJson,
+          CodecField.Path       -> path.asJson,
+          CodecField.Attributes -> attributes.asJson
         )
-      case DirectoryEntry(path) =>
+      case DirectoryEntry(path, attributes) =>
         Json.obj(
-          CodecField.Type -> CodecType.Directory.asJson,
-          CodecField.Path -> path.asJson
+          CodecField.Type       -> CodecType.Directory.asJson,
+          CodecField.Path       -> path.asJson,
+          CodecField.Attributes -> attributes.asJson
         )
-      case ProjectEntry(path, metadata) =>
+      case ProjectEntry(path, attributes, metadata) =>
         Json.obj(
-          CodecField.Type     -> CodecType.Project.asJson,
-          CodecField.Path     -> path.asJson,
-          CodecField.Metadata -> metadata.asJson
+          CodecField.Type       -> CodecType.Project.asJson,
+          CodecField.Path       -> path.asJson,
+          CodecField.Attributes -> attributes.asJson,
+          CodecField.Metadata   -> metadata.asJson
         )
     }
 
@@ -80,21 +96,24 @@ object FileSystemEntry {
       cursor.downField(CodecField.Type).as[String].flatMap {
         case CodecType.File =>
           for {
-            path <- cursor.downField(CodecField.Path).as[File]
-          } yield FileEntry(path)
+            path       <- cursor.downField(CodecField.Path).as[File]
+            attributes <- cursor.downField(CodecField.Attributes).as[Attributes]
+          } yield FileEntry(path, attributes)
 
         case CodecType.Directory =>
           for {
-            path <- cursor.downField(CodecField.Path).as[File]
-          } yield DirectoryEntry(path)
+            path       <- cursor.downField(CodecField.Path).as[File]
+            attributes <- cursor.downField(CodecField.Attributes).as[Attributes]
+          } yield DirectoryEntry(path, attributes)
 
         case CodecType.Project =>
           for {
-            path <- cursor.downField(CodecField.Path).as[File]
+            path       <- cursor.downField(CodecField.Path).as[File]
+            attributes <- cursor.downField(CodecField.Attributes).as[Attributes]
             metadata <- cursor
               .downField(CodecField.Metadata)
               .as[ProjectMetadata]
-          } yield ProjectEntry(path, metadata)
+          } yield ProjectEntry(path, attributes, metadata)
       }
     }
 }

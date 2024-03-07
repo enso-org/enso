@@ -15,6 +15,7 @@ import zio.{ZAny, ZIO}
 
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
 
 class FileSystemServiceSpec
     extends BaseServerSpec
@@ -50,6 +51,9 @@ class FileSystemServiceSpec
       gen
     )
 
+  def attributes(path: File): Attributes =
+    Attributes(Files.readAttributes(path.toPath, classOf[BasicFileAttributes]))
+
   "FileSystemService" should {
 
     "list directory" in {
@@ -72,6 +76,7 @@ class FileSystemServiceSpec
       result.value should contain theSameElementsAs Seq(
         FileSystemEntry.ProjectEntry(
           projectPath,
+          attributes(projectPath),
           ProjectMetadata(
             projectName,
             "local",
@@ -80,7 +85,7 @@ class FileSystemServiceSpec
             None
           )
         ),
-        FileSystemEntry.FileEntry(testFile)
+        FileSystemEntry.FileEntry(testFile, attributes(testFile))
       )
 
       // cleanup

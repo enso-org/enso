@@ -25,6 +25,8 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`EngineVersion`](#engineversion)
   - [`RunningState`](#runningstate)
   - [`FileSystemEntry`](#filesystementry)
+  - [`Attributes`](#attributes)
+  - [`UTCDateTime`](#utcdatetime)
 - [File System Management Operations](#file-system-management-operations)
   - [List Directories](#list-directories)
   - [Create Directory](#create-directory)
@@ -197,21 +199,51 @@ interface RunningStatus {
 
 A directory entry in the fileystem operations.
 
+#### Format
+
 ```typescript
 type FileSystemEntry = FileEntry | DirectoryEntry | ProjectEntry;
 
 interface FileEntry {
   path: string;
+  attributes: Attributes;
 }
 
 interface DirectoryEntry {
   path: string;
+  attributes: Attributes;
 }
 
 interface ProjectEntry {
   path: string;
+  attributes: Attributes;
   metadata: ProjectMetadata;
 }
+```
+
+### `Attributes`
+
+Basic attributes of a filesystem entry.
+
+#### Format
+
+```typescript
+interface Attributes {
+  creationTime: UTCDateTime;
+  lastAccessTime: UTCDateTime;
+  lastModifiedTime: UTCDateTime;
+  byteSize: number;
+}
+```
+
+### `UTCDateTime`
+
+Time in UTC time zone represented as ISO-8601 string.
+
+#### Format
+
+```typescript
+type UTCDateTime = string;
 ```
 
 ## File System Management Operations

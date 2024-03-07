@@ -13,6 +13,8 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFactor
 import org.enso.projectmanager.service.ProjectService
 
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
 
 class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
   fileSystem: FileSystem[F],
@@ -59,16 +61,26 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
   ): F[FileSystemServiceFailure, Option[FileSystemEntry]] = {
     val projectRepository =
       projectRepositoryFactory.getProjectRepository(Some(file))
+    val basicFileAttributes =
+      Files.readAttributes(file.toPath, classOf[BasicFileAttributes])
+    val attributes = Attributes(basicFileAttributes)
     if (file.isFile)
-      CovariantFlatMap[F].pure(Some(FileSystemEntry.FileEntry(file)))
+      CovariantFlatMap[F].pure(
+        Some(FileSystemEntry.FileEntry(file, attributes))
+      )
     else if (file.isDirectory) {
       projectRepository
         .tryLoadProject(file)
         .map(
-          _.fold[FileSystemEntry](FileSystemEntry.DirectoryEntry(file))(
-            project =>
-              FileSystemEntry
-                .ProjectEntry(file, ProjectService.toProjectMetadata(project))
+          _.fold[FileSystemEntry](
+            FileSystemEntry.DirectoryEntry(file, attributes)
+          )(project =>
+            FileSystemEntry
+              .ProjectEntry(
+                file,
+                attributes,
+                ProjectService.toProjectMetadata(project)
+              )
           )
         )
         .map(Some(_))
