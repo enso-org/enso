@@ -25,7 +25,7 @@ export interface ModalProps extends Readonly<React.PropsWithChildren> {
  * `className="bg-opacity-50"`. */
 export default function Modal(props: ModalProps) {
   const { hidden = false, children, centered = false, style, className } = props
-  const {  onClick, onContextMenu } = props
+  const { onClick, onContextMenu } = props
   const { unsetModal } = modalProvider.useSetModal()
 
   return (

@@ -61,8 +61,8 @@ export default function UserMenu(props: UserMenuProps) {
       >
         {user != null ? (
           <>
-            <div className="flex items-center gap-icons px-menu-entry overflow-hidden">
-              <div className="flex shrink-0 size-profile-picture items-center overflow-clip rounded-full">
+            <div className="flex items-center gap-icons overflow-hidden px-menu-entry">
+              <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
                   className="pointer-events-none size-profile-picture"
