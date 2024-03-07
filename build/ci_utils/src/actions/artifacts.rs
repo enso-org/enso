@@ -138,14 +138,16 @@ pub fn single_file_provider(
     Ok(futures::stream::iter([file]))
 }
 
+/// Uploads recursively directory with its subtree as a single artifact.
 pub fn single_dir_provider(path: &Path) -> Result<impl Stream<Item = FileToUpload> + 'static> {
     // TODO not optimal, could discover files at the same time as handling them.
+    let parent_path = path.try_parent()?;
     let files = walkdir::WalkDir::new(path)
         .into_iter()
         .try_collect_vec()?
         .into_iter()
         .filter(|entry| !entry.file_type().is_dir())
-        .map(|entry| FileToUpload::new_relative(path, entry.path()))
+        .map(|entry| FileToUpload::new_relative(parent_path, entry.path()))
         .try_collect_vec()?;
 
     info!("Discovered {} files under the {}.", files.len(), path.display());
@@ -236,9 +238,11 @@ mod tests {
     #[tokio::test]
     async fn discover_files_in_dir() -> Result {
         let dir = TempDir::new()?;
+        let dir = dir.path().join("uploaded_dir");
+        crate::fs::create_dir_all(&dir)?;
         crate::fs::create(dir.join_iter(["file"]))?;
         crate::fs::create(dir.join_iter(["subdir/nested_file"]))?;
-        let stream = single_dir_provider(dir.as_ref())?;
+        let stream = single_dir_provider(&dir)?;
         let v = stream.collect::<Vec<_>>().await;
         dbg!(v);
         Ok(())
