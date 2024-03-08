@@ -456,7 +456,7 @@ export function useComponentBrowserInput(
         }
         break
       case 'editNode':
-        code.value = graphDb.nodeIdToNode.get(usage.node)?.rootSpan.code() ?? ''
+        code.value = graphDb.nodeIdToNode.get(usage.node)?.innerExpr.code() ?? ''
         selection.value = { start: usage.cursorPos, end: usage.cursorPos }
         break
     }
