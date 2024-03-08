@@ -179,7 +179,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
           className={`relative before:absolute before:top-0 before:w-full before:rounded-xl before:border before:border-primary/10 before:backdrop-blur-3xl before:transition-all ${
             isDropdownVisible
               ? 'before:h-full before:shadow-soft'
-              : 'before:h-6 group-hover:before:bg-frame'
+              : 'before:h-6 group-hover:before:bg-primary/10'
           }`}
         >
           {/* Spacing. */}
@@ -204,7 +204,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                   tabIndex={-1}
                   className={`flex h-6 items-center gap-1 rounded-xl px-2 transition-colors ${multiple ? 'hover:font-semibold' : ''} ${
                     i === visuallySelectedIndex
-                      ? `cursor-default bg-primary/10 font-bold`
+                      ? `cursor-default bg-frame font-bold`
                       : 'hover:bg-primary/10'
                   }`}
                   key={i}

@@ -91,7 +91,7 @@ export default function DateInput(props: DateInputProps) {
       }}
     >
       <button
-        className={`border border-primary/10 rounded-full px-2 h-6 w-30 ${date == null ? 'opacity-75' : ''}`}
+        className={`border border-primary/10 rounded-full px-2 h-6 w-30 transition-colors hover:bg-primary/10 ${date == null ? 'opacity-75' : ''}`}
         onClick={() => {
           setIsPickerVisible(!isPickerVisible)
         }}
@@ -165,24 +165,35 @@ export default function DateInput(props: DateInputProps) {
               <tbody>
                 {month.map((week, i) => (
                   <tr key={i}>
-                    {week.map((day, j) => (
-                      <td
-                        key={j}
-                        className="p-0 h-5 leading-144.5 py-px"
-                        onClick={() => {
-                          setIsPickerVisible(false)
-                          onInput(
-                            new Date(selectedYear, selectedMonthIndex + day.monthOffset, day.date)
-                          )
-                        }}
-                      >
-                        <button
-                          className={`w-full text-center rounded-md hover:bg-black/10 ${day.monthOffset === 0 ? '' : 'opacity-50'}`}
+                    {week.map((day, j) => {
+                      const currentDate = new Date(
+                        selectedYear,
+                        selectedMonthIndex + day.monthOffset,
+                        day.date
+                      )
+                      const isSelectedDate =
+                        date != null &&
+                        currentDate.getFullYear() === year &&
+                        currentDate.getMonth() === monthIndex &&
+                        currentDate.getDate() === date.getDate()
+                      return (
+                        <td
+                          key={j}
+                          className="p-0 h-5 leading-144.5 py-px"
+                          onClick={() => {
+                            setIsPickerVisible(false)
+                            onInput(currentDate)
+                          }}
                         >
-                          {day.date}
-                        </button>
-                      </td>
-                    ))}
+                          <button
+                            disabled={isSelectedDate}
+                            className={`w-full text-center rounded-md hover:bg-black/10 disabled:font-bold disabled:bg-frame ${day.monthOffset === 0 ? '' : 'opacity-50'}`}
+                          >
+                            {day.date}
+                          </button>
+                        </td>
+                      )
+                    })}
                   </tr>
                 ))}
               </tbody>
