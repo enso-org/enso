@@ -10,14 +10,7 @@ import { computed, ref } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
-const interaction = injectInteractionHandler()
 const input = ref<HTMLElement>()
-
-const editing: Interaction = {
-  cancel: () => {
-    input.value?.blur()
-  },
-}
 
 function editingStarted() {
   interaction.setCurrent(editing)
@@ -30,7 +23,7 @@ function editingEnded() {
 }
 
 function accepted(value: string) {
-  console.log('Accepted in widget text', editing.value)
+  console.log('Accepted in widget text', value)
   if (interaction.isActive(editing)) {
     if (props.input.value instanceof Ast.TextLiteral) {
       const edit = graph.startEdit()
@@ -94,12 +87,12 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
     <AutoSizedInput
       ref="input"
-      v-model.lazy="textContents"
+      v-model.lazy.interaction="textContents"
       @pointerdown.stop
       @pointerup.stop
       @click.stop
-      @focusin="editingStarted"
-      @focusout="editingEnded"
+      @focusout="props.input.editing?.onFinished()"
+      @interactionStarted="props.input.editing?.onStarted($event)"
       @input="props.input.editing?.onEdited(makeLiteralFromValue($event ?? ''))"
       @changed="accepted"
     />
