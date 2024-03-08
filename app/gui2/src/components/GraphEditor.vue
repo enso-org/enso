@@ -628,8 +628,8 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @forward="stackNavigator.enterNextNodeFromHistory"
       @recordOnce="onRecordOnceButtonPress()"
       @fitToAllClicked="zoomToSelected"
-      @zoomIn="graphNavigator.scale *= 1.1"
-      @zoomOut="graphNavigator.scale *= 0.9"
+      @zoomIn="graphNavigator.stepZoom(+1)"
+      @zoomOut="graphNavigator.stepZoom(-1)"
     />
     <PlusButton @pointerdown.stop @click.stop="startCreatingNodeFromButton()" @pointerup.stop />
     <Transition>
