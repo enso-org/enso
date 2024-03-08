@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-use heck::ToKebabCase;
-
 use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
@@ -9,9 +7,9 @@ use crate::ci_gen::step;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
-
 use crate::engine::env;
 
+use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
@@ -21,7 +19,6 @@ use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
-
 use ide_ci::cache::goodie::graalvm;
 
 
@@ -222,8 +219,7 @@ impl JobArchetype for StandardLibraryTests {
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
-            graalvm::Edition::Community =>
-                job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
                 job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }

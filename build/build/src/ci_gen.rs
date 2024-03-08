@@ -1,9 +1,9 @@
-use crate::engine::env;
 use crate::prelude::*;
 
 use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::with_packaging_steps;
 use crate::ci_gen::job::RunsOn;
+use crate::engine::env;
 use crate::version::promote::Designation;
 use crate::version::ENSO_EDITION;
 use crate::version::ENSO_RELEASE_MODE;
@@ -605,21 +605,18 @@ pub fn backend() -> Result<Workflow> {
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
     for target in CHECKED_TARGETS {
-        workflow.add(target, job::CiCheckBackend {graal_edition: graalvm::Edition::Community});
-        workflow.add(target, job::ScalaTests {graal_edition: graalvm::Edition::Community});
-        workflow.add(
-            target,
-            job::StandardLibraryTests {graal_edition: graalvm::Edition::Community},
-        );
+        workflow.add(target, job::CiCheckBackend { graal_edition: graalvm::Edition::Community });
+        workflow.add(target, job::ScalaTests { graal_edition: graalvm::Edition::Community });
+        workflow
+            .add(target, job::StandardLibraryTests { graal_edition: graalvm::Edition::Community });
     }
     // Oracle GraalVM jobs run only on Linux
     workflow
-        .add(PRIMARY_TARGET, job::CiCheckBackend {graal_edition: graalvm::Edition::Enterprise});
-    workflow.add(PRIMARY_TARGET, job::ScalaTests {graal_edition: graalvm::Edition::Enterprise});
-    workflow.add(
-        PRIMARY_TARGET,
-        job::StandardLibraryTests {graal_edition: graalvm::Edition::Enterprise},
-    );
+        .add(PRIMARY_TARGET, job::CiCheckBackend { graal_edition: graalvm::Edition::Enterprise });
+    workflow.add(PRIMARY_TARGET, job::ScalaTests { graal_edition: graalvm::Edition::Enterprise });
+    workflow.add(PRIMARY_TARGET, job::StandardLibraryTests {
+        graal_edition: graalvm::Edition::Enterprise,
+    });
     Ok(workflow)
 }
 

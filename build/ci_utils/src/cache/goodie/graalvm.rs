@@ -43,7 +43,6 @@ impl std::str::FromStr for Edition {
             _ => bail!("Unknown GraalVM edition: {}", s),
         }
     }
-
 }
 
 impl From<Edition> for String {
@@ -66,9 +65,12 @@ impl Display for Edition {
 
 
 pub fn graal_version_from_version_string(version_string: &str) -> Result<(Version, Edition)> {
-    let line = version_string.lines().find(|line| line.contains(CE_JAVA_VENDOR) || line.contains(EE_JAVA_VENDOR)).context(
-        "There is a Java environment available but it is not recognizable as GraalVM one.",
-    )?;
+    let line = version_string
+        .lines()
+        .find(|line| line.contains(CE_JAVA_VENDOR) || line.contains(EE_JAVA_VENDOR))
+        .context(
+            "There is a Java environment available but it is not recognizable as GraalVM one.",
+        )?;
     let edition = if line.contains(CE_JAVA_VENDOR) {
         Edition::Community
     } else if line.contains(EE_JAVA_VENDOR) {
@@ -156,7 +158,7 @@ impl GraalVM {
                     crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
                 }
                 .boxed()
-            },
+            }
             Edition::Enterprise => {
                 let graal_version_tag = self.graal_version.to_string_core();
                 let url = format!(
@@ -165,9 +167,7 @@ impl GraalVM {
                     graal_version_tag,
                     self.os_arch_string(),
                 );
-                Box::pin(ready(
-                    Url::parse(&url).context("Failed to parse URL.")
-                ))
+                Box::pin(ready(Url::parse(&url).context("Failed to parse URL.")))
             }
         }
     }
@@ -222,7 +222,8 @@ mod tests {
 OpenJDK Runtime Environment GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12)
 OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, mixed mode, sharing)"#;
 
-        let (found_graal_version, found_graal_edition) = graal_version_from_version_string(version_string).unwrap();
+        let (found_graal_version, found_graal_edition) =
+            graal_version_from_version_string(version_string).unwrap();
         let expected_graal_version = Version {
             major: 17,
             minor: 0,
@@ -243,7 +244,8 @@ OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, m
 Java(TM) SE Runtime Environment Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LTS-jvmci-23.1-b30)
 Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LTS-jvmci-23.1-b30, mixed mode, sharing)"#;
 
-        let (found_graal_version, found_graal_edition) = graal_version_from_version_string(version_string).unwrap();
+        let (found_graal_version, found_graal_edition) =
+            graal_version_from_version_string(version_string).unwrap();
         let expected_graal_version = Version {
             major: 21,
             minor: 0,
