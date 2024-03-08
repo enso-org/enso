@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+use heck::ToKebabCase;
+
 use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
@@ -186,17 +188,23 @@ impl JobArchetype for ScalaTests {
         }
         job
     }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!("{}-{}-{os}-{arch}", self.id_key_base(), self.graal_edition.to_string().to_kebab_case())
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
     graal_edition: graalvm::Edition,
 }
+
 impl StandardLibraryTests {
     pub fn with_graal_edition(graal_edition: graalvm::Edition) -> Self {
         Self { graal_edition }
     }
 }
+
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
         let job_name = format!("Standard Library Tests ({})", self.graal_edition);
@@ -226,6 +234,10 @@ impl JobArchetype for StandardLibraryTests {
                 job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise.to_string()),
         }
         job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!("{}-{}-{os}-{arch}", self.id_key_base(), self.graal_edition.to_string().to_kebab_case())
     }
 }
 
@@ -430,10 +442,30 @@ impl JobArchetype for PackageNewIde {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct CiCheckBackend;
+pub struct CiCheckBackend {
+    graal_edition: graalvm::Edition,
+}
+
+impl CiCheckBackend {
+    pub fn with_graal_edition(graal_edition: graalvm::Edition) -> Self {
+        Self { graal_edition }
+    }
+}
 
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend ci-check").build_job("Engine", target)
+        let job_name = format!("Engine ({})", self.graal_edition);
+        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
+        match self.graal_edition {
+            graalvm::Edition::Community =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Enterprise =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+        }
+        job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!("{}-{}-{os}-{arch}", self.id_key_base(), self.graal_edition.to_string().to_kebab_case())
     }
 }

@@ -605,13 +605,21 @@ pub fn backend() -> Result<Workflow> {
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
     for target in CHECKED_TARGETS {
-        workflow.add(target, job::CiCheckBackend);
+        workflow.add(target, job::CiCheckBackend::with_graal_edition(graalvm::Edition::Community));
         workflow.add(target, job::ScalaTests::with_graal_edition(graalvm::Edition::Community));
-        workflow.add(target, job::StandardLibraryTests::with_graal_edition(graalvm::Edition::Community));
+        workflow.add(
+            target,
+            job::StandardLibraryTests::with_graal_edition(graalvm::Edition::Community),
+        );
     }
     // Oracle GraalVM jobs run only on Linux
+    workflow
+        .add(PRIMARY_TARGET, job::CiCheckBackend::with_graal_edition(graalvm::Edition::Enterprise));
     workflow.add(PRIMARY_TARGET, job::ScalaTests::with_graal_edition(graalvm::Edition::Enterprise));
-    workflow.add(PRIMARY_TARGET, job::StandardLibraryTests::with_graal_edition(graalvm::Edition::Enterprise));
+    workflow.add(
+        PRIMARY_TARGET,
+        job::StandardLibraryTests::with_graal_edition(graalvm::Edition::Enterprise),
+    );
     Ok(workflow)
 }
 
@@ -623,7 +631,11 @@ pub fn std_libs_benchmark() -> Result<Workflow> {
     benchmark_workflow("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
 }
 
-fn benchmark_workflow(name: &str, command_line: &str, timeout_minutes: Option<u32>) -> Result<Workflow> {
+fn benchmark_workflow(
+    name: &str,
+    command_line: &str,
+    timeout_minutes: Option<u32>,
+) -> Result<Workflow> {
     let just_check_input_name = "just-check";
     let just_check_input = WorkflowDispatchInput {
         r#type: WorkflowDispatchInputType::Boolean { default: Some(false) },
@@ -652,14 +664,21 @@ fn benchmark_workflow(name: &str, command_line: &str, timeout_minutes: Option<u3
     Ok(workflow)
 }
 
-fn benchmark_job(job_name: &str, command_line: &str, timeout_minutes: Option<u32>, graal_edition: graalvm::Edition) -> Job {
+fn benchmark_job(
+    job_name: &str,
+    command_line: &str,
+    timeout_minutes: Option<u32>,
+    graal_edition: graalvm::Edition,
+) -> Job {
     let mut job = RunStepsBuilder::new(command_line)
         .cleaning(CleaningCondition::Always)
         .build_job(job_name, BenchmarkRunner);
     job.timeout_minutes = timeout_minutes;
     match graal_edition {
-        graalvm::Edition::Community => job.env(env::JAVA_VENDOR, graalvm::Edition::Community.to_string()),
-        graalvm::Edition::Enterprise => job.env(env::JAVA_VENDOR, graalvm::Edition::Enterprise.to_string()),
+        graalvm::Edition::Community =>
+            job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+        graalvm::Edition::Enterprise =>
+            job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
     }
     job
 }

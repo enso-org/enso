@@ -62,7 +62,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      JAVA_VENDOR: GraalVM CE
+      GRAAL_EDITION: GraalVM CE
     timeout-minutes: 240
   benchmark-engine-oracle-graal-vm:
     name: Benchmark Engine (Oracle GraalVM)
@@ -113,7 +113,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
-      JAVA_VENDOR: Oracle GraalVM
+      GRAAL_EDITION: Oracle GraalVM
     timeout-minutes: 240
 env:
   ENSO_BUILD_MINIMAL_RUN: ${{ true == inputs.just-check }}
