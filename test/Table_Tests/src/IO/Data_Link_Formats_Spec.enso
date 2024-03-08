@@ -1,0 +1,43 @@
+from Standard.Base import all
+
+from Standard.Table import all
+
+from Standard.Test import all
+
+from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+from enso_dev.Base_Tests.Network.Http.Http_Data_Link_Spec import replace_url_in_datalink
+
+import project.Util
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+
+add_specs suite_builder = suite_builder.group "parsing Table formats in DataLinks" pending=pending_has_url group_builder->
+    data_link_root = enso_project.data / "datalinks"
+    group_builder.specify "parsing Delimited" <|
+        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-delimited.datalink")
+        t = datalink_file.read
+        t.should_equal (Table.from_rows ["Column 1", "Column 2"] [['{"hello":', '"world!"}']])
+
+    group_builder.specify "parsing Excel_Format.Workbook" <|
+        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-workbook.datalink")
+
+        workbook = datalink_file.read
+        Panic.with_finalizer workbook.close <|
+            workbook.should_be_a Excel_Workbook
+            workbook.sheet_names . should_equal "MyTestSheet"
+
+    group_builder.specify "parsing Excel_Format.Sheet" <|
+        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-sheet.datalink")
+
+        table = datalink_file.read
+        table . should_equal (Table.from_rows ["A", "B"] [[1, 'x'], [3, 'y']])
+
+    group_builder.specify "parsing Excel_Format.Range" <|
+        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-range.datalink")
+
+        table = datalink_file.read
+        table . should_equal (Table.from_rows ["A", "B"] [[3, 'y']])
