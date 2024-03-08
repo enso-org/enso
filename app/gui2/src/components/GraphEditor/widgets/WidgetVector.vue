@@ -50,8 +50,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 500,
   score: (props) =>
     props.input.dynamicConfig?.kind === 'Vector_Editor' ? Score.Perfect
-    : props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector') ? Score.Good
     : props.input.value instanceof Ast.Vector ? Score.Perfect
+    : props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector') ? Score.Good
     : Score.Mismatch,
 })
 </script>
