@@ -20,7 +20,6 @@ import * as pageSwitcher from '#/layouts/PageSwitcher'
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
 
-import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
@@ -373,11 +372,12 @@ export interface ChatProps {
   /** This should only be false when the panel is closing. */
   readonly isOpen: boolean
   readonly doClose: () => void
+  readonly endpoint: string
 }
 
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
-  const { page, isOpen, doClose } = props
+  const { page, isOpen, doClose, endpoint } = props
   const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
   const logger = loggerProvider.useLogger()
 
@@ -409,7 +409,7 @@ export default function Chat(props: ChatProps) {
 
   React.useEffect(() => {
     if (isOpen) {
-      const newWebSocket = new WebSocket(config.ACTIVE_CONFIG.chatUrl)
+      const newWebSocket = new WebSocket(endpoint)
       setWebsocket(newWebSocket)
       return () => {
         if (newWebSocket.readyState === WebSocket.OPEN) {
@@ -423,7 +423,7 @@ export default function Chat(props: ChatProps) {
     } else {
       return
     }
-  }, [isOpen])
+  }, [isOpen, /* should never change */ endpoint])
 
   React.useLayoutEffect(() => {
     const element = messagesRef.current

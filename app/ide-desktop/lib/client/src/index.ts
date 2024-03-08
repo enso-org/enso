@@ -15,6 +15,7 @@ import * as electron from 'electron'
 import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
+import * as buildUtils from 'enso-common/src/buildUtils'
 import * as contentConfig from 'enso-content-config'
 
 import * as authentication from 'authentication'
@@ -32,7 +33,6 @@ import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
-import * as utils from '../../../utils'
 
 import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
@@ -406,7 +406,7 @@ class App {
 
     /** Print the version of the frontend and the backend. */
     async printVersion(): Promise<void> {
-        const indent = ' '.repeat(utils.INDENT_SIZE)
+        const indent = ' '.repeat(buildUtils.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
             maxNameLen = Math.max(maxNameLen, name.length)

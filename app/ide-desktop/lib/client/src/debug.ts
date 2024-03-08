@@ -1,12 +1,8 @@
 /** @file Application debug information. */
 
+import * as buildUtils from 'enso-common/src/buildUtils'
+
 import BUILD_INFO from '../../../../../build.json' assert { type: 'json' }
-
-// =================
-// === Constants ===
-// =================
-
-const INDENT_SIZE = 4
 
 // ==================
 // === Debug Info ===
@@ -52,5 +48,5 @@ export async function printInfo() {
     const info = await getInfo()
     // This function does not accept `null` as its second parameter.
     // eslint-disable-next-line no-restricted-syntax
-    console.log(JSON.stringify(info, undefined, INDENT_SIZE))
+    console.log(JSON.stringify(info, undefined, buildUtils.INDENT_SIZE))
 }
