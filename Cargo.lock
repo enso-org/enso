@@ -1325,6 +1325,7 @@ dependencies = [
  "futures-util",
  "glob",
  "handlebars",
+ "heck",
  "ide-ci",
  "mime",
  "new_mime_guess",
