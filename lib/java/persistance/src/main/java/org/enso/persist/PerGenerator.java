@@ -15,6 +15,7 @@ final class PerGenerator {
   static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x03, 0x0f};
   private final OutputStream main;
   private final Map<Object, Integer> knownObjects = new IdentityHashMap<>();
+  private final Map<Object, Integer> enteredObjects = new IdentityHashMap<>();
   private final Histogram histogram;
   private final PerMap map;
   final Function<Object, Object> writeReplace;
@@ -59,6 +60,9 @@ final class PerGenerator {
     java.lang.Object obj = writeReplace.apply(t);
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
+      if (enteredObjects.put(obj, 0) != null) {
+        throw new IllegalStateException("Cyclic reference detected");
+      }
       org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
       java.io.ByteArrayOutputStream os = new ByteArrayOutputStream();
       p.writeInline(obj, new ReferenceOutput(this, os));
@@ -83,6 +87,10 @@ final class PerGenerator {
     }
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
+      if (enteredObjects.put(obj, 0) != null) {
+        throw new IllegalStateException("Cyclic reference detected");
+      }
+
       var os = new ByteArrayOutputStream();
       var osData = new ReferenceOutput(this, os);
       p.writeInline(obj, osData);
