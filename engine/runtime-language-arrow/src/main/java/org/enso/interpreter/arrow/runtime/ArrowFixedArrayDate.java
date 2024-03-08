@@ -19,7 +19,6 @@ import org.enso.interpreter.arrow.LogicalLayout;
 public final class ArrowFixedArrayDate implements TruffleObject {
   private final int size;
   private final ByteBufferDirect buffer;
-
   private final LogicalLayout unit;
 
   public ArrowFixedArrayDate(int size, LogicalLayout unit) {
@@ -60,8 +59,7 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     }
   }
 
-  public static Object readDay(ByteBufferDirect buffer, long index)
-      throws UnsupportedMessageException {
+  static Object readDay(ByteBufferDirect buffer, long index) throws UnsupportedMessageException {
     if (buffer.isNull((int) index)) {
       return NullValue.get();
     }
@@ -71,7 +69,7 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     return new ArrowDate(localDate);
   }
 
-  public static Object readMilliseconds(ByteBufferDirect buffer, long index)
+  static Object readMilliseconds(ByteBufferDirect buffer, long index)
       throws UnsupportedMessageException {
     if (buffer.isNull((int) index)) {
       return NullValue.get();
@@ -162,11 +160,11 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     return Instant.ofEpochSecond(seconds, nano).atZone(zone);
   }
 
-  public static final long NANO_DIV = 1000000000L;
+  static final long NANO_DIV = 1000000000L;
 
-  public static final ZoneId UTC = ZoneId.of("UTC");
+  static final ZoneId UTC = ZoneId.of("UTC");
 
-  public static int typeAdjustedIndex(long index, int daySizeInBytes) {
+  static int typeAdjustedIndex(long index, int daySizeInBytes) {
     return Math.toIntExact(index * daySizeInBytes);
   }
 }

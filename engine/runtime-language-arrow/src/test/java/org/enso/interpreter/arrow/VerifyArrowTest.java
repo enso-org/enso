@@ -139,9 +139,9 @@ public class VerifyArrowTest {
 
     Value int8ArrayBuilder = int8Constr.newInstance(10);
     assertNotNull(int8ArrayBuilder);
-    populateIntArray(int8ArrayBuilder, (byte) 42);
-    assertThrows(
-        UnsupportedOperationException.class, () -> int8ArrayBuilder.setArrayElement(5, 300));
+    populateIntArray(int8ArrayBuilder, (byte) 42, int8ArrayBuilder.getArraySize() - 1);
+    assertThrows(RuntimeException.class, () -> int8ArrayBuilder.setArrayElement(5, 300));
+    assertThrows(RuntimeException.class, () -> int8ArrayBuilder.invokeMember("append", 300));
     int8ArrayBuilder.setArrayElement(5, 4);
     var int8Array = int8ArrayBuilder.invokeMember("build");
     var v = int8Array.getArrayElement(5);
@@ -270,8 +270,11 @@ public class VerifyArrowTest {
   }
 
   private void populateIntArray(Value arr, byte startValue) {
-    var len = arr.getArraySize();
-    for (int i = 0; i < len; i++) {
+    populateIntArray(arr, startValue, arr.getArraySize());
+  }
+
+  private void populateIntArray(Value arr, byte startValue, long until) {
+    for (int i = 0; i < until; i++) {
       var v = startValue + i;
       arr.setArrayElement(i, (byte) v);
     }

@@ -28,7 +28,7 @@ add_specs suite_builder =
             builder.append 127
 
             # Check that the value that will not fit into a byte is rejected
-            Test.expect_panic_with (builder.append 128) Not_Invokable
+            Test.expect_panic_with (builder.append 128) Unsupported_Argument_Types
             v = builder.build
             v.at 2 . should_equal 127
             Test.expect_panic_with (builder.append 21) No_Such_Method
