@@ -605,20 +605,20 @@ pub fn backend() -> Result<Workflow> {
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
     for target in CHECKED_TARGETS {
-        workflow.add(target, job::CiCheckBackend::with_graal_edition(graalvm::Edition::Community));
-        workflow.add(target, job::ScalaTests::with_graal_edition(graalvm::Edition::Community));
+        workflow.add(target, job::CiCheckBackend {graal_edition: graalvm::Edition::Community});
+        workflow.add(target, job::ScalaTests {graal_edition: graalvm::Edition::Community});
         workflow.add(
             target,
-            job::StandardLibraryTests::with_graal_edition(graalvm::Edition::Community),
+            job::StandardLibraryTests {graal_edition: graalvm::Edition::Community},
         );
     }
     // Oracle GraalVM jobs run only on Linux
     workflow
-        .add(PRIMARY_TARGET, job::CiCheckBackend::with_graal_edition(graalvm::Edition::Enterprise));
-    workflow.add(PRIMARY_TARGET, job::ScalaTests::with_graal_edition(graalvm::Edition::Enterprise));
+        .add(PRIMARY_TARGET, job::CiCheckBackend {graal_edition: graalvm::Edition::Enterprise});
+    workflow.add(PRIMARY_TARGET, job::ScalaTests {graal_edition: graalvm::Edition::Enterprise});
     workflow.add(
         PRIMARY_TARGET,
-        job::StandardLibraryTests::with_graal_edition(graalvm::Edition::Enterprise),
+        job::StandardLibraryTests {graal_edition: graalvm::Edition::Enterprise},
     );
     Ok(workflow)
 }

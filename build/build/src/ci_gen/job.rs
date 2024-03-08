@@ -164,14 +164,9 @@ impl JobArchetype for VerifyLicensePackages {
 
 #[derive(Clone, Copy, Debug)]
 pub struct ScalaTests {
-    graal_edition: graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
 }
 
-impl ScalaTests {
-    pub fn with_graal_edition(graal_edition: graalvm::Edition) -> Self {
-        Self { graal_edition }
-    }
-}
 
 impl JobArchetype for ScalaTests {
     fn job(&self, target: Target) -> Job {
@@ -200,13 +195,7 @@ impl JobArchetype for ScalaTests {
 
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
-    graal_edition: graalvm::Edition,
-}
-
-impl StandardLibraryTests {
-    pub fn with_graal_edition(graal_edition: graalvm::Edition) -> Self {
-        Self { graal_edition }
-    }
+    pub graal_edition: graalvm::Edition,
 }
 
 impl JobArchetype for StandardLibraryTests {
@@ -234,9 +223,9 @@ impl JobArchetype for StandardLibraryTests {
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community =>
-                job.env(env::GRAAL_EDITION, graalvm::Edition::Community.to_string()),
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise.to_string()),
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }
@@ -452,13 +441,7 @@ impl JobArchetype for PackageNewIde {
 
 #[derive(Clone, Copy, Debug)]
 pub struct CiCheckBackend {
-    graal_edition: graalvm::Edition,
-}
-
-impl CiCheckBackend {
-    pub fn with_graal_edition(graal_edition: graalvm::Edition) -> Self {
-        Self { graal_edition }
-    }
+    pub graal_edition: graalvm::Edition,
 }
 
 impl JobArchetype for CiCheckBackend {
