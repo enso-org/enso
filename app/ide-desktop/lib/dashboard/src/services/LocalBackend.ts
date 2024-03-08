@@ -140,8 +140,8 @@ export default class LocalBackend extends Backend {
               type: LocalBackend.currentlyOpenProjects.has(entry.metadata.id)
                 ? backend.ProjectState.opened
                 : entry.metadata.id === LocalBackend.currentlyOpeningProjectId
-                ? backend.ProjectState.openInProgress
-                : backend.ProjectState.closed,
+                  ? backend.ProjectState.openInProgress
+                  : backend.ProjectState.closed,
               // eslint-disable-next-line @typescript-eslint/naming-convention
               volume_id: '',
             },
@@ -265,8 +265,8 @@ export default class LocalBackend extends Backend {
               projectId === LocalBackend.currentlyOpeningProjectId
                 ? backend.ProjectState.openInProgress
                 : project.lastOpened != null
-                ? backend.ProjectState.closed
-                : backend.ProjectState.created,
+                  ? backend.ProjectState.closed
+                  : backend.ProjectState.created,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
           },
@@ -589,6 +589,7 @@ export default class LocalBackend extends Backend {
     ...cliArguments: string[]
   ): Promise<T> {
     const response = await fetch(`${this.baseUrl}/api/run-project-manager-command`, {
+      method: 'POST',
       body: JSON.stringify([`--${name}`, ...cliArguments]),
     })
     // This is SAFE, as the return type is statically known.
