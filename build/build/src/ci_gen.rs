@@ -657,7 +657,7 @@ fn benchmark_workflow(
     );
 
     for graal_edition in [graalvm::Edition::Community, graalvm::Edition::Enterprise] {
-        let job_name = format!("{} ({})", name, graal_edition);
+        let job_name = format!("{name} ({graal_edition})");
         let job = benchmark_job(&job_name, command_line, timeout_minutes, graal_edition);
         workflow.add_job(job);
     }
