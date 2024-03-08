@@ -1,0 +1,37 @@
+private
+
+from Standard.Base import all
+
+import project.Excel.Excel_Range.Excel_Range
+
+type Excel_Section
+    ## Gets the data from a specific sheet.
+
+       Arguments:
+       - sheet: The sheet number or name.
+       - headers: If set to `True`, the first row is used as column names. If
+         set to `False`, the column names are Excel column names. If set to
+         `Infer`, the process tries to infer if headers are present on the first
+          row. If the column names are not unique, numeric suffixes will be
+          appended to disambiguate them.
+       - skip_rows: The number of rows to skip before reading the data.
+       - row_limit: The maximum number of rows to read. If set to `Nothing`, all
+         rows are read.
+    Worksheet (sheet:(Integer|Text)=1) (headers:(Boolean|Infer)=Infer) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
+
+    ## Gets a specific range (taking either a defined name or external style
+       address) from the workbook.
+       If it is a single cell, it will be treated as the top left cell and will
+       expand right and down to cover the connected cells.
+
+       Arguments:
+       - address: A name of a range or an Excel-style address (e.g. Sheet1!A1:B2).
+       - headers: If set to `True`, the first row is used as column names. If
+         set to `False`, the column names are Excel column names. If set to
+         `Infer`, the process tries to infer if headers are present on the first
+          row. If the column names are not unique, numeric suffixes will be
+          appended to disambiguate them.
+       - skip_rows: The number of rows to skip before reading the data.
+       - row_limit: The maximum number of rows to read. If set to `Nothing`, all
+         rows are read.
+    Cell_Range (address:(Text|Excel_Range)) (headers:(Boolean|Infer)=Infer) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)

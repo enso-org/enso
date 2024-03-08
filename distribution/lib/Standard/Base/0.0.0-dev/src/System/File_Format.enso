@@ -90,26 +90,11 @@ type File_Format
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Create the constructor code for a File_Format type.
-    constructor_code : Any -> Text
-    constructor_code type_obj =
-        ## Workaround for JSON and Auto_Detect
-        case type_obj of
-            JSON_Format -> "JSON_Format"
-            Auto_Detect -> "Auto_Detect"
-            _ ->
-                type_name = Meta.get_qualified_type_name type_obj
-                ctors = Meta.meta type_obj . constructors
-                is_singleton_type = ctors.length == 0
-                if is_singleton_type then type_name else
-                    type_name + "." + ctors.first.name
-
-    ## PRIVATE
     default_widget : Widget
     default_widget =
-        all_types = [Auto_Detect] + format_types
-        make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
-        Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
+        options = [Option "Auto Detect" "Auto_Detect"] +
+            format_types.flat_map .get_dropdown_options
+        Single_Choice display=Display.Always values=options
 
 ## A file format for plain text files.
 type Plain_Text_Format
@@ -143,6 +128,10 @@ type Plain_Text_Format
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : Writable_File -> Plain_Text_Format | Nothing
     for_file_write file = Plain_Text_Format.for_read file
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Plain Text" (Meta.get_qualified_type_name Plain_Text_Format)+".Plain_Text"]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -180,6 +169,10 @@ type Bytes
     for_file_write file = Bytes.for_read file
 
     ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Bytes" (Meta.get_qualified_type_name Bytes)]
+
+    ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
@@ -213,6 +206,10 @@ type JSON_Format
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : Writable_File -> JSON_Format | Nothing
     for_file_write file = JSON_Format.for_read file
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "JSON" (Meta.get_qualified_type_name JSON_Format)]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
