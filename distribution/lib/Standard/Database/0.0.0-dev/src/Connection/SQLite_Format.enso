@@ -39,7 +39,7 @@ type SQLite_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "SQLite Database File" (Meta.get_qualified_type_name SQLite_Format)+".For_File"]
+    get_dropdown_options = [Option "SQLite" (Meta.get_qualified_type_name SQLite_Format)+".For_File"]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
