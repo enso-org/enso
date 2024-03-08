@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Metadata.Display
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
@@ -53,7 +54,7 @@ type Excel_Format
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
-    @sheet Text_Input
+    @sheet (Text_Input display=Display.Always)
     Sheet (sheet:(Integer|Text)=1) (headers:(Boolean|Infer)=Infer) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing) (xls_format:Boolean|Infer=Infer)
 
     ## Reads a range from an Excel file as a `Table`.
