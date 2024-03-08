@@ -160,7 +160,10 @@ pub fn single_file_provider(
 /// ide_ci::fs::create(&file2)?;
 ///
 /// let stream = single_dir_provider(&dir)?;
-/// let found_files = stream.collect::<Vec<_>>().await;
+/// let mut found_files = stream.collect::<Vec<_>>().await;
+/// // Make discovery order irrelevant.
+/// found_files.sort_by(|a, b| a.local_path.cmp(&b.local_path));
+///
 /// assert_eq!(found_files.len(), 2);
 /// assert_eq!(found_files[0].local_path, file1);
 /// assert_eq!(found_files[0].remote_path, Path::new("uploaded_dir/file"));
@@ -222,7 +225,6 @@ mod tests {
     use super::*;
     use crate::actions::artifacts::models::CreateArtifactResponse;
     use reqwest::StatusCode;
-    use tempfile::TempDir;
     use wiremock::matchers::method;
     use wiremock::Mock;
     use wiremock::MockServer;
