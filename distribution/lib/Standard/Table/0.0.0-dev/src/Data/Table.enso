@@ -397,8 +397,8 @@ type Table
        Arguments:
        - types: The types of columns to select.
        - strict: If `True`, only columns with exactly the specified types will
-         be selected. If `False`, columns with types that are subtypes of the
-         specified types will also be selected (i.e. ignore size, precision).
+         be selected. If `False`, columns with related types will also be
+         selected (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
     select_by_type : Vector Value_Type -> Boolean -> Table
     select_by_type self types:Vector strict:Boolean=False =
@@ -467,8 +467,8 @@ type Table
        Arguments:
        - types: The types of columns to remove.
        - strict: If `True`, only columns with exactly the specified types will
-         be selected. If `False`, columns with types that are subtypes of the
-         specified types will also be selected (i.e. ignore size, precision).
+         be removed. If `False`, columns with related types will also be
+         removed (i.e. ignore size, precision).
     @types Widget_Helpers.make_value_type_vector_selector
     remove_by_type : Vector Value_Type -> Boolean -> Table
     remove_by_type self types:Vector strict:Boolean=False =
