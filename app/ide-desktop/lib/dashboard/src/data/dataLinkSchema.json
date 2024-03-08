@@ -267,7 +267,7 @@
       "title": "Sheet",
       "type": "object",
       "properties": {
-        "type": { "const": "worksheet", "type": "string" },
+        "type": { "const": "sheet", "type": "string" },
         "name": {
           "title": "Sheet name",
           "description": "Must not be blank.",
