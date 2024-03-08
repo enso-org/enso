@@ -1092,9 +1092,11 @@ lazy val testkit = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.apache.commons" % "commons-lang3" % commonsLangVersion,
-      "commons-io"         % "commons-io"    % commonsIoVersion,
-      "org.scalatest"     %% "scalatest"     % scalatestVersion
+      "org.apache.commons" % "commons-lang3"   % commonsLangVersion,
+      "commons-io"         % "commons-io"      % commonsIoVersion,
+      "org.scalatest"     %% "scalatest"       % scalatestVersion,
+      "junit"              % "junit"           % junitVersion,
+      "com.github.sbt"     % "junit-interface" % junitIfVersion
     )
   )
 
@@ -2552,6 +2554,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
   )
   .dependsOn(cli)
   .dependsOn(`http-test-helper`)
+  .dependsOn(testkit % Test)
 
 lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
