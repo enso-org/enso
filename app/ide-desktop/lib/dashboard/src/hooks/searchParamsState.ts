@@ -3,8 +3,7 @@
  *
  * Search params state hook store a value in the URL search params.
  */
-
-import type * as React from 'react'
+import * as React from 'react'
 
 import * as reactRouterDom from 'react-router-dom'
 
@@ -34,15 +33,21 @@ export function useSearchParamsState<T = unknown>(
 
   const lazyDefaultValueInitializer = lazyMemo.useLazyMemo(defaultValue, [defaultValue])
 
-  const value: T = (() => {
+  const value = React.useMemo<T>(() => {
     const maybeValue = searchParams.get(key)
     const defaultValueFrom = lazyDefaultValueInitializer()
 
     return maybeValue != null
       ? safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
       : defaultValueFrom
-  })()
+  }, [key, lazyDefaultValueInitializer, searchParams])
 
+  /**
+   * Set the value in the URL search params. If the next value is the same as the default value, it will remove the key from the URL search params.
+   * Function reference is always the same.
+   * @param nextValue - The next value to set.
+   * @returns void
+   */
   const setValue = eventCallback.useEventCallback((nextValue: React.SetStateAction<T>) => {
     if (nextValue instanceof Function) {
       nextValue = nextValue(value)
