@@ -177,7 +177,7 @@ function initSaveAccessTokenListener() {
             } else {
                 fs.mkdir(credentialsHomePath, { recursive: true }, error => {
                     if (error) {
-                        logger.error(`Couldn't create ${credentialsDirectoryName} directory.`)
+                        logger.error(`Could not create '${credentialsDirectoryName}' directory.`)
                     } else {
                         fs.writeFile(
                             path.join(credentialsHomePath, credentialsFileName),
@@ -192,7 +192,7 @@ function initSaveAccessTokenListener() {
                             }),
                             innerError => {
                                 if (innerError) {
-                                    logger.error(`Could not write to ${credentialsFileName} file.`)
+                                    logger.error(`Could not write to '${credentialsFileName}' file.`)
                                 }
                             }
                         )

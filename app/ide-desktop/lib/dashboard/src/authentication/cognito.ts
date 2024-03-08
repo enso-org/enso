@@ -196,7 +196,7 @@ export class Cognito {
     const amplifySession = currentSession.mapErr(intoCurrentSessionErrorType)
 
     return amplifySession
-      .map(session => parseUserSession(session, this.amplifyConfig.userPoolWebClientId))
+      .map(session => parseUserSession(session, this.amplifyConfig.userPoolWebClientId, this.amplifyConfig.domain))
       .unwrapOr(null)
   }
 
@@ -375,9 +375,9 @@ export interface UserSession {
   readonly refreshToken: string
   /** URL to refresh the access token. */
   readonly refreshUrl: string
-  /** Time when the access token will expire, date in ISO format(UTC). */
+  /** Time when the access token will expire, date and time in ISO 8601 format (UTC timezone). */
   readonly expireAt: string
-  /** The client ID of the user pool. */
+  /** Cognito app integration client id.. */
   readonly clientId: string
 }
 
@@ -385,7 +385,8 @@ export interface UserSession {
  * @throws If the `email` field of the payload is not a string. */
 function parseUserSession(
   session: cognito.CognitoUserSession,
-  clientId: string
+  clientId: string,
+  domain: string
 ): UserSession {
   const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
@@ -394,10 +395,6 @@ function parseUserSession(
   if (typeof email !== 'string') {
     throw new Error('Payload does not have an email field.')
   } else {
-    const accessToken = session.getAccessToken().getJwtToken()
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const refreshUrl: string = session.getAccessToken().payload.iss
     const expirationTimestamp = session.getAccessToken().getExpiration()
 
     const expireAt = (() => {
@@ -408,11 +405,11 @@ function parseUserSession(
 
     return {
       email,
-      accessToken,
-      refreshUrl,
       clientId,
-      refreshToken: session.getRefreshToken().getToken(),
       expireAt,
+      accessToken: session.getAccessToken().getJwtToken(),
+      refreshToken: session.getRefreshToken().getToken(),
+      refreshUrl: domain,
     }
   }
 }
