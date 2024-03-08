@@ -8,6 +8,22 @@ import * as newtype from '#/utilities/newtype'
 /** The number of hours in half a day. This is used to get the number of hours for AM/PM time. */
 const HALF_DAY_HOURS = 12
 
+/** A mapping from the month index returned by {@link Date.getMonth} to its full name. */
+export const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
 // ================
 // === DateTime ===
 // ================

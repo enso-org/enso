@@ -119,7 +119,7 @@ export default function ActivityLogSettingsTab() {
           <tbody className="select-text">
             {isLoading ? (
               <tr className="h-8">
-                <td colSpan={3} className="rounded-full">
+                <td colSpan={4} className="rounded-full">
                   <div className="flex justify-center">
                     <StatelessSpinner
                       size={32}
