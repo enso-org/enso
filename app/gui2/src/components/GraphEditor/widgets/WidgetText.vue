@@ -71,7 +71,6 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 <style scoped>
 .WidgetText {
   display: inline-flex;
-  vertical-align: middle;
   background: var(--color-widget);
   border-radius: var(--radius-full);
   position: relative;
@@ -80,6 +79,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   padding: 0px 4px;
   min-width: 24px;
   justify-content: center;
+  align-items: center;
 
   &:has(> .AutoSizedInput:focus) {
     outline: none;
