@@ -31,7 +31,7 @@ export function useSearchParamsState<T = unknown>(
 ): SearchParamsStateReturnType<T> {
   const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
 
-  const lazyDefaultValueInitializer = lazyMemo.useLazyMemo(defaultValue, [defaultValue])
+  const lazyDefaultValueInitializer = lazyMemo.useLazyMemo(defaultValue, [])
 
   const value = React.useMemo<T>(() => {
     const maybeValue = searchParams.get(key)
