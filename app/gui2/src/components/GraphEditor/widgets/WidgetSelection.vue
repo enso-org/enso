@@ -173,6 +173,7 @@ function onClick(index: number, keepOpen: boolean) {
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
+  console.log('Set drop-down value', innerWidgetInteraction.value)
   if (innerWidgetInteraction.value != null) {
     interaction.end(innerWidgetInteraction.value)
   }

@@ -30,6 +30,7 @@ function editingEnded() {
 }
 
 function accepted(value: string) {
+  console.log('Accepted in widget text', editing.value)
   if (interaction.isActive(editing)) {
     if (props.input.value instanceof Ast.TextLiteral) {
       const edit = graph.startEdit()
