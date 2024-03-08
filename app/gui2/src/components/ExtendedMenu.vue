@@ -12,7 +12,7 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
 
 <template>
   <div class="ExtendedMenu">
-    <div class="moreIcon" @pointerdown="isDropdownOpen = !isDropdownOpen"></div>
+    <div class="moreIcon" @pointerdown="isDropdownOpen = !isDropdownOpen">…</div>
     <Transition name="dropdown">
       <div v-show="isDropdownOpen" class="ExtendedMenuPane">
         <div class="row">
@@ -56,16 +56,9 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
   height: 32px;
   margin-left: auto;
   margin-right: 125px;
-}
-
-.ExtendedMenu:before {
-  position: absolute;
-  content: '';
   border-radius: var(--radius-full);
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
-  width: 32px;
-  height: 32px;
 }
 
 .ExtendedMenuPane {
@@ -131,13 +124,9 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
   text-align: center;
   font-size: 24px;
   font-family: var(--font-code);
+  transform: rotate(90deg);
   position: relative;
-  right: -4px;
-  top: 8px;
-}
-
-.moreIcon:before {
-  content: '\2807';
+  left: 2px;
 }
 
 .zoomButton {
