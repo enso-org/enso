@@ -254,8 +254,9 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     select_by_type : Vector Value_Type -> Boolean -> Table
     select_by_type self types:Vector strict:Boolean=False =
-        new_columns = self.columns_helper.select_by_type types strict
-        self.updated_columns new_columns
+        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
+        new_columns = helper.select_by_type types strict
+        self.updated_columns (new_columns.map _.as_internal)
 
     ## ALIAS drop_columns
        GROUP Standard.Base.Selections
@@ -324,8 +325,9 @@ type DB_Table
     @types Widget_Helpers.make_value_type_vector_selector
     remove_by_type : Vector Value_Type -> Boolean -> Table
     remove_by_type self types:Vector strict:Boolean=False =
-        new_columns = self.columns_helper.remove_by_type types strict
-        self.updated_columns new_columns
+        helper = Table_Helpers.Table_Column_Helper.Value self.columns self.make_column self .read
+        new_columns = helper.remove_by_type types strict
+        self.updated_columns (new_columns.map _.as_internal)
 
     ## ALIAS select_missing_columns, select_na
        GROUP Standard.Base.Selections
