@@ -167,7 +167,7 @@ pub struct ScalaTests {
 
 impl JobArchetype for ScalaTests {
     fn job(&self, target: Target) -> Job {
-        let graal_edition = self.graal_edition.clone();
+        let graal_edition = self.graal_edition;
         let job_name = format!("Scala Tests ({graal_edition})");
         let mut job = RunStepsBuilder::new("backend test scala")
             .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
@@ -197,8 +197,8 @@ pub struct StandardLibraryTests {
 
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
-        let graal_edition = self.graal_edition.clone();
-        let job_name = format!("Standard Library Tests ({})", graal_edition);
+        let graal_edition = self.graal_edition;
+        let job_name = format!("Standard Library Tests ({graal_edition})");
         let mut job = RunStepsBuilder::new("backend test standard-library")
             .customize(move |step| {
                 let main_step = step
