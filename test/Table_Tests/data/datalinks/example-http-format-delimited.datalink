@@ -7,6 +7,10 @@
         "type": "format",
         "subType": "delimited",
         "delimiter": " ",
-        "headers": false
+        "headers": false,
+        "quote_style": {
+            "type": "quote_style",
+            "subType": "no_quotes"
+        }
     }
 }

@@ -216,6 +216,15 @@
           "title": "Headers",
           "description": "Whether a header row containing column names is present.",
           "$ref": "#/$defs/BooleanOrInfer"
+        },
+        "quote_style": {
+          "title": "Customize Quote Style",
+          "type": "object",
+          "required": ["type", "subType"],
+          "anyOf": [
+            { "$ref": "#/$defs/DelimitedQuoteStyle" },
+            { "$ref": "#/$defs/DelimitedQuoteStyleNo" }
+          ]
         }
       },
       "required": ["type", "subType", "delimiter", "headers"]
@@ -301,6 +310,43 @@
         }
       },
       "required": ["type", "address", "headers"]
+    },
+
+    "DelimitedQuoteStyle": {
+      "title": "Custom quotes",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "quote_style", "type": "string" },
+        "subType": { "title": "Subtype", "const": "with_quotes", "type": "string" },
+        "quote": {
+          "title": "Quote",
+          "description": "Must be exactly one character.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1,
+          "default": "\"",
+          "examples": ["\"", "'"]
+        },
+        "escape": {
+          "title": "Escape",
+          "description": "Must be exactly one character. The character that is prepended to the quote character to escape it.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1,
+          "default": "\"",
+          "examples": ["\"", "\\"]
+        }
+      },
+      "required": ["type", "subType", "quote", "escape"]
+    },
+    "DelimitedQuoteStyleNo": {
+      "type": "object",
+      "title": "Ignore quotes",
+      "properties": {
+        "type": { "title": "Type", "const": "quote_style", "type": "string" },
+        "subType": { "title": "Subtype", "const": "no_quotes", "type": "string" }
+      },
+      "required": ["type", "subType"]
     }
   }
 }
