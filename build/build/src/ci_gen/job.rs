@@ -175,12 +175,13 @@ impl ScalaTests {
 
 impl JobArchetype for ScalaTests {
     fn job(&self, target: Target) -> Job {
-        let job_name = format!("Scala Tests ({})", self.graal_edition);
+        let graal_edition = self.graal_edition.clone();
+        let job_name = format!("Scala Tests ({graal_edition})");
         let mut job = RunStepsBuilder::new("backend test scala")
-            .customize(move |step| vec![step, step::engine_test_reporter(target)])
+            .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
-        match self.graal_edition {
+        match graal_edition {
             graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
                 job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
@@ -210,7 +211,8 @@ impl StandardLibraryTests {
 
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
-        let job_name = format!("Standard Library Tests ({})", self.graal_edition);
+        let graal_edition = self.graal_edition.clone();
+        let job_name = format!("Standard Library Tests ({})", graal_edition);
         let mut job = RunStepsBuilder::new("backend test standard-library")
             .customize(move |step| {
                 let main_step = step
@@ -226,11 +228,11 @@ impl JobArchetype for StandardLibraryTests {
                         secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                         crate::aws::env::AWS_SECRET_ACCESS_KEY,
                     );
-                vec![main_step, step::stdlib_test_reporter(target)]
+                vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
             })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
-        match self.graal_edition {
+        match graal_edition {
             graalvm::Edition::Community =>
                 job.env(env::GRAAL_EDITION, graalvm::Edition::Community.to_string()),
             graalvm::Edition::Enterprise =>
