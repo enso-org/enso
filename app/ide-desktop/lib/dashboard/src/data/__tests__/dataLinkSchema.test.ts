@@ -66,6 +66,14 @@ v.test('correctly validates example S3 .datalink files with the schema', () => {
   }
 })
 
+v.test('correctly validates example Table .datalink files with the schema', () => {
+  const schemas = ['example-http-format-excel-workbook.datalink', 'example-http-format-excel-sheet.datalink', 'example-http-format-excel-range.datalink']
+  for (const schema of schemas) {
+    const json = loadDataLinkFile(path.resolve(TABLE_DATA_LINKS_ROOT, schema))
+    testSchema(json, schema)
+  }
+})
+
 v.test('correctly validates example Database .datalink files with the schema', () => {
   const schemas = ['postgres-db.datalink', 'postgres-table.datalink']
   for (const schema of schemas) {
