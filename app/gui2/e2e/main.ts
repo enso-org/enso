@@ -6,6 +6,7 @@ import { mockDataHandler, mockLSHandler } from '../mock/engine'
 import '../src/assets/main.css'
 import { provideGuiConfig } from '../src/providers/guiConfig'
 import { provideVisualizationConfig } from '../src/providers/visualizationConfig'
+import { initializePrefixes } from '../src/util/ast/node'
 import { Vec2 } from '../src/util/data/vec2'
 import { MockTransport, MockWebSocket } from '../src/util/net'
 import MockApp from './MockApp.vue'
@@ -57,4 +58,7 @@ provideVisualizationConfig._mock(
   },
   app,
 )
-initializeFFI().then(() => app.mount('#app'))
+initializeFFI().then(() => {
+  initializePrefixes()
+  app.mount('#app')
+})

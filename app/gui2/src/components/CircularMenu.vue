@@ -5,14 +5,14 @@ import ToggleIcon from '@/components/ToggleIcon.vue'
 import { Vec2 } from '@/util/data/vec2'
 
 const props = defineProps<{
-  isOutputContextEnabledGlobally: boolean
-  isOutputContextOverridden: boolean
+  isRecordingEnabledGlobally: boolean
+  isRecordingOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
   isFullMenuVisible: boolean
 }>()
 const emit = defineEmits<{
-  'update:isOutputContextOverridden': [isOutputContextOverridden: boolean]
+  'update:isRecordingOverridden': [isRecordingOverridden: boolean]
   'update:isDocsVisible': [isDocsVisible: boolean]
   'update:isVisualizationVisible': [isVisualizationVisible: boolean]
   startEditing: []
@@ -55,16 +55,12 @@ const emit = defineEmits<{
         @click.stop="emit('startEditing')"
       />
       <ToggleIcon
-        :icon="props.isOutputContextEnabledGlobally ? 'no_auto_replay' : 'auto_replay'"
-        class="icon-container button slot7"
-        :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
-        :alt="`${
-          props.isOutputContextEnabledGlobally != props.isOutputContextOverridden ?
-            'Disable'
-          : 'Enable'
-        } output context`"
-        :modelValue="props.isOutputContextOverridden"
-        @update:modelValue="emit('update:isOutputContextOverridden', $event)"
+          icon="record"
+          class="icon-container button slot7"
+          :class="{ 'recording-overridden': props.isRecordingOverridden }"
+          :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
+          :modelValue="props.isRecordingOverridden"
+          @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
     </div>
     <SmallPlusButton
@@ -166,7 +162,7 @@ const emit = defineEmits<{
   opacity: 10%;
 }
 
-.output-context-overridden {
+.recording-overridden {
   opacity: 100%;
   color: red;
 }
@@ -228,7 +224,7 @@ const emit = defineEmits<{
 .slot7 {
   position: absolute;
   top: 44px;
-  left: 9px;
+  left: 8px;
 }
 
 .slot8 {
