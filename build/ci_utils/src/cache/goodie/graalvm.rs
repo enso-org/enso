@@ -188,9 +188,8 @@ impl GraalVM {
     }
 
     pub fn platform_string(&self) -> String {
-        let Self { graal_version: _graal_version, client: _client , ..} = &self;
         let os_arch = self.os_arch_string();
-        let java_version = format!("jdk-{}", _graal_version.to_string_core());
+        let java_version = format!("jdk-{}", self.graal_version.to_string_core());
         format!("{PACKAGE_PREFIX_URL}-{java_version}_{os_arch}")
     }
 }
