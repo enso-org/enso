@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Type.Value_Type.Value_Type
 
-import project.Data.Column_Constraint.Column_Constraint
+import project.Column_Constraint.Column_Constraint
 
 ## Describes a column structure for `Connection.create_table`.
 type Column_Description

@@ -124,6 +124,7 @@ type Vector a
 
     ## ALIAS repeat
        GROUP Constants
+       ICON data_input
        Creates a new vector of the given length, filling the elements with
        the provided constant.
 
@@ -191,6 +192,7 @@ type Vector a
     to_array self = Array_Like_Helpers.vector_to_array self
 
     ## GROUP Metadata
+       ICON metadata
        Returns the number of elements stored in this vector.
 
        > Example
@@ -272,7 +274,8 @@ type Vector a
     fold_with_index self init function =
         Array_Like_Helpers.fold_with_index self init function
 
-    ## Combines all the elements of the vector, by iteratively applying the
+    ## ICON dataframe_map_column
+       Combines all the elements of the vector, by iteratively applying the
        passed function with the next element of the vector. After each step the
        value is stored resulting in a new vector of the same size as self.
 
@@ -305,6 +308,7 @@ type Vector a
         Array_Like_Helpers.reduce self function if_empty
 
     ## GROUP Selections
+       ICON find
        Returns the first element of the vector that satisfies the condition or
        `if_missing` if no elements of the vector satisfy it.
 
@@ -324,6 +328,7 @@ type Vector a
         Array_Like_Helpers.find self condition start if_missing
 
     ## GROUP Values
+       ICON find
        Returns the index of an element in the vector.
        Returns Nothing if the element is not found.
 
@@ -347,6 +352,7 @@ type Vector a
         Array_Like_Helpers.index_of self condition start
 
     ## GROUP Values
+       ICON find
        Returns the last index of an element in the vector.
        Returns `Nothing` if the element is not found.
 
@@ -512,7 +518,8 @@ type Vector a
     partition self condition =
         Array_Like_Helpers.partition self condition
 
-    ## Partitions the vector into `Vector`s of elements which satisfy a given
+    ## ICON preparation
+       Partitions the vector into `Vector`s of elements which satisfy a given
        predicate and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
@@ -647,6 +654,7 @@ type Vector a
         Array_Like_Helpers.flat_map self function on_problems
 
     ## GROUP Calculations
+       ICON dataframes_union
        Transforms a vector of vectors into a `Vector` of inner elements - removes
        one layer of nesting from a stack of nested vectors.
 
@@ -657,7 +665,8 @@ type Vector a
     flatten : Vector Any
     flatten self = Array_Like_Helpers.flatten self
 
-    ## Applies a function to each element of the vector, returning the `Vector`
+    ## ICON dataframe_map_column
+       Applies a function to each element of the vector, returning the `Vector`
        of results.
 
        Arguments:
@@ -738,6 +747,7 @@ type Vector a
         Array_Like_Helpers.each_with_index self f
 
     ## GROUP Selections
+       ICON order
        Reverses the vector, returning a `Vector` with the same elements, but in
        the opposite order.
 
@@ -795,6 +805,7 @@ type Vector a
         Array_Like_Helpers.plus self that
 
     ## GROUP Calculations
+       ICON add_row
        Inserts the given item into the vector at the given index.
 
        Arguments:
@@ -815,6 +826,7 @@ type Vector a
         Array_Like_Helpers.insert self at item
 
     ## GROUP Selections
+       ICON select_column
        Removes the item at the given index from the vector.
 
        Arguments:
@@ -942,6 +954,7 @@ type Vector a
         Array_Like_Helpers.vector_from_function len (i-> function (self.at i) (that.at i)) on_problems
 
     ## GROUP Calculations
+       ICON dataframes_union
        Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
 
@@ -1005,6 +1018,7 @@ type Vector a
 
     ## ALIAS order_by
        GROUP Calculations
+       ICON order
        Sort the vector.
 
        Arguments:
@@ -1082,7 +1096,7 @@ type Vector a
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## ALIAS unique, deduplicate
+    ## ALIAS deduplicate, unique
        GROUP Selections
        ICON preparation
        Keeps only unique elements within the vector, removing any duplicates.
@@ -1110,11 +1124,13 @@ type Vector a
     distinct self (on = x->x) =
         Array_Like_Helpers.distinct self on
 
-    ## Returns the vector as a `Vector`.
+    ## ICON convert
+       Returns the vector as a `Vector`.
     to_vector : Vector
     to_vector self = self
 
-    ## Converts the vector to a list with the same elements.
+    ## ICON convert
+       Converts the vector to a list with the same elements.
     to_list : List
     to_list self = Array_Like_Helpers.to_list self
 

@@ -353,7 +353,10 @@ public abstract class InvokeMethodNode extends BaseNode {
     try {
       selfWithoutWarnings = warnings.removeWarnings(self);
     } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(
+      CompilerDirectives.transferToInterpreter();
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(
+          this,
           "`self` object should have some warnings when calling `" + symbol.getName() + "` method",
           e);
     }
@@ -433,7 +436,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       selfWithoutWarnings = warnings.removeWarnings(self);
       arrOfWarnings = warnings.getWarnings(self, this, false);
     } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, e);
     }
 
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
@@ -510,7 +514,8 @@ public abstract class InvokeMethodNode extends BaseNode {
           accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, this, false));
           args[i] = warnings.removeWarnings(r);
         } catch (UnsupportedMessageException e) {
-          throw CompilerDirectives.shouldNotReachHere(e);
+          var ctx = EnsoContext.get(this);
+          throw ctx.raiseAssertionPanic(this, null, e);
         }
       } else {
         args[i] = r;
@@ -548,7 +553,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = ensoBig;
       return execute(frame, state, symbol, ensoBig, arguments);
     } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, e);
     }
   }
 
@@ -578,7 +584,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = text;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, e);
     }
   }
 
