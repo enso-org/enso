@@ -59,6 +59,7 @@ const emit = defineEmits<{
   'update:visible': [visible: boolean]
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
+  addNode: [pos: Vec2 | undefined]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -292,6 +293,7 @@ provideVisualizationConfig({
   },
   hide: () => emit('update:visible', false),
   updateType: (id) => emit('update:id', id),
+  addNode: (pos) => emit('addNode', pos),
 })
 
 const effectiveVisualization = computed(() => {
