@@ -13,7 +13,7 @@ from Standard.Base.Metadata.Widget import Single_Choice
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
-import project.Excel.Excel_Section.Excel_Section
+import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
 import project.Internal.Java_Problems
 

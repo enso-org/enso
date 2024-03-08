@@ -5,7 +5,7 @@ import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
-import project.Excel.Excel_Section.Excel_Section
+import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Java_Problems
 from project.Errors import Duplicate_Output_Column_Names, Empty_Sheet_Error, Invalid_Column_Names, Invalid_Location
 

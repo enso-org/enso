@@ -10,7 +10,7 @@ from Standard.Base.System.File import file_as_java
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
-import project.Excel.Excel_Section.Excel_Section
+import project.Internal.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch, Existing_Data, Invalid_Location, Range_Exceeded
 
