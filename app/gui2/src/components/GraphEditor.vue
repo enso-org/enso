@@ -10,6 +10,7 @@ import {
   type Environment,
 } from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
+import GraphNodeSelections from '@/components/GraphEditor/GraphNodeSelections.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
@@ -615,6 +616,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
         @addNode="addNodeAt($event)"
       />
     </div>
+    <GraphNodeSelections :navigator="graphNavigator" />
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
 
     <ComponentBrowser
