@@ -128,7 +128,7 @@ type Table_Column_Helper
     remove_by_type : Vector Value_Type -> Boolean -> Vector
     remove_by_type self types:Vector strict:Boolean=False =
         columns = if strict then self.internal_columns.filter (c->(types.contains c.value_type).not) else
-            self.internal_columns.filter c-> types.any t-> c.value_type.is_same_type t
+            self.internal_columns.filter c->(types.all (t->(c.value_type.is_same_type t . not)))
         if columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
             columns
 
