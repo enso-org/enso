@@ -55,12 +55,12 @@ const emit = defineEmits<{
         @click.stop="emit('startEditing')"
       />
       <ToggleIcon
-          icon="record"
-          class="icon-container button slot7"
-          :class="{ 'recording-overridden': props.isRecordingOverridden }"
-          :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
-          :modelValue="props.isRecordingOverridden"
-          @update:modelValue="emit('update:isRecordingOverridden', $event)"
+        icon="record"
+        class="icon-container button slot7"
+        :class="{ 'recording-overridden': props.isRecordingOverridden }"
+        :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
+        :modelValue="props.isRecordingOverridden"
+        @update:modelValue="emit('update:isRecordingOverridden', $event)"
       />
     </div>
     <SmallPlusButton
