@@ -46,6 +46,15 @@ impl std::str::FromStr for Edition {
 
 }
 
+impl Into<String> for Edition {
+    fn into(self) -> String {
+        match self {
+            Edition::Community => CE_JAVA_VENDOR.to_string(),
+            Edition::Enterprise => EE_JAVA_VENDOR.to_string(),
+        }
+    }
+}
+
 impl Display for Edition {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match *self {

@@ -164,11 +164,13 @@ impl JobArchetype for VerifyLicensePackages {
 pub struct ScalaTests {
     graal_edition: graalvm::Edition,
 }
+
 impl ScalaTests {
     pub fn with_graal_edition(graal_edition: graalvm::Edition) -> Self {
         Self { graal_edition }
     }
 }
+
 impl JobArchetype for ScalaTests {
     fn job(&self, target: Target) -> Job {
         let job_name = format!("Scala Tests ({})", self.graal_edition);
@@ -177,8 +179,10 @@ impl JobArchetype for ScalaTests {
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match self.graal_edition {
-            graalvm::Edition::Community => job.env(env::JAVA_VENDOR, graalvm::Edition::Community.to_string()),
-            graalvm::Edition::Enterprise => job.env(env::JAVA_VENDOR, graalvm::Edition::Enterprise.to_string()),
+            graalvm::Edition::Community =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Enterprise =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }
@@ -216,9 +220,10 @@ impl JobArchetype for StandardLibraryTests {
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match self.graal_edition {
-            graalvm::Edition::Community => job.env(env::JAVA_VENDOR, graalvm::Edition::Community.to_string()),
-            graalvm::Edition::Enterprise => job.env(env::JAVA_VENDOR, graalvm::Edition::Enterprise.to_string()),
-
+            graalvm::Edition::Community =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Community.to_string()),
+            graalvm::Edition::Enterprise =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise.to_string()),
         }
         job
     }
