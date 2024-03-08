@@ -253,7 +253,7 @@ type XML_Document
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
     write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-        write_impl self path encoding on_existing_file include_xml_declaration on_problems
+        write_impl self.java_document path encoding on_existing_file include_xml_declaration on_problems
 
     ## GROUP Selections
        Gets the child elements of an XML document.
@@ -594,7 +594,7 @@ type XML_Element
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
     write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-        write_impl self path encoding on_existing_file include_xml_declaration on_problems
+        write_impl self.java_element path encoding on_existing_file include_xml_declaration on_problems
 
     ## ICON parse3
        Get elements denoted by the given XPath key.
@@ -742,10 +742,7 @@ child_selector node:(XML_Element | XML_Document) =
 
 ## PRIVATE
    write an XML document or element to a file.
-write_impl node:(XML_Element | XML_Document) path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
-    element = case node of
-        _ : XML_Element -> node.java_element
-        _ : XML_Document -> node.java_document
+write_impl node:Node path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
     declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
     XML_Error.handle_java_exceptions <|
-        (declaration + XML_Utils.outerXML element True).write path encoding on_existing_file on_problems
+        (declaration + XML_Utils.outerXML node True).write path encoding on_existing_file on_problems
