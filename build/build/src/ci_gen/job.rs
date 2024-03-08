@@ -181,8 +181,7 @@ impl JobArchetype for ScalaTests {
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match self.graal_edition {
-            graalvm::Edition::Community =>
-                job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
                 job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
@@ -190,7 +189,11 @@ impl JobArchetype for ScalaTests {
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!("{}-{}-{os}-{arch}", self.id_key_base(), self.graal_edition.to_string().to_kebab_case())
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
     }
 }
 
@@ -237,7 +240,11 @@ impl JobArchetype for StandardLibraryTests {
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!("{}-{}-{os}-{arch}", self.id_key_base(), self.graal_edition.to_string().to_kebab_case())
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
     }
 }
 
@@ -457,8 +464,7 @@ impl JobArchetype for CiCheckBackend {
         let job_name = format!("Engine ({})", self.graal_edition);
         let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
         match self.graal_edition {
-            graalvm::Edition::Community =>
-                job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
                 job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
@@ -466,6 +472,10 @@ impl JobArchetype for CiCheckBackend {
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!("{}-{}-{os}-{arch}", self.id_key_base(), self.graal_edition.to_string().to_kebab_case())
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
     }
 }

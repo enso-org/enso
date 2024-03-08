@@ -675,10 +675,8 @@ fn benchmark_job(
         .build_job(job_name, BenchmarkRunner);
     job.timeout_minutes = timeout_minutes;
     match graal_edition {
-        graalvm::Edition::Community =>
-            job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
-        graalvm::Edition::Enterprise =>
-            job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+        graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+        graalvm::Edition::Enterprise => job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
     }
     job
 }
