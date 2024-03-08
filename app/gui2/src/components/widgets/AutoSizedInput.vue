@@ -1,53 +1,27 @@
 <script setup lang="ts">
-import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import { targetIsOutside, useAutoBlur } from '@/util/autoBlur'
+import { useAutoBlur } from '@/util/autoBlur'
 import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'
 
 const [model, modifiers] = defineModel<string>()
 const props = defineProps<{ autoSelect?: boolean }>()
 const emit = defineEmits<{
-  interactionStarted: [interaction: Interaction]
   input: [value: string | undefined]
   change: [value: string | undefined]
 }>()
 
 const innerModel = modifiers.lazy ? ref(model.value) : model
 if (modifiers.lazy) watch(model, (newVal) => (innerModel.value = newVal))
-
-const interaction =
-  modifiers.interaction ?
-    {
-      handler: injectInteractionHandler(),
-      handle: {
-        cancel: () => {
-          innerModel.value = model.value
-          inputNode.value?.blur()
-        },
-        click: (e: PointerEvent) => {
-          if (targetIsOutside(e, inputNode)) {
-            inputNode.value?.blur()
-          }
-        },
-      },
-    }
-  : undefined
-
 function onChange() {
-  console.log('onChange')
   if (modifiers.lazy) model.value = innerModel.value
-  if (interaction) interaction.handler.end(interaction.handle)
   emit('change', innerModel.value)
 }
 
 const inputNode = ref<HTMLInputElement>()
+useAutoBlur(inputNode)
 function onFocus() {
   if (props.autoSelect) {
     inputNode.value?.select()
-  }
-  if (interaction) {
-    interaction.handler.setCurrent(interaction.handle)
-    emit('interactionStarted', interaction.handle)
   }
 }
 

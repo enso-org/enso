@@ -167,7 +167,6 @@ function toggleDropdownWidget() {
 }
 
 function onClick(index: number, keepOpen: boolean) {
-  console.log('onClick')
   selectedIndex.value = index
   showDropdownWidget.value = keepOpen
 }
