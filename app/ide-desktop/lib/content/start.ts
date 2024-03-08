@@ -17,16 +17,12 @@ const HTTP_STATUS_OK = 200
 
 /** Start the esbuild watcher. */
 async function watch() {
-    const opts = bundler.bundleOptions({
-        devMode: true,
-        supportsLocalBackend: true,
-        supportsDeepLinks: false,
-    })
-    const builder = await esbuild.context(opts)
+    const options = bundler.bundleOptions({ supportsLocalBackend: true, supportsDeepLinks: false })
+    const builder = await esbuild.context(options)
     await builder.watch()
     await builder.serve({
         port: await portfinder.getPortPromise({ port: PORT }),
-        servedir: opts.outdir,
+        servedir: options.outdir,
         /** This function is called on every request.
          * It is used here to show an error if the file to serve was not found. */
         onRequest(args) {

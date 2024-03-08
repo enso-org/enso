@@ -59,8 +59,8 @@ export default class LocalBackend extends Backend {
         type: LocalBackend.currentlyOpenProjects.has(project.id)
           ? backend.ProjectState.opened
           : project.id === LocalBackend.currentlyOpeningProjectId
-          ? backend.ProjectState.openInProgress
-          : backend.ProjectState.closed,
+            ? backend.ProjectState.openInProgress
+            : backend.ProjectState.closed,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         volume_id: '',
       },
@@ -168,8 +168,8 @@ export default class LocalBackend extends Backend {
               projectId === LocalBackend.currentlyOpeningProjectId
                 ? backend.ProjectState.openInProgress
                 : project.lastOpened != null
-                ? backend.ProjectState.closed
-                : backend.ProjectState.created,
+                  ? backend.ProjectState.closed
+                  : backend.ProjectState.created,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
           },
@@ -269,7 +269,11 @@ export default class LocalBackend extends Backend {
 
   /** Delete an arbitrary asset.
    * @throws An error if the JSON-RPC call fails. */
-  override async deleteAsset(assetId: backend.AssetId, title: string | null): Promise<void> {
+  override async deleteAsset(
+    assetId: backend.AssetId,
+    _force: boolean,
+    title: string | null
+  ): Promise<void> {
     // This is SAFE, as the only asset type on the local backend is projects.
     // eslint-disable-next-line no-restricted-syntax
     const projectId = assetId as backend.ProjectId

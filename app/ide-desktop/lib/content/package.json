@@ -46,7 +46,7 @@
     "eslint-plugin-jsdoc": "^46.8.1",
     "globals": "^13.20.0",
     "portfinder": "^1.0.32",
-    "tsx": "^3.12.6",
+    "tsx": "^4.7.1",
     "typescript": "~5.2.2"
   },
   "optionalDependencies": {

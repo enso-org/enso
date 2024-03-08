@@ -150,7 +150,8 @@ type Error
             wrapped_error = Wrapped_Error.from error_value
             @Tail_Call Error.unwrap wrapped_error.inner_error
 
-    ## Transforms an error.
+    ## ICON dataframe_map_column
+       Transforms an error.
 
        Arguments:
        - f: The function used to transform the error.

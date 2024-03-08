@@ -72,11 +72,11 @@ public class AtomBenchmarks {
           autoscoped_generator x i:Integer =
               acc = x:List
               if i == 0 then acc else
-                c = ~Cons i acc
+                c = ..Cons i acc
                 i1 = i - 1
                 @Tail_Call autoscoped_generator c i1
 
-          res = autoscoped_generator ~Nil length
+          res = autoscoped_generator ..Nil length
           res
       """;
   private static final String REVERSE_LIST_CODE =

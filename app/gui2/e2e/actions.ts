@@ -1,5 +1,5 @@
-import { expect, type Page } from '@playwright/test'
-import * as customExpect from './customExpect'
+import { type Page } from '@playwright/test'
+import { expect } from './customExpect'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
 
@@ -12,12 +12,23 @@ export async function goToGraph(page: Page) {
   await page.goto('/')
   await expect(page.locator('.App')).toBeVisible()
   // Wait until nodes are loaded.
-  await customExpect.toExist(locate.graphNode(page))
+  await expect(locate.graphNode(page)).toExist()
   // Wait for position initialization
+  await expectNodePositionsInitialized(page, 64)
+}
+
+export async function expectNodePositionsInitialized(page: Page, yPos: number) {
+  // TODO: The yPos should not need to be a variable. Instead, first automatically positioned nodes
+  // should always have constant known position. This is a bug caused by incorrect layout after
+  // entering a function. To be fixed with #9255
   await expect(locate.graphNode(page).first()).toHaveCSS(
     'transform',
-    'matrix(1, 0, 0, 1, -16, -16)',
+    `matrix(1, 0, 0, 1, -16, ${yPos})`,
   )
+}
+
+export async function exitFunction(page: Page, x = 300, y = 300) {
+  await page.mouse.dblclick(x, y, { delay: 10 })
 }
 
 // =================

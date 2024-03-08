@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 
-import project.Data.Image.Image
+import project.Image.Image
 
 ## PRIVATE
    List comes from org.opencv.imgcodecs.Imgcodecs#imread doc comment.
