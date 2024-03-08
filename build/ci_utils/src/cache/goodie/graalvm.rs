@@ -77,7 +77,7 @@ fn graal_version_from_version_string(version_string: &str) -> Result<(Version, E
         bail!("Unknown GraalVM edition")
     };
     let version = Version::find_in_text(line);
-    version.map(|version| (version, edition)).context("Failed to find GraalVM version")
+    version.map(|version| (version, edition)).context("Failed to find GraalVM version.")
 }
 
 async fn find_graal_version() -> Result<(Version, Edition)> {
@@ -166,7 +166,7 @@ impl GraalVM {
                     self.os_arch_string(),
                 );
                 Box::pin(ready(
-                    Url::parse(&url).context("Failed to parse URL")
+                    Url::parse(&url).context("Failed to parse URL.")
                 ))
             }
         }
