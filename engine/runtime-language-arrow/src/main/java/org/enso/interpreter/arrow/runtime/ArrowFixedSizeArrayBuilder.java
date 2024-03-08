@@ -181,7 +181,8 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
         throw UnsupportedMessageException.create();
       }
       if (!iop.isDate(value) || !iop.isTime(value)) {
-        throw UnsupportedTypeException.create(new Object[] {value}, "value is not a date and a time");
+        throw UnsupportedTypeException.create(
+            new Object[] {value}, "value is not a date and a time");
       }
 
       var at = ArrowFixedArrayDate.typeAdjustedIndex(index, 8);
@@ -251,7 +252,8 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
         throws UnsupportedMessageException, InvalidArrayIndexException, UnsupportedTypeException {
       validAccess(receiver, index);
       if (!iop.fitsInShort(value)) {
-        throw UnsupportedTypeException.create(new Object[] {value}, "value does not fit a 2 byte short");
+        throw UnsupportedTypeException.create(
+            new Object[] {value}, "value does not fit a 2 byte short");
       }
       receiver.buffer.putShort(typeAdjustedIndex(index, receiver.unit), (iop.asShort(value)));
     }
@@ -265,7 +267,8 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
         throws UnsupportedMessageException, InvalidArrayIndexException, UnsupportedTypeException {
       validAccess(receiver, index);
       if (!iop.fitsInInt(value)) {
-        throw UnsupportedTypeException.create(new Object[] {value}, "value does not fit a 4 byte int");
+        throw UnsupportedTypeException.create(
+            new Object[] {value}, "value does not fit a 4 byte int");
       }
       receiver.buffer.putInt(typeAdjustedIndex(index, receiver.unit), (iop.asInt(value)));
     }
@@ -311,12 +314,12 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
 
   @ExportMessage
   boolean isArrayElementModifiable(long index) {
-    return index >= 0 && index < size;
+    return !sealed && index >= 0 && index < size;
   }
 
   @ExportMessage
   boolean isArrayElementInsertable(long index) {
-    return index >= 0 && index < size;
+    return !sealed && index >= 0 && index < size;
   }
 
   private static int typeAdjustedIndex(long index, SizeInBytes unit) {
