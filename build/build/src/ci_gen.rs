@@ -656,7 +656,7 @@ fn benchmark_workflow(
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
 
-    for graal_edition in vec![graalvm::Edition::Community, graalvm::Edition::Enterprise] {
+    for graal_edition in [graalvm::Edition::Community, graalvm::Edition::Enterprise] {
         let job_name = format!("{} ({})", name, graal_edition);
         let job = benchmark_job(&job_name, command_line, timeout_minutes, graal_edition);
         workflow.add_job(job);
