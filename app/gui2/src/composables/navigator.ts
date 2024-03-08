@@ -10,6 +10,7 @@ type ScaleRange = readonly [number, number]
 const WHEEL_SCALE_RANGE: ScaleRange = [0.5, 10]
 const DRAG_SCALE_RANGE: ScaleRange = [0.1, 10]
 const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]
+const ZOOM_STEP_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 10]
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element) {
@@ -239,6 +240,25 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     scale.value = directedClamp(oldValue, f(oldValue), range)
   }
 
+  function zoomStepToScaleFactor(step: number): number {
+    return Math.pow(2, step / 2)
+  }
+  function zoomStepFromScaleFactor(scale: number): number {
+    return Math.round(Math.log2(scale) * 2)
+  }
+
+  function stepZoom(zoomStepDelta: number, range: ScaleRange = ZOOM_STEP_DEFAULT_SCALE_RANGE) {
+    updateScale(
+      (oldValue) => zoomStepToScaleFactor(zoomStepFromScaleFactor(oldValue) + zoomStepDelta),
+      range,
+    )
+  }
+
+  /** Update `ctrlPressed` from the event; this helps catch if we missed the `keyup` while focus was elsewhere. */
+  function updateCtrlState(e: KeyboardEvent | MouseEvent | PointerEvent) {
+    ctrlPressed = e.ctrlKey
+  }
+
   return proxyRefs({
     events: {
       dragover(e: DragEvent) {
@@ -247,10 +267,14 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       dragleave() {
         eventMousePos.value = null
       },
+      pointerenter(e: PointerEvent) {
+        updateCtrlState(e)
+      },
       pointermove(e: PointerEvent) {
         eventMousePos.value = eventScreenPos(e)
         panPointer.events.pointermove(e)
         zoomPointer.events.pointermove(e)
+        updateCtrlState(e)
       },
       pointerleave() {
         eventMousePos.value = null
@@ -271,15 +295,18 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
           // A pinch gesture is represented by setting `e.ctrlKey`. It can be distinguished from an actual Ctrl+wheel
           // combination because the real Ctrl key emits keyup/keydown events.
           const isGesture = !ctrlPressed
-          const updater =
-            isGesture ?
-              // OS X trackpad events provide usable rate-of-change information.
-              (oldValue: number) => oldValue * Math.exp(-e.deltaY / 100)
-              // Mouse wheel rate information is unreliable. We just look at the sign and step by a factor of sqrt(2).
-            : (oldValue: number) =>
-                Math.pow(2, (Math.round(Math.log2(oldValue) * 2) - Math.sign(e.deltaY)) / 2)
-          updateScale(updater, WHEEL_SCALE_RANGE)
+          if (isGesture) {
+            // OS X trackpad events provide usable rate-of-change information.
+            updateScale(
+              (oldValue: number) => oldValue * Math.exp(-e.deltaY / 100),
+              WHEEL_SCALE_RANGE,
+            )
+          } else {
+            // Mouse wheel rate information is unreliable. We just step in the direction of the sign.
+            stepZoom(-Math.sign(e.deltaY), WHEEL_SCALE_RANGE)
+          }
         } else {
+          updateCtrlState(e)
           const delta = new Vec2(e.deltaX, e.deltaY)
           center.value = center.value.addScaled(delta, 1 / scale.value)
         }
@@ -301,5 +328,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     panAndZoomTo,
     panTo,
     viewport,
+    stepZoom,
   })
 }
