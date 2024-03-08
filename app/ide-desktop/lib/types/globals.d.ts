@@ -55,24 +55,6 @@ interface AuthenticationApi {
     readonly saveAccessToken: (accessToken: string | null) => void
 }
 
-// ========================
-// === File Browser API ===
-// ========================
-
-/** `window.fileBrowserApi` is a context bridge to the main process, when we're running in an
- * Electron context.
- *
- * # Safety
- *
- * We're assuming that the main process has exposed the `fileBrowserApi` context bridge (see
- * `lib/client/src/preload.ts` for details), and that it contains the functions defined in this
- * interface. Our app can't function if these assumptions are not met, so we're disabling the
- * TypeScript checks for this interface when we use it. */
-interface FileBrowserApi {
-  /** Select path for local file or directory using the system file browser. */
-  readonly openFileBrowser: (kind: 'file' | 'directory' | 'any') => Promise<string[] | undefined>
-}
-
 // =====================================
 // === Global namespace augmentation ===
 // =====================================
@@ -85,7 +67,6 @@ declare global {
         readonly enso?: AppRunner & Enso
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
-        readonly fileBrowserApi: FileBrowserApi
     }
 
     namespace NodeJS {

@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import {
+  CustomDropdownItemsKey,
+  type CustomDropdownItem,
+} from '@/components/GraphEditor/widgets/WidgetSelection.vue'
+import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { asNot } from '@/util/data/types.ts'
 import { computed } from 'vue'
-import { CustomDropdownItemsKey, type CustomDropdownItem } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -51,7 +52,10 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
 const item = computed<CustomDropdownItem>(() => ({
   label: label.value,
   onClick: async () => {
-    const kind = strictlyDirectory.value ? 'directory' : strictlyFile.value ? 'file' : 'any'
+    const kind =
+      strictlyDirectory.value ? 'directory'
+      : strictlyFile.value ? 'file'
+      : 'any'
     const selected = await window.fileBrowserApi.openFileBrowser(kind)
     if (selected != null && selected[0] != null) {
       const edit = graph.startEdit()
@@ -60,20 +64,21 @@ const item = computed<CustomDropdownItem>(() => ({
         edit,
         portUpdate: {
           value,
-          origin: asNot<TokenId>(props.input.portId),
+          origin: props.input.portId,
         },
       })
     }
-  }
+  },
 }))
 
 const innerWidgetInput = computed(() => {
-  if (props.input[CustomDropdownItemsKey] != null) {
-    props.input[CustomDropdownItemsKey].push(item.value)
+  const input = props.input
+  if (input[CustomDropdownItemsKey] != null) {
+    input[CustomDropdownItemsKey].push(item.value)
   } else {
-    props.input[CustomDropdownItemsKey] = [item.value]
+    input[CustomDropdownItemsKey] = [item.value]
   }
-  return props.input
+  return input
 })
 </script>
 
@@ -94,26 +99,6 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     return Score.Mismatch
   },
 })
-
-declare global {
-  interface Window {
-    fileBrowserApi: FileBrowserApi
-  }
-}
-
-/** `window.fileBrowserApi` is a context bridge to the main process, when we're running in an
- * Electron context.
- *
- * # Safety
- *
- * We're assuming that the main process has exposed the `fileBrowserApi` context bridge (see
- * `app/ide-desktop/lib/client/src/preload.ts` for details), and that it contains the functions defined in this
- * interface.
- */
-interface FileBrowserApi {
-  /** Select path for local file or directory using the system file browser. */
-  readonly openFileBrowser: (kind: 'file' | 'directory' | 'any') => Promise<string[] | undefined>
-}
 </script>
 
 <template>
