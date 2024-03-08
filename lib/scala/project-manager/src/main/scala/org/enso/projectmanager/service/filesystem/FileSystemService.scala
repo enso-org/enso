@@ -57,8 +57,9 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
       .mapError(_ => FileSystemServiceFailure.FileSystem("Failed to move path"))
 
   private def toFileSystemEntry(
-    file: File
+    path: File
   ): F[FileSystemServiceFailure, Option[FileSystemEntry]] = {
+    val file = normalize(path)
     val projectRepository =
       projectRepositoryFactory.getProjectRepository(Some(file))
     val basicFileAttributes =
@@ -90,4 +91,7 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
         )
     } else CovariantFlatMap[F].pure(None)
   }
+
+  private def normalize(file: File): File =
+    file.toPath.toAbsolutePath.normalize().toFile
 }
