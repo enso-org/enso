@@ -5,6 +5,9 @@ from Standard.Base.Runtime import assert
 
 from Standard.Test import all
 
+depretty xmlText =
+    xmlText.replace (Regex.compile "\n\s*") ""
+
 type Test_Data
     Value ~data
 
@@ -53,6 +56,47 @@ add_specs suite_builder =
         group_builder.specify "Parse error from string" <|
             xml_string = "<<<<</"
             XML_Document.from_text xml_string . catch . should_be_a XML_Error.Parse_Error
+
+    suite_builder.group "Write XML" group_builder->
+        group_builder.specify "Can roundtrip a document to and from a file" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            doc = XML_Document.from_file test_file
+            output_file = enso_project.data / "xml" / "sample_output.xml"
+            output_file.delete_if_exists
+            r = doc.write output_file
+            r.should_equal output_file
+            (depretty (Data.read_text output_file)) . should_equal (depretty (Data.read_text test_file))
+            output_file.delete
+        group_builder.specify "Can write an XML element to a file" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            doc = XML_Document.from_file test_file
+            element = doc . at "class" . at "teacher" . at "firstname"
+            output_file = enso_project.data / "xml" / "element_output.xml"
+            output_file.delete_if_exists
+            r = element.write output_file
+            r.should_equal output_file
+            (Data.read_text output_file) . should_equal '<?xml version="1.0" encoding="UTF-8"?>\n<firstname>Mary</firstname>\n'
+            output_file.delete
+        group_builder.specify "Can write an XML element to a file in different encoding" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            doc = XML_Document.from_file test_file
+            element = doc . at "class" . at "teacher" . at "firstname"
+            output_file = enso_project.data / "xml" / "element_output.xml"
+            output_file.delete_if_exists
+            r = element.write output_file Encoding.windows_1250
+            r.should_equal output_file
+            (Data.read_text output_file) . should_equal '<?xml version="1.0" encoding="windows-1250"?>\n<firstname>Mary</firstname>\n'
+            output_file.delete
+        group_builder.specify "Can write an XML element to a file without declaration" <|
+            test_file = enso_project.data / "xml" / "sample.xml"
+            doc = XML_Document.from_file test_file
+            element = doc . at "class" . at "teacher" . at "firstname"
+            output_file = enso_project.data / "xml" / "element_output.xml"
+            output_file.delete_if_exists
+            r = element.write output_file include_xml_declaration=False
+            r.should_equal output_file
+            (Data.read_text output_file) . should_equal '<firstname>Mary</firstname>\n'
+            output_file.delete
 
     suite_builder.group "at/get" group_builder->
         group_builder.specify "Can get children by index" <|
