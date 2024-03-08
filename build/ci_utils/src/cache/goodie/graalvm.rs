@@ -65,7 +65,7 @@ impl Display for Edition {
 }
 
 
-fn graal_version_from_version_string(version_string: &str) -> Result<(Version, Edition)> {
+pub fn graal_version_from_version_string(version_string: &str) -> Result<(Version, Edition)> {
     let line = version_string.lines().find(|line| line.contains(CE_JAVA_VENDOR) || line.contains(EE_JAVA_VENDOR)).context(
         "There is a Java environment available but it is not recognizable as GraalVM one.",
     )?;
@@ -80,7 +80,7 @@ fn graal_version_from_version_string(version_string: &str) -> Result<(Version, E
     version.map(|version| (version, edition)).context("Failed to find GraalVM version.")
 }
 
-async fn find_graal_version() -> Result<(Version, Edition)> {
+pub async fn find_graal_version() -> Result<(Version, Edition)> {
     let text = Java.version_string().await?;
     graal_version_from_version_string(&text)
 }
