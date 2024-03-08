@@ -22,7 +22,7 @@ import type {
   NodeMetadata,
   NodeMetadataFields,
 } from '@/util/ast/abstract'
-import { MutableModule, isIdentifier, substituteQualifiedName } from '@/util/ast/abstract'
+import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -251,7 +251,7 @@ export const useGraphStore = defineStore('graph', () => {
       const rhs = Ast.parse(expression, edit)
       rhs.setNodeMetadata(metadata)
       const assignment = Ast.Assignment.new(edit, ident, rhs)
-      for (const conflict of conflicts) {
+      for (const _conflict of conflicts) {
         // TODO: Sort out issues with FQN with the engine.
         // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
       }
@@ -336,7 +336,7 @@ export const useGraphStore = defineStore('graph', () => {
           console.error('Cannot find parent of the node expression. Conflict resolution failed.')
           return
         }
-        for (const conflict of conflicts) {
+        for (const _conflict of conflicts) {
           // TODO: Sort out issues with FQN with the engine.
           // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
         }
