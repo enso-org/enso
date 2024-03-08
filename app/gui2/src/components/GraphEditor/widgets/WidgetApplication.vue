@@ -47,13 +47,11 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
     <div v-if="application.infixOperator" class="infixOp" :style="operatorStyle">
       <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
     </div>
-    <div
-      v-if="tree.extended || !application.argument.hideByDefault"
-      class="argument"
-      :class="{ animateWhenShown: application.argument.hideByDefault }"
-    >
-      <NodeWidget :input="application.argument.toWidgetInput()" nest />
-    </div>
+    <Transition name="collapse-argument">
+      <div v-if="tree.extended || !application.argument.hideByDefault" class="argument">
+        <NodeWidget :input="application.argument.toWidgetInput()" nest />
+      </div>
+    </Transition>
   </span>
 </template>
 
@@ -88,17 +86,20 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
   display: flex;
   flex-direction: row;
   place-items: center;
-}
-
-.animateWhenShown {
-  animation: show 4800ms 100ms cubic-bezier(0.38, 0.97, 0.56, 0.76) forwards;
-  max-width: 0;
+  max-width: 2000px;
   overflow-x: clip;
 }
 
-@keyframes show {
-  100% {
-    max-width: 2000px;
-  }
+.collapse-argument-enter-active {
+  transition: max-width 4800ms 100ms cubic-bezier(0.38, 0.97, 0.56, 0.76);
+}
+
+.collapse-argument-leave-active {
+  transition: max-width 0.5s cubic-bezier(0, 0.76, 0, 0.99);
+}
+
+.collapse-argument-enter-from,
+.collapse-argument-leave-to {
+  max-width: 0px;
 }
 </style>
