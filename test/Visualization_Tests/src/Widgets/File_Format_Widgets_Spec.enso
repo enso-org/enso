@@ -20,7 +20,7 @@ add_specs suite_builder =
             result.should_contain "Plain Text"
             result.should_contain "Excel Workbook"
             result.should_contain "Excel Sheet"
-            result.should_contain "SQLite Database File"
+            result.should_contain "SQLite"
 
 main filter=Nothing =
     suite = Test.build suite_builder->
