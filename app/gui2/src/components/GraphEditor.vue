@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-  codeEditorBindings,
-  graphBindings,
-  interactionBindings,
-} from '@/bindings'
+import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import {
