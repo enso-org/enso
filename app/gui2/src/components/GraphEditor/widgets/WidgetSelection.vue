@@ -16,11 +16,9 @@ import {
   type SuggestionEntryArgument,
 } from '@/stores/suggestionDatabase/entry.ts'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
-import { asNot } from '@/util/data/types.ts'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
 
@@ -54,11 +52,9 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
   return {
     label: entry.name,
     expression:
-      entry.selfType != null
-        ? `_.${entry.name}`
-        : entry.memberOf
-        ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
-        : entry.name,
+      entry.selfType != null ? `_.${entry.name}`
+      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+      : entry.name,
     requiredImports: requiredImports(suggestions.entries, entry),
   }
 }
@@ -108,7 +104,11 @@ const selectedTag = computed(() => {
     // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
     const sortedTags = tags.value
       .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
-      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+      .sort(([a], [b]) =>
+        a < b ? 1
+        : a > b ? -1
+        : 0,
+      )
     const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
     return index != null ? tags.value[index] : undefined
   }
@@ -160,13 +160,7 @@ watch(selectedIndex, (_index) => {
       value = conflicts[0]?.fullyQualified
     }
   }
-  props.onUpdate({
-    edit,
-    portUpdate: {
-      value,
-      origin: asNot<TokenId>(props.input.portId),
-    },
-  })
+  props.onUpdate({ edit, portUpdate: { value, origin: props.input.portId } })
 })
 
 const isHovered = ref(false)

@@ -73,7 +73,7 @@ class FilteringWithPattern {
       // - The unmatched part up to the next matched letter
       const regex = pattern
         .split('')
-        .map((c) => `(${c})`)
+        .map((c) => `(${escapeStringRegexp(c)})`)
         .join('([^_]*?[_ ])')
       this.initialsMatchRegex = new RegExp('(^|.*?_)' + regex + '(.*)', 'i')
     }
@@ -307,9 +307,9 @@ export class Filtering {
       for (const [, text, separator] of this.fullPattern.matchAll(/(.+?)([._]|$)/g)) {
         const escaped = escapeStringRegexp(text ?? '')
         const segment =
-          separator === '_'
-            ? `()(${escaped})([^_.]*)(_)`
-            : `([^.]*_)?(${escaped})([^.]*)(${separator === '.' ? '\\.' : ''})`
+          separator === '_' ?
+            `()(${escaped})([^_.]*)(_)`
+          : `([^.]*_)?(${escaped})([^.]*)(${separator === '.' ? '\\.' : ''})`
         prefix = '(?:' + prefix
         suffix += segment + ')?'
       }

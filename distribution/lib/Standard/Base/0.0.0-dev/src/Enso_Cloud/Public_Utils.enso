@@ -1,6 +1,6 @@
+import project.Data.Json.JS_Object
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Error.Error
-import project.Data.Json.JS_Object
 
 ## PRIVATE
    A helper that extracts a field from a response and handles unexpected

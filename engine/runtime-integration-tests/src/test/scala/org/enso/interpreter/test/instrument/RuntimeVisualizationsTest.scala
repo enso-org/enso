@@ -1331,21 +1331,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
 
     context.send(
       Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(4, 8), model.Position(4, 9)),
-              "7"
-            )
-          ),
-          execute = true
-        )
-      )
-    )
-
-    context.send(
-      Api.Request(
         requestId,
         Api.AttachVisualization(
           visualizationId2,
@@ -1363,16 +1348,36 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
 
-    val attachVisualizationResponses = context.receiveN(2)
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(4, 8), model.Position(4, 9)),
+              "7"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
 
-    attachVisualizationResponses.filter(
+    val responses =
+      context.receiveNIgnoreExpressionUpdates(7)
+
+    responses should contain allOf (
+      Api.Response(requestId, Api.VisualizationAttached()),
+      context.executionComplete(contextId)
+    )
+
+    responses.filter(
       _.payload.isInstanceOf[Api.VisualizationAttached]
     ) shouldEqual List(
       Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(requestId, Api.VisualizationAttached())
     )
 
-    val responses = context.receiveNIgnoreExpressionUpdates(3)
     val visualizationUpdatesResponses =
       responses.filter(_.payload.isInstanceOf[Api.VisualizationUpdate])
     val expectedExpressionId = context.Main.idMainX
@@ -1392,8 +1397,10 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         `expectedExpressionId`
       ),
     )
-    val data = visualizationUpdates.head.data
-    data.sameElements("6".getBytes) shouldBe true
+
+    visualizationUpdates.map(update =>
+      new String(update.data)
+    ) should contain allOf ("6", "7")
 
     // modify visualization
     context.send(
@@ -1413,12 +1420,15 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
     )
-    val modifyVisualizationResponses = context.receiveN(5)
-    modifyVisualizationResponses should contain(
-      Api.Response(requestId, Api.VisualizationModified())
+    val modifyVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(4)
+
+    modifyVisualizationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualizationModified()),
+      context.executionComplete(contextId)
     )
-    val Some((dataAfterModification, foundVisualizatonId)) =
-      modifyVisualizationResponses.collectFirst {
+    val visualizationUpdates2 =
+      modifyVisualizationResponses.collect {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
@@ -1433,9 +1443,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           (data, modifiedId)
       }
 
-    List(visualizationId, visualizationId2) should contain(foundVisualizatonId)
+    visualizationUpdates2.map(_._2) should contain(visualizationId)
 
-    dataAfterModification.sameElements("7".getBytes) shouldBe true
+    visualizationUpdates2.map(p => new String(p._1)) should contain("8")
   }
 
   it should "not emit visualization update when visualization is detached" in withContext() {
@@ -1996,7 +2006,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val attachVisualizationResponses = context.receiveN(8)
+      val attachVisualizationResponses = context.receiveN(7)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
         context.executionComplete(contextId)
@@ -2017,7 +2027,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
 
-      data.sameElements("(Builtin 'JSON')".getBytes) shouldBe true
+      new String(data) shouldEqual "(Builtin 'JSON')"
 
       val loadedLibraries = attachVisualizationResponses
         .collect {

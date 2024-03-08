@@ -34,8 +34,8 @@ onMounted(() => {
   </MockProjectStoreWrapper>
 </template>
 
-<style scoped>
-:is(.viewport) {
+<style>
+:deep(.viewport) {
   color: var(--color-text);
   font-family: var(--font-code);
   font-size: 11.5px;

@@ -33,18 +33,19 @@ import type * as amplify from '@aws-amplify/auth'
 import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
-import type * as loggerProvider from '../providers/LoggerProvider'
+import type * as loggerProvider from '#/providers/LoggerProvider'
+
+import type * as service from '#/authentication/service'
+
 // @ts-expect-error This is a mock file that needs to reference its original file.
 import * as original from './cognito.ts'
-import type * as config from './config'
-/* eslint-enable no-restricted-syntax */
-
 import * as listen from './listen.mock'
 
 // This file exports a subset of the values from the original file.
 /* eslint-disable no-restricted-syntax */
 // @ts-expect-error This is a mock file that needs to reference its original file.
 export { CognitoErrorType } from './cognito.ts'
+/* eslint-enable no-restricted-syntax */
 
 // There are unused function parameters in this file.
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -80,7 +81,7 @@ export class Cognito {
   constructor(
     private readonly logger: loggerProvider.Logger,
     private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: config.AmplifyConfig
+    private readonly amplifyConfig: service.AmplifyConfig
   ) {}
 
   /** Save the access token to a file for further reuse. */
@@ -287,9 +288,9 @@ export interface UserSession {
    * - GitHub,
    * - Google, or
    * - Email. */
-  email: string
+  readonly email: string
   /** User's access token, used to authenticate the user (e.g., when making API calls). */
-  accessToken: string
+  readonly accessToken: string
 }
 
 /** Parse a {@link cognito.CognitoUserSession} into a {@link UserSession}.

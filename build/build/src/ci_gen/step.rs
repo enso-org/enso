@@ -28,14 +28,14 @@ pub fn test_reporter(
 
 pub fn stdlib_test_reporter((os, arch): Target) -> Step {
     let step_name = "Standard Library Test Reporter";
-    let report_name = format!("Standard Library Tests ({os}, {arch})");
+    let report_name = format!("Standard Library Tests Report ({os}, {arch})");
     let path = format!("{}/*/*.xml", env_expression(&paths::ENSO_TEST_JUNIT_DIR));
     test_reporter(step_name, report_name, path)
 }
 
 pub fn engine_test_reporter((os, arch): Target) -> Step {
     let step_name = "Engine Test Reporter";
-    let report_name = format!("Engine Tests ({os}, {arch})");
+    let report_name = format!("Engine Tests Report ({os}, {arch})");
     let path = format!("{}/*.xml", env_expression(&paths::ENSO_TEST_JUNIT_DIR));
     test_reporter(step_name, report_name, path)
 }

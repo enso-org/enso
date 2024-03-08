@@ -30,7 +30,7 @@ make_file_read_delimiter_selector =
 
 ## PRIVATE
    Creates a Single_Choice Widget for formatting decimals.
-make_number_format_selector : Widget
+make_number_format_selector : Number -> Widget
 make_number_format_selector (value:Number=1234.564321) =
     formats = ['0', '#,##0', '#,##0.00', '#,##0.00##', '#,##0.00;(#,##0.00)', '0.####', '0.######E0']
     mapped_formats = formats.map f-> [f + " (e.g. " + (value.format f) + ")", f.pretty]
