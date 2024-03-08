@@ -326,11 +326,11 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
-      edit.getVersion(node.rootSpan).syncToCode(content)
+      edit.getVersion(node.rootExpr).syncToCode(content)
       if (withImports) {
         const conflicts = addMissingImports(edit, withImports)
         if (conflicts == null) return
-        const wholeAssignment = edit.getVersion(node.rootSpan)?.mutableParent()
+        const wholeAssignment = edit.getVersion(node.rootExpr)?.mutableParent()
         if (wholeAssignment == null) {
           console.error('Cannot find parent of the node expression. Conflict resolution failed.')
           return
@@ -558,7 +558,7 @@ export const useGraphStore = defineStore('graph', () => {
     let exprId: AstId | undefined
     if (expr) {
       const node = db.nodeIdToNode.get(nodeId)
-      node?.rootSpan.visitRecursive((ast) => {
+      node?.innerExpr.visitRecursive((ast) => {
         if (ast instanceof Ast.Ast && ast.code() == expr) {
           exprId = ast.id
         }

@@ -5,10 +5,8 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 
 import project.Connection.Connection.Connection
-import project.Data.DB_Column.DB_Column
-import project.Data.DB_Table.DB_Table
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
+import project.DB_Column.DB_Column
+import project.DB_Table.DB_Table
 import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
@@ -23,6 +21,8 @@ import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.Statement_Setter.Statement_Setter
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.Result_Set import result_set_to_table
 

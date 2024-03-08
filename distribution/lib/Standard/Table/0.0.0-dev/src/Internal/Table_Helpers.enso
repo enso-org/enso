@@ -469,7 +469,7 @@ filter_blank_rows table when treat_nans_as_blank =
    Currently, it relies on a hack - it checks if the object has a method
    `is_table` and if it returns `True`.
 is_column obj =
-    known_types = ["Standard.Table.Data.Column.Column", "Standard.Database.Data.DB_Column.DB_Column"]
+    known_types = ["Standard.Table.Data.Column.Column", "Standard.Database.DB_Column.DB_Column"]
     known_types.contains (Meta.get_qualified_type_name obj)
 
 ## PRIVATE
