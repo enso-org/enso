@@ -16,7 +16,7 @@ import * as ydocServer from 'enso-gui2/ydoc-server'
 
 import * as paths from '../paths'
 
-import GLOBAL_CONFIG from '../../../../../gui/config.yaml' assert { type: 'yaml' }
+import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 
@@ -50,6 +50,7 @@ export class Config {
     dir: string
     port: number
     externalFunctions: ExternalFunctions
+
     /** Create a server configuration. */
     constructor(cfg: ConfigConfig) {
         this.dir = path.resolve(cfg.dir)
@@ -78,6 +79,7 @@ async function findPort(port: number): Promise<number> {
  * Read this topic to learn why: https://github.com/http-party/http-server/issues/483 */
 export class Server {
     server: unknown
+
     /** Create a simple HTTP server. */
     constructor(public config: Config) {}
 

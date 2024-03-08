@@ -324,22 +324,22 @@ type SuggestedKeybindSegment = Key | Pointer | `${Modifier}+`
 type AutocompleteKeybind<T extends string, FoundKeyName extends string = never> = T extends '+'
   ? T
   : T extends `${infer First}+${infer Rest}`
-  ? Lowercase<First> extends LowercaseModifier
-    ? `${NormalizeKeybindSegment[Lowercase<First>] & string}+${AutocompleteKeybind<Rest>}`
-    : Lowercase<First> extends LowercaseKey | LowercasePointer
-    ? AutocompleteKeybind<Rest, NormalizeKeybindSegment[Lowercase<First>] & string>
-    : `${Modifier}+${AutocompleteKeybind<Rest>}`
-  : T extends ''
-  ? SuggestedKeybindSegment
-  : Lowercase<T> extends LowercaseKey | LowercasePointer
-  ? NormalizeKeybindSegment[Lowercase<T>]
-  : Lowercase<T> extends LowercaseModifier
-  ? [FoundKeyName] extends [never]
-    ? `${NormalizeKeybindSegment[Lowercase<T>] & string}+${SuggestedKeybindSegment}`
-    : `${NormalizeKeybindSegment[Lowercase<T>] & string}+${FoundKeyName}`
-  : [FoundKeyName] extends [never]
-  ? SuggestedKeybindSegment
-  : FoundKeyName
+    ? Lowercase<First> extends LowercaseModifier
+      ? `${NormalizeKeybindSegment[Lowercase<First>] & string}+${AutocompleteKeybind<Rest>}`
+      : Lowercase<First> extends LowercaseKey | LowercasePointer
+        ? AutocompleteKeybind<Rest, NormalizeKeybindSegment[Lowercase<First>] & string>
+        : `${Modifier}+${AutocompleteKeybind<Rest>}`
+    : T extends ''
+      ? SuggestedKeybindSegment
+      : Lowercase<T> extends LowercaseKey | LowercasePointer
+        ? NormalizeKeybindSegment[Lowercase<T>]
+        : Lowercase<T> extends LowercaseModifier
+          ? [FoundKeyName] extends [never]
+            ? `${NormalizeKeybindSegment[Lowercase<T>] & string}+${SuggestedKeybindSegment}`
+            : `${NormalizeKeybindSegment[Lowercase<T>] & string}+${FoundKeyName}`
+          : [FoundKeyName] extends [never]
+            ? SuggestedKeybindSegment
+            : FoundKeyName
 
 /** A helper type used to autocomplete and validate an array of keyboard shortcuts in the editor.
  */
@@ -385,8 +385,8 @@ type Keybinds<T extends Record<keyof T, KeybindValue>> = never extends T
       [K in keyof T]: T[K] extends readonly string[]
         ? AutocompleteKeybinds<T[K]>
         : T[K] extends KeybindsWithMetadata
-        ? AutocompleteKeybindsWithMetadata<T[K]>
-        : ['error...', T]
+          ? AutocompleteKeybindsWithMetadata<T[K]>
+          : ['error...', T]
     }
   : T
 

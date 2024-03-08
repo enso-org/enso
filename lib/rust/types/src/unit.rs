@@ -1,874 +1,940 @@
-//! # DEPRECATED!!!
-//! THIS MODULE IS DEPRECATED. USE `unit2` INSTEAD.
-//!
-//! Defines utilities for creating custom strongly typed units. For example, unit `Angle` could be a
-//! wrapper for `f32`.
+//! Utilities for creating custom strongly typed units. For example, unit `Duration` is a wrapper
+//! for [`f32`] and defines time-related utilities.
 //!
 //! Units automatically implement a lot of traits in a generic fashion, so you can for example add
-//! to angles together, or divide angle by a number, but you are not allowed to divide a number by
-//! an angle. Rarely you may want to use very custom rules for unit definition. In such a case, you
-//! should use other macros defined in this module. Look at the definitions below to learn the
-//! usage patterns.
-//!
-//! ## Why Macros
-//! You may wonder why this utility is defined as a macro that generates hundreds of lines of code
-//! instead of a generic type `Unit<Phantom,Repr>`. The later approach has one major issue. The
-//! definition `type Angle = Unit<AngleType,f32>` will be dysfunctional, as you would not be allowed
-//! to implement many impls because the type `Unit` would be defined in an external crate.
-//!
-//! ## Macro Naming Pattern
-//! Many macros defined in this module use a specific naming, for example
-//! `impl_UNIT_x_FIELD_to_UNIT`. You should interpret it as a macro defining a transformation
-//! similar to `fn<Unit,Field>(unit:Unit, field:Field) -> Unit`, where `Field` is a specific field
-//! of the `Unit` (in most cases units have single field).
+//! [`Duration`] together, or divide one [`Duration`] by a number or another [`Duration`] and get
+//! [`Duration`] or a number, respectfully. You are allowed to define any combination of operators
+//! and rules of how the result inference should be performed.
+
+use enso_reflect::prelude::*;
+
+use enso_prelude::ZST;
+use paste::paste;
+use std::borrow::Cow;
 
 
 
-// ==============
-// === Macros ===
-// ==============
+/// Common traits for built-in units.
+pub mod traits {
+    pub use super::BytesCowOps;
+    pub use super::BytesOps;
+    pub use super::BytesStrOps;
+    pub use super::DurationNumberOps;
+    pub use super::DurationOps;
+    pub use super::FractionOps;
+    pub use super::IntoUncheckedRawRange;
+    pub use super::PercentOps;
+    pub use super::UncheckedFrom;
+}
 
-/// Define a new unit type. Choose the right macro based on the provided primitive type. In case the
-/// primitive type is not recognized, you have to use one of the more specific macros defined in
-/// this module. See module docs to learn more.
-#[macro_export]
-macro_rules! unit {
-    ($(#$meta:tt)* $name:ident :: $vname:ident (f32)) => {
-        $crate::signed_unit_float_like!{$(#$meta)* $name :: $vname (f32)}
-    };
-    ($(#$meta:tt)* $name:ident :: $vname:ident (f64)) => {
-        $crate::signed_unit_float_like!{$(#$meta)* $name :: $vname (f64)}
-    };
-    ($(#$meta:tt)* $name:ident :: $vname:ident (usize)) => {
-        $crate::unsigned_unit!{$(#$meta)* $name :: $vname (usize)}
-    };
-    ($(#$meta:tt)* $name:ident :: $vname:ident (usize) NO_SUB) => {
-        $crate::unsigned_unit_no_sub!{$(#$meta)* $name :: $vname (usize)}
-    };
-    ($(#$meta:tt)* $name:ident :: $vname:ident (u32)) => {
-        $crate::unsigned_unit!{$(#$meta)* $name :: $vname (u32)}
-    };
-    ($(#$meta:tt)* $name:ident :: $vname:ident (u64)) => {
-        $crate::unsigned_unit!{$(#$meta)* $name :: $vname (u64)}
-    };
-    ($(#$meta:tt)* $name:ident :: $vname:ident (i32)) => {
-        $crate::signed_unit!{$(#$meta)* $name :: $vname (i32)}
-    };
-    ($(#$meta:tt)* $name:ident :: $vname:ident (i64)) => {
-        $crate::signed_unit!{$(#$meta)* $name :: $vname (i64)}
-    };
+mod ops {
+    pub use std::ops::*;
 }
 
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! unsigned_unit {
-    ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
-        #[allow(missing_docs)]
-        pub mod $vname {
-            use super::*;
-            use std::ops::AddAssign;
-            use std::ops::SubAssign;
+// =====================
+// === UncheckedFrom ===
+// =====================
 
-            $crate::newtype_struct! {$(#$meta)* $name {value : $field_type}}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Sub::sub for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingSub::saturating_sub for $name}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
-            $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT_to_FIELD! {Div::div for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT!          {AddAssign::add_assign for $name}
-            $crate::impl_UNIT_x_UNIT!          {SubAssign::sub_assign for $name}
-
-            $crate::impl_unit_display! {$name::value}
-
-            pub trait Into {
-                type Output;
-                fn $vname(self) -> Self::Output;
-            }
-
-            impl<T:std::convert::Into<$name>> Into for T {
-                type Output = $name;
-                fn $vname(self) -> Self::Output {
-                    self.into()
-                }
-            }
-
-            pub mod export {
-                pub use super::$name;
-                pub use super::Into as TRAIT_Into;
-            }
-        }
-        pub use $vname::export::*;
-    };
+/// Unchecked unit conversion. You should use it only for unit conversion definition, never in
+/// unit-usage code.
+#[allow(missing_docs)]
+#[const_trait]
+pub trait UncheckedFrom<T> {
+    fn unchecked_from(t: T) -> Self;
 }
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! unsigned_unit_no_sub {
-    ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
-        #[allow(missing_docs)]
-        pub mod $vname {
-            use super::*;
-            use std::ops::AddAssign;
-            use std::ops::SubAssign;
-
-            $crate::newtype_struct! {$(#$meta)* $name {value : $field_type}}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingSub::saturating_sub for $name}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
-            $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT_to_FIELD! {Div::div for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT!          {AddAssign::add_assign for $name}
-            $crate::impl_UNIT_x_UNIT!          {SubAssign::sub_assign for $name}
-
-            $crate::impl_unit_display! {$name::value}
-
-            pub trait Into {
-                type Output;
-                fn $vname(self) -> Self::Output;
-            }
-
-            impl<T:std::convert::Into<$name>> Into for T {
-                type Output = $name;
-                fn $vname(self) -> Self::Output {
-                    self.into()
-                }
-            }
-
-            pub mod export {
-                pub use super::$name;
-                pub use super::Into as TRAIT_Into;
-            }
-        }
-        pub use $vname::export::*;
-    };
-}
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! unsigned_unit_proxy {
-    ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
-        #[allow(missing_docs)]
-        pub mod $vname {
-            use super::*;
-            use std::ops::AddAssign;
-            use std::ops::SubAssign;
-
-            $crate::newtype_struct! {$(#$meta)* $name {value : $field_type}}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Sub::sub for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
-            $crate::impl_UNIT_x_UNIT!          {AddAssign::add_assign for $name}
-            $crate::impl_UNIT_x_UNIT!          {SubAssign::sub_assign for $name}
-
-            $crate::impl_unit_display! {$name::value}
-
-            pub trait Into {
-                type Output;
-                fn $vname(self) -> Self::Output;
-            }
-
-            impl<T:std::convert::Into<$name>> Into for T {
-                type Output = $name;
-                fn $vname(self) -> Self::Output {
-                    self.into()
-                }
-            }
-
-            pub mod export {
-                pub use super::$name;
-                pub use super::Into as TRAIT_Into;
-            }
-        }
-        pub use $vname::export::*;
-    };
-}
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! unsigned_unit_float_like {
-    ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
-        #[allow(missing_docs)]
-        pub mod $vname {
-            use super::*;
-            use std::ops::AddAssign;
-            use std::ops::SubAssign;
-
-            $crate::newtype_struct_float_like! {$(#$meta)* $name {value : $field_type}}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Sub::sub for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
-            $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT_to_FIELD! {Div::div for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT!          {AddAssign::add_assign for $name}
-            $crate::impl_UNIT_x_UNIT!          {SubAssign::sub_assign for $name}
-
-            $crate::impl_unit_display! {$name::value}
-
-            pub trait Into {
-                type Output;
-                fn $vname(self) -> Self::Output;
-            }
-
-            impl<T:std::convert::Into<$name>> Into for T {
-                type Output = $name;
-                fn $vname(self) -> Self::Output {
-                    self.into()
-                }
-            }
-
-            pub mod export {
-                pub use super::$name;
-                pub use super::Into as TRAIT_Into;
-            }
-        }
-        pub use $vname::export::*;
-    };
-}
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! signed_unit {
-    ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
-        #[allow(missing_docs)]
-        pub mod $vname {
-            use super::*;
-            use std::ops::AddAssign;
-            use std::ops::SubAssign;
-
-            $crate::newtype_struct! {$(#$meta)* $name {value : $field_type}}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Sub::sub for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingSub::saturating_sub for $name}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
-            $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT_to_FIELD! {Div::div for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT!          {AddAssign::add_assign for $name}
-            $crate::impl_UNIT_x_UNIT!          {SubAssign::sub_assign for $name}
-            $crate::impl_UNIT_to_UNIT!         {Neg::neg for $name}
-
-            $crate::impl_unit_display! {$name::value}
-
-            pub trait Into {
-                type Output;
-                fn $vname(self) -> Self::Output;
-            }
-
-            impl Into for $field_type {
-                type Output = $name;
-                fn $vname(self) -> Self::Output {
-                    $name {value:self}
-                }
-            }
-
-            impl Into for &$field_type {
-                type Output = $name;
-                fn $vname(self) -> Self::Output {
-                    $name {value:self.clone()}
-                }
-            }
-
-            pub mod export {
-                pub use super::$name;
-                pub use super::Into as TRAIT_Into;
-            }
-        }
-        pub use $vname::export::*;
-    };
-}
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! signed_unit_float_like {
-    ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
-        #[allow(missing_docs)]
-        pub mod $vname {
-            use super::*;
-            use std::ops::AddAssign;
-            use std::ops::SubAssign;
-
-            $crate::newtype_struct_float_like! {$(#$meta)* $name {value : $field_type}}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Sub::sub for $name}
-            $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
-            $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT_to_FIELD! {Div::div for $name :: $field_type}
-            $crate::impl_UNIT_x_UNIT!          {AddAssign::add_assign for $name}
-            $crate::impl_UNIT_x_UNIT!          {SubAssign::sub_assign for $name}
-            $crate::impl_UNIT_to_UNIT!         {Neg::neg for $name}
-
-            $crate::impl_unit_display! {$name::value}
-
-            /// Unit conversion and associated method. It has associated type in order to allow
-            /// complex conversions, like `(10,10).px()` be converted the same way as
-            /// `(10.px(),10.px())`.
-            #[allow(missing_docs)]
-            pub trait Into {
-                type Output;
-                fn $vname(self) -> Self::Output;
-            }
-
-            impl Into for $field_type {
-                type Output = $name;
-                fn $vname(self) -> Self::Output {
-                    $name {value:self}
-                }
-            }
-
-            impl Into for &$field_type {
-                type Output = $name;
-                fn $vname(self) -> Self::Output {
-                    $name {value:self.clone()}
-                }
-            }
-
-            /// Exports. The traits are renamed not to pollute the scope.
-            pub mod export {
-                pub use super::$name;
-                pub use super::Into as TRAIT_Into;
-            }
-        }
-        pub use $vname::export::*;
-    };
-}
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! newtype {
-    ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
-        use std::ops::AddAssign;
-        use std::ops::SubAssign;
-
-        $crate::newtype_struct! {$(#$meta)* $name { $($field : $field_type),*}}
-
-        $crate::impl_T_x_T_to_T! {Sub           :: sub            for $name {$($field),*}}
-        $crate::impl_T_x_T_to_T! {Add           :: add            for $name {$($field),*}}
-        $crate::impl_T_x_T_to_T! {SaturatingAdd :: saturating_add for $name {$($field),*}}
-
-        $crate::impl_T_x_FIELD_to_T! {Sub           :: sub            for $name {$($field:$field_type),*}}
-        $crate::impl_T_x_FIELD_to_T! {Add           :: add            for $name {$($field:$field_type),*}}
-        $crate::impl_T_x_FIELD_to_T! {SaturatingAdd :: saturating_add for $name {$($field:$field_type),*}}
-
-        impl AddAssign<$name> for $name {
-            fn add_assign(&mut self, rhs:Self) {
-                *self = Self { $($field:self.$field.add(rhs.$field)),* }
-            }
-        }
-
-        impl SubAssign<$name> for $name {
-            fn sub_assign(&mut self, rhs:Self) {
-                *self = Self { $($field:self.$field.sub(rhs.$field)),* }
-            }
-        }
-    };
-}
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! newtype_no_sub {
-    ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
-        use std::ops::AddAssign;
-        use std::ops::SubAssign;
-
-        $crate::newtype_struct! {$(#$meta)* $name { $($field : $field_type),*}}
-
-        $crate::impl_T_x_T_to_T! {Add           :: add            for $name {$($field),*}}
-        $crate::impl_T_x_T_to_T! {SaturatingAdd :: saturating_add for $name {$($field),*}}
-
-        $crate::impl_T_x_FIELD_to_T! {Add           :: add            for $name {$($field:$field_type),*}}
-        $crate::impl_T_x_FIELD_to_T! {SaturatingAdd :: saturating_add for $name {$($field:$field_type),*}}
-
-        impl AddAssign<$name> for $name {
-            fn add_assign(&mut self, rhs:Self) {
-                *self = Self { $($field:self.$field.add(rhs.$field)),* }
-            }
-        }
-    };
-}
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! newtype_struct {
-    ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
-        $crate::newtype_struct_def!   {$(#$meta)* $name { $($field : $field_type),*}}
-        $crate::newtype_struct_impls! {$name { $($field : $field_type),*}}
+impl<T> const UncheckedFrom<T> for T {
+    fn unchecked_from(t: T) -> Self {
+        t
     }
 }
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! newtype_struct_float_like {
-    ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
-        $crate::newtype_struct_def_float_like! {$(#$meta)* $name { $($field : $field_type),*}}
-        $crate::newtype_struct_impls!          {$name { $($field : $field_type),*}}
+impl<V, R> const UncheckedFrom<R> for UnitData<V, R> {
+    fn unchecked_from(repr: R) -> Self {
+        let variant = ZST();
+        UnitData { repr, variant }
     }
 }
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! newtype_struct_def {
-    ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
-        $(#$meta)*
-        #[derive(Clone,Copy,Debug,Default,Eq,Hash,Ord,PartialEq,PartialOrd)]
-        pub struct $name {
-            $(#[allow(missing_docs)] pub $field : $field_type),*
+/// Unchecked unit conversion. See [`UncheckedFrom`] to learn more.
+#[allow(missing_docs)]
+#[const_trait]
+pub trait UncheckedInto<T> {
+    fn unchecked_into(self) -> T;
+}
+
+impl<T, S> const UncheckedInto<T> for S
+where T: ~const UncheckedFrom<S>
+{
+    fn unchecked_into(self) -> T {
+        T::unchecked_from(self)
+    }
+}
+
+
+// ================
+// === UnitData ===
+// ================
+
+/// Abstract unit type for the given variant. Variants are marker structs used to distinguish units.
+/// For example, the [`Duration`] unit is defined as (after macro expansion):
+/// ```text
+/// pub type Duration = Unit<DURATION>
+/// pub struct DURATION;
+/// impl Variant for DURATION {
+///     type Repr = f64
+/// }
+/// ```
+pub type Unit<V> = UnitData<V, <V as Variant>::Repr>;
+
+/// Relation between the unit variant and its internal representation. Read the docs of [`UnitData`]
+/// to learn more about variants.
+#[allow(missing_docs)]
+pub trait Variant {
+    type Repr;
+}
+
+/// Internal representation of every unit.
+#[repr(transparent)]
+#[derive(Reflect)]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[reflect(transparent)]
+pub struct UnitData<V, R> {
+    repr:    R,
+    #[reflect(skip)]
+    variant: ZST<V>,
+}
+
+impl<V, R: Copy> UnitData<V, R> {
+    /// Get the underlying value. Please note that this might result in a different value than you
+    /// might expect. For example, if the internal representation of a duration type is a number of
+    /// milliseconds, then `1.second().unchecked_raw()` will return `1000`.
+    pub const fn unchecked_raw(self) -> R {
+        self.repr
+    }
+}
+
+impl<V, R: Copy> Copy for UnitData<V, R> {}
+
+impl<V, R: Copy> Clone for UnitData<V, R> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+
+// =================
+// === IsNotUnit ===
+// =================
+
+/// Trait used to resolve conflicts when implementing traits fot [`Unit`].
+pub auto trait IsNotUnit {}
+
+impl<V, R> !IsNotUnit for UnitData<V, R> {}
+
+
+// ===============
+// === Default ===
+// ===============
+
+/// A default value of unit.
+#[allow(missing_docs)]
+pub trait UnitDefault<R> {
+    fn unit_default() -> R;
+}
+
+impl<V: UnitDefault<R>, R> Default for UnitData<V, R> {
+    fn default() -> Self {
+        <V as UnitDefault<R>>::unit_default().unchecked_into()
+    }
+}
+
+
+// =======================
+// === Debug / Display ===
+// =======================
+
+impl<V, R: std::fmt::Debug> std::fmt::Debug for UnitData<V, R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Unit({:?})", self.repr)
+    }
+}
+
+impl<V, R: std::fmt::Display> std::fmt::Display for UnitData<V, R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.repr.fmt(f)
+    }
+}
+
+
+// =====================
+// === Deref / AsRef ===
+// =====================
+
+impl<V, R> AsRef<UnitData<V, R>> for UnitData<V, R> {
+    fn as_ref(&self) -> &UnitData<V, R> {
+        self
+    }
+}
+
+
+// ==========
+// === Eq ===
+// ==========
+
+impl<V, R: PartialEq> PartialEq for UnitData<V, R> {
+    fn eq(&self, other: &Self) -> bool {
+        self.repr.eq(&other.repr)
+    }
+}
+
+impl<V> Eq for UnitData<V, usize> {}
+
+
+// ===========
+// === Ord ===
+// ===========
+
+impl<V, R: PartialOrd> PartialOrd for UnitData<V, R> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.repr.partial_cmp(&other.repr)
+    }
+}
+
+impl<V> Ord for UnitData<V, usize> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.repr.cmp(&other.repr)
+    }
+}
+
+
+// ============
+// === From ===
+// ============
+
+impl<V, R> From<&UnitData<V, R>> for UnitData<V, R>
+where R: Copy
+{
+    fn from(t: &UnitData<V, R>) -> Self {
+        *t
+    }
+}
+
+
+// =============================
+// === IntoUncheckedRawRange ===
+// =============================
+
+/// Allows transmuting [`Range<UnitData<V, R>>`] to [`Range<R>`].
+#[allow(missing_docs)]
+pub trait IntoUncheckedRawRange {
+    type Output;
+    fn into_unchecked_raw_range(self) -> Self::Output;
+}
+
+impl<V, R> IntoUncheckedRawRange for ops::Range<UnitData<V, R>> {
+    type Output = ops::Range<R>;
+    fn into_unchecked_raw_range(self) -> Self::Output {
+        self.start.repr..self.end.repr
+    }
+}
+
+impl<V, R> IntoUncheckedRawRange for ops::RangeFrom<UnitData<V, R>> {
+    type Output = ops::RangeFrom<R>;
+    fn into_unchecked_raw_range(self) -> Self::Output {
+        self.start.repr..
+    }
+}
+
+
+// ===============
+// === gen_ops ===
+// ===============
+
+/// Internal macro for defining operators for the generic [`Unit`] structure. Because Rust disallows
+/// defining trait impls for structs defined in external modules and in order to provide a
+/// configurable default impl, this macro generates local traits controlling the behavior of the
+/// generated impls. For example, the following code:
+///
+/// ```text
+/// gen_ops!(RevAdd, Add, add);
+/// ```
+///
+/// will result in:
+///
+/// ```text
+/// pub trait Add<T> {
+///     type Output;
+/// }
+///
+/// pub trait RevAdd<T> {
+///     type Output;
+/// }
+///
+/// impl<V, R> const ops::Add<UnitData<V, R>> for f32
+/// where V: RevAdd<f32>, ... {
+///     type Output = UnitData<<V as RevAdd<f32>>::Output, <f32 as ops::Add<R>>::Output>;
+///     fn add(self, rhs: UnitData<V, R>) -> Self::Output { ... }
+/// }
+///
+/// impl<V, R, T> const ops::Add<T> for UnitData<V, R>
+/// where UnitData<V, R>: Add<T>, ... {
+///     type Output = <UnitData<V, R> as Add<T>>::Output;
+///     fn add(self, rhs: T) -> Self::Output { ... }
+/// }
+///
+/// impl<V1, V2, R1, R2> const ops::Add<UnitData<V2, R2>> for UnitData<V1, R1>
+/// where UnitData<V1, R1>: Add<UnitData<V2, R2>>, ... {
+///     type Output = <UnitData<V1, R1> as Add<UnitData<V2, R2>>>::Output;
+///     fn add(self, rhs: UnitData<V2, R2>) -> Self::Output { ... }
+/// }
+/// ```
+///
+/// Please note, that all traits in the [`ops`] module are standard Rust traits, while the ones
+/// with no prefix, are custom ones. Having such an implementation and an example unit type
+/// definition:
+///
+/// ```text
+/// pub type Duration = Unit<DURATION>;
+/// pub struct DURATION;
+/// impl Variant for DURATION {
+///     type Repr = f32;
+/// }
+/// ```
+///
+/// We can allow for adding and dividing two units simply by implementing the following traits:
+///
+/// ```text
+/// impl Add<Duration> for Duration {
+///     type Output = Duration;
+/// }
+///
+/// impl Div<Duration> for Duration {
+///     type Output = f32;
+/// }
+/// ```
+///
+/// This crate provides a nice utility for such trait impl generation. See [`define_ops`] to learn
+/// more.
+macro_rules! gen_ops {
+    ($rev_trait:ident, $trait:ident, $op:ident) => {
+        #[allow(missing_docs)]
+        #[const_trait]
+        pub trait $trait<T> {
+            type Output;
         }
-    }
-}
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! newtype_struct_def_float_like {
-    ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
-        $(#$meta)*
-        #[derive(Clone,Copy,Debug,Default,PartialEq,PartialOrd)]
-        pub struct $name {
-            $(#[allow(missing_docs)] pub $field : $field_type),*
+        #[allow(missing_docs)]
+        #[const_trait]
+        pub trait $rev_trait<T> {
+            type Output;
         }
-    }
-}
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! newtype_struct_impls {
-    ($name:ident { $field:ident : $field_type:ty $(,)? }) => {
-        /// Smart constructor.
-        #[allow(non_snake_case)]
-        pub const fn $name($field:$field_type) -> $name { $name {$field} }
+        // Please note that this impl is not as generic as the following ones because Rust compiler
+        // is unable to compile the more generic version.
+        impl<V, R> const ops::$trait<UnitData<V, R>> for f32
+        where
+            R: Copy,
+            V: $rev_trait<f32>,
+            f32: ~const ops::$trait<R>,
+        {
+            type Output = UnitData<<V as $rev_trait<f32>>::Output, <f32 as ops::$trait<R>>::Output>;
+            fn $op(self, rhs: UnitData<V, R>) -> Self::Output {
+                self.$op(rhs.repr).unchecked_into()
+            }
+        }
 
-        impl From<&$name>  for $name { fn from(t:&$name)  -> Self { *t } }
-        impl From<&&$name> for $name { fn from(t:&&$name) -> Self { **t } }
+        // Please note that this impl is not as generic as the following ones because Rust compiler
+        // is unable to compile the more generic version.
+        impl<V, R> const ops::$trait<UnitData<V, R>> for f64
+        where
+            R: Copy,
+            V: $rev_trait<f64>,
+            f64: ~const ops::$trait<R>,
+        {
+            type Output = UnitData<<V as $rev_trait<f64>>::Output, <f64 as ops::$trait<R>>::Output>;
+            fn $op(self, rhs: UnitData<V, R>) -> Self::Output {
+                self.$op(rhs.repr).unchecked_into()
+            }
+        }
 
-        impl From<$name>   for $field_type { fn from(t:$name)   -> Self { t.$field } }
-        impl From<&$name>  for $field_type { fn from(t:&$name)  -> Self { t.$field } }
-        impl From<&&$name> for $field_type { fn from(t:&&$name) -> Self { t.$field } }
+        // Please note that this impl is not as generic as the following ones because Rust compiler
+        // is unable to compile the more generic version.
+        impl<V> const ops::$trait<UnitData<V, usize>> for usize
+        where
+            V: $rev_trait<usize>,
+            usize: ~const ops::$trait<usize>,
+        {
+            type Output =
+                UnitData<<V as $rev_trait<usize>>::Output, <usize as ops::$trait<usize>>::Output>;
+            fn $op(self, rhs: UnitData<V, usize>) -> Self::Output {
+                self.$op(rhs.repr).unchecked_into()
+            }
+        }
 
-        impl From<$field_type>   for $name { fn from(t:$field_type)   -> Self { $name(t) } }
-        impl From<&$field_type>  for $name { fn from(t:&$field_type)  -> Self { $name(*t) } }
-        impl From<&&$field_type> for $name { fn from(t:&&$field_type) -> Self { $name(**t) } }
+        impl<V, R, T> const ops::$trait<T> for UnitData<V, R>
+        where
+            UnitData<V, R>: $trait<T>,
+            R: ~const ops::$trait<T> + Copy,
+            T: IsNotUnit,
+            <R as ops::$trait<T>>::Output:
+                ~const UncheckedInto<<UnitData<V, R> as $trait<T>>::Output>,
+        {
+            type Output = <UnitData<V, R> as $trait<T>>::Output;
+            fn $op(self, rhs: T) -> Self::Output {
+                self.repr.$op(rhs).unchecked_into()
+            }
+        }
+
+        impl<V1, V2, R1, R2> const ops::$trait<UnitData<V2, R2>> for UnitData<V1, R1>
+        where
+            UnitData<V1, R1>: $trait<UnitData<V2, R2>>,
+            R1: ~const ops::$trait<R2> + Copy,
+            R2: Copy,
+            <R1 as ops::$trait<R2>>::Output:
+                ~const UncheckedInto<<UnitData<V1, R1> as $trait<UnitData<V2, R2>>>::Output>,
+        {
+            type Output = <UnitData<V1, R1> as $trait<UnitData<V2, R2>>>::Output;
+            fn $op(self, rhs: UnitData<V2, R2>) -> Self::Output {
+                self.repr.$op(rhs.repr).unchecked_into()
+            }
+        }
     };
+}
 
-    ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
-        /// Smart constructor.
-        $(#$meta)*
-        #[allow(non_snake_case)]
-        pub fn $name($($field:$field_type),*) -> $name { $name {$($field),*} }
+/// Internal helper for the [`gen_ops`] macro.
+macro_rules! gen_ops_mut {
+    ($rev_trait:ident, $trait:ident, $trait_mut:ident, $op:ident) => {
+        impl<V, R> const ops::$trait_mut<UnitData<V, R>> for f32
+        where
+            f32: ~const ops::$trait_mut<R>,
+            R: Copy,
+            UnitData<V, R>: $rev_trait<f32>,
+        {
+            fn $op(&mut self, rhs: UnitData<V, R>) {
+                self.$op(rhs.repr)
+            }
+        }
 
-        impl From<&$name>  for $name { fn from(t:&$name)  -> Self { *t } }
-        impl From<&&$name> for $name { fn from(t:&&$name) -> Self { **t } }
+        impl<V, R> const ops::$trait_mut<UnitData<V, R>> for f64
+        where
+            f64: ~const ops::$trait_mut<R>,
+            R: Copy,
+            UnitData<V, R>: $rev_trait<f32>,
+        {
+            fn $op(&mut self, rhs: UnitData<V, R>) {
+                self.$op(rhs.repr)
+            }
+        }
+
+        impl<V, R> const ops::$trait_mut<UnitData<V, R>> for usize
+        where
+            usize: ~const ops::$trait_mut<R>,
+            R: Copy,
+            UnitData<V, R>: $rev_trait<f32>,
+        {
+            fn $op(&mut self, rhs: UnitData<V, R>) {
+                self.$op(rhs.repr)
+            }
+        }
+
+        impl<V, R, T> const ops::$trait_mut<T> for UnitData<V, R>
+        where
+            T: IsNotUnit,
+            R: ~const ops::$trait_mut<T>,
+            UnitData<V, R>: $trait<T>,
+        {
+            fn $op(&mut self, rhs: T) {
+                self.repr.$op(rhs)
+            }
+        }
+
+        impl<V1, V2, R1, R2> const ops::$trait_mut<UnitData<V2, R2>> for UnitData<V1, R1>
+        where
+            R1: ~const ops::$trait_mut<R2>,
+            R2: Copy,
+            UnitData<V1, R1>: $trait<UnitData<V2, R2>>,
+        {
+            fn $op(&mut self, rhs: UnitData<V2, R2>) {
+                self.repr.$op(rhs.repr)
+            }
+        }
+    };
+}
+
+gen_ops!(RevAdd, Add, add);
+gen_ops!(RevSub, Sub, sub);
+gen_ops!(RevMul, Mul, mul);
+gen_ops!(RevDiv, Div, div);
+gen_ops_mut!(RevAdd, Add, AddAssign, add_assign);
+gen_ops_mut!(RevSub, Sub, SubAssign, sub_assign);
+gen_ops_mut!(RevMul, Mul, MulAssign, mul_assign);
+gen_ops_mut!(RevDiv, Div, DivAssign, div_assign);
+
+impl<V, R: ops::Neg<Output = R>> ops::Neg for UnitData<V, R> {
+    type Output = UnitData<V, R>;
+
+    fn neg(mut self) -> Self::Output {
+        self.repr = self.repr.neg();
+        self
+    }
+}
+
+
+// ==============================
+// === Unit Definition Macros ===
+// ==============================
+
+
+// === define ===
+
+/// Utilities for new unit definition. For example, the following definition:
+///
+/// ```text
+/// define!(Duration = DURATION(f32));
+/// ```
+///
+/// will generate the following code:
+///
+/// ````text
+/// pub type Duration = Unit<DURATION>;
+/// pub struct DURATION;
+/// impl Variant for DURATION {
+///     type Repr = f32;
+/// }
+/// ```
+#[macro_export]
+macro_rules! define {
+    ($(#$meta:tt)* $name:ident: $tp:ident = $default:expr) => {
+        paste!{
+            $(#$meta)*
+            pub type $name = $crate::unit::Unit<[<$name:snake:upper>]>;
+            $(#$meta)*
+            #[derive(Debug, Clone, Copy, Reflect)]
+            #[derive(serde::Serialize, serde::Deserialize)]
+            pub struct [<$name:snake:upper>];
+
+            impl $crate::unit::Variant for [<$name:snake:upper>] {
+                type Repr = $tp;
+            }
+
+            impl $crate::unit::UnitDefault<$tp> for [<$name:snake:upper>] {
+                fn unit_default() -> $tp {
+                    $default
+                }
+            }
+        }
+    };
+}
+
+
+// === define_ops ===
+
+/// Utilities for new unit-operations relations definition. For example, the following definition:
+///
+/// ```text
+/// define_ops![
+///     Duration [+,-] Duration = Duration,
+///     Duration [*,/] f32 = Duration,
+///     Duration / Duration = f32,
+///     f32 * Duration = Duration,
+/// ];
+/// ```
+///
+/// will generate the following code:
+///
+/// ```text
+/// impl Add<Duration> for Duration {
+///     type Output = Duration;
+/// }
+/// impl Sub<Duration> for Duration {
+///     type Output = Duration;
+/// }
+/// impl Mul<f32> for Duration {
+///     type Output = Duration;
+/// }
+/// impl Div<f32> for Duration {
+///     type Output = Duration;
+/// }
+/// impl Div<Duration> for Duration {
+///     type Output = f32;
+/// }
+/// impl RevMul<Duration> for f32 {
+///     type Output = Duration;
+/// }
+/// ```
+///
+/// See the documentation of the [`gen_ops`] macro to learn about such traits as [`Add`], [`Mul`],
+/// or [`RevMul`] – these are NOT standard Rust traits.
+#[macro_export]
+macro_rules! define_ops {
+    ($($lhs:ident $op:tt $rhs:ident = $out:ident),* $(,)?) => {
         $(
-            impl From<$name>   for $field_type { fn from(t:$name)   -> Self { t.$field } }
-            impl From<&$name>  for $field_type { fn from(t:&$name)  -> Self { t.$field } }
-            impl From<&&$name> for $field_type { fn from(t:&&$name) -> Self { t.$field } }
+            $crate::define_single_op_switch!{ $lhs $op $rhs = $out }
+        )*
+    };
+}
+
+/// Internal helper for the [`define_ops`] macro.
+#[macro_export]
+macro_rules! define_single_op_switch {
+    (f32 $op:tt $rhs:ident = $out:ident) => {
+        $crate::define_single_rev_op! {f32 $op $rhs = $out}
+    };
+    (f64 $op:tt $rhs:ident = $out:ident) => {
+        $crate::define_single_rev_op! {f64 $op $rhs = $out}
+    };
+    (usize $op:tt $rhs:ident = $out:ident) => {
+        $crate::define_single_rev_op! {usize $op $rhs = $out}
+    };
+    ($lhs:ident $op:tt $rhs:ident = $out:ident) => {
+        $crate::define_single_op! {$lhs $op $rhs = $out}
+    };
+}
+
+/// Internal helper for the [`define_ops`] macro.
+#[macro_export]
+macro_rules! define_single_op {
+    ($lhs:ident + $rhs:ident = $out:ident) => {
+        impl $crate::unit::Add<$rhs> for $lhs {
+            type Output = $out;
+        }
+    };
+
+    ($lhs:ident - $rhs:ident = $out:ident) => {
+        impl $crate::unit::Sub<$rhs> for $lhs {
+            type Output = $out;
+        }
+    };
+
+    ($lhs:ident * $rhs:ident = $out:ident) => {
+        impl $crate::unit::Mul<$rhs> for $lhs {
+            type Output = $out;
+        }
+    };
+
+    ($lhs:ident / $rhs:ident = $out:ident) => {
+        impl $crate::unit::Div<$rhs> for $lhs {
+            type Output = $out;
+        }
+    };
+
+    ($lhs:ident [$($op:tt),* $(,)?] $rhs:ident = $out:ident) => {
+        $(
+            $crate::define_single_op!{$lhs $op $rhs = $out}
+        )*
+    };
+}
+
+/// Internal helper for the [`define_ops`] macro.
+#[macro_export]
+macro_rules! define_single_rev_op {
+    ($lhs:ident + $rhs:ident = $out:ident) => {
+        impl $crate::unit2::RevAdd<$rhs> for $lhs {
+            type Output = $out;
+        }
+    };
+
+    ($lhs:ident - $rhs:ident = $out:ident) => {
+        impl $crate::unit2::RevSub<$rhs> for $lhs {
+            type Output = $out;
+        }
+    };
+
+    ($lhs:ident * $rhs:ident = $out:ident) => {
+        impl $crate::unit::RevMul<$rhs> for $lhs {
+            type Output = $out;
+        }
+    };
+
+    ($lhs:ident / $rhs:ident = $out:ident) => {
+        impl $crate::unit::RevDiv<$rhs> for $lhs {
+            type Output = $out;
+        }
+    };
+
+    ($lhs:ident [$($op:tt),* $(,)?] $rhs:ident = $out:ident) => {
+        $(
+            $crate::define_single_rev_op!{$lhs $op $rhs = $out}
         )*
     };
 }
 
 
+// ================
+// === Duration ===
+// ================
 
-// ==================
-// === T x T -> T ===
-// ==================
+define! {
+    /// A span of time. Duration stores milliseconds under the hood, which is a representation
+    /// optimized for real-time rendering and graphics processing.
+    ///
+    /// Conversions between this type and the [`std::time::Duration`] are provided, however, please
+    /// note that [`std::time::Duration`] internal representation is optimized for different cases,
+    /// so losing precision is expected during the conversion.
+    Duration: f32 = 0.0
+}
+define_ops![
+    Duration [+,-] Duration = Duration,
+    Duration [*,/] f32 = Duration,
+    Duration / Duration = f32,
+    f32 * Duration = Duration,
+];
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_UNIT_x_UNIT_to_UNIT {
-    ($trait:ident :: $opr:ident for $name:ident) => {
-        $crate::impl_T_x_T_to_T! {$trait :: $opr for  $name {value}}
-    };
+/// Methods of the [`Duration`] unit.
+#[allow(missing_docs)]
+#[const_trait]
+pub trait DurationOps {
+    fn ms(t: f32) -> Duration;
+    fn s(t: f32) -> Duration;
+    fn min(t: f32) -> Duration;
+    fn h(t: f32) -> Duration;
+    fn as_ms(&self) -> f32;
+    fn as_s(&self) -> f32;
+    fn as_min(&self) -> f32;
+    fn as_h(&self) -> f32;
 }
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_T_x_T_to_T {
-    ($trait:ident :: $opr:ident for $name:ident { $($field:ident),* $(,)? }) => {
-        $crate::impl_T_x_T_to_T! {$trait :: $opr as $opr for $name { $($field),* }}
-    };
+impl const DurationOps for Duration {
+    fn ms(t: f32) -> Duration {
+        t.unchecked_into()
+    }
+    fn s(t: f32) -> Duration {
+        Self::ms(t * 1000.0)
+    }
+    fn min(t: f32) -> Duration {
+        Self::s(t * 60.0)
+    }
+    fn h(t: f32) -> Duration {
+        Self::min(t * 60.0)
+    }
 
-    ($trait:ident :: $opr:ident as $as_opr:ident for $name:ident { $($field:ident),* $(,)? }) => {
-        impl $trait<$name> for $name {
-            type Output = $name;
-            fn $opr(self, rhs:$name) -> Self::Output {
-                $(let $field = self.$field.$as_opr(rhs.$field);)*
-                $name { $($field),* }
-            }
-        }
-
-        impl $trait<$name> for &$name {
-            type Output = $name;
-            fn $opr(self, rhs:$name) -> Self::Output {
-                $(let $field = self.$field.$as_opr(rhs.$field);)*
-                $name { $($field),* }
-            }
-        }
-
-        impl $trait<&$name> for $name {
-            type Output = $name;
-            fn $opr(self, rhs:&$name) -> Self::Output {
-                $(let $field = self.$field.$as_opr(rhs.$field);)*
-                $name { $($field),* }
-            }
-        }
-
-        impl $trait<&$name> for &$name {
-            type Output = $name;
-            fn $opr(self, rhs:&$name) -> Self::Output {
-                $(let $field = self.$field.$as_opr(rhs.$field);)*
-                $name { $($field),* }
-            }
-        }
-    };
+    fn as_ms(&self) -> f32 {
+        self.unchecked_raw()
+    }
+    fn as_s(&self) -> f32 {
+        self.as_ms() / 1000.0
+    }
+    fn as_min(&self) -> f32 {
+        self.as_s() / 60.0
+    }
+    fn as_h(&self) -> f32 {
+        self.as_min() / 60.0
+    }
 }
 
-
-
-// ==================
-// === T x S -> T ===
-// ==================
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_T_x_S_to_T {
-    ($trait:ident :: $opr:ident [$($rhs:tt)*] for $name:ident { $($field:ident),* $(,)? }) => {
-        $crate::impl_T_x_S_to_T! {$trait :: $opr [$($rhs)*] as $opr for $name { $($field),* }}
-    };
-
-    ($trait:ident :: $opr:ident [$($rhs:tt)*] as $as_opr:ident for $name:ident { $($field:ident),* $(,)? }) => {
-        impl $trait<$($rhs)*> for $name {
-            type Output = $name;
-            fn $opr(self, rhs:$($rhs)*) -> Self::Output {
-                $(let $field = self.$field.$as_opr(rhs);)*
-                $name { $($field),* }
-            }
-        }
-
-        impl $trait<$($rhs)*> for &$name {
-            type Output = $name;
-            fn $opr(self, rhs:$($rhs)*) -> Self::Output {
-                $(let $field = self.$field.$as_opr(rhs);)*
-                $name { $($field),* }
-            }
-        }
-
-        impl $trait<&$($rhs)*> for $name {
-            type Output = $name;
-            fn $opr(self, rhs:&$($rhs)*) -> Self::Output {
-                $(let $field = self.$field.$as_opr(*rhs);)*
-                $name { $($field),* }
-            }
-        }
-
-        impl $trait<&$($rhs)*> for &$name {
-            type Output = $name;
-            fn $opr(self, rhs:&$($rhs)*) -> Self::Output {
-                $(let $field = self.$field.$as_opr(*rhs);)*
-                $name { $($field),* }
-            }
-        }
-    };
+/// Methods of the [`Duration`] unit as extensions for numeric types.
+#[allow(missing_docs)]
+#[const_trait]
+pub trait DurationNumberOps {
+    fn ms(self) -> Duration;
+    fn s(self) -> Duration;
 }
 
+impl const DurationNumberOps for f32 {
+    fn ms(self) -> Duration {
+        Duration::ms(self)
+    }
 
-
-// ======================
-// === T x FIELD -> T ===
-// ======================
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_UNIT_x_FIELD_to_UNIT {
-    ($trait:ident :: $opr:ident for $name:ident :: $field_type:ty) => {
-        $crate::impl_T_x_FIELD_to_T! {$trait :: $opr for $name {value : $field_type}}
-    };
+    fn s(self) -> Duration {
+        Duration::s(self)
+    }
 }
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_T_x_FIELD_to_T {
-    ($trait:ident :: $opr:ident for $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {$(
-        #[allow(clippy::needless_update)]
-        impl $trait<$field_type> for $name {
-            type Output = $name;
-            fn $opr(self, rhs:$field_type) -> Self::Output {
-                $name { $field:self.$field.$opr(rhs), ..self }
-            }
-        }
+impl const DurationNumberOps for i64 {
+    fn ms(self) -> Duration {
+        (self as f32).ms()
+    }
 
-        #[allow(clippy::needless_update)]
-        impl $trait<$field_type> for &$name {
-            type Output = $name;
-            fn $opr(self, rhs:$field_type) -> Self::Output {
-                $name { $field:self.$field.$opr(rhs), ..*self }
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        impl $trait<&$field_type> for $name {
-            type Output = $name;
-            fn $opr(self, rhs:&$field_type) -> Self::Output {
-                $name { $field:self.$field.$opr(*rhs), ..self }
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        impl $trait<&$field_type> for &$name {
-            type Output = $name;
-            fn $opr(self, rhs:&$field_type) -> Self::Output {
-                $name { $field:self.$field.$opr(*rhs), ..*self }
-            }
-        }
-    )*};
+    fn s(self) -> Duration {
+        (self as f32).s()
+    }
 }
 
-
-// ======================
-// === FIELD x T -> T ===
-// ======================
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_FIELD_x_UNIT_to_UNIT {
-    ($trait:ident :: $opr:ident for $name:ident :: $field_type:ty) => {
-        $crate::impl_FIELD_x_T_to_T! {$trait :: $opr for $name {value : $field_type}}
-    };
+impl From<std::time::Duration> for Duration {
+    fn from(duration: std::time::Duration) -> Self {
+        (duration.as_millis() as <DURATION as Variant>::Repr).ms()
+    }
 }
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_FIELD_x_T_to_T {
-    ($trait:ident :: $opr:ident for $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {$(
-        #[allow(clippy::needless_update)]
-        impl $trait<$name> for $field_type {
-            type Output = $name;
-            fn $opr(self, rhs:$name) -> Self::Output {
-                $name { $field:self.$opr(rhs.$field), ..rhs }
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        impl $trait<$name> for &$field_type {
-            type Output = $name;
-            fn $opr(self, rhs:$name) -> Self::Output {
-                $name { $field:self.$opr(rhs.$field), ..rhs }
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        impl $trait<&$name> for $field_type {
-            type Output = $name;
-            fn $opr(self, rhs:&$name) -> Self::Output {
-                $name { $field:self.$opr(rhs.$field), ..*rhs }
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        impl $trait<&$name> for &$field_type {
-            type Output = $name;
-            fn $opr(self, rhs:&$name) -> Self::Output {
-                $name { $field:self.$opr(rhs.$field), ..*rhs }
-            }
-        }
-    )*};
+impl From<Duration> for std::time::Duration {
+    fn from(duration: Duration) -> Self {
+        std::time::Duration::from_millis(duration.as_ms() as u64)
+    }
 }
-
-
-
-// ======================
-// === T x T -> FIELD ===
-// ======================
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_UNIT_x_UNIT_to_FIELD {
-    ($trait:ident :: $opr:ident for $name:ident :: $field_type:ty) => {
-        $crate::impl_T_x_T_to_FIELD! {$trait :: $opr for $name {value : $field_type}}
-    };
-}
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_T_x_T_to_FIELD {
-    ($trait:ident :: $opr:ident for $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {$(
-        impl $trait<$name> for $name {
-            type Output = $field_type;
-            fn $opr(self, rhs:$name) -> Self::Output {
-                self.$field.$opr(rhs.$field)
-            }
-        }
-
-        impl $trait<$name> for &$name {
-            type Output = $field_type;
-            fn $opr(self, rhs:$name) -> Self::Output {
-                self.$field.$opr(rhs.$field)
-            }
-        }
-
-        impl $trait<&$name> for $name {
-            type Output = $field_type;
-            fn $opr(self, rhs:&$name) -> Self::Output {
-                self.$field.$opr(rhs.$field)
-            }
-        }
-
-        impl $trait<&$name> for &$name {
-            type Output = $field_type;
-            fn $opr(self, rhs:&$name) -> Self::Output {
-                self.$field.$opr(rhs.$field)
-            }
-        }
-    )*};
-}
-
-
-
-// ==============
-// === T -> T ===
-// ==============
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_UNIT_to_UNIT {
-    ($trait:ident :: $opr:ident for $name:ident) => {
-        $crate::impl_T_to_T! {$trait :: $opr for $name {value}}
-    };
-}
-
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_T_to_T {
-    ( $trait:ident :: $opr:ident for $name:ident { $($field:ident),* $(,)? } ) => {
-        #[allow(clippy::needless_update)]
-        impl $trait for $name {
-            type Output = $name;
-            fn $opr(self) -> Self::Output {
-                $name { $($field:self.$field.$opr(),)* ..self }
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        impl $trait for &$name {
-            type Output = $name;
-            fn $opr(self) -> Self::Output {
-                $name { $($field:self.$field.$opr(),)* ..*self }
-            }
-        }
-    };
-}
-
 
 
 // =============
-// === T x T ===
+// === Bytes ===
 // =============
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_UNIT_x_UNIT {
-    ($trait:ident :: $opr:ident for $name:ident) => {
-        $crate::impl_T_x_T! {$trait :: $opr for $name {value}}
-    };
+define! {
+    /// Number of bytes.
+    Bytes: usize = 0
+}
+define_ops![
+    Bytes [+,-] Bytes = Bytes,
+    Bytes * usize = Bytes,
+    usize * Bytes = Bytes,
+];
+
+/// Constructor.
+#[allow(non_snake_case)]
+pub fn Bytes(size: usize) -> Bytes {
+    Bytes::from(size)
 }
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_T_x_T {
-    ($trait:ident :: $opr:ident for $name:ident { $($field:ident),* $(,)? }) => {$(
-        #[allow(clippy::needless_update)]
-        impl $trait<$name> for $name {
-            fn $opr(&mut self, rhs:$name) {
-                self.$field.$opr(rhs.$field)
-            }
-        }
+impl From<usize> for Bytes {
+    fn from(t: usize) -> Self {
+        Bytes::unchecked_from(t)
+    }
+}
 
-        #[allow(clippy::needless_update)]
-        impl $trait<$name> for &mut $name {
-            fn $opr(&mut self, rhs:$name) {
-                self.$field.$opr(rhs.$field)
-            }
-        }
+/// Additional methods for [`Bytes`].
+pub trait BytesOps {
+    /// Check whether this bytes value is zero.
+    fn is_zero(&self) -> bool;
 
-        #[allow(clippy::needless_update)]
-        impl $trait<&$name> for $name {
-            fn $opr(&mut self, rhs:&$name) {
-                self.$field.$opr(rhs.$field)
-            }
-        }
+    /// Check whether this bytes value is positive.
+    fn is_positive(&self) -> bool;
 
-        #[allow(clippy::needless_update)]
-        impl $trait<&$name> for &mut $name {
-            fn $opr(&mut self, rhs:&$name) {
-                self.$field.$opr(rhs.$field)
-            }
+    /// Check whether this bytes value is negative.
+    fn is_negative(&self) -> bool;
+}
+
+impl BytesOps for Bytes {
+    fn is_zero(&self) -> bool {
+        *self == Bytes::from(0)
+    }
+
+    fn is_positive(&self) -> bool {
+        *self > Bytes::from(0)
+    }
+
+    fn is_negative(&self) -> bool {
+        *self < Bytes::from(0)
+    }
+}
+
+/// Methods of the [`Bytes`] unit as extensions for the [`str`] type.
+#[allow(missing_docs)]
+pub trait BytesStrOps<Range> {
+    /// Slice the provided string.
+    ///
+    /// # Panics
+    /// Panics if the range start or end is not on a UTF-8 code point boundary, or if it is past the
+    /// end of the last code point of the string slice.
+    fn slice(&self, range: Range) -> &str;
+}
+
+impl BytesStrOps<ops::Range<Bytes>> for str {
+    #[inline(always)]
+    fn slice(&self, range: ops::Range<Bytes>) -> &str {
+        &self[range.into_unchecked_raw_range()]
+    }
+}
+
+impl BytesStrOps<ops::RangeFrom<Bytes>> for str {
+    #[inline(always)]
+    fn slice(&self, range: ops::RangeFrom<Bytes>) -> &str {
+        &self[range.into_unchecked_raw_range()]
+    }
+}
+
+/// Methods of the [`Bytes`] unit as extensions for the [`Cow`] type.
+#[allow(missing_docs)]
+pub trait BytesCowOps<'t, Range> {
+    fn slice(&self, range: Range) -> Cow<'t, str>;
+}
+
+impl<'t> BytesCowOps<'t, ops::Range<Bytes>> for Cow<'t, str> {
+    fn slice(&self, range: ops::Range<Bytes>) -> Cow<'t, str> {
+        match self {
+            Cow::Borrowed(t) => Cow::Borrowed(t.slice(range)),
+            Cow::Owned(t) => Cow::Owned(t.slice(range).to_owned()),
         }
-    )*};
+    }
+}
+
+impl<'t> BytesCowOps<'t, ops::RangeFrom<Bytes>> for Cow<'t, str> {
+    fn slice(&self, range: ops::RangeFrom<Bytes>) -> Cow<'t, str> {
+        match self {
+            Cow::Borrowed(t) => Cow::Borrowed(t.slice(range)),
+            Cow::Owned(t) => Cow::Owned(t.slice(range).to_owned()),
+        }
+    }
 }
 
 
+// ================
+// === Fraction ===
+// ================
 
-// =================
-// === T x FIELD ===
-// =================
+define! {
+    /// A fraction of the leftover space, for example in the grid container. It is used in auto
+    /// layouts, similar to the CSS `fr` unit: https://www.w3.org/TR/css3-grid-layout/#fr-unit.
+    Fraction: f32 = 0.0
+}
+define_ops![
+    Fraction [+,-] Fraction = Fraction,
+    Fraction * f32 = Fraction,
+    f32 * Fraction = Fraction,
+];
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_UNIT_x_FIELD {
-    ($trait:ident :: $opr:ident for $name:ident :: $field_type:ty) => {
-        $crate::impl_T_x_FIELD! {$trait :: $opr for $name {value : $field_type}}
-    };
+/// Constructors.
+#[allow(missing_docs)]
+pub trait FractionOps {
+    fn fr(&self) -> Fraction;
 }
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_T_x_FIELD {
-    ($trait:ident :: $opr:ident for $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {$(
-        #[allow(clippy::needless_update)]
-        impl $trait<$field_type> for $name {
-            fn $opr(&mut self, rhs:$field_type) {
-                self.$field.$opr(rhs)
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        impl $trait<$field_type> for &mut $name {
-            fn $opr(&mut self, rhs:$field_type) {
-                self.$field.$opr(rhs)
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        impl $trait<&$field_type> for $name {
-            fn $opr(&mut self, rhs:&$field_type) {
-                self.$field.$opr(*rhs)
-            }
-        }
-
-        #[allow(clippy::needless_update)]
-        impl $trait<&$field_type> for &mut $name {
-            fn $opr(&mut self, rhs:&$field_type) {
-                self.$field.$opr(*rhs)
-            }
-        }
-    )*};
+impl FractionOps for f32 {
+    fn fr(&self) -> Fraction {
+        Fraction::unchecked_from(*self)
+    }
 }
 
-/// Unit definition macro. See module docs to learn more.
-#[macro_export]
-macro_rules! impl_unit_display {
-    ($name:ident :: $field:ident) => {
-        impl std::fmt::Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(f, "{}", self.$field)
-            }
-        }
-    };
+impl FractionOps for i32 {
+    fn fr(&self) -> Fraction {
+        (*self as f32).fr()
+    }
+}
+
+impl From<f32> for Fraction {
+    fn from(t: f32) -> Self {
+        Fraction::unchecked_from(t)
+    }
+}
+
+
+// ===============
+// === Percent ===
+// ===============
+
+define! {
+    /// A percentage value.
+    Percent: f32 = 0.0
+}
+define_ops![
+    Percent [+,-] Percent = Percent,
+    Percent * f32 = Percent,
+    f32 * Percent = Percent,
+];
+
+/// Constructors.
+#[allow(missing_docs)]
+pub trait PercentOps {
+    fn pc(&self) -> Percent;
+}
+
+impl PercentOps for f32 {
+    fn pc(&self) -> Percent {
+        Percent::unchecked_from(*self)
+    }
+}
+
+impl PercentOps for i32 {
+    fn pc(&self) -> Percent {
+        (*self as f32).pc()
+    }
 }

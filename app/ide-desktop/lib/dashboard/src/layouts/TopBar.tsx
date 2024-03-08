@@ -48,6 +48,7 @@ export default function TopBar(props: TopBarProps) {
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, canToggleAssetPanel } = props
   const { isAssetPanelVisible, setIsAssetPanelVisible, doRemoveSelf, onSignOut } = props
+  const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
 
   return (
     <div
@@ -56,7 +57,7 @@ export default function TopBar(props: TopBarProps) {
       }`}
     >
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
-      {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
+      {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
         <BackendSwitcher setBackendType={setBackendType} />
       )}
       {page === pageSwitcher.Page.editor ? (
@@ -79,17 +80,19 @@ export default function TopBar(props: TopBarProps) {
             isAssetPanelVisible={isAssetPanelVisible}
             setIsAssetPanelVisible={setIsAssetPanelVisible}
           />
-          <UserBar
-            supportsLocalBackend={supportsLocalBackend}
-            page={page}
-            setPage={setPage}
-            isHelpChatOpen={isHelpChatOpen}
-            setIsHelpChatOpen={setIsHelpChatOpen}
-            projectAsset={projectAsset}
-            setProjectAsset={setProjectAsset}
-            doRemoveSelf={doRemoveSelf}
-            onSignOut={onSignOut}
-          />
+          {supportsCloudBackend && (
+            <UserBar
+              supportsLocalBackend={supportsLocalBackend}
+              page={page}
+              setPage={setPage}
+              isHelpChatOpen={isHelpChatOpen}
+              setIsHelpChatOpen={setIsHelpChatOpen}
+              projectAsset={projectAsset}
+              setProjectAsset={setProjectAsset}
+              doRemoveSelf={doRemoveSelf}
+              onSignOut={onSignOut}
+            />
+          )}
         </div>
       )}
     </div>

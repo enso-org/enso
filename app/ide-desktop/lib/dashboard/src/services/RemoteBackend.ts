@@ -10,7 +10,6 @@ import type * as loggerProvider from '#/providers/LoggerProvider'
 import Backend, * as backendModule from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-import * as config from '#/utilities/config'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
@@ -440,8 +439,9 @@ export default class RemoteBackend extends Backend {
 
   /** Delete an arbitrary asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
-  override async deleteAsset(assetId: backendModule.AssetId, title: string | null) {
-    const path = remoteBackendPaths.deleteAssetPath(assetId)
+  override async deleteAsset(assetId: backendModule.AssetId, force: boolean, title: string | null) {
+    const paramsString = new URLSearchParams([['force', String(force)]]).toString()
+    const path = remoteBackendPaths.deleteAssetPath(assetId) + '?' + paramsString
     const response = await this.delete(path)
     if (!responseIsSuccessful(response)) {
       const name = title != null ? `'${title}'` : `asset with ID '${assetId}'`
@@ -922,36 +922,36 @@ export default class RemoteBackend extends Backend {
 
   /** Send an HTTP GET request to the given path. */
   private get<T = void>(path: string) {
-    return this.client.get<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
+    return this.client.get<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
   }
 
   /** Send a JSON HTTP POST request to the given path. */
   private post<T = void>(path: string, payload: object) {
-    return this.client.post<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send a binary HTTP POST request to the given path. */
   private postBinary<T = void>(path: string, payload: Blob) {
-    return this.client.postBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    return this.client.postBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PATCH request to the given path. */
   private patch<T = void>(path: string, payload: object) {
-    return this.client.patch<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    return this.client.patch<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
-    return this.client.put<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    return this.client.put<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send a binary HTTP PUT request to the given path. */
   private putBinary<T = void>(path: string, payload: Blob) {
-    return this.client.putBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    return this.client.putBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
   }
 
   /** Send an HTTP DELETE request to the given path. */
   private delete<T = void>(path: string) {
-    return this.client.delete<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`)
+    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
   }
 }

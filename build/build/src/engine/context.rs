@@ -108,6 +108,7 @@ impl RunContext {
 
     /// Check that required programs are present (if not, installs them, if supported). Set
     /// environment variables for the build to follow.
+    #[instrument(skip(self))]
     pub async fn prepare_build_env(&self) -> Result {
         // Building native images with Graal on Windows requires Microsoft Visual C++ Build Tools
         // available in the environment. If it is not visible, we need to add it.
@@ -233,7 +234,7 @@ impl RunContext {
         ];
         for (argfile, artifact_name) in native_image_arg_files {
             if argfile.exists() {
-                ide_ci::actions::artifacts::upload_single_file(&argfile, artifact_name).await?;
+                ide_ci::actions::artifacts::upload_single_file(argfile, artifact_name).await?;
             } else {
                 warn!(
                     "Native Image Arg File for {} not found at {}",
@@ -562,13 +563,6 @@ impl RunContext {
             runner_sanity_test(&self.repo_root, Some(enso_java)).await?;
         }
 
-        // Verify the status of the License Review Report
-        if TARGET_OS != OS::Windows {
-            // FIXME [mwu] apparently this is broken on Windows because of the line endings
-            // mismatch
-            sbt.call_arg("verifyLicensePackages").await?;
-        }
-
         // Verify Integrity of Generated License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
@@ -662,6 +656,14 @@ impl RunContext {
                     shell.wait_ok().await?;
                 }
             }
+            Operation::Sbt(args) => {
+                self.prepare_build_env().await?;
+                let sbt = engine::sbt::Context {
+                    repo_root:         self.paths.repo_root.path.clone(),
+                    system_properties: default(),
+                };
+                sbt.call_args(args).await?;
+            }
             Operation::Build => {
                 self.build().boxed().await?;
             }
@@ -700,6 +702,9 @@ pub async fn runner_sanity_test(
 ) -> Result {
     let factorial_input = "6";
     let factorial_expected_output = "720";
+    let engine_package = repo_root.built_distribution.enso_engine_triple.engine_package.as_path();
+    // The engine package is necessary for running the native runner.
+    ide_ci::fs::tokio::require_exist(engine_package).await?;
     let output = Command::new(&repo_root.runner)
         .args([
             "--run",
@@ -707,10 +712,7 @@ pub async fn runner_sanity_test(
             factorial_input,
         ])
         .set_env_opt(ENSO_JAVA, enso_java)?
-        .set_env(
-            ENSO_DATA_DIRECTORY,
-            repo_root.built_distribution.enso_engine_triple.engine_package.as_path(),
-        )?
+        .set_env(ENSO_DATA_DIRECTORY, engine_package)?
         .run_stdout()
         .await?;
     ensure!(

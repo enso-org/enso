@@ -1,7 +1,7 @@
-import { expect, test, type Page } from '@playwright/test'
+import { test, type Page } from '@playwright/test'
 import os from 'os'
 import * as actions from './actions'
-import * as customExpect from './customExpect'
+import { expect } from './customExpect'
 import { mockCollapsedFunctionInfo } from './expressionUpdates'
 import * as locate from './locate'
 
@@ -27,19 +27,19 @@ test('Leaving entered nodes', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
 
-  await page.mouse.dblclick(100, 100)
+  await actions.exitFunction(page)
   await expectInsideFunc1(page)
 
-  await page.mouse.dblclick(100, 100)
+  await actions.exitFunction(page)
   await expectInsideMain(page)
 })
 
 test('Using breadcrumbs to navigate', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
-  await page.mouse.dblclick(100, 100)
+  await actions.exitFunction(page)
   await expectInsideFunc1(page)
-  await page.mouse.dblclick(100, 100)
+  await actions.exitFunction(page)
   await expectInsideMain(page)
   // Breadcrumbs still have all the crumbs, but the last two are dimmed.
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
@@ -85,11 +85,11 @@ test('Collapsing nodes', async ({ page }) => {
 
   await collapsedNode.dblclick()
   await expect(locate.graphNode(page)).toHaveCount(4)
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'ten'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'sum'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'prod'))
+  await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'sum')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'prod')).toExist()
 
-  locate
+  await locate
     .graphNodeByBinding(page, 'ten')
     .locator('.icon')
     .click({ modifiers: ['Shift'] })
@@ -103,31 +103,34 @@ test('Collapsing nodes', async ({ page }) => {
   await mockCollapsedFunctionInfo(page, 'ten', 'collapsed1')
   await secondCollapsedNode.dblclick()
   await expect(locate.graphNode(page)).toHaveCount(2)
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'ten'))
+  await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
 })
 
 async function expectInsideMain(page: Page) {
+  await actions.expectNodePositionsInitialized(page, 64)
   await expect(locate.graphNode(page)).toHaveCount(10)
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'five'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'ten'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'sum'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'prod'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'final'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'list'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'data'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'aggregated'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'filtered'))
+  await expect(locate.graphNodeByBinding(page, 'five')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'sum')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'prod')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'final')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'list')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'data')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'aggregated')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'filtered')).toExist()
 }
 
 async function expectInsideFunc1(page: Page) {
+  await actions.expectNodePositionsInitialized(page, 192)
   await expect(locate.graphNode(page)).toHaveCount(3)
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'f2'))
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'result'))
+  await expect(locate.graphNodeByBinding(page, 'f2')).toExist()
+  await expect(locate.graphNodeByBinding(page, 'result')).toExist()
 }
 
 async function expectInsideFunc2(page: Page) {
+  await actions.expectNodePositionsInitialized(page, 128)
   await expect(locate.graphNode(page)).toHaveCount(2)
-  await customExpect.toExist(locate.graphNodeByBinding(page, 'r'))
+  await expect(locate.graphNodeByBinding(page, 'r')).toExist()
 }
 
 async function enterToFunc2(page: Page) {

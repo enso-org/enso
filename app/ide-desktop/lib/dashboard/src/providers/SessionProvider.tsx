@@ -17,16 +17,12 @@ import * as listen from '#/authentication/listen'
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
   readonly session: cognito.UserSession | null
-  /** Set `initialized` to false. MUST be called when logging out. */
+  /** Set `initialized` to false. Must be called when logging out. */
   readonly deinitializeSession: () => void
-  readonly onError: (callback: (error: Error) => void) => () => void
+  readonly onSessionError: (callback: (error: Error) => void) => () => void
 }
 
-/** See `AuthContext` for safety details. */
-const SessionContext = React.createContext<SessionContextType>(
-  // eslint-disable-next-line no-restricted-syntax
-  {} as SessionContextType
-)
+const SessionContext = React.createContext<SessionContextType | null>(null)
 
 // =======================
 // === SessionProvider ===
@@ -34,7 +30,7 @@ const SessionContext = React.createContext<SessionContextType>(
 
 /** Props for a {@link SessionProvider}. */
 export interface SessionProviderProps {
-  /** URL that the content of the app is served at, by Electron.
+  /** The URL that the content of the app is served at, by Electron.
    *
    * This **must** be the actual page that the content is served at, otherwise the OAuth flow will
    * not work and will redirect the user to a blank page. If this is the correct URL, no redirect
@@ -46,8 +42,8 @@ export interface SessionProviderProps {
    * is guaranteed to be the correct location, since authentication is instantiated when the content
    * is initially served. */
   readonly mainPageUrl: URL
-  readonly registerAuthEventListener: listen.ListenFunction
-  readonly userSession: () => Promise<cognito.UserSession | null>
+  readonly registerAuthEventListener: listen.ListenFunction | null
+  readonly userSession: (() => Promise<cognito.UserSession | null>) | null
   readonly children: React.ReactNode
 }
 
@@ -55,87 +51,84 @@ export interface SessionProviderProps {
 export default function SessionProvider(props: SessionProviderProps) {
   const { mainPageUrl, children, userSession, registerAuthEventListener } = props
   const [refresh, doRefresh] = refreshHooks.useRefresh()
-  /** Flag used to avoid rendering child components until we've fetched the user's session at least
-   * once. Avoids flash of the login screen when the user is already logged in. */
   const [initialized, setInitialized] = React.useState(false)
   const errorCallbacks = React.useRef(new Set<(error: Error) => void>())
 
   /** Returns a function to unregister the listener. */
-  const onError = React.useCallback((callback: (error: Error) => void) => {
+  const onSessionError = React.useCallback((callback: (error: Error) => void) => {
     errorCallbacks.current.add(callback)
     return () => {
       errorCallbacks.current.delete(callback)
     }
   }, [])
 
-  /** Register an async effect that will fetch the user's session whenever the `refresh` state is
-   * set. This is useful when a user has just logged in (as their cached credentials are
-   * out of date, so this will update them). */
+  // Register an async effect that will fetch the user's session whenever the `refresh` state is
+  // set. This is useful when a user has just logged in (as their cached credentials are
+  // out of date, so this will update them).
   const session = asyncEffectHooks.useAsyncEffect(
     null,
     async () => {
-      try {
-        const innerSession = await userSession()
+      if (userSession == null) {
         setInitialized(true)
-        return innerSession
-      } catch (error) {
-        if (error instanceof Error) {
-          for (const listener of errorCallbacks.current) {
-            listener(error)
+        return null
+      } else {
+        try {
+          const innerSession = await userSession()
+          setInitialized(true)
+          return innerSession
+        } catch (error) {
+          if (error instanceof Error) {
+            for (const listener of errorCallbacks.current) {
+              listener(error)
+            }
           }
+          throw error
         }
-        throw error
       }
     },
     [refresh]
   )
 
-  /** Register an effect that will listen for authentication events. When the event occurs, we
-   * will refresh or clear the user's session, forcing a re-render of the page with the new
-   * session.
-   *
-   * For example, if a user clicks the signout button, this will clear the user's session, which
-   * means we want the login screen to render (which is a child of this provider). */
-  React.useEffect(() => {
-    const listener: listen.ListenerCallback = event => {
-      switch (event) {
-        case listen.AuthEvent.signIn:
-        case listen.AuthEvent.signOut: {
-          doRefresh()
-          break
+  // Register an effect that will listen for authentication events. When the event occurs, we
+  // will refresh or clear the user's session, forcing a re-render of the page with the new
+  // session.
+  //
+  // For example, if a user clicks the "sign out" button, this will clear the user's session, which
+  // means the login screen (which is a child of this provider) should render.
+  React.useEffect(
+    () =>
+      registerAuthEventListener?.(event => {
+        switch (event) {
+          case listen.AuthEvent.signIn:
+          case listen.AuthEvent.signOut: {
+            doRefresh()
+            break
+          }
+          case listen.AuthEvent.customOAuthState:
+          case listen.AuthEvent.cognitoHostedUi: {
+            // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
+            // we have to hack it by replacing the URL in the browser's history. This is done
+            // because otherwise the user will be redirected to a URL like `enso://auth`, which
+            // will not work.
+            // See https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970
+            history.replaceState({}, '', mainPageUrl)
+            doRefresh()
+            break
+          }
+          default: {
+            throw new errorModule.UnreachableCaseError(event)
+          }
         }
-        case listen.AuthEvent.customOAuthState:
-        case listen.AuthEvent.cognitoHostedUi: {
-          /** AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
-           * we have to hack it by replacing the URL in the browser's history. This is done
-           * because otherwise the user will be redirected to a URL like `enso://auth`, which
-           * will not work.
-           *
-           * See:
-           * https://github.com/aws-amplify/amplify-js/issues/3391#issuecomment-756473970 */
-          history.replaceState({}, '', mainPageUrl)
-          doRefresh()
-          break
-        }
-        default: {
-          throw new errorModule.UnreachableCaseError(event)
-        }
-      }
-    }
-
-    const cancel = registerAuthEventListener(listener)
-    /** Return the `cancel` function from the `useEffect`, which ensures that the listener is
-     * cleaned up between renders. This must be done because the `useEffect` will be called
-     * multiple times during the lifetime of the component. */
-    return cancel
-  }, [doRefresh, registerAuthEventListener, mainPageUrl])
+      }),
+    [doRefresh, registerAuthEventListener, mainPageUrl]
+  )
 
   const deinitializeSession = () => {
     setInitialized(false)
   }
 
   return (
-    <SessionContext.Provider value={{ session, deinitializeSession, onError }}>
+    <SessionContext.Provider value={{ session, deinitializeSession, onSessionError }}>
       {initialized && children}
     </SessionContext.Provider>
   )
@@ -145,7 +138,13 @@ export default function SessionProvider(props: SessionProviderProps) {
 // === useSession ===
 // ==================
 
-/** React context hook returning the session of the authenticated user. */
+/** React context hook returning the session of the authenticated user.
+ * @throws {Error} when used outside a {@link SessionProvider}. */
 export function useSession() {
-  return React.useContext(SessionContext)
+  const context = React.useContext(SessionContext)
+  if (context == null) {
+    throw new Error('`useSession` can only be used inside an `<SessionProvider />`.')
+  } else {
+    return context
+  }
 }

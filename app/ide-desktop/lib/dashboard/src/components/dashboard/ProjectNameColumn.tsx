@@ -102,6 +102,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -112,8 +113,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
         // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
-        // `deleteMultiple`, `restoreMultiple`, `download`, and `downloadSelected`
-        // are handled by `AssetRow`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
       case AssetEventType.newProject: {
@@ -312,8 +313,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           rowState.isEditingName
             ? 'cursor-text'
             : canExecute && !isOtherUserUsingProject
-            ? 'cursor-pointer'
-            : ''
+              ? 'cursor-pointer'
+              : ''
         }`}
         checkSubmittable={newTitle =>
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(

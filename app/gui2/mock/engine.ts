@@ -323,15 +323,15 @@ function createId(id: Uuid) {
 function sendVizData(id: Uuid, config: VisualizationConfiguration) {
   const vizDataHandler =
     mockVizData[
-      typeof config.expression === 'string'
-        ? `${config.visualizationModule}.${config.expression}`
-        : `${config.expression.definedOnType}.${config.expression.name}`
+      typeof config.expression === 'string' ?
+        `${config.visualizationModule}.${config.expression}`
+      : `${config.expression.definedOnType}.${config.expression.name}`
     ]
   if (!vizDataHandler || !sendData) return
   const vizData =
-    vizDataHandler instanceof Uint8Array
-      ? vizDataHandler
-      : vizDataHandler(config.positionalArgumentsExpressions ?? [])
+    vizDataHandler instanceof Uint8Array ? vizDataHandler : (
+      vizDataHandler(config.positionalArgumentsExpressions ?? [])
+    )
   const builder = new Builder()
   const exprId = visualizationExprIds.get(id)
   const visualizationContextOffset = VisualizationContext.createVisualizationContext(

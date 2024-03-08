@@ -22,8 +22,8 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
         !isSortActive
           ? 'Sort by modification date'
           : sortDirection === SortDirection.ascending
-          ? 'Sort by modification date descending'
-          : 'Stop sorting by modification date'
+            ? 'Sort by modification date descending'
+            : 'Stop sorting by modification date'
       }
       className="flex items-center cursor-pointer gap-2"
       onMouseEnter={() => {

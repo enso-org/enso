@@ -78,10 +78,12 @@ const application = computed(() => {
     widgetCfg: widgetConfiguration.value,
     subjectAsSelf: selfArgumentPreapplied.value,
     notAppliedArguments:
-      noArgsCall != null &&
-      (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
-        ? noArgsCall.notAppliedArguments
-        : undefined,
+      (
+        noArgsCall != null &&
+        (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
+      ) ?
+        noArgsCall.notAppliedArguments
+      : undefined,
   })
 })
 
@@ -107,9 +109,9 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
     const knownArguments = methodCallInfo.value?.suggestion?.arguments
     const hasSelfArgument = knownArguments?.[0]?.name === 'self'
     const selfArgument =
-      hasSelfArgument && !selfArgumentPreapplied.value
-        ? analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
-        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
+      hasSelfArgument && !selfArgumentPreapplied.value ?
+        analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
+      : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
 
     return selfArgument?.externalId
   }
@@ -191,9 +193,9 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         newArg = Ast.parse(value, edit)
       }
       const name =
-        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name)
-          ? argApp.argument.argInfo.name
-          : undefined
+        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name) ?
+          argApp.argument.argInfo.name
+        : undefined
       edit
         .getVersion(argApp.appTree)
         .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
