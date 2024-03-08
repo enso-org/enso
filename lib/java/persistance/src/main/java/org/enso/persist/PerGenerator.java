@@ -59,14 +59,15 @@ final class PerGenerator {
     java.lang.Object obj = writeReplace.apply(t);
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
+      found = this.position;
+      knownObjects.put(obj, found);
+
       org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
       java.io.ByteArrayOutputStream os = new ByteArrayOutputStream();
       p.writeInline(obj, new ReferenceOutput(this, os));
-      found = this.position;
       byte[] arr = os.toByteArray();
       main.write(arr);
       this.position += arr.length;
-      knownObjects.put(obj, found);
     }
     return found;
   }
@@ -83,18 +84,18 @@ final class PerGenerator {
     }
     java.lang.Integer found = knownObjects.get(obj);
     if (found == null) {
+      found = position;
+      knownObjects.put(obj, found);
 
       var os = new ByteArrayOutputStream();
       var osData = new ReferenceOutput(this, os);
       p.writeInline(obj, osData);
-      found = position;
       if (os.size() == 0) {
         os.write(0);
       }
       byte[] arr = os.toByteArray();
       main.write(arr);
       position += arr.length;
-      knownObjects.put(obj, found);
       if (histogram != null) {
         histogram.register(obj.getClass(), arr.length);
       }
