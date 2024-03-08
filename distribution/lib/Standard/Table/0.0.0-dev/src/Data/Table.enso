@@ -991,7 +991,7 @@ type Table
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
     parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter -> Boolean -> Problem_Behavior -> Table
-    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format:(Text|Data_Formatter)='' error_on_missing_columns=True on_problems=Report_Warning =
+    parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type=Auto format:(Text | Data_Formatter)='' error_on_missing_columns=True on_problems=Report_Warning =
         formatter = case format of
             _ : Text -> if format.is_empty then Data_Formatter.Value else Data_Formatter.Value.with_format type format
             _ : Data_Formatter -> format
@@ -1704,7 +1704,7 @@ type Table
            - If more than 10 rows encounter computation issues,
              an `Additional_Warnings`.
     evaluate_expression : Text | Expression -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
-    evaluate_expression self (expression:Text|Expression) on_problems=Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
+    evaluate_expression self expression:(Text | Expression) on_problems:Problem_Behavior=Report_Warning = if expression.is_a Text then self.evaluate_expression (Expression.Value expression) on_problems else
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
@@ -2646,9 +2646,9 @@ type Table
          Write a table to an XLSX file.
 
              import Standard.Examples
-             from Standard.Table import Excel
+             from Standard.Table import all
 
-             example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
+             example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") (Excel_Format.Sheet "MySheetName")
     @format Widget_Helpers.write_table_selector
     write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =

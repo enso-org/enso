@@ -7,9 +7,9 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type, Aggregate_Column, expr
 from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
-import Standard.Database.Data.DB_Column.DB_Column
-import Standard.Database.Data.DB_Table.DB_Table
-import Standard.Database.Data.SQL_Type.SQL_Type
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Postgres.Postgres_Entity_Naming_Properties
 import Standard.Database.Internal.Replace_Params.Replace_Params

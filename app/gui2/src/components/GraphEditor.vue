@@ -230,12 +230,6 @@ const graphBindingsHandler = graphBindings.handler({
       showComponentBrowser()
     }
   },
-  newNode() {
-    if (keyboardBusy()) return false
-    if (graphNavigator.sceneMousePos != null) {
-      graphStore.createNode(graphNavigator.sceneMousePos, 'hello "world"! 123 + x')
-    }
-  },
   deleteSelected() {
     graphStore.transact(() => {
       graphStore.deleteNodes([...nodeSelection.selected])
@@ -265,14 +259,6 @@ const graphBindingsHandler = graphBindings.handler({
       for (const nodeId of nodeSelection.selected) {
         graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
-    })
-  },
-  toggleVisualizationFullscreen() {
-    if (nodeSelection.selected.size !== 1) return
-    graphStore.transact(() => {
-      const selected = set.first(nodeSelection.selected)
-      const isFullscreen = graphStore.db.nodeIdToNode.get(selected)?.vis?.fullscreen
-      graphStore.setNodeVisualization(selected, { visible: true, fullscreen: !isFullscreen })
     })
   },
   copyNode() {
@@ -495,8 +481,8 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
-  const content = node.rootSpan.code()
-  const nodeMetadata = node.rootSpan.nodeMetadata
+  const content = node.innerExpr.code()
+  const nodeMetadata = node.rootExpr.nodeMetadata
   const metadata = {
     position: nodeMetadata.get('position'),
     visualization: nodeMetadata.get('visualization'),
@@ -642,8 +628,8 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @forward="stackNavigator.enterNextNodeFromHistory"
       @recordOnce="onRecordOnceButtonPress()"
       @fitToAllClicked="zoomToSelected"
-      @zoomIn="graphNavigator.scale *= 1.1"
-      @zoomOut="graphNavigator.scale *= 0.9"
+      @zoomIn="graphNavigator.stepZoom(+1)"
+      @zoomOut="graphNavigator.stepZoom(-1)"
     />
     <PlusButton @pointerdown.stop @click.stop="startCreatingNodeFromButton()" @pointerup.stop />
     <Transition>

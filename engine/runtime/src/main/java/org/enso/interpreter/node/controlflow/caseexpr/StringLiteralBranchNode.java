@@ -12,6 +12,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
@@ -55,7 +56,8 @@ public abstract class StringLiteralBranchNode extends BranchNode {
         accept(frame, state, new Object[0]);
       }
     } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
+      var ctx = EnsoContext.get(this);
+      throw ctx.raiseAssertionPanic(this, null, e);
     }
   }
 

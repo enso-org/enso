@@ -111,7 +111,8 @@ type File_By_Line
         end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
         for_each_lines self 0 end_at function
 
-    ## Transforms each line in the file and returns the result as a vector.
+    ## ICON dataframe_map_column
+       Transforms each line in the file and returns the result as a vector.
 
        Arguments
        - action: The action to perform on each line.
@@ -122,7 +123,8 @@ type File_By_Line
         self.each_with_index wrapped_action
         builder.to_vector
 
-    ## Transforms each line in the file and returns the result as a vector.
+    ## ICON dataframe_map_column
+       Transforms each line in the file and returns the result as a vector.
 
        Arguments
        - action: The action to perform on each line.

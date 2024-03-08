@@ -2,12 +2,14 @@ import { prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
+import { initializePrefixes } from '@/util/ast/node'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier } from '@/util/qualifiedName'
 import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 
 await initializeFFI()
+initializePrefixes()
 
 function setupGraphDb(code: string, graphDb: GraphDb) {
   const { root, toRaw, getSpan } = Ast.parseExtended(code)
@@ -121,7 +123,7 @@ test.each(testCases)('Collapsing nodes, $description', (testCase) => {
   const nodePatternToId = new Map<string, NodeId>()
   for (const code of testCase.initialNodes) {
     const [pattern, expr] = code.split(/\s*=\s*/)
-    const [id, _] = nodes.find(([_id, node]) => node.rootSpan.code() == expr)!
+    const [id, _] = nodes.find(([_id, node]) => node.innerExpr.code() == expr)!
     nodeCodeToId.set(code, id)
     if (pattern != null) nodePatternToId.set(pattern, id)
   }
