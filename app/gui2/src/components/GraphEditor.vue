@@ -394,7 +394,10 @@ function showComponentBrowser(nodePosition?: Vec2, usage?: Usage) {
   componentBrowserVisible.value = true
 }
 
-function addNodeFromSelection() {
+/** Start creating a node, basing its inputs and position on the current selection, if any;
+ *  or the current viewport, otherwise.
+ */
+function addNodeAuto() {
   const targetPos =
     placementPositionForSelection() ??
     nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
@@ -402,7 +405,7 @@ function addNodeFromSelection() {
 }
 
 function addNodeAt(pos: Vec2 | undefined) {
-  if (!pos) return addNodeFromSelection()
+  if (!pos) return addNodeAuto()
   showComponentBrowser(pos)
 }
 
@@ -651,7 +654,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @zoomIn="graphNavigator.scale *= 1.1"
       @zoomOut="graphNavigator.scale *= 0.9"
     />
-    <PlusButton @pointerdown.stop @click.stop="addNodeFromSelection()" @pointerup.stop />
+    <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" />
