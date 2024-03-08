@@ -3,14 +3,9 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata import make_single_choice, Widget
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+
 from Standard.Table import Table
 
-polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
-polyglot java import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
-polyglot java import com.google.api.client.json.gson.GsonFactory
-polyglot java import com.google.api.services.sheets.v4.Sheets
-polyglot java import com.google.api.services.sheets.v4.SheetsScopes
-polyglot java import java.util.Collections
 polyglot java import com.google.analytics.data.v1beta.BetaAnalyticsDataClient
 polyglot java import com.google.analytics.data.v1beta.DateRange
 polyglot java import com.google.analytics.data.v1beta.Dimension
@@ -18,7 +13,12 @@ polyglot java import com.google.analytics.data.v1beta.Metric
 polyglot java import com.google.analytics.data.v1beta.Row
 polyglot java import com.google.analytics.data.v1beta.RunReportRequest
 polyglot java import com.google.analytics.data.v1beta.RunReportResponse
-
+polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
+polyglot java import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
+polyglot java import com.google.api.client.json.gson.GsonFactory
+polyglot java import com.google.api.services.sheets.v4.Sheets
+polyglot java import com.google.api.services.sheets.v4.SheetsScopes
+polyglot java import java.util.Collections
 
 ## PRIVATE
 type Google_Api_Client

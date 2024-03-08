@@ -4,7 +4,7 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Aggregate_Column, Value_Type, Table
 from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
-import Standard.Database.Data.Dialect
+import Standard.Database.Dialect
 import Standard.Database.Extensions.Upload_Database_Table
 import Standard.Database.Extensions.Upload_In_Memory_Table
 import Standard.Database.Internal.SQLite.SQLite_Type_Mapping

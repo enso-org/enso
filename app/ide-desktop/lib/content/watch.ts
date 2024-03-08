@@ -31,32 +31,27 @@ async function watch() {
     // This MUST be called before `builder.watch()` as `tailwind.css` must be generated
     // before the copy plugin runs.
     await dashboardBuilder.watch()
-    const opts = bundler.bundlerOptions(
-        bundler.argumentsFromEnv({
-            devMode: true,
-            supportsLocalBackend: true,
-            supportsDeepLinks: false,
-        })
-    )
-    opts.pure.splice(opts.pure.indexOf('assert'), 1)
-    opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
+    const args = bundler.argumentsFromEnv({ supportsLocalBackend: true, supportsDeepLinks: false })
+    const options = bundler.bundlerOptions(args)
+    options.pure.splice(options.pure.indexOf('assert'), 1)
+    options.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
     // This is safe as this entry point is statically known.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const serviceWorkerEntryPoint = opts.entryPoints.find(
+    const serviceWorkerEntryPoint = options.entryPoints.find(
         entryPoint => entryPoint.out === 'serviceWorker'
     )!
     serviceWorkerEntryPoint.in = path.resolve(THIS_PATH, 'src', 'devServiceWorker.ts')
-    const builder = await esbuild.context(opts)
+    const builder = await esbuild.context(options)
     await builder.watch()
     await builder.serve({
         port: await portfinder.getPortPromise({ port: PORT }),
-        servedir: opts.outdir,
+        servedir: options.outdir,
         /** This function is called on every request.
          * It is used here to show an error if the file to serve was not found. */
-        onRequest(args) {
-            if (args.status !== HTTP_STATUS_OK) {
+        onRequest(request) {
+            if (request.status !== HTTP_STATUS_OK) {
                 console.error(
-                    chalk.red(`HTTP error ${args.status} when serving path '${args.path}'.`)
+                    chalk.red(`HTTP error ${request.status} when serving path '${request.path}'.`)
                 )
             }
         },

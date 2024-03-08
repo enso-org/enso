@@ -16,7 +16,7 @@ import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import { Prefixes } from '@/util/ast/prefixes'
+import { prefixes } from '@/util/ast/node'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -27,16 +27,6 @@ import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
-
-const prefixes = Prefixes.FromLines({
-  enableOutputContext:
-    'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
-  disableOutputContext:
-    'Standard.Base.Runtime.with_disabled_context Standard.Base.Runtime.Context.Output __ <| __',
-  // Currently unused; included as PoC.
-  skip: 'SKIP __',
-  freeze: 'FREEZE __',
-})
 
 const props = defineProps<{
   node: Node
@@ -71,14 +61,12 @@ const outputPortsSet = computed(() => {
   return bindings
 })
 
-const widthOverridePx = ref<number>()
-const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
-const externalId = computed(() => props.node.rootSpan.externalId)
+const nodeId = computed(() => asNodeId(props.node.rootExpr.id))
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
-  props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject)
-    ? props.node.primarySubject
-    : undefined,
+  potentialSelfArgumentId.value && graph.isConnectedTarget(potentialSelfArgumentId.value) ?
+    potentialSelfArgumentId.value
+  : undefined,
 )
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
@@ -86,15 +74,6 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const baseNodeSize = computed(() => new Vec2(contentNode.value?.scrollWidth ?? 0, nodeSize.value.y))
-
-/// Menu can be full, partial or off
-enum MenuState {
-  Full,
-  Partial,
-  Off,
-}
-const menuVisible = ref(MenuState.Off)
 
 const error = computed(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
@@ -122,12 +101,21 @@ const warning = computed(() => {
 })
 
 const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
-const isOnlyOneSelected = computed(() => isSelected.value && nodeSelection?.selected.size === 1)
-watch(isSelected, (selected) => {
-  if (!selected) {
-    menuVisible.value = MenuState.Off
-  }
+const isOnlyOneSelected = computed(
+  () => isSelected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
+)
+
+const menuVisible = isOnlyOneSelected
+const menuFull = ref(false)
+
+watch(menuVisible, (visible) => {
+  if (!visible) menuFull.value = false
 })
+
+function openFullMenu() {
+  menuFull.value = true
+  nodeSelection?.setSelection(new Set([nodeId.value]))
+}
 
 const isDocsVisible = ref(false)
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
@@ -142,15 +130,16 @@ watchEffect(() => {
 })
 
 const bgStyleVariables = computed(() => {
+  const { x: width, y: height } = nodeSize.value
   return {
-    '--node-width': `${nodeSize.value.x}px`,
-    '--node-height': `${nodeSize.value.y}px`,
+    '--node-width': `${width}px`,
+    '--node-height': `${height}px`,
   }
 })
 
 const transform = computed(() => {
-  let pos = props.node.position
-  return `translate(${pos.x}px, ${pos.y}px)`
+  const { x, y } = props.node.position
+  return `translate(${x}px, ${y}px)`
 })
 
 const startEpochMs = ref(0)
@@ -181,7 +170,6 @@ const dragPointer = usePointer((pos, event, type) => {
       ) {
         nodeSelection?.handleSelectionOf(event, new Set([nodeId.value]))
         handleNodeClick(event)
-        menuVisible.value = MenuState.Partial
       }
       startEvent = null
       startEpochMs.value = 0
@@ -190,62 +178,30 @@ const dragPointer = usePointer((pos, event, type) => {
   }
 })
 
-const matches = computed(() => prefixes.extractMatches(props.node.rootSpan))
-const displayedExpression = computed(() => props.node.rootSpan.module.get(matches.value.innerExpr))
-
-const isOutputContextOverridden = computed({
+const isRecordingOverridden = computed({
   get() {
-    const override =
-      matches.value.matches.enableOutputContext ?? matches.value.matches.disableOutputContext
-    const overrideEnabled = matches.value.matches.enableOutputContext != null
-    // An override is only counted as enabled if it is currently in effect. This requires:
-    // - that an override exists
-    if (!override) return false
-    // - that it is setting the "enabled" value to a non-default value
-    else if (overrideEnabled === projectStore.isOutputContextEnabled) return false
-    // - and that it applies to the current execution context.
-    else {
-      const module = props.node.rootSpan.module
-      const contextWithoutQuotes = module
-        .get(override[0])
-        ?.code()
-        .replace(/^['"]|['"]$/g, '')
-      return contextWithoutQuotes === projectStore.executionMode
-    }
+    return props.node.prefixes.enableRecording != null
   },
   set(shouldOverride) {
-    const module = projectStore.module
-    if (!module) return
-    const edit = props.node.rootSpan.module.edit()
-    const replacementText = shouldOverride
-      ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
+    const edit = props.node.rootExpr.module.edit()
+    const replacement =
+      shouldOverride && !projectStore.isRecordingEnabled ?
+        [Ast.TextLiteral.new(projectStore.executionMode, edit)]
       : undefined
-    const replacements = projectStore.isOutputContextEnabled
-      ? {
-          enableOutputContext: undefined,
-          disableOutputContext: replacementText,
-        }
-      : {
-          enableOutputContext: replacementText,
-          disableOutputContext: undefined,
-        }
-    prefixes.modify(edit.getVersion(props.node.rootSpan), replacements)
+    prefixes.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
     graph.commitEdit(edit)
   },
 })
 
-// FIXME [sb]: https://github.com/enso-org/enso/issues/8442
-// This does not take into account `displayedExpression`.
-const expressionInfo = computed(() => graph.db.getExpressionInfo(externalId.value))
+const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
 const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
 const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
-  const expressionInfo = graph.db.getExpressionInfo(externalId.value)
   return displayedIconOf(
     suggestionEntry.value,
-    expressionInfo?.methodCall?.methodPointer,
+    expressionInfo.value?.methodCall?.methodPointer,
     outputPortLabel.value,
   )
 })
@@ -263,7 +219,7 @@ const nodeEditHandler = nodeEditBindings.handler({
 })
 
 function startEditingNode(position: Vec2 | undefined) {
-  let sourceOffset = props.node.rootSpan.code().length
+  let sourceOffset = props.node.rootExpr.code().length
   if (position != null) {
     let domNode, domOffset
     if ((document as any).caretPositionFromPoint) {
@@ -363,13 +319,6 @@ function portGroupStyle(port: PortData) {
   }
 }
 
-function openFullMenu() {
-  if (!nodeSelection?.isSelected(nodeId.value)) {
-    nodeSelection?.setSelection(new Set([nodeId.value]))
-  }
-  menuVisible.value = MenuState.Full
-}
-
 const editingComment = ref(false)
 
 const documentation = computed<string | undefined>({
@@ -397,10 +346,7 @@ const documentation = computed<string | undefined>({
     class="GraphNode"
     :style="{
       transform,
-      width:
-        widthOverridePx != null && isVisualizationVisible
-          ? `${Math.max(widthOverridePx, contentNode?.scrollWidth ?? 0)}px`
-          : undefined,
+      minWidth: isVisualizationVisible ? `${visualizationWidth}px` : undefined,
       '--node-group-color': color,
     }"
     :class="{
@@ -418,13 +364,20 @@ const documentation = computed<string | undefined>({
     <div class="binding" @pointerdown.stop>
       {{ node.pattern?.code() ?? '' }}
     </div>
+    <button
+      v-if="!menuVisible && isRecordingOverridden"
+      class="overrideRecordButton"
+      @click="isRecordingOverridden = false"
+    >
+      <SvgIcon name="record" />
+    </button>
     <CircularMenu
-      v-if="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
-      v-model:isOutputContextOverridden="isOutputContextOverridden"
+      v-if="menuVisible"
+      v-model:isRecordingOverridden="isRecordingOverridden"
       v-model:isDocsVisible="isDocsVisible"
-      :isOutputContextEnabledGlobally="projectStore.isOutputContextEnabled"
+      :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationVisible="isVisualizationVisible"
-      :isFullMenuVisible="menuVisible === MenuState.Full"
+      :isFullMenuVisible="menuVisible && menuFull"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
@@ -433,20 +386,17 @@ const documentation = computed<string | undefined>({
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
-      :nodeSize="baseNodeSize"
+      :nodeSize="nodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
-      :isCircularMenuVisible="menuVisible === MenuState.Full || menuVisible === MenuState.Partial"
-      :currentType="node.vis?.identifier"
+      :isCircularMenuVisible="menuVisible"
+      :currentType="props.node.vis?.identifier"
       :isFullscreen="isVisualizationFullscreen"
-      :dataSource="{ type: 'node', nodeId: externalId }"
+      :dataSource="{ type: 'node', nodeId: props.node.rootExpr.externalId }"
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
       :isFocused="isOnlyOneSelected"
-      @update:rect="
-        emit('update:visualizationRect', $event),
-          (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
-      "
+      @update:rect="emit('update:visualizationRect', $event)"
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
@@ -462,18 +412,19 @@ const documentation = computed<string | undefined>({
     </Suspense>
     <div
       ref="contentNode"
-      class="node"
+      class="content"
       v-on="dragPointer.events"
       @click.stop
       @pointerdown.stop
       @pointerup.stop
     >
       <NodeWidgetTree
-        :ast="displayedExpression"
+        :ast="props.node.innerExpr"
         :nodeId="nodeId"
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
+        :extended="isOnlyOneSelected"
         @openFullMenu="openFullMenu"
       />
     </div>
@@ -484,7 +435,7 @@ const documentation = computed<string | undefined>({
     <GraphNodeError
       v-if="warning && (nodeHovered || isSelected)"
       class="afterNode warning"
-      :class="{ messageWithMenu: menuVisible !== MenuState.Off }"
+      :class="{ messageWithMenu: menuVisible }"
       :message="warning"
       icon="warning"
       type="warning"
@@ -608,6 +559,7 @@ const documentation = computed<string | undefined>({
   position: absolute;
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
+  box-sizing: border-box;
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
   }
@@ -617,7 +569,7 @@ const documentation = computed<string | undefined>({
   display: none;
 }
 
-.node {
+.content {
   font-family: var(--font-code);
   position: relative;
   top: 0;
@@ -625,7 +577,7 @@ const documentation = computed<string | undefined>({
   caret-shape: bar;
   height: var(--node-height);
   border-radius: var(--node-border-radius);
-  display: inline-flex;
+  display: flex;
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
@@ -743,5 +695,20 @@ const documentation = computed<string | undefined>({
 .GraphNode:is(:hover, .selected) .statuses,
 .GraphNode:has(.selection:hover) .statuses {
   opacity: 0;
+}
+
+.overrideRecordButton {
+  position: absolute;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  backdrop-filter: var(--blur-app-bg);
+  background: var(--color-app-bg);
+  border-radius: var(--radius-full);
+  color: red;
+  padding: 8px;
+  height: 100%;
+  right: 100%;
+  margin-right: 4px;
 }
 </style>

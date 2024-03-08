@@ -141,11 +141,11 @@ export default function Dashboard(props: DashboardProps) {
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
   const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
+  const isCloud = backend.type === backendModule.BackendType.remote
   const rootDirectoryId = React.useMemo(
     () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
     [session.user]
   )
-  const isCloud = backend.type === backendModule.BackendType.remote
 
   React.useEffect(() => {
     setInitialized(true)
@@ -495,13 +495,14 @@ export default function Dashboard(props: DashboardProps) {
           />
           {page === pageSwitcher.Page.settings && <Settings />}
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-          {session.accessToken != null ? (
+          {session.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               page={page}
               isOpen={isHelpChatOpen}
               doClose={() => {
                 setIsHelpChatOpen(false)
               }}
+              endpoint={process.env.ENSO_CLOUD_CHAT_URL}
             />
           ) : (
             <ChatPlaceholder
