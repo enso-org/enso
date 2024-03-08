@@ -1,3 +1,4 @@
+import { initializePrefixes } from '@/util/ast/node'
 import { baseConfig, configValue, mergeConfig } from '@/util/config'
 import { urlParams } from '@/util/urlParams'
 import { isOnLinux } from 'enso-common/src/detect'
@@ -52,6 +53,7 @@ export interface StringConfig {
 
 async function runApp(config: StringConfig | null, accessToken: string | null, metadata?: object) {
   await initializeFFI()
+  initializePrefixes()
   running = true
   const { mountProjectApp } = await import('./createApp')
   if (!running) return

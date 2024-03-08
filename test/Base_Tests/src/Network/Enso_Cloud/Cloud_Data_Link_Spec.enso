@@ -1,0 +1,41 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
+
+add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environment <|
+    suite_builder.group "DataLinks in Enso Cloud" pending=setup.real_cloud_pending group_builder->
+        group_builder.specify "should be able to access an example HTTP data-link" <|
+            ## We assume that the cloud has a sample data-link called `TestDataLink` present
+               TODO in future iterations this file will be created by the test suite itself, to make it self-contained
+            assets = Enso_File.root.list
+            datalink = assets.find a-> a.name.starts_with "TestDataLink-HTTP"
+            datalink.should_be_a Enso_File
+            datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
+
+            # We assume that the datalink points to https://raw.githubusercontent.com/enso-org/enso/develop/test/Base_Tests/data/sample.txt
+            r = datalink.read
+            r.should_be_a Text
+            r.should_contain "Cupcake"
+
+        group_builder.specify "will report which library is missing if a datalink relying on other library is accessed" <|
+            assets = Enso_File.root.list
+            datalink = assets.find a-> a.name.starts_with "TestDataLink-S3"
+            datalink.should_be_a Enso_File
+            datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
+
+            r = datalink.read
+            r.should_fail_with Illegal_State
+            r.catch.to_display_text . should_contain "The data link for S3 is provided by the library Standard.AWS which is not loaded."
+
+main filter=Nothing =
+    setup = Cloud_Tests_Setup.prepare
+    suite = Test.build suite_builder->
+        add_specs suite_builder setup
+    suite.run_with_filter filter

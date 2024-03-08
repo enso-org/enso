@@ -3,17 +3,13 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import org.enso.polyglot.MethodNames.Module;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -47,21 +43,7 @@ public class IfVsCaseBenchmarks {
   @Setup
   public void initializeBench(BenchmarkParams params) throws IOException {
     OutputStream out = new ByteArrayOutputStream();
-    ctx =
-        Context.newBuilder("enso")
-            .allowAllAccess(true)
-            .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-            .logHandler(System.err)
-            .out(out)
-            .err(out)
-            .allowIO(IOAccess.ALL)
-            .allowExperimentalOptions(true)
-            .option(
-                "enso.languageHomeOverride",
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .option("engine.MultiTier", "true")
-            .option("engine.BackgroundCompilation", "true")
-            .build();
+    ctx = SrcUtil.newContextBuilder().out(out).err(out).build();
 
     var code =
         """

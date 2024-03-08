@@ -3,17 +3,20 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 
 const props = defineProps<{
-  isOutputContextEnabledGlobally: boolean
-  isOutputContextOverridden: boolean
+  isRecordingEnabledGlobally: boolean
+  isRecordingOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
   isFullMenuVisible: boolean
 }>()
 const emit = defineEmits<{
-  'update:isOutputContextOverridden': [isOutputContextOverridden: boolean]
+  'update:isRecordingOverridden': [isRecordingOverridden: boolean]
   'update:isDocsVisible': [isDocsVisible: boolean]
   'update:isVisualizationVisible': [isVisualizationVisible: boolean]
   startEditing: []
+  startEditingComment: []
+  openFullMenu: []
+  delete: []
 }>()
 </script>
 
@@ -24,6 +27,21 @@ const emit = defineEmits<{
     @pointerup.stop
     @click.stop
   >
+    <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
+    <SvgIcon
+      v-if="isFullMenuVisible"
+      name="comment"
+      class="icon-container button slot2"
+      :alt="`Edit comment`"
+      @click.stop="emit('startEditingComment')"
+    />
+    <SvgIcon
+      v-if="isFullMenuVisible"
+      name="trash2"
+      class="icon-container button slot4"
+      :alt="`Delete component`"
+      @click.stop="emit('delete')"
+    />
     <ToggleIcon
       icon="eye"
       class="icon-container button slot5"
@@ -38,16 +56,12 @@ const emit = defineEmits<{
       @click.stop="emit('startEditing')"
     />
     <ToggleIcon
-      :icon="props.isOutputContextEnabledGlobally ? 'no_auto_replay' : 'auto_replay'"
+      icon="record"
       class="icon-container button slot7"
-      :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
-      :alt="`${
-        props.isOutputContextEnabledGlobally != props.isOutputContextOverridden
-          ? 'Disable'
-          : 'Enable'
-      } output context`"
-      :modelValue="props.isOutputContextOverridden"
-      @update:modelValue="emit('update:isOutputContextOverridden', $event)"
+      :class="{ 'recording-overridden': props.isRecordingOverridden }"
+      :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
+      :modelValue="props.isRecordingOverridden"
+      @update:modelValue="emit('update:isRecordingOverridden', $event)"
     />
   </div>
 </template>
@@ -60,6 +74,11 @@ const emit = defineEmits<{
   top: -36px;
   width: 114px;
   height: 114px;
+  pointer-events: none;
+
+  > * {
+    pointer-events: all;
+  }
 
   &:before {
     content: '';
@@ -68,6 +87,7 @@ const emit = defineEmits<{
     background: var(--color-app-bg);
     width: 100%;
     height: 100%;
+    pointer-events: all;
   }
 
   &.partial {
@@ -131,7 +151,7 @@ const emit = defineEmits<{
   opacity: 10%;
 }
 
-.output-context-overridden {
+.recording-overridden {
   opacity: 100%;
   color: red;
 }
@@ -187,7 +207,7 @@ const emit = defineEmits<{
 .slot7 {
   position: absolute;
   top: 44px;
-  left: 9px;
+  left: 8px;
 }
 
 .slot8 {

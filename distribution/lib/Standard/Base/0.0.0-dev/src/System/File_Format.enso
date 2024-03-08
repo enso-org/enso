@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Json.JS_Object
 import project.Data.Json.Json
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
@@ -228,6 +229,11 @@ type JSON_Format
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
         _ = metadata
         Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . parse_json
+
+## PRIVATE
+JSON_Format.from (that : JS_Object) =
+    _ = that
+    JSON_Format
 
 ## A setting to infer the default behaviour of some option.
 type Infer

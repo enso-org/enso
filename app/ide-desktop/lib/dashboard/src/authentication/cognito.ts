@@ -37,7 +37,7 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
-import * as config from '#/authentication/config'
+import * as service from '#/authentication/service'
 
 // =================
 // === Constants ===
@@ -173,13 +173,13 @@ export class Cognito {
   constructor(
     private readonly logger: loggerProvider.Logger,
     private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: config.AmplifyConfig
+    private readonly amplifyConfig: service.AmplifyConfig
   ) {
     /** Amplify expects `Auth.configure` to be called before any other `Auth` methods are
      * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API
      * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
      * methods are called. */
-    const nestedAmplifyConfig = config.toNestedAmplifyConfig(amplifyConfig)
+    const nestedAmplifyConfig = service.toNestedAmplifyConfig(amplifyConfig)
     amplify.Auth.configure(nestedAmplifyConfig)
   }
 

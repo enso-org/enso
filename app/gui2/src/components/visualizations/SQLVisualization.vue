@@ -2,7 +2,7 @@
 export const name = 'SQL Query'
 export const icon = 'braces'
 export const inputType =
-  'Standard.Database.Data.DB_Table.DB_Table | Standard.Database.Data.DB_Column.DB_Column'
+  'Standard.Database.DB_Table.DB_Table | Standard.Database.DB_Column.DB_Column'
 export const defaultPreprocessor = [
   'Standard.Visualization.SQL.Visualization',
   'prepare_visualization',
@@ -46,9 +46,9 @@ const props = defineProps<{ data: Data }>()
 const theme: Theme = DEFAULT_THEME
 
 const language = computed(() =>
-  props.data.dialect != null && sqlFormatter.supportedDialects.includes(props.data.dialect)
-    ? props.data.dialect
-    : 'sql',
+  props.data.dialect != null && sqlFormatter.supportedDialects.includes(props.data.dialect) ?
+    props.data.dialect
+  : 'sql',
 )
 const formatted = computed(() => {
   if (props.data.error != null || props.data.code == null) {

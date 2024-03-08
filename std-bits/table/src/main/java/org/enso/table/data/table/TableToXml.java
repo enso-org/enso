@@ -10,12 +10,10 @@ import org.graalvm.polyglot.Context;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.ls.DOMImplementationLS;
-import org.w3c.dom.ls.LSSerializer;
 
 public class TableToXml {
 
-  public static String to_xml(
+  public static Document to_xml(
       int rowCount,
       Column[] element_columns,
       Column[] attribute_columns,
@@ -56,16 +54,7 @@ public class TableToXml {
       context.safepoint();
     }
 
-    return convert_to_string(doc);
-  }
-
-  private static String convert_to_string(Document doc) throws XmlException {
-    DOMImplementationLS domImplementation = (DOMImplementationLS) doc.getImplementation();
-    LSSerializer lsSerializer = domImplementation.createLSSerializer();
-    lsSerializer.getDomConfig().setParameter("format-pretty-print", Boolean.TRUE);
-    lsSerializer.getDomConfig().setParameter("xml-declaration", false);
-    lsSerializer.setNewLine("\n");
-    return lsSerializer.writeToString(doc);
+    return doc;
   }
 
   private static void get_set_attribute(

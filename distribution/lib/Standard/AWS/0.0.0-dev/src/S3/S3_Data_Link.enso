@@ -1,0 +1,26 @@
+from Standard.Base import all
+from Standard.Base.Enso_Cloud.Data_Link import parse_format
+from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
+
+import project.AWS_Credential.AWS_Credential
+import project.S3.S3_File.S3_File
+from project.Internal.Data_Link_Helpers import decode_aws_credential
+
+## PRIVATE
+type S3_Data_Link
+    ## PRIVATE
+    Value (uri : Text) format (credentials : AWS_Credential)
+
+    ## PRIVATE
+    parse json -> S3_Data_Link =
+        uri = get_required_field "uri" json
+        auth = decode_aws_credential (get_required_field "auth" json)
+        format = parse_format (json.get "format" Nothing)
+        S3_Data_Link.Value uri format auth
+
+    ## PRIVATE
+    as_file self -> S3_File = S3_File.new self.uri self.credentials
+
+    ## PRIVATE
+    read self (on_problems : Problem_Behavior) =
+        self.as_file.read self.format on_problems

@@ -1,8 +1,8 @@
+import { useSelection } from '@/composables/selection'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { proxyRefs, ref, type Ref } from 'vue'
-import { useSelection } from '../selection'
 
 function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
   const rects = new Map()
@@ -10,20 +10,17 @@ function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
   rects.set(2, Rect.FromBounds(20, 1, 30, 10))
   rects.set(3, Rect.FromBounds(1, 20, 10, 30))
   rects.set(4, Rect.FromBounds(20, 20, 30, 30))
-  const selection = useSelection(
-    proxyRefs({ sceneMousePos: sceneMousePos ?? ref(Vec2.Zero), scale: 1 }),
-    rects,
-    0,
-  )
+  const navigator = proxyRefs({ sceneMousePos: sceneMousePos ?? ref(Vec2.Zero), scale: 1 })
+  const selection = useSelection(navigator, rects, 0)
   selection.setSelection(new Set([1, 2]))
   return selection
 }
 
-// TODO[ao]: We should read the modifiers from bindings.ts, but I don't know how yet.
+// TODO[ao]: We should read the modifiers from `bindings.ts`, but I don't know how yet.
 
 // TODO[ao]: Skipping test, as they often fail in CI
 // (for example https://github.com/enso-org/enso/actions/runs/8102076908/job/22163122663)
-test.skip.each`
+test.each`
   click | modifiers                  | expected
   ${1}  | ${[]}                      | ${[1]}
   ${3}  | ${[]}                      | ${[3]}
@@ -54,7 +51,7 @@ const areas: Record<string, Rect> = {
 
 // TODO[ao]: Skipping test, as they often fail in CI
 // (for example https://github.com/enso-org/enso/actions/runs/8102076908/job/22163122663)
-test.skip.each`
+test.each`
   areaId      | modifiers                  | expected
   ${'left'}   | ${[]}                      | ${[1, 3]}
   ${'right'}  | ${[]}                      | ${[2, 4]}
@@ -103,12 +100,14 @@ test.skip.each`
   dragCase(new Vec2(area.right, area.top), new Vec2(area.left, area.bottom))
 })
 
+// There is no PointerEvent class in jsdom (yet).
 class MockPointerEvent extends MouseEvent {
-  currentTarget: EventTarget | null
-  pointerId: number
+  readonly pointerId: number
   constructor(type: string, options: MouseEventInit & { currentTarget?: Element | undefined }) {
     super(type, options)
-    this.currentTarget = options.currentTarget ?? null
+    vi.spyOn<MouseEvent, 'currentTarget'>(this, 'currentTarget', 'get').mockReturnValue(
+      options.currentTarget ?? null,
+    )
     this.pointerId = 4
   }
 }
