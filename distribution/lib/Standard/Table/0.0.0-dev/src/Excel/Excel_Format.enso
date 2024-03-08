@@ -6,6 +6,7 @@ import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Text_Input, Numeric_Input
+from Standard.Base.System.File_Format import parse_boolean_with_infer
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
@@ -197,14 +198,14 @@ Excel_Format.from (that : JS_Object) =
     section = that.get "section" if_missing=(Error.throw (Illegal_Argument.Error "The `section` field is required."))
     case section.get "type" if_missing=(Error.throw (Illegal_Argument.Error "The `section.type` field is required.")) . to_case Case.Lower of
         "workbook" ->
-            default_sheet = that.get "default_sheet" if_missing="EnsoSheet"
+            default_sheet = section.get "default_sheet" if_missing="EnsoSheet"
             Excel_Format.Workbook default_sheet=default_sheet
         "sheet" ->
-            name = sheet.get "name" if_missing=(Error.throw (Illegal_Argument.Error "The `name` field is required."))
-            headers = sheet.get "headers" |> parse_boolean_with_infer
+            name = section.get "name" if_missing=(Error.throw (Illegal_Argument.Error "The `name` field is required."))
+            headers = section.get "headers" |> parse_boolean_with_infer "headers"
             Excel_Format.Sheet sheet=name headers=headers
         "range" ->
-            address = range.get "address" if_missing=(Error.throw (Illegal_Argument.Error "The `address` field is required."))
-            headers = range.get "headers" |> parse_boolean_with_infer
+            address = section.get "address" if_missing=(Error.throw (Illegal_Argument.Error "The `address` field is required."))
+            headers = section.get "headers" |> parse_boolean_with_infer "headers"
             Excel_Format.Range address=address headers=headers
         unknown -> Error.throw (Illegal_Argument.Error "The `section.type` was "+unknown+" but it must be one of `workbook`, `sheet`, or `range`.")

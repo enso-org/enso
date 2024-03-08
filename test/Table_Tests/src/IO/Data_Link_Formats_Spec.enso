@@ -28,7 +28,7 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
         workbook = datalink_file.read
         Panic.with_finalizer workbook.close <|
             workbook.should_be_a Excel_Workbook
-            workbook.sheet_names . should_equal "MyTestSheet"
+            workbook.sheet_names . should_equal ["MyTestSheet"]
 
     group_builder.specify "parsing Excel_Format.Sheet" <|
         datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-sheet.datalink")
