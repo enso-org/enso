@@ -16,6 +16,7 @@ import {
   Ident,
   MutableBodyBlock,
   MutableModule,
+  NumericLiteral,
   OprApp,
   PropertyAccess,
   Token,
@@ -189,6 +190,19 @@ export function substituteQualifiedName(
       substituteQualifiedName(module, child, pattern, to)
     }
   }
+}
+
+/** Try to convert the number to an Enso value.
+ *
+ *  Returns `undefined` if the input is not a real number. NOTE: The current implementation doesn't support numbers that
+ *  JS prints in scientific notation.
+ */
+export function tryNumberToEnso(value: number, module: MutableModule) {
+  if (!Number.isFinite(value)) return
+  const literal = NumericLiteral.tryParse(value.toString(), module)
+  if (!literal)
+    console.warn(`Not implemented: Converting scientific-notation number to Enso value`, value)
+  return literal
 }
 
 declare const tokenKey: unique symbol

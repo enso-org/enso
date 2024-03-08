@@ -1343,7 +1343,7 @@ export class TextLiteral extends Ast {
     if (!(parsed instanceof MutableTextLiteral)) {
       console.error(`Failed to escape string for interpolated text`, rawText, escaped, parsed)
       const safeText = rawText.replaceAll(/[^-+A-Za-z0-9_. ]/g, '')
-      return this.new(safeText, module)
+      return TextLiteral.new(safeText, module)
     }
     return parsed
   }
@@ -2190,6 +2190,39 @@ export class Vector extends Ast {
       elements.map((value) => ({ value: autospaced(value) })),
       undefined,
     )
+  }
+
+  static tryBuild<T>(
+    inputs: Iterable<T>,
+    elementBuilder: (input: T, module: MutableModule) => Owned,
+    edit?: MutableModule,
+  ): Owned<MutableVector>
+  static tryBuild<T>(
+    inputs: Iterable<T>,
+    elementBuilder: (input: T, module: MutableModule) => Owned | undefined,
+    edit?: MutableModule,
+  ): Owned<MutableVector> | undefined
+  static tryBuild<T>(
+    inputs: Iterable<T>,
+    valueBuilder: (input: T, module: MutableModule) => Owned | undefined,
+    edit?: MutableModule,
+  ): Owned<MutableVector> | undefined {
+    const module = edit ?? MutableModule.Transient()
+    const elements = new Array<AbstractVectorElement<OwnedRefs>>()
+    for (const input of inputs) {
+      const value = valueBuilder(input, module)
+      if (!value) return
+      elements.push({ value: autospaced(value) })
+    }
+    return Vector.concrete(module, undefined, elements, undefined)
+  }
+
+  static build<T>(
+    inputs: Iterable<T>,
+    elementBuilder: (input: T, module: MutableModule) => Owned,
+    edit?: MutableModule,
+  ): Owned<MutableVector> {
+    return Vector.tryBuild(inputs, elementBuilder, edit)
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {

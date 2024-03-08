@@ -95,14 +95,6 @@ const innerInput = computed(() => {
   }
 })
 
-function vectorOfTextLiterals(values: string[]): Ast.Owned {
-  const edit = Ast.MutableModule.Transient()
-  return Ast.Vector.new(
-    edit,
-    values.map((text) => Ast.TextLiteral.new(text, edit)),
-  )
-}
-
 const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
   const analyzed = interpretCall(props.input.value, true)
   if (analyzed.kind === 'infix') {
@@ -138,7 +130,10 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
       definedOnType: 'Standard.Visualization.Widgets',
       name: 'get_widget_json',
     },
-    positionalArgumentsExpressions: [`.${name}`, vectorOfTextLiterals(args).code()],
+    positionalArgumentsExpressions: [
+      `.${name}`,
+      Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+    ],
   }
 })
 
