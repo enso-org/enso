@@ -46,9 +46,9 @@ impl std::str::FromStr for Edition {
 
 }
 
-impl Into<String> for Edition {
-    fn into(self) -> String {
-        match self {
+impl From<Edition> for String {
+    fn from(edition: Edition) -> String {
+        match edition {
             Edition::Community => CE_JAVA_VENDOR.to_string(),
             Edition::Enterprise => EE_JAVA_VENDOR.to_string(),
         }
@@ -58,8 +58,8 @@ impl Into<String> for Edition {
 impl Display for Edition {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match *self {
-            Edition::Community => write!(f, "{}", CE_JAVA_VENDOR),
-            Edition::Enterprise => write!(f, "{}", EE_JAVA_VENDOR),
+            Edition::Community => write!(f, "{CE_JAVA_VENDOR}"),
+            Edition::Enterprise => write!(f, "{EE_JAVA_VENDOR}"),
         }
     }
 }
@@ -105,7 +105,7 @@ impl Goodie for GraalVM {
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {
         let expected_graal_version = self.graal_version.clone();
-        let expected_graal_edition = self.edition.clone();
+        let expected_graal_edition = self.edition;
         async move {
             let (found_version, found_edition) = find_graal_version().await?;
             ensure!(found_version == expected_graal_version, "GraalVM version mismatch. Expected {expected_graal_version}, found {found_version}.");
@@ -184,7 +184,7 @@ impl GraalVM {
             Arch::AArch64 => "aarch64",
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };
-        format!("{}-{}", os_name, arch_name)
+        format!("{os_name}-{arch_name}")
     }
 
     pub fn platform_string(&self) -> String {
