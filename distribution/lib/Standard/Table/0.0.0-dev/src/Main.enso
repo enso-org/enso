@@ -18,6 +18,7 @@ import project.Data.Simple_Expression.Simple_Expression
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Auto
+import project.Data.Type.Value_Type.Bits
 import project.Data.Type.Value_Type.Value_Type
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
@@ -52,6 +53,7 @@ export project.Data.Simple_Expression.Simple_Expression
 export project.Data.Sort_Column.Sort_Column
 export project.Data.Table.Table
 export project.Data.Type.Value_Type.Auto
+export project.Data.Type.Value_Type.Bits
 export project.Data.Type.Value_Type.Value_Type
 export project.Delimited.Delimited_Format.Delimited_Format
 export project.Delimited.Quote_Style.Quote_Style
