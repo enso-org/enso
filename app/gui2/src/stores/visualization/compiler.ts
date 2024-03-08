@@ -416,10 +416,10 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
           const pathJSON = JSON.stringify(path)
           const destructureExpression = `{ ${specifiers.join(', ')} }`
           const rewritten =
-            namespace != null
-              ? `const ${namespace} = await window.__visualizationModules[${pathJSON}];` +
-                (specifiers.length > 0 ? `\nconst ${destructureExpression} = ${namespace};` : '')
-              : `const ${destructureExpression} = await window.__visualizationModules[${pathJSON}];`
+            namespace != null ?
+              `const ${namespace} = await window.__visualizationModules[${pathJSON}];` +
+              (specifiers.length > 0 ? `\nconst ${destructureExpression} = ${namespace};` : '')
+            : `const ${destructureExpression} = await window.__visualizationModules[${pathJSON}];`
           s.overwrite(stmt.start!, stmt.end!, rewritten)
           if (isBuiltin) {
             // No further action is needed.
@@ -437,6 +437,7 @@ async function rewriteImports(code: string, dir: string, id: string | undefined)
                   if (mimetype != null) {
                     return importAsset(path, mimetype)
                   }
+                  return Promise.resolve(undefined)
                 }
               }
             })
@@ -484,9 +485,9 @@ onmessage = async (
     case 'compile-request': {
       try {
         const path = event.data.path
-        await (event.data.recompile
-          ? importVue(path)
-          : map.setIfUndefined(alreadyCompiledModules, path, () => importVue(path)))
+        await (event.data.recompile ?
+          importVue(path)
+        : map.setIfUndefined(alreadyCompiledModules, path, () => importVue(path)))
         postMessage<CompilationResultResponse>({
           type: 'compilation-result-response',
           id: event.data.id,

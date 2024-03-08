@@ -18,15 +18,9 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 enso-prelude = { path = "../prelude" }
 serde = { workspace = true }
-typenum = { version = "1.11.2" }
-rustversion = { version = "1.0" }
 failure = { workspace = true }
 bytemuck = { workspace = true }
 
 [dev-dependencies]
 itertools = { workspace = true }
 criterion = "0.3"
-
-[[bench]]
-name = "bench_tree_query"
-harness = false

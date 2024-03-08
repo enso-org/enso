@@ -339,8 +339,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     index === selectedIndex
                       ? 'bg-frame-selected'
                       : selectedIndices.has(index)
-                      ? 'bg-frame'
-                      : ''
+                        ? 'bg-frame'
+                        : ''
                   }`}
                   onClick={event => {
                     querySource.current = QuerySource.internal

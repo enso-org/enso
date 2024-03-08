@@ -16,8 +16,10 @@ import {
   ROOT_ID,
   Token,
   asOwned,
+  escapeTextLiteral,
   isIdentifier,
   isToken,
+  isTokenChild,
   isTokenId,
   newExternalId,
   parentId,
@@ -1194,24 +1196,6 @@ export interface MutableImport extends Import, MutableAst {
 }
 applyMixins(MutableImport, [MutableAst])
 
-const mapping: Record<string, string> = {
-  '\b': '\\b',
-  '\f': '\\f',
-  '\n': '\\n',
-  '\r': '\\r',
-  '\t': '\\t',
-  '\v': '\\v',
-  '"': '\\"',
-  "'": "\\'",
-  '`': '``',
-}
-
-/** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
- * NOT USABLE to insert into raw strings. Does not include quotes. */
-function escape(string: string) {
-  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
-}
-
 interface TreeRefs {
   token: any
   ast: any
@@ -1247,6 +1231,16 @@ function rawToConcrete(module: Module): RefMap<RawRefs, ConcreteRefs> {
     else return { ...child, node: module.get(child.node) }
   }
 }
+
+function concreteToOwned(module: MutableModule): RefMap<ConcreteRefs, OwnedRefs> {
+  return (child: FieldData<ConcreteRefs>) => {
+    if (typeof child !== 'object') return
+    if (!('node' in child)) return
+    if (isTokenChild(child)) return child
+    else return { ...child, node: module.copy(child.node) }
+  }
+}
+
 export interface TextToken<T extends TreeRefs = RawRefs> {
   type: 'token'
   readonly token: T['token']
@@ -1335,19 +1329,22 @@ export class TextLiteral extends Ast {
     return asOwned(new MutableTextLiteral(module, fields))
   }
 
-  static new(rawText: string, module: MutableModule): Owned<MutableTextLiteral> {
-    const escaped = escape(rawText)
+  static new(rawText: string, module?: MutableModule): Owned<MutableTextLiteral> {
+    const escaped = escapeTextLiteral(rawText)
     const parsed = parse(`'${escaped}'`, module)
     if (!(parsed instanceof MutableTextLiteral)) {
       console.error(`Failed to escape string for interpolated text`, rawText, escaped, parsed)
-      const safeText = rawText.replaceAll(/[^-+A-Za-z0-9_. ]/, '')
+      const safeText = rawText.replaceAll(/[^-+A-Za-z0-9_. ]/g, '')
       return this.new(safeText, module)
     }
     return parsed
   }
 
-  /** Return the value of the string, interpreted except for any interpolated expressions. */
-  contentUninterpolated(): string {
+  /**
+   * Return the literal value of the string with all escape sequences applied, but without
+   * evaluating any interpolated expressions.
+   */
+  get rawTextContent(): string {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
@@ -1358,10 +1355,63 @@ export class TextLiteral extends Ast {
     for (const e of elements) yield* fieldConcreteChildren(e)
     if (close) yield close
   }
+
+  boundaryTokenCode(): string | undefined {
+    return (this.open || this.close)?.code()
+  }
+
+  isInterpolated(): boolean {
+    const token = this.boundaryTokenCode()
+    return token === "'" || token === "'''"
+  }
+
+  get open(): Token | undefined {
+    return this.module.getToken(this.fields.get('open')?.node)
+  }
+
+  get close(): Token | undefined {
+    return this.module.getToken(this.fields.get('close')?.node)
+  }
+
+  get elements(): TextElement<ConcreteRefs>[] {
+    return this.fields.get('elements').map((e) => mapRefs(e, rawToConcrete(this.module)))
+  }
 }
 export class MutableTextLiteral extends TextLiteral implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & TextLiteralFields>
+
+  setBoundaries(code: string) {
+    this.fields.set('open', unspaced(Token.new(code)))
+    this.fields.set('close', unspaced(Token.new(code)))
+  }
+
+  setElements(elements: TextElement<OwnedRefs>[]) {
+    this.fields.set(
+      'elements',
+      elements.map((e) => mapRefs(e, ownedToRaw(this.module, this.id))),
+    )
+  }
+
+  /**
+   * Set literal value of the string. The code representation of assigned text will be automatically
+   * transformed to use escape sequences when necessary.
+   */
+  setRawTextContent(rawText: string) {
+    let boundary = this.boundaryTokenCode()
+    const isInterpolated = this.isInterpolated()
+    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.includes(boundary))
+    if (mustBecomeInterpolated) {
+      boundary = "'"
+      this.setBoundaries(boundary)
+    }
+    const literalContents =
+      isInterpolated || mustBecomeInterpolated ? escapeTextLiteral(rawText) : rawText
+    const parsed = parse(`${boundary}${literalContents}${boundary}`)
+    assert(parsed instanceof TextLiteral)
+    const elements = parsed.elements.map((e) => mapRefs(e, concreteToOwned(this.module)))
+    this.setElements(elements)
+  }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableAst {}
 applyMixins(MutableTextLiteral, [MutableAst])
@@ -1953,8 +2003,9 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   const expression = raw.expression ? module.get(raw.expression.node) : undefined
   return {
     newline: { ...raw.newline, node: module.getToken(raw.newline.node) },
-    expression: expression
-      ? {
+    expression:
+      expression ?
+        {
           whitespace: raw.expression?.whitespace,
           node: expression,
         }
@@ -1966,8 +2017,9 @@ function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockL
   const expression = raw.expression ? module.get(raw.expression.node).takeIfParented() : undefined
   return {
     newline: { ...raw.newline, node: module.getToken(raw.newline.node) },
-    expression: expression
-      ? {
+    expression:
+      expression ?
+        {
           whitespace: raw.expression?.whitespace,
           node: expression,
         }
@@ -1978,8 +2030,9 @@ function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockL
 function lineToRaw(line: OwnedBlockLine, module: MutableModule, block: AstId): RawBlockLine {
   return {
     newline: line.newline ?? unspaced(Token.new('\n', RawAst.Token.Type.Newline)),
-    expression: line.expression
-      ? {
+    expression:
+      line.expression ?
+        {
           whitespace: line.expression?.whitespace,
           node: claimChild(module, line.expression.node, block),
         }
@@ -2084,40 +2137,24 @@ export class MutableWildcard extends Wildcard implements MutableAst {
 export interface MutableWildcard extends Wildcard, MutableAst {}
 applyMixins(MutableWildcard, [MutableAst])
 
-export type Mutable<T extends Ast = Ast> = T extends App
-  ? MutableApp
-  : T extends Assignment
-  ? MutableAssignment
-  : T extends BodyBlock
-  ? MutableBodyBlock
-  : T extends Documented
-  ? MutableDocumented
-  : T extends Function
-  ? MutableFunction
-  : T extends Generic
-  ? MutableGeneric
-  : T extends Group
-  ? MutableGroup
-  : T extends Ident
-  ? MutableIdent
-  : T extends Import
-  ? MutableImport
-  : T extends Invalid
-  ? MutableInvalid
-  : T extends NegationApp
-  ? MutableNegationApp
-  : T extends NumericLiteral
-  ? MutableNumericLiteral
-  : T extends OprApp
-  ? MutableOprApp
-  : T extends PropertyAccess
-  ? MutablePropertyAccess
-  : T extends TextLiteral
-  ? MutableTextLiteral
-  : T extends UnaryOprApp
-  ? MutableUnaryOprApp
-  : T extends Wildcard
-  ? MutableWildcard
+export type Mutable<T extends Ast = Ast> =
+  T extends App ? MutableApp
+  : T extends Assignment ? MutableAssignment
+  : T extends BodyBlock ? MutableBodyBlock
+  : T extends Documented ? MutableDocumented
+  : T extends Function ? MutableFunction
+  : T extends Generic ? MutableGeneric
+  : T extends Group ? MutableGroup
+  : T extends Ident ? MutableIdent
+  : T extends Import ? MutableImport
+  : T extends Invalid ? MutableInvalid
+  : T extends NegationApp ? MutableNegationApp
+  : T extends NumericLiteral ? MutableNumericLiteral
+  : T extends OprApp ? MutableOprApp
+  : T extends PropertyAccess ? MutablePropertyAccess
+  : T extends TextLiteral ? MutableTextLiteral
+  : T extends UnaryOprApp ? MutableUnaryOprApp
+  : T extends Wildcard ? MutableWildcard
   : MutableAst
 
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
@@ -2296,15 +2333,27 @@ function concreteChild(
 }
 
 type StrictIdentLike = Identifier | IdentifierToken
-function toIdentStrict(ident: StrictIdentLike): IdentifierToken {
-  return isToken(ident) ? ident : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierToken)
+function toIdentStrict(ident: StrictIdentLike): IdentifierToken
+function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined
+function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined {
+  return (
+    ident ?
+      isToken(ident) ? ident
+      : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierToken)
+    : undefined
+  )
 }
 
 type IdentLike = IdentifierOrOperatorIdentifier | IdentifierOrOperatorIdentifierToken
-function toIdent(ident: IdentLike): IdentifierOrOperatorIdentifierToken {
-  return isToken(ident)
-    ? ident
-    : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierOrOperatorIdentifierToken)
+function toIdent(ident: IdentLike): IdentifierOrOperatorIdentifierToken
+function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined
+function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined {
+  return (
+    ident ?
+      isToken(ident) ? ident
+      : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierOrOperatorIdentifierToken)
+    : undefined
+  )
 }
 
 function makeEquals(): Token {

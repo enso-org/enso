@@ -1,7 +1,7 @@
 /** @file Defines the {@link RemoteLogger} class and {@link remoteLog} function for sending logs to a remote server.
  * {@link RemoteLogger} provides a convenient way to manage remote logging with access token authorization. */
 
-import * as app from 'ensogl-runner/src/runner'
+import * as app from 'enso-runner/src/runner'
 
 const logger = app.log.logger
 
@@ -59,17 +59,18 @@ export async function remoteLog(
             ]
             const body = JSON.stringify({ message, metadata })
             const response = await fetch(REMOTE_LOG_URL, { method: 'POST', headers, body })
-            if (!response.ok) {
+            if (response.ok) {
+                return
+            } else {
                 const errorMessage = `Error while sending log to a remote: Status ${response.status}.`
-                try {
-                    const text = await response.text()
-                    throw new Error(`${errorMessage} Response: ${text}.`)
-                } catch (error) {
+                const text = await response.text().catch(error => {
                     throw new Error(`${errorMessage} Failed to read response: ${String(error)}.`)
-                }
+                })
+                throw new Error(`${errorMessage} Response: ${text}.`)
             }
         } catch (error) {
             logger.error(error)
+            // eslint-disable-next-line no-restricted-syntax
             throw error
         }
     }

@@ -1,9 +1,9 @@
 import project.Any.Any
-import project.Data.Boolean.Boolean
 import project.Data.Json.Extensions
 import project.Data.Json.JS_Object
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
+import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -11,11 +11,16 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.No_Such_Key.No_Such_Key
+import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.File_Access.File_Access
+import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File.Write_Extensions
 import project.System.Input_Stream.Input_Stream
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Metadata import make_single_choice, Widget
@@ -38,6 +43,7 @@ polyglot java import org.xml.sax.SAXParseException
 
 type XML_Document
     ## GROUP Input
+       ICON data_input
        Read an XML document from a file.
        If there is an error reading the file, `File_Error` is thrown.
        If there is a parsing error, `XML_Error.Parse_Error` is thrown.
@@ -55,7 +61,8 @@ type XML_Document
         File_Error.handle_java_exceptions file <|
             file.with_input_stream [File_Access.Read] XML_Document.from_stream
 
-    ## Read an XML document from an input stream.
+    ## ICON data_input
+       Read an XML document from an input stream.
        If there is a parsing error, `XML_Error.Parse_Error` is thrown.
 
        Arguments:
@@ -71,6 +78,7 @@ type XML_Document
            input_stream.with_java_stream java_stream-> XML_Document.from_source java_stream
 
     ## GROUP Conversions
+       ICON convert
        Read an XML document from a string.
        If there is a parsing error, `XML_Error.Parse_Error` is thrown.
 
@@ -102,6 +110,7 @@ type XML_Document
 
 
     ## GROUP Metadata
+       ICON metadata
        Get the root element of the document.
 
        > Example
@@ -191,7 +200,7 @@ type XML_Document
     outer_xml : Text ! XML_Error
     outer_xml self =
         XML_Error.handle_java_exceptions <|
-            XML_Utils.outerXML self.java_document
+            XML_Utils.outerXML self.java_document False
 
     ## Gets the raw XML of the document.
 
@@ -204,6 +213,49 @@ type XML_Document
     inner_xml self =
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_document
+
+    ## GROUP Output
+       ICON data_output
+       Writes (or appends) the xml to the specified file using the supplied
+       encoding. The behavior specified in the `existing_file` parameter will be
+       used if the file exists.
+
+       Appending will probably not work as expected for XML documents, as it will
+       append after the root element, which is not valid XML.
+
+       Arguments:
+       - path: The path to the target file.
+       - encoding: The encoding to use when writing the file.
+       - on_existing_file: Specifies how to proceed if the file already exists.
+       - include_xml_declaration: Specifies whether to include the XML declaration
+         in the output. (e.g. `<?xml version="1.0" encoding="UTF-8"?>`)
+       - on_problems: Specifies how to handle any encountered problems.
+
+       If a character cannot be converted to a byte, an `Encoding_Error` is raised.
+       If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with
+       a substitute (either '�' (if Unicode) or '?' depending on the encoding).
+       Otherwise, the process is aborted.
+       If the path to the parent location cannot be found or the filename is
+       invalid, a `File_Error.Not_Found` is raised.
+       If another error occurs, such as access denied, an `File_Error.IO_Error` is
+       raised.
+       Otherwise, the file is created with the encoded xlm written to it.
+
+       The method returns a `File` object for the written file.
+
+       ? Dry Run
+
+           If writing to Output context is not enabled (such as in "Design" mode),
+           then this function will write to a temporary file. This temporary file will
+           be automatically deleted on exit of the Enso process.
+
+           This allows for building the workflow without affecting the real files.
+    @encoding Encoding.default_widget
+    write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
+    write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+        declaration = if include_xml_declaration then '<?xml version=\"1.0\" encoding=\"' + encoding.character_set + '\"?>\n' else ""
+        XML_Error.handle_java_exceptions <|
+            (declaration + XML_Utils.outerXML self.java_document True).write path encoding on_existing_file on_problems
 
     ## GROUP Selections
        Gets the child elements of an XML document.
@@ -313,6 +365,7 @@ type XML_Document
 
 type XML_Element
     ## GROUP Metadata
+       ICON metadata
        Gets the tag of an XML element.
 
        > Example
@@ -326,6 +379,7 @@ type XML_Element
             self.java_element.getNodeName
 
     ## GROUP Selections
+       ICON parse3
        Gets a child of an XML element.
 
        Arguments:
@@ -352,6 +406,7 @@ type XML_Element
             self.children.find (c-> c.name == key) . if_nothing if_missing
 
     ## GROUP Selections
+       ICON select_row
        Gets a child or attribute of an XML element.
 
        Arguments:
@@ -381,6 +436,7 @@ type XML_Element
         self.get key if_missing
 
     ## GROUP Selections
+       ICON array_new
        Gets the child elements of an XML element.
 
        `children` only returns child elements and child text nodes that are not
@@ -393,6 +449,7 @@ type XML_Element
     children self = self.children_cache
 
     ## GROUP Metadata
+       ICON metadata
        Gets the number children of an XML element.
 
        `child_count` only counts child elements and child text nodes that are
@@ -415,6 +472,7 @@ type XML_Element
             self.children_cache.map  n->n.name . distinct
 
     ## GROUP Selections
+       ICON parse3
        Get an attribute of an XML element.
 
        Arguments:
@@ -442,6 +500,7 @@ type XML_Element
         Vector.new named_node_map.getLength i-> named_node_map.item i . getNodeName
 
     ## GROUP Selections
+       ICON array_new
        Gets a map containing of the attributes of an XML element.
 
        > Example
@@ -457,6 +516,7 @@ type XML_Element
             Map.from_vector keys_and_values
 
     ## GROUP Selections
+       ICON metadata
        Gets the text (non-markup) contents of the element and its descendants,
        if any.
 
@@ -470,7 +530,8 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             self.java_element.getTextContent
 
-    ## Gets the raw XML of the element (including tag, attributes and contents).
+    ## ICON metadata
+       Gets the raw XML of the element (including tag, attributes and contents).
 
        > Example
          Get the outer XML of an element.
@@ -480,9 +541,10 @@ type XML_Element
     outer_xml : Text ! XML_Error
     outer_xml self =
         XML_Error.handle_java_exceptions <|
-            XML_Utils.outerXML self.java_element
+            XML_Utils.outerXML self.java_element False
 
-    ## Gets the raw XML of the contents of the element, not including the
+    ## ICON metadata
+       Gets the raw XML of the contents of the element, not including the
        outermost tag and attributes.
 
        > Example
@@ -495,7 +557,8 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
             XML_Utils.innerXML self.java_element
 
-    ## Get elements denoted by the given XPath key.
+    ## ICON parse3
+       Get elements denoted by the given XPath key.
 
        Arguments:
        - key: The XPath string to use to search for elements.
@@ -522,7 +585,8 @@ type XML_Element
         XML_Error.handle_java_exceptions <|
            self.children_cache.filter (c-> c.name == tag_name)
 
-    ## Gets descendant elements matching a given tag name.
+    ## ICON parse3
+       Gets descendant elements matching a given tag name.
        This searches through all descendants of the node, not just immediate children.
 
        Arguments:
@@ -631,7 +695,7 @@ build_child_list java_element =
 ## PRIVATE
    Create the element selector for an XML document or element.
 child_selector : XML_Element | XML_Document -> Widget
-child_selector node:(XML_Element|XML_Document) =
+child_selector node:(XML_Element | XML_Document) =
     attributes = case node of
         _ : XML_Element -> node.attribute_names.map (n->"@"+n)
         _ -> []

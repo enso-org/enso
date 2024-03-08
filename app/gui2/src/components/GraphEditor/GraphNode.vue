@@ -71,14 +71,13 @@ const outputPortsSet = computed(() => {
   return bindings
 })
 
-const widthOverridePx = ref<number>()
 const nodeId = computed(() => asNodeId(props.node.rootSpan.id))
 const externalId = computed(() => props.node.rootSpan.externalId)
 const potentialSelfArgumentId = computed(() => props.node.primarySubject)
 const connectedSelfArgumentId = computed(() =>
-  props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject)
-    ? props.node.primarySubject
-    : undefined,
+  props.node.primarySubject && graph.isConnectedTarget(props.node.primarySubject) ?
+    props.node.primarySubject
+  : undefined,
 )
 
 onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
@@ -86,7 +85,6 @@ onUnmounted(() => graph.unregisterNodeRect(nodeId.value))
 const rootNode = ref<HTMLElement>()
 const contentNode = ref<HTMLElement>()
 const nodeSize = useResizeObserver(rootNode)
-const baseNodeSize = computed(() => new Vec2(contentNode.value?.scrollWidth ?? 0, nodeSize.value.y))
 
 const error = computed(() => {
   const externalId = graph.db.idToExternal(nodeId.value)
@@ -215,11 +213,11 @@ const isOutputContextOverridden = computed({
     const module = projectStore.module
     if (!module) return
     const edit = props.node.rootSpan.module.edit()
-    const replacementText = shouldOverride
-      ? [Ast.TextLiteral.new(projectStore.executionMode, edit)]
-      : undefined
-    const replacements = projectStore.isOutputContextEnabled
-      ? {
+    const replacementText =
+      shouldOverride ? [Ast.TextLiteral.new(projectStore.executionMode, edit)] : undefined
+    const replacements =
+      projectStore.isOutputContextEnabled ?
+        {
           enableOutputContext: undefined,
           disableOutputContext: replacementText,
         }
@@ -388,10 +386,7 @@ const documentation = computed<string | undefined>({
     class="GraphNode"
     :style="{
       transform,
-      width:
-        widthOverridePx != null && isVisualizationVisible
-          ? `${Math.max(widthOverridePx, contentNode?.scrollWidth ?? 0)}px`
-          : undefined,
+      minWidth: isVisualizationVisible ? `${visualizationWidth}px` : undefined,
       '--node-group-color': color,
     }"
     :class="{
@@ -424,7 +419,7 @@ const documentation = computed<string | undefined>({
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
-      :nodeSize="baseNodeSize"
+      :nodeSize="nodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="props.node.position"
       :isCircularMenuVisible="menuVisible"
@@ -434,10 +429,7 @@ const documentation = computed<string | undefined>({
       :typename="expressionInfo?.typename"
       :width="visualizationWidth"
       :isFocused="isOnlyOneSelected"
-      @update:rect="
-        emit('update:visualizationRect', $event),
-          (widthOverridePx = $event && $event.size.x > baseNodeSize.x ? $event.size.x : undefined)
-      "
+      @update:rect="emit('update:visualizationRect', $event)"
       @update:id="emit('update:visualizationId', $event)"
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
@@ -453,7 +445,7 @@ const documentation = computed<string | undefined>({
     </Suspense>
     <div
       ref="contentNode"
-      class="node"
+      class="content"
       v-on="dragPointer.events"
       @click.stop
       @pointerdown.stop
@@ -600,6 +592,7 @@ const documentation = computed<string | undefined>({
   position: absolute;
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
+  box-sizing: border-box;
   ::selection {
     background-color: rgba(255, 255, 255, 20%);
   }
@@ -609,7 +602,7 @@ const documentation = computed<string | undefined>({
   display: none;
 }
 
-.node {
+.content {
   font-family: var(--font-code);
   position: relative;
   top: 0;
@@ -617,7 +610,7 @@ const documentation = computed<string | undefined>({
   caret-shape: bar;
   height: var(--node-height);
   border-radius: var(--node-border-radius);
-  display: inline-flex;
+  display: flex;
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
