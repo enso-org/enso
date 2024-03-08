@@ -49,7 +49,7 @@ interface JSONRPCErrorResponse extends JSONRPCBaseResponse {
 }
 
 /** The return value of a JSON-RPC call. */
-type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
+export type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
 
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */

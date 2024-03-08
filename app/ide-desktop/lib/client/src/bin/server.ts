@@ -208,7 +208,7 @@ export class Server {
                             }
                         })
                         .then(commandOutput => {
-                            const bodyText = JSON.stringify(commandOutput)
+                            const bodyText = commandOutput
                             response
                                 .writeHead(HTTP_STATUS_OK, [
                                     ['Content-Length', String(bodyText.length)],

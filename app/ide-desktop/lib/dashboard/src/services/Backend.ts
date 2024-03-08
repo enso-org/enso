@@ -972,7 +972,17 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   if (relativeTypeOrder !== 0) {
     return relativeTypeOrder
   }
-  return a.title > b.title ? 1 : a.title < b.title ? COMPARE_LESS_THAN : 0
+  const aModified = new Date(a.modifiedAt)
+  const bModified = new Date(b.modifiedAt)
+  return aModified > bModified
+    ? -1
+    : aModified < bModified
+      ? 1
+      : a.title > b.title
+        ? 1
+        : a.title < b.title
+          ? -1
+          : 0
 }
 
 // ==================

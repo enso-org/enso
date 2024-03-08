@@ -11,6 +11,7 @@ import Backend, * as backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
+import * as fileInfo from '#/utilities/fileInfo'
 import * as projectManager from '#/utilities/ProjectManager'
 import ProjectManager from '#/utilities/ProjectManager'
 
@@ -40,6 +41,14 @@ interface ProjectMetadata {
   readonly lastOpened?: dateTime.Rfc3339DateTime
 }
 
+/** Attributes of a file or folder. */
+interface Attributes {
+  readonly creationTime: UTCDateTime
+  readonly lastAccessTime: UTCDateTime
+  readonly lastModifiedTime: UTCDateTime
+  readonly byteSize: number
+}
+
 /** Metadata for an arbitrary file system entry. */
 type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
 
@@ -54,12 +63,14 @@ enum FileSystemEntryType {
 interface FileEntry {
   readonly type: FileSystemEntryType.FileEntry
   readonly path: string
+  readonly attributes: Attributes
 }
 
 /** Metadata for a directory. */
 interface DirectoryEntry {
   readonly type: FileSystemEntryType.DirectoryEntry
   readonly path: string
+  readonly attributes: Attributes
 }
 
 /** Metadata for a project. */
@@ -67,6 +78,7 @@ interface ProjectEntry {
   readonly type: FileSystemEntryType.ProjectEntry
   readonly path: string
   readonly metadata: ProjectMetadata
+  readonly attributes: Attributes
 }
 
 // =============================
@@ -107,63 +119,70 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams
   ): Promise<backend.AnyAsset[]> {
-    const entries = await this.runProjectManagerCommand<FileSystemEntry[]>(
-      '--filesystem-list',
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly entries: FileSystemEntry[]
+    }
+
+    const response = await this.runProjectManagerCommand<ResponseBody>(
+      'filesystem-list',
       query.parentId ?? '.'
     )
-    const modifiedAt = dateTime.toRfc3339(new Date())
+    const entries = response.entries
     const parentId = query.parentId ?? backend.DirectoryId('.')
-    return entries.map(entry => {
-      switch (entry.type) {
-        case FileSystemEntryType.DirectoryEntry: {
-          return {
-            type: backend.AssetType.directory,
-            id: backend.DirectoryId(entry.path),
-            modifiedAt,
-            parentId,
-            title: entry.path,
-            permissions: [],
-            projectState: null,
-            labels: [],
-            description: null,
-          } satisfies backend.DirectoryAsset
+    return entries
+      .map(entry => {
+        switch (entry.type) {
+          case FileSystemEntryType.DirectoryEntry: {
+            return {
+              type: backend.AssetType.directory,
+              id: backend.DirectoryId(entry.path),
+              modifiedAt: entry.attributes.lastModifiedTime,
+              parentId,
+              title: fileInfo.fileName(entry.path),
+              permissions: [],
+              projectState: null,
+              labels: [],
+              description: null,
+            } satisfies backend.DirectoryAsset
+          }
+          case FileSystemEntryType.ProjectEntry: {
+            return {
+              type: backend.AssetType.project,
+              id: entry.metadata.id,
+              title: entry.metadata.name,
+              modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
+              parentId,
+              permissions: [],
+              projectState: {
+                type: LocalBackend.currentlyOpenProjects.has(entry.metadata.id)
+                  ? backend.ProjectState.opened
+                  : entry.metadata.id === LocalBackend.currentlyOpeningProjectId
+                    ? backend.ProjectState.openInProgress
+                    : backend.ProjectState.closed,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                volume_id: '',
+              },
+              labels: [],
+              description: null,
+            } satisfies backend.ProjectAsset
+          }
+          case FileSystemEntryType.FileEntry: {
+            return {
+              type: backend.AssetType.file,
+              id: backend.FileId(entry.path),
+              title: fileInfo.fileName(entry.path),
+              modifiedAt: entry.attributes.lastModifiedTime,
+              parentId,
+              permissions: [],
+              projectState: null,
+              labels: [],
+              description: null,
+            } satisfies backend.FileAsset
+          }
         }
-        case FileSystemEntryType.ProjectEntry: {
-          return {
-            type: backend.AssetType.project,
-            id: entry.metadata.id,
-            title: entry.metadata.name,
-            modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
-            parentId,
-            permissions: [],
-            projectState: {
-              type: LocalBackend.currentlyOpenProjects.has(entry.metadata.id)
-                ? backend.ProjectState.opened
-                : entry.metadata.id === LocalBackend.currentlyOpeningProjectId
-                  ? backend.ProjectState.openInProgress
-                  : backend.ProjectState.closed,
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              volume_id: '',
-            },
-            labels: [],
-            description: null,
-          } satisfies backend.ProjectAsset
-        }
-        case FileSystemEntryType.FileEntry: {
-          return {
-            type: backend.AssetType.file,
-            id: backend.FileId(entry.path),
-            title: entry.path,
-            modifiedAt,
-            parentId,
-            permissions: [],
-            projectState: null,
-            labels: [],
-            description: null,
-          } satisfies backend.FileAsset
-        }
-      }
-    })
+      })
+      .sort(backend.compareAssets)
   }
 
   /** Return a list of projects belonging to the current user.
@@ -596,8 +615,13 @@ export default class LocalBackend extends Backend {
       method: 'POST',
       body: JSON.stringify([`--${name}`, ...cliArguments]),
     })
-    // This is SAFE, as the return type is statically known.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return await response.json()
+    // There is no way to avoid this as `JSON.parse` returns `any`.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+    const json: projectManager.JSONRPCResponse<never> = await response.json()
+    if ('result' in json) {
+      return json.result
+    } else {
+      throw new Error(json.error)
+    }
   }
 }

@@ -54,6 +54,7 @@
     "start": "tsx start.ts",
     "build": "tsx bundle.ts",
     "dist": "tsx dist.ts",
-    "watch": "tsx watch.ts"
+    "watch": "tsx watch.ts",
+    "watch2": "tsx watch2.ts"
   }
 }

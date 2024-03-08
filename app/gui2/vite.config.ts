@@ -57,7 +57,10 @@ export default defineConfig({
         tailwindcss({
           ...tailwindConfig.default,
           content: tailwindConfig.default.content.map((glob: string) =>
-            glob.replace(/^[.][/]/, '../ide-desktop/lib/dashboard/'),
+            glob.replace(
+              /^[.][/]/,
+              fileURLToPath(new URL('../ide-desktop/lib/dashboard/', import.meta.url)),
+            ),
           ),
         }),
       ],
