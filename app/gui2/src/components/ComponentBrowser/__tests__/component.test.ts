@@ -9,7 +9,7 @@ import {
 } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import {
-  makeCon,
+  makeConstructor,
   makeMethod,
   makeModule,
   makeModuleMethod,
@@ -23,7 +23,7 @@ test.each([
   [makeModuleMethod('Standard.Base.Data.read'), 'Data.read'],
   [makeStaticMethod('Standard.Base.Data.Vector.new'), 'Vector.new'],
   [makeMethod('Standard.Base.Data.Vector.get'), 'get'],
-  [makeCon('Standard.Table.Data.Join_Kind.Join_Kind.LeftInner'), 'Join_Kind.LeftInner'],
+  [makeConstructor('Standard.Table.Data.Join_Kind.Join_Kind.LeftInner'), 'Join_Kind.LeftInner'],
   [makeModule('Standard.Table.Data.Join_Kind'), 'Join_Kind'],
   [makeModule('Standard.Table.Data'), 'Data', 'Standard.Table.Data'],
   [makeModuleMethod('local.Project.main'), 'Project.main'],

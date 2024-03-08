@@ -4,7 +4,7 @@ import { useApproach } from '@/composables/animation'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, ref, type Ref } from 'vue'
+import { computed, proxyRefs, shallowRef, type Ref } from 'vue'
 
 function elemRect(target: Element | undefined): Rect {
   if (target != null && target instanceof Element) {
@@ -17,7 +17,7 @@ function elemRect(target: Element | undefined): Rect {
 export type NavigatorComposable = ReturnType<typeof useNavigator>
 export function useNavigator(viewportNode: Ref<Element | undefined>) {
   const size = useResizeObserver(viewportNode)
-  const targetCenter = ref<Vec2>(Vec2.Zero)
+  const targetCenter = shallowRef<Vec2>(Vec2.Zero)
   const targetX = computed(() => targetCenter.value.x)
   const targetY = computed(() => targetCenter.value.y)
   const centerX = useApproach(targetX)
@@ -32,7 +32,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       centerY.value = value.y
     },
   })
-  const targetScale = ref(1)
+  const targetScale = shallowRef(1)
   const animatedScale = useApproach(targetScale)
   const scale = computed({
     get() {
@@ -93,6 +93,21 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     targetCenter.value = new Vec2(centerX, centerY)
   }
 
+  /** Pan to include the given prioritized list of coordinates.
+   *
+   *  The view will be offset to include each coordinate, unless the coordinate cannot be fit in the viewport without
+   *  losing a previous (higher-priority) coordinate; in that case, shift the viewport as close as possible to the
+   *  coordinate while still satisfying the more important constraints.
+   *
+   *  If all provided constraints can be met, the viewport will be moved the shortest distance that fits all the
+   *  coordinates in view.
+   */
+  function panTo(points: Partial<Vec2>[]) {
+    let target = viewport.value
+    for (const point of points.reverse()) target = target.offsetToInclude(point) ?? target
+    targetCenter.value = target.center()
+  }
+
   let zoomPivot = Vec2.Zero
   const zoomPointer = usePointer((pos, _event, ty) => {
     if (ty === 'start') {
@@ -140,7 +155,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
 
   let isPointerDown = false
   let scrolledThisFrame = false
-  const eventMousePos = ref<Vec2 | null>(null)
+  const eventMousePos = shallowRef<Vec2 | null>(null)
   let eventTargetScrollPos: Vec2 | null = null
   const sceneMousePos = computed(() =>
     eventMousePos.value ? clientToScenePos(eventMousePos.value) : null,
@@ -225,6 +240,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       },
     },
     translate,
+    targetScale,
     scale,
     viewBox,
     transform,
@@ -234,6 +250,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     clientToScenePos,
     clientToSceneRect,
     panAndZoomTo,
+    panTo,
     viewport,
   })
 }

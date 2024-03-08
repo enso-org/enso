@@ -4,6 +4,8 @@ import * as React from 'react'
 import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
+import * as modalProvider from '#/providers/ModalProvider'
+
 import Label from '#/components/dashboard/Label'
 
 import type * as backend from '#/services/Backend'
@@ -52,6 +54,7 @@ export interface AssetSearchBarProps {
 /** A search bar containing a text input, and a list of suggestions. */
 export default function AssetSearchBar(props: AssetSearchBarProps) {
   const { isCloud, query, setQuery, labels, suggestions: rawSuggestions } = props
+  const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
   const baseQuery = React.useRef(query)
   const [suggestions, setSuggestions] = React.useState(rawSuggestions)
@@ -172,7 +175,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
         eventModule.isTextInputEvent(event) &&
         event.key !== ' ' &&
-        (!detect.isOnMacOS() || event.key !== 'Delete')
+        (!detect.isOnMacOS() || event.key !== 'Delete') &&
+        modalRef.current == null
       ) {
         searchRef.current?.focus()
       }
@@ -193,7 +197,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       document.removeEventListener('keydown', onKeyDown)
       document.removeEventListener('keyup', onKeyUp)
     }
-  }, [setQuery])
+  }, [setQuery, /* should never change */ modalRef])
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {
@@ -335,8 +339,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     index === selectedIndex
                       ? 'bg-frame-selected'
                       : selectedIndices.has(index)
-                      ? 'bg-frame'
-                      : ''
+                        ? 'bg-frame'
+                        : ''
                   }`}
                   onClick={event => {
                     querySource.current = QuerySource.internal

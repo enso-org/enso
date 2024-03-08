@@ -34,7 +34,7 @@ import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
 import * as utils from '../../../utils'
 
-import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
+import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 
@@ -75,16 +75,15 @@ class App {
             this.setChromeOptions(chromeOptions)
             security.enableAll()
             electron.app.on('before-quit', () => (this.isQuitting = true))
-            /** TODO [NP]: https://github.com/enso-org/enso/issues/5851
-             * The `electron.app.whenReady()` listener is preferable to the
-             * `electron.app.on('ready', ...)` listener. When the former is used in combination with
-             * the `authentication.initModule` call that is called in the listener, the application
-             * freezes. This freeze should be diagnosed and fixed. Then, the `whenReady()` listener
-             * should be used here instead. */
-            electron.app.on('ready', () => {
-                logger.log('Electron application is ready.')
-                void this.main(windowSize)
-            })
+            electron.app.whenReady().then(
+                () => {
+                    logger.log('Electron application is ready.')
+                    void this.main(windowSize)
+                },
+                err => {
+                    logger.error('Failed to initialize electron.', err)
+                }
+            )
             this.registerShortcuts()
         }
     }

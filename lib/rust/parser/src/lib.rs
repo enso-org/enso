@@ -123,8 +123,7 @@ pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_reflect as reflect;
     pub use enso_reflect::Reflect;
-    pub use enso_types::traits::*;
-    pub use enso_types::unit2::Bytes;
+    pub use enso_types::unit::Bytes;
 
     /// Return type for functions that will only fail in case of a bug in the implementation.
     #[derive(Debug, Default)]
@@ -153,7 +152,6 @@ pub mod prelude {
         }
     }
 }
-
 
 
 // ==============
@@ -240,15 +238,15 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
             if return_spec.is_none() {
                 if let Some(rhs) = rhs {
                     if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
-                        // If the LHS is a type, this is a (destructuring) assignment.
-                        let lhs = expression_to_pattern(mem::take(lhs));
-                        tree.variant = Box::new(Variant::Assignment(Assignment{
-                            pattern: lhs,
-                            equals: mem::take(opr),
-                            expr: mem::take(rhs),
-                        }));
-                        return tree;
-                    }
+                            // If the LHS is a type, this is a (destructuring) assignment.
+                            let lhs = expression_to_pattern(mem::take(lhs));
+                            tree.variant = Box::new(Variant::Assignment(Assignment {
+                                pattern: lhs,
+                                equals: mem::take(opr),
+                                expr: mem::take(rhs),
+                            }));
+                            return tree;
+                        }
                     if !is_invalid_pattern(&leftmost) && args.is_empty() && !is_body_block(rhs) {
                         // If the LHS has no arguments, and there is a RHS, and the RHS is not a
                         // body block, this is a variable assignment.
@@ -474,7 +472,6 @@ fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
 }
 
 
-
 // ==================
 // === Benchmarks ===
 // ==================
@@ -482,7 +479,9 @@ fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
 #[cfg(test)]
 mod benches {
     use super::*;
+
     extern crate test;
+
     use test::Bencher;
 
     #[bench]

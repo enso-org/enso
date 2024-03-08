@@ -1,0 +1,10 @@
+import project.Data.Json.JS_Object
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Error.Error
+
+## PRIVATE
+   A helper that extracts a field from a response and handles unexpected
+   response structure.
+get_required_field key js_object = case js_object of
+    _ : JS_Object -> js_object.get key if_missing=(Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing required field `"+key+"` in "+js_object.to_display_text+"."))
+    _ -> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload "Expected a JSON object, but got "+js_object.to_display_text+".")

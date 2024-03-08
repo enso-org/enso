@@ -24,9 +24,9 @@ export function assertLength<T>(iterable: Iterable<T>, length: number, message?:
   const convertedArray = Array.from(iterable)
   const messagePrefix = message ? message + ' ' : ''
   const elementRepresentation =
-    convertedArray.length > 5
-      ? `${convertedArray.slice(0, 5).join(', ')},...`
-      : convertedArray.join(', ')
+    convertedArray.length > 5 ?
+      `${convertedArray.slice(0, 5).join(', ')},...`
+    : convertedArray.join(', ')
   assert(
     convertedArray.length === length,
     `${messagePrefix}Expected iterable of length ${length}, got length ${convertedArray.length}. Elements: [${elementRepresentation}]`,
