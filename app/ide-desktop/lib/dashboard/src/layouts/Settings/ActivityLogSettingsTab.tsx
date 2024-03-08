@@ -10,6 +10,7 @@ import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 
+import DateInput from '#/components/DateInput'
 import Dropdown from '#/components/Dropdown'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 import SvgMask from '#/components/SvgMask'
@@ -41,6 +42,8 @@ const EVENT_TYPE_NAME: Record<backendModule.EventType, string> = {
 /** Settings tab for viewing and editing organization members. */
 export default function ActivityLogSettingsTab() {
   const { backend } = backendProvider.useBackend()
+  const [startDate, setStartDate] = React.useState<Date | null>(null)
+  const [endDate, setEndDate] = React.useState<Date | null>(null)
   const [types, setTypes] = React.useState<readonly backendModule.EventType[]>([])
   const [typeIndices, setTypeIndices] = React.useState<readonly number[]>(() => [])
   const [emails, setEmails] = React.useState<readonly string[]>([])
@@ -53,8 +56,16 @@ export default function ActivityLogSettingsTab() {
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
     return logs == null
       ? null
-      : logs.filter(log => typesSet.has(log.metadata.type) && emailsSet.has(log.userEmail))
-  }, [logs, types, emails, allEmails])
+      : logs.filter(log => {
+          const date = log.timestamp == null ? null : dateTime.toDate(new Date(log.timestamp))
+          return (
+            typesSet.has(log.metadata.type) &&
+            emailsSet.has(log.userEmail) &&
+            (date == null ||
+              ((startDate == null || date >= startDate) && (endDate == null || date <= endDate)))
+          )
+        })
+  }, [logs, types, emails, startDate, endDate, allEmails])
   const isLoading = filteredLogs == null
 
   return (
@@ -62,6 +73,14 @@ export default function ActivityLogSettingsTab() {
       <div className="flex flex-col gap-2.5">
         <h3 className="h-9.5 py-0.5 text-xl font-bold">Activity Log</h3>
         <div className="flex gap-3">
+          <div className="flex items-center gap-2">
+            Start Date
+            <DateInput date={startDate} onInput={setStartDate} />
+          </div>
+          <div className="flex items-center gap-2">
+            End Date
+            <DateInput date={endDate} onInput={setEndDate} />
+          </div>
           <div className="flex items-center gap-2">
             Types
             <Dropdown

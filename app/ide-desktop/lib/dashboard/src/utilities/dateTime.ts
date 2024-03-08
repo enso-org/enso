@@ -35,14 +35,25 @@ export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Rfc3339DateTime = newtype.newtypeConstructor<Rfc3339DateTime>()
 
-/** Format a {@link Date} into the preferred format: `YYYY-MM-DD, hh:mm`. */
-export function formatDateTime(date: Date) {
+/** Return a new {@link Date} with units below days (hours, minutes, seconds and milliseconds)
+ * set to `0`. */
+export function toDate(dateTime: Date) {
+  return new Date(dateTime.getFullYear(), dateTime.getMonth(), dateTime.getDate())
+}
+
+/** Format a {@link Date} into the preferred date format: `YYYY-MM-DD`. */
+export function formatDate(date: Date) {
   const year = date.getFullYear()
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
   const dayOfMonth = date.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${dayOfMonth}`
+}
+
+/** Format a {@link Date} into the preferred date-time format: `YYYY-MM-DD, hh:mm`. */
+export function formatDateTime(date: Date) {
   const hour = date.getHours().toString().padStart(2, '0')
   const minute = date.getMinutes().toString().padStart(2, '0')
-  return `${year}-${month}-${dayOfMonth}, ${hour}:${minute}`
+  return `${formatDate(date)}, ${hour}:${minute}`
 }
 
 /** Format a {@link Date} into the preferred chat-frienly format: `DD/MM/YYYY, hh:mm PM`. */

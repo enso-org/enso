@@ -230,7 +230,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             {matchingItems.map((item, index) => (
               <div
                 key={itemToKey(item)}
-                className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black/5 py-1 px-2 ${
+                className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black/10 py-1 px-2 ${
                   index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-black/10' : ''
                 }`}
                 onMouseDown={event => {

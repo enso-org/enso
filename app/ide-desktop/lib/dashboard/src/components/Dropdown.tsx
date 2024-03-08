@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import CheckMarkIcon from 'enso-assets/check_mark.svg'
-import TriangleDownIcon from 'enso-assets/triangle_down.svg'
+import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -176,7 +176,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         className={`absolute left-0 h-full w-full min-w-max ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
       >
         <div
-          className={`relative before:absolute before:top-0 before:w-full before:rounded-xl before:border before:border-black/10 before:backdrop-blur-3xl before:transition-all ${
+          className={`relative before:absolute before:top-0 before:w-full before:rounded-xl before:border before:border-primary/10 before:backdrop-blur-3xl before:transition-all ${
             isDropdownVisible
               ? 'before:h-full before:shadow-soft'
               : 'before:h-6 group-hover:before:bg-frame'
@@ -204,8 +204,8 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                   tabIndex={-1}
                   className={`flex h-6 items-center gap-1 rounded-xl px-2 transition-colors ${multiple ? 'hover:font-semibold' : ''} ${
                     i === visuallySelectedIndex
-                      ? `cursor-default bg-frame font-bold`
-                      : 'hover:bg-frame-selected'
+                      ? `cursor-default bg-primary/10 font-bold`
+                      : 'hover:bg-primary/10'
                   }`}
                   key={i}
                   onMouseDown={event => {
@@ -239,7 +239,6 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                     if (!isMouseDown.current) {
                       // This is from keyboard navigation.
                       if (multiple) {
-                        // FIXME: Is this correct behavior?
                         props.onClick([item], [i])
                       } else {
                         props.onClick(item, i)
@@ -247,11 +246,10 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                     }
                   }}
                 >
-                  {selectedIndices.includes(i) ? (
-                    <SvgMask src={CheckMarkIcon} />
-                  ) : (
-                    <SvgMask src={TriangleDownIcon} className="invisible" />
-                  )}
+                  <SvgMask
+                    src={CheckMarkIcon}
+                    className={selectedIndices.includes(i) ? '' : 'invisible'}
+                  />
                   <Child item={item} />
                 </div>
               ))}
@@ -271,7 +269,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
           justFocusedRef.current = false
         }}
       >
-        <SvgMask src={TriangleDownIcon} />
+        <SvgMask src={FolderArrowIcon} className="rotate-90" />
         <div className="grow">
           {visuallySelectedItem != null ? (
             <Child item={visuallySelectedItem} />
@@ -280,22 +278,15 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
           )}
         </div>
       </div>
-      {/* Hidden, but required to exist for the width of the parent element to be correct. */}
+      {/* Hidden, but required to exist for the width of the parent element to be correct.
+       * Classes that do not affect width have been removed. */}
       <div className="flex h-0 flex-col overflow-hidden">
         {items.map((item, i) => (
           <div
             key={i}
-            className={`flex h-6 items-center gap-1 rounded-xl px-2 transition-colors ${
-              i === visuallySelectedIndex
-                ? `cursor-default bg-frame font-bold`
-                : 'hover:bg-frame-selected'
-            }`}
+            className={`flex gap-1 px-2 ${i === visuallySelectedIndex ? 'font-bold' : ''}`}
           >
-            {selectedIndices.includes(i) ? (
-              <SvgMask src={CheckMarkIcon} />
-            ) : (
-              <SvgMask src={TriangleDownIcon} className="invisible" />
-            )}
+            <SvgMask src={CheckMarkIcon} />
             <Child item={item} />
           </div>
         ))}
