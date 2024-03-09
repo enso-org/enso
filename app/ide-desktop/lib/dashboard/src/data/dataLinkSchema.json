@@ -315,7 +315,11 @@
       "type": "object",
       "properties": {
         "type": { "title": "Type", "const": "quote_style", "type": "string" },
-        "subType": { "title": "Subtype", "const": "with_quotes", "type": "string" },
+        "subType": {
+          "title": "Subtype",
+          "const": "with_quotes",
+          "type": "string"
+        },
         "quote": {
           "title": "Quote",
           "description": "Must be exactly one character.",
@@ -342,7 +346,11 @@
       "title": "Ignore quotes",
       "properties": {
         "type": { "title": "Type", "const": "quote_style", "type": "string" },
-        "subType": { "title": "Subtype", "const": "no_quotes", "type": "string" }
+        "subType": {
+          "title": "Subtype",
+          "const": "no_quotes",
+          "type": "string"
+        }
       },
       "required": ["type", "subType"]
     }
