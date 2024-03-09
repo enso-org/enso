@@ -3,6 +3,7 @@ package org.enso.compiler.core;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -10,6 +11,9 @@ import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.junit.Test;
 import org.openide.util.lookup.ServiceProvider;
+import scala.collection.Seq;
+import scala.collection.Seq$;
+import scala.jdk.javaapi.CollectionConverters$;
 
 public class PersistanceTest {
   @Test
@@ -172,4 +176,76 @@ public class PersistanceTest {
   @Persistable(id = 432436)
   public record ServiceSupply(Service supply) {}
   // @end region="self-annotation"
+
+  @Persistable(id = 432437)
+  public static class SelfLoop {
+    public Persistance.Reference<SelfLoop> self;
+
+    public Persistance.Reference<SelfLoop> self() {
+      return self;
+    }
+
+    public SelfLoop(Persistance.Reference<SelfLoop> self) {
+      this.self = self;
+    }
+  }
+
+  @Test
+  public void testReferenceLoopsInPersistance() throws Exception {
+    var obj = new SelfLoop(null);
+    // make the loop
+    obj.self = Persistance.Reference.of(obj);
+
+    var buffer = Persistance.write(obj, null);
+    assertNotNull("Byte array is returned", buffer);
+    assertNotEquals("It has non-zero length", 0, buffer.length);
+
+    var ref = Persistance.read(buffer, null);
+    var loaded = ref.get(SelfLoop.class);
+    assertEquals("The recreated object again points to itself", loaded, loaded.self.get(SelfLoop.class));
+  }
+
+  @Persistable(id = 432438)
+  public static class SelfLoopSeq {
+    public Seq<SelfLoopSeq> selfSeq;
+
+    public Seq<SelfLoopSeq> selfSeq() {
+      return selfSeq;
+    }
+
+    public SelfLoopSeq(Seq<SelfLoopSeq> selfSeq) {
+      this.selfSeq = selfSeq;
+    }
+  }
+
+  // TODO this fails because Seq is not implemented here, shall I move the test?
+  @Test
+  public void testSeqLoopsInPersistance() throws Exception {
+    var obj = new SelfLoopSeq(null);
+    // make the loop
+    var bldr = Seq$.MODULE$.newBuilder();
+    bldr.addOne(obj);
+    //noinspection unchecked
+    obj.selfSeq = (Seq<SelfLoopSeq>) bldr.result();
+
+    var buffer = Persistance.write(obj, null);
+    assertNotNull("Byte array is returned", buffer);
+    assertNotEquals("It has non-zero length", 0, buffer.length);
+
+    var ref = Persistance.read(buffer, null);
+    var loaded = ref.get(SelfLoopSeq.class);
+    assertEquals("The recreated object again points to itself", loaded, loaded.selfSeq.apply(0));
+    System.out.println("loaded = " + loaded);
+  }
+
+  @Persistable(id = 432439)
+  public record LongerLoop1(int x, Persistance.Reference<LongerLoop2> y) {}
+
+  @Persistable(id = 432440)
+  public record LongerLoop2(Persistance.Reference<LongerLoop3> y) {}
+
+  @Persistable(id = 432441)
+  public record LongerLoop3(String a, Persistance.Reference<LongerLoop1> y) {}
+
+  // TODO
 }
