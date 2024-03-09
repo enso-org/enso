@@ -71,7 +71,8 @@ v.test('correctly validates example Table .datalink files with the schema', () =
     'example-http-format-excel-workbook.datalink',
     'example-http-format-excel-sheet.datalink',
     'example-http-format-excel-range.datalink',
-    'example-http-format-delimited.datalink',
+    'example-http-format-delimited-custom-quote.datalink',
+    'example-http-format-delimited-ignore-quote.datalink',
   ]
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(TABLE_DATA_LINKS_ROOT, schema))
