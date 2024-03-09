@@ -218,9 +218,7 @@
           "$ref": "#/$defs/BooleanOrInfer"
         },
         "quote_style": {
-          "title": "Customize Quote Style",
-          "type": "object",
-          "required": ["type", "subType"],
+          "title": "Custom Quotes",
           "anyOf": [
             { "$ref": "#/$defs/DelimitedQuoteStyle" },
             { "$ref": "#/$defs/DelimitedQuoteStyleNo" }
