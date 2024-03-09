@@ -627,6 +627,7 @@
   directly)][9269]
 - [Added `Xml_Document.write`][9299]
 - [Added `select_by_type` and `remove_by_type` to `Table` and `DB_Table`][9334]
+- [Implemented Excel Data Link][9346]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -909,6 +910,7 @@
 [9269]: https://github.com/enso-org/enso/pull/9269
 [9299]: https://github.com/enso-org/enso/pull/9299
 [9344]: https://github.com/enso-org/enso/pull/9344
+[9346]: https://github.com/enso-org/enso/pull/9346
 
 #### Enso Compiler
 
