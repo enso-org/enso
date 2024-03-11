@@ -339,7 +339,7 @@ type File
 
              example_append = Examples.data_dir / "scratch_file"
     @subpath get_child_widget
-    / : (Text | File) -> File
+    / : Text -> File
     / self subpath = self.resolve subpath
 
     ## GROUP Calculations
