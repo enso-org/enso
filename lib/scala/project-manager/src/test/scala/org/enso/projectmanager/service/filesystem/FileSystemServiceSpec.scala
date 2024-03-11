@@ -119,10 +119,23 @@ class FileSystemServiceSpec
       val directoryPath = new File(testDir, projectName)
 
       fileSystemService
-        .deleteDirectory(directoryPath)
+        .delete(directoryPath)
         .unsafeRunSync()
 
       Files.exists(directoryPath.toPath) shouldEqual false
+    }
+
+    "delete file" in {
+      val testDir  = testStorageConfig.userProjectsPath
+      val testFile = new File(testDir, "foo.txt")
+      FileUtils.forceMkdir(testDir)
+      Files.createFile(testFile.toPath)
+
+      fileSystemService
+        .delete(testFile)
+        .unsafeRunSync()
+
+      Files.exists(testFile.toPath) shouldEqual false
     }
 
     "move file" in {
