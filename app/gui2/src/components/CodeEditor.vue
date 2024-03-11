@@ -38,6 +38,8 @@ const {
   textEditToChangeSpec,
 } = await import('@/components/CodeEditor/codemirror')
 
+const emit = defineEmits<{ close: [] }>()
+
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const suggestionDbStore = useSuggestionDbStore()
@@ -347,6 +349,7 @@ const editorStyle = computed(() => {
         <circle cx="14" cy="14" r="1.5" />
       </svg>
     </div>
+    <div class="close-button button" @click="emit('close')">+</div>
   </div>
 </template>
 
@@ -400,6 +403,23 @@ const editorStyle = computed(() => {
 
   &:hover svg {
     opacity: 0.9;
+  }
+}
+
+.close-button {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  font: var(--font-code);
+  font-size: 32px;
+  color: red;
+  transform: rotate(45deg);
+  opacity: 0.3;
+
+  &:hover {
+    opacity: 0.6;
   }
 }
 

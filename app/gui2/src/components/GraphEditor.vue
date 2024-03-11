@@ -648,7 +648,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
     <PlusButton @pointerdown.stop @click.stop="startCreatingNodeFromButton()" @pointerup.stop />
     <Transition>
       <Suspense ref="codeEditorArea">
-        <CodeEditor v-if="showCodeEditor" />
+        <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
       </Suspense>
     </Transition>
     <GraphMouse />

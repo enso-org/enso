@@ -19,13 +19,28 @@ const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: [] }>()
           <div class="zoomBar row">
             <div class="label">Zoom</div>
             <div class="zoomControl last">
-              <div class="zoomButton minus" title="Decrease zoom" @pointerdown.stop="emit('zoomOut')" />
-              <span class="zoomScaleLabel" v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"></span>
-              <div class="zoomButton plus" title="increase zoom" @pointerdown.stop="emit('zoomIn')" />
+              <div
+                class="zoomButton minus"
+                title="Decrease zoom"
+                @pointerdown.stop="emit('zoomOut')"
+              />
+              <span
+                class="zoomScaleLabel"
+                v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
+              ></span>
+              <div
+                class="zoomButton plus"
+                title="increase zoom"
+                @pointerdown.stop="emit('zoomIn')"
+              />
             </div>
           </div>
           <div class="divider"></div>
-          <SvgIcon name="show_all" class="last showAllIcon" @pointerdown="emit('fitToAllClicked')" />
+          <SvgIcon
+            name="show_all"
+            class="last showAllIcon"
+            @pointerdown="emit('fitToAllClicked')"
+          />
         </div>
       </div>
     </Transition>
