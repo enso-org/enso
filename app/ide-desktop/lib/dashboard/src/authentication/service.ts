@@ -239,7 +239,7 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
             try {
               // @ts-expect-error `_handleAuthResponse` is a private method without typings.
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-              await amplify.Auth._handleAuthResponse(url)
+              await amplify.Auth._handleAuthResponse(url.toString())
             } finally {
               // Restore the original `history.replaceState` function.
               history.replaceState = replaceState
