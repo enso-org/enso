@@ -126,7 +126,7 @@ export interface VersionList {
 export interface OpenProjectParams {
   readonly projectId: ProjectId
   readonly missingComponentAction: MissingComponentAction
-  readonly projectsDirectory?: ProjectId
+  readonly projectsDirectory?: string
 }
 
 /** Parameters for the "close project" endpoint. */

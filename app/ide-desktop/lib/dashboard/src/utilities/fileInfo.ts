@@ -9,6 +9,11 @@ export function fileName(filePath: string) {
   return filePath.match(/(?:[/]|^)([^/]+)[/]?$/)?.[1] ?? filePath
 }
 
+/** Return the entire path, without the file name. */
+export function folderPath(filePath: string) {
+  return filePath.match(/^.+[/]/)?.[0] ?? filePath
+}
+
 /** Return just the file name, without the path and without the extension. */
 export function baseName(fileNameOrPath: string) {
   return fileNameOrPath.match(/(?:[/]|^)([^./]+)(?:[.][^/]*)?$/)?.[1] ?? fileNameOrPath

@@ -2,6 +2,7 @@
 
 import * as fs from 'node:fs'
 import * as http from 'node:http'
+import * as os from 'node:os'
 import * as path from 'node:path'
 import type * as stream from 'node:stream'
 import * as streamConsumers from 'node:stream/consumers'
@@ -16,7 +17,7 @@ import * as ydocServer from 'enso-gui2/ydoc-server'
 
 import * as paths from '../paths'
 
-import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' assert { type: 'yaml' }
+import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' with { type: 'yaml' }
 
 const logger = contentConfig.logger
 
@@ -201,7 +202,11 @@ export class Server {
                                 )
                             ) {
                                 return this.config.externalFunctions.runProjectManagerCommand(
-                                    cliArguments
+                                    cliArguments.map(argument =>
+                                        argument.startsWith('~/')
+                                            ? path.join(os.homedir(), argument.slice(2))
+                                            : argument
+                                    )
                                 )
                             } else {
                                 throw new Error('Command arguments must be an array of strings')

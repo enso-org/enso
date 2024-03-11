@@ -126,7 +126,7 @@ export default class LocalBackend extends Backend {
 
     const response = await this.runProjectManagerCommand<ResponseBody>(
       'filesystem-list',
-      query.parentId ?? '.'
+      query.parentId ?? '~/enso/projects/'
     )
     const entries = response.entries
     const parentId = query.parentId ?? backend.DirectoryId('.')
@@ -162,6 +162,7 @@ export default class LocalBackend extends Backend {
                   : backend.ProjectState.closed,
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 volume_id: '',
+                parentDirectory: fileInfo.folderPath(entry.path),
               },
               labels: [],
               description: null,
@@ -320,7 +321,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async openProject(
     projectId: backend.ProjectId,
-    _body: backend.OpenProjectRequestBody | null,
+    body: backend.OpenProjectRequestBody | null,
     title: string | null
   ): Promise<void> {
     LocalBackend.currentlyOpeningProjectId = projectId
@@ -329,6 +330,9 @@ export default class LocalBackend extends Backend {
         const project = await this.projectManager.openProject({
           projectId,
           missingComponentAction: projectManager.MissingComponentAction.install,
+          ...(body != null && 'parentDirectory' in body
+            ? { projectsDirectory: body.parentDirectory }
+            : {}),
         })
         LocalBackend.currentlyOpenProjects.set(projectId, project)
         return
