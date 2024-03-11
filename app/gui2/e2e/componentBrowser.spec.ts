@@ -65,6 +65,21 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await page.mouse.click(outputPortX, outputPortY)
   await page.mouse.click(outputPortX, outputPortY)
   await expectAndCancelBrowser(page, 'final.')
+  // Small (+) button shown when node is hovered
+  await page.keyboard.press('Escape')
+  await page.mouse.move(100, 80)
+  await expect(locate.smallPlusButton(page)).not.toBeVisible()
+  await locate.graphNodeIcon(locate.graphNodeByBinding(page, 'aggregated')).hover()
+  await expect(locate.smallPlusButton(page)).toBeVisible()
+  await locate.smallPlusButton(page).click()
+  await expectAndCancelBrowser(page, 'aggregated.')
+  // Small (+) button shown when node is sole selection
+  await page.keyboard.press('Escape')
+  await expect(locate.smallPlusButton(page)).not.toBeVisible()
+  await locate.graphNodeByBinding(page, 'aggregated').click()
+  await expect(locate.smallPlusButton(page)).toBeVisible()
+  await locate.smallPlusButton(page).click()
+  await expectAndCancelBrowser(page, 'aggregated.')
 })
 
 test('Graph Editor pans to Component Browser', async ({ page }) => {
