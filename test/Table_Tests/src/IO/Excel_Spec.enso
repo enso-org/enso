@@ -854,6 +854,11 @@ add_specs suite_builder =
             table_4.row_count . should_equal 6
 
     suite_builder.group "Problems" group_builder->
+        group_builder.specify "should report a user-friendly error message when format is missing a required argument" <|
+            r = xlsx_sheet.read (Excel_Format.Range)
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "Perhaps the format is missing some required arguments?"
+
         group_builder.specify "should handle non-existing file gracefully" <|
             bad_file = enso_project.data / "DoesNotExists.xlsx"
             result = bad_file.read (Excel_Format.Range "Sheet1!A:C")

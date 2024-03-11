@@ -70,7 +70,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           fontawesome: ['@fortawesome/react-fontawesome', '@fortawesome/free-brands-svg-icons'],
-          'aws-amplify': ['@aws-amplify/core', '@aws-amplify/auth'],
         },
       },
     },

@@ -16,6 +16,7 @@ use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_conda;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
+use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::actions::workflow::definition::Branches;
 use ide_ci::actions::workflow::definition::Concurrency;
@@ -323,7 +324,12 @@ pub fn setup_script_steps() -> Vec<Step> {
     // * The build-script is build in a separate step. This allows us to monitor its build-time and
     //   not affect timing of the actual build.
     // * The help message is printed to the log, including environment-dependent flag defaults.
-    ret.push(run("--help").with_name("Build Script Setup"));
+    //
+    // If the first attempt fails, we clean the workspace and try again. This should help avoid
+    // a number of possible issues when the runner is in the "wrong state", e.g. when `cargo`
+    // workspace member unexpectedly disappears or linker error creeps in.
+    let command = "./run --help || (git clean -ffdx && ./run --help)";
+    ret.push(shell(command).with_name("Build Script Setup"));
     ret
 }
 

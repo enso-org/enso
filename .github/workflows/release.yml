@@ -43,7 +43,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: prepare
@@ -82,7 +82,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -137,7 +137,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -190,7 +190,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -244,7 +244,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -302,7 +302,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -360,7 +360,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -426,7 +426,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -503,7 +503,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
@@ -581,7 +581,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
