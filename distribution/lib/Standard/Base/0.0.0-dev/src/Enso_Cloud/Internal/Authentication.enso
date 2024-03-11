@@ -47,13 +47,18 @@ type Authentication_Service
     Instance (auth_data : Ref Authentication_Data)
 
     ## PRIVATE
+    get_access_token self -> Text =
+        self.auth_data.get.access_token
+
+    ## PRIVATE
     new -> Authentication_Service =
         initial_data = Authentication_Data.read_from_credentials
         Authentication_Service.Instance (Ref.new initial_data)
 
-    ## PRIVATE
-    get_access_token self -> Text =
-        self.auth_data.get.access_token
+## PRIVATE
+   The method called from Java that creates a new instance of the service, to be
+   stored in the global state.
+instantiate_authentication_service = Authentication_Service.new
 
 ## PRIVATE
 type Authentication_Data

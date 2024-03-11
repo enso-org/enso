@@ -34,8 +34,9 @@ public class CloudAPI {
   private static CloudWorkingDirectory cachedWorkingDirectory = null;
 
   public static void flushCloudCaches() {
+    AuthenticationProvider.reset();
+
     cachedWorkingDirectory = null;
-    AuthenticationProvider.flushCache();
     EnsoSecretReader.flushCache();
   }
 }

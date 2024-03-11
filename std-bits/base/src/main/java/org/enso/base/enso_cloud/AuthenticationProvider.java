@@ -12,7 +12,7 @@ public class AuthenticationProvider {
   private static Value authenticationServiceAsEnso = null;
   private static AuthenticationService authenticationServiceAsJava = null;
 
-  static void flushCache() {
+  public static void reset() {
     authenticationServiceAsEnso = null;
     authenticationServiceAsJava = null;
   }
@@ -20,9 +20,10 @@ public class AuthenticationProvider {
   private static Value createAuthenticationService() {
     var context = Context.getCurrent().getBindings("enso");
     var module = context.invokeMember("get_module", "Standard.Base.Enso_Cloud.Internal.Authentication");
-    var typ = module.invokeMember("get_type", "Authentication_Service");
-    var factory = module.invokeMember("get_method", typ, "new");
-    return factory.execute();
+    var moduleType = module.invokeMember("get_associated_type");
+    var factory = module.invokeMember("get_method", moduleType, "instantiate_authentication_service");
+    // The static method takes the module as the synthetic 'self' argument.
+    return factory.execute(moduleType);
   }
 
   private static void ensureServicesSetup() {
