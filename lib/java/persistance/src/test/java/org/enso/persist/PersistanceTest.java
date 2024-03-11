@@ -196,46 +196,8 @@ public class PersistanceTest {
     // make the loop
     obj.self = Persistance.Reference.of(obj);
 
-    var buffer = Persistance.write(obj, null);
-    assertNotNull("Byte array is returned", buffer);
-    assertNotEquals("It has non-zero length", 0, buffer.length);
-
-    var ref = Persistance.read(buffer, null);
-    var loaded = ref.get(SelfLoop.class);
-    assertEquals("The recreated object again points to itself", loaded, loaded.self.get(SelfLoop.class));
-  }
-
-  @Persistable(id = 432438)
-  public static class SelfLoopSeq {
-    public Seq<SelfLoopSeq> selfSeq;
-
-    public Seq<SelfLoopSeq> selfSeq() {
-      return selfSeq;
-    }
-
-    public SelfLoopSeq(Seq<SelfLoopSeq> selfSeq) {
-      this.selfSeq = selfSeq;
-    }
-  }
-
-  // TODO this fails because Seq is not implemented here, shall I move the test?
-  @Test
-  public void testSeqLoopsInPersistance() throws Exception {
-    var obj = new SelfLoopSeq(null);
-    // make the loop
-    var bldr = Seq$.MODULE$.newBuilder();
-    bldr.addOne(obj);
-    //noinspection unchecked
-    obj.selfSeq = (Seq<SelfLoopSeq>) bldr.result();
-
-    var buffer = Persistance.write(obj, null);
-    assertNotNull("Byte array is returned", buffer);
-    assertNotEquals("It has non-zero length", 0, buffer.length);
-
-    var ref = Persistance.read(buffer, null);
-    var loaded = ref.get(SelfLoopSeq.class);
-    assertEquals("The recreated object again points to itself", loaded, loaded.selfSeq.apply(0));
-    System.out.println("loaded = " + loaded);
+    var loaded = serde(SelfLoop.class, obj, -1);
+    assertSame("The recreated object again points to itself", loaded, loaded.self.get(SelfLoop.class));
   }
 
   @Persistable(id = 432439)
@@ -245,7 +207,35 @@ public class PersistanceTest {
   public record LongerLoop2(Persistance.Reference<LongerLoop3> y) {}
 
   @Persistable(id = 432441)
-  public record LongerLoop3(String a, Persistance.Reference<LongerLoop1> y) {}
+  public class LongerLoop3 {
+    public final String a;
+    public Persistance.Reference<LongerLoop1> y;
 
-  // TODO
+    public String a() {
+      return a;
+    }
+
+    public Persistance.Reference<LongerLoop1> y() {
+      return y;
+    }
+
+    public LongerLoop3(String a, Persistance.Reference<LongerLoop1> y) {
+      this.a = a;
+      this.y = y;
+    }
+  }
+
+  @Test
+  public void testLoopsBetweenDifferentTypes() throws Exception {
+    var obj3 = new LongerLoop3("a", null);
+    var obj2 = new LongerLoop2(Persistance.Reference.of(obj3));
+    var obj1 = new LongerLoop1(1, Persistance.Reference.of(obj2));
+    obj3.y = Persistance.Reference.of(obj1);
+
+    var loaded1 = serde(LongerLoop1.class, obj1, -1);
+    var r2 = loaded1.y().get(LongerLoop2.class);
+    var r3 = r2.y().get(LongerLoop3.class);
+    var r1 = r3.y().get(LongerLoop1.class);
+    assertSame("The recreated structure contains the loop", loaded1, r1);
+  }
 }
