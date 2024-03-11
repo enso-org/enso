@@ -21,6 +21,7 @@ const navigator = injectGraphNavigator(true)
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
+  addNode: [pos: Vec2 | undefined]
 }>()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
@@ -54,6 +55,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @outputPortClick="graphStore.createEdgeFromOutput($event)"
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
     @doubleClick="emit('nodeDoubleClick', id)"
+    @addNode="emit('addNode', $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
     @update:visualizationId="

@@ -17,6 +17,12 @@ object Cli {
   val PROJECTS_DIRECTORY = "projects-directory"
   val PROJECT_LIST       = "project-list"
 
+  val FILESYSTEM_LIST             = "filesystem-list"
+  val FILESYSTEM_CREATE_DIRECTORY = "filesystem-create-directory"
+  val FILESYSTEM_DELETE_DIRECTORY = "filesystem-delete-directory"
+  val FILESYSTEM_MOVE_FROM        = "filesystem-move-from"
+  val FILESYSTEM_MOVE_TO          = "filesystem-move-to"
+
   object option {
 
     val help: cli.Option = cli.Option
@@ -82,6 +88,46 @@ object Cli {
       .longOpt(PROJECT_LIST)
       .desc("List user projects.")
       .build()
+
+    val filesystemList: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_LIST)
+      .desc("List directory.")
+      .build()
+
+    val filesystemCreateDirectory: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_CREATE_DIRECTORY)
+      .desc("Create directory.")
+      .build()
+
+    val filesystemDeleteDirectory: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_DELETE_DIRECTORY)
+      .desc("Delete directory.")
+      .build()
+
+    val filesystemMoveFrom: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_MOVE_FROM)
+      .desc("Move directory. Target.")
+      .build()
+
+    val filesystemMoveTo: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_MOVE_TO)
+      .desc("Move directory. Destination.")
+      .build()
   }
 
   val options: cli.Options =
@@ -95,6 +141,11 @@ object Cli {
       .addOption(option.profilingTime)
       .addOption(option.projectsDirectory)
       .addOption(option.projectList)
+      .addOption(option.filesystemList)
+      .addOption(option.filesystemCreateDirectory)
+      .addOption(option.filesystemDeleteDirectory)
+      .addOption(option.filesystemMoveFrom)
+      .addOption(option.filesystemMoveTo)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {
