@@ -3,6 +3,7 @@ import Standard.Base.Enso_Cloud.Errors.Enso_Cloud_Error
 import Standard.Base.Enso_Cloud.Errors.Not_Logged_In
 import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -77,9 +78,18 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                         Test.expect_panic Not_Logged_In <|
                             Enso_User.current
 
-            group_builder.specify "will fail if the token is invalid" pending=setup.pending <|
+            group_builder.specify "will fail if the token is malformed" pending=setup.pending <|
                 invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
                 "invalid-token".write invalid_token_file . should_succeed
+                Cloud_Tests_Setup.reset_token
+                Panic.with_finalizer Cloud_Tests_Setup.reset_token <|
+                    r = Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" invalid_token_file.absolute.normalize.path <|
+                        Test.expect_panic Illegal_State <|
+                            Enso_User.current
+
+            group_builder.specify "will fail if the token is invalid" pending=setup.pending <|
+                invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
+                '{"access_token": "invalid-token", "expire_at":"3099-01-01T00:00:00Z"}'.write invalid_token_file . should_succeed
                 Cloud_Tests_Setup.reset_token
                 Panic.with_finalizer Cloud_Tests_Setup.reset_token <|
                     r = Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" invalid_token_file.absolute.normalize.path <|
