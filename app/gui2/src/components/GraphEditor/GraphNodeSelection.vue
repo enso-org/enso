@@ -52,7 +52,7 @@ const nodeHeightPx = computed(() => `${props.nodeSize.y}px`)
     content: '';
     opacity: 0.2;
     display: block;
-    inset: calc(var(--selected-node-border-width));
+    inset: var(--selected-node-border-width);
     box-shadow: 0 0 0 calc(0px - var(--node-border-radius)) v-bind('props.color');
     border-radius: var(--node-border-radius);
 
@@ -63,7 +63,7 @@ const nodeHeightPx = computed(() => `${props.nodeSize.y}px`)
 }
 
 .GraphNodeSelection.visible::before {
-  box-shadow: 0 0 0 calc(var(--selected-node-border-width)) v-bind('props.color');
+  box-shadow: 0 0 0 var(--selected-node-border-width) v-bind('props.color');
 }
 
 .GraphNodeSelection:not(.selected):hover::before {

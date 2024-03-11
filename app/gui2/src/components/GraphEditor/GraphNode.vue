@@ -365,7 +365,7 @@ const selectionVisible = ref(false)
     @pointerenter="nodeHovered = true"
     @pointerleave="nodeHovered = false"
   >
-    <Teleport to=".GraphNodeSelections">
+    <Teleport to="#graphNodeSelections">
       <GraphNodeSelection
         v-if="navigator"
         :nodePosition="props.node.position"
@@ -378,7 +378,7 @@ const selectionVisible = ref(false)
         v-on="dragPointer.events"
       />
     </Teleport>
-    <div class="binding" v-text="node.pattern?.code()" @pointerdown.stop />
+    <div class="binding" @pointerdown.stop v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
