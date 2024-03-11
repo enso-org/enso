@@ -1879,10 +1879,6 @@ final class TreeToIr {
     return op != null && ".".equals(op.codeRepr());
   }
 
-  private static boolean isDotDotOperator(Token.Operator op) {
-    return op != null && "..".equals(op.codeRepr());
-  }
-
   private static Tree maybeManyParensed(Tree t) {
     for (;;) {
       switch (t) {
