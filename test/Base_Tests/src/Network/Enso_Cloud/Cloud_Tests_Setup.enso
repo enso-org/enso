@@ -74,7 +74,7 @@ type Cloud_Tests_Setup
 
     ## Resets the user token, to avoid cached token from other tests interfering.
     reset_token =
-        AuthenticationProvider.setToken Nothing
+        AuthenticationProvider.flushCloudCaches
 
     ## Detects the setup based on environment settings.
     prepare : Cloud_Tests_Setup

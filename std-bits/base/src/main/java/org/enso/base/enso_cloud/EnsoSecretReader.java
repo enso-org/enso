@@ -31,12 +31,12 @@ class EnsoSecretReader {
       return secrets.get(secretId);
     }
 
-    var apiUri = AuthenticationProvider.getAPIRootURI() + "s3cr3tz/" + secretId;
+    var apiUri = CloudAPI.getAPIRootURI() + "s3cr3tz/" + secretId;
     var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
     var request =
         HttpRequest.newBuilder()
             .uri(URI.create(apiUri))
-            .header("Authorization", "Bearer " + AuthenticationProvider.getToken())
+            .header("Authorization", "Bearer " + AuthenticationProvider.getAccessToken())
             .GET()
             .build();
 

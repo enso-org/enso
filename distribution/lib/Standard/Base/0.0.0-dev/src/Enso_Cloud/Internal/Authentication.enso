@@ -1,0 +1,71 @@
+private
+
+import project.Data.Json.Invalid_JSON
+import project.Data.Text.Text
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Errors.Not_Logged_In
+import project.Error.Error
+import project.Errors.Illegal_State.Illegal_State
+import project.Network.HTTP.Header.Header
+import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Error.HTTP_Error
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Body.Request_Body
+import project.Network.HTTP.Request_Error
+import project.Network.HTTP.Response.Response
+import project.Network.URI.URI
+import project.Nothing.Nothing
+import project.Runtime.Ref.Ref
+import project.System.Environment
+import project.System.File.File
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
+
+polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+
+## PRIVATE
+   Returns an access token for the current user, that should be valid for
+   at least 2 more minutes.
+
+   If the current token is expired or <2m from expiration, it will be refreshed
+   and a new one will be returned. Because of that, this method may make network
+   requests.
+get_access_token : Text
+get_access_token = AuthenticationProvider.getAccessToken
+
+## PRIVATE
+credentials_file : File
+credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
+    Nothing -> File.home / ".enso" / "credentials"
+    path -> File.new path
+
+## PRIVATE
+type Authentication_Service
+    ## PRIVATE
+    Instance (auth_data : Ref Authentication_Data)
+
+    ## PRIVATE
+    new -> Authentication_Service =
+        initial_data = Authentication_Data.read_from_credentials
+        Authentication_Service.Instance (Ref.new initial_data)
+
+    ## PRIVATE
+    get_access_token self -> Text =
+        self.auth_data.get.access_token
+
+## PRIVATE
+type Authentication_Data
+    ## PRIVATE
+    Value access_token:Text
+
+    ## PRIVATE
+    read_from_credentials -> Authentication_Data =
+        content = credentials_file.read_text
+        as_json = content.parse_json
+        # If this is not valid JSON, we assume old format - raw token.
+        token = if as_json.is_error then content else
+            # Otherwise, we extract the token from JSON:
+            as_json.get "access_token" if_missing=(Error.throw (Illegal_State.Error "Invalid credentials file format: missing field `access_token`."))
+        Authentication_Data.Value access_token=token

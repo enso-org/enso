@@ -3,13 +3,11 @@ private
 import project.Any.Any
 import project.Data.Json.Invalid_JSON
 import project.Data.Map.Map
-import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Enso_Cloud.Enso_Secret.Derived_Secret_Value
-import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Errors.Not_Logged_In
+import project.Enso_Cloud.Internal.Authentication
 import project.Error.Error
 import project.Function.Function
 import project.Network.HTTP.Header.Header
@@ -23,45 +21,20 @@ import project.Network.HTTP.Request_Error
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
-import project.Runtime.Ref.Ref
-import project.System.Environment
-import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 
-polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+polyglot java import org.enso.base.enso_cloud.CloudAPI
 
 ## PRIVATE
-cloud_root_uri = "" + AuthenticationProvider.getAPIRootURI
+cloud_root_uri = "" + CloudAPI.getAPIRootURI
 
 ## PRIVATE
    Construct the authorization header for the request
 authorization_header : Header
 authorization_header =
-    token = AuthenticationProvider.getToken.if_nothing <|
-        f = credentials_file
-        if f.exists.not then Error.throw Not_Logged_In else
-            access_token = read_access_token f
-            AuthenticationProvider.setToken access_token
+    token = Authentication.get_access_token
     Header.authorization_bearer token
-
-## PRIVATE
-credentials_file : File
-credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
-    Nothing -> File.home / ".enso" / "credentials"
-    path -> File.new path
-
-## PRIVATE
-   Reads the access token from the provided credentials file.
-
-   It supports both the old (raw string) and new (JSON) formats.
-read_access_token (file:File) -> Text =
-    content = file.read_text
-    as_json = content.parse_json
-    # If this is not valid JSON, we assume old format - raw token.
-    if as_json.is_error then content else
-        # Otherwise, we extract the token from JSON:
-        as_json.get "access_token" if_missing=(Error.throw "Invalid credentials file format: missing field `access_token`.")
 
 ## PRIVATE
    Root address for listing folders
@@ -86,11 +59,13 @@ datalinks_api = cloud_root_uri + "connectors"
 ## PRIVATE
    The current project directory that will be used as the working directory,
    if the user is running in the Cloud.
-internal_cloud_project_directory = AuthenticationProvider.getCurrentWorkingDirectory
+internal_cloud_project_directory = CloudAPI.getCurrentWorkingDirectory
 
 ## PRIVATE
+   Flushes all cloud caches, including the authentication data
+   (so the next request will re-read the credentials file).
 flush_caches : Nothing
-flush_caches = AuthenticationProvider.flushCloudCaches
+flush_caches = CloudAPI.flushCloudCaches
 
 ## PRIVATE
    Performs a standard request to the Enso Cloud API,
