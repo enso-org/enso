@@ -10,6 +10,8 @@ import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
+polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
+
 ## To run this test locally:
    $ sbt 'http-test-helper/run localhost 8080'
    $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
@@ -85,6 +87,14 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                     r.should_fail_with Enso_Cloud_Error
                     r.catch.should_be_a Enso_Cloud_Error.Unauthorized
                     r.catch.to_display_text . should_contain "401"
+
+        suite_builder.group "Enso Cloud Authentication" group_builder->
+            # TODO tests against the mock here
+            group_builder.specify "should be able to refresh the token" pending=setup.pending <|
+                authentication_service = AuthenticationProvider.getAuthenticationServiceEnsoInstance
+                IO.println authentication_service.auth_data.get.expire_at
+                authentication_service.force_refresh
+                IO.println authentication_service.auth_data.get.expire_at
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
