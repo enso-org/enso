@@ -1,7 +1,6 @@
 /**
  * @file This file contains the types for the IPC events.
  * The IPC events are used to communicate between the main and renderer processes.
- * The events are defined in the main process and are listened to in the renderer process.
  */
 
 /**
