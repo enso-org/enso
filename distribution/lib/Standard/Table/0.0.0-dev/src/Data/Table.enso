@@ -2895,6 +2895,7 @@ type Table
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self = Column_Naming_Helper.in_memory
+
     ## ALIAS from
        GROUP Standard.Base.Calculations
        ICON dataframes_union
