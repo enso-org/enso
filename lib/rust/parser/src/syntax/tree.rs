@@ -162,6 +162,11 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub opr: token::Operator<'s>,
             pub rhs: Option<Tree<'s>>,
         },
+        /// Application of the autoscope operator to an identifier, e.g. `..True`.
+        AutoscopedIdentifier {
+            pub opr: token::Operator<'s>,
+            pub ident: token::Ident<'s>,
+        },
         /// Defines the point where operator sections should be expanded to lambdas. Let's consider
         /// the expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
         /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator section
@@ -950,6 +955,14 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
             true => Tree::annotated_builtin(opr, token, vec![], None),
             false => Tree::annotated(opr, token, None, vec![], None),
         };
+    }
+    if opr.properties.is_autoscope() && let Some(rhs) = rhs {
+        return if let box Variant::Ident(Ident { mut token }) = rhs.variant {
+            token.left_offset = rhs.span.left_offset;
+            Tree::autoscoped_identifier(opr, token)
+        } else {
+            Tree::unary_opr_app(opr, Some(rhs)).with_error("The auto-scope operator (..) may only be applied to an identifier.")
+        }
     }
     if !opr.properties.can_form_section() && rhs.is_none() {
         let error = format!("Operator `{opr:?}` must be applied to an operand.");

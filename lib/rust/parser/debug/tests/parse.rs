@@ -865,6 +865,23 @@ fn method_app_in_minus_unary() {
         (UnaryOprApp "-" (OprApp (Ident Number) (Ok ".") (Ident positive_infinity))));
 }
 
+#[test]
+fn autoscope_operator() {
+    test!("x : ..True", (TypeSignature (Ident x) ":" (AutoscopedIdentifier ".." True)));
+    test!("x = ..True", (Assignment (Ident x) "=" (AutoscopedIdentifier ".." True)));
+    test!("x = f ..True",
+        (Assignment (Ident x) "=" (App (Ident f) (AutoscopedIdentifier ".." True))));
+    expect_invalid_node("x = ..4");
+    expect_invalid_node("x = ..Foo.Bar");
+    expect_invalid_node("x = f .. True");
+    expect_invalid_node("x = f(.. ..)");
+    expect_invalid_node("x = f(.. *)");
+    expect_invalid_node("x = f(.. True)");
+    expect_multiple_operator_error("x = ..");
+    expect_multiple_operator_error("x = .. True");
+    expect_multiple_operator_error("x : .. True");
+}
+
 
 // === Import/Export ===
 

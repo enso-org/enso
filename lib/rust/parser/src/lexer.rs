@@ -714,6 +714,11 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_unary_prefix_mode(token::Precedence::max())
                 .as_compile_time_operation()
                 .as_suspension(),
+        ".." =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::min_valid())
+                .as_compile_time_operation()
+                .as_autoscope(),
         "@" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())

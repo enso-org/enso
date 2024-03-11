@@ -670,16 +670,6 @@ final class TreeToIr {
               var loc = getIdentifiedLocation(oprApp.getLhs());
               args.add(new CallArgument.Specified(Option.empty(), self, loc, meta(), diag()));
             }
-          } else if (tree instanceof Tree.OprApp oprApp
-                  && isDotDotOperator(oprApp.getOpr().getRight())
-                  && oprApp.getRhs() instanceof Tree.Ident ident) {
-              var methodName = buildName(ident);
-              func = new Name.MethodReference(
-                Option.empty(),
-                methodName,
-                methodName.location(),
-                meta(), diag()
-              );
           } else if (args.isEmpty()) {
             return null;
           } else {
@@ -1069,6 +1059,15 @@ final class TreeToIr {
           } else {
               yield fn.setLocation(loc);
           }
+      }
+      case Tree.AutoscopedIdentifier autoscopedIdentifier -> {
+        var methodName = buildName(autoscopedIdentifier.getIdent());
+        yield new Name.MethodReference(
+                Option.empty(),
+                methodName,
+                methodName.location(),
+                meta(), diag()
+        );
       }
       case Tree.Invalid __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateExpression"));
