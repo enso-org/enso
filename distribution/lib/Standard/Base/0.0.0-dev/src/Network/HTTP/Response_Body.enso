@@ -180,8 +180,8 @@ type Response_Body
     to_text : Text
     to_text self = "Response_Body"
 
-    ## GROUP Output
-       ALIAS to_file
+    ## ALIAS to_file
+       GROUP Output
        Write response body to a File.
 
        Arguments:

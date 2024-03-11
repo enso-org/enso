@@ -73,11 +73,6 @@ impl<'s> From<Tree<'s>> for Item<'s> {
     }
 }
 
-impl<'s> TryAsRef<Item<'s>> for Item<'s> {
-    fn try_as_ref(&self) -> Option<&Item<'s>> {
-        Some(self)
-    }
-}
 
 /// Given a sequence of [`Line`]s belonging to one block, create an AST block node, of a type
 /// determined by the syntax of the lines in the block.
@@ -93,7 +88,6 @@ pub fn build_block<'s>(
 }
 
 
-
 // ===========
 // === Ref ===
 // ===========
@@ -105,7 +99,6 @@ pub enum Ref<'s, 'a> {
     Token(token::Ref<'s, 'a>),
     Tree(&'a Tree<'s>),
 }
-
 
 
 // ======================

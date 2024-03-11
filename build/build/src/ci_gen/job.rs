@@ -125,8 +125,24 @@ pub fn sbt_command(command: impl AsRef<str>) -> String {
     format!("backend sbt '--' {}", command.as_ref())
 }
 
+/// Expose variables for cloud configuration, needed during the dashboard build.
+pub fn expose_cloud_vars(step: Step) -> Step {
+    use crate::ide::web::env::*;
+    step.with_variable_exposed(ENSO_CLOUD_REDIRECT)
+        .with_variable_exposed(ENSO_CLOUD_ENVIRONMENT)
+        .with_variable_exposed(ENSO_CLOUD_API_URL)
+        .with_variable_exposed(ENSO_CLOUD_CHAT_URL)
+        .with_variable_exposed(ENSO_CLOUD_SENTRY_DSN)
+        .with_variable_exposed(ENSO_CLOUD_STRIPE_KEY)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_ID)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_DOMAIN)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_REGION)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct CancelWorkflow;
+
 impl JobArchetype for CancelWorkflow {
     fn job(&self, _target: Target) -> Job {
         Job {
@@ -194,6 +210,7 @@ impl JobArchetype for StandardLibraryTests {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Lint;
+
 impl JobArchetype for Lint {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "Lint", "lint")
@@ -202,6 +219,7 @@ impl JobArchetype for Lint {
 
 #[derive(Clone, Copy, Debug)]
 pub struct NativeTest;
+
 impl JobArchetype for NativeTest {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "Native GUI tests", "wasm test --no-wasm")
@@ -210,22 +228,29 @@ impl JobArchetype for NativeTest {
 
 #[derive(Clone, Copy, Debug)]
 pub struct NewGuiTest;
+
 impl JobArchetype for NewGuiTest {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "New (Vue) GUI tests", "gui2 test")
     }
 }
 
+
 #[derive(Clone, Copy, Debug)]
 pub struct NewGuiBuild;
+
 impl JobArchetype for NewGuiBuild {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "New (Vue) GUI build", "gui2 build")
+        let command = "gui2 build";
+        RunStepsBuilder::new(command)
+            .customize(|step| vec![expose_cloud_vars(step)])
+            .build_job("New (Vue) GUI build", target)
     }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct WasmTest;
+
 impl JobArchetype for WasmTest {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "WASM GUI tests", "wasm test --no-native")
@@ -234,6 +259,7 @@ impl JobArchetype for WasmTest {
 
 #[derive(Clone, Copy, Debug)]
 pub struct IntegrationTest;
+
 impl JobArchetype for IntegrationTest {
     fn job(&self, target: Target) -> Job {
         plain_job(
@@ -246,6 +272,7 @@ impl JobArchetype for IntegrationTest {
 
 #[derive(Clone, Copy, Debug)]
 pub struct BuildWasm;
+
 impl JobArchetype for BuildWasm {
     fn job(&self, target: Target) -> Job {
         let command = "wasm build --wasm-upload-artifact ${{ runner.os == 'Linux' }}";
@@ -257,6 +284,7 @@ impl JobArchetype for BuildWasm {
 
 #[derive(Clone, Copy, Debug)]
 pub struct BuildBackend;
+
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
         plain_job(target, "Build Backend", "backend get")
@@ -265,6 +293,7 @@ impl JobArchetype for BuildBackend {
 
 #[derive(Clone, Copy, Debug)]
 pub struct UploadBackend;
+
 impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend upload")
@@ -275,6 +304,7 @@ impl JobArchetype for UploadBackend {
 
 #[derive(Clone, Copy, Debug)]
 pub struct DeployRuntime;
+
 impl JobArchetype for DeployRuntime {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("release deploy-runtime")
@@ -295,26 +325,6 @@ impl JobArchetype for DeployRuntime {
             .build_job("Upload Runtime to ECR", target)
     }
 }
-
-#[derive(Clone, Copy, Debug)]
-pub struct DeployGui;
-impl JobArchetype for DeployGui {
-    fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("release deploy-gui")
-            .customize(|step| {
-                vec![step
-                    .with_secret_exposed_as(secret::CI_PRIVATE_TOKEN, ide_ci::github::GITHUB_TOKEN)
-                    .with_secret_exposed_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID")
-                    .with_secret_exposed_as(
-                        secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
-                        "AWS_SECRET_ACCESS_KEY",
-                    )
-                    .with_secret_exposed_as(secret::ENSO_ADMIN_TOKEN, crate::env::ENSO_ADMIN_TOKEN)]
-            })
-            .build_job("Upload GUI to S3", target)
-    }
-}
-
 
 pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     match os {
@@ -371,14 +381,19 @@ pub fn bump_electron_builder() -> Vec<Step> {
 
 /// Prepares the packaging steps for the given OS.
 ///
-/// This involves exposing secrets necessary for code signing and notarization. Additionally, on
-/// macOS, it bumps the version of the Electron Builder to [`ELECTRON_BUILDER_MACOS_VERSION`].
+/// This involves:
+/// * exposing secrets necessary for code signing and notarization;
+/// * exposing variables defining cloud environment for dashboard;
+/// * (macOS only) bumping the version of the Electron Builder to
+///   [`ELECTRON_BUILDER_MACOS_VERSION`].
 pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
+    let step = expose_cloud_vars(step);
+    let step = expose_os_specific_signing_secret(os, step);
     let mut steps = Vec::new();
     if os == OS::MacOS {
         steps.extend(bump_electron_builder());
     }
-    steps.push(expose_os_specific_signing_secret(os, step));
+    steps.push(step);
     steps
 }
 
@@ -391,6 +406,7 @@ pub fn with_packaging_steps(os: OS) -> impl FnOnce(Step) -> Vec<Step> {
 
 #[derive(Clone, Copy, Debug)]
 pub struct PackageNewIde;
+
 impl JobArchetype for PackageNewIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
@@ -403,6 +419,7 @@ impl JobArchetype for PackageNewIde {
 
 #[derive(Clone, Copy, Debug)]
 pub struct CiCheckBackend;
+
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend ci-check").build_job("Engine", target)
