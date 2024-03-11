@@ -43,9 +43,9 @@ interface ProjectMetadata {
 
 /** Attributes of a file or folder. */
 interface Attributes {
-  readonly creationTime: UTCDateTime
-  readonly lastAccessTime: UTCDateTime
-  readonly lastModifiedTime: UTCDateTime
+  readonly creationTime: dateTime.Rfc3339DateTime
+  readonly lastAccessTime: dateTime.Rfc3339DateTime
+  readonly lastModifiedTime: dateTime.Rfc3339DateTime
   readonly byteSize: number
 }
 
@@ -158,8 +158,8 @@ export default class LocalBackend extends Backend {
                 type: LocalBackend.currentlyOpenProjects.has(entry.metadata.id)
                   ? backend.ProjectState.opened
                   : entry.metadata.id === LocalBackend.currentlyOpeningProjectId
-                    ? backend.ProjectState.openInProgress
-                    : backend.ProjectState.closed,
+                  ? backend.ProjectState.openInProgress
+                  : backend.ProjectState.closed,
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 volume_id: '',
               },
@@ -284,8 +284,8 @@ export default class LocalBackend extends Backend {
               projectId === LocalBackend.currentlyOpeningProjectId
                 ? backend.ProjectState.openInProgress
                 : project.lastOpened != null
-                  ? backend.ProjectState.closed
-                  : backend.ProjectState.created,
+                ? backend.ProjectState.closed
+                : backend.ProjectState.created,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
           },
@@ -621,7 +621,7 @@ export default class LocalBackend extends Backend {
     if ('result' in json) {
       return json.result
     } else {
-      throw new Error(json.error)
+      throw new Error(json.error.message)
     }
   }
 }
