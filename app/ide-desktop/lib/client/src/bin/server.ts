@@ -81,22 +81,10 @@ async function findPort(port: number): Promise<number> {
  * Initially it was based on `union`, but later we migrated to `create-servers`.
  * Read this topic to learn why: https://github.com/http-party/http-server/issues/483 */
 export class Server {
-    server: unknown
     devServer?: vite.ViteDevServer
 
     /** Create a simple HTTP server. */
-    constructor(public config: Config) {
-        if (process.env.DEV_MODE === 'true') {
-            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports, @typescript-eslint/no-var-requires
-            const vite = require('vite') as typeof import('vite')
-            void vite
-                .createServer({
-                    server: { middlewareMode: true },
-                    configFile: process.env.GUI2_CONFIG_PATH ?? false,
-                })
-                .then(server => (this.devServer = server))
-        }
-    }
+    constructor(public config: Config) {}
 
     /** Server constructor. */
     static async create(config: Config): Promise<Server> {
@@ -110,7 +98,7 @@ export class Server {
     /** Start the server. */
     run(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.server = createServer(
+            createServer(
                 {
                     http: this.config.port,
                     handler: this.process.bind(this),
@@ -143,6 +131,19 @@ export class Server {
                             `Serving files from '${path.join(process.cwd(), this.config.dir)}'.`
                         )
                         resolve()
+                        if (process.env.ELECTRON_DEV_MODE === 'true') {
+                            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports, @typescript-eslint/no-var-requires
+                            const vite = require('vite') as typeof import('vite')
+                            void vite
+                                .createServer({
+                                    server: {
+                                        middlewareMode: true,
+                                        hmr: httpServer ? { server: httpServer } : {},
+                                    },
+                                    configFile: process.env.GUI2_CONFIG_PATH ?? false,
+                                })
+                                .then(devServer => (this.devServer = devServer))
+                        }
                     })()
                 }
             )

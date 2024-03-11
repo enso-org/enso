@@ -23,7 +23,18 @@ export default defineConfig({
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   envDir: fileURLToPath(new URL('.', import.meta.url)),
-  plugins: [vue(), gatewayServer()],
+  plugins: [
+    vue(),
+    gatewayServer(),
+    ...(process.env.ELECTRON_DEV_MODE === 'true' ?
+      [
+        (await import('@vitejs/plugin-react')).default({
+          include: '../ide-desktop/lib/dashboard/**/*.tsx',
+          babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
+        }),
+      ]
+    : []),
+  ],
   optimizeDeps: {
     entries: fileURLToPath(new URL('./index.html', import.meta.url)),
   },

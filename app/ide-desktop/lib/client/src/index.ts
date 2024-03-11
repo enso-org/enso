@@ -403,7 +403,7 @@ class App {
             address.port = this.serverPort().toString()
             address.search = new URLSearchParams(searchParams).toString()
             logger.log(`Loading the window address '${address.toString()}'.`)
-            if (process.env.DEV_MODE === 'true') {
+            if (process.env.ELECTRON_DEV_MODE === 'true') {
                 const window = this.window
                 const onLoad = () => {
                     void window.webContents.mainFrame

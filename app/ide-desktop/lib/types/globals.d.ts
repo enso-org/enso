@@ -127,7 +127,7 @@ declare global {
             // === Electron watch script variables ===
 
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly DEV_MODE?: string
+            readonly ELECTRON_DEV_MODE?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly GUI2_CONFIG_PATH?: string
             /* eslint-enable @typescript-eslint/naming-convention */
