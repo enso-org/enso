@@ -462,8 +462,9 @@ export default class LocalBackend extends Backend {
   ): Promise<void> {
     const typeAndId = extractTypeAndId(assetId)
     switch (typeAndId.type) {
-      case backend.AssetType.directory: {
-        await this.runProjectManagerCommand('filesystem-delete-directory', typeAndId.id)
+      case backend.AssetType.directory:
+      case backend.AssetType.file: {
+        await this.runProjectManagerCommand('filesystem-delete', typeAndId.id)
         return
       }
       case backend.AssetType.project: {
@@ -484,9 +485,6 @@ export default class LocalBackend extends Backend {
             }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
           )
         }
-      }
-      case backend.AssetType.file: {
-        throw new Error('Files cannot be deleted on the local backend.')
       }
     }
   }
