@@ -50,7 +50,6 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           multiple
           type="file"
           id="context_menu_file_input"
-          {...(backend.type !== backendModule.BackendType.local ? {} : { accept: '.enso-project' })}
           className="hidden"
           onInput={event => {
             if (event.currentTarget.files != null) {
