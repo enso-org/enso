@@ -127,10 +127,12 @@ type AssetTypeAndId =
       : never
     : never
 
-function extractTypeAndId<Id extends backend.AssetId>(id: Id): Extract<AssetTypeAndId, HasId<Id>>
+export function extractTypeAndId<Id extends backend.AssetId>(
+  id: Id
+): Extract<AssetTypeAndId, HasId<Id>>
 /** Extracts the asset type and its corresponding internal ID from a {@link backend.AssetId}.
  * @throws {Error} if the id has an unknown type. */
-function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
+export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
   const [, typeRaw, idRaw] = id.match(/(.+?)-(.+)/) ?? []
   switch (typeRaw) {
     case backend.AssetType.directory: {
@@ -606,11 +608,12 @@ export default class LocalBackend extends Backend {
       const typeAndId = extractTypeAndId(assetId)
       const sourcePath =
         typeAndId.type === backend.AssetType.project ? body.projectPath ?? '' : typeAndId.id
+      const fileName = fileInfo.fileName(sourcePath)
       await this.runProjectManagerCommand(
         'filesystem-move-from',
         sourcePath,
         '--filesystem-move-to',
-        extractTypeAndId(body.parentDirectoryId).id
+        `${extractTypeAndId(body.parentDirectoryId).id}/${fileName}`
       )
     }
   }

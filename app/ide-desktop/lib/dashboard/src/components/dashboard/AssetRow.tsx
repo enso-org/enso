@@ -23,6 +23,7 @@ import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
 
 import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
@@ -30,6 +31,7 @@ import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
 import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
+import * as fileInfo from '#/utilities/fileInfo'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -186,7 +188,23 @@ export default function AssetRow(props: AssetRowProps) {
         setItem(oldItem =>
           oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
         )
-        setAsset(object.merger({ parentId: nonNullNewParentId }))
+        setAsset(oldAsset => {
+          const newProjectState =
+            oldAsset.projectState == null
+              ? null
+              : object.merge(
+                  oldAsset.projectState,
+                  oldAsset.projectState.path == null
+                    ? {}
+                    : {
+                        path: `${localBackend.extractTypeAndId(nonNullNewParentId).id}/${fileInfo.fileName(oldAsset.projectState.path)}`,
+                      }
+                )
+          return object.merge(oldAsset, {
+            parentId: nonNullNewParentId,
+            projectState: newProjectState,
+          })
+        })
         await backend.updateAsset(
           asset.id,
           {
@@ -198,7 +216,7 @@ export default function AssetRow(props: AssetRowProps) {
         )
       } catch (error) {
         toastAndLog(`Could not move '${asset.title}'`, error)
-        setAsset(object.merger({ parentId: asset.parentId }))
+        setAsset(object.merger({ parentId: asset.parentId, projectState: asset.projectState }))
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
