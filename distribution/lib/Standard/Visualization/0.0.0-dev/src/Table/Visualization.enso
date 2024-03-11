@@ -5,8 +5,8 @@ import Standard.Table.Data.Column.Column
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table
 
-import Standard.Database.Data.DB_Column.DB_Column
-import Standard.Database.Data.DB_Table.DB_Table
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 

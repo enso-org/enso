@@ -1,0 +1,181 @@
+from Standard.Base import all
+import Standard.Base.Runtime.State
+
+import Standard.Table.Internal.Vector_Builder.Vector_Builder
+
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
+
+## PRIVATE
+
+   A fragment of a SQL query.
+
+   It can either be a SQL_Fragment.Code_Part that represents raw SQL code or
+   SQL_Fragment.Interpolation which represents an object that will be
+   interpolated into the query.
+type SQL_Fragment
+    ## PRIVATE
+
+       A SQL fragment that represents raw SQL code.
+
+       Arguments:
+       - code: A fragment of SQL code.
+    Code_Part code:Text
+
+    ## PRIVATE
+
+       A SQL fragment that represents an object which will be interpolated into
+       the query.
+
+       Arguments:
+       - object: A value that will be interpolated into the query.
+    Interpolation object:Any
+
+## PRIVATE
+type SQL_Builder
+    ## PRIVATE
+       ADVANCED
+       Creates a SQL_Builder representing and empty code fragment.
+    empty : SQL_Builder
+    empty = SQL_Builder.Value (Vector_Builder.empty)
+
+    ## PRIVATE
+       ADVANCED
+       Creates a SQL_Builder representing a code fragment containing the specified raw
+       code.
+
+       Arguments:
+       - text: The raw SQL code.
+    code : Text -> SQL_Builder
+    code text =
+        vec = if text.is_empty then [] else [SQL_Fragment.Code_Part text]
+        SQL_Builder.Value (Vector_Builder.from_vector vec)
+
+    ## PRIVATE
+       ADVANCED
+       Creates a SQL_Builder representing an interpolation of the given object.
+
+       Arguments:
+       - object: The object to be interpolated into the query as if it has the type
+         given by `sql_type`.
+    interpolation : Any -> SQL_Builder
+    interpolation object = SQL_Builder.Value (Vector_Builder.from_vector [SQL_Fragment.Interpolation object])
+
+    ## PRIVATE
+       ADVANCED
+       Joins a vector of code fragments with the provided separator.
+
+       Arguments:
+       - separator: The separator to use when joining the code fragments.
+       - statements: The SQL statements to join using `separator`.
+    join : SQL_Builder | Text -> Vector SQL_Builder -> SQL_Builder
+    join separator statements =
+        sep = case separator of
+            SQL_Builder.Value _ -> separator
+            _ : Text -> SQL_Builder.code separator
+
+        if statements.length == 0 then SQL_Builder.empty else
+            (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
+
+    ## PRIVATE
+
+       A SQL_Builder for SQL queries.
+
+       Arguments:
+       - fragments: A builder that contains fragments of SQL code.
+
+       It can be used to concatenate parts of SQL code in O(1) time and at the
+       end build the actual query in linear time.
+    Value (fragments:(Vector_Builder SQL_Fragment))
+
+    ## PRIVATE
+       ADVANCED
+       Concatenates two code fragments.
+
+       Arguments:
+       - other: The code fragment to append to `self`.
+    ++ : SQL_Builder -> SQL_Builder
+    ++ self other = case other of
+        text : Text -> if text == "" then self else SQL_Builder.Value (self.fragments ++ (SQL_Builder.code text).fragments)
+        _ -> SQL_Builder.Value (self.fragments ++ other.fragments)
+
+    ## PRIVATE
+       ADVANCED
+       Checks if the SQL_Builder represents an empty code fragment.
+    is_empty : Boolean
+    is_empty self = self.fragments.is_empty
+
+    ## PRIVATE
+       ADVANCED
+
+       Checks if a code fragment is a constant.
+    is_constant : Boolean
+    is_constant self =
+        if self.fragments.length != 1 then False else
+            case self.fragments of
+                Vector_Builder.Leaf vec -> case vec.at 0 of
+                    SQL_Fragment.Interpolation _ -> True
+                    _ -> False
+                _ -> False
+
+    ## PRIVATE
+       ADVANCED
+       Builds a SQL statement.
+    build : SQL_Statement
+    build self =
+        fragments = optimize_fragments self.fragments.build
+        SQL_Statement.Value fragments
+
+    ## PRIVATE
+       ADVANCED
+       Wraps the code fragment in parentheses.
+    paren : SQL_Builder
+    paren self = SQL_Builder.code "(" ++ self ++ ")"
+
+    ## PRIVATE
+       ADVANCED
+       If the fragment is non empty, prepends the specified prefix to it.
+
+       Arguments:
+       - prefix: The prefix to append if the fragment is present.
+
+       Empty fragments are unaffected.
+    prefix_if_present : Text | SQL_Builder -> SQL_Builder
+    prefix_if_present self prefix =
+        pref = case prefix of
+            _ : SQL_Builder -> prefix
+            _ -> SQL_Builder.code prefix
+        if self.is_empty then self else pref++self
+
+## PRIVATE
+
+   Merges neighboring code fragments to create a more compact representation of
+   the same code.
+
+   Arguments:
+   - fragments: The fragments to be merged together.
+optimize_fragments : Vector SQL_Fragment -> Vector SQL_Fragment
+optimize_fragments fragments =
+    builder = Vector.new_builder
+    go elem =
+        last_part = State.get SQL_Fragment
+        case elem of
+            SQL_Fragment.Code_Part code ->
+                new_part = case last_part of
+                    Nothing -> SQL_Fragment.Code_Part code
+                    SQL_Fragment.Code_Part other -> SQL_Fragment.Code_Part other+code
+                State.put SQL_Fragment new_part
+            SQL_Fragment.Interpolation _ ->
+                case last_part of
+                    Nothing -> Nothing
+                    SQL_Fragment.Code_Part _ ->
+                        builder.append last_part
+                        State.put SQL_Fragment Nothing
+                builder.append elem
+    State.run SQL_Fragment Nothing <|
+        fragments.each go
+        last_part = State.get SQL_Fragment
+        case last_part of
+            Nothing -> Nothing
+            SQL_Fragment.Code_Part _ -> builder.append last_part
+    builder.to_vector

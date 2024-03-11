@@ -25,7 +25,6 @@ quote = { workspace = true }
 Inflector = "0.11.4"
 itertools = { workspace = true }
 boolinator = { workspace = true }
-paste = { workspace = true }
 
 [dependencies.syn]
 version = "1.0"

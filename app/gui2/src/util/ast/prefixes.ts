@@ -5,7 +5,7 @@ import { unsafeKeys } from '@/util/record'
 type Matches<T> = Record<keyof T, Ast.AstId[] | undefined>
 
 interface MatchResult<T> {
-  innerExpr: Ast.AstId
+  innerExpr: Ast.Ast
   matches: Record<keyof T, Ast.AstId[] | undefined>
 }
 
@@ -33,14 +33,14 @@ export class Prefixes<T extends Record<keyof T, Pattern>> {
         return [name, matches]
       }),
     ) as Matches<T>
-    return { matches, innerExpr: expression.id }
+    return { matches, innerExpr: expression }
   }
 
   modify(expression: Ast.Mutable, replacements: Partial<Record<keyof T, Ast.Owned[] | undefined>>) {
     expression.updateValue((expression) => {
       const matches = this.extractMatches(expression)
       const edit = expression.module
-      let result = edit.take(matches.innerExpr)
+      let result = edit.take(matches.innerExpr.id)
       for (const key of unsafeKeys(this.prefixes).reverse()) {
         if (key in replacements && !replacements[key]) continue
         const replacement: Ast.Owned[] | undefined =

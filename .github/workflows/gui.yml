@@ -42,7 +42,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -90,7 +90,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -139,7 +139,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -200,7 +200,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -249,7 +249,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -298,7 +298,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -308,6 +308,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run gui2 build
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -346,7 +356,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -356,6 +366,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run gui2 build
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -395,7 +415,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -405,6 +425,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run gui2 build
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -444,7 +474,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -495,7 +525,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -505,6 +535,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -545,7 +585,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -568,6 +608,16 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "true"
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CODE_SIGNING_CERT_PASSWORD }}
           CSC_LINK: ${{ secrets.APPLE_CODE_SIGNING_CERT }}
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -609,7 +659,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
@@ -619,6 +669,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide2 build --backend-source current-ci-run --gui2-upload-artifact false
         env:
+          ENSO_CLOUD_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
+          ENSO_CLOUD_CHAT_URL: ${{ vars.ENSO_CLOUD_CHAT_URL }}
+          ENSO_CLOUD_COGNITO_DOMAIN: ${{ vars.ENSO_CLOUD_COGNITO_DOMAIN }}
+          ENSO_CLOUD_COGNITO_REGION: ${{ vars.ENSO_CLOUD_COGNITO_REGION }}
+          ENSO_CLOUD_COGNITO_USER_POOL_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_ID }}
+          ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID: ${{ vars.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID }}
+          ENSO_CLOUD_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
+          ENSO_CLOUD_REDIRECT: ${{ vars.ENSO_CLOUD_REDIRECT }}
+          ENSO_CLOUD_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
+          ENSO_CLOUD_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
@@ -660,7 +720,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"

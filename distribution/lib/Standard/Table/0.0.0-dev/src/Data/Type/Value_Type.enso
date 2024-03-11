@@ -452,6 +452,13 @@ type Value_Type
         JS_Object.from_pairs <|
             [["type", "Value_Type"], ["constructor", constructor_name]] + additional_fields
 
+    ## Check if the same type of value ignoring size, precision and scale.
+    is_same_type : Value_Type -> Boolean
+    is_same_type self other:Value_Type =
+        self_ctor = Meta.meta self . constructor
+        other_ctor = Meta.meta other . constructor
+        self_ctor == other_ctor
+
 ## The type representing inferring the column type automatically based on values
    present in the column.
 

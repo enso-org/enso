@@ -219,12 +219,14 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
       <div className="h-0">
         <div
           className={`relative rounded-2xl shadow-soft w-full h-max top-2 z-1 before:absolute before:rounded-2xl before:backdrop-blur-3xl before:top-0 before:w-full before:h-full ${
-            isDropdownVisible ? 'before:border before:border-black/10' : ''
+            isDropdownVisible && matchingItems.length !== 0
+              ? 'before:border before:border-black/10'
+              : ''
           }`}
         >
           <div
             className={`relative rounded-2xl overflow-auto w-full max-h-10lh ${
-              isDropdownVisible ? '' : 'h-0'
+              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h-0'
             }`}
           >
             {matchingItems.map((item, index) => (
