@@ -151,15 +151,26 @@ pub fn single_file_provider(
 ///
 /// # #[tokio::main]
 /// # async fn main() -> Result {
+/// //  temp_dir/
+/// // ├── sibling/
+/// // │   └── file
+/// // └── uploaded_dir/
+/// //     ├── file
+/// //     └── subdir/
+/// //         └── nested_file
 /// let dir = TempDir::new()?;
-/// let dir = dir.path().join("uploaded_dir");
-/// let file1 = dir.join("file");
-/// let file2 = dir.join_iter(["subdir/nested_file"]);
-/// ide_ci::fs::create_dir_all(&dir)?;
+/// let sibling = dir.path().join("sibling");
+/// let file_in_sibling = sibling.join("file");
+/// let uploaded = dir.path().join("uploaded_dir");
+/// let file1 = uploaded.join("file");
+/// let file2 = uploaded.join_iter(["subdir/nested_file"]);
+/// ide_ci::fs::create_dir_all(&uploaded)?;
 /// ide_ci::fs::create(&file1)?;
 /// ide_ci::fs::create(&file2)?;
+/// ide_ci::fs::create_dir_all(&sibling)?;
+/// ide_ci::fs::create(&file_in_sibling)?;
 ///
-/// let stream = single_dir_provider(&dir)?;
+/// let stream = single_dir_provider(&uploaded)?;
 /// let mut found_files = stream.collect::<Vec<_>>().await;
 /// // Make discovery order irrelevant.
 /// found_files.sort_by(|a, b| a.local_path.cmp(&b.local_path));
@@ -169,6 +180,7 @@ pub fn single_file_provider(
 /// assert_eq!(found_files[0].remote_path, Path::new("uploaded_dir/file"));
 /// assert_eq!(found_files[1].local_path, file2);
 /// assert_eq!(found_files[1].remote_path, Path::new("uploaded_dir/subdir/nested_file"));
+/// // Note that sibling directory has not been included.
 /// # Ok(())
 /// # }
 /// ```
