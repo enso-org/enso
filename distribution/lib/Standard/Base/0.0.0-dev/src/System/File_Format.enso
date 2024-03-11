@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Json.Json
 import project.Data.Numbers.Integer
+import project.Data.Text.Case.Case
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -245,3 +246,17 @@ JSON_Format.from (that : JS_Object) =
 
 ## A setting to infer the default behaviour of some option.
 type Infer
+
+
+## PRIVATE
+   A helper for parsing the JSON representation of `Boolean | Infer`.
+   It defaults to `Infer` if the value was `Nothing`.
+parse_boolean_with_infer (field_name : Text) (value : Boolean | Text | Nothing) -> Boolean | Infer = case value of
+    True -> True
+    False -> False
+    Nothing -> Infer
+    headers_text : Text -> case headers_text.to_case Case.Lower of
+        "infer" -> Infer
+        "true" -> True
+        "false" -> False
+        _ -> Error.throw (Illegal_Argument.Error ("The field `"+field_name+"` must be a boolean or the string `infer`."))
