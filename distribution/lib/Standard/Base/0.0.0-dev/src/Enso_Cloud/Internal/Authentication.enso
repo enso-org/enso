@@ -2,9 +2,10 @@ private
 
 import project.Data.Json.Invalid_JSON
 import project.Data.Text.Text
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Errors.Not_Logged_In
-import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
@@ -17,6 +18,7 @@ import project.Network.HTTP.Request_Error
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Runtime.Ref.Ref
 import project.System.Environment
 import project.System.File.File
@@ -48,7 +50,19 @@ type Authentication_Service
 
     ## PRIVATE
     get_access_token self -> Text =
-        self.auth_data.get.access_token
+        is_still_valid = self.auth_data.get.expire_at > (Date_Time.now + Duration.new minutes=2)
+        if is_still_valid then self.auth_data.get.access_token else
+            # The token has expired or will expire soon, so we need to refresh it.
+            self.force_refresh
+            self.auth_data.get.access_token
+
+    ## PRIVATE
+       Refreshes the access token using the refresh token, regardless of its freshness.
+    force_refresh self -> Nothing =
+        refresh_token_data = Refresh_Token_Data.read_from_credentials
+        new_auth_data = refresh_token_data.fetch_new_access_token
+        Panic.rethrow <| self.auth_data.put new_auth_data
+        Nothing
 
     ## PRIVATE
     new -> Authentication_Service =
@@ -63,14 +77,37 @@ instantiate_authentication_service = Authentication_Service.new
 ## PRIVATE
 type Authentication_Data
     ## PRIVATE
-    Value access_token:Text
+    Value access_token:Text expire_at:Date_Time
 
     ## PRIVATE
     read_from_credentials -> Authentication_Data =
         content = credentials_file.read_text
         as_json = content.parse_json
-        # If this is not valid JSON, we assume old format - raw token.
-        token = if as_json.is_error then content else
-            # Otherwise, we extract the token from JSON:
-            as_json.get "access_token" if_missing=(Error.throw (Illegal_State.Error "Invalid credentials file format: missing field `access_token`."))
-        Authentication_Data.Value access_token=token
+        get_field field_name =
+            as_json.get field_name if_missing=(Panic.throw (Illegal_State.Error "Invalid credentials file format: missing field `"+field_name+"`."))
+        token = get_field "access_token"
+        expiration_date_string = get_field "expire_at"
+        expiration_date = Date_Time.parse expiration_date_string format=Date_Time_Formatter.iso_zoned_date_time . catch Time_Error error->
+            Panic.throw (Illegal_State.Error "Invalid credentials file format: invalid date format in `expire_at` field: "+error.to_display_text cause=error)
+        Authentication_Data.Value access_token=token expire_at=expiration_date
+
+## PRIVATE
+type Refresh_Token_Data
+    ## PRIVATE
+    Value client_id:Text refresh_uri:Text refresh_token:Text
+
+    ## PRIVATE
+    read_from_credentials -> Refresh_Token_Data =
+        content = credentials_file.read_text
+        as_json = content.parse_json
+        get_field field_name =
+            as_json.get field_name if_missing=(Panic.throw (Illegal_State.Error "Token refresh failed due to invalid credentials file format: missing field `"+field_name+"`."))
+        client_id = get_field "client_id"
+        refresh_uri = get_field "refresh_uri"
+        refresh_token = get_field "refresh_token"
+        Refresh_Token_Data.Value client_id=client_id refresh_uri=refresh_uri refresh_token=refresh_token
+
+    ## PRIVATE
+    fetch_new_access_token self -> Authentication_Data =
+        # TODO
+        Authentication_Data.Value Nothing Nothing
