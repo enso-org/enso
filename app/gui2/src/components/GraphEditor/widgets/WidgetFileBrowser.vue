@@ -43,7 +43,11 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
     } as RequiredImport
     const conflicts = graph.addMissingImports(edit, [requiredImport])
     const constructor = conflicts != null ? FILE_CONSTRUCTOR : FILE_SHORT_CONSTRUCTOR
-    return Ast.parse(`${constructor} ${arg.code()}`, edit)
+    const constructorAst = Ast.PropertyAccess.tryParse(constructor, edit)
+    if (constructorAst == null) {
+      throw new Error(`Failed to parse constructor as AST: ${constructor}`)
+    }
+    return Ast.App.new(edit, constructorAst, undefined, arg)
   } else {
     return Ast.TextLiteral.new(path, edit)
   }
