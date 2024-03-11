@@ -7,7 +7,7 @@ import * as locate from './locate'
 test('Selecting nodes by click', async ({ page }) => {
   await actions.goToGraph(page)
   const node1 = locate.graphNodeByBinding(page, 'five')
-  const node2 = locate.graphNodeByBinding(page, 'ten')
+  const node2 = locate.graphNodeByBinding(page, 'final')
   await expect(node1).not.toBeSelected()
   await expect(node2).not.toBeSelected()
 
@@ -15,6 +15,7 @@ test('Selecting nodes by click', async ({ page }) => {
   await expect(node1).toBeSelected()
   await expect(node2).not.toBeSelected()
 
+  // Check that clicking an unselected node deselects replaces the previous selection.
   await locate.graphNodeIcon(node2).click()
   await expect(node1).not.toBeSelected()
   await expect(node2).toBeSelected()
@@ -24,10 +25,12 @@ test('Selecting nodes by click', async ({ page }) => {
   await expect(node1).toBeSelected()
   await expect(node2).toBeSelected()
 
+  // Check that when two nodes are selected, clicking a selected node replaces the previous selection.
   await locate.graphNodeIcon(node2).click()
   await expect(node1).not.toBeSelected()
   await expect(node2).toBeSelected()
 
+  // Check that clicking the background deselects all nodes.
   await page.mouse.click(600, 200)
   await expect(node1).not.toBeSelected()
   await expect(node2).not.toBeSelected()

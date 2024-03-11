@@ -54,7 +54,7 @@ add_specs suite_builder =
             r.sheet_names . should_equal ["MyTestSheet"]
             r.read "MyTestSheet" . should_equal expected_table
 
-            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
+            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel_Format.Sheet "MyTestSheet")
             r2.should_be_a Table
             r2.should_equal expected_table
 
@@ -67,11 +67,11 @@ add_specs suite_builder =
             r.sheet_names . should_equal ["MyTestSheet"]
             r.read "MyTestSheet" . should_equal expected_table
 
-            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
+            r2 = Data.fetch url try_auto_parse_response=False . decode (Excel_Format.Sheet "MyTestSheet")
             r2.should_be_a Table
             r2.should_equal expected_table
 
-            r3 = url.to_uri.fetch try_auto_parse_response=False . decode (Excel (Excel_Section.Worksheet "MyTestSheet"))
+            r3 = url.to_uri.fetch try_auto_parse_response=False . decode (Excel_Format.Sheet "MyTestSheet")
             r3.should_be_a Table
             r3.should_equal expected_table
 

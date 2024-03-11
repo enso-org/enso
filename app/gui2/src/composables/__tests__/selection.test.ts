@@ -105,7 +105,9 @@ class MockPointerEvent extends MouseEvent {
   readonly pointerId: number
   constructor(type: string, options: MouseEventInit & { currentTarget?: Element | undefined }) {
     super(type, options)
-    vi.spyOn(this, 'currentTarget', 'get').mockReturnValue(options.currentTarget ?? null)
+    vi.spyOn<MouseEvent, 'currentTarget'>(this, 'currentTarget', 'get').mockReturnValue(
+      options.currentTarget ?? null,
+    )
     this.pointerId = 4
   }
 }

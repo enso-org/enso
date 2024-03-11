@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Data.Column_Constraint.Column_Constraint
+import project.Column_Constraint.Column_Constraint
 
 ## PRIVATE
 type Create_Column_Descriptor

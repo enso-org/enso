@@ -17,7 +17,6 @@ import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
 
-import * as config from '#/utilities/config'
 import * as load from '#/utilities/load'
 import * as string from '#/utilities/string'
 
@@ -47,7 +46,6 @@ const REDIRECT_DELAY_MS = 1_500
  * sessionStatus.status = { status: 'complete',
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`). */
 export default function Subscribe() {
-  const stripeKey = config.ACTIVE_CONFIG.stripeKey
   const navigate = navigateHooks.useNavigate()
   // Plan that the user has currently selected, if any (e.g., 'solo', 'team', etc.).
   const [plan, setPlan] = React.useState(() => {
@@ -70,7 +68,8 @@ export default function Subscribe() {
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  if (stripePromise == null) {
+  if (stripePromise == null && process.env.ENSO_CLOUD_STRIPE_KEY != null) {
+    const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
     stripePromise = load.loadScript('https://js.stripe.com/v3/').then(async script => {
       const innerStripe = await stripe.loadStripe(stripeKey)
       script.remove()

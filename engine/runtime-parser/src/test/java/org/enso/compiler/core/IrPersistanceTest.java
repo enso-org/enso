@@ -3,6 +3,7 @@ package org.enso.compiler.core;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.UUID;
@@ -68,7 +69,37 @@ public class IrPersistanceTest {
   }
 
   @Test
-  public void idHolderNoUUID() throws Exception {
+  public void refHolderWithUUID() throws Exception {
+    var id = UUID.randomUUID();
+    var il = new RefHolder(id);
+    var in = serde(RefHolder.class, il, -1, null);
+    assertEquals("UUID is the same", id, in.id().get(UUID.class));
+  }
+
+  @Test
+  public void twiceHolderWithUUID() throws Exception {
+    var id = UUID.randomUUID();
+    var il = new RefHolder(id);
+    var two = join(il, join(il, nil()));
+    ;
+    var in = serde(List.class, two, -1, null);
+    assertEquals("Two elements", 2, in.size());
+
+    var both = new ArrayList<RefHolder>();
+    var it = in.iterator();
+    while (it.hasNext()) {
+      var elem = (RefHolder) it.next();
+      assertEquals("UUID is the same", id, elem.id().get(UUID.class));
+      both.add(elem);
+    }
+    var first = both.get(0);
+    var second = both.get(1);
+    assertSame("Holders are the same", first, second);
+    assertSame("Values are the same", first.id(), second.id());
+  }
+
+  @Test
+  public void refHolderNoUUID() throws Exception {
     var il = new IdHolder(UUID.randomUUID());
     Function<Object, Object> fn =
         (obj) ->
@@ -470,4 +501,11 @@ public class IrPersistanceTest {
 
   @Persistable(clazz = IdHolder.class, id = 432876)
   public record IdHolder(UUID id) {}
+
+  @Persistable(clazz = RefHolder.class, id = 436872)
+  public record RefHolder(Persistance.Reference<UUID> id) {
+    RefHolder(UUID id) {
+      this(Persistance.Reference.of(id));
+    }
+  }
 }

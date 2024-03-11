@@ -11,15 +11,15 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for an {@link AssetInfoBar}. */
 export interface AssetInfoBarProps {
-  readonly isAssetPanelVisible: boolean
-  readonly setIsAssetPanelVisible: React.Dispatch<React.SetStateAction<boolean>>
+  readonly isAssetPanelEnabled: boolean
+  readonly setIsAssetPanelEnabled: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 /** A menubar for displaying asset information. */
 // This parameter will be used in the future.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(props: AssetInfoBarProps) {
-  const { isAssetPanelVisible, setIsAssetPanelVisible } = props
+  const { isAssetPanelEnabled: isAssetPanelVisible, setIsAssetPanelEnabled: setIsAssetPanelVisible } = props
   const { backend } = backendProvider.useBackend()
   return (
     <div

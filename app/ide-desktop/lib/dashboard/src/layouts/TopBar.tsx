@@ -48,14 +48,15 @@ export interface TopBarProps {
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { query, setQuery, labels, suggestions, isAssetPanelVisible } = props
-  const { isAssetPanelEnabled, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
+  const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
+  const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
   const [root] = React.useState(() => document.getElementById('enso-dashboard'))
+  const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
 
   return (
     <div className="relative z-3 m-top-bar mb flex h-row gap-top-bar">
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
-      {supportsLocalBackend && page !== pageSwitcher.Page.editor && (
+      {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
         <BackendSwitcher setBackendType={setBackendType} />
       )}
       {page === pageSwitcher.Page.editor ? (
@@ -77,11 +78,11 @@ export default function TopBar(props: TopBarProps) {
         <div className="flex gap-top-bar-right overflow-hidden pointer-events-none-recursive transparent">
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
-              isAssetPanelVisible={isAssetPanelEnabled}
-              setIsAssetPanelVisible={setIsAssetPanelEnabled}
+              isAssetPanelEnabled={isAssetPanelEnabled}
+              setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
           )}
-          <UserBar
+          {supportsCloudBackend && <UserBar
             supportsLocalBackend={supportsLocalBackend}
             page={page}
             setPage={setPage}
@@ -91,7 +92,7 @@ export default function TopBar(props: TopBarProps) {
             setProjectAsset={setProjectAsset}
             doRemoveSelf={doRemoveSelf}
             onSignOut={onSignOut}
-          />
+          />}
         </div>
       </div>
       {root &&
@@ -100,8 +101,8 @@ export default function TopBar(props: TopBarProps) {
             <div className="flex gap-top-bar-right">
               {page === pageSwitcher.Page.drive && (
                 <AssetInfoBar
-                  isAssetPanelVisible={isAssetPanelEnabled}
-                  setIsAssetPanelVisible={setIsAssetPanelEnabled}
+                  isAssetPanelEnabled={isAssetPanelEnabled}
+                  setIsAssetPanelEnabled={setIsAssetPanelEnabled}
                 />
               )}
               <UserBar

@@ -395,10 +395,22 @@ object ProgramExecutionSupport {
                 )
               val warningsCount = warnings.length
               val warning =
-                if (warningsCount == 1) {
-                  Option(
-                    ctx.executionService.toDisplayString(warnings(0).getValue)
-                  )
+                if (warningsCount > 0) {
+                  Either
+                    .catchNonFatal(
+                      WarningPreview.execute(warnings(0).getValue)
+                    )
+                    .fold(
+                      error => {
+                        ctx.executionService.getLogger.log(
+                          Level.SEVERE,
+                          "Failed to execute warning preview of expression [{0}].",
+                          Array[Object](expressionId, error)
+                        )
+                        None
+                      },
+                      Some(_)
+                    )
                 } else {
                   None
                 }

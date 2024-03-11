@@ -80,7 +80,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           <div className="text w-modal-label">Value</div>
           <input
             autoFocus={!isNameEditable}
-            placeholder="Enter the value of the secret"
+            placeholder={isNameEditable ? 'Enter the value of the secret' : '●●●●●●●●'}
             className="text grow rounded-full border border-black/10 bg-transparent px-input-x"
             onInput={event => {
               setValue(event.currentTarget.value)

@@ -1,0 +1,28 @@
+from Standard.Base import all
+
+import Standard.Base.Metadata.Choice
+import Standard.Base.Metadata.Widget
+import Standard.Base.Metadata.Display
+
+from Standard.Table import all
+from Standard.Database import all
+
+import Standard.Visualization.Widgets
+
+from Standard.Test import all
+
+
+add_specs suite_builder =
+    suite_builder.group "Widgets for Data.read" group_builder->
+        group_builder.specify "should work and return basic formats" <|
+            result = Widgets.get_widget_json Data .read ["format"]
+            result.should_contain "Auto Detect"
+            result.should_contain "Plain Text"
+            result.should_contain "Excel Workbook"
+            result.should_contain "Excel Sheet"
+            result.should_contain "SQLite"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

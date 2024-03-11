@@ -637,7 +637,7 @@ export const useProjectStore = defineStore('project', () => {
     })
   })
 
-  const isOutputContextEnabled = computed(() => executionMode.value === 'live')
+  const isRecordingEnabled = computed(() => executionMode.value === 'live')
 
   function stopCapturingUndo() {
     module.value?.undoManager.stopCapturing()
@@ -713,7 +713,7 @@ export const useProjectStore = defineStore('project', () => {
     lsRpcConnection: markRaw(lsRpcConnection),
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
-    isOutputContextEnabled,
+    isRecordingEnabled,
     stopCapturingUndo,
     executionMode,
     recordMode,

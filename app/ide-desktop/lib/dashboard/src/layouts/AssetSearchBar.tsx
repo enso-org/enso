@@ -287,7 +287,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               })}
             </div>
             {/* Asset labels */}
-            {isCloud && (
+            {isCloud && labels.length !== 0 && (
               <div
                 data-testid="asset-search-labels"
                 className="pointer-events-auto flex gap-buttons p-search-suggestions"

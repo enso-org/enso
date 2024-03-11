@@ -226,7 +226,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
         >
           <div
             className={`relative max-h-autocomplete-suggestions w-full overflow-auto rounded-default ${
-              isDropdownVisible ? '' : 'h'
+              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h'
             }`}
           >
             {/* FIXME: "Invite" modal does not take into account the height of the autocomplete,
