@@ -11,7 +11,7 @@ interface SaveAccessTokenPayload {
      */
     readonly accessToken: string
     /**
-     * The cognito app integration client id
+     * The Cognito app integration client id
      */
     readonly clientId: string
     /**
@@ -19,7 +19,7 @@ interface SaveAccessTokenPayload {
      */
     readonly refreshToken: string
     /**
-     * The cognito url to refresh the token.
+     * The Cognito url to refresh the token.
      */
     readonly refreshUrl: string
     /**
