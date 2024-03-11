@@ -2899,7 +2899,7 @@ type Table
     ## ALIAS from
        GROUP Standard.Base.Calculations
        ICON dataframes_union
-       Appends records from other table(s) to this table.
+       Appends records from the vector of tables into a single table.
 
        Arguments:
        - tables: A vector of tables to union  together. The
