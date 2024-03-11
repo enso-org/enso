@@ -6,7 +6,6 @@ import { computed, ref, watchEffect } from 'vue'
 const props = defineProps<{
   nodePosition: Vec2
   nodeSize: Vec2
-  nodeHovered: boolean
   nodeId: AstId
   selected: boolean
   color: string
@@ -17,7 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const hovered = ref(false)
-const visible = computed(() => props.selected || hovered.value || props.nodeHovered)
+const visible = computed(() => props.selected || hovered.value)
 
 watchEffect(() => emit('visible', visible.value))
 

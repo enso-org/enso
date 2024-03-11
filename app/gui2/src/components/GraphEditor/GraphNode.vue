@@ -370,7 +370,6 @@ const selectionVisible = ref(false)
         v-if="navigator"
         :nodePosition="props.node.position"
         :nodeSize="nodeSize"
-        :nodeHovered
         :selected
         :nodeId
         :color
