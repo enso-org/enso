@@ -9,6 +9,8 @@ import Standard.Table.Errors.Invalid_JSON_Format
 
 from Standard.Test import all
 
+from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+
 import project.Util
 
 main filter=Nothing =
@@ -18,15 +20,6 @@ main filter=Nothing =
 
 
 add_specs suite_builder =
-    ## To run this test locally:
-       $ sbt 'http-test-helper/run localhost 8080'
-       $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
-    base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
-    base_url_with_slash = base_url.if_not_nothing <|
-        if base_url.ends_with "/" then base_url else base_url + "/"
-    pending_has_url = if base_url != Nothing then Nothing else
-        "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
-
     suite_builder.group "fetching files using HTTP" pending=pending_has_url group_builder->
         group_builder.specify "fetching json" <|
             r = Data.fetch base_url_with_slash+"testfiles/table.json"

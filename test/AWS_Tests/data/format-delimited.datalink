@@ -10,6 +10,6 @@
     "type": "format",
     "subType": "delimited",
     "delimiter": " ",
-    "headers": false
+    "headers": "infer"
   }
 }

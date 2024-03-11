@@ -608,13 +608,18 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
+    <div class="layer" :style="{ transform: graphNavigator.transform }">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
         @addNode="addNodeAt($event)"
       />
     </div>
+    <div
+      id="graphNodeSelections"
+      class="layer"
+      :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
+    />
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
 
     <ComponentBrowser
@@ -660,7 +665,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   --node-color-no-type: #596b81;
 }
 
-.htmlLayer {
+.layer {
   position: absolute;
   top: 0;
   left: 0;
