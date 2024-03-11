@@ -12,7 +12,7 @@ public final class ArrowParser {
 
   public static Result parse(Source source) {
     String src = source.getCharacters().toString();
-    Matcher m = ARRAY_PATTERN.matcher(src);
+    Matcher m = NEW_ARRAY_CONSTR.matcher(src);
     if (m.find()) {
       try {
         var layout = LogicalLayout.valueOf(m.group(1));
@@ -36,8 +36,8 @@ public final class ArrowParser {
     return null;
   }
 
-  private static final Pattern ARRAY_PATTERN = Pattern.compile("new\\[(.+)\\]");
-  private static final Pattern CAST_PATTERN = Pattern.compile("cast\\[(.+)\\]");
+  private static final Pattern NEW_ARRAY_CONSTR = Pattern.compile("^new\\[(.+)\\]$");
+  private static final Pattern CAST_PATTERN = Pattern.compile("^cast\\[(.+)\\]$");
 
   public enum Mode {
     Allocate,

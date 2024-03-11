@@ -4,6 +4,7 @@ import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
 
 import project.Data.Data_Formatter.Data_Formatter
@@ -81,6 +82,10 @@ type Delimited_Format
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : Writable_File -> Delimited_Format | Nothing
     for_file_write file = Delimited_Format.for_read file
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Delimited" (Meta.get_qualified_type_name Delimited_Format)+".Delimited"]
 
     ## PRIVATE
        ADVANCED

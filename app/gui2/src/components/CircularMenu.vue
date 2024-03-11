@@ -1,84 +1,89 @@
 <script setup lang="ts">
+import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
+import { Vec2 } from '@/util/data/vec2'
 
 const props = defineProps<{
-  isOutputContextEnabledGlobally: boolean
-  isOutputContextOverridden: boolean
+  isRecordingEnabledGlobally: boolean
+  isRecordingOverridden: boolean
   isDocsVisible: boolean
   isVisualizationVisible: boolean
   isFullMenuVisible: boolean
 }>()
 const emit = defineEmits<{
-  'update:isOutputContextOverridden': [isOutputContextOverridden: boolean]
+  'update:isRecordingOverridden': [isRecordingOverridden: boolean]
   'update:isDocsVisible': [isDocsVisible: boolean]
   'update:isVisualizationVisible': [isVisualizationVisible: boolean]
   startEditing: []
   startEditingComment: []
   openFullMenu: []
   delete: []
+  addNode: [pos: Vec2 | undefined]
 }>()
 </script>
 
 <template>
-  <div
-    :class="`${props.isFullMenuVisible ? 'CircularMenu full' : 'CircularMenu partial'}`"
-    @pointerdown.stop
-    @pointerup.stop
-    @click.stop
-  >
-    <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
-    <SvgIcon
-      v-if="isFullMenuVisible"
-      name="comment"
-      class="icon-container button slot2"
-      :alt="`Edit comment`"
-      @click.stop="emit('startEditingComment')"
-    />
-    <SvgIcon
-      v-if="isFullMenuVisible"
-      name="trash2"
-      class="icon-container button slot4"
-      :alt="`Delete component`"
-      @click.stop="emit('delete')"
-    />
-    <ToggleIcon
-      icon="eye"
-      class="icon-container button slot5"
-      :alt="`${props.isVisualizationVisible ? 'Hide' : 'Show'} visualization`"
-      :modelValue="props.isVisualizationVisible"
-      @update:modelValue="emit('update:isVisualizationVisible', $event)"
-    />
-    <SvgIcon
-      name="edit"
-      class="icon-container button slot6"
-      data-testid="edit-button"
-      @click.stop="emit('startEditing')"
-    />
-    <ToggleIcon
-      :icon="props.isOutputContextEnabledGlobally ? 'no_auto_replay' : 'auto_replay'"
-      class="icon-container button slot7"
-      :class="{ 'output-context-overridden': props.isOutputContextOverridden }"
-      :alt="`${
-        props.isOutputContextEnabledGlobally != props.isOutputContextOverridden ?
-          'Disable'
-        : 'Enable'
-      } output context`"
-      :modelValue="props.isOutputContextOverridden"
-      @update:modelValue="emit('update:isOutputContextOverridden', $event)"
+  <div class="CircularMenu" @pointerdown.stop @pointerup.stop @click.stop>
+    <div class="circle" :class="`${props.isFullMenuVisible ? 'full' : 'partial'}`">
+      <div v-if="!isFullMenuVisible" class="More" @pointerdown.stop="emit('openFullMenu')"></div>
+      <SvgIcon
+        v-if="isFullMenuVisible"
+        name="comment"
+        class="icon-container button slot2"
+        :alt="`Edit comment`"
+        @click.stop="emit('startEditingComment')"
+      />
+      <SvgIcon
+        v-if="isFullMenuVisible"
+        name="trash2"
+        class="icon-container button slot4"
+        :alt="`Delete component`"
+        @click.stop="emit('delete')"
+      />
+      <ToggleIcon
+        icon="eye"
+        class="icon-container button slot5"
+        :alt="`${props.isVisualizationVisible ? 'Hide' : 'Show'} visualization`"
+        :modelValue="props.isVisualizationVisible"
+        @update:modelValue="emit('update:isVisualizationVisible', $event)"
+      />
+      <SvgIcon
+        name="edit"
+        class="icon-container button slot6"
+        data-testid="edit-button"
+        @click.stop="emit('startEditing')"
+      />
+      <ToggleIcon
+        icon="record"
+        class="icon-container button slot7"
+        :class="{ 'recording-overridden': props.isRecordingOverridden }"
+        :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
+        :modelValue="props.isRecordingOverridden"
+        @update:modelValue="emit('update:isRecordingOverridden', $event)"
+      />
+    </div>
+    <SmallPlusButton
+      v-if="!isVisualizationVisible"
+      class="below-slot5"
+      @addNode="emit('addNode', $event)"
     />
   </div>
 </template>
 
 <style scoped>
 .CircularMenu {
-  user-select: none;
   position: absolute;
+  user-select: none;
+  pointer-events: none;
+}
+
+.circle {
+  position: relative;
   left: -36px;
   top: -36px;
   width: 114px;
   height: 114px;
-  pointer-events: none;
 
   > * {
     pointer-events: all;
@@ -126,6 +131,7 @@ const emit = defineEmits<{
   backdrop-filter: var(--blur-app-bg);
   background: var(--color-app-bg);
   z-index: -2;
+  pointer-events: all;
 
   &:after {
     content: '...';
@@ -144,6 +150,7 @@ const emit = defineEmits<{
   padding: 0;
   border: none;
   opacity: 30%;
+  pointer-events: all;
 }
 
 .toggledOn {
@@ -155,7 +162,7 @@ const emit = defineEmits<{
   opacity: 10%;
 }
 
-.output-context-overridden {
+.recording-overridden {
   opacity: 100%;
   color: red;
 }
@@ -202,6 +209,12 @@ const emit = defineEmits<{
   top: 80px;
 }
 
+.below-slot5 {
+  position: absolute;
+  top: calc(108px - 36px);
+  pointer-events: all;
+}
+
 .slot6 {
   position: absolute;
   top: 69.46px;
@@ -211,7 +224,7 @@ const emit = defineEmits<{
 .slot7 {
   position: absolute;
   top: 44px;
-  left: 9px;
+  left: 8px;
 }
 
 .slot8 {

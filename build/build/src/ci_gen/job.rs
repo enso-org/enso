@@ -125,6 +125,21 @@ pub fn sbt_command(command: impl AsRef<str>) -> String {
     format!("backend sbt '--' {}", command.as_ref())
 }
 
+/// Expose variables for cloud configuration, needed during the dashboard build.
+pub fn expose_cloud_vars(step: Step) -> Step {
+    use crate::ide::web::env::*;
+    step.with_variable_exposed(ENSO_CLOUD_REDIRECT)
+        .with_variable_exposed(ENSO_CLOUD_ENVIRONMENT)
+        .with_variable_exposed(ENSO_CLOUD_API_URL)
+        .with_variable_exposed(ENSO_CLOUD_CHAT_URL)
+        .with_variable_exposed(ENSO_CLOUD_SENTRY_DSN)
+        .with_variable_exposed(ENSO_CLOUD_STRIPE_KEY)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_ID)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_DOMAIN)
+        .with_variable_exposed(ENSO_CLOUD_COGNITO_REGION)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct CancelWorkflow;
 
@@ -220,12 +235,16 @@ impl JobArchetype for NewGuiTest {
     }
 }
 
+
 #[derive(Clone, Copy, Debug)]
 pub struct NewGuiBuild;
 
 impl JobArchetype for NewGuiBuild {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "New (Vue) GUI build", "gui2 build")
+        let command = "gui2 build";
+        RunStepsBuilder::new(command)
+            .customize(|step| vec![expose_cloud_vars(step)])
+            .build_job("New (Vue) GUI build", target)
     }
 }
 
@@ -362,14 +381,19 @@ pub fn bump_electron_builder() -> Vec<Step> {
 
 /// Prepares the packaging steps for the given OS.
 ///
-/// This involves exposing secrets necessary for code signing and notarization. Additionally, on
-/// macOS, it bumps the version of the Electron Builder to [`ELECTRON_BUILDER_MACOS_VERSION`].
+/// This involves:
+/// * exposing secrets necessary for code signing and notarization;
+/// * exposing variables defining cloud environment for dashboard;
+/// * (macOS only) bumping the version of the Electron Builder to
+///   [`ELECTRON_BUILDER_MACOS_VERSION`].
 pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
+    let step = expose_cloud_vars(step);
+    let step = expose_os_specific_signing_secret(os, step);
     let mut steps = Vec::new();
     if os == OS::MacOS {
         steps.extend(bump_electron_builder());
     }
-    steps.push(expose_os_specific_signing_secret(os, step));
+    steps.push(step);
     steps
 }
 
