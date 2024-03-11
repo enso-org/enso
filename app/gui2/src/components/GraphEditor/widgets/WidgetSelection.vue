@@ -41,7 +41,10 @@ function tagFromExpression(expression: string, label?: Opt<string>): Tag {
   const qn = tryQualifiedName(expression)
   if (!qn.ok) return { expression, ...(label ? { label } : {}) }
   const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
-  if (entry) return tagFromEntry(entry)
+  if (entry) {
+    const tag = tagFromEntry(entry)
+    return label ? { ...tag, label: label } : tag
+  }
   return {
     label: label ?? qnLastSegment(qn.value),
     expression: qn.value,
