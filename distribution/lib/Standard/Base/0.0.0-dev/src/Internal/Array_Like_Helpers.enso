@@ -1,5 +1,6 @@
 private
 
+import project.Data.Text.Regex.Regex
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy

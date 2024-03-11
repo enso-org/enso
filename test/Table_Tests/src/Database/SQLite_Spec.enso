@@ -364,9 +364,11 @@ type Database_File
     Value ~file
 
     create = Database_File.Value <|
-        transient_dir = enso_project.data / "transient"
+        transient_dir = enso_project.data / "transient" # +(Date_Time.now.millisecond.to_text)
+        #transient_dir.create_directory
         assert transient_dir.exists ("The directory " + transient_dir.path + " should exist (ensured by containing a `.gitignore` file).")
         f = transient_dir / "sqlite_test.db"
+        IO.println 'AAA DF create '+f.to_text
         f.delete_if_exists
         f
 
@@ -374,6 +376,7 @@ create_inmem_connection =
     Database.connect (SQLite In_Memory)
 
 create_file_connection file =
+    IO.println 'AAA create_file_connection '+file.to_text
     connection = Database.connect (SQLite file)
     connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     connection
@@ -396,6 +399,7 @@ type File_Connection
 add_specs suite_builder =
     in_file_prefix = "[SQLite File] "
     database_file = Database_File.create
+    #IO.println 'AAA df is '+database_file.file.to_text
 
     sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection database_file.file)
     Transaction_Spec.add_specs suite_builder (_ -> create_file_connection database_file.file) in_file_prefix
@@ -456,4 +460,4 @@ add_specs suite_builder =
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter filter
+    suite.run_with_filter filter # ="Dropping Missing Values"

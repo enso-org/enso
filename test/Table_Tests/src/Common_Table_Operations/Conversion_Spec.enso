@@ -595,12 +595,19 @@ add_specs suite_builder setup =
         data = Data.setup create_connection_fn
 
         group_builder.teardown <|
-            data.teardown
+            IO.println "AAA before's teardown before"
+            #data.teardown
+            IO.println "AAA before's teardown after"
+            Nothing
 
         table_builder cols =
             setup.table_builder cols connection=data.connection
 
         group_builder.specify "should report unsupported" <|
+            if prefix == "[SQLite In-Memory] " then
+                IO.println 1
+                IO.println 1
+                IO.println 1
             t = table_builder [["X", [1, 2, 3]]]
             t.auto_value_types . should_fail_with Unsupported_Database_Operation
             t.at "X" . auto_value_type . should_fail_with Unsupported_Database_Operation

@@ -21,6 +21,14 @@ import org.graalvm.polyglot.Context;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
+  private static Object lala2 = null;
+  public static Object get() {
+    return lala2;
+  }
+  public static void put(Object lala) {
+    lala2 = lala;
+  }
+
 
   /**
    * Creates a substring of the given string, indexing using the Java standard (UTF-16) indexing
