@@ -11,7 +11,7 @@ const { provideFn, injectFn } = createContextStore(
 export class InteractionHandler {
   private currentInteraction: Interaction | undefined = undefined
 
-  isActive(interaction: Interaction | undefined) {
+  isActive(interaction: Interaction | undefined): interaction is Interaction {
     return interaction != null && interaction === this.currentInteraction
   }
 

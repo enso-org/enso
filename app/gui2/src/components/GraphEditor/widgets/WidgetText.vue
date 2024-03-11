@@ -1,49 +1,56 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
-import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { unrefElement } from '@/composables/events'
+import {
+  defineWidget,
+  Score,
+  WidgetEditHandler,
+  WidgetInput,
+  widgetProps,
+} from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'
-import { computed, ref } from 'vue'
+import { targetIsOutside } from '@/util/autoBlur'
+import { computed, ref, watch, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
-const interaction = injectInteractionHandler()
-const input = ref<HTMLElement>()
+const input = ref<ComponentInstance<typeof AutoSizedInput>>()
+const widgetRoot = ref<HTMLElement>()
 
-const editing: Interaction = {
-  cancel: () => {
+const editing = WidgetEditHandler.New(props.input, {
+  cancel() {
+    console.log('Text canceled')
+    editedContents.value = textContents.value
     input.value?.blur()
   },
-}
+  click(event) {
+    console.log('Text clicked')
+    if (targetIsOutside(event, unrefElement(input))) accepted()
+    return false
+  },
+  end() {
+    console.log('Text ended')
+    input.value?.blur()
+  },
+})
 
-function editingStarted() {
-  interaction.setCurrent(editing)
-  props.input.editing?.onStarted(editing)
-}
-
-function editingEnded() {
-  interaction.end(editing)
-  props.input.editing?.onFinished()
-}
-
-function accepted(value: string) {
-  console.log('Accepted in widget text', editing.value)
-  if (interaction.isActive(editing)) {
-    if (props.input.value instanceof Ast.TextLiteral) {
-      const edit = graph.startEdit()
-      edit.getVersion(props.input.value).setRawTextContent(value)
-      props.onUpdate({ edit })
-    } else {
-      props.onUpdate({
-        portUpdate: {
-          value: makeNewLiteral(value).code(),
-          origin: props.input.portId,
-        },
-      })
-    }
+function accepted() {
+  console.log('Accepted in widget text', editedContents.value)
+  editing.end()
+  if (props.input.value instanceof Ast.TextLiteral) {
+    const edit = graph.startEdit()
+    edit.getVersion(props.input.value).setRawTextContent(editedContents.value)
+    props.onUpdate({ edit })
+  } else {
+    props.onUpdate({
+      portUpdate: {
+        value: makeNewLiteral(editedContents.value).code(),
+        origin: props.input.portId,
+      },
+    })
   }
 }
 
@@ -74,6 +81,8 @@ const shownLiteral = computed(() => inputTextLiteral.value ?? emptyTextLiteral)
 const closeToken = computed(() => shownLiteral.value.close ?? shownLiteral.value.open)
 
 const textContents = computed(() => shownLiteral.value.rawTextContent)
+const editedContents = ref(textContents.value)
+watch(textContents, (value) => (editedContents.value = value))
 </script>
 
 <script lang="ts">
@@ -90,18 +99,17 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 </script>
 
 <template>
-  <label class="WidgetText r-24" @pointerdown.stop>
+  <label ref="widgetRoot" class="WidgetText r-24" @pointerdown.stop>
     <NodeWidget v-if="shownLiteral.open" :input="WidgetInput.FromAst(shownLiteral.open)" />
     <AutoSizedInput
       ref="input"
-      v-model.lazy="textContents"
+      v-model="editedContents"
       @pointerdown.stop
       @pointerup.stop
       @click.stop
-      @focusin="editingStarted"
-      @focusout="editingEnded"
-      @input="props.input.editing?.onEdited(makeLiteralFromValue($event ?? ''))"
-      @changed="accepted"
+      @keydown.enter.stop="accepted"
+      @focusin="editing.start()"
+      @input="editing.edit(makeLiteralFromValue($event ?? ''))"
     />
     <NodeWidget v-if="closeToken" :input="WidgetInput.FromAst(closeToken)" />
   </label>

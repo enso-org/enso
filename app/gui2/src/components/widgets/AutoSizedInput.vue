@@ -47,6 +47,11 @@ defineExpose({
   getTextWidth,
   select: () => inputNode.value?.select(),
   focus: () => inputNode.value?.focus(),
+  blur: () => inputNode.value?.blur(),
+  cancel: () => {
+    innerModel.value = model.value
+    inputNode.value?.blur()
+  },
 })
 </script>
 

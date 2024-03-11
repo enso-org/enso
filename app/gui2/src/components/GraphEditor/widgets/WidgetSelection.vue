@@ -2,8 +2,14 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
-import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { unrefElement } from '@/composables/events'
+import {
+  defineWidget,
+  Score,
+  WidgetEditHandler,
+  WidgetInput,
+  widgetProps,
+} from '@/providers/widgetRegistry'
 import {
   singleChoiceConfiguration,
   type ArgumentWidgetConfiguration,
@@ -21,16 +27,15 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
-const interaction = injectInteractionHandler()
 const widgetRoot = ref<HTMLElement>()
+const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 
-const filter = ref<string>()
-const innerWidgetInteraction = ref<Interaction>()
+const editedValue = ref<Ast.Ast | string | undefined>()
 const isHovered = ref(false)
 
 interface Tag {
@@ -67,7 +72,8 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
 }
 
 function isFilteredIn(tag: Tag): boolean {
-  const pattern = filter.value
+  const pattern =
+    editedValue.value instanceof Ast.Ast ? editedValue.value.code() : editedValue.value
   if (!pattern) return true
   const textLiteralPattern = /^(['"])(.*)\1$/.exec(pattern)
   if (textLiteralPattern) {
@@ -132,18 +138,7 @@ const selectedLabel = computed(() => {
 const innerWidgetInput = computed(() => {
   const newInput: WidgetInput = {
     ...props.input,
-    editing: {
-      onStarted: (interaction) => {
-        innerWidgetInteraction.value = interaction
-        showDropdownWidget.value = true
-      },
-      onEdited: (value) => {
-        filter.value = value instanceof Ast.Ast ? value.code() : value
-      },
-      onFinished: () => {
-        showDropdownWidget.value = false
-      },
-    },
+    editHandler: dropDownInteraction,
   }
   if (props.input.dynamicConfig == null) return newInput
   const config = props.input.dynamicConfig
@@ -151,32 +146,48 @@ const innerWidgetInput = computed(() => {
   newInput.dynamicConfig = singleChoiceConfiguration(config)
   return newInput
 })
-const showDropdownWidget = ref(false)
-// interaction.setWhen(showDropdownWidget, {
-//   cancel: () => {
-//     showDropdownWidget.value = false
-//   },
-//   click: (e: PointerEvent) => {
-//     if (targetIsOutside(e, widgetRoot)) showDropdownWidget.value = false
-//     return false
-//   },
-// })
+const dropdownVisible = ref(false)
+const dropDownInteraction = WidgetEditHandler.New(props.input, {
+  cancel: () => {
+    dropdownVisible.value = false
+  },
+  click: (e, _, childHandler) => {
+    console.log('Selection click')
+    if (targetIsOutside(e, unrefElement(dropdownElement))) {
+      if (childHandler) return childHandler() !== false
+      else dropdownVisible.value = false
+    }
+    return false
+  },
+  start: () => {
+    dropdownVisible.value = true
+    editedValue.value = undefined
+  },
+  edit: (_, value) => {
+    editedValue.value = value
+  },
+  end: () => {
+    dropdownVisible.value = false
+  },
+})
 
 function toggleDropdownWidget() {
-  showDropdownWidget.value = !showDropdownWidget.value
+  if (!dropdownVisible.value) dropDownInteraction.start()
+  else dropDownInteraction.cancel()
 }
 
 function onClick(index: number, keepOpen: boolean) {
   selectedIndex.value = index
-  showDropdownWidget.value = keepOpen
+  if (!keepOpen) {
+    // We cancel interaction instead of ending it, because in case where we picked same entry,
+    // there may be no AST change so then inner widget won't be updated - we need to restore its
+    // content.
+    dropDownInteraction.cancel()
+  }
 }
 
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
-  console.log('Set drop-down value', innerWidgetInteraction.value)
-  if (innerWidgetInteraction.value != null) {
-    interaction.end(innerWidgetInteraction.value)
-  }
   let edit: Ast.MutableModule | undefined
   // Unless import conflict resolution is needed, we use the selected expression as is.
   let value = selectedTag.value?.expression
@@ -230,7 +241,8 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     <NodeWidget ref="childWidgetRef" :input="innerWidgetInput" />
     <SvgIcon v-if="isHovered" name="arrow_right_head_only" class="arrow" />
     <DropdownWidget
-      v-if="showDropdownWidget"
+      v-if="dropdownVisible"
+      ref="dropdownElement"
       class="dropdownContainer"
       :color="'var(--node-color-primary)'"
       :values="tagLabels"

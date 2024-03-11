@@ -6,7 +6,12 @@ import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract.ts'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
-import type { Interaction } from './interactionHandler'
+import type { GraphNavigator } from './graphNavigator'
+import {
+  InteractionHandler,
+  injectInteractionHandler,
+  type Interaction,
+} from './interactionHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
@@ -105,11 +110,7 @@ export interface WidgetInput {
   dynamicConfig?: WidgetConfiguration | undefined
   /** Force the widget to be a connectible port. */
   forcePort?: boolean
-  editing?: {
-    onStarted: (interaction: Interaction) => void
-    onEdited: (value: Ast.Owned | string) => void
-    onFinished: () => void
-  }
+  editHandler?: WidgetEditHandler
 }
 
 /**
