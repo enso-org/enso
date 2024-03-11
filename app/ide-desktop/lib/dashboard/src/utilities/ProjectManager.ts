@@ -1,6 +1,7 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
+
 import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' assert { type: 'yaml' }
 import type * as dateTime from './dateTime'
 import * as newtype from './newtype'
@@ -59,6 +60,10 @@ export type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 /** Create a {@link ProjectId}. */
 export const ProjectId = newtype.newtypeConstructor<ProjectId>()
+/** An ID of a directory. */
+export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
+/** Create a {@link DirectoryId}. */
+export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 /** A name of a project. */
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
 /** Create a {@link ProjectName}. */
@@ -145,20 +150,20 @@ export interface CreateProjectParams {
   readonly projectTemplate?: string
   readonly version?: string
   readonly missingComponentAction?: MissingComponentAction
-  readonly projectsDirectory?: ProjectId
+  readonly projectsDirectory?: DirectoryId
 }
 
 /** Parameters for the "list samples" endpoint. */
 export interface RenameProjectParams {
   readonly projectId: ProjectId
   readonly name: ProjectName
-  readonly projectsDirectory?: ProjectId
+  readonly projectsDirectory?: DirectoryId
 }
 
 /** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
   readonly projectId: ProjectId
-  readonly projectsDirectory?: ProjectId
+  readonly projectsDirectory?: DirectoryId
 }
 
 // =======================

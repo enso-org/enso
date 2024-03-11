@@ -278,6 +278,9 @@ export default class LocalBackend extends Backend {
       name: projectManager.ProjectName(body.projectName),
       ...(body.projectTemplateName != null ? { projectTemplate: body.projectTemplateName } : {}),
       missingComponentAction: projectManager.MissingComponentAction.install,
+      ...(body.parentDirectoryId == null
+        ? {}
+        : { projectsDirectory: extractTypeAndId(body.parentDirectoryId).id }),
     })
     return {
       name: body.projectName,
