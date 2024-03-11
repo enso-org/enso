@@ -8,6 +8,7 @@ import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Duration.Duration
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Errors.Not_Logged_In
+import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Time_Error.Time_Error
 import project.Network.HTTP.Header.Header
@@ -87,7 +88,9 @@ type Authentication_Data
 
     ## PRIVATE
     read_from_credentials -> Authentication_Data =
-        content = credentials_file.read_text
+        content = credentials_file.read_text . catch File_Error error-> case error of
+            File_Error.Not_Found _ -> Panic.throw Not_Logged_In
+            _ -> Panic.throw (Illegal_State.Error "Failed to read credentials file: "+error.to_display_text cause=error)
         as_json = content.parse_json.catch Invalid_JSON error->
             Panic.throw (Illegal_State.Error "Invalid credentials file format: "+error.to_display_text cause=error)
         get_field field_name =
@@ -105,7 +108,8 @@ type Refresh_Token_Data
 
     ## PRIVATE
     read_from_credentials -> Refresh_Token_Data =
-        content = credentials_file.read_text
+        content = credentials_file.read_text . catch File_Error error->
+            Panic.throw (Illegal_State.Error "Token refresh failed - cannot read credentials file: "+error.to_display_text cause=error)
         as_json = content.parse_json.catch Invalid_JSON error->
             Panic.throw (Illegal_State.Error "Token refresh failed due to invalid credentials file format: "+error.to_display_text cause=error)
         get_field field_name =

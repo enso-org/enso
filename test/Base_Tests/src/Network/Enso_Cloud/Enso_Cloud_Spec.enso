@@ -72,10 +72,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 non_existent_file = (enso_project.data / "nonexistent-file") . absolute . normalize
                 non_existent_file.exists.should_be_false
                 Panic.with_finalizer Cloud_Tests_Setup.reset_token <|
-                    r = Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" non_existent_file.path <|
+                    Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" non_existent_file.path <|
                         Cloud_Tests_Setup.reset_token
-                        Enso_User.current
-                    r.should_fail_with Not_Logged_In
+                        Test.expect_panic Not_Logged_In <|
+                            Enso_User.current
 
             group_builder.specify "will fail if the token is invalid" pending=setup.pending <|
                 invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
