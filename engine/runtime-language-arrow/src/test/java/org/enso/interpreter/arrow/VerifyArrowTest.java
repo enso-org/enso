@@ -143,6 +143,7 @@ public class VerifyArrowTest {
     assertThrows(RuntimeException.class, () -> int8ArrayBuilder.setArrayElement(5, 300));
     assertThrows(RuntimeException.class, () -> int8ArrayBuilder.invokeMember("append", 300));
     int8ArrayBuilder.setArrayElement(5, 4);
+    assertThrows(UnsupportedOperationException.class, () -> int8ArrayBuilder.getArrayElement(5));
     var int8Array = int8ArrayBuilder.invokeMember("build");
     var v = int8Array.getArrayElement(5);
     assertEquals((byte) 4, v.asByte());

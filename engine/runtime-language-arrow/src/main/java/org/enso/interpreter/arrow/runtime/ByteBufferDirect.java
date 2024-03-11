@@ -19,6 +19,7 @@ final class ByteBufferDirect implements AutoCloseable {
   private ByteBufferDirect(int valueCount, SizeInBytes unit) {
     var padded = RoundingUtil.forValueCount(valueCount, unit);
     var buffer = ByteBuffer.allocate(padded.getTotalSizeInBytes());
+
     this.allocated = buffer;
     this.dataBuffer = buffer.slice(0, padded.getDataBufferSizeInBytes());
     this.bitmapBuffer = buffer.slice(dataBuffer.capacity(), padded.getValidityBitmapSizeInBytes());

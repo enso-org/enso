@@ -67,8 +67,8 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
       case "build":
         sealed = true;
         return switch (unit) {
-          case Date32, Date64 -> new ArrowFixedArrayDate(buffer, unit);
-          case Int8, Int16, Int32, Int64 -> new ArrowFixedArrayInt(buffer, unit);
+          case Date32, Date64 -> new ArrowFixedArrayDate(buffer, size, unit);
+          case Int8, Int16, Int32, Int64 -> new ArrowFixedArrayInt(buffer, size, unit);
         };
       case "append":
         if (sealed) {
@@ -84,67 +84,6 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
         return NullValue.get();
       default:
         throw UnknownIdentifierException.create(name);
-    }
-  }
-
-  @ExportMessage
-  @ImportStatic(LogicalLayout.class)
-  static class ReadArrayElement {
-
-    @Specialization(guards = "receiver.getUnit() == Date32")
-    static Object doDay(ArrowFixedSizeArrayBuilder receiver, long index)
-        throws UnsupportedMessageException {
-      return ArrowFixedArrayDate.readDay(receiver.buffer, index);
-    }
-
-    @Specialization(guards = "receiver.getUnit() == Date64")
-    static Object doMilliseconds(ArrowFixedSizeArrayBuilder receiver, long index)
-        throws UnsupportedMessageException {
-      return ArrowFixedArrayDate.readMilliseconds(receiver.buffer, index);
-    }
-
-    @Specialization(guards = "receiver.getUnit() == Int8")
-    public static Object doByte(ArrowFixedSizeArrayBuilder receiver, long index)
-        throws UnsupportedMessageException, InvalidArrayIndexException {
-      var at =
-          ArrowFixedArrayInt.adjustedIndex(receiver.buffer, receiver.unit, receiver.size, index);
-      if (receiver.buffer.isNull((int) index)) {
-        return NullValue.get();
-      }
-      return receiver.buffer.get(at);
-    }
-
-    @Specialization(guards = "receiver.getUnit() == Int16")
-    public static Object doShort(ArrowFixedSizeArrayBuilder receiver, long index)
-        throws UnsupportedMessageException, InvalidArrayIndexException {
-      var at =
-          ArrowFixedArrayInt.adjustedIndex(receiver.buffer, receiver.unit, receiver.size, index);
-      if (receiver.buffer.isNull((int) index)) {
-        return NullValue.get();
-      }
-      return receiver.buffer.getShort(at);
-    }
-
-    @Specialization(guards = "receiver.getUnit() == Int32")
-    public static Object doInt(ArrowFixedSizeArrayBuilder receiver, long index)
-        throws UnsupportedMessageException, InvalidArrayIndexException {
-      var at =
-          ArrowFixedArrayInt.adjustedIndex(receiver.buffer, receiver.unit, receiver.size, index);
-      if (receiver.buffer.isNull((int) index)) {
-        return NullValue.get();
-      }
-      return receiver.buffer.getInt(at);
-    }
-
-    @Specialization(guards = "receiver.getUnit() == Int64")
-    public static Object doLong(ArrowFixedSizeArrayBuilder receiver, long index)
-        throws UnsupportedMessageException, InvalidArrayIndexException {
-      var at =
-          ArrowFixedArrayInt.adjustedIndex(receiver.buffer, receiver.unit, receiver.size, index);
-      if (receiver.buffer.isNull((int) index)) {
-        return NullValue.get();
-      }
-      return receiver.buffer.getLong(at);
     }
   }
 
@@ -309,7 +248,13 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
 
   @ExportMessage
   boolean isArrayElementReadable(long index) {
-    return index >= 0 && index < size && !buffer.isNull((int) index);
+    return false;
+  }
+
+  @ExportMessage
+  Object readArrayElement(long index)
+      throws UnsupportedMessageException, InvalidArrayIndexException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage

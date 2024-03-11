@@ -27,9 +27,8 @@ public final class ArrowFixedArrayDate implements TruffleObject {
     this.buffer = ByteBufferDirect.forSize(size, unit);
   }
 
-  public ArrowFixedArrayDate(ByteBufferDirect buffer, LogicalLayout unit)
-      throws UnsupportedMessageException {
-    this.size = buffer.capacity() / unit.sizeInBytes();
+  public ArrowFixedArrayDate(ByteBufferDirect buffer, int size, LogicalLayout unit) {
+    this.size = size;
     this.unit = unit;
     this.buffer = buffer;
   }
