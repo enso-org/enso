@@ -624,7 +624,7 @@ export default function AssetRow(props: AssetRowProps) {
                 }
               }}
               onDragStart={event => {
-                if (rowState.isEditingName || !isCloud) {
+                if (rowState.isEditingName) {
                   event.preventDefault()
                 } else {
                   props.onDragStart?.(event)
