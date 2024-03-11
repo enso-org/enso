@@ -16,11 +16,18 @@ export function getTextWidthBySizeAndFamily(
 
 /** Helper function to get text width. `font` is a CSS font specification as per https://developer.mozilla.org/en-US/docs/Web/CSS/font. */
 export function getTextWidthByFont(text: string | null | undefined, font: string) {
-  if (text == null || font == '' || !fontReady(font)) {
+  if (text == null || text == '' || font == '') {
     return 0
   }
+
+  // Continue with `measureText` even if font is not loaded yet. What matters here is tracking
+  // reactive state of font loading in case it isn't ready yet, so the width will be recomputed
+  // once the loading finishes.
+  const _ = fontReady(font)
+
   const context = getMeasureContext()
   context.font = font
+  context.fillText(text, 0, 0)
   const metrics = context.measureText(text)
   return metrics.width
 }
@@ -31,32 +38,44 @@ export function getTextWidthByFont(text: string | null | undefined, font: string
  * revert back to loading (assuming we don't dynamically change existing @font-face definitions to
  * point to different URLs, which would be incredibly cursed).
  */
-const fontsReady = shallowReactive(new Map())
+const fontsLoadState = shallowReactive(new Map())
 
 /**
  * Check if given font is ready to use. In case if it is not, the check will automatically register
  * a reactive dependency, which will be notified once loading is complete.
- * @param font
- * @returns
  */
 function fontReady(font: string): boolean {
-  const readyState = fontsReady.get(font)
+  const readyState = fontsLoadState.get(font)
   if (readyState === undefined) {
-    let syncReady
-    try {
-      // This operation can fail if the provided font string is not a valid CSS font specifier.
-      syncReady = document.fonts.check(font)
-    } catch (e) {
-      console.error(e)
-      // In case of exception, treat the font as if it was loaded. That way we don't attempt loading
-      // it again, and the browser font fallback logic should still make things behave more or less
-      // correct.
-      syncReady = true
-    }
-    fontsReady.set(font, syncReady)
-    if (syncReady) return true
-    else document.fonts.load(font).then(() => fontsReady.set(font, true))
-    return false
+    // Make sure to schedule font loading in separate task, so there are no immediate side effects
+    // on reactive state when this function is used in computed context.
+    setTimeout(() => loadFont(font), 0)
+    // This check by itself is not reactive, but it is fine since already track the loading state
+    // and the loading will begin shortly.
+    return checkFontSync(font)
   }
   return readyState
+}
+
+/** Start loading given font if it wasn't started yet. Mutates reactive state. */
+function loadFont(font: string): void {
+  if (!fontsLoadState.has(font)) {
+    const ready = checkFontSync(font)
+    fontsLoadState.set(font, ready)
+    if (!ready) document.fonts.load(font).then(() => fontsLoadState.set(font, true))
+  }
+}
+
+/** Check if given font is loaded. NOT reactive. */
+function checkFontSync(font: string): boolean {
+  try {
+    // This operation can fail if the provided font string is not a valid CSS font specifier.
+    return document.fonts.check(font)
+  } catch (e) {
+    console.error(e)
+    // In case of exception, treat the font as if it was loaded. That way we don't attempt loading
+    // it again, and the browser font fallback logic should still make things behave more or less
+    // correct.
+    return true
+  }
 }

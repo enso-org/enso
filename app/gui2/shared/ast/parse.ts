@@ -57,6 +57,7 @@ import {
   PropertyAccess,
   TextLiteral,
   UnaryOprApp,
+  Vector,
   Wildcard,
 } from './tree'
 
@@ -288,6 +289,20 @@ class Abstractor {
         const as = tree.as ? recurseSegment(tree.as) : undefined
         const hiding = tree.hiding ? recurseSegment(tree.hiding) : undefined
         node = Import.concrete(this.module, polyglot, from, import_, all, as, hiding)
+        break
+      }
+      case RawAst.Tree.Type.Array: {
+        const left = this.abstractToken(tree.left)
+        const elements = []
+        if (tree.first) elements.push({ value: this.abstractTree(tree.first) })
+        for (const rawElement of tree.rest) {
+          elements.push({
+            delimiter: this.abstractToken(rawElement.operator),
+            value: rawElement.body && this.abstractTree(rawElement.body),
+          })
+        }
+        const right = this.abstractToken(tree.right)
+        node = Vector.concrete(this.module, left, elements, right)
         break
       }
       default: {

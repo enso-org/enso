@@ -13,13 +13,10 @@ import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 
-import project.Data.Column_Description.Column_Description
-import project.Data.DB_Table as DB_Table_Module
-import project.Data.DB_Table.DB_Table
-import project.Data.Dialect.Dialect
-import project.Data.SQL_Query.SQL_Query
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
+import project.Column_Description.Column_Description
+import project.DB_Table as DB_Table_Module
+import project.DB_Table.DB_Table
+import project.Dialect.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
@@ -29,6 +26,9 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
 import project.Internal.Table_Naming_Helper.Table_Naming_Helper
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
 from project.Internal.Result_Set import read_column, result_set_to_table

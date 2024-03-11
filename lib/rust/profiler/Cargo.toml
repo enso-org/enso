@@ -8,6 +8,5 @@ authors = ["Enso Team <contact@enso.org>"]
 futures = { workspace = true }
 serde = { workspace = true }
 serde_json = { version = "1.0.59", features = ["raw_value"] }
-wasm-bindgen = { workspace = true }
 enso-profiler-macros = { path = "macros" }
 enso-web = { path = "../web" }

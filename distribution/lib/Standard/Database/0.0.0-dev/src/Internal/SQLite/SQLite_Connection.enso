@@ -7,17 +7,17 @@ from Standard.Base.Metadata.Widget import Single_Choice
 import Standard.Table.Data.Table.Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
 
+import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
-import project.Data.Column_Description.Column_Description
-import project.Data.DB_Table.DB_Table
-import project.Data.Dialect
-import project.Data.SQL_Query.SQL_Query
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
+import project.DB_Table.DB_Table
+import project.Dialect
 import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Entity_Naming_Properties
+import project.SQL_Query.SQL_Query
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.Upload_Table import first_column_name_in_structure

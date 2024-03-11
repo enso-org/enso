@@ -1,11 +1,14 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast, RawAst } from '@/util/ast'
+import { initializePrefixes } from '@/util/ast/node'
 import assert from 'assert'
+import type { AstId } from 'shared/ast'
 import { initializeFFI } from 'shared/ast/ffi'
 import { IdMap, type ExternalId } from 'shared/yjsModel'
 import { expect, test } from 'vitest'
 
 await initializeFFI()
+initializePrefixes()
 
 /**
  * Create a predictable fake UUID which contains given number in decimal at the end.
@@ -46,8 +49,10 @@ test('Reading graph from definition', () => {
   assert(rawFunc?.type === RawAst.Tree.Type.Function)
   db.readFunctionAst(func, rawFunc, code, getSpan, new Set())
 
-  const idFromExternal = new Map()
-  ast.visitRecursiveAst((ast) => idFromExternal.set(ast.externalId, ast.id))
+  const idFromExternal = new Map<ExternalId, AstId>()
+  ast.visitRecursiveAst((ast) => {
+    idFromExternal.set(ast.externalId, ast.id)
+  })
   const id = (x: number) => idFromExternal.get(eid(x))!
 
   expect(Array.from(db.nodeIdToNode.keys())).toEqual([id(4), id(8), id(12)])

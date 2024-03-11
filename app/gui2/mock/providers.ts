@@ -10,6 +10,7 @@ export const graphNavigator: GraphNavigator = {
   panAndZoomTo: () => {},
   panTo: () => {},
   scrollTo: () => {},
+  stepZoom: () => {},
   transform: '',
   prescaledTransform: '',
   translate: Vec2.Zero,

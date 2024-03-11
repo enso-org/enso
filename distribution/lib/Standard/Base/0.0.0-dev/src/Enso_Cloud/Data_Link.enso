@@ -39,6 +39,11 @@ type Data_Link_Format
         Nothing
 
     ## PRIVATE
+       We currently don't display data-link as a specific format.
+       It relies on `Auto_Detect`.
+    get_dropdown_options = []
+
+    ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =

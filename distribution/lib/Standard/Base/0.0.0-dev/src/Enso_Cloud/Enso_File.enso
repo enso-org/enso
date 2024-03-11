@@ -214,7 +214,7 @@ type Enso_File
             json = Utils.http_request_as_json HTTP_Method.Get self.internal_uri
             read_datalink json on_problems
         Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
-        Enso_Asset_Type.File -> case format of
+        Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <| case format of
             Auto_Detect ->
                 real_format = Auto_Detect.get_reading_format self
                 if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else

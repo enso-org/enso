@@ -16,7 +16,7 @@ import * as authProvider from '#/providers/AuthProvider'
  * offline. */
 export function useNavigate() {
   const { goOffline } = authProvider.useAuth()
-  // This function is a wrapper around `router.useNavigate`. It shouldbe the only place where
+  // This function is a wrapper around `router.useNavigate`. It should be the only place where
   // `router.useNavigate` is used.
   // eslint-disable-next-line no-restricted-properties
   const originalNavigate = router.useNavigate()
