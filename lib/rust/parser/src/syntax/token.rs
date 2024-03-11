@@ -259,7 +259,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         Wildcard {
             pub lift_level: u32
         },
-        AutoScope,
+        SuspendedDefaultArguments,
         Ident {
             pub is_free:               bool,
             pub lift_level:            u32,

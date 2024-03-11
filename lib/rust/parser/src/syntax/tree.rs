@@ -118,9 +118,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             #[reflect(as = "i32")]
             pub de_bruijn_index: Option<u32>,
         },
-        /// The auto-scoping marker, `...`.
-        AutoScope {
-            pub token: token::AutoScope<'s>,
+        /// The suspended-default-arguments marker, `...`.
+        SuspendedDefaultArguments {
+            pub token: token::SuspendedDefaultArguments<'s>,
         },
         TextLiteral {
             pub open:     Option<token::TextStart<'s>>,
@@ -990,7 +990,7 @@ pub fn to_ast(token: Token) -> Tree {
             Tree::text_literal(default(), default(), vec![newline], default(), default())
         }
         token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
-        token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
+        token::Variant::SuspendedDefaultArguments(t) => Tree::suspended_default_arguments(token.with_variant(t)),
         token::Variant::OpenSymbol(s) =>
             Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
         token::Variant::CloseSymbol(s) =>

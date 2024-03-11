@@ -652,7 +652,7 @@ impl<'s> Lexer<'s> {
                 }
                 // Composed of operator characters, but not an operator node.
                 "..." => {
-                    let token = token.with_variant(token::Variant::auto_scope());
+                    let token = token.with_variant(token::Variant::suspended_default_arguments());
                     self.submit_token(token);
                 }
                 // Decimal vs. method-application must be distinguished before parsing because they

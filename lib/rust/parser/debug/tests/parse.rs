@@ -1269,7 +1269,7 @@ fn case_by_type() {
 }
 
 #[test]
-fn pattern_match_auto_scope() {
+fn pattern_match_suspended_default_arguments() {
     #[rustfmt::skip]
     let code = [
         "case self of",
@@ -1277,7 +1277,7 @@ fn pattern_match_auto_scope() {
     ];
     #[rustfmt::skip]
     let expected = block![
-        (CaseOf (Ident self) #(((() (App (Ident Vector_2d) (AutoScope)) "->" (Ident x)))))];
+        (CaseOf (Ident self) #(((() (App (Ident Vector_2d) (SuspendedDefaultArguments)) "->" (Ident x)))))];
     test(&code.join("\n"), expected);
 }
 
