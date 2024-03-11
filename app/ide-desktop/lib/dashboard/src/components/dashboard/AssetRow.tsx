@@ -698,11 +698,14 @@ export default function AssetRow(props: AssetRowProps) {
                   event.stopPropagation()
                   unsetModal()
                   doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                  const ids = payload
+                    .filter(payloadItem => payloadItem.asset.parentId !== directoryId)
+                    .map(dragItem => dragItem.key)
                   dispatchAssetEvent({
                     type: AssetEventType.move,
                     newParentKey: directoryKey,
                     newParentId: directoryId,
-                    ids: new Set(payload.map(dragItem => dragItem.key)),
+                    ids: new Set(ids),
                   })
                 } else if (event.dataTransfer.types.includes('Files')) {
                   event.preventDefault()
