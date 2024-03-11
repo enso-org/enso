@@ -98,7 +98,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 readOnly={readOnly}
                 value={typeof value === 'string' ? value : ''}
                 size={1}
-                className={`text w-data-link-text-input rounded-input border bg-transparent px-input-x read-only:read-only ${
+                className={`text grow w-data-link-text-input rounded-input border bg-transparent px-input-x read-only:read-only ${
                   getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
                 }`}
                 placeholder="Enter text"
@@ -118,7 +118,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`text w-data-link-text-input rounded-input border bg-transparent px-input-x read-only:read-only ${
+              className={`text grow w-data-link-text-input rounded-input border bg-transparent px-input-x read-only:read-only ${
                 getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter number"
@@ -139,7 +139,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`text w-data-link-text-input rounded-input border bg-transparent px-input-x read-only:read-only ${
+              className={`text grow w-data-link-text-input rounded-input border bg-transparent px-input-x read-only:read-only ${
                 getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter integer"
@@ -179,7 +179,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           )
           if (jsonSchema.constantValue(defs, schema).length !== 1) {
             children.push(
-              <div className="flex flex-col gap-data-link rounded-default border border-black/10 p-data-link-object-input">
+              <div className="flex flex-col gap-json-schema rounded-default border border-black/10 p-json-schema-object-input">
                 {propertyDefinitions.map(definition => {
                   const { key, schema: childSchema } = definition
                   const isOptional = !requiredProperties.includes(key)
@@ -196,7 +196,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         disabled={!isOptional}
                         className={`text selectable ${
                           value != null && key in value ? 'active' : ''
-                        } inline-block w-data-link-object-input whitespace-nowrap rounded-full px-button-x text-left ${
+                        } inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left ${
                           isOptional ? 'hover:bg-hover-bg' : ''
                         }`}
                         onClick={() => {
@@ -305,10 +305,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         />
       )
       children.push(
-        <div className={`flex flex-col gap-data-link ${childValue.length === 0 ? 'w-full' : ''}`}>
+        <div className={`flex flex-col gap-json-schema ${childValue.length === 0 ? 'w-full' : ''}`}>
           {dropdownTitle != null ? (
             <div className="flex h-row items-center">
-              <div className="h-text w-data-link-dropdown-title">{dropdownTitle}</div>
+              <div className="h-text w-json-schema-dropdown-title">{dropdownTitle}</div>
               {dropdown}
             </div>
           ) : (
@@ -348,7 +348,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     return children.length === 0 ? null : children.length === 1 && children[0] != null ? (
       children[0]
     ) : (
-      <div className="flex flex-col gap-data-link">{...children}</div>
+      <div className="flex flex-col gap-json-schema">{...children}</div>
     )
   }
 }

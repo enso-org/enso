@@ -91,11 +91,11 @@
   --context-menu-entry-padding-x: 0.75rem;
   --context-menu-separator-padding-y: 0.125rem;
   /* The vertical gap between entries in a Data Link input. */
-  --data-link-gap: 0.25rem;
-  --data-link-text-input-width: 10rem;
-  --data-link-object-input-padding: 0.5rem;
-  --data-link-object-input-width: 7rem;
-  --data-link-dropdown-title-width: 3rem;
+  --json-schema-gap: 0.25rem;
+  --json-schema-text-input-width: 10rem;
+  --json-schema-object-input-padding: 0.5rem;
+  --json-schema-object-key-width: 11rem;
+  --json-schema-dropdown-title-width: 3rem;
   --input-padding-x: 0.5rem;
   --multiline-input-padding: 0.5rem;
   /* The default height for an input with a large default size,
