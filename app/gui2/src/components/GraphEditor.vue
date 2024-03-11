@@ -230,12 +230,6 @@ const graphBindingsHandler = graphBindings.handler({
       showComponentBrowser()
     }
   },
-  newNode() {
-    if (keyboardBusy()) return false
-    if (graphNavigator.sceneMousePos != null) {
-      graphStore.createNode(graphNavigator.sceneMousePos, 'hello "world"! 123 + x')
-    }
-  },
   deleteSelected() {
     graphStore.transact(() => {
       graphStore.deleteNodes([...nodeSelection.selected])
@@ -265,14 +259,6 @@ const graphBindingsHandler = graphBindings.handler({
       for (const nodeId of nodeSelection.selected) {
         graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
-    })
-  },
-  toggleVisualizationFullscreen() {
-    if (nodeSelection.selected.size !== 1) return
-    graphStore.transact(() => {
-      const selected = set.first(nodeSelection.selected)
-      const isFullscreen = graphStore.db.nodeIdToNode.get(selected)?.vis?.fullscreen
-      graphStore.setNodeVisualization(selected, { visible: true, fullscreen: !isFullscreen })
     })
   },
   copyNode() {
@@ -397,11 +383,19 @@ function showComponentBrowser(nodePosition?: Vec2, usage?: Usage) {
   componentBrowserVisible.value = true
 }
 
-function startCreatingNodeFromButton() {
+/** Start creating a node, basing its inputs and position on the current selection, if any;
+ *  or the current viewport, otherwise.
+ */
+function addNodeAuto() {
   const targetPos =
     placementPositionForSelection() ??
     nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
   showComponentBrowser(targetPos)
+}
+
+function addNodeAt(pos: Vec2 | undefined) {
+  if (!pos) return addNodeAuto()
+  showComponentBrowser(pos)
 }
 
 function hideComponentBrowser() {
@@ -621,6 +615,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
+        @addNode="addNodeAt($event)"
       />
     </div>
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
@@ -645,11 +640,11 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @forward="stackNavigator.enterNextNodeFromHistory"
       @recordOnce="onRecordOnceButtonPress()"
       @fitToAllClicked="zoomToSelected"
-      @zoomIn="graphNavigator.scale *= 1.1"
-      @zoomOut="graphNavigator.scale *= 0.9"
+      @zoomIn="graphNavigator.stepZoom(+1)"
+      @zoomOut="graphNavigator.stepZoom(-1)"
       @toggleCodeEditor="toggleCodeEditor"
     />
-    <PlusButton @pointerdown.stop @click.stop="startCreatingNodeFromButton()" @pointerup.stop />
+    <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
