@@ -186,13 +186,15 @@ function initSaveAccessTokenListener() {
                                 client_id: accessTokenPayload.clientId,
                                 access_token: accessTokenPayload.accessToken,
                                 refresh_token: accessTokenPayload.refreshToken,
-                                refresh_uri: accessTokenPayload.refreshUri,
+                                refresh_url: accessTokenPayload.refreshUrl,
                                 expire_at: accessTokenPayload.expireAt,
                                 /* eslint-enable @typescript-eslint/naming-convention */
                             }),
                             innerError => {
                                 if (innerError) {
-                                    logger.error(`Could not write to '${credentialsFileName}' file.`)
+                                    logger.error(
+                                        `Could not write to '${credentialsFileName}' file.`
+                                    )
                                 }
                             }
                         )

@@ -353,7 +353,7 @@ export default function AuthProvider(props: AuthProviderProps) {
             clientId: session.clientId,
             expireAt: session.expireAt,
             refreshToken: session.refreshToken,
-            refreshUri: session.refreshUrl,
+            refreshUrl: session.refreshUrl,
           })
 
           // Execute the callback that should inform the Electron app that the user has logged in.
