@@ -116,5 +116,16 @@ type Refresh_Token_Data
 
     ## PRIVATE
     fetch_new_access_token self -> Authentication_Data =
+        headers = [Header.content_type "application/x-amz-json-1.1", Header.new "X-Amz-Target" "AWSCognitoIdentityProviderService.InitiateAuth"]
+        auth_parameters = JS_Object.from_pairs [["REFRESH_TOKEN", self.refresh_token], ["DEVICE_KEY", Nothing]]
+        payload = JS_Object.from_pairs [["ClientId", self.client_id], ["AuthFlow", "REFRESH_TOKEN_AUTH"], ["AuthParameters", auth_parameters]]
+        response = HTTP.post self.refresh_uri body=(Request_Body.Json payload) headers=headers
+            . catch HTTP_Error error->
+                Panic.throw (Enso_Cloud_Error.Connection_Error error)
+            . catch Request_Error error->
+                Panic.throw (Enso_Cloud_Error.Connection_Error error)
+        json = response.decode_as_json . catch Invalid_JSON error->
+            Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
+        access_token = json.get "AuthenticationResult" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AuthenticationResult` field in response."))
         # TODO
         Authentication_Data.Value Nothing Nothing
