@@ -9,7 +9,7 @@ import * as streamConsumers from 'node:stream/consumers'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
-import * as vite from 'vite'
+import type * as vite from 'vite'
 import createServer from 'create-servers'
 
 import * as common from 'enso-common'
@@ -18,7 +18,8 @@ import * as ydocServer from 'enso-gui2/ydoc-server'
 
 import * as paths from '../paths'
 
-import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' with { type: 'yaml' }
+// prettier-ignore
+import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 
@@ -86,11 +87,14 @@ export class Server {
     /** Create a simple HTTP server. */
     constructor(public config: Config) {
         if (process.env.DEV_MODE === 'true') {
+            // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports, @typescript-eslint/no-var-requires
             const vite = require('vite') as typeof import('vite')
-            vite.createServer({
-                server: { middlewareMode: true },
-                configFile: process.env.GUI2_CONFIG_PATH ?? false,
-            }).then(server => (this.devServer = server))
+            void vite
+                .createServer({
+                    server: { middlewareMode: true },
+                    configFile: process.env.GUI2_CONFIG_PATH ?? false,
+                })
+                .then(server => (this.devServer = server))
         }
     }
 

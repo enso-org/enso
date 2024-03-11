@@ -36,9 +36,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      ...(process.env.E2E === 'true'
-        ? { '/src/main.ts': fileURLToPath(new URL('./e2e/main.ts', import.meta.url)) }
-        : {}),
+      ...(process.env.E2E === 'true' ?
+        { '/src/main.ts': fileURLToPath(new URL('./e2e/main.ts', import.meta.url)) }
+      : {}),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },

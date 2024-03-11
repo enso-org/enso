@@ -34,7 +34,8 @@ import * as security from 'security'
 import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
 
-import GLOBAL_CONFIG from '../../../../gui2/config.yaml' with { type: 'yaml' }
+// prettier-ignore
+import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 
