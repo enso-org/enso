@@ -422,7 +422,7 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Change the parent directory of an asset.
+  /** Change the parent directory or description of an asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateAsset(
     assetId: backendModule.AssetId,

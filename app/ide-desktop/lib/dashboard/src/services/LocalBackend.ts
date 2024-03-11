@@ -218,6 +218,7 @@ export default class LocalBackend extends Backend {
                     : backend.ProjectState.closed,
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 volume_id: '',
+                path: entry.path,
               },
               labels: [],
               description: null,
@@ -595,6 +596,25 @@ export default class LocalBackend extends Backend {
     }
   }
 
+  /** Change the parent directory of an asset.
+   * Changing the description is NOT supported. */
+  override async updateAsset(
+    assetId: backend.AssetId,
+    body: backend.UpdateAssetRequestBody
+  ): Promise<void> {
+    if (body.parentDirectoryId != null) {
+      const typeAndId = extractTypeAndId(assetId)
+      const sourcePath =
+        typeAndId.type === backend.AssetType.project ? body.projectPath ?? '' : typeAndId.id
+      await this.runProjectManagerCommand(
+        'filesystem-move-from',
+        sourcePath,
+        '--filesystem-move-to',
+        extractTypeAndId(body.parentDirectoryId).id
+      )
+    }
+  }
+
   /** Invalid operation. */
   override updateDirectory() {
     return this.invalidOperation()
@@ -603,11 +623,6 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override listAssetVersions() {
     return this.invalidOperation()
-  }
-
-  /** Return `void`. This function should never need to be called. */
-  override updateAsset() {
-    return Promise.resolve()
   }
 
   /** Invalid operation. */

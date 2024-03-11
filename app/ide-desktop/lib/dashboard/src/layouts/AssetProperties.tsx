@@ -94,7 +94,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       try {
         await backend.updateAsset(
           item.item.id,
-          { parentDirectoryId: null, description },
+          {
+            parentDirectoryId: null,
+            description,
+            projectPath: item.item.projectState?.path ?? null,
+          },
           item.item.title
         )
       } catch (error) {

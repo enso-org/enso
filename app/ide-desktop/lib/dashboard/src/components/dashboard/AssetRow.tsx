@@ -189,7 +189,11 @@ export default function AssetRow(props: AssetRowProps) {
         setAsset(object.merger({ parentId: nonNullNewParentId }))
         await backend.updateAsset(
           asset.id,
-          { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
+          {
+            parentDirectoryId: newParentId ?? rootDirectoryId,
+            description: null,
+            projectPath: asset.projectState?.path ?? null,
+          },
           asset.title
         )
       } catch (error) {

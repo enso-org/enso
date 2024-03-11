@@ -150,6 +150,8 @@ export interface ProjectStateType {
   readonly ec2_public_ip_address?: string
   readonly current_session_id?: string
   readonly opened_by?: EmailAddress
+  /** Only present on the Local backend. */
+  readonly path?: string
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -865,6 +867,8 @@ export interface UpdateDirectoryRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
+  /** Only present on the Local backend. */
+  readonly projectPath: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
