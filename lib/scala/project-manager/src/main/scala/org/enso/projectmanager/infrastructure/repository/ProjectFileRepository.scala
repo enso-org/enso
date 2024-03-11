@@ -84,7 +84,8 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, Path] =
     findTargetPath(moduleName).map(_.toPath)
 
-  private def tryLoadProject(
+  /** @inheritdoc */
+  override def tryLoadProject(
     directory: File
   ): F[ProjectRepositoryFailure, Option[Project]] = {
     def noop[A]: F[ProjectRepositoryFailure, Option[A]] =

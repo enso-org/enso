@@ -26,6 +26,13 @@ trait FileSystem[F[+_, +_]] {
     contents: String
   ): F[FileSystemFailure, Unit]
 
+  /** Creates the specified directory with all required parent directories.
+    *
+    * @param path a path to the directory
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def createDir(path: File): F[FileSystemFailure, Unit]
+
   /** Deletes the specified directory recursively.
     *
     * @param path a path to the directory

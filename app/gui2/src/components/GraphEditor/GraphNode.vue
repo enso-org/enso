@@ -41,6 +41,7 @@ const emit = defineEmits<{
   outputPortClick: [portId: AstId]
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
+  addNode: [pos: Vec2 | undefined]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -383,6 +384,7 @@ const documentation = computed<string | undefined>({
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
+      @addNode="emit('addNode', $event)"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -401,6 +403,7 @@ const documentation = computed<string | undefined>({
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
+      @addNode="emit('addNode', $event)"
     />
     <Suspense>
       <GraphNodeComment
