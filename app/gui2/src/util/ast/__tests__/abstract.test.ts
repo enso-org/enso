@@ -454,7 +454,7 @@ test('Replace subexpression', () => {
   expect(printed).toEqual("main =\n    text1 = 'bar'\n")
 })
 
-test.only('Modify subexpression - setting a vector', () => {
+test('Modify subexpression - setting a vector', () => {
   // A case where the #9357 bug was visible.
   const code = 'main =\n    text1 = foo\n'
   const root = Ast.parseBlock(code)
