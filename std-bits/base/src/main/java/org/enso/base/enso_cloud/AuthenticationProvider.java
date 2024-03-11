@@ -7,6 +7,7 @@ public class AuthenticationProvider {
 
   public interface AuthenticationService {
     String get_access_token();
+    void force_refresh();
   }
 
   private static Value authenticationServiceAsEnso = null;
@@ -33,7 +34,7 @@ public class AuthenticationProvider {
     authenticationServiceAsJava = javaInstance;
   }
 
-  private static AuthenticationService getAuthenticationService() {
+  static AuthenticationService getAuthenticationService() {
     if (authenticationServiceAsJava == null) {
       ensureServicesSetup();
     }

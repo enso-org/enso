@@ -31,6 +31,10 @@ class EnsoSecretReader {
       return secrets.get(secretId);
     }
 
+    return fetchSecretValue(secretId, 3);
+  }
+
+  private static String fetchSecretValue(String secretId, int retryCount) {
     var apiUri = CloudAPI.getAPIRootURI() + "s3cr3tz/" + secretId;
     var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
     var request =
@@ -45,11 +49,26 @@ class EnsoSecretReader {
     try {
       response = client.send(request, HttpResponse.BodyHandlers.ofString());
     } catch (IOException | InterruptedException e) {
-      throw new IllegalArgumentException("Unable to read secret.");
+      if (retryCount < 0) {
+        throw new IllegalArgumentException("Unable to read secret.");
+      } else {
+        return fetchSecretValue(secretId, retryCount - 1);
+      }
     }
 
-    if (response.statusCode() != 200) {
-      throw new IllegalArgumentException("Unable to read secret.");
+    int status = response.statusCode();
+    if (status == 401) {
+      if (retryCount < 0) {
+        throw new IllegalArgumentException("Unable to read secret - numerous authentication failures.");
+      } else {
+        // We forcibly refresh the access token and try again.
+        AuthenticationProvider.getAuthenticationService().force_refresh();
+        return fetchSecretValue(secretId, retryCount - 1);
+      }
+    }
+
+    if (status != 200) {
+      throw new IllegalArgumentException("Unable to read secret - the service responded with status " + status + ".");
     }
 
     var secretJSON = response.body();
