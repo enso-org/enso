@@ -111,12 +111,12 @@ function translateVisualizationToFile(
     show: vis.visible,
     fullscreen: vis.fullscreen,
     width: vis.width ?? undefined,
-    ...(project == null || vis.identifier == null
-      ? {}
-      : {
-          project: project,
-          name: vis.identifier.name,
-        }),
+    ...(project == null || vis.identifier == null ?
+      {}
+    : {
+        project: project,
+        name: vis.identifier.name,
+      }),
   }
 }
 
@@ -181,9 +181,9 @@ export function applyDiffAsTextEdits(
   newString: string,
 ): TextEdit[] {
   const changes =
-    oldString.length + newString.length > MAX_SIZE_FOR_NORMAL_DIFF
-      ? stupidFastDiff(oldString, newString)
-      : diff(oldString, newString)
+    oldString.length + newString.length > MAX_SIZE_FOR_NORMAL_DIFF ?
+      stupidFastDiff(oldString, newString)
+    : diff(oldString, newString)
   let newIndex = 0
   let lineNum = lineOffset
   let lineStartIdx = 0
@@ -208,9 +208,9 @@ export function applyDiffAsTextEdits(
       }
       const numLineBreaks = (text.match(/\n/g) ?? []).length
       const character =
-        numLineBreaks > 0
-          ? text.length - (text.lastIndexOf('\n') + 1)
-          : newIndex - lineStartIdx + text.length
+        numLineBreaks > 0 ?
+          text.length - (text.lastIndexOf('\n') + 1)
+        : newIndex - lineStartIdx + text.length
       const end = {
         character,
         line: lineNum + numLineBreaks,

@@ -84,7 +84,8 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, Path] =
     findTargetPath(moduleName).map(_.toPath)
 
-  private def tryLoadProject(
+  /** @inheritdoc */
+  override def tryLoadProject(
     directory: File
   ): F[ProjectRepositoryFailure, Option[Project]] = {
     def noop[A]: F[ProjectRepositoryFailure, Option[A]] =
@@ -222,7 +223,7 @@ class ProjectFileRepository[
       .flatMap {
         case Some(project) =>
           fileSystem
-            .removeDir(project.path)
+            .remove(project.path)
             .mapError(th => StorageFailure(th.toString))
         case None =>
           ErrorChannel[F].fail(ProjectNotFoundInIndex)

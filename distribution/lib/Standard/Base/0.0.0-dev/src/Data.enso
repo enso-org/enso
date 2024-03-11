@@ -57,10 +57,9 @@ from project.System.File_Format import Auto_Detect, File_Format
      Read the sheet named `Dates` from an XLS and convert it to a table.
 
          from Standard.Table import all
-         from Standard.Table import Excel, Worksheet
          import Standard.Examples
 
-         example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
+         example_xls_to_table = Data.read Examples.xls (Excel_Format.Sheet 'Dates')
 @path Text_Input
 @format File_Format.default_widget
 read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
@@ -333,7 +332,7 @@ post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Meth
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
 @uri Text_Input
-download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> File ! Request_Error | HTTP_Error
+download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
 download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
     response = HTTP.fetch uri method headers
     response.write file

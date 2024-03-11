@@ -86,6 +86,8 @@ type Type_Error
             . replace "{got}" got
         "Type error: "+msg+"."
 
+    ## PRIVATE
+       Render the error as text.
     to_text : Text
     to_text self = self.to_display_text
 

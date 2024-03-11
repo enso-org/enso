@@ -55,46 +55,64 @@ const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
 /// === UI Messages and Errors ===
+function toastOnce(id: string, ...[content, options]: Parameters<typeof toast>) {
+  if (toast.isActive(id)) toast.update(id, { ...options, render: content })
+  else toast(content, { ...options, toastId: id })
+}
+
+enum ToastId {
+  startup = 'startup',
+  connectionLost = 'connectionLost',
+  connectionError = 'connectionError',
+  lspError = 'lspError',
+  executionFailed = 'executionFailed',
+}
+
 function initStartupToast() {
-  let startupToast = toast.info('Initializing the project. This can take up to one minute.', {
+  toastOnce(ToastId.startup, 'Initializing the project. This can take up to one minute.', {
+    type: 'info',
     autoClose: false,
   })
 
-  const removeToast = () => toast.dismiss(startupToast)
+  const removeToast = () => toast.dismiss(ToastId.startup)
   projectStore.firstExecution.then(removeToast)
   onScopeDispose(removeToast)
 }
 
 function initConnectionLostToast() {
-  let connectionLostToast = 'connectionLostToast'
   document.addEventListener(
     ProjectManagerEvents.loadingFailed,
     () => {
-      toast.error('Lost connection to Language Server.', {
+      toastOnce(ToastId.connectionLost, 'Lost connection to Language Server.', {
+        type: 'error',
         autoClose: false,
-        toastId: connectionLostToast,
       })
     },
     { once: true },
   )
   onUnmounted(() => {
-    toast.dismiss(connectionLostToast)
+    toast.dismiss(ToastId.connectionLost)
   })
 }
 
 projectStore.lsRpcConnection.then(
   (ls) => {
     ls.client.onError((err) => {
-      toast.error(`Language server error: ${err}`)
+      toastOnce(ToastId.lspError, `Language server error: ${err}`, { type: 'error' })
     })
   },
   (err) => {
-    toast.error(`Connection to language server failed: ${JSON.stringify(err)}`)
+    toastOnce(
+      ToastId.connectionError,
+      `Connection to language server failed: ${JSON.stringify(err)}`,
+      { type: 'error' },
+    )
   },
 )
 
+projectStore.executionContext.on('executionComplete', () => toast.dismiss(ToastId.executionFailed))
 projectStore.executionContext.on('executionFailed', (err) => {
-  toast.error(`Execution Failed: ${JSON.stringify(err)}`, {})
+  toastOnce(ToastId.executionFailed, `Execution Failed: ${JSON.stringify(err)}`, { type: 'error' })
 })
 
 onMounted(() => {
@@ -212,12 +230,6 @@ const graphBindingsHandler = graphBindings.handler({
       showComponentBrowser()
     }
   },
-  newNode() {
-    if (keyboardBusy()) return false
-    if (graphNavigator.sceneMousePos != null) {
-      graphStore.createNode(graphNavigator.sceneMousePos, 'hello "world"! 123 + x')
-    }
-  },
   deleteSelected() {
     graphStore.transact(() => {
       graphStore.deleteNodes([...nodeSelection.selected])
@@ -247,14 +259,6 @@ const graphBindingsHandler = graphBindings.handler({
       for (const nodeId of nodeSelection.selected) {
         graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
-    })
-  },
-  toggleVisualizationFullscreen() {
-    if (nodeSelection.selected.size !== 1) return
-    graphStore.transact(() => {
-      const selected = set.first(nodeSelection.selected)
-      const isFullscreen = graphStore.db.nodeIdToNode.get(selected)?.vis?.fullscreen
-      graphStore.setNodeVisualization(selected, { visible: true, fullscreen: !isFullscreen })
     })
   },
   copyNode() {
@@ -376,11 +380,19 @@ function showComponentBrowser(nodePosition?: Vec2, usage?: Usage) {
   componentBrowserVisible.value = true
 }
 
-function startCreatingNodeFromButton() {
+/** Start creating a node, basing its inputs and position on the current selection, if any;
+ *  or the current viewport, otherwise.
+ */
+function addNodeAuto() {
   const targetPos =
     placementPositionForSelection() ??
     nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
   showComponentBrowser(targetPos)
+}
+
+function addNodeAt(pos: Vec2 | undefined) {
+  if (!pos) return addNodeAuto()
+  showComponentBrowser(pos)
 }
 
 function hideComponentBrowser() {
@@ -477,8 +489,8 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
-  const content = node.rootSpan.code()
-  const nodeMetadata = node.rootSpan.nodeMetadata
+  const content = node.innerExpr.code()
+  const nodeMetadata = node.rootExpr.nodeMetadata
   const metadata = {
     position: nodeMetadata.get('position'),
     visualization: nodeMetadata.get('visualization'),
@@ -600,6 +612,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
+        @addNode="addNodeAt($event)"
       />
     </div>
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
@@ -624,10 +637,10 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @forward="stackNavigator.enterNextNodeFromHistory"
       @recordOnce="onRecordOnceButtonPress()"
       @fitToAllClicked="zoomToSelected"
-      @zoomIn="graphNavigator.scale *= 1.1"
-      @zoomOut="graphNavigator.scale *= 0.9"
+      @zoomIn="graphNavigator.stepZoom(+1)"
+      @zoomOut="graphNavigator.stepZoom(-1)"
     />
-    <PlusButton @pointerdown.stop @click.stop="startCreatingNodeFromButton()" @pointerup.stop />
+    <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>
       <Suspense ref="codeEditorArea">
         <CodeEditor v-if="showCodeEditor" />

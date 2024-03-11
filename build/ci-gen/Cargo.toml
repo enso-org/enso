@@ -7,6 +7,5 @@ edition = "2021"
 [dependencies]
 ide-ci = { path = "../ci_utils" }
 enso-build = { path = "../build" }
-enso-build-shader-tools = { path = "../shader-tools" }
 serde_yaml = { workspace = true }
 tokio = { workspace = true }

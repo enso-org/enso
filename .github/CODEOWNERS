@@ -11,24 +11,23 @@ CHANGELOG.md
 /build @mwu-tow
 
 # Rust Libraries and Related Files
-rust-toolchain.toml @MichaelMauderer @vitvakatu @Frizi @kazcw @farmaazon @mwu-tow
-rustfmt.toml @MichaelMauderer @mwu-tow @farmaazon @vitvakatu @Frizi @kazcw 
+rust-toolchain.toml @vitvakatu @Frizi @kazcw @farmaazon @mwu-tow
+rustfmt.toml @mwu-tow @farmaazon @vitvakatu @Frizi @kazcw 
 Cargo.lock
 Cargo.toml
-/lib/rust/ @MichaelMauderer @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi
-/lib/rust/ensogl/ @MichaelMauderer @farmaazon @kazcw @vitvakatu @Frizi
-/lib/rust/parser/ @MichaelMauderer @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi @jaroslavtulach
-/integration-test/ @MichaelMauderer @farmaazon @kazcw @vitvakatu @Frizi
+/lib/rust/ @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi
+/lib/rust/parser/ @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi @jaroslavtulach
+/integration-test/ @farmaazon @kazcw @vitvakatu @Frizi
 /tools/build-performance/ @kazcw @mwu-tow @Akirathan
 
 # Scala Libraries
 /lib/scala/ @4e6 @jaroslavtulach @hubertp
 
 # GUI
-/app/gui/ @MichaelMauderer @farmaazon @mwu-tow @kazcw @vitvakatu @Frizi
-/app/gui/view/ @MichaelMauderer @farmaazon @kazcw @vitvakatu @Frizi
-/app/gui/view/graph-editor/src/builtin/visualization/java_script/ @MichaelMauderer @farmaazon @kazcw @jdunkerley @vitvakatu @Frizi
-/app/gui2/ @Frizi @farmaazon @MichaelMauderer @vitvakatu @kazcw
+/app/gui/ @farmaazon @mwu-tow @kazcw @vitvakatu @Frizi
+/app/gui/view/ @farmaazon @kazcw @vitvakatu @Frizi
+/app/gui/view/graph-editor/src/builtin/visualization/java_script/ @farmaazon @kazcw @jdunkerley @vitvakatu @Frizi
+/app/gui2/ @Frizi @farmaazon @vitvakatu @kazcw
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
@@ -46,7 +45,7 @@ Cargo.toml
 /tools/http-test-helper/ @radeusgd @jdunkerley @GregoryTravis @AdRiley
 
 # Dashboard, Cloud & Authentication
-/app/ide-desktop/ @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/ @PabloBuchu @indiv0 @somebody1234 @MrFlashAccount
 # The data-link schema is owned by the libraries team
 /app/ide-desktop/lib/dashboard/src/data/dataLinkSchema.json @radeusgd @jdunkerley @GregoryTravis @AdRiley
 /app/ide-desktop/lib/dashboard/src/data/__tests__ @radeusgd @jdunkerley @GregoryTravis @AdRiley @PabloBuchu @indiv0 @somebody1234
