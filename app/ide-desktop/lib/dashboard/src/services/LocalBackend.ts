@@ -90,6 +90,63 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
+// ======================================
+// === Functions for manipulating ids ===
+// ======================================
+
+/** Create a {@link backend.DirectoryId} from a path. */
+function newDirectoryId(path: string) {
+  return backend.DirectoryId(`${backend.AssetType.directory}-${path}`)
+}
+
+/** Create a {@link backend.ProjectId} from a path. */
+function newProjectId(path: string) {
+  return backend.ProjectId(`${backend.AssetType.project}-${path}`)
+}
+
+/** Create a {@link backend.FileId} from a path. */
+function newFileId(path: string) {
+  return backend.FileId(`${backend.AssetType.file}-${path}`)
+}
+
+/** The subset of {@link backend.AssetId} that is handled by a {@link LocalBackend}. */
+type LocalAssetId = backend.DirectoryId | backend.FileId | backend.ProjectId
+
+/** A structure with an `id`. */
+interface HasId<Id extends backend.AssetId> {
+  readonly id: Id
+}
+
+// `A extends A` is required to trigger distributive conditional types:
+// https://www.typescriptlang.org/docs/handbook/2/conditional-types.html#distributive-conditional-types
+/** An asset type and its corresponding id. */
+type AssetTypeAndId = Extract<backend.AnyAsset, HasId<LocalAssetId>> extends infer A
+  ? A extends A
+    ? Pick<A, keyof A & ('id' | 'type')>
+    : never
+  : never
+
+function extractTypeAndId<Id extends backend.AssetId>(id: Id): Extract<AssetTypeAndId, HasId<Id>>
+/** Extracts the asset type and its corresponding internal ID from a {@link backend.AssetId}.
+ * @throws {Error} if the id has an unknown type. */
+function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
+  const [, typeRaw, idRaw] = id.match(/(.+?)-(.+)/) ?? []
+  switch (typeRaw) {
+    case backend.AssetType.directory: {
+      return { type: backend.AssetType.directory, id: backend.DirectoryId(idRaw ?? '') }
+    }
+    case backend.AssetType.project: {
+      return { type: backend.AssetType.project, id: backend.ProjectId(idRaw ?? '') }
+    }
+    case backend.AssetType.file: {
+      return { type: backend.AssetType.file, id: backend.FileId(idRaw ?? '') }
+    }
+    default: {
+      throw new Error(`Invalid type '${typeRaw}'`)
+    }
+  }
+}
+
 // ====================
 // === LocalBackend ===
 // ====================
@@ -129,14 +186,14 @@ export default class LocalBackend extends Backend {
       query.parentId ?? '~/enso/projects/'
     )
     const entries = response.entries
-    const parentId = query.parentId ?? backend.DirectoryId('.')
+    const parentId = query.parentId ?? newDirectoryId('.')
     return entries
       .map(entry => {
         switch (entry.type) {
           case FileSystemEntryType.DirectoryEntry: {
             return {
               type: backend.AssetType.directory,
-              id: backend.DirectoryId(entry.path),
+              id: newDirectoryId(entry.path),
               modifiedAt: entry.attributes.lastModifiedTime,
               parentId,
               title: fileInfo.fileName(entry.path),
@@ -149,7 +206,7 @@ export default class LocalBackend extends Backend {
           case FileSystemEntryType.ProjectEntry: {
             return {
               type: backend.AssetType.project,
-              id: entry.metadata.id,
+              id: newProjectId(entry.metadata.id),
               title: entry.metadata.name,
               modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
               parentId,
@@ -171,7 +228,7 @@ export default class LocalBackend extends Backend {
           case FileSystemEntryType.FileEntry: {
             return {
               type: backend.AssetType.file,
-              id: backend.FileId(entry.path),
+              id: newFileId(entry.path),
               title: fileInfo.fileName(entry.path),
               modifiedAt: entry.attributes.lastModifiedTime,
               parentId,
@@ -193,7 +250,7 @@ export default class LocalBackend extends Backend {
     return result.projects.map(project => ({
       name: project.name,
       organizationId: '',
-      projectId: project.id,
+      projectId: newProjectId(project.id),
       packageName: project.name,
       state: {
         type: backend.ProjectState.closed,
@@ -218,7 +275,7 @@ export default class LocalBackend extends Backend {
     return {
       name: body.projectName,
       organizationId: '',
-      projectId: project.projectId,
+      projectId: newProjectId(project.projectId),
       packageName: body.projectName,
       state: {
         type: backend.ProjectState.closed,
@@ -231,12 +288,13 @@ export default class LocalBackend extends Backend {
   /** Close the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails. */
   override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
+    const { id } = extractTypeAndId(projectId)
     if (LocalBackend.currentlyOpeningProjectId === projectId) {
       LocalBackend.currentlyOpeningProjectId = null
     }
     LocalBackend.currentlyOpenProjects.delete(projectId)
     try {
-      await this.projectManager.closeProject({ projectId })
+      await this.projectManager.closeProject({ projectId: id })
       return
     } catch (error) {
       throw new Error(
@@ -253,10 +311,11 @@ export default class LocalBackend extends Backend {
     projectId: backend.ProjectId,
     title: string | null
   ): Promise<backend.Project> {
+    const { id } = extractTypeAndId(projectId)
     const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
     if (cachedProject == null) {
       const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === projectId)
+      const project = result.projects.find(listedProject => listedProject.id === id)
       if (project == null) {
         throw new Error(
           `Could not get details of project ${
@@ -324,11 +383,12 @@ export default class LocalBackend extends Backend {
     body: backend.OpenProjectRequestBody | null,
     title: string | null
   ): Promise<void> {
+    const { id } = extractTypeAndId(projectId)
     LocalBackend.currentlyOpeningProjectId = projectId
     if (!LocalBackend.currentlyOpenProjects.has(projectId)) {
       try {
         const project = await this.projectManager.openProject({
-          projectId,
+          projectId: id,
           missingComponentAction: projectManager.MissingComponentAction.install,
           ...(body != null && 'parentDirectory' in body
             ? { projectsDirectory: body.parentDirectory }
@@ -357,6 +417,7 @@ export default class LocalBackend extends Backend {
     if (body.ami != null) {
       throw new Error('Cannot change project AMI on local backend.')
     } else {
+      const { id } = extractTypeAndId(projectId)
       if (body.projectName != null) {
         await this.projectManager.renameProject({
           projectId,
@@ -364,7 +425,7 @@ export default class LocalBackend extends Backend {
         })
       }
       const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === projectId)
+      const project = result.projects.find(listedProject => listedProject.id === id)
       const version =
         project?.engineVersion == null
           ? null
@@ -394,22 +455,31 @@ export default class LocalBackend extends Backend {
     _force: boolean,
     title: string | null
   ): Promise<void> {
-    // This is SAFE, as the only asset type on the local backend is projects.
-    // eslint-disable-next-line no-restricted-syntax
-    const projectId = assetId as backend.ProjectId
-    if (LocalBackend.currentlyOpeningProjectId === projectId) {
-      LocalBackend.currentlyOpeningProjectId = null
-    }
-    LocalBackend.currentlyOpenProjects.delete(projectId)
-    try {
-      await this.projectManager.deleteProject({ projectId })
-      return
-    } catch (error) {
-      throw new Error(
-        `Could not delete project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-          errorModule.tryGetMessage(error) ?? 'unknown error'
-        }.`
-      )
+    const typeAndId = extractTypeAndId(assetId)
+    switch (typeAndId.type) {
+      case backend.AssetType.directory: {
+        await this.runProjectManagerCommand('filesystem-delete-directory', typeAndId.id)
+        return
+      }
+      case backend.AssetType.project: {
+        if (LocalBackend.currentlyOpeningProjectId === typeAndId.id) {
+          LocalBackend.currentlyOpeningProjectId = null
+        }
+        LocalBackend.currentlyOpenProjects.delete(newProjectId(typeAndId.id))
+        try {
+          await this.projectManager.deleteProject({ projectId: typeAndId.id })
+          return
+        } catch (error) {
+          throw new Error(
+            `Could not delete project ${
+              title != null ? `'${title}'` : `with ID '${typeAndId.id}'`
+            }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
+          )
+        }
+      }
+      case backend.AssetType.file: {
+        throw new Error('Files cannot be deleted on the local backend.')
+      }
     }
   }
 

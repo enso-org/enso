@@ -94,7 +94,7 @@ export interface ProjectList {
 
 /** The return value of the "create project" endpoint. */
 export interface CreateProject {
-  readonly projectId: ProjectId
+  readonly projectId: string
 }
 
 /** The return value of the "open project" endpoint. */
