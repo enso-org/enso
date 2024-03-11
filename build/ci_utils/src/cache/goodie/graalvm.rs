@@ -25,9 +25,10 @@ crate::define_env_var! {
 const CE_JAVA_VENDOR: &str = "GraalVM CE";
 const EE_JAVA_VENDOR: &str = "Oracle GraalVM";
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub enum Edition {
     /// GraalVM CE (Community Edition).
+    #[default]
     Community,
     /// Oracle GraalVM (Formerly GraalVM EE, Enterprise Edition)
     Enterprise,
