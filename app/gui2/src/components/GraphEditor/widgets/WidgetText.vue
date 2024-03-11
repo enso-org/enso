@@ -13,9 +13,8 @@ const graph = useGraphStore()
 const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   if (props.input.value instanceof Ast.TextLiteral) return props.input.value
   const valueStr = WidgetInput.valueRepr(props.input)
-  const parsed = valueStr != null ? Ast.parse(valueStr) : undefined
-  if (parsed instanceof Ast.TextLiteral) return parsed
-  return undefined
+  if (valueStr == null) return undefined
+  return Ast.TextLiteral.tryParse(valueStr)
 })
 
 function makeNewLiteral(value: string) {

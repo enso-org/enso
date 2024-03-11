@@ -65,7 +65,7 @@ test('Collapsing nodes', async ({ page }) => {
 
   // Widgets may "steal" clicks, so we always click at icon.
   await locate
-    .graphNodeByBinding(page, 'ten')
+    .graphNodeByBinding(page, 'prod')
     .locator('.icon')
     .click({ modifiers: ['Shift'] })
   await locate
@@ -73,7 +73,7 @@ test('Collapsing nodes', async ({ page }) => {
     .locator('.icon')
     .click({ modifiers: ['Shift'] })
   await locate
-    .graphNodeByBinding(page, 'prod')
+    .graphNodeByBinding(page, 'ten')
     .locator('.icon')
     .click({ modifiers: ['Shift'] })
 

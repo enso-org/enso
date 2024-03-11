@@ -339,8 +339,8 @@ type File
 
              example_append = Examples.data_dir / "scratch_file"
     @subpath get_child_widget
-    / : (Text | File) -> File
-    / self subpath = self.resolve subpath
+    / : Text -> File
+    / self (subpath : Text) = self.resolve subpath
 
     ## GROUP Calculations
        ICON folder
@@ -371,7 +371,7 @@ type File
     ## PRIVATE
        Internal method to join two path segments together.
     resolve : Text -> File
-    resolve self subpath = @Builtin_Method "File.resolve"
+    resolve self (subpath : Text) = @Builtin_Method "File.resolve"
 
     ## PRIVATE
        Convert the file descriptor to a JS_Object.
