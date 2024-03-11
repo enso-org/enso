@@ -37,6 +37,8 @@ const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
 // === Watch ===
 // =============
 
+// @ts-expect-error This is the only place where an environment variable should be written to.
+process.env.DEV_MODE = 'true'
 console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
 await fs.mkdir(IDE_DIR_PATH, { recursive: true })

@@ -403,6 +403,24 @@ class App {
             address.port = this.serverPort().toString()
             address.search = new URLSearchParams(searchParams).toString()
             logger.log(`Loading the window address '${address.toString()}'.`)
+            if (process.env.DEV_MODE === 'true') {
+                const window = this.window
+                const onLoad = () => {
+                    void window.webContents.mainFrame
+                        .executeJavaScript('document.body.innerHTML')
+                        .then(html => {
+                            if (html === '') {
+                                console.warn('Loading failed, reloading...')
+                                window.webContents.once('did-finish-load', onLoad)
+                                setTimeout(() => {
+                                    void window.loadURL(address.toString())
+                                    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                                }, 1_000)
+                            }
+                        })
+                }
+                window.webContents.once('did-finish-load', onLoad)
+            }
             await this.window.loadURL(address.toString())
         }
     }
