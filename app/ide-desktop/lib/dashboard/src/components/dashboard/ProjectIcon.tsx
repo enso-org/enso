@@ -146,7 +146,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
               }
               await backend.openProject(
                 item.id,
-                { executeAsync: shouldRunInBackground },
+                { executeAsync: shouldRunInBackground, parentId: item.parentId },
                 item.title
               )
             }
@@ -166,12 +166,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           case backendModule.BackendType.local: {
             await backend.openProject(
               item.id,
-              {
-                executeAsync: shouldRunInBackground,
-                ...(item.projectState.parentDirectory != null
-                  ? { parentDirectory: item.projectState.parentDirectory }
-                  : {}),
-              },
+              { executeAsync: shouldRunInBackground, parentId: item.parentId },
               item.title
             )
             setState(oldState =>

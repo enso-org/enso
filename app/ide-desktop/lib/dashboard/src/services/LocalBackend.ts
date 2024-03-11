@@ -120,11 +120,12 @@ interface HasId<Id extends backend.AssetId> {
 // `A extends A` is required to trigger distributive conditional types:
 // https://www.typescriptlang.org/docs/handbook/2/conditional-types.html#distributive-conditional-types
 /** An asset type and its corresponding id. */
-type AssetTypeAndId = Extract<backend.AnyAsset, HasId<LocalAssetId>> extends infer A
-  ? A extends A
-    ? Pick<A, keyof A & ('id' | 'type')>
+type AssetTypeAndId =
+  Extract<backend.AnyAsset, HasId<LocalAssetId>> extends infer A
+    ? A extends A
+      ? Pick<A, keyof A & ('id' | 'type')>
+      : never
     : never
-  : never
 
 function extractTypeAndId<Id extends backend.AssetId>(id: Id): Extract<AssetTypeAndId, HasId<Id>>
 /** Extracts the asset type and its corresponding internal ID from a {@link backend.AssetId}.
@@ -193,7 +194,7 @@ export default class LocalBackend extends Backend {
       typeAndId?.id ?? this.defaultRootDirectory
     )
     const entries = response.entries
-    const parentId = query.parentId ?? newDirectoryId('.')
+    const parentId = query.parentId ?? newDirectoryId(this.defaultRootDirectory)
     return entries
       .map(entry => {
         switch (entry.type) {
@@ -222,11 +223,10 @@ export default class LocalBackend extends Backend {
                 type: LocalBackend.currentlyOpenProjects.has(entry.metadata.id)
                   ? backend.ProjectState.opened
                   : entry.metadata.id === LocalBackend.currentlyOpeningProjectId
-                  ? backend.ProjectState.openInProgress
-                  : backend.ProjectState.closed,
+                    ? backend.ProjectState.openInProgress
+                    : backend.ProjectState.closed,
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 volume_id: '',
-                parentDirectory: fileInfo.folderPath(entry.path),
               },
               labels: [],
               description: null,
@@ -278,9 +278,7 @@ export default class LocalBackend extends Backend {
       name: projectManager.ProjectName(body.projectName),
       ...(body.projectTemplateName != null ? { projectTemplate: body.projectTemplateName } : {}),
       missingComponentAction: projectManager.MissingComponentAction.install,
-      ...(body.parentDirectoryId == null
-        ? {}
-        : { projectsDirectory: extractTypeAndId(body.parentDirectoryId).id }),
+      ...(body.parentId == null ? {} : { projectsDirectory: extractTypeAndId(body.parentId).id }),
     })
     return {
       name: body.projectName,
@@ -354,8 +352,8 @@ export default class LocalBackend extends Backend {
               projectId === LocalBackend.currentlyOpeningProjectId
                 ? backend.ProjectState.openInProgress
                 : project.lastOpened != null
-                ? backend.ProjectState.closed
-                : backend.ProjectState.created,
+                  ? backend.ProjectState.closed
+                  : backend.ProjectState.created,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
           },
@@ -400,9 +398,7 @@ export default class LocalBackend extends Backend {
         const project = await this.projectManager.openProject({
           projectId: id,
           missingComponentAction: projectManager.MissingComponentAction.install,
-          ...(body != null && 'parentDirectory' in body
-            ? { projectsDirectory: body.parentDirectory }
-            : {}),
+          ...(body?.parentId != null ? { projectsDirectory: body.parentId } : {}),
         })
         LocalBackend.currentlyOpenProjects.set(projectId, project)
         return
@@ -432,6 +428,9 @@ export default class LocalBackend extends Backend {
         await this.projectManager.renameProject({
           projectId,
           name: projectManager.ProjectName(body.projectName),
+          ...(body.parentId == null
+            ? {}
+            : { projectsDirectory: extractTypeAndId(body.parentId).id }),
         })
       }
       const result = await this.projectManager.listProjects({})
@@ -462,7 +461,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async deleteAsset(
     assetId: backend.AssetId,
-    _force: boolean,
+    body: backend.DeleteAssetRequestBody,
     title: string | null
   ): Promise<void> {
     const typeAndId = extractTypeAndId(assetId)
@@ -477,7 +476,12 @@ export default class LocalBackend extends Backend {
         }
         LocalBackend.currentlyOpenProjects.delete(newProjectId(typeAndId.id))
         try {
-          await this.projectManager.deleteProject({ projectId: typeAndId.id })
+          await this.projectManager.deleteProject({
+            projectId: typeAndId.id,
+            ...(body.parentId == null
+              ? {}
+              : { projectsDirectory: extractTypeAndId(body.parentId).id }),
+          })
           return
         } catch (error) {
           throw new Error(

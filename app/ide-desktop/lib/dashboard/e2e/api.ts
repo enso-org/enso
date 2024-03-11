@@ -610,8 +610,7 @@ export async function mockApi({ page }: MockParams) {
           const title = body.projectName
           const id = backend.ProjectId(`project-${uniqueString.uniqueString()}`)
           const parentId =
-            body.parentDirectoryId ??
-            backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+            body.parentId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
           const json: backend.CreatedProject = {
             name: title,
             organizationId: defaultOrganizationId,

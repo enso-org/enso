@@ -80,7 +80,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       try {
         await backend.updateProject(
           asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle },
+          { ami: null, ideVersion: null, projectName: newTitle, parentId: asset.parentId },
           asset.title
         )
       } catch (error) {
@@ -125,7 +125,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           rowState.setVisibility(Visibility.faded)
           try {
             const createdProject = await backend.createProject({
-              parentDirectoryId: asset.parentId,
+              parentId: asset.parentId,
               projectName: asset.title,
               projectTemplateName: event.templateId,
             })

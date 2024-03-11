@@ -150,8 +150,6 @@ export interface ProjectStateType {
   readonly ec2_public_ip_address?: string
   readonly current_session_id?: string
   readonly opened_by?: EmailAddress
-  /** Only exists on the Local backend. */
-  readonly parentDirectory?: string
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -806,12 +804,12 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
     return aName < bName
       ? COMPARE_LESS_THAN
       : aName > bName
-      ? 1
-      : aEmail < bEmail
-      ? COMPARE_LESS_THAN
-      : aEmail > bEmail
-      ? 1
-      : 0
+        ? 1
+        : aEmail < bEmail
+          ? COMPARE_LESS_THAN
+          : aEmail > bEmail
+            ? 1
+            : 0
   }
 }
 
@@ -869,11 +867,18 @@ export interface UpdateAssetRequestBody {
   readonly description: string | null
 }
 
+/** HTTP request body for the "delete asset" endpoint. */
+export interface DeleteAssetRequestBody {
+  readonly force: boolean
+  /** Only used by the Local backend. */
+  readonly parentId: DirectoryId
+}
+
 /** HTTP request body for the "create project" endpoint. */
 export interface CreateProjectRequestBody {
   readonly projectName: string
   readonly projectTemplateName: string | null
-  readonly parentDirectoryId: DirectoryId | null
+  readonly parentId: DirectoryId | null
 }
 
 /** HTTP request body for the "update project" endpoint.
@@ -882,13 +887,15 @@ export interface UpdateProjectRequestBody {
   readonly projectName: string | null
   readonly ami: Ami | null
   readonly ideVersion: VersionNumber | null
+  /** Only used by the Local backend. */
+  readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "open project" endpoint. */
 export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
-  /** Should only be passed on the Local backend. */
-  readonly parentDirectory?: string
+  /** Only used by the Local backend. */
+  readonly parentId: DirectoryId
 }
 
 /** HTTP request body for the "create secret" endpoint. */
@@ -981,12 +988,12 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   return aModified > bModified
     ? -1
     : aModified < bModified
-    ? 1
-    : a.title > b.title
-    ? 1
-    : a.title < b.title
-    ? -1
-    : 0
+      ? 1
+      : a.title > b.title
+        ? 1
+        : a.title < b.title
+          ? -1
+          : 0
 }
 
 // ==================
@@ -1095,7 +1102,11 @@ export default abstract class Backend {
     title: string | null
   ): Promise<void>
   /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, force: boolean, title: string | null): Promise<void>
+  abstract deleteAsset(
+    assetId: AssetId,
+    body: DeleteAssetRequestBody,
+    title: string | null
+  ): Promise<void>
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, title: string | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */

@@ -263,7 +263,11 @@ export default function AssetRow(props: AssetRowProps) {
             // Ignored. The project was already closed.
           }
         }
-        await backend.deleteAsset(asset.id, forever, asset.title)
+        await backend.deleteAsset(
+          asset.id,
+          { force: forever, parentId: asset.parentId },
+          asset.title
+        )
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
