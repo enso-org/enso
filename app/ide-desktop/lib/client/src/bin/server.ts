@@ -5,7 +5,6 @@ import * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import type * as stream from 'node:stream'
-import * as streamConsumers from 'node:stream/consumers'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
@@ -38,7 +37,10 @@ const HTTP_STATUS_NOT_FOUND = 404
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
     readonly uploadProjectBundle: (project: stream.Readable) => Promise<string>
-    readonly runProjectManagerCommand: (cliArguments: string[]) => Promise<string>
+    readonly runProjectManagerCommand: (
+        cliArguments: string[],
+        body?: NodeJS.ReadableStream
+    ) => NodeJS.ReadableStream
 }
 
 /** Constructor parameter for the server configuration. */
@@ -150,7 +152,8 @@ export class Server {
         })
     }
 
-    /** Respond to an incoming request. */
+    /** Respond to an incoming request.
+     * @throws {Error} on malformed input. */
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
         if (requestUrl == null) {
@@ -195,49 +198,53 @@ export class Server {
                 // When accessing the app from Electron, the file input event will have the
                 // full system path.
                 case '/api/upload-project': {
-                    void this.config.externalFunctions.uploadProjectBundle(request).then(id => {
-                        response
-                            .writeHead(HTTP_STATUS_OK, [
-                                ['Content-Length', `${id.length}`],
-                                ['Content-Type', 'text/plain'],
-                                ...common.COOP_COEP_CORP_HEADERS,
-                            ])
-                            .end(id)
-                    })
+                    void this.config.externalFunctions.uploadProjectBundle(request).then(
+                        id => {
+                            response
+                                .writeHead(HTTP_STATUS_OK, [
+                                    ['Content-Length', `${id.length}`],
+                                    ['Content-Type', 'text/plain'],
+                                    ...common.COOP_COEP_CORP_HEADERS,
+                                ])
+                                .end(id)
+                        },
+                        () => {
+                            response
+                                .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+                                .end()
+                        }
+                    )
                     break
                 }
                 case '/api/run-project-manager-command': {
-                    void streamConsumers
-                        .json(request)
-                        .then(cliArguments => {
-                            if (
-                                Array.isArray(cliArguments) &&
-                                cliArguments.every(
-                                    (item): item is string => typeof item === 'string'
-                                )
-                            ) {
-                                return this.config.externalFunctions.runProjectManagerCommand(
-                                    cliArguments.map(argument =>
-                                        argument.startsWith('~/')
-                                            ? path.join(os.homedir(), argument.slice(2))
-                                            : argument
-                                    )
-                                )
-                            } else {
-                                throw new Error('Command arguments must be an array of strings')
-                            }
-                        })
-                        .then(commandOutput => {
-                            const bodyText = commandOutput
-                            response
-                                .writeHead(HTTP_STATUS_OK, [
-                                    ['Content-Length', String(bodyText.length)],
-                                    ['Content-Type', 'application/json'],
-                                    ...common.COOP_COEP_CORP_HEADERS,
-                                ])
-                                .end(bodyText)
-                        })
-                        .catch(() => response.writeHead(HTTP_STATUS_BAD_REQUEST).end())
+                    const cliArguments: unknown = JSON.parse(
+                        new URL(`https://example.com/${requestUrl}`).searchParams.get(
+                            'cli-arguments'
+                        ) ?? '[]'
+                    )
+                    if (
+                        !Array.isArray(cliArguments) ||
+                        !cliArguments.every((item): item is string => typeof item === 'string')
+                    ) {
+                        response
+                            .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+                            .end('Command arguments must be an array of strings')
+                    } else {
+                        const commandOutput =
+                            this.config.externalFunctions.runProjectManagerCommand(
+                                cliArguments.map(argument =>
+                                    argument.startsWith('~/')
+                                        ? path.join(os.homedir(), argument.slice(2))
+                                        : argument
+                                ),
+                                request
+                            )
+                        response.writeHead(HTTP_STATUS_OK, [
+                            ['Content-Type', 'application/json'],
+                            ...common.COOP_COEP_CORP_HEADERS,
+                        ])
+                        commandOutput.pipe(response, { end: true })
+                    }
                     break
                 }
                 default: {

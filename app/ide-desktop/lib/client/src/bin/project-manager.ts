@@ -66,18 +66,32 @@ export function spawn(
 }
 
 /** Run an arbitrary command and return its output. */
-export async function runCommand(
+export function runCommand(
     args: config.Args,
     processArgs: string[],
+    body?: NodeJS.ReadableStream,
     env?: NodeJS.ProcessEnv
 ) {
-    return await exec(args, processArgs, env).then(t => t.stdout)
+    const binPath = pathOrPanic(args)
+    const process = childProcess.spawn(binPath, processArgs, {
+        stdio: [/* stdin */ 'pipe', /* stdout */ 'pipe', /* stderr */ 'ignore'],
+        env,
+        // The Project Manager should never spawn any windows. On Windows OS this needs
+        // to be manually prevented, as the default is to spawn a console window.
+        windowsHide: true,
+    })
+    if (body != null) {
+        body.pipe(process.stdin, { end: true })
+    } else {
+        process.stdin.end()
+    }
+    return process.stdout
 }
 
 /** Get the Project Manager version. */
 export async function version(args: config.Args) {
     if (args.options.engine.value) {
-        return await runCommand(args, ['--version'])
+        return await exec(args, ['--version']).then(t => t.stdout)
     } else {
         return
     }

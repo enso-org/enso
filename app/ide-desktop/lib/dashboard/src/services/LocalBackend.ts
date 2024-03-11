@@ -464,7 +464,7 @@ export default class LocalBackend extends Backend {
     switch (typeAndId.type) {
       case backend.AssetType.directory:
       case backend.AssetType.file: {
-        await this.runProjectManagerCommand('filesystem-delete', typeAndId.id)
+        await this.runProjectManagerCommand(null, 'filesystem-delete', typeAndId.id)
         return
       }
       case backend.AssetType.project: {
@@ -588,7 +588,7 @@ export default class LocalBackend extends Backend {
     const parentDirectoryPath =
       body.parentId == null ? this.defaultRootDirectory : extractTypeAndId(body.parentId).id
     const path = `${parentDirectoryPath}/${body.title}`
-    await this.runProjectManagerCommand('filesystem-create-directory', path)
+    await this.runProjectManagerCommand(null, 'filesystem-create-directory', path)
     return {
       id: newDirectoryId(path),
       parentId: newDirectoryId(parentDirectoryPath),
@@ -608,12 +608,28 @@ export default class LocalBackend extends Backend {
         typeAndId.type === backend.AssetType.project ? body.projectPath ?? '' : typeAndId.id
       const fileName = fileInfo.fileName(sourcePath)
       await this.runProjectManagerCommand(
+        null,
         'filesystem-move-from',
         sourcePath,
         '--filesystem-move-to',
         `${extractTypeAndId(body.parentDirectoryId).id}/${fileName}`
       )
     }
+  }
+
+  /** Upload a file. */
+  override async uploadFile(
+    params: backend.UploadFileRequestParams,
+    file: Blob
+  ): Promise<backend.FileInfo> {
+    const parentPath =
+      params.parentDirectoryId == null
+        ? this.defaultRootDirectory
+        : extractTypeAndId(params.parentDirectoryId).id
+    const path = `${parentPath}/${params.fileName}`
+    await this.runProjectManagerCommand(file, 'filesystem-write-path', path)
+    // `project` MUST BE `null` as uploading projects uses a separate endpoint.
+    return { path, id: newFileId(path), project: null }
   }
 
   /** Invalid operation. */
@@ -634,12 +650,6 @@ export default class LocalBackend extends Backend {
   /** Return an empty array. This function should never need to be called. */
   override listFiles() {
     return Promise.resolve([])
-  }
-
-  /** Invalid operation. While project bundles can be uploaded to the Project Manager,
-   * they are not uploaded as file assets, and hence do not return a {@link backend.FileInfo}. */
-  override uploadFile() {
-    return this.invalidOperation()
   }
 
   /** Invalid operation. */
@@ -713,13 +723,22 @@ export default class LocalBackend extends Backend {
 
   /** Run the Project Manager with the given command-line arguments. */
   private async runProjectManagerCommand<T = void>(
+    body: BodyInit | null,
     name: string,
     ...cliArguments: string[]
   ): Promise<T> {
-    const response = await fetch(`${this.baseUrl}/api/run-project-manager-command`, {
-      method: 'POST',
-      body: JSON.stringify([`--${name}`, ...cliArguments]),
-    })
+    const searchParams = new URLSearchParams({
+      // The names come from a third-party API and cannot be changed.
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
+    }).toString()
+    const response = await fetch(
+      `${this.baseUrl}/api/run-project-manager-command?${searchParams}`,
+      {
+        method: 'POST',
+        body,
+      }
+    )
     // There is no way to avoid this as `JSON.parse` returns `any`.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
     const json: projectManager.JSONRPCResponse<never> = await response.json()
@@ -738,6 +757,7 @@ export default class LocalBackend extends Backend {
     }
 
     const response = await this.runProjectManagerCommand<ResponseBody>(
+      null,
       'filesystem-list',
       parentId ?? this.defaultRootDirectory
     )
