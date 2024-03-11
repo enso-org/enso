@@ -1,6 +1,7 @@
 private
 
 import project.Data.Json.Invalid_JSON
+import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
@@ -100,7 +101,7 @@ type Authentication_Data
 ## PRIVATE
 type Refresh_Token_Data
     ## PRIVATE
-    Value client_id:Text refresh_uri:Text refresh_token:Text
+    Value client_id:Text refresh_url:Text refresh_token:Text
 
     ## PRIVATE
     read_from_credentials -> Refresh_Token_Data =
@@ -110,16 +111,16 @@ type Refresh_Token_Data
         get_field field_name =
             as_json.get field_name if_missing=(Panic.throw (Illegal_State.Error "Token refresh failed due to invalid credentials file format: missing field `"+field_name+"`."))
         client_id = get_field "client_id"
-        refresh_uri = get_field "refresh_uri"
+        refresh_url = get_field "refresh_url"
         refresh_token = get_field "refresh_token"
-        Refresh_Token_Data.Value client_id=client_id refresh_uri=refresh_uri refresh_token=refresh_token
+        Refresh_Token_Data.Value client_id=client_id refresh_url=refresh_url refresh_token=refresh_token
 
     ## PRIVATE
     fetch_new_access_token self -> Authentication_Data =
         headers = [Header.content_type "application/x-amz-json-1.1", Header.new "X-Amz-Target" "AWSCognitoIdentityProviderService.InitiateAuth"]
         auth_parameters = JS_Object.from_pairs [["REFRESH_TOKEN", self.refresh_token], ["DEVICE_KEY", Nothing]]
         payload = JS_Object.from_pairs [["ClientId", self.client_id], ["AuthFlow", "REFRESH_TOKEN_AUTH"], ["AuthParameters", auth_parameters]]
-        response = HTTP.post self.refresh_uri body=(Request_Body.Json payload) headers=headers
+        response = HTTP.post self.refresh_url body=(Request_Body.Json payload) headers=headers
             . catch HTTP_Error error->
                 Panic.throw (Enso_Cloud_Error.Connection_Error error)
             . catch Request_Error error->
