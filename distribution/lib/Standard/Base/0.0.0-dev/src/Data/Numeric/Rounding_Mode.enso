@@ -9,37 +9,11 @@ polyglot java import java.math.RoundingMode
 type Rounding_Mode
     Value (rounding_mode:RoundingMode)
 
-    # Round towards positive infinity.
-    ceiling : Rounding_Mode
-    ceiling = Rounding_Mode.Value RoundingMode.CEILING
-
-    # Round towards zero.
-    down : Rounding_Mode
-    down = Rounding_Mode.Value RoundingMode.DOWN
-
-    # Round towards negative infinity.
-    floor : Rounding_Mode
-    floor = Rounding_Mode.Value RoundingMode.FLOOR
-
-    # Rownd towards the nearest neighbor, with ties broken by rounding down.
-    half_down : Rounding_Mode
-    half_down = Rounding_Mode.Value RoundingMode.HALF_DOWN
-
-    ## Rownd towards the nearest neighbor, with ties broken by rounding towards
-       the nearest even neighbor.
-    half_even : Rounding_Mode
-    half_even = Rounding_Mode.Value RoundingMode.HALF_EVEN
-
-    # Rownd towards the nearest neighbor, with ties broken by rounding up.
+    # Round towards positive infinity. (This is the default.)
     half_up : Rounding_Mode
     half_up = Rounding_Mode.Value RoundingMode.HALF_UP
 
-    ## Does no rounding, and asserts that rounding is not necessary. If this is
-       used for an operation that gives an inexact result, an
-       `Arithmetic_Exception` is thrown.
-    unnecessary : Rounding_Mode
-    unnecessary = Rounding_Mode.Value RoundingMode.UNNECESSARY
-
-    # Round away from zero.
-    up : Rounding_Mode
-    up = Rounding_Mode.Value RoundingMode.UP
+    ## Rownd towards the nearest neighbor, with ties broken by rounding towards
+       the nearest even neighbor.
+    bankers : Rounding_Mode
+    bankers = Rounding_Mode.Value RoundingMode.HALF_EVEN

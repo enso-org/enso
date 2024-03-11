@@ -108,7 +108,7 @@ type Decimal
     new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         handle_java_exception <|
             case x of
-                _ : Text -> Decimal.from_text x mc
+                _ : Text -> Decimal.parse x mc
                 _ : Integer -> Decimal.from_integer x mc
                 _ : Float -> Decimal.from_float x mc
 
@@ -136,9 +136,9 @@ type Decimal
         ^ Example
           Create a `Decimal` from a string.
 
-              d = Decimal.from_text "12.345"
-    from_text : Text -> Math_Context -> Decimal ! Arithmetic_Error | Number_Parse_Error
-    from_text (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
+              d = Decimal.parse "12.345"
+    parse : Text -> Math_Context -> Decimal ! Arithmetic_Error | Number_Parse_Error
+    parse (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
         handle_java_exception <| handle_number_format_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
@@ -163,8 +163,8 @@ type Decimal
           Create a `Decimal` from an integer.
 
               d = Decimal.from_integer 12
-    from_integer : Integer -> Math_Context -> Decimal ! Arithmetic_Error | Loss_Of_Numeric_Precision
-    from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision =
+    from_integer : Integer -> Math_Context -> Decimal ! Arithmetic_Error
+    from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss i <| Decimal_Utils.fromInteger i mc.math_context
@@ -197,8 +197,8 @@ type Decimal
           Create a `Decimal` from a float.
 
               d = Decimal.from_integer 12.345
-    from_float : Float -> Math_Context -> Decimal ! Arithmetic_Error ! Loss_Of_Numeric_Precision ! Illegal_Argument
-    from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Loss_Of_Numeric_Precision ! Illegal_Argument =
+    from_float : Float -> Math_Context -> Decimal ! Arithmetic_Error ! Illegal_Argument
+    from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error ! Illegal_Argument =
         is_exceptional = f.is_nan || f.is_infinite
         if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
             # We do not use `handle_precision_loss` here because we always attach a `Loss_Of_Numeric_Precision` warning in the Float case.
@@ -299,11 +299,11 @@ type Decimal
 
        > Example
          Adding 10.22 and 20.33, rounding to 3 digits of precision (1 decimal
-         place), and rounding half-down.
+         place).
 
              a = Decimal.new "10.22"
              b = Decimal.new "20.33"
-             a.add b (Math_Context.new 3 Rounding_Mode.half_down)
+             a.add b (Math_Context.new 3)
              # => Decimal.new 30.5
     add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
@@ -357,11 +357,11 @@ type Decimal
 
        > Example
          Subtracting 10.22 from 20.33, rounding to 3 digits of precision (1
-         decimal place), and rounding half-down.
+         decimal place).
 
              a = Decimal.new "20.33"
              b = Decimal.new "10.22"
-             c = a.subtract b (Math_Context.new 3 Rounding_Mode.half_down)
+             c = a.subtract b (Math_Context.new 3)
              # => Decimal.new 10.1
     subtract : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     subtract self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
@@ -416,11 +416,11 @@ type Decimal
 
        > Example
          Multiplying 10.22 and 20.33, rounding to 4 digits of precision (1
-         decimal place), and rounding half-down.
+         decimal place).
 
              a = Decimal.new "10.22"
              b = Decimal.new "20.33"
-             c = a.multiply b (Math_Context.new 4 Rounding_Mode.half_down)
+             c = a.multiply b (Math_Context.new 4)
              # => Decimal.new 207.8
     multiply : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
     multiply self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
@@ -479,11 +479,11 @@ type Decimal
 
        > Example
          Dividing 1065.9378 by 23.34, rounding to 3 digits of precision (1
-         decimal place), and rounding half-down.
+         decimal place).
 
             a = Decimal.new "1065.9378"
              b = Decimal.new "23.34"
-             c = a.divide b (Math_Context.new 3 Rounding_Mode.half_down)
+             c = a.divide b (Math_Context.new 3)
              # => Decimal.new 45.7
     divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal | Arithmetic_Error
     divide self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
@@ -525,21 +525,21 @@ type Decimal
     negate self = Decimal.Value self.big_decimal.negate
 
     # PRIVATE
-    get_precision : Integer
-    get_precision self = self.big_decimal.precision
+    precision : Integer
+    precision self = self.big_decimal.precision
 
     # PRIVATE
-    get_scale : Integer
-    get_scale self = self.big_decimal.scale
+    scale : Integer
+    scale self = self.big_decimal.scale
 
     # PRIVATE
-    get_unscaled_value : Integer
+    unscaled_value : Integer
     # TODO: This +0 is needed to allow internal represeantations to be compared.
-    get_unscaled_value self = self.big_decimal.unscaledValue + 0
+    unscaled_value self = self.big_decimal.unscaledValue + 0
 
     # PRIVATE
-    get_internal_representation : [Integer]
-    get_internal_representation self = [self.get_unscaled_value, self.get_precision, self.get_scale]
+    internal_representation : [Integer]
+    internal_representation self = [self.unscaled_value, self.precision, self.scale]
 
     ## PRIVATE
     to_text : Text
@@ -555,12 +555,13 @@ handle_number_format_exception ~action =
         Error.throw (Number_Parse_Error.Error caught_panic.payload.getMessage)
 
 ## PRIVATE
-handle_precision_loss : Any -> Conversion_Result -> Any ! Loss_Of_Numeric_Precision
-handle_precision_loss original_value conversion_result:Conversion_Result -> Any ! Loss_Of_Numeric_Precision =
+handle_precision_loss : Any -> Conversion_Result -> Any
+handle_precision_loss original_value conversion_result:Conversion_Result -> Any =
     if conversion_result.hasPrecisionLoss.not then conversion_result.newValue else
         new_value = conversion_result.newValue
         Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value
 
+## PRIVATE
 attach_loss_of_numeric_precision : Float -> Any -> Any
 attach_loss_of_numeric_precision f value =
     Warning.attach (Loss_Of_Numeric_Precision.Warning f f) value
@@ -569,14 +570,17 @@ handle_java_exception ~action =
     Panic.catch ArithmeticException action caught_panic->
         Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
 
+## PRIVATE
 type Decimal_Comparator
     #compare x:Decimal y:Decimal =
     compare x:Decimal y:Decimal =
         Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
     hash x:Decimal = Decimal_Utils.hashCodeOf x.big_decimal
 
+## PRIVATE
 Comparable.from (_:Decimal) = Decimal_Comparator
 Comparable.from (_:Number) = Decimal_Comparator
 
-Decimal.from (that:Text) = Decimal.from_text that
+## PRIVATE
+Decimal.from (that:Text) = Decimal.parse that
 Decimal.from (that:Number) = Decimal.new that

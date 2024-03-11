@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Numeric.Internal.Numbers_Constants
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -9,13 +10,13 @@ from Standard.Test import all
 
 polyglot java import org.enso.base.numeric.Decimal_Utils
 
-Decimal.should_have_rep self rep = self.get_internal_representation . should_equal rep
+Decimal.should_have_rep self rep = self.internal_representation . should_equal rep
 
 add_specs suite_builder =
     suite_builder.group "construction" group_builder->
         group_builder.specify "should be able to construct a Decimal from a string" <|
             Decimal.new "123.45" . should_have_rep [12345, 5, 2]
-            Decimal.from_text "123.45" . should_have_rep [12345, 5, 2]
+            Decimal.parse "123.45" . should_have_rep [12345, 5, 2]
 
         group_builder.specify "should throw Number_Parse_Error on a badly-formatted string" <|
             Decimal.new "ee" . should_fail_with Number_Parse_Error
@@ -27,13 +28,13 @@ add_specs suite_builder =
             Decimal.new "123.45" mc . should_equal (Decimal.new "123.5")
 
         group_builder.specify "should be able to construct a Decimal from a string, with an explicit precision, using a non-default rounding" <|
-            mc = Math_Context.new 4 Rounding_Mode.half_down
+            mc = Math_Context.new 4 Rounding_Mode.bankers
             Decimal.new "123.45" mc . should_have_rep [1234, 4, 1]
             Decimal.new "123.45" mc . should_equal (Decimal.new "123.4")
 
         group_builder.specify "should be able to construct a Decimal from a long string" <|
             Decimal.new "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
-            Decimal.from_text "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+            Decimal.parse "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
 
         group_builder.specify "should be able to construct a Decimal from a small integer" <|
             Decimal.new 1234500 . should_have_rep [1234500, 7, 0]
@@ -44,7 +45,7 @@ add_specs suite_builder =
             Decimal.new 1234500 mc . should_equal (Decimal.new 1235000)
 
         group_builder.specify "should be able to construct a Decimal from a small integer, with an explicit precision, using the non-default rounding" <|
-            mc = Math_Context.new 4 Rounding_Mode.half_down
+            mc = Math_Context.new 4 Rounding_Mode.bankers
             Decimal.new 1234500 mc . should_have_rep [1234, 4, -3]
             Decimal.new 1234500 mc . should_equal (Decimal.new 1234000)
 
@@ -57,7 +58,7 @@ add_specs suite_builder =
             Decimal.new 495782984723948723947239938732974241234500 mc . should_equal (Decimal.new 495782984723948723947239938732974241235000 )
 
         group_builder.specify "should be able to construct a Decimal from a large integer, with an explicit precision, using the non-default rounding" <|
-            mc = Math_Context.new 39 Rounding_Mode.half_down
+            mc = Math_Context.new 39 Rounding_Mode.bankers
             Decimal.new 495782984723948723947239938732974241234500 mc . should_have_rep [495782984723948723947239938732974241234 , 39, -3]
             Decimal.new 495782984723948723947239938732974241234500 mc . should_equal (Decimal.new 495782984723948723947239938732974241234000 )
 
@@ -72,7 +73,7 @@ add_specs suite_builder =
             d.should_equal (Decimal.new "123.13")
 
         group_builder.specify "should be able to construct a Decimal from a float, with an explicit precision, using a non-default rounding" <|
-            mc = Math_Context.new 5 Rounding_Mode.half_down
+            mc = Math_Context.new 5 Rounding_Mode.bankers
             d = Decimal.from_float 123.125 mc
             d.should_have_rep [12312, 5, 2]
             d.should_equal (Decimal.new "123.12")
@@ -100,7 +101,7 @@ add_specs suite_builder =
 
         group_builder.specify "should be convertible via .from" <|
             Decimal.from "123.45" . should_equal (Decimal.new "123.45")
-            Decimal.from "123.45" . should_equal (Decimal.from_text "123.45")
+            Decimal.from "123.45" . should_equal (Decimal.parse "123.45")
             Decimal.from 123.45 . should_equal (Decimal.new 123.45)
             Decimal.from 123.45 . should_equal (Decimal.from_float 123.45)
             Decimal.from 12345 . should_equal (Decimal.new 12345)
@@ -166,8 +167,8 @@ add_specs suite_builder =
             [[a, b], [a, c], [b, c]].map pr->
                 x0 = pr.at 0
                 x1 = pr.at 1
-                ir0 = x0.get_internal_representation
-                ir1 = x1.get_internal_representation
+                ir0 = x0.internal_representation
+                ir1 = x1.internal_representation
 
                 ir0 . should_not_equal ir1
 
@@ -395,13 +396,13 @@ add_specs suite_builder =
             (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" / Decimal.new "297349287397297.2394279379287398729879234") . should_equal (Decimal.new "38450830483049850394093.48579374987938934")
 
         group_builder.specify "should allow arithmetic with Decimals, with precision setting (examples)" <|
-             (Decimal.new "10.22") . add (Decimal.new "20.33") (Math_Context.new 3 Rounding_Mode.half_down) . should_equal (Decimal.new 30.5)
-             (Decimal.new "20.33") . subtract (Decimal.new "10.22") (Math_Context.new 3 Rounding_Mode.half_down) . should_equal (Decimal.new 10.1)
-             (Decimal.new "10.22") . multiply (Decimal.new "20.33") (Math_Context.new 4 Rounding_Mode.half_down) . should_equal (Decimal.new 207.8)
-             (Decimal.new "1065.9378") . divide (Decimal.new "23.34") (Math_Context.new 3 Rounding_Mode.half_down) . should_equal (Decimal.new 45.7)
+             (Decimal.new "10.22") . add (Decimal.new "20.33") (Math_Context.new 3) . should_equal (Decimal.new 30.6)
+             (Decimal.new "20.33") . subtract (Decimal.new "10.22") (Math_Context.new 3) . should_equal (Decimal.new 10.1)
+             (Decimal.new "10.22") . multiply (Decimal.new "20.33") (Math_Context.new 4) . should_equal (Decimal.new 207.8)
+             (Decimal.new "1065.9378") . divide (Decimal.new "23.34") (Math_Context.new 3) . should_equal (Decimal.new 45.7)
 
         group_builder.specify "should allow arithmetic with Decimals, with precision setting" <|
-            (Decimal.new 213427523957 . add (Decimal.new 93849398884384) (Math_Context.new 8)) . should_equal (Decimal.new 94062826000000 )
+            (Decimal.new 213427523957 . add (Decimal.new 93849398884384) (Math_Context.new 8)) . should_equal (Decimal.new 94062826000000)
             (Decimal.new "723579374753.3535345" . add (Decimal.new "35263659267.23434535") (Math_Context.new 12)) . should_equal (Decimal.new "758843034021")
 
             (Decimal.new -29388920982834 . subtract (Decimal.new 842820) (Math_Context.new 7)) . should_equal (Decimal.new -29388920000000)
@@ -426,14 +427,18 @@ add_specs suite_builder =
             (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" . divide (Decimal.new "297349287397297.2394279379287398729879234") (Math_Context.new 9)) . should_equal (Decimal.new "38450830500000000000000")
 
         group_builder.specify "should allow arithmetic with Decimals, with precision setting and rounding mode" <|
-            (Decimal.new 3.4 . add (Decimal.new 20.05) (Math_Context.new 3 Rounding_Mode.half_up)) . should_equal (Decimal.new 23.5)
-            (Decimal.new 3.4 . add (Decimal.new 20.05) (Math_Context.new 3 Rounding_Mode.half_down)) . should_equal (Decimal.new 23.4)
-            (Decimal.new -867.625 . subtract (Decimal.new -33.05) (Math_Context.new 5 Rounding_Mode.half_up)) . should_equal (Decimal.new -834.58)
-            (Decimal.new -867.625 . subtract (Decimal.new -33.05) (Math_Context.new 5 Rounding_Mode.half_down)) . should_equal (Decimal.new -834.57)
-            (Decimal.new 49.31 . multiply (Decimal.new 5) (Math_Context.new 4 Rounding_Mode.half_up)) . should_equal (Decimal.new 246.6)
-            (Decimal.new 49.31 . multiply (Decimal.new 5) (Math_Context.new 4 Rounding_Mode.half_down)) . should_equal (Decimal.new 246.5)
-            (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3 Rounding_Mode.half_up)) . should_equal (Decimal.new -49.6)
-            (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3 Rounding_Mode.half_down)) . should_equal (Decimal.new -49.5)
+            (Decimal.new 3.4 . add (Decimal.new 20.05) (Math_Context.new 3)) . should_equal (Decimal.new 23.5)
+            (Decimal.new 3.4 . add (Decimal.new 20.05) (Math_Context.new 3 Rounding_Mode.bankers)) . should_equal (Decimal.new 23.4)
+            (Decimal.new -3.4 . add (Decimal.new -20.05) (Math_Context.new 3)) . should_equal (Decimal.new -23.5)
+            (Decimal.new -3.4 . add (Decimal.new -20.05) (Math_Context.new 3 Rounding_Mode.bankers)) . should_equal (Decimal.new -23.4)
+            (Decimal.new -867.625 . subtract (Decimal.new -33.05) (Math_Context.new 5)) . should_equal (Decimal.new -834.58)
+            (Decimal.new -867.625 . subtract (Decimal.new -33.05) (Math_Context.new 5 Rounding_Mode.bankers)) . should_equal (Decimal.new -834.58)
+            (Decimal.new 49.31 . multiply (Decimal.new 5) (Math_Context.new 4)) . should_equal (Decimal.new 246.6)
+            (Decimal.new 49.31 . multiply (Decimal.new 5) (Math_Context.new 4 Rounding_Mode.bankers)) . should_equal (Decimal.new 246.6)
+            (Decimal.new 49.29 . multiply (Decimal.new 5) (Math_Context.new 4)) . should_equal (Decimal.new 246.5)
+            (Decimal.new 49.29 . multiply (Decimal.new 5) (Math_Context.new 4 Rounding_Mode.bankers)) . should_equal (Decimal.new 246.4)
+            (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3)) . should_equal (Decimal.new -49.6)
+            (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3 Rounding_Mode.bankers)) . should_equal (Decimal.new -49.6)
 
         group_builder.specify "should allow mixed arithmetic" <|
             (Decimal.new 1 + 2) . should_equal 3
@@ -466,18 +471,6 @@ add_specs suite_builder =
             Decimal.new -5.3 . negate . should_equal 5.3
             Decimal.new 0 . negate . should_equal 0
             Decimal.new -0 . negate . should_equal 0
-
-        group_builder.specify "should throw Arithmetic_Error for an inexact result and Rounding_Mode.unnecessary" <|
-            unnecessary = Math_Context.new 1 rounding_mode=Rounding_Mode.unnecessary
-
-            Decimal.new "123.45" unnecessary . should_fail_with Arithmetic_Error
-            Decimal.new 123.45 unnecessary . should_fail_with Arithmetic_Error
-            Decimal.new 12345 unnecessary . should_fail_with Arithmetic_Error
-
-            (Decimal.new 3.4 . add (Decimal.new 20.05) unnecessary) . should_fail_with Arithmetic_Error
-            (Decimal.new -867.625 . subtract (Decimal.new -33.05) unnecessary) . should_fail_with Arithmetic_Error
-            (Decimal.new 49.31 . multiply (Decimal.new 5) unnecessary) . should_fail_with Arithmetic_Error
-            (Decimal.new 247.75 . divide (Decimal.new -5) unnecessary) . should_fail_with Arithmetic_Error
 
 main =
     suite = Test.build suite_builder->
