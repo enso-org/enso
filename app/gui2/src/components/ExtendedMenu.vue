@@ -100,10 +100,6 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
   border-radius: 12px;
 }
 
-.last {
-  margin-left: auto;
-}
-
 .divider {
   border-left: 1px solid var(--color-text);
   border-right: 1px solid var(--color-text);

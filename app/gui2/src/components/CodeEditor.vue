@@ -349,7 +349,7 @@ const editorStyle = computed(() => {
         <circle cx="14" cy="14" r="1.5" />
       </svg>
     </div>
-    <div class="close-button button" @click="emit('close')">+</div>
+    <div class="closeButton button" @click="emit('close')">+</div>
   </div>
 </template>
 
@@ -406,7 +406,7 @@ const editorStyle = computed(() => {
   }
 }
 
-.close-button {
+.closeButton {
   position: absolute;
   top: 0;
   left: 4px;
