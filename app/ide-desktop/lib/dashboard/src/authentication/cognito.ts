@@ -196,7 +196,9 @@ export class Cognito {
     const amplifySession = currentSession.mapErr(intoCurrentSessionErrorType)
 
     return amplifySession
-      .map(session => parseUserSession(session, this.amplifyConfig.userPoolWebClientId, this.amplifyConfig.domain))
+      .map(session =>
+        parseUserSession(session, this.amplifyConfig.userPoolWebClientId, this.amplifyConfig.domain)
+      )
       .unwrapOr(null)
   }
 
@@ -391,6 +393,8 @@ function parseUserSession(
   const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
 
+  domain = domain.startsWith('https://') ? domain : `https://${domain}`
+
   /** The `email` field is mandatory, so we assert that it exists and is a string. */
   if (typeof email !== 'string') {
     throw new Error('Payload does not have an email field.')
@@ -409,7 +413,7 @@ function parseUserSession(
       expireAt,
       accessToken: session.getAccessToken().getJwtToken(),
       refreshToken: session.getRefreshToken().getToken(),
-      refreshUrl: domain,
+      refreshUrl: new URL(domain).toString(),
     }
   }
 }
