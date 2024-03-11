@@ -209,6 +209,15 @@ class ImportsTest extends PackageTest {
     )
   }
 
+  "Fully qualified names" should "resolve symbols from local project without import" in {
+    evalTestProject(
+      "Test_Fully_Qualified_Name_Local_1"
+    ).toString shouldEqual "0"
+    val outLines = consumeOut
+    outLines should have length 1
+    outLines(0) shouldEqual "Type"
+  }
+
   "Deeply nested modules" should "infer correct synthetic modules" in {
     evalTestProject(
       "Test_Deeply_Nested_Modules"
