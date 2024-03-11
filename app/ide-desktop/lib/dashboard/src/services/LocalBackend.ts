@@ -156,6 +156,7 @@ function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
 export default class LocalBackend extends Backend {
   static currentlyOpeningProjectId: backend.ProjectId | null = null
   static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
+  readonly defaultRootDirectory = '~/enso/projects'
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
   private readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
@@ -171,6 +172,11 @@ export default class LocalBackend extends Backend {
     }
   }
 
+  /** Return the ID of the root directory. */
+  override rootDirectoryId(): backend.DirectoryId | null {
+    return newDirectoryId(this.defaultRootDirectory)
+  }
+
   /** Return a list of assets in a directory.
    * @throws An error if the JSON-RPC call fails. */
   override async listDirectory(
@@ -181,9 +187,10 @@ export default class LocalBackend extends Backend {
       readonly entries: FileSystemEntry[]
     }
 
+    const typeAndId = query.parentId == null ? null : extractTypeAndId(query.parentId)
     const response = await this.runProjectManagerCommand<ResponseBody>(
       'filesystem-list',
-      query.parentId ?? '~/enso/projects/'
+      typeAndId?.id ?? this.defaultRootDirectory
     )
     const entries = response.entries
     const parentId = query.parentId ?? newDirectoryId('.')
@@ -575,9 +582,19 @@ export default class LocalBackend extends Backend {
     return Promise.resolve(null)
   }
 
-  /** Invalid operation. */
-  override createDirectory() {
-    return this.invalidOperation()
+  /** Create a directory. */
+  override async createDirectory(
+    body: backend.CreateDirectoryRequestBody
+  ): Promise<backend.CreatedDirectory> {
+    const parentDirectoryPath =
+      body.parentId == null ? this.defaultRootDirectory : extractTypeAndId(body.parentId).id
+    const path = `${parentDirectoryPath}/${body.title}`
+    await this.runProjectManagerCommand('filesystem-create-directory', path)
+    return {
+      id: newDirectoryId(path),
+      parentId: newDirectoryId(parentDirectoryPath),
+      title: body.title,
+    }
   }
 
   /** Invalid operation. */

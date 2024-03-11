@@ -131,18 +131,18 @@ export default function Drive(props: DriveProps) {
     [labels]
   )
   const rootDirectoryId = React.useMemo(
-    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [user]
+    () => backend.rootDirectoryId(user) ?? backendModule.DirectoryId(''),
+    [backend, user]
   )
   const isCloud = backend.type === backendModule.BackendType.remote
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
       : isCloud && sessionType === authProvider.UserSessionType.offline
-        ? DriveStatus.offline
-        : isCloud && user?.isEnabled !== true
-          ? DriveStatus.notEnabled
-          : DriveStatus.ok
+      ? DriveStatus.offline
+      : isCloud && user?.isEnabled !== true
+      ? DriveStatus.notEnabled
+      : DriveStatus.ok
 
   React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {

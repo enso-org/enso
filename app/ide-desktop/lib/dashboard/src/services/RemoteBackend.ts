@@ -175,6 +175,11 @@ export default class RemoteBackend extends Backend {
     throw new Error(message)
   }
 
+  /** Return the ID of the root directory. */
+  override rootDirectoryId(user: backendModule.User | null): backendModule.DirectoryId | null {
+    return user?.rootDirectoryId ?? null
+  }
+
   /** Return a list of all users in the same organization. */
   override async listUsers(): Promise<backendModule.SimpleUser[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH

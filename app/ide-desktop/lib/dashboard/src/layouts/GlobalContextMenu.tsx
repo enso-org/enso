@@ -92,37 +92,33 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           }
         }}
       />
-      {isCloud && (
-        <MenuEntry
-          hidden={hidden}
-          action="newProject"
-          doAction={() => {
-            unsetModal()
-            dispatchAssetListEvent({
-              type: AssetListEventType.newProject,
-              parentKey: directoryKey ?? rootDirectoryId,
-              parentId: directoryId ?? rootDirectoryId,
-              templateId: null,
-              templateName: null,
-              onSpinnerStateChange: null,
-            })
-          }}
-        />
-      )}
-      {isCloud && (
-        <MenuEntry
-          hidden={hidden}
-          action="newFolder"
-          doAction={() => {
-            unsetModal()
-            dispatchAssetListEvent({
-              type: AssetListEventType.newFolder,
-              parentKey: directoryKey ?? rootDirectoryId,
-              parentId: directoryId ?? rootDirectoryId,
-            })
-          }}
-        />
-      )}
+      <MenuEntry
+        hidden={hidden}
+        action="newProject"
+        doAction={() => {
+          unsetModal()
+          dispatchAssetListEvent({
+            type: AssetListEventType.newProject,
+            parentKey: directoryKey ?? rootDirectoryId,
+            parentId: directoryId ?? rootDirectoryId,
+            templateId: null,
+            templateName: null,
+            onSpinnerStateChange: null,
+          })
+        }}
+      />
+      <MenuEntry
+        hidden={hidden}
+        action="newFolder"
+        doAction={() => {
+          unsetModal()
+          dispatchAssetListEvent({
+            type: AssetListEventType.newFolder,
+            parentKey: directoryKey ?? rootDirectoryId,
+            parentId: directoryId ?? rootDirectoryId,
+          })
+        }}
+      />
       {isCloud && (
         <MenuEntry
           hidden={hidden}

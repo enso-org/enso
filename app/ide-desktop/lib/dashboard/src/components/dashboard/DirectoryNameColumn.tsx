@@ -98,24 +98,20 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }
       case AssetEventType.newFolder: {
         if (item.key === event.placeholderId) {
-          if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog('Cannot create folders on the local drive')
-          } else {
-            rowState.setVisibility(Visibility.faded)
-            try {
-              const createdDirectory = await backend.createDirectory({
-                parentId: asset.parentId,
-                title: asset.title,
-              })
-              rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, createdDirectory))
-            } catch (error) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.delete,
-                key: item.key,
-              })
-              toastAndLog('Could not create new folder', error)
-            }
+          rowState.setVisibility(Visibility.faded)
+          try {
+            const createdDirectory = await backend.createDirectory({
+              parentId: asset.parentId,
+              title: asset.title,
+            })
+            rowState.setVisibility(Visibility.visible)
+            setAsset(object.merge(asset, createdDirectory))
+          } catch (error) {
+            dispatchAssetListEvent({
+              type: AssetListEventType.delete,
+              key: item.key,
+            })
+            toastAndLog('Could not create new folder', error)
           }
         }
         break
