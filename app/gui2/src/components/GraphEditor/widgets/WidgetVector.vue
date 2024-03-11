@@ -25,16 +25,19 @@ const defaultItem = computed(() => {
 
 const value = computed({
   get() {
-    if (!(props.input.value instanceof Ast.Ast)) return []
-    return Array.from(props.input.value.children()).filter(
-      (child): child is Ast.Ast => child instanceof Ast.Ast,
-    )
+    return props.input.value instanceof Ast.Vector ? [...props.input.value.values()] : []
   },
   set(value) {
-    // TODO[ao]: here we re-create AST. It would be better to reuse existing AST nodes.
-    const newCode = `[${value.map((item) => item.code()).join(', ')}]`
+    // This doesn't preserve AST identities, because the values are not `Ast.Owned`.
+    // Getting/setting an Array is incompatible with ideal synchronization anyway;
+    // `ListWidget` needs to operate on the `Ast.Vector` for edits to be merged as `Y.Array` operations.
+    const tempModule = MutableModule.Transient()
+    const newAst = Ast.Vector.new(
+      tempModule,
+      value.map((element) => tempModule.copy(element)),
+    )
     props.onUpdate({
-      portUpdate: { value: newCode, origin: props.input.portId },
+      portUpdate: { value: newAst, origin: props.input.portId },
     })
   },
 })
@@ -45,16 +48,11 @@ const navigator = injectGraphNavigator(true)
 <script lang="ts">
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 500,
-  score: (props) => {
-    if (props.input.dynamicConfig?.kind === 'Vector_Editor') return Score.Perfect
-    else if (props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector'))
-      return Score.Good
-    else if (props.input.value instanceof Ast.Ast) {
-      return props.input.value.children().next().value.code() === '[' ?
-          Score.Perfect
-        : Score.Mismatch
-    } else return Score.Mismatch
-  },
+  score: (props) =>
+    props.input.dynamicConfig?.kind === 'Vector_Editor' ? Score.Perfect
+    : props.input.value instanceof Ast.Vector ? Score.Perfect
+    : props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector') ? Score.Good
+    : Score.Mismatch,
 })
 </script>
 

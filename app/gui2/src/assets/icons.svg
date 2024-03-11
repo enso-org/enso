@@ -17,6 +17,11 @@
     <rect opacity="0.3" width="16" height="16" rx="2" fill="currentColor"></rect>
   </symbol>
 
+  <symbol id="add" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <rect x="7" width="2" height="16" fill="currentColor"></rect>
+    <rect y="7" width="16" height="2" fill="currentColor"></rect>
+  </symbol>
+
   <symbol id="array_new" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <rect x="2" y="6" width="3" height="3" fill="currentColor"></rect>
     <rect opacity="0.8" x="6" y="6" width="3" height="3" fill="currentColor"></rect>
