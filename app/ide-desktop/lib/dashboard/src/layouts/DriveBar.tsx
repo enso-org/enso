@@ -111,20 +111,18 @@ export default function DriveBar(props: DriveBarProps) {
           </span>
         </button>
         <div className="flex items-center text-black/50 bg-frame rounded-full gap-3 h-8 px-3">
-          {backend.type !== backendModule.BackendType.local && (
-            <Button
-              active={isHomeCategory}
-              disabled={!isHomeCategory}
-              error="You can only create a new folder in Home."
-              image={AddFolderIcon}
-              alt="New Folder"
-              disabledOpacityClassName="opacity-20"
-              onClick={() => {
-                unsetModal()
-                doCreateDirectory()
-              }}
-            />
-          )}
+          <Button
+            active={isHomeCategory}
+            disabled={!isHomeCategory}
+            error="You can only create a new folder in Home."
+            image={AddFolderIcon}
+            alt="New Folder"
+            disabledOpacityClassName="opacity-20"
+            onClick={() => {
+              unsetModal()
+              doCreateDirectory()
+            }}
+          />
           {isCloud && (
             <Button
               active={isHomeCategory}

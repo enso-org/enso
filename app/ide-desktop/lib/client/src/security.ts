@@ -120,10 +120,14 @@ function limitWebViewCreation() {
  * link to learn more:
  * https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation. */
 function preventNavigation() {
+    let lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+    electron.app.on('browser-window-focus', () => {
+        lastFocusedWindow = electron.BrowserWindow.getFocusedWindow()
+    })
     electron.app.on('web-contents-created', (_event, contents) => {
         contents.on('will-navigate', (event, navigationUrl) => {
             const parsedUrl = new URL(navigationUrl)
-            const currentWindowUrl = electron.BrowserWindow.getFocusedWindow()?.webContents.getURL()
+            const currentWindowUrl = lastFocusedWindow?.webContents.getURL()
             const parsedCurrentWindowUrl =
                 currentWindowUrl != null ? new URL(currentWindowUrl) : null
             if (
