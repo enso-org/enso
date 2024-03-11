@@ -2991,9 +2991,7 @@ Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '
    - that: The table to convert.
    - format: The format of the text.
 Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
-    File_Format.handle_format_missing_arguments format <| case format of
-        _ : Delimited_Format -> Delimited_Writer.write_text that format
-        _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
+    Delimited_Writer.write_text that format
 
 ## PRIVATE
    Conversion method to a Table from a Vector.
