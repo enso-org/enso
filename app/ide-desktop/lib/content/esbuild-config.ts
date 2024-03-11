@@ -20,7 +20,8 @@ import esbuildPluginCopyDirectories from 'esbuild-plugin-copy-directories'
 import esbuildPluginTime from 'esbuild-plugin-time'
 import esbuildPluginYaml from 'esbuild-plugin-yaml'
 
-import * as utils from '../../utils'
+import * as appConfig from 'enso-common/src/appConfig'
+import * as buildUtils from 'enso-common/src/buildUtils'
 import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 // =================
@@ -29,6 +30,12 @@ import BUILD_INFO from '../../../../build.json' assert { type: 'json' }
 
 const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import.meta.url)))
 
+// ====================
+// === Global setup ===
+// ====================
+
+await appConfig.readEnvironmentFromFile()
+
 // =============================
 // === Environment variables ===
 // =============================
@@ -36,8 +43,6 @@ const THIS_PATH = pathModule.resolve(pathModule.dirname(url.fileURLToPath(import
 /** Arguments that must always be supplied, because they are not defined as
  * environment variables. */
 export interface PassthroughArguments {
-    /** `true` if in development mode (live-reload), `false` if in production mode. */
-    readonly devMode: boolean
     /** Whether the application may have the local backend running. */
     readonly supportsLocalBackend: boolean
     /** Whether the application supports deep links. This is only true when using
@@ -57,9 +62,9 @@ export interface Arguments extends PassthroughArguments {
 
 /** Get arguments from the environment. */
 export function argumentsFromEnv(passthroughArguments: PassthroughArguments): Arguments {
-    const wasmArtifacts = utils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
-    const assetsPath = utils.requireEnv('ENSO_BUILD_GUI_ASSETS')
-    const outputPath = pathModule.resolve(utils.requireEnv('ENSO_BUILD_GUI'), 'assets')
+    const wasmArtifacts = buildUtils.requireEnv('ENSO_BUILD_GUI_WASM_ARTIFACTS')
+    const assetsPath = buildUtils.requireEnv('ENSO_BUILD_GUI_ASSETS')
+    const outputPath = pathModule.resolve(buildUtils.requireEnv('ENSO_BUILD_GUI'), 'assets')
     return { ...passthroughArguments, wasmArtifacts, assetsPath, outputPath }
 }
 
@@ -83,14 +88,7 @@ function git(command: string): string {
 
 /** Generate the builder options. */
 export function bundlerOptions(args: Arguments) {
-    const {
-        outputPath,
-        wasmArtifacts,
-        assetsPath,
-        devMode,
-        supportsLocalBackend,
-        supportsDeepLinks,
-    } = args
+    const { outputPath, wasmArtifacts, assetsPath, supportsLocalBackend, supportsDeepLinks } = args
     const buildOptions = {
         // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
@@ -158,22 +156,12 @@ export function bundlerOptions(args: Arguments) {
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
-            /** Whether the application is being run locally. This enables a service worker that
-             * properly serves `/index.html` to client-side routes like `/login`. */
-            'process.env.NODE_ENV': JSON.stringify(devMode ? 'development' : 'production'),
-            /** Overrides the redirect URL for OAuth logins in the production environment.
-             * This is needed for logins to work correctly under `./run gui watch`. */
-            REDIRECT_OVERRIDE: 'undefined',
-            CLOUD_ENV:
-                process.env.ENSO_CLOUD_ENV != null
-                    ? JSON.stringify(process.env.ENSO_CLOUD_ENV)
-                    : 'undefined',
             SUPPORTS_LOCAL_BACKEND: JSON.stringify(supportsLocalBackend),
             SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
+            ...appConfig.getDefines(),
         },
         pure: ['assert'],
         sourcemap: true,
-        minify: !devMode,
         metafile: true,
         format: 'esm',
         platform: 'browser',

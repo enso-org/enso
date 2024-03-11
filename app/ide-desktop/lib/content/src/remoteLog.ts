@@ -2,7 +2,6 @@
  * {@link RemoteLogger} provides a convenient way to manage remote logging with access token authorization. */
 
 import * as app from 'enso-runner/src/runner'
-import * as authConfig from '../../dashboard/src/utilities/config'
 
 const logger = app.log.logger
 
@@ -11,7 +10,10 @@ const logger = app.log.logger
 // =================
 
 /** URL address where remote logs should be sent. */
-const REMOTE_LOG_URL = new URL(`${authConfig.ACTIVE_CONFIG.apiUrl}/logs`)
+const REMOTE_LOG_URL =
+    process.env.ENSO_CLOUD_API_URL == null
+        ? null
+        : new URL(`${process.env.ENSO_CLOUD_API_URL}/logs`)
 
 // ====================
 // === RemoteLogger ===
@@ -49,28 +51,27 @@ export async function remoteLog(
     message: string,
     metadata: unknown
 ): Promise<void> {
-    try {
-        const headers: HeadersInit = [
-            ['Content-Type', 'application/json'],
-            ['Authorization', `Bearer ${accessToken}`],
-        ]
-        const body = JSON.stringify({ message, metadata })
-        const response = await fetch(REMOTE_LOG_URL, {
-            method: 'POST',
-            headers,
-            body,
-        })
-        if (!response.ok) {
-            const errorMessage = `Error while sending log to a remote: Status ${response.status}.`
-            try {
-                const text = await response.text()
+    if (REMOTE_LOG_URL != null) {
+        try {
+            const headers: HeadersInit = [
+                ['Content-Type', 'application/json'],
+                ['Authorization', `Bearer ${accessToken}`],
+            ]
+            const body = JSON.stringify({ message, metadata })
+            const response = await fetch(REMOTE_LOG_URL, { method: 'POST', headers, body })
+            if (response.ok) {
+                return
+            } else {
+                const errorMessage = `Error while sending log to a remote: Status ${response.status}.`
+                const text = await response.text().catch(error => {
+                    throw new Error(`${errorMessage} Failed to read response: ${String(error)}.`)
+                })
                 throw new Error(`${errorMessage} Response: ${text}.`)
-            } catch (error) {
-                throw new Error(`${errorMessage} Failed to read response: ${String(error)}.`)
             }
+        } catch (error) {
+            logger.error(error)
+            // eslint-disable-next-line no-restricted-syntax
+            throw error
         }
-    } catch (error) {
-        logger.error(error)
-        throw error
     }
 }
