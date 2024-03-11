@@ -27,11 +27,12 @@ await appConfig.readEnvironmentFromFile()
  * along with this client build.
  * @see bundlerOptions
  */
-export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
+export function bundlerOptionsFromEnv(devMode = false): esbuild.BuildOptions {
     return bundlerOptions(
         path.join(paths.getIdeDirectory(), 'client'),
         paths.getProjectManagerInBundlePath(),
-        paths.getBundledEngineVersion()
+        paths.getBundledEngineVersion(),
+        devMode
     )
 }
 
@@ -39,7 +40,8 @@ export function bundlerOptionsFromEnv(): esbuild.BuildOptions {
 export function bundlerOptions(
     outdir: string,
     projectManagerInBundlePath: string,
-    bundledEngineVersion: string
+    bundledEngineVersion: string,
+    devMode = false
 ): esbuild.BuildOptions {
     return {
         bundle: true,
@@ -55,9 +57,13 @@ export function bundlerOptions(
         define: {
             BUNDLED_ENGINE_VERSION: JSON.stringify(bundledEngineVersion),
             PROJECT_MANAGER_IN_BUNDLE_PATH: JSON.stringify(projectManagerInBundlePath),
+            'process.env.DEV_MODE': JSON.stringify(String(devMode)),
+            'process.env.GUI2_CONFIG_PATH': JSON.stringify(
+                path.resolve('../../../gui2/vite.config.ts')
+            ),
         },
         /* eslint-enable @typescript-eslint/naming-convention */
         sourcemap: true,
-        external: ['electron'],
+        external: ['electron', 'vite', 'lightningcss'],
     }
 }

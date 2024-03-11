@@ -24,7 +24,6 @@ import * as paths from './paths'
 /** Set of esbuild watches for the client and content. */
 interface Watches {
     readonly client: esbuild.BuildResult
-    readonly dashboard: esbuild.BuildResult
 }
 
 // =================
@@ -33,7 +32,6 @@ interface Watches {
 
 const IDE_DIR_PATH = paths.getIdeDirectory()
 const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
-        const APP_OUT_DIR = path.resolve(IDE_DIR_PATH, 'assets')
 
 // =============
 // === Watch ===
@@ -42,11 +40,15 @@ const PROJECT_MANAGER_BUNDLE_PATH = paths.getProjectManagerBundlePath()
 console.log('Cleaning IDE dist directory.')
 await fs.rm(IDE_DIR_PATH, { recursive: true, force: true })
 await fs.mkdir(IDE_DIR_PATH, { recursive: true })
+await fs.symlink(
+    path.resolve('../../../../node_modules'),
+    path.resolve(IDE_DIR_PATH, './node_modules')
+)
 
 const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     void (async () => {
         console.log('Bundling client.')
-        const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv()
+        const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv(true)
         clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
         // Eslint is wrong here; `clientBundlerOpts.plugins` is actually `undefined`.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -70,11 +72,6 @@ const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
         console.log('Result of client bundling: ', client)
         void clientBuilder.watch()
 
-        console.log('Bundling dashboard.')
-        childProcess.spawn('vite', ['build', '../../../gui2/', '-c', '../../../gui2/vite.watch.config.ts', '--watch', '--outDir', APP_OUT_DIR], {stdio: 'inherit', 
-            shell: true,
-        })
-
         resolve({ client })
     })()
 })
@@ -91,21 +88,13 @@ const ELECTRON_ARGS = [path.join(IDE_DIR_PATH, 'index.cjs'), '--', ...process.ar
 
 process.on('SIGINT', () => {
     console.log('SIGINT received. Exiting.')
-    // The `esbuild` process seems to remain alive at this point and will keep our process
-    // from ending. Thus, we exit manually. It seems to terminate the child `esbuild` process
-    // as well.
-    process.exit(0)
+    void fs.rm(IDE_DIR_PATH, { recursive: true, force: true }).then(() => {
+        // The `esbuild` process seems to remain alive at this point and will keep our process
+        // from ending. Thus, we exit manually. It seems to terminate the child `esbuild` process
+        // as well.
+        process.exit(0)
+    })
 })
-
-console.log('Waiting for Vite to finish initial build...')
-await new Promise((resolve) => {
-    const indexHtml = path.join(APP_OUT_DIR, 'index.html')
-    setInterval(() => {
-            fs.stat(indexHtml).then(resolve, () => {})
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    }, 500)
-})
-console.log('Vite buil finished.')
 
 while (true) {
     console.log('Spawning Electron process.')

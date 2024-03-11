@@ -9,6 +9,7 @@ import * as streamConsumers from 'node:stream/consumers'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
+import * as vite from 'vite'
 import createServer from 'create-servers'
 
 import * as common from 'enso-common'
@@ -36,7 +37,7 @@ const HTTP_STATUS_NOT_FOUND = 404
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
     readonly uploadProjectBundle: (project: stream.Readable) => Promise<string>
-    readonly runProjectManagerCommand: (cliArguments: string[]) => Promise<unknown>
+    readonly runProjectManagerCommand: (cliArguments: string[]) => Promise<string>
 }
 
 /** Constructor parameter for the server configuration. */
@@ -80,9 +81,18 @@ async function findPort(port: number): Promise<number> {
  * Read this topic to learn why: https://github.com/http-party/http-server/issues/483 */
 export class Server {
     server: unknown
+    devServer?: vite.ViteDevServer
 
     /** Create a simple HTTP server. */
-    constructor(public config: Config) {}
+    constructor(public config: Config) {
+        if (process.env.DEV_MODE === 'true') {
+            const vite = require('vite') as typeof import('vite')
+            vite.createServer({
+                server: { middlewareMode: true },
+                configFile: process.env.GUI2_CONFIG_PATH ?? false,
+            }).then(server => (this.devServer = server))
+        }
+    }
 
     /** Server constructor. */
     static async create(config: Config): Promise<Server> {
@@ -230,6 +240,8 @@ export class Server {
                     break
                 }
             }
+        } else if (this.devServer) {
+            this.devServer.middlewares(request, response)
         } else {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl

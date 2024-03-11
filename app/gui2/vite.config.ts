@@ -19,10 +19,13 @@ await readEnvironmentFromFile()
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  cacheDir: '../../node_modules/.cache/vite',
+  root: fileURLToPath(new URL('.', import.meta.url)),
+  cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
+  publicDir: fileURLToPath(new URL('./public', import.meta.url)),
+  envDir: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [vue(), gatewayServer()],
   optimizeDeps: {
-    entries: 'index.html',
+    entries: fileURLToPath(new URL('./index.html', import.meta.url)),
   },
   server: {
     headers: {
@@ -33,9 +36,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      ...(process.env.E2E === 'true' ?
-        { '/src/main.ts': fileURLToPath(new URL('./e2e/main.ts', import.meta.url)) }
-      : {}),
+      ...(process.env.E2E === 'true'
+        ? { '/src/main.ts': fileURLToPath(new URL('./e2e/main.ts', import.meta.url)) }
+        : {}),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
