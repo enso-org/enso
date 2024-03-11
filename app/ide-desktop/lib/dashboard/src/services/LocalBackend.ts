@@ -183,18 +183,9 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams
   ): Promise<backend.AnyAsset[]> {
-    /** The type of the response body of this endpoint. */
-    interface ResponseBody {
-      readonly entries: FileSystemEntry[]
-    }
-
-    const typeAndId = query.parentId == null ? null : extractTypeAndId(query.parentId)
-    const response = await this.runProjectManagerCommand<ResponseBody>(
-      'filesystem-list',
-      typeAndId?.id ?? this.defaultRootDirectory
-    )
-    const entries = response.entries
+    const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.defaultRootDirectory)
+    const entries = await this.projectManagerFilesystemList(parentIdRaw)
     return entries
       .map(entry => {
         switch (entry.type) {
@@ -426,15 +417,17 @@ export default class LocalBackend extends Backend {
       const { id } = extractTypeAndId(projectId)
       if (body.projectName != null) {
         await this.projectManager.renameProject({
-          projectId,
+          projectId: id,
           name: projectManager.ProjectName(body.projectName),
-          ...(body.parentId == null
-            ? {}
-            : { projectsDirectory: extractTypeAndId(body.parentId).id }),
+          projectsDirectory: extractTypeAndId(body.parentId).id,
         })
       }
-      const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === id)
+      const result = await this.projectManagerFilesystemList(extractTypeAndId(body.parentId).id)
+      const project = result.flatMap(listedProject =>
+        listedProject.type === FileSystemEntryType.ProjectEntry && listedProject.metadata.id === id
+          ? [listedProject.metadata]
+          : []
+      )[0]
       const version =
         project?.engineVersion == null
           ? null
@@ -478,9 +471,7 @@ export default class LocalBackend extends Backend {
         try {
           await this.projectManager.deleteProject({
             projectId: typeAndId.id,
-            ...(body.parentId == null
-              ? {}
-              : { projectsDirectory: extractTypeAndId(body.parentId).id }),
+            projectsDirectory: extractTypeAndId(body.parentId).id,
           })
           return
         } catch (error) {
@@ -721,5 +712,19 @@ export default class LocalBackend extends Backend {
     } else {
       throw new Error(json.error.message)
     }
+  }
+
+  /** List directories, projects and files in the given folder. */
+  private async projectManagerFilesystemList(parentId: backend.DirectoryId | null) {
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly entries: FileSystemEntry[]
+    }
+
+    const response = await this.runProjectManagerCommand<ResponseBody>(
+      'filesystem-list',
+      parentId ?? this.defaultRootDirectory
+    )
+    return response.entries
   }
 }
