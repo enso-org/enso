@@ -455,6 +455,7 @@ test('Replace subexpression', () => {
 })
 
 test.only('Modify subexpression - setting a vector', () => {
+  // A case where the #9357 bug was visible.
   const code = 'main =\n    text1 = foo\n'
   const root = Ast.parseBlock(code)
   const main = Ast.functionBlock(root, 'main')!
@@ -466,11 +467,7 @@ test.only('Modify subexpression - setting a vector', () => {
   const transientModule = MutableModule.Transient()
   const newValue = Ast.Vector.new(transientModule, [Ast.parse('bar')])
   expect(newValue.code()).toBe('[bar]')
-  // edit.replaceValue(assignment.expression.id, newValue)
-  const assignment_ = edit.getVersion(assignment)
-  assignment_.expression.replaceValue(newValue)
-  console.log(Array.from(assignment_.expression.concreteChildren()))
-
+  edit.replaceValue(assignment.expression.id, newValue)
   const printed = edit.getVersion(root).code()
   expect(printed).toEqual('main =\n    text1 = [bar]\n')
 })
