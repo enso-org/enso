@@ -207,7 +207,7 @@ public class PersistanceTest {
   public record LongerLoop2(Persistance.Reference<LongerLoop3> y) {}
 
   @Persistable(id = 432441)
-  public class LongerLoop3 {
+  public static class LongerLoop3 {
     public final String a;
     public Persistance.Reference<LongerLoop1> y;
 
