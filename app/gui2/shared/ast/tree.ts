@@ -608,7 +608,9 @@ export class App extends Ast {
     const spacedEquals = useParens && !!nameSpecification?.equals.whitespace
     if (useParens) yield ensureSpaced(parens.open, verbatim)
     if (nameSpecification) {
-      yield useParens ? preferUnspaced(nameSpecification.name) : ensureSpaced(nameSpecification.name, verbatim)
+      yield useParens ?
+        preferUnspaced(nameSpecification.name)
+      : ensureSpaced(nameSpecification.name, verbatim)
       yield ensureSpacedOnlyIf(nameSpecification.equals, spacedEquals, verbatim)
     }
     yield ensureSpacedOnlyIf(argument, !nameSpecification || spacedEquals, verbatim)
@@ -1778,7 +1780,7 @@ export class Function extends Ast {
     }
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
     for (const def of argumentDefinitions) yield* def
