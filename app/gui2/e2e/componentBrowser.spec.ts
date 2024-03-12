@@ -65,6 +65,11 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await page.mouse.click(outputPortX, outputPortY)
   await page.mouse.click(outputPortX, outputPortY)
   await expectAndCancelBrowser(page, 'final.')
+})
+
+test('Opening Component Browser with small plus buttons', async ({ page }) => {
+  await actions.goToGraph(page)
+
   // Small (+) button shown when node is hovered
   await page.keyboard.press('Escape')
   await page.mouse.move(100, 80)
@@ -73,6 +78,7 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await expect(locate.smallPlusButton(page)).toBeVisible()
   await locate.smallPlusButton(page).click()
   await expectAndCancelBrowser(page, 'aggregated.')
+
   // Small (+) button shown when node is sole selection
   await page.keyboard.press('Escape')
   await expect(locate.smallPlusButton(page)).not.toBeVisible()
