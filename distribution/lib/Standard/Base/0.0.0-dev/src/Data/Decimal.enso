@@ -203,10 +203,9 @@ type Decimal
     from_float (f : Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error ! Illegal_Argument =
         is_exceptional = f.is_nan || f.is_infinite
         if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
-            # We do not use `handle_precision_loss` here because we always attach a `Loss_Of_Numeric_Precision` warning in the Float case.
             handle_java_exception <| attach_loss_of_numeric_precision f <|
                 case mc of
-                    _ : Math_Context -> Decimal.Value <| Decimal_Utils.fromFloat f mc.math_context
+                    _ : Math_Context -> Decimal.Value <| handle_precision_loss f <| Decimal_Utils.fromFloat f mc.math_context
                     _ : Nothing -> Decimal.Value (Decimal_Utils.fromFloat f)
 
     ## ALIAS greater than

@@ -58,10 +58,10 @@ public class Decimal_Utils {
     return BigDecimal.valueOf(d);
   }
 
-  public static BigDecimal fromFloat(Double d, MathContext mc) {
+  public static ConversionResult fromFloat(Double d, MathContext mc) {
     // We do not check for precision loss here because we always attach a
     // warning when converting from float.
-    return new BigDecimal(d, mc);
+    return new ConversionResult(new BigDecimal(d, mc), true);
   }
 
   public static boolean fitsInLong(BigDecimal bigDecimal) {
@@ -86,6 +86,7 @@ public class Decimal_Utils {
       }
     } else {
       // Will not throw ArithmeticException since the value has a 0 fractional part.
+      assert !isFractional;
       return bd.toBigIntegerExact().hashCode();
     }
   }
