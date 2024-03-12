@@ -116,7 +116,7 @@ type Refresh_Token_Data
         get_field field_name =
             as_json.get field_name if_missing=(Panic.throw (Illegal_State.Error "Token refresh failed due to invalid credentials file format: missing field `"+field_name+"`."))
         client_id = get_field "client_id"
-        refresh_url = "https://cognito-idp.eu-west-1.amazonaws.com/" # get_field "refresh_url"
+        refresh_url = get_field "refresh_url"
         refresh_token = get_field "refresh_token"
         Refresh_Token_Data.Value client_id=client_id refresh_url=refresh_url refresh_token=refresh_token
 
