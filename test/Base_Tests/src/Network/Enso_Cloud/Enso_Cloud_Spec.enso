@@ -75,8 +75,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 Panic.with_finalizer Cloud_Tests_Setup.reset_token <|
                     Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" non_existent_file.path <|
                         Cloud_Tests_Setup.reset_token
-                        Test.expect_panic Not_Logged_In <|
+                        payload = Test.expect_panic Not_Logged_In <|
                             Enso_User.current
+                        payload.to_display_text . should_contain "Please log in and restart"
 
             group_builder.specify "will fail if the token is malformed" pending=setup.pending <|
                 invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
