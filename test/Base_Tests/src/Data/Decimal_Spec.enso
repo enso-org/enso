@@ -485,6 +485,12 @@ add_specs suite_builder =
             Decimal.new -5.3 . negate . should_equal 5.3
             Decimal.new 0 . negate . should_equal 0
             Decimal.new -0 . negate . should_equal 0
+            d = Decimal.new 5
+            nd = -d
+            nd . should_equal -5
+            d2 = Decimal.new -5
+            nd2 = -d2
+            nd2 . should_equal 5
 
 main =
     suite = Test.build suite_builder->

@@ -525,20 +525,20 @@ type Decimal
     negate : Decimal
     negate self = Decimal.Value self.big_decimal.negate
 
-    # PRIVATE
+    ## PRIVATE
     precision : Integer
     precision self = self.big_decimal.precision
 
-    # PRIVATE
+    ## PRIVATE
     scale : Integer
     scale self = self.big_decimal.scale
 
-    # PRIVATE
+    ## PRIVATE
+       TODO: This +0 is needed to allow internal represeantations to be compared.
     unscaled_value : Integer
-    # TODO: This +0 is needed to allow internal represeantations to be compared.
     unscaled_value self = self.big_decimal.unscaledValue + 0
 
-    # PRIVATE
+    ## PRIVATE
     internal_representation : [Integer]
     internal_representation self = [self.unscaled_value, self.precision, self.scale]
 

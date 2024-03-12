@@ -74,14 +74,15 @@ public class Decimal_Utils {
     boolean fitsInLong = fitsInLong(bd);
     if (isFractional || fitsInLong) {
       double d = bd.doubleValue();
-      var is_finite = d != Double.NEGATIVE_INFINITY && d != Double.POSITIVE_INFINITY;
-      if (is_finite) {
+      var fitsInDouble = Double.isFinite(d);
+      if (fitsInDouble) {
         return Double.hashCode(d);
       } else {
         // Infinite values here just means finite values outside the double
-        // range. In this path, the values must fractional, and so cannot
+        // range. In this path, the values must be fractional, and so cannot
         // coincide with a value of any other type (including BigInteger), so we
         // can hash it however we want.
+        assert isFractional;
         return bd.hashCode();
       }
     } else {

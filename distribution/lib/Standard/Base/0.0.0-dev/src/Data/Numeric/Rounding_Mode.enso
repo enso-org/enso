@@ -9,7 +9,8 @@ polyglot java import java.math.RoundingMode
 type Rounding_Mode
     Value (rounding_mode : RoundingMode)
 
-    # Round towards positive infinity. (This is the default.)
+    # Round towards positive infinity for positive numbers, and negative
+    # infinity for negative numbers. (This is the default.)
     half_up : Rounding_Mode
     half_up = Rounding_Mode.Value RoundingMode.HALF_UP
 

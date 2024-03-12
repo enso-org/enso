@@ -572,7 +572,7 @@ add_specs suite_builder =
             -3.truncate . should_equal -3
 
     suite_builder.group "Hashing" group_builder->
-        # TODO: Pending https://github.com/enso-org/enso/issues/9296.
+        # TODO: Pending https://github.com/enso-org/enso/issues/9296
         group_builder.specify "Hash consistency for values near Double.MIN/MAX_VALUE" pending="hash consistency" <|
             ok_values = [9223372036854775000, -9223372036854775000]
             bad_values = [9223372036854776000, -9223372036854776000]
