@@ -28,7 +28,7 @@ const removeWarnings = Pattern.parse('__.remove_warnings')
       <button class="image-button" :class="{ active: props.data.length !== 0 }">
         <SvgIcon
           name="not_exclamation"
-          class="removeWarnings"
+          data-testid="remove-warnings-button"
           alt="Remove warnings"
           @click="config.createNode(removeWarnings)"
         />
