@@ -583,6 +583,7 @@ pub fn gui() -> Result<Workflow> {
     let mut workflow = Workflow { name: "GUI CI".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
     workflow.add(PRIMARY_TARGET, job::Lint);
+    workflow.add(PRIMARY_TARGET, job::WasmTest);
     workflow.add(PRIMARY_TARGET, job::NativeTest);
     workflow.add(PRIMARY_TARGET, job::GuiTest);
 

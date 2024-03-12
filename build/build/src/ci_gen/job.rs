@@ -249,6 +249,15 @@ impl JobArchetype for NewGuiBuild {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct WasmTest;
+
+impl JobArchetype for WasmTest {
+    fn job(&self, target: Target) -> Job {
+        plain_job(target, "WASM tests", "wasm test --no-native")
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct IntegrationTest;
 
 impl JobArchetype for IntegrationTest {
