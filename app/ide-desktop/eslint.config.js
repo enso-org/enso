@@ -305,14 +305,6 @@ export default [
                 },
             ],
             'no-constant-condition': ['error', { checkLoops: false }],
-            'no-restricted-properties': [
-                'error',
-                {
-                    object: 'router',
-                    property: 'useNavigate',
-                    message: 'Use `hooks.useNavigate` instead.',
-                },
-            ],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
@@ -496,6 +488,11 @@ export default [
         rules: {
             'no-restricted-properties': [
                 'error',
+                {
+                    object: 'router',
+                    property: 'useNavigate',
+                    message: 'Use `hooks.useNavigate` instead.',
+                },
                 {
                     object: 'console',
                     message: 'Avoid leaving debugging statements when committing code',

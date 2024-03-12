@@ -6,8 +6,8 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Floating_Point_Equality
 
-import project.Data.Dialect.Dialect
-import project.Data.DB_Table.DB_Table
+import project.DB_Table.DB_Table
+import project.Dialect.Dialect
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference

@@ -40,6 +40,7 @@ type List
     Cons x xs
 
     ## GROUP Metadata
+       ICON metadata
        Computes the number of elements in the list.
 
        ! Computational Complexity
@@ -56,6 +57,7 @@ type List
     length self = self.fold 0 (acc -> _ -> acc + 1)
 
     ## GROUP Selections
+       ICON select_row
        Gets an element from the list at a specified index (0-based).
 
        ! Computational Complexity
@@ -131,7 +133,8 @@ type List
         res = go init self
         res
 
-    ## Combines all the elements of a non-empty list using a binary operation.
+    ## ICON preparation
+       Combines all the elements of a non-empty list using a binary operation.
        If the list is empty, it returns `if_empty`.
 
        Arguments:
@@ -251,6 +254,7 @@ type List
     not_empty self = self.is_empty.not
 
     ## GROUP Selections
+       ICON preparation
        Selects all elements of this list which satisfy a condition.
 
        Arguments:
@@ -284,6 +288,7 @@ type List
                 res.value
 
     ## GROUP Selections
+       ICON preparation
        Partitions the list into lists of elements which satisfy a given
        condition and ones that do not.
 
@@ -310,7 +315,8 @@ type List
                 True  -> Pair.new (Cons elem acc.first) acc.second
                 False -> Pair.new acc.first (Cons elem acc.second)
 
-    ## Applies a function to each element of the list, returning the list of
+    ## ICON dataframe_map_column
+       Applies a function to each element of the list, returning the list of
        results.
 
        Arguments:
@@ -366,6 +372,7 @@ type List
         Nothing
 
     ## GROUP Selections
+       ICON order
        Reverses the list, returning a list with the same elements, but in the
        opposite order.
 
@@ -379,6 +386,7 @@ type List
     reverse self = self.fold Nil (l -> el -> Cons el l)
 
     ## GROUP Selections
+       ICON select_row
        Creates a new list with the first `count` elements at the start of `self`
        removed.
 
@@ -397,6 +405,7 @@ type List
         Cons _ b -> b.drop_start count-1
 
     ## GROUP Selections
+       ICON select_row
        Creates a new list consisting of the first `count` elements at the start
        of `self`.
 
@@ -424,6 +433,7 @@ type List
             res.value
 
     ## GROUP Selections
+       ICON select_row
        Get all elements from the list except the last.
 
        > Example
@@ -451,6 +461,7 @@ type List
                 res.value
 
     ## GROUP Selections
+       ICON select_row
        Get the last element of the list.
 
        > Example
@@ -465,6 +476,7 @@ type List
         a -> a
 
     ## GROUP Selections
+       ICON select_row
        Get the first element from the list.
 
        > Example
@@ -479,6 +491,7 @@ type List
         Cons a _ -> a
 
     ## GROUP Selections
+       ICON select_row
        Get the second element from the list.
 
        > Example
@@ -507,6 +520,7 @@ type List
     head self = self.first
 
     ## GROUP Selections
+       ICON select_row
        Get all elements from the list except the first.
 
        > Example
@@ -521,6 +535,7 @@ type List
         Cons _ b -> b
 
     ## GROUP Conversions
+       ICON convert
        Convert this list to a vector with the same elements.
     to_vector : Vector
     to_vector self =
@@ -538,6 +553,7 @@ type List
         go self "" ""
 
     ## GROUP Selections
+       ICON find
        Returns the first element of the list that satisfies the condition or
        if no elements of the list satisfy the predicate, returns `if_missing`.
 
@@ -569,6 +585,7 @@ type List
                 loop start_node
 
     ## GROUP Values
+       ICON find
        Returns the index of the element in the list.
        Returns Nothing if the element is not found.
 
@@ -597,6 +614,7 @@ type List
             loop start_node start
 
     ## GROUP Values
+       ICON find
        Returns the last index of the element in the list.
        Returns Nothing if the element is not found.
 

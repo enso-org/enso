@@ -31,8 +31,8 @@ export default function Button(props: ButtonProps) {
       {...(!active && disabled && error != null
         ? { title: error }
         : title != null
-        ? { title }
-        : {})}
+          ? { title }
+          : {})}
       className={`${active ? '' : disabledOpacityClassName ?? 'opacity-50'} ${
         disabled ? '' : 'cursor-pointer hover:opacity-100'
       } ${!active && disabled ? 'cursor-not-allowed' : ''} ${className ?? ''}`}

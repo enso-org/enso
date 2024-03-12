@@ -52,6 +52,7 @@
   "signOutError": "Could not log out, please try again.",
   "signUpSuccess": "We have sent you an email with further instructions!",
   "confirmSignUpSuccess": "Your account has been confirmed! Please log in.",
+  "setUsernameLocalBackend": "You cannot set your username on the local backend.",
   "setUsernameSuccess": "Your username has been set!",
   "signInWithPasswordSuccess": "Successfully logged in!",
   "forgotPasswordSuccess": "We have sent you an email with further instructions!",
@@ -275,6 +276,7 @@
   "projectNameCannotBeEmpty": "Project name cannot be empty.",
   "remoteBackendSearchPlaceholder": "Type to search for projects, Data Links, users, and more.",
   "localBackendSearchPlaceholder": "Type to search for projects.",
+  "canOnlyEmptyTrashWhenInTrash": "Can only empty trash when in Trash",
   "upgradeTo": "Upgrade to $0",
 
   "deleteLabelActionText": "delete the label '$0'",
@@ -291,12 +293,14 @@
   "youAreAlreadyAddingUser": "You are already adding '$0'",
 
   "chatInputPlaceholder": "Type your message ...",
+  "secretValueHidden": "●●●●●●●●",
   "secretNamePlaceholder": "Enter the name of the secret",
   "secretValuePlaceholder": "Enter the value of the secret",
   "dataLinkNamePlaceholder": "Enter the name of the Data Link",
   "labelNamePlaceholder": "Enter the name of the label",
   "labelSearchPlaceholder": "Type labels to search",
   "inviteUserPlaceholder": "Type usernames or emails to search or invite",
+  "inviteFirstUserPlaceholder": "Enter an email to invite someone",
 
   "loginToYourAccount": "Login to your account",
   "passwordPlaceholder": "Enter your password",

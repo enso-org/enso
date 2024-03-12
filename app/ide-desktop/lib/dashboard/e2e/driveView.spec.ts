@@ -13,6 +13,7 @@ test.test('drive view', async ({ page }) => {
   await actions.expectPlaceholderRow(page)
   // Assets table with one asset
   await actions.locateNewProjectButton(page).click()
+  await actions.locateDrivePageIcon(page).click()
   // The placeholder row becomes hidden.
   await test.expect(assetRows).toHaveCount(1)
   await actions.locateDrivePageIcon(page).click()

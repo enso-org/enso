@@ -2,6 +2,7 @@
 
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import * as url from 'node:url'
 
 import * as v from 'vitest'
 
@@ -28,9 +29,11 @@ function testSchema(json: unknown, fileName: string): void {
 }
 
 // We need to go up from `app/ide-desktop/lib/dashboard/` to the root of the repo
-const REPO_ROOT = '../../../../'
+const DIR_DEPTH = 7
+const REPO_ROOT = url.fileURLToPath(new URL('../'.repeat(DIR_DEPTH), import.meta.url))
 const BASE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Base_Tests/data/datalinks/')
 const S3_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/AWS_Tests/data/')
+const TABLE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Table_Tests/data/datalinks/')
 
 v.test('correctly validates example HTTP .datalink files with the schema', () => {
   const schemas = [
@@ -61,6 +64,28 @@ v.test('correctly validates example S3 .datalink files with the schema', () => {
   ]
   for (const schema of schemas) {
     const json = loadDataLinkFile(path.resolve(S3_DATA_LINKS_ROOT, schema))
+    testSchema(json, schema)
+  }
+})
+
+v.test('correctly validates example Table .datalink files with the schema', () => {
+  const schemas = [
+    'example-http-format-excel-workbook.datalink',
+    'example-http-format-excel-sheet.datalink',
+    'example-http-format-excel-range.datalink',
+    'example-http-format-delimited-custom-quote.datalink',
+    'example-http-format-delimited-ignore-quote.datalink',
+  ]
+  for (const schema of schemas) {
+    const json = loadDataLinkFile(path.resolve(TABLE_DATA_LINKS_ROOT, schema))
+    testSchema(json, schema)
+  }
+})
+
+v.test('correctly validates example Database .datalink files with the schema', () => {
+  const schemas = ['postgres-db.datalink', 'postgres-table.datalink']
+  for (const schema of schemas) {
+    const json = loadDataLinkFile(path.resolve(TABLE_DATA_LINKS_ROOT, schema))
     testSchema(json, schema)
   }
 })

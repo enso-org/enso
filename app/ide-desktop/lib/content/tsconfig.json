@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["../types", "../../utils.ts", "../../../../build.json", "."],
+  "include": ["../types", "../../../../build.json", "."],
   "references": [{ "path": "../dashboard" }]
 }

@@ -20,7 +20,6 @@ import type { Result } from '@/util/data/result'
 import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
-import { debouncedGetter } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { isIdentifier } from 'shared/ast'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'shared/yjsModel'
@@ -60,6 +59,7 @@ const emit = defineEmits<{
   'update:visible': [visible: boolean]
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
+  addNode: [pos: Vec2 | undefined]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -91,9 +91,9 @@ const defaultVisualizationForCurrentNodeSource = computed<VisualizationIdentifie
     return {
       name: raw.value.name,
       module:
-        raw.value.library == null
-          ? { kind: 'Builtin' }
-          : { kind: 'Library', name: raw.value.library.name },
+        raw.value.library == null ?
+          { kind: 'Builtin' }
+        : { kind: 'Library', name: raw.value.library.name },
     }
   },
 )
@@ -225,26 +225,23 @@ watchEffect(async () => {
 })
 
 const isBelowToolbar = ref(false)
-let width = ref<Opt<number>>(props.width)
-let height = ref(150)
-// We want to debounce width changes, because they are saved to the metadata.
-const debouncedWidth = debouncedGetter(() => width.value, 300)
-watch(debouncedWidth, (value) => value != null && emit('update:width', value))
+let userSetHeight = ref(150)
 
-watchEffect(() =>
-  emit(
-    'update:rect',
+const rect = computed(
+  () =>
     new Rect(
       props.nodePosition,
       new Vec2(
-        width.value ?? props.nodeSize.x,
-        height.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
+        Math.max(props.width ?? 0, props.nodeSize.x),
+        userSetHeight.value + (isBelowToolbar.value ? TOP_WITH_TOOLBAR_PX : TOP_WITHOUT_TOOLBAR_PX),
       ),
     ),
-  ),
 )
 
-onUnmounted(() => emit('update:rect', undefined))
+watchEffect(() => emit('update:rect', rect.value))
+onUnmounted(() => {
+  emit('update:rect', undefined)
+})
 
 const allTypes = computed(() => Array.from(visualizationStore.types(props.typename)))
 
@@ -262,16 +259,16 @@ provideVisualizationConfig({
     return props.scale
   },
   get width() {
-    return width.value ?? null
+    return rect.value.width
   },
   set width(value) {
-    width.value = value
+    emit('update:width', value)
   },
   get height() {
-    return height.value
+    return userSetHeight.value
   },
   set height(value) {
-    height.value = value
+    userSetHeight.value = value
   },
   get isBelowToolbar() {
     return isBelowToolbar.value
@@ -296,6 +293,7 @@ provideVisualizationConfig({
   },
   hide: () => emit('update:visible', false),
   updateType: (id) => emit('update:id', id),
+  addNode: (pos) => emit('addNode', pos),
 })
 
 const effectiveVisualization = computed(() => {
@@ -342,7 +340,7 @@ const keydownHandler = visualizationBindings.handler({
   },
 })
 
-useEvent(window, 'keydown', (event) => keydownHandler(event))
+useEvent(window, 'keydown', keydownHandler)
 
 watch(
   () => props.isFullscreen,

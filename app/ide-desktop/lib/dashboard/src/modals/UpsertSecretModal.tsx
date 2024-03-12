@@ -82,7 +82,9 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           <div className="w-12 h-6 py-1">{getText('value')}</div>
           <input
             autoFocus={!isNameEditable}
-            placeholder={getText('secretValuePlaceholder')}
+            placeholder={
+              isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
+            }
             className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px"
             onInput={event => {
               setValue(event.currentTarget.value)

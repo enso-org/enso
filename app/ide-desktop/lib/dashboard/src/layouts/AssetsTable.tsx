@@ -428,8 +428,8 @@ export default function AssetsTable(props: AssetsTableProps) {
           node.item.type === backendModule.AssetType.directory
             ? 'folder'
             : node.item.type === backendModule.AssetType.dataLink
-            ? 'datalink'
-            : String(node.item.type)
+              ? 'datalink'
+              : String(node.item.type)
         const assetExtension =
           node.item.type !== backendModule.AssetType.file
             ? null
@@ -1202,8 +1202,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                           ),
                         ]
                       : initialChildren == null || initialChildren.length === 0
-                      ? childAssetNodes
-                      : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
+                        ? childAssetNodes
+                        : [...initialChildren, ...childAssetNodes].sort(AssetTreeNode.compare)
                   return item.with({ children })
                 }
               })
@@ -1336,8 +1336,8 @@ export default function AssetsTable(props: AssetsTableProps) {
             prevIndex == null
               ? 0
               : event.key === 'ArrowUp'
-              ? Math.max(0, prevIndex - 1)
-              : Math.min(visibleItems.length - 1, prevIndex + 1)
+                ? Math.max(0, prevIndex - 1)
+                : Math.min(visibleItems.length - 1, prevIndex + 1)
           setMostRecentlySelectedIndex(index, true)
           if (event.shiftKey) {
             // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
@@ -1714,7 +1714,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.emptyTrash: {
         if (category !== Category.trash) {
-          toastAndLog('Can only empty trash when in Trash')
+          toastAndLog('canOnlyEmptyTrashWhenInTrash')
         } else if (assetTree.children != null) {
           const ids = new Set(assetTree.children.map(child => child.item.id))
           // This is required to prevent an infinite loop,

@@ -318,8 +318,8 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 ? getText('renameNewFile')
                 : getText('renameNewProject')
               : firstConflict?.new.type === backendModule.AssetType.file
-              ? getText('renameNewFiles')
-              : getText('renameNewProjects')}
+                ? getText('renameNewFiles')
+                : getText('renameNewProjects')}
           </button>
           <button
             type="button"

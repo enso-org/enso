@@ -56,8 +56,9 @@ export class SourceDocument {
       }
     }
     if (printed.code !== this.text_) {
-      const textEdits = update.updateRoots.has(root.id)
-        ? [{ range: [0, this.text_.length] satisfies SourceRange, insert: printed.code }]
+      const textEdits =
+        update.updateRoots.has(root.id) ?
+          [{ range: [0, this.text_.length] satisfies SourceRange, insert: printed.code }]
         : subtreeTextEdits
       this.text_ = printed.code
       this.notifyObservers(textEdits, update.origin)

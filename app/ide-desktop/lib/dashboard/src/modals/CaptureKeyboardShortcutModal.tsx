@@ -29,10 +29,10 @@ function eventToPartialShortcut(event: KeyboardEvent | React.KeyboardEvent) {
     (!event.ctrlKey && !event.altKey && !event.metaKey && event.key === 'Tab')
       ? null
       : event.key === ' '
-      ? 'Space'
-      : event.key === DELETE_KEY
-      ? 'OsDelete'
-      : inputBindings.normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key
+        ? 'Space'
+        : event.key === DELETE_KEY
+          ? 'OsDelete'
+          : inputBindings.normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key
   return { key, modifiers }
 }
 

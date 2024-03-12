@@ -288,7 +288,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
               })}
             </div>
             {/* Asset labels */}
-            {isCloud && (
+            {isCloud && labels.length !== 0 && (
               <div data-testid="asset-search-labels" className="flex gap-2 p-2 pointer-events-auto">
                 {labels.map(label => {
                   const negated = query.negativeLabels.some(term =>
@@ -341,8 +341,8 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     index === selectedIndex
                       ? 'bg-frame-selected'
                       : selectedIndices.has(index)
-                      ? 'bg-frame'
-                      : ''
+                        ? 'bg-frame'
+                        : ''
                   }`}
                   onClick={event => {
                     querySource.current = QuerySource.internal

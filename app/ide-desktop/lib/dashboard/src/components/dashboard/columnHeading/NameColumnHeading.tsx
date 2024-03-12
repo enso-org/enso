@@ -23,8 +23,8 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
         !isSortActive
           ? getText('sortByName')
           : sortDirection === SortDirection.ascending
-          ? getText('sortByNameDescending')
-          : getText('stopSortingByName')
+            ? getText('sortByNameDescending')
+            : getText('stopSortingByName')
       }
       className="flex items-center gap-2 pt-1 pb-1.5"
       onMouseEnter={() => {

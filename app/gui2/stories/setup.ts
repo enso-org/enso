@@ -119,6 +119,7 @@ export const setupVue3 = defineSetupVue3(({ app, addWrapper }) => {
         },
       ],
       updateType() {},
+      addNode() {},
     },
     app,
   )

@@ -57,6 +57,7 @@ import {
   PropertyAccess,
   TextLiteral,
   UnaryOprApp,
+  Vector,
   Wildcard,
 } from './tree'
 
@@ -204,8 +205,9 @@ class Abstractor {
       }
       case RawAst.Tree.Type.OprApp: {
         const lhs = tree.lhs ? this.abstractTree(tree.lhs) : undefined
-        const opr = tree.opr.ok
-          ? [this.abstractToken(tree.opr.value)]
+        const opr =
+          tree.opr.ok ?
+            [this.abstractToken(tree.opr.value)]
           : Array.from(tree.opr.error.payload.operators, this.abstractToken.bind(this))
         const rhs = tree.rhs ? this.abstractTree(tree.rhs) : undefined
         const soleOpr = tryGetSoleValue(opr)
@@ -287,6 +289,20 @@ class Abstractor {
         const as = tree.as ? recurseSegment(tree.as) : undefined
         const hiding = tree.hiding ? recurseSegment(tree.hiding) : undefined
         node = Import.concrete(this.module, polyglot, from, import_, all, as, hiding)
+        break
+      }
+      case RawAst.Tree.Type.Array: {
+        const left = this.abstractToken(tree.left)
+        const elements = []
+        if (tree.first) elements.push({ value: this.abstractTree(tree.first) })
+        for (const rawElement of tree.rest) {
+          elements.push({
+            delimiter: this.abstractToken(rawElement.operator),
+            value: rawElement.body && this.abstractTree(rawElement.body),
+          })
+        }
+        const right = this.abstractToken(tree.right)
+        node = Vector.concrete(this.module, left, elements, right)
         break
       }
       default: {
@@ -831,9 +847,9 @@ function calculateCorrespondence(
     for (const partAfter of partsAfter) {
       const astBefore = partAfterToAstBefore.get(sourceRangeKey(partAfter))!
       if (astBefore.typeName() === astAfter.typeName()) {
-        ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter)
-          ? toSync
-          : candidates
+        ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter) ?
+          toSync
+        : candidates
         ).set(astBefore.id, astAfter)
         break
       }
@@ -932,9 +948,9 @@ function syncTree(
     const editAst = edit.getVersion(ast)
     if (syncFieldsFrom) {
       const originalAssignmentExpression =
-        ast instanceof Assignment
-          ? metadataSource.get(ast.fields.get('expression').node)
-          : undefined
+        ast instanceof Assignment ?
+          metadataSource.get(ast.fields.get('expression').node)
+        : undefined
       syncFields(edit.getVersion(ast), syncFieldsFrom, childReplacerFor(ast.id))
       if (editAst instanceof MutableAssignment && originalAssignmentExpression) {
         if (editAst.expression.externalId !== originalAssignmentExpression.externalId)

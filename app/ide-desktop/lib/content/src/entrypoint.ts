@@ -5,7 +5,7 @@
 import * as semver from 'semver'
 import * as toastify from 'react-toastify'
 
-import * as app from 'ensogl-runner/src/runner'
+import * as app from 'enso-runner/src/runner'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 import * as dashboard from 'enso-dashboard'
@@ -13,7 +13,7 @@ import * as detect from 'enso-common/src/detect'
 import * as gtag from 'enso-common/src/gtag'
 
 import * as remoteLog from './remoteLog'
-import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
+import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
 

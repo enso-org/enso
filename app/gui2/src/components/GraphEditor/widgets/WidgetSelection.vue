@@ -16,11 +16,10 @@ import {
   type SuggestionEntryArgument,
 } from '@/stores/suggestionDatabase/entry.ts'
 import { Ast } from '@/util/ast'
-import type { TokenId } from '@/util/ast/abstract.ts'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
-import { asNot } from '@/util/data/types.ts'
+import type { Opt } from '@/util/data/opt'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { computed, ref, watch } from 'vue'
 
@@ -38,13 +37,16 @@ interface Tag {
   parameters?: ArgumentWidgetConfiguration[]
 }
 
-function tagFromExpression(expression: string): Tag {
+function tagFromExpression(expression: string, label?: Opt<string>): Tag {
   const qn = tryQualifiedName(expression)
-  if (!qn.ok) return { expression }
+  if (!qn.ok) return { expression, ...(label ? { label } : {}) }
   const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
-  if (entry) return tagFromEntry(entry)
+  if (entry) {
+    const tag = tagFromEntry(entry)
+    return label ? { ...tag, label: label } : tag
+  }
   return {
-    label: qnLastSegment(qn.value),
+    label: label ?? qnLastSegment(qn.value),
     expression: qn.value,
   }
 }
@@ -53,11 +55,9 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
   return {
     label: entry.name,
     expression:
-      entry.selfType != null
-        ? `_.${entry.name}`
-        : entry.memberOf
-        ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
-        : entry.name,
+      entry.selfType != null ? `_.${entry.name}`
+      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+      : entry.name,
     requiredImports: requiredImports(suggestions.entries, entry),
   }
 }
@@ -65,14 +65,14 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
 const staticTags = computed<Tag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
-  return tags.map(tagFromExpression)
+  return tags.map((t) => tagFromExpression(t))
 })
 
 const dynamicTags = computed<Tag[]>(() => {
   const config = props.input.dynamicConfig
   if (config?.kind !== 'Single_Choice') return []
   return config.values.map((value) => ({
-    ...tagFromExpression(value.value),
+    ...tagFromExpression(value.value, value.label),
     parameters: value.parameters,
   }))
 })
@@ -98,7 +98,11 @@ const selectedTag = computed(() => {
     // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
     const sortedTags = tags.value
       .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
-      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+      .sort(([a], [b]) =>
+        a < b ? 1
+        : a > b ? -1
+        : 0,
+      )
     const [_, index] = sortedTags.find(([expr]) => currentExpression.startsWith(expr)) ?? []
     return index != null ? tags.value[index] : undefined
   }
@@ -146,13 +150,7 @@ watch(selectedIndex, (_index) => {
       value = conflicts[0]?.fullyQualified
     }
   }
-  props.onUpdate({
-    edit,
-    portUpdate: {
-      value,
-      origin: asNot<TokenId>(props.input.portId),
-    },
-  })
+  props.onUpdate({ edit, portUpdate: { value, origin: props.input.portId } })
 })
 
 const isHovered = ref(false)
