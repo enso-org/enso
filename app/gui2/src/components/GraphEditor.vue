@@ -15,6 +15,7 @@ import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
+import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
@@ -190,25 +191,14 @@ onMounted(() => viewportNode.value?.focus())
 
 function zoomToSelected() {
   if (!viewportNode.value) return
-  let left = Infinity
-  let top = Infinity
-  let right = -Infinity
-  let bottom = -Infinity
   const nodesToCenter =
     nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
+  let bounds = Rect.Bounding()
   for (const id of nodesToCenter) {
     const rect = graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id)
-    if (!rect) continue
-    left = Math.min(left, rect.left)
-    right = Math.max(right, rect.right)
-    top = Math.min(top, rect.top)
-    bottom = Math.max(bottom, rect.bottom)
+    if (rect) bounds = Rect.Bounding(bounds, rect)
   }
-  graphNavigator.panAndZoomTo(
-    Rect.FromBounds(left, top, right, bottom),
-    0.1,
-    Math.max(1, graphNavigator.scale),
-  )
+  graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.scale))
 }
 
 const graphBindingsHandler = graphBindings.handler({
@@ -651,6 +641,10 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
         <CodeEditor v-if="showCodeEditor" />
       </Suspense>
     </Transition>
+    <SceneScroller
+      :navigator="graphNavigator"
+      :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
+    />
     <GraphMouse />
   </div>
 </template>
