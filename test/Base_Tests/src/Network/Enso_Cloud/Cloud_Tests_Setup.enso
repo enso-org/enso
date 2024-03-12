@@ -16,10 +16,12 @@ type Cloud_Tests_Setup
     None
 
     with_prepared_environment self ~action =
-        if self == Cloud_Tests_Setup.None then action else
-            Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" self.api_url.to_text <|
-                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
-                    action
+        Cloud_Tests_Setup.reset
+        Panic.with_finalizer Cloud_Tests_Setup.reset <|
+            if self == Cloud_Tests_Setup.None then action else
+                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URI" self.api_url.to_text <|
+                    Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
+                        action
 
     pending self = case self of
         Cloud_Tests_Setup.None -> "Cloud tests run only if ENSO_RUN_REAL_CLOUD_TEST or ENSO_HTTP_TEST_HTTPBIN_URL environment variable is defined."
@@ -81,7 +83,6 @@ type Cloud_Tests_Setup
                 credentials_location = Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" . if_nothing <|
                     Panic.throw (Illegal_State.Error "If ENSO_RUN_REAL_CLOUD_TEST is defined, ENSO_CLOUD_CREDENTIALS_FILE must be defined as well.")
 
-                Cloud_Tests_Setup.reset
                 Cloud_Tests_Setup.Cloud (URI.from api_url) (File.new credentials_location)
             False -> Cloud_Tests_Setup.prepare_mock_setup
 
@@ -96,9 +97,7 @@ type Cloud_Tests_Setup
        If `custom_credentials` are not specified, the default test credentials are used.
     run_with_mock_cloud ~action (custom_credentials : Mock_Credentials | Nothing = Nothing) =
         setup = Cloud_Tests_Setup.prepare_mock_setup custom_credentials
-        Cloud_Tests_Setup.reset
-        Panic.with_finalizer Cloud_Tests_Setup.reset <|
-            setup.with_prepared_environment action
+        setup.with_prepared_environment action
 
     prepare_mock_setup (custom_credentials : Mock_Credentials | Nothing = Nothing) -> Cloud_Tests_Setup =
         base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
@@ -106,18 +105,17 @@ type Cloud_Tests_Setup
             with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
             enso_cloud_url = with_slash + "enso-cloud-mock/"
 
-            credentials_payload = (custom_credentials.if_nothing Mock_Credentials.default).to_json
+            credentials_payload = (custom_credentials.if_nothing (Mock_Credentials.default with_slash)).to_json
             tmp_cred_file = File.create_temporary_file "enso-test-credentials" ".json"
             credentials_payload.write tmp_cred_file
 
-            Cloud_Tests_Setup.reset
             Cloud_Tests_Setup.Mock (URI.from enso_cloud_url) tmp_cred_file
 
 type Mock_Credentials
     Value access_token:Text expire_at:Date_Time refresh_token:Text refresh_url:Text client_id:Text
 
     default (base_http_url : Text) -> Mock_Credentials =
-        expire_at = (Date_Time.now.start_of Time_Period.Minute) + (Duration.new years=1)
+        expire_at = (Date_Time.now.start_of Time_Period.Minute) + (Period.new years=1)
         Mock_Credentials.Value "TEST-ENSO-TOKEN-caffee" expire_at "TEST-ENSO-REFRESH-caffee" base_http_url+"enso-cloud-auth/" "TEST-ENSO-CLIENT-ID"
 
     to_json self -> Text =
@@ -127,7 +125,7 @@ type Mock_Credentials
             + [["refresh_token", self.refresh_token]]
             + [["refresh_url", self.refresh_url]]
             + [["client_id", self.client_id]]
-        JS_Object.from_vector fields . to_json
+        JS_Object.from_pairs fields . to_json
 
     ## Returns a credential whose access token is invalid.
        This will test the case where the refresh token has expired and the user has to re-authenticate.

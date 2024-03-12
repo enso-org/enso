@@ -17,7 +17,6 @@ polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
    $ sbt 'http-test-helper/run localhost 8080'
    $ export ENSO_HTTP_TEST_HTTPBIN_URL=http://localhost:8080/
 add_specs suite_builder setup:Cloud_Tests_Setup =
-    setup.with_prepared_environment <|
         suite_builder.group "Enso_User - offline logic tests" group_builder->
             group_builder.specify "is correctly parsed from JSON" <|
                 json = Json.parse """
@@ -43,8 +42,8 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 Test.expect_panic No_Such_Conversion (Enso_User.from (Json.parse "[]"))
 
         # These tests should be kept in sync with tools/http-test-helper/src/main/java/org/enso/shttp/cloud_mock/UsersHandler.java
-        suite_builder.group "Enso_User - local mock integration tests" pending=setup.httpbin_pending group_builder-> Cloud_Tests_Setup.run_with_mock_cloud <|
-            group_builder.specify "current user can be fetched from mock API" <|
+        suite_builder.group "Enso_User - local mock integration tests" pending=setup.httpbin_pending group_builder->
+            group_builder.specify "current user can be fetched from mock API" <| Cloud_Tests_Setup.run_with_mock_cloud <|
                 current = Enso_User.current
                 current.id.should_equal "organization-27xJM00p8jWoL2qByTo6tQfciWC"
                 current.name.should_equal "My test User 1"
@@ -56,7 +55,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 home . should_be_a Enso_File
                 home.is_directory.should_be_true
 
-            group_builder.specify "user list can be fetched from mock API" <|
+            group_builder.specify "user list can be fetched from mock API" <| Cloud_Tests_Setup.run_with_mock_cloud <|
                 users = Enso_User.list
 
                 users.length.should_equal 2
@@ -68,9 +67,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
         suite_builder.group "Enso_User" group_builder->
             group_builder.specify "user can be fetched from real API" pending=(setup.real_cloud_pending.if_nothing "Disabled until https://github.com/enso-org/cloud-v2/issues/912 is resolved.") <|
-                Enso_User.list . should_contain Enso_User.current
+                setup.with_prepared_environment <|
+                    Enso_User.list . should_contain Enso_User.current
 
-            group_builder.specify "will fail if the user is not logged in" <|
+            group_builder.specify "will fail if the user is not logged in" <| setup.with_prepared_environment <|
                 non_existent_file = (enso_project.data / "nonexistent-file") . absolute . normalize
                 non_existent_file.exists.should_be_false
                 Panic.with_finalizer Cloud_Tests_Setup.reset <|
@@ -80,7 +80,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                             Enso_User.current
                         payload.to_display_text . should_contain "Please log in and restart"
 
-            group_builder.specify "will fail if the token is malformed" pending=setup.pending <|
+            group_builder.specify "will fail if the token is malformed" pending=setup.pending <| setup.with_prepared_environment <|
                 invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
                 "invalid-token".write invalid_token_file . should_succeed
                 Cloud_Tests_Setup.reset
@@ -90,7 +90,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                             Enso_User.current
                     r.to_display_text . should_contain "Invalid credentials file format"
 
-            group_builder.specify "will fail if the token is invalid" pending=setup.pending <|
+            group_builder.specify "will fail if the token is invalid" pending=setup.pending <| setup.with_prepared_environment <|
                 invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
                 '{"access_token": "invalid-token", "expire_at":"3099-01-01T00:00:00Z"}'.write invalid_token_file . should_succeed
                 Cloud_Tests_Setup.reset
@@ -103,7 +103,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
         suite_builder.group "Enso Cloud Authentication" group_builder->
             # TODO tests against the mock here
-            group_builder.specify "should be able to refresh the token" pending=setup.pending <|
+            group_builder.specify "should be able to refresh the token" pending=setup.pending <| setup.with_prepared_environment <|
                 authentication_service = AuthenticationProvider.getAuthenticationServiceEnsoInstance
                 IO.println authentication_service.auth_data.get.expire_at
                 authentication_service.force_refresh
