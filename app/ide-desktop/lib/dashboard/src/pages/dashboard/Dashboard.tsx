@@ -497,7 +497,6 @@ export default function Dashboard(props: DashboardProps) {
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
           {session.accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
-              page={page}
               isOpen={isHelpChatOpen}
               doClose={() => {
                 setIsHelpChatOpen(false)
@@ -506,7 +505,6 @@ export default function Dashboard(props: DashboardProps) {
             />
           ) : (
             <ChatPlaceholder
-              page={page}
               isOpen={isHelpChatOpen}
               doClose={() => {
                 setIsHelpChatOpen(false)

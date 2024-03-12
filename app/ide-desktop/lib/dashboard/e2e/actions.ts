@@ -703,7 +703,7 @@ async function mockDate({ page }: MockParams) {
 // eslint-disable-next-line no-restricted-syntax
 export async function mockIDEContainer({ page }: MockParams) {
   await page.evaluate(() => {
-    const ideContainer = document.getElementById('root')
+    const ideContainer = document.getElementById('app')
     if (ideContainer) {
       ideContainer.style.height = '100vh'
       ideContainer.style.width = '100vw'

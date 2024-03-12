@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as reactDom from 'react-dom'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
-import * as detect from 'enso-common/src/detect'
 
 import * as appUtils from '#/appUtils'
 
@@ -13,11 +12,9 @@ import * as navigateHooks from '#/hooks/navigateHooks'
 import * as loggerProvider from '#/providers/LoggerProvider'
 
 import * as chat from '#/layouts/Chat'
-import * as pageSwitcher from '#/layouts/PageSwitcher'
 
 /** Props for a {@link ChatPlaceholder}. */
 export interface ChatPlaceholderProps {
-  readonly page: pageSwitcher.Page
   /** This should only be false when the panel is closing. */
   readonly isOpen: boolean
   readonly doClose: () => void
@@ -25,7 +22,7 @@ export interface ChatPlaceholderProps {
 
 /** A placeholder component replacing `Chat` when a user is not logged in. */
 export default function ChatPlaceholder(props: ChatPlaceholderProps) {
-  const { page, isOpen, doClose } = props
+  const { isOpen, doClose } = props
   const logger = loggerProvider.useLogger()
   const navigate = navigateHooks.useNavigate()
 
@@ -37,9 +34,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   } else {
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-1 transition-transform ${
-          detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
-        } ${isOpen ? '' : 'translate-x-full'}`}
+        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-1 transition-transform ${isOpen ? '' : 'translate-x-full'}`}
       >
         <div className="flex text-sm font-semibold mx-4 mt-2">
           <div className="grow" />
