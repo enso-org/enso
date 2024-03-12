@@ -5,10 +5,16 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.enso.compiler.core.ir.module.scope.Definition;
+import org.enso.compiler.core.ir.module.scope.Export;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.TestBase;
+import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -23,8 +29,10 @@ import org.junit.runners.model.Statement;
 
 /**
  * If a symbol is importable by an import statement, then it should also be accessible via FQN
- * without any import, or with an import of its parent module. This rule is enforced by this test.
- * It uses symbols from standard libraries.
+ * without any import (technically, with just an import of the library). This rule is enforced by
+ * this test. It uses symbols from standard libraries. It scans their Main modules for exported
+ * symbols, and then tests whether this invariant holds for all the symbols. Note that not all the
+ * symbols are tested. For example the builtin types are not tested.
  */
 @RunWith(Parameterized.class)
 public class ImportsAndFQNConsistencyTest extends TestBase {
@@ -35,16 +43,47 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
 
   @Rule public final TestRule printCodeRule = new PrintCodeRule();
 
-  @Parameters(name = "{0}")
-  public static List<Symbol> parameters() {
-    return List.of(
-        new Symbol("Standard.Base.Data.Vector"),
-        new Symbol("Standard.Base.Data.Text.Regex"),
-        new Symbol("Standard.Base.Data.Text.Regex.Match"),
-        new Symbol("Standard.Base.Data.Text.Location"),
-        new Symbol("Standard.Database.Connection.Postgres_Details.Postgres_Details"),
-        new Symbol("Standard.Database.Connection.Connection_Details.Connection_Details"),
-        new Symbol("Standard.Table.Data.Table"));
+  /**
+   * Gather all the exported symbols from Standard.Base library. Exclude builtin symbols, and
+   * modules with extension methods.
+   */
+  @Parameters(name = "(exported symbol from Standard.Base): {0}")
+  public static List<Symbol> stdBaseExportedSymbols() {
+    try (var ctx =
+        TestBase.defaultContextBuilder(LanguageInfo.ID)
+            .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
+            .build()) {
+      var ensoCtx = TestBase.leakContext(ctx);
+      var src = """
+from Standard.Base import all
+main = 42
+""";
+      var res = TestBase.evalModule(ctx, src);
+      assertThat(res.isNumber(), is(true));
+      List<Symbol> symbolsToTest = new ArrayList<>();
+      gatherExportedSymbols("Standard.Base.Main", ensoCtx).stream()
+          .map(Symbol::new)
+          .forEach(
+              exportedSymbol -> {
+                var mod = ensoCtx.findModule(exportedSymbol.getModuleName());
+                if (mod.isPresent()) {
+                  var builtin = ensoCtx.getBuiltins().getBuiltinType(exportedSymbol.getTypeName());
+                  if (builtin == null) {
+                    // The symbol is not a builtin type
+                    var modIr = mod.get().getIr();
+                    if (modIr != null) {
+                      var isTypeInModule =
+                          bindingsContainsType(
+                              mod.get().getIr().bindings(), exportedSymbol.getTypeName());
+                      if (isTypeInModule) {
+                        symbolsToTest.add(exportedSymbol);
+                      }
+                    }
+                  }
+                }
+              });
+      return symbolsToTest;
+    }
   }
 
   @BeforeClass
@@ -73,9 +112,7 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
   @Test
   public void testSymbolCanBeAccessedBySimpleNameWithFQNImport() {
     var sb = new StringBuilder();
-    sb.append("import ")
-        .append(symbol.getFqn())
-        .append(System.lineSeparator());
+    sb.append("import ").append(symbol.getFqn()).append(System.lineSeparator());
     sb.append("main = ")
         .append(symbol.getTypeName())
         .append(".to_text")
@@ -125,9 +162,7 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
       return getPathParts(startIdx, pathItems.size());
     }
 
-    /**
-     * Returns FQN of the module, without the last part, with library prefix.
-     */
+    /** Returns FQN of the module, without the last part, with library prefix. */
     String getModuleName() {
       return String.join(".", pathItems.subList(0, pathItems.size() - 1));
     }
@@ -164,5 +199,32 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
         }
       };
     }
+  }
+
+  private static List<String> gatherExportedSymbols(String moduleName, EnsoContext ensoCtx) {
+    var mod = ensoCtx.getPackageRepository().getLoadedModule(moduleName);
+    assertThat(mod.isDefined(), is(true));
+    var stdBaseExports = mod.get().getIr().exports();
+    assertThat(stdBaseExports.size(), greaterThan(1));
+    List<String> exportedSymbols = new ArrayList<>();
+    stdBaseExports.foreach(
+        export -> {
+          if (export instanceof Export.Module moduleExport) {
+            exportedSymbols.add(moduleExport.name().name());
+          }
+          return null;
+        });
+    return exportedSymbols;
+  }
+
+  private static boolean bindingsContainsType(
+      scala.collection.immutable.List<Definition> bindings, String typeName) {
+    return bindings.exists(
+        binding -> {
+          if (binding instanceof Definition.Type typeBinding) {
+            return typeBinding.name().name().equals(typeName);
+          }
+          return false;
+        });
   }
 }
