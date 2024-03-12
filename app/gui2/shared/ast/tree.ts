@@ -642,17 +642,20 @@ function ensureSpacedOnlyIf<T>(
 }
 function ensureSpaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
   if (verbatim && child.whitespace != null) return child
-  return child.whitespace ? child : { whitespace: ' ', ...child }
+  return child.whitespace ? child : { ...child, whitespace: ' ' }
 }
 function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
   if (verbatim && child.whitespace != null) return child
-  return child.whitespace === '' ? child : { whitespace: '', ...child }
+  return child.whitespace === '' ? child : { ...child, whitespace: '' }
+}
+function preferSpacedIf<T>(child: NodeChild<T>, condition: boolean): NodeChild<T> {
+  return condition ? preferSpaced(child) : preferUnspaced(child)
 }
 function preferUnspaced<T>(child: NodeChild<T>): NodeChild<T> {
-  return child.whitespace === undefined ? { whitespace: '', ...child } : child
+  return child.whitespace === undefined ? { ...child, whitespace: '' } : child
 }
 function preferSpaced<T>(child: NodeChild<T>): NodeChild<T> {
-  return child.whitespace === undefined ? { whitespace: ' ', ...child } : child
+  return child.whitespace === undefined ? { ...child, whitespace: ' ' } : child
 }
 export class MutableApp extends App implements MutableAst {
   declare readonly module: MutableModule
@@ -1031,7 +1034,7 @@ function multiSegmentAppSegment<T extends MutableAst>(
   body: Owned<T> | undefined,
 ): MultiSegmentAppSegment<OwnedRefs> | undefined {
   return {
-    header: { node: Token.new(header, RawAst.Token.Type.Ident) },
+    header: autospaced(Token.new(header, RawAst.Token.Type.Ident)),
     body: spaced(body ? (body as any) : undefined),
   }
 }
@@ -1777,12 +1780,7 @@ export class Function extends Ast {
     yield name
     for (const def of argumentDefinitions) yield* def
     yield { whitespace: equals.whitespace ?? ' ', node: this.module.getToken(equals.node) }
-    if (body)
-      yield ensureSpacedOnlyIf(
-        body,
-        !(this.module.tryGet(body.node) instanceof BodyBlock),
-        verbatim,
-      )
+    if (body) yield preferSpacedIf(body, this.module.tryGet(body.node) instanceof BodyBlock)
   }
 }
 export class MutableFunction extends Function implements MutableAst {
@@ -2526,11 +2524,13 @@ function unspaced<T extends object | string>(node: T | undefined): NodeChild<T> 
   return { whitespace: '', node }
 }
 
-function autospaced<T extends object | string>(node: T): NodeChild<T>
-function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
-function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined {
+export function autospaced<T extends object | string>(node: T): NodeChild<T>
+export function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
+export function autospaced<T extends object | string>(
+  node: T | undefined,
+): NodeChild<T> | undefined {
   if (node === undefined) return node
-  return { node }
+  return { whitespace: undefined, node }
 }
 
 export interface Removed<T extends MutableAst> {
