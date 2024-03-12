@@ -801,6 +801,9 @@ add_specs suite_builder =
             table_3 = xlsx_sheet.read . read "Sheet1"
             check_table table_3
 
+            table_4 = xlsx_sheet.read . sheet "Sheet1"
+            check_table table_4
+
         group_builder.specify "should let you read XLS by sheet index" <|
             table = xls_sheet.read (Excel_Format.Sheet 1)
             check_table table
