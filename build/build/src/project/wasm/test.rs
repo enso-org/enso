@@ -145,11 +145,11 @@ pub async fn test_all(repo_root: PathBuf, browsers: &[Browser]) -> Result {
     for member in all_members {
         let member_str = member.to_string_lossy();
         if blacklisted(&member) {
-            info!("Skipping blacklisted crate {member_str}");
+            debug!("Skipping blacklisted crate: {member_str}");
         } else if is_proc_macro_crate(&member) {
-            info!("Skipping proc-macro crate {member_str}");
+            debug!("Skipping proc-macro crate: {member_str}");
         } else if has_wasm_tests(&member) {
-            info!("Running tests for {member_str}");
+            info!("Running tests for: {member_str}");
             WasmPack
                 .cmd()?
                 .current_dir(&repo_root)
@@ -169,7 +169,7 @@ pub async fn test_all(repo_root: PathBuf, browsers: &[Browser]) -> Result {
                 .run_ok()
                 .await?;
         } else {
-            println!("No wasm tests in {member_str}");
+            debug!("Skipping crate with no wasm tests: {member_str}");
         }
     }
     Ok(())

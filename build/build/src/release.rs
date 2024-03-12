@@ -300,19 +300,6 @@ mod tests {
 
     #[tokio::test]
     #[ignore]
-    async fn upload_gui() -> Result {
-        setup_logging()?;
-        let assets = crate::paths::generated::RepoRootDistGuiAssets::new_root(
-            r"H:\NBO\enso4\dist\gui\assets",
-        );
-        let version = "2023.1.1-dev.cloud.test".parse2()?;
-        upload_gui_to_cloud(&assets, &version).await?;
-        notify_cloud_about_gui(&version).await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    #[ignore]
     async fn notify_cloud() -> Result {
         setup_logging()?;
         let version = Version::from_str("2022.1.1-rc.2")?;

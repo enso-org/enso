@@ -337,6 +337,17 @@ impl Processor {
         .boxed()
     }
 
+    pub fn handle_wasm(&self, wasm: arg::wasm::Target) -> BoxFuture<'static, Result> {
+        match wasm.command {
+            arg::wasm::Command::Test { no_wasm, no_native, browser } => {
+                let wasm_browsers =
+                    if no_wasm { default() } else { browser.into_iter().map_into().collect_vec() };
+                let root = self.repo_root.to_path_buf();
+                async move { project::wasm::test(root, &wasm_browsers, !no_native).await }.boxed()
+            }
+        }
+    }
+
     pub fn handle_gui(&self, gui: arg::gui::Target) -> BoxFuture<'static, Result> {
         match gui.command {
             arg::gui::Command::Build(job) => self.build(job),
@@ -715,6 +726,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
 
     let ctx: Processor = Processor::new(&cli).instrument(info_span!("Building context.")).await?;
     match cli.target {
+        Target::Wasm(wasm) => ctx.handle_wasm(wasm).await?,
         Target::Gui(gui) => ctx.handle_gui(gui).await?,
         Target::Runtime(runtime) => ctx.handle_runtime(runtime).await?,
         Target::Backend(backend) => ctx.handle_backend(backend).await?,

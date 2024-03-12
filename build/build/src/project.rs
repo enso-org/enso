@@ -30,6 +30,7 @@ pub mod gui;
 pub mod ide;
 pub mod project_manager;
 pub mod runtime;
+pub mod wasm;
 
 pub use backend::Backend;
 pub use runtime::Runtime;

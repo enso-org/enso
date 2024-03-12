@@ -25,6 +25,7 @@ pub mod java_gen;
 pub mod project_manager;
 pub mod release;
 pub mod runtime;
+pub mod wasm;
 
 
 
@@ -109,6 +110,8 @@ macro_rules! source_args_hlp {
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Clone, Debug)]
 pub enum Target {
+    /// Build/Test the Rust part of the GUI.
+    Wasm(wasm::Target),
     /// Build/Run the Vue-based GUI.
     Gui(gui::Target),
     /// Enso Engine Runtime.
