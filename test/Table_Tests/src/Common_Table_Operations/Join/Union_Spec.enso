@@ -25,6 +25,7 @@ type Data
         Data.Value (create_connection_fn Nothing)
 
     teardown self = self.connection.close
+# the ... operator used in the calls for Table.from_union and first.union "freezes" the default arguments so that they can be specified later, allowing us to run the full suite of tests
 call_static_union tables =
     Table.from_union tables ...
 call_member_union tables =
