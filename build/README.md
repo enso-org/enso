@@ -68,21 +68,12 @@ Artifacts are platform specific and consist of the single image file.
 
 ### GUI
 
-GUI is the front-end part of the project. It consists of `WASM` target.
-
-Sources consist mostly of TS code for the web page that embeds the `WASM`
-binaries.
+GUI is the front-end part of the project. It also packages WASM-compiled parser 
+written in rust.
 
 Artifacts are portable across the platforms and consist of the web page that can
 be served either using Electron client (as IDE does) or using a web server (like
 the Cloud version of Enso).
-
-### WASM
-
-This is the core of GUI, written in Rust. It has no external dependencies.
-
-Artifacts are portable across the platforms and consist of the single WASM
-binary accompanied by the JS snippets and glue.
 
 ### Backend
 
