@@ -123,7 +123,6 @@ pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_reflect as reflect;
     pub use enso_reflect::Reflect;
-    pub use enso_types::unit::Bytes;
 
     /// Return type for functions that will only fail in case of a bug in the implementation.
     #[derive(Debug, Default)]

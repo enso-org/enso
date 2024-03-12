@@ -54,6 +54,7 @@ provideVisualizationConfig._mock(
       },
     ],
     updateType() {},
+    addNode() {},
   },
   app,
 )

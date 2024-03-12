@@ -53,6 +53,11 @@ public @interface Builtin {
   String name() default "";
 
   /**
+   * @return true if the type contains values, false otherwise. Defaults to true.
+   */
+  boolean containsValues() default true;
+
+  /**
    * A method (or constructor) annotated with {@link Builtin.Method} will generate an implementation
    * for {@link BuiltinMethod} {@link com.oracle.truffle.api.nodes.Node} class.
    *

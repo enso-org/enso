@@ -123,12 +123,6 @@ public final class EnsoFile implements EnsoObject {
     return new EnsoFile(this.truffleFile.resolve(subPath));
   }
 
-  @Builtin.Method(name = "resolve")
-  @Builtin.Specialize
-  public EnsoFile resolve(EnsoFile subPath) {
-    return new EnsoFile(this.truffleFile.resolve(subPath.truffleFile.getPath()));
-  }
-
   @Builtin.Method
   public boolean exists() {
     return truffleFile.exists();

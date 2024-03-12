@@ -3,6 +3,7 @@ import { nodeEditBindings } from '@/bindings'
 import CircularMenu from '@/components/CircularMenu.vue'
 import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
+import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -41,6 +42,7 @@ const emit = defineEmits<{
   outputPortClick: [portId: AstId]
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
+  addNode: [pos: Vec2 | undefined]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -338,6 +340,9 @@ const documentation = computed<string | undefined>({
     })
   },
 })
+
+const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+const selectionVisible = ref(false)
 </script>
 
 <template>
@@ -351,8 +356,8 @@ const documentation = computed<string | undefined>({
     }"
     :class="{
       edited: props.edited,
-      dragging: dragPointer.dragging,
-      selected: nodeSelection?.isSelected(nodeId),
+      selected,
+      selectionVisible,
       visualizationVisible: isVisualizationVisible,
       ['executionState-' + executionState]: true,
     }"
@@ -360,10 +365,19 @@ const documentation = computed<string | undefined>({
     @pointerenter="nodeHovered = true"
     @pointerleave="nodeHovered = false"
   >
-    <div class="selection" v-on="dragPointer.events"></div>
-    <div class="binding" @pointerdown.stop>
-      {{ node.pattern?.code() ?? '' }}
-    </div>
+    <Teleport to="#graphNodeSelections">
+      <GraphNodeSelection
+        v-if="navigator"
+        :nodePosition="props.node.position"
+        :nodeSize="nodeSize"
+        :selected
+        :nodeId
+        :color
+        @visible="selectionVisible = $event"
+        v-on="dragPointer.events"
+      />
+    </Teleport>
+    <div class="binding" @pointerdown.stop v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
@@ -383,6 +397,7 @@ const documentation = computed<string | undefined>({
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
+      @addNode="emit('addNode', $event)"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -401,6 +416,7 @@ const documentation = computed<string | undefined>({
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
+      @addNode="emit('addNode', $event)"
     />
     <Suspense>
       <GraphNodeComment
@@ -541,7 +557,6 @@ const documentation = computed<string | undefined>({
 
 .GraphNode {
   --node-height: 32px;
-  --node-border-radius: 16px;
 
   --node-color-primary: color-mix(
     in oklab,
@@ -588,45 +603,10 @@ const documentation = computed<string | undefined>({
   outline: 0px solid transparent;
 }
 
-.GraphNode .selection {
-  position: absolute;
-  inset: calc(0px - var(--selected-node-border-width));
-  --node-current-selection-width: 0px;
-
-  &:before {
-    content: '';
-    opacity: 0;
-    position: absolute;
-    border-radius: var(--node-border-radius);
-    display: block;
-    inset: var(--selected-node-border-width);
-    box-shadow: 0 0 0 var(--node-current-selection-width) var(--node-color-primary);
-
-    transition:
-      box-shadow 0.2s ease-in-out,
-      opacity 0.2s ease-in-out;
-  }
-}
-
-.GraphNode:is(:hover, .selected) .selection:before,
-.GraphNode .selection:hover:before {
-  --node-current-selection-width: var(--selected-node-border-width);
-}
-
-.GraphNode .selection:hover:before {
-  opacity: 0.15;
-}
-.GraphNode.selected .selection:before {
-  opacity: 0.2;
-}
-
-.GraphNode.selected .selection:hover:before {
-  opacity: 0.3;
-}
-
 .binding {
   font-family: var(--font-code);
   user-select: none;
+  pointer-events: none;
   margin-right: 10px;
   color: black;
   position: absolute;
@@ -638,8 +618,7 @@ const documentation = computed<string | undefined>({
   white-space: nowrap;
 }
 
-.GraphNode .selection:hover + .binding,
-.GraphNode.selected .binding {
+.selectionVisible .binding {
   opacity: 1;
 }
 
@@ -692,8 +671,7 @@ const documentation = computed<string | undefined>({
   transition: opacity 0.2s ease-in-out;
 }
 
-.GraphNode:is(:hover, .selected) .statuses,
-.GraphNode:has(.selection:hover) .statuses {
+.GraphNode.selectionVisible .statuses {
   opacity: 0;
 }
 

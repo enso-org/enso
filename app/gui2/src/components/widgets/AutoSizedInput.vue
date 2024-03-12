@@ -24,8 +24,11 @@ const cssFont = computed(() => {
   return style.font
 })
 
+// Add some extra spacing to allow the text caret to show at the end of input.
+const ADDED_WIDTH_PX = 2
+
 const getTextWidth = (text: string) => getTextWidthByFont(text, cssFont.value)
-const inputWidth = computed(() => getTextWidth(`${innerModel.value}`))
+const inputWidth = computed(() => getTextWidth(`${innerModel.value}`) + ADDED_WIDTH_PX)
 const inputStyle = computed<StyleValue>(() => ({ width: `${inputWidth.value}px` }))
 
 function onEnterDown() {

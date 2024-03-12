@@ -9,6 +9,7 @@ export const graphNavigator: GraphNavigator = {
   clientToSceneRect: () => Rect.Zero,
   panAndZoomTo: () => {},
   panTo: () => {},
+  stepZoom: () => {},
   transform: '',
   prescaledTransform: '',
   translate: Vec2.Zero,

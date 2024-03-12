@@ -6174,7 +6174,7 @@ class RuntimeServerTest
           ),
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -6189,7 +6189,7 @@ class RuntimeServerTest
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
               Api.ExpressionUpdate.Payload.Value
-                .Warnings(1, Some("(My_Warning.Value 42)"), false)
+                .Warnings(1, Some("My_Warning.Value"), false)
             )
           )
         ),
@@ -6203,7 +6203,10 @@ class RuntimeServerTest
           ),
           payload = Api.ExpressionUpdate.Payload
             .Value(
-              Some(Api.ExpressionUpdate.Payload.Value.Warnings(2, None, false))
+              Some(
+                Api.ExpressionUpdate.Payload.Value
+                  .Warnings(2, Some("My_Warning.Value"), false)
+              )
             )
         ),
       context.executionComplete(contextId)
@@ -6267,7 +6270,7 @@ class RuntimeServerTest
           ConstantsGen.INTEGER,
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -6287,7 +6290,7 @@ class RuntimeServerTest
           ),
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -6298,7 +6301,7 @@ class RuntimeServerTest
           ConstantsGen.NOTHING,
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -6359,7 +6362,7 @@ class RuntimeServerTest
         ConstantsGen.VECTOR,
         payload = Api.ExpressionUpdate.Payload.Value(
           Some(
-            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
           )
         )
       ),

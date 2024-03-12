@@ -9,10 +9,8 @@ edition = "2021"
 [dependencies]
 enso-debug-api = { path = "../debug-api" }
 console_error_panic_hook = { workspace = true }
-failure = { workspace = true }
 gloo-timers = { version = "0.2.1", features = ["futures"] }
 js-sys = { workspace = true }
-nalgebra = { workspace = true }
 wasm-bindgen = { workspace = true }
 derivative = { workspace = true }
 enso-logging = { path = "../logging" }

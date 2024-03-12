@@ -13,9 +13,8 @@ const graph = useGraphStore()
 const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
   if (props.input.value instanceof Ast.TextLiteral) return props.input.value
   const valueStr = WidgetInput.valueRepr(props.input)
-  const parsed = valueStr != null ? Ast.parse(valueStr) : undefined
-  if (parsed instanceof Ast.TextLiteral) return parsed
-  return undefined
+  if (valueStr == null) return undefined
+  return Ast.TextLiteral.tryParse(valueStr)
 })
 
 function makeNewLiteral(value: string) {
@@ -71,7 +70,6 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 <style scoped>
 .WidgetText {
   display: inline-flex;
-  vertical-align: middle;
   background: var(--color-widget);
   border-radius: var(--radius-full);
   position: relative;
@@ -80,6 +78,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   padding: 0px 4px;
   min-width: 24px;
   justify-content: center;
+  align-items: center;
 
   &:has(> .AutoSizedInput:focus) {
     outline: none;
