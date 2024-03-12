@@ -140,7 +140,10 @@ function updateSelectionHover(event: PointerEvent | undefined) {
 let menuCloseTimeout = ref<ReturnType<typeof setTimeout>>()
 const menuEnabledByHover = ref(false)
 watchEffect(() => {
-  if (menuCloseTimeout.value) clearTimeout(menuCloseTimeout.value)
+  if (menuCloseTimeout.value != null) {
+    clearTimeout(menuCloseTimeout.value)
+    menuCloseTimeout.value = undefined
+  }
   const inZone = (pos: Vec2 | undefined) =>
     pos != null &&
     pos.sub(props.node.position).x < CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN * 2
