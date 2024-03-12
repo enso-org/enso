@@ -18,7 +18,7 @@ from project.Errors.Common import Loss_Of_Numeric_Precision
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.math.BigDecimal
-polyglot java import org.enso.base.numeric.Conversion_Result
+polyglot java import org.enso.base.numeric.ConversionResult
 polyglot java import org.enso.base.numeric.Decimal_Utils
 
 ## Decimal is the type of decimal (base-10-scaled) numbers in Enso. An Enso
@@ -557,8 +557,8 @@ handle_number_format_exception ~action =
         Error.throw (Number_Parse_Error.Error caught_panic.payload.getMessage)
 
 ## PRIVATE
-handle_precision_loss : Any -> Conversion_Result -> Any
-handle_precision_loss original_value conversion_result:Conversion_Result -> Any =
+handle_precision_loss : Any -> ConversionResult -> Any
+handle_precision_loss original_value conversion_result:ConversionResult -> Any =
     if conversion_result.hasPrecisionLoss.not then conversion_result.newValue else
         new_value = conversion_result.newValue
         Warning.attach (Loss_Of_Numeric_Precision.Warning original_value new_value) new_value

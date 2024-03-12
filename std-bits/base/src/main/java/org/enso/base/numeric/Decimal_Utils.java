@@ -13,10 +13,10 @@ public class Decimal_Utils {
     return new BigDecimal(s);
   }
 
-  public static Conversion_Result fromString(String s, MathContext mc) {
+  public static ConversionResult fromString(String s, MathContext mc) {
     BigDecimal bd = new BigDecimal(s, mc);
     BigDecimal withoutMC = new BigDecimal(s);
-    return new Conversion_Result(bd, bd.compareTo(withoutMC) != 0);
+    return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
   }
 
   public static BigDecimal fromInteger(Object o) {
@@ -31,19 +31,23 @@ public class Decimal_Utils {
     }
   }
 
-  public static Conversion_Result fromInteger(Object o, MathContext mc) {
-    if (o instanceof Long l) {
-      BigDecimal bd = new BigDecimal(l, mc);
-      BigDecimal withoutMC = new BigDecimal(l);
-      long backToLong = bd.longValue();
-      return new Conversion_Result(bd, bd.compareTo(withoutMC) != 0);
-    } else if (o instanceof BigInteger bi) {
-      BigDecimal bd = new BigDecimal(bi, mc);
-      BigDecimal withoutMC = new BigDecimal(bi);
-      BigInteger backToBigInteger = bd.toBigInteger();
-      return new Conversion_Result(bd, bd.compareTo(withoutMC) != 0);
-    } else {
-      throw new IllegalArgumentException("Input must be Long or BigInteger");
+  public static ConversionResult fromInteger(Object o, MathContext mc) {
+    switch (o) {
+      case Long l -> {
+        BigDecimal bd = new BigDecimal(l, mc);
+        BigDecimal withoutMC = new BigDecimal(l);
+        long backToLong = bd.longValue();
+        return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
+      }
+      case BigInteger bi -> {
+        BigDecimal bd = new BigDecimal(bi, mc);
+        BigDecimal withoutMC = new BigDecimal(bi);
+        BigInteger backToBigInteger = bd.toBigInteger();
+        return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
+      }
+      case null, default -> {
+        throw new IllegalArgumentException("Input must be Long or BigInteger");
+      }
     }
   }
 
