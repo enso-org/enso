@@ -87,6 +87,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                     r = Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" invalid_token_file.absolute.normalize.path <|
                         Test.expect_panic Illegal_State <|
                             Enso_User.current
+                    r.to_display_text . should_contain "Invalid credentials file format"
 
             group_builder.specify "will fail if the token is invalid" pending=setup.pending <|
                 invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
