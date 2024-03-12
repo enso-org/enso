@@ -22,6 +22,7 @@ polyglot java import org.enso.base.Text_Utils
 type Text
     ## ALIAS count
        GROUP Metadata
+       ICON metadata
        Computes the number of characters in the text.
 
        ! What is a Character?

@@ -35,6 +35,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
+from project.Metadata import Widget, Display
 from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
@@ -114,6 +115,7 @@ Text.each self function =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".at 1 == "반"
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
 Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index =
     self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
@@ -139,6 +141,7 @@ Text.at self index =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".get 1 == "반"
+@index (t-> Widget.Numeric_Input minimum=0 maximum=t.length display=Display.Always)
 Text.get : Integer -> Any -> Any
 Text.get self index ~if_missing=Nothing =
     new_index = if index < 0 then index + self.length else index
