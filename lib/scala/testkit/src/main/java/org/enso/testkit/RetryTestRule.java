@@ -1,7 +1,7 @@
 package org.enso.testkit;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -38,7 +38,7 @@ public class RetryTestRule implements TestRule {
     return new Statement() {
       @Override
       public void evaluate() {
-        Set<Throwable> caughtThrowables = new HashSet<>();
+        List<Throwable> caughtThrowables = new ArrayList<>();
 
         for (int i = 0; i < retryCount; i++) {
           try {
