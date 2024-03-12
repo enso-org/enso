@@ -6,6 +6,7 @@ import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Duration.Duration
+import project.Data.Time.Time_Zone.Time_Zone
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Errors.Not_Logged_In
 import project.Errors.File_Error.File_Error
@@ -115,7 +116,7 @@ type Refresh_Token_Data
         get_field field_name =
             as_json.get field_name if_missing=(Panic.throw (Illegal_State.Error "Token refresh failed due to invalid credentials file format: missing field `"+field_name+"`."))
         client_id = get_field "client_id"
-        refresh_url = get_field "refresh_url"
+        refresh_url = "https://cognito-idp.eu-west-1.amazonaws.com/" # get_field "refresh_url"
         refresh_token = get_field "refresh_token"
         Refresh_Token_Data.Value client_id=client_id refresh_url=refresh_url refresh_token=refresh_token
 
@@ -131,6 +132,13 @@ type Refresh_Token_Data
                 Panic.throw (Enso_Cloud_Error.Connection_Error error)
         json = response.decode_as_json . catch Invalid_JSON error->
             Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
-        access_token = json.get "AuthenticationResult" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AuthenticationResult` field in response."))
-        # TODO
-        Authentication_Data.Value Nothing Nothing
+        Standard.Base.IO.println json
+        auth_result = json.get "AuthenticationResult" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AuthenticationResult` field in response."))
+        access_token = auth_result.get "AccessToken" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AccessToken` field in response."))
+        token_type = auth_result.get "TokenType" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `TokenType` field in response."))
+        expires_in = auth_result.get "ExpiresIn" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `ExpiresIn` field in response."))
+        expire_at = (Date_Time.now + (Duration.new seconds=expires_in)) . at_zone Time_Zone.utc
+
+        if token_type != "Bearer" then
+            Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Invalid `TokenType` field in response: expected `Bearer`, got `"+token_type+"`.")
+        Authentication_Data.Value access_token=access_token expire_at=expire_at
