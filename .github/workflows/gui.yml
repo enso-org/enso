@@ -272,7 +272,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   enso-build-ci-gen-job-native-test-linux-x86_64:
-    name: Native GUI tests (linux, x86_64)
+    name: Native Rust tests (linux, x86_64)
     runs-on:
       - self-hosted
       - Linux
