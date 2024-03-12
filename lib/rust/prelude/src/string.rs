@@ -313,7 +313,6 @@ impl PartialEq<ImString> for String {
 }
 
 
-
 // ==================
 // === ToImString ===
 // ==================
@@ -322,12 +321,6 @@ impl PartialEq<ImString> for String {
 #[allow(missing_docs)]
 pub trait ToImString {
     fn to_im_string(&self) -> ImString;
-}
-
-impl<T: core::fmt::Display> ToImString for T {
-    default fn to_im_string(&self) -> ImString {
-        format!("{self}").into()
-    }
 }
 
 impl ToImString for ImString {
@@ -359,7 +352,6 @@ impl ToImString for &str {
         self.into()
     }
 }
-
 
 
 // === Macros ===
@@ -511,7 +503,6 @@ pub fn common_postfix_length(source_a: &str, source_b: &str) -> usize {
     let mismatch = zipped.find_position(|(a, b)| *a != *b);
     mismatch.map(|(ix, _)| ix).unwrap_or(shortest)
 }
-
 
 
 // =============

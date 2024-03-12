@@ -31,9 +31,11 @@
  * `internalCode`, when rethrowing the error. */
 import type * as cognito from 'amazon-cognito-identity-js'
 
-import type * as loggerProvider from '../providers/LoggerProvider'
+import type * as loggerProvider from '#/providers/LoggerProvider'
+
+import type * as service from '#/authentication/service'
+
 import type * as original from './cognito.ts'
-import type * as config from './config'
 import * as listen from './listen.mock'
 
 // This file exports a subset of the values from the original file.
@@ -75,7 +77,7 @@ export class Cognito implements original.Cognito {
   constructor(
     private readonly logger: loggerProvider.Logger,
     private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: config.AmplifyConfig
+    private readonly amplifyConfig: service.AmplifyConfig
   ) {}
 
   saveAccessToken() {

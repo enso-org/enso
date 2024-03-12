@@ -457,13 +457,14 @@ export default function Dashboard(props: DashboardProps) {
           />
           {page === pageSwitcher.Page.settings && <Settings />}
           {/* `accessToken` MUST be present in order for the `Chat` component to work. */}
-          {accessToken != null ? (
+          {accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
               page={page}
               isOpen={isHelpChatOpen}
               doClose={() => {
                 setIsHelpChatOpen(false)
               }}
+              endpoint={process.env.ENSO_CLOUD_CHAT_URL}
             />
           ) : (
             <ChatPlaceholder

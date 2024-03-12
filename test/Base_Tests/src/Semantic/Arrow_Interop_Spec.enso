@@ -1,0 +1,40 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Index_Out_Of_Bounds
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
+import Standard.Base.Errors.Common.Not_Invokable
+import Standard.Base.Errors.Common.No_Such_Method
+
+from Standard.Test import all
+
+foreign arrow new_arrow = """
+    new[Int8]
+
+
+add_specs suite_builder =
+    pending = if Polyglot.is_language_installed "arrow" then Nothing else """
+        Can't run Arrow tests, Arrow is not installed.
+
+    suite_builder.group "Arrow" pending=pending group_builder->
+        group_builder.specify "should allow for creating a new fixed Array in Arrow" <|
+            arrow_array_constructor = new_arrow
+            builder = arrow_array_constructor.new 10
+
+            builder.length . should_equal 10
+            builder.at 1 . should_equal Nothing
+            builder.at 10 . should_fail_with Index_Out_Of_Bounds
+            builder.append 2
+            builder.append 10
+            builder.at 1 . should_equal 10
+            builder.append 127
+
+            # Check that the value that will not fit into a byte is rejected
+            Test.expect_panic_with (builder.append 128) Unsupported_Argument_Types
+            v = builder.build
+            v.at 2 . should_equal 127
+            Test.expect_panic_with (builder.append 21) No_Such_Method
+            v.at 4 . should_equal Nothing
+
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

@@ -1,12 +1,12 @@
 /** @file A Vue composable for keeping track of selected DOM elements. */
-
 import { selectionMouseBindings } from '@/bindings'
 import { useEvent, usePointer } from '@/composables/events'
 import type { PortId } from '@/providers/portInfo.ts'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
+import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, reactive, ref, shallowRef } from 'vue'
+import { computed, proxyRefs, ref, shallowReactive, shallowRef } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
@@ -20,7 +20,7 @@ export function useSelection<T>(
 ) {
   const anchor = shallowRef<Vec2>()
   const initiallySelected = new Set<T>()
-  const selected = reactive(new Set<T>())
+  const selected = shallowReactive(new Set<T>())
   const hoveredNode = ref<NodeId>()
   const hoveredPort = ref<PortId>()
 
@@ -28,11 +28,13 @@ export function useSelection<T>(
     if (event.target instanceof Element) {
       const widgetPort = event.target.closest('.WidgetPort')
       hoveredPort.value =
-        widgetPort instanceof HTMLElement &&
-        'port' in widgetPort.dataset &&
-        typeof widgetPort.dataset.port === 'string'
-          ? (widgetPort.dataset.port as PortId)
-          : undefined
+        (
+          widgetPort instanceof HTMLElement &&
+          'port' in widgetPort.dataset &&
+          typeof widgetPort.dataset.port === 'string'
+        ) ?
+          (widgetPort.dataset.port as PortId)
+        : undefined
     }
   })
 
@@ -71,7 +73,7 @@ export function useSelection<T>(
     add: execAdd,
     remove: execRemove,
     toggle() {
-      const numCommon = countCommonInSets(initiallySelected, elementsToSelect.value)
+      const numCommon = intersectionSize(initiallySelected, elementsToSelect.value)
       const adding = numCommon * 2 <= elementsToSelect.value.size
       if (adding) execAdd()
       else execRemove()
@@ -125,18 +127,19 @@ export function useSelection<T>(
   const pointer = usePointer((_pos, event, eventType) => {
     if (eventType === 'start') {
       readInitiallySelected()
+    } else if (eventType === 'stop') {
+      if (anchor.value == null) {
+        // If there was no drag, we want to handle "clicking-off" selected nodes.
+        selectionEventHandler(event)
+      } else {
+        anchor.value = undefined
+      }
+      initiallySelected.clear()
     } else if (pointer.dragging) {
       if (anchor.value == null) {
         anchor.value = navigator.sceneMousePos?.copy()
       }
       selectionEventHandler(event)
-    } else if (eventType === 'stop') {
-      if (anchor.value == null) {
-        // If there was no drag, we want to handle "clicking-off" selected nodes.
-        selectionEventHandler(event)
-      }
-      anchor.value = undefined
-      initiallySelected.clear()
     }
   })
 
@@ -155,25 +158,5 @@ export function useSelection<T>(
     hoveredPort,
     mouseHandler: selectionEventHandler,
     events: pointer.events,
-  })
-}
-
-function countCommonInSets(a: Set<unknown>, b: Set<unknown>): number {
-  let count = 0
-  for (const item of a) count += +b.has(item)
-  return count
-}
-
-if (import.meta.vitest) {
-  const { test, expect } = import.meta.vitest
-  test.each`
-    left         | right        | expected
-    ${[]}        | ${[]}        | ${0}
-    ${[3]}       | ${[]}        | ${0}
-    ${[]}        | ${[3]}       | ${0}
-    ${[3]}       | ${[3]}       | ${1}
-    ${[1, 2, 3]} | ${[2, 3, 4]} | ${2}
-  `('Count common in sets $left and $right', ({ left, right, expected }) => {
-    expect(countCommonInSets(new Set(left), new Set(right))).toBe(expected)
   })
 }

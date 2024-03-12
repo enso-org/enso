@@ -4,12 +4,9 @@
 // === tryGetMessage ===
 // =====================
 
-/** Evaluates to the given type only if it the exact same type as `Expected`. */
-type MustBe<T, Expected> = (<U>() => U extends T ? 1 : 2) extends <U>() => U extends Expected
-  ? 1
-  : 2
-  ? T
-  : never
+/** Evaluates the given type only if it the exact same type as `Expected`. */
+type MustBe<T, Expected> =
+  (<U>() => U extends T ? 1 : 2) extends <U>() => U extends Expected ? 1 : 2 ? T : never
 
 /** Used to enforce a parameter must be `any`. This is useful to verify that the value comes
  * from an API that returns `any`. */

@@ -22,7 +22,7 @@ import type {
   NodeMetadata,
   NodeMetadataFields,
 } from '@/util/ast/abstract'
-import { MutableModule, isIdentifier, substituteQualifiedName } from '@/util/ast/abstract'
+import { MutableModule, isIdentifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -34,7 +34,16 @@ import { SourceDocument } from 'shared/ast/sourceDocument'
 import type { ExpressionUpdate, StackItem } from 'shared/languageServerTypes'
 import type { LocalOrigin, SourceRangeKey, VisualizationMetadata } from 'shared/yjsModel'
 import { defaultLocalOrigin, sourceRangeKey, visMetadataEquals } from 'shared/yjsModel'
-import { computed, markRaw, reactive, ref, toRef, watch, type ShallowRef } from 'vue'
+import {
+  computed,
+  markRaw,
+  reactive,
+  ref,
+  shallowReactive,
+  toRef,
+  watch,
+  type ShallowRef,
+} from 'vue'
 
 export type {
   Node,
@@ -53,7 +62,9 @@ export class PortViewInstance {
     public rect: ShallowRef<Rect | undefined>,
     public nodeId: NodeId,
     public onUpdate: (update: WidgetUpdate) => void,
-  ) {}
+  ) {
+    markRaw(this)
+  }
 }
 
 export const useGraphStore = defineStore('graph', () => {
@@ -77,7 +88,7 @@ export const useGraphStore = defineStore('graph', () => {
     toRef(suggestionDb, 'groups'),
     proj.computedValueRegistry,
   )
-  const portInstances = reactive(new Map<PortId, Set<PortViewInstance>>())
+  const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
   const methodAst = ref<Ast.Function>()
 
@@ -107,8 +118,12 @@ export const useGraphStore = defineStore('graph', () => {
   function handleModuleUpdate(module: Module, moduleChanged: boolean, update: ModuleUpdate) {
     const root = module.root()
     if (!root) return
-    moduleRoot.value = root
-    if (root instanceof Ast.BodyBlock) topLevel.value = root
+    if (moduleRoot.value != root) {
+      moduleRoot.value = root
+    }
+    if (root instanceof Ast.BodyBlock && topLevel.value != root) {
+      topLevel.value = root
+    }
     // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
     const nodeMetadataUpdates = update.metadataUpdated as any as {
       id: AstId
@@ -236,8 +251,9 @@ export const useGraphStore = defineStore('graph', () => {
       const rhs = Ast.parse(expression, edit)
       rhs.setNodeMetadata(metadata)
       const assignment = Ast.Assignment.new(edit, ident, rhs)
-      for (const conflict of conflicts) {
-        substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
+      for (const _conflict of conflicts) {
+        // TODO: Sort out issues with FQN with the engine.
+        // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
       }
       edit.getVersion(method).bodyAsBlock().push(assignment)
       return asNodeId(rhs.id)
@@ -311,17 +327,18 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
-      edit.getVersion(node.rootSpan).syncToCode(content)
+      edit.getVersion(node.rootExpr).syncToCode(content)
       if (withImports) {
         const conflicts = addMissingImports(edit, withImports)
         if (conflicts == null) return
-        const wholeAssignment = edit.getVersion(node.rootSpan)?.mutableParent()
+        const wholeAssignment = edit.getVersion(node.rootExpr)?.mutableParent()
         if (wholeAssignment == null) {
           console.error('Cannot find parent of the node expression. Conflict resolution failed.')
           return
         }
-        for (const conflict of conflicts) {
-          substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
+        for (const _conflict of conflicts) {
+          // TODO: Sort out issues with FQN with the engine.
+          // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
         }
       }
     })
@@ -375,24 +392,37 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
-    const nodeAst = syncModule.value?.tryGet(nodeId)
-    if (!nodeAst) return
-    if (rect.pos.equals(Vec2.Zero) && !nodeAst.nodeMetadata.get('position')) {
-      const { position } = nonDictatedPlacement(rect.size, {
-        nodeRects: visibleNodeAreas.value,
-        // The rest of the properties should not matter.
-        selectedNodeRects: [],
-        screenBounds: Rect.Zero,
-        mousePosition: Vec2.Zero,
-      })
-      editNodeMetadata(nodeAst, (metadata) =>
-        metadata.set('position', { x: position.x, y: position.y }),
-      )
-      nodeRects.set(nodeId, new Rect(position, rect.size))
-    } else {
-      nodeRects.set(nodeId, rect)
+    nodeRects.set(nodeId, rect)
+    if (rect.pos.equals(Vec2.Zero)) {
+      nodesToPlace.push(nodeId)
     }
   }
+
+  const nodesToPlace = reactive<NodeId[]>([])
+
+  watch(nodesToPlace, (nodeIds) => {
+    if (nodeIds.length === 0) return
+    const nodesToProcess = [...nodeIds]
+    nodesToPlace.length = 0
+    batchEdits(() => {
+      for (const nodeId of nodesToProcess) {
+        const nodeAst = syncModule.value?.get(nodeId)
+        const rect = nodeRects.get(nodeId)
+        if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
+        const { position } = nonDictatedPlacement(rect.size, {
+          nodeRects: visibleNodeAreas.value,
+          // The rest of the properties should not matter.
+          selectedNodeRects: [],
+          screenBounds: Rect.Zero,
+          mousePosition: Vec2.Zero,
+        })
+        editNodeMetadata(nodeAst, (metadata) =>
+          metadata.set('position', { x: position.x, y: position.y }),
+        )
+        nodeRects.set(nodeId, new Rect(position, rect.size))
+      }
+    })
+  })
 
   function updateVizRect(id: NodeId, rect: Rect | undefined) {
     if (rect) vizRects.set(id, rect)
@@ -506,6 +536,11 @@ export const useGraphStore = defineStore('graph', () => {
     return result!
   }
 
+  function batchEdits(f: () => void) {
+    assert(syncModule.value != null)
+    syncModule.value.transact(f, 'local')
+  }
+
   function editNodeMetadata(ast: Ast.Ast, f: (metadata: Ast.MutableNodeMetadata) => void) {
     edit((edit) => f(edit.getVersion(ast).mutableNodeMetadata()), true, true)
   }
@@ -525,7 +560,7 @@ export const useGraphStore = defineStore('graph', () => {
     let exprId: AstId | undefined
     if (expr) {
       const node = db.nodeIdToNode.get(nodeId)
-      node?.rootSpan.visitRecursive((ast) => {
+      node?.innerExpr.visitRecursive((ast) => {
         if (ast instanceof Ast.Ast && ast.code() == expr) {
           exprId = ast.id
         }
@@ -626,6 +661,7 @@ export const useGraphStore = defineStore('graph', () => {
     createNode,
     deleteNodes,
     ensureCorrectNodeOrder,
+    batchEdits,
     setNodeContent,
     setNodePosition,
     setNodeVisualization,

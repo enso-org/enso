@@ -252,11 +252,8 @@ export default class AssetQuery {
         }
       }
       if (toRemove != null) {
-        const termsAfterRemovals = terms.filter(
-          term =>
-            toRemove?.every(
-              otherTerm => !array.shallowEqual([...term].sort(), [...otherTerm].sort())
-            )
+        const termsAfterRemovals = terms.filter(term =>
+          toRemove?.every(otherTerm => !array.shallowEqual([...term].sort(), [...otherTerm].sort()))
         )
         if (termsAfterRemovals.length !== terms.length) {
           terms = termsAfterRemovals
@@ -501,8 +498,8 @@ export default class AssetQuery {
       node.item.type === backendModule.AssetType.directory
         ? 'folder'
         : node.item.type === backendModule.AssetType.dataLink
-        ? 'datalink'
-        : String(node.item.type)
+          ? 'datalink'
+          : String(node.item.type)
     const assetExtension =
       node.item.type !== backendModule.AssetType.file
         ? null

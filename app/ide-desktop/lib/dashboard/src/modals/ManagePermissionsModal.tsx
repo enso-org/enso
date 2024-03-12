@@ -101,10 +101,10 @@ export default function ManagePermissionsModal<
     // This MUST be an error, otherwise the hooks below are considered as conditionally called.
     throw new Error('Cannot share assets on the local backend.')
   } else {
-    const listedUsers = asyncEffectHooks.useAsyncEffect([], () => user.listUsers(), [user])
+    const listedUsers = asyncEffectHooks.useAsyncEffect(null, () => user.listUsers(), [user])
     const allUsers = React.useMemo(
       () =>
-        listedUsers.filter(
+        (listedUsers ?? []).filter(
           listedUser =>
             !usernamesOfUsersWithPermission.has(listedUser.name) &&
             !emailsOfUsersWithPermission.has(listedUser.email)
@@ -260,7 +260,12 @@ export default function ManagePermissionsModal<
                 <Autocomplete
                   multiple
                   autoFocus
-                  placeholder="Type usernames or emails to search or invite"
+                  placeholder={
+                    // `listedUsers` will always include the current user.
+                    listedUsers?.length !== 1
+                      ? 'Type usernames or emails to search or invite'
+                      : 'Enter an email to invite someone'
+                  }
                   type="text"
                   itemsToString={items =>
                     items.length === 1 && items[0] != null

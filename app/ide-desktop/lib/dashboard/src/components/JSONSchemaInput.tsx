@@ -147,9 +147,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               placeholder="Enter integer"
               onChange={event => {
                 const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
-                if (Number.isFinite(newValue)) {
-                  setValue(newValue)
-                }
+                setValue(newValue)
               }}
             />
           )

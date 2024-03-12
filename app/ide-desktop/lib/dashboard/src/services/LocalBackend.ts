@@ -213,8 +213,8 @@ class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backe
             type: LocalBackend.currentlyOpenProjects.has(project.id)
               ? backend.ProjectState.opened
               : project.id === LocalBackend.currentlyOpeningProjectId
-              ? backend.ProjectState.openInProgress
-              : backend.ProjectState.closed,
+                ? backend.ProjectState.openInProgress
+                : backend.ProjectState.closed,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
           },
@@ -384,8 +384,8 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
               this.value.id === LocalBackend.currentlyOpeningProjectId
                 ? backend.ProjectState.openInProgress
                 : project.lastOpened != null
-                ? backend.ProjectState.closed
-                : backend.ProjectState.created,
+                  ? backend.ProjectState.closed
+                  : backend.ProjectState.created,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
           },

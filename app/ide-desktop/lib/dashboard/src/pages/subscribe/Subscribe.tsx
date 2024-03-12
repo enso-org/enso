@@ -16,7 +16,6 @@ import Modal from '#/components/Modal'
 import * as backendModule from '#/services/Backend'
 import type Backend from '#/services/Backend'
 
-import * as config from '#/utilities/config'
 import * as load from '#/utilities/load'
 import * as string from '#/utilities/string'
 
@@ -52,7 +51,6 @@ export interface SubscribeProps {
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`). */
 export default function Subscribe(props: SubscribeProps) {
   const { backend } = props
-  const stripeKey = config.ACTIVE_CONFIG.stripeKey
   const navigate = navigateHooks.useNavigate()
   // Plan that the user has currently selected, if any (e.g., 'solo', 'team', etc.).
   const [plan, setPlan] = React.useState(() => {
@@ -74,7 +72,8 @@ export default function Subscribe(props: SubscribeProps) {
     React.useState<backendModule.CheckoutSessionStatus | null>(null)
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  if (stripePromise == null) {
+  if (stripePromise == null && process.env.ENSO_CLOUD_STRIPE_KEY != null) {
+    const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
     stripePromise = load.loadScript('https://js.stripe.com/v3/').then(async script => {
       const innerStripe = await stripe.loadStripe(stripeKey)
       script.remove()

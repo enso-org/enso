@@ -18,6 +18,7 @@
     "outDir": "../../node_modules/.cache/tsc",
     "baseUrl": ".",
     "noEmit": true,
+    "strict": true,
     "allowImportingTsExtensions": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,

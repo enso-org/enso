@@ -1,7 +1,4 @@
 import project.Any.Any
-import project.Enso_Cloud.Errors.Enso_Cloud_Error
-import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
-import project.Enso_Cloud.Internal.Utils
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
@@ -12,6 +9,9 @@ import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Errors.Enso_Cloud_Error
+import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
+import project.Enso_Cloud.Internal.Utils
 import project.Error.Error
 import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
@@ -30,11 +30,11 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link import read_datalink
 from project.Enso_Cloud.Public_Utils import get_required_field
-from project.Data.Text.Extensions import all
-from project.System.File.Generic.File_Write_Strategy import generic_copy
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
+from project.System.File.Generic.File_Write_Strategy import generic_copy
 
 type Enso_File
     ## Resolves an `enso://` path and returns the corresponding `Enso_File`
@@ -214,7 +214,7 @@ type Enso_File
             json = Utils.http_request_as_json HTTP_Method.Get self.internal_uri
             read_datalink json on_problems
         Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
-        Enso_Asset_Type.File -> case format of
+        Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <| case format of
             Auto_Detect ->
                 real_format = Auto_Detect.get_reading_format self
                 if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
@@ -320,6 +320,7 @@ type Enso_File
 
     ## UNSTABLE
        GROUP Operators
+       ICON folder
        Resolves a file or directory within this directory.
     / : Text -> Enso_File ! Not_Found
     / self (name : Text) -> Enso_File ! Not_Found =

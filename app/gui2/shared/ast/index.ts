@@ -7,6 +7,7 @@ import { App, Ast, Group, MutableAst, OprApp, Wildcard } from './tree'
 
 export * from './mutableModule'
 export * from './parse'
+export * from './text'
 export * from './token'
 export * from './tree'
 
@@ -25,7 +26,7 @@ export function asOwned<T>(t: T): Owned<T> {
   return t as Owned<T>
 }
 
-export type NodeChild<T> = { whitespace?: string | undefined; node: T }
+export type NodeChild<T> = { whitespace: string | undefined; node: T }
 export type RawNodeChild = NodeChild<AstId> | NodeChild<SyncTokenId>
 
 export function newExternalId(): ExternalId {

@@ -32,8 +32,8 @@ export default function Settings() {
             oldOrganization.value == null
               ? null
               : typeof valueOrUpdater !== 'function'
-              ? valueOrUpdater
-              : valueOrUpdater(oldOrganization.value)
+                ? valueOrUpdater
+                : valueOrUpdater(oldOrganization.value)
           ) ?? null
       )
     },

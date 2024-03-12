@@ -657,12 +657,12 @@ export function compareUserPermissions(a: UserPermission, b: UserPermission) {
     return aName < bName
       ? COMPARE_LESS_THAN
       : aName > bName
-      ? 1
-      : aEmail < bEmail
-      ? COMPARE_LESS_THAN
-      : aEmail > bEmail
-      ? 1
-      : 0
+        ? 1
+        : aEmail < bEmail
+          ? COMPARE_LESS_THAN
+          : aEmail > bEmail
+            ? 1
+            : 0
   }
 }
 

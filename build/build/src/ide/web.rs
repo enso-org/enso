@@ -107,6 +107,39 @@ pub mod env {
         /// so we can safely enable this option.
         CSC_FOR_PULL_REQUEST, bool;
     }
+
+    // Cloud environment configuration
+    define_env_var! {
+        /// The domain where the login link should redirect, without path or trailing slash.
+        ENSO_CLOUD_REDIRECT, String;
+
+        /// The name of the backend environment, typically 'production' for production builds.
+        ENSO_CLOUD_ENVIRONMENT, String;
+
+        /// The root path for all API endpoints, without a trailing slash.
+        ENSO_CLOUD_API_URL, String;
+
+        /// The URL for the WebSocket server for chat functionality.
+        ENSO_CLOUD_CHAT_URL, String;
+
+        /// The Sentry DSN for error reporting in this environment.
+        ENSO_CLOUD_SENTRY_DSN, String;
+
+        /// Stripe's publishable key for client-side operations.
+        ENSO_CLOUD_STRIPE_KEY, String;
+
+        /// The ID of the Amplify user pool for authentication.
+        ENSO_CLOUD_COGNITO_USER_POOL_ID, String;
+
+        /// The client-side key for the Amplify user pool.
+        ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID, String;
+
+        /// The domain for Amplify requests.
+        ENSO_CLOUD_COGNITO_DOMAIN, String;
+
+        /// The AWS region for Amplify configuration, matching the domain region.
+        ENSO_CLOUD_COGNITO_REGION, String;
+    }
 }
 
 #[derive(Clone, Debug)]

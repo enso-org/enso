@@ -8,10 +8,8 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { logEvent } from 'histoire/client'
 import { computed, reactive, ref, watchEffect } from 'vue'
-import { IdMap, type SourceRange } from '../shared/yjsModel'
+import { type SourceRange } from '../shared/yjsModel'
 import { createSetupComponent } from './histoire/utils'
-
-const idMap = new IdMap()
 
 const nodeBinding = ref('binding')
 const nodeContent = ref('content')
@@ -31,23 +29,27 @@ function updateContent(updates: [range: SourceRange, content: string][]) {
   nodeContent.value = content
 }
 
-const rootSpan = computed(() => Ast.parseTransitional(nodeContent.value, idMap))
-const pattern = computed(() => Ast.parseTransitional(nodeBinding.value, idMap))
+const innerExpr = computed(() => Ast.parse(nodeContent.value))
+const pattern = computed(() => Ast.parse(nodeBinding.value))
 
 const node = computed((): Node => {
   return {
     outerExprId: '' as any,
     pattern: pattern.value,
     position: position.value,
-    rootSpan: rootSpan.value,
+    prefixes: { enableRecording: undefined },
+    rootExpr: innerExpr.value,
+    innerExpr: innerExpr.value,
+    primarySubject: undefined,
     vis: undefined,
+    documentation: undefined,
   }
 })
 
 const mockRects = reactive(new Map())
 
 watchEffect((onCleanup) => {
-  const id = node.value.rootSpan.id
+  const id = node.value.innerExpr.id
   mockRects.set(id, Rect.Zero)
   onCleanup(() => {
     mockRects.delete(id)

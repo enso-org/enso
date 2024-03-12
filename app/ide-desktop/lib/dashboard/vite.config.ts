@@ -5,26 +5,23 @@ import vitePluginYaml from '@modyfi/vite-plugin-yaml'
 import vitePluginReact from '@vitejs/plugin-react'
 import * as vite from 'vite'
 
-// =================
-// === Constants ===
-// =================
-
-const SERVER_PORT = 8080
+import * as common from 'enso-common'
+import * as appConfig from 'enso-common/src/appConfig'
 
 // =====================
 // === Configuration ===
 // =====================
 
-/* eslint-disable @typescript-eslint/naming-convention */
+const SERVER_PORT = 8080
+await appConfig.readEnvironmentFromFile()
 
+/* eslint-disable @typescript-eslint/naming-convention */
 export default vite.defineConfig({
-  server: { port: SERVER_PORT },
+  server: { port: SERVER_PORT, headers: Object.fromEntries(common.COOP_COEP_CORP_HEADERS) },
   plugins: [
     vitePluginReact({
       include: '**/*.tsx',
-      babel: {
-        plugins: ['@babel/plugin-syntax-import-assertions'],
-      },
+      babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
     }),
     vitePluginYaml(),
   ],
@@ -44,10 +41,9 @@ export default vite.defineConfig({
   define: {
     IS_VITE: JSON.stringify(true),
     REDIRECT_OVERRIDE: JSON.stringify(`http://localhost:${SERVER_PORT}`),
-    CLOUD_ENV:
-      process.env.ENSO_CLOUD_ENV != null ? JSON.stringify(process.env.ENSO_CLOUD_ENV) : 'undefined',
     'process.env.SUPPORTS_LOCAL_BACKEND': 'undefined',
-    // Single hardcoded usage of `global` in by aws-amplify.
+    // The sole hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': JSON.stringify(true),
+    ...appConfig.getDefines(SERVER_PORT),
   },
 })

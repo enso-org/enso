@@ -15,6 +15,7 @@
   --color-frame-bg: rgb(255 255 255 / 0.3);
   --color-frame-selected-bg: rgb(255 255 255 / 0.7);
   --color-widget: rgb(255 255 255 / 0.12);
+  --color-widget-focus: rgb(255 255 255 / 0.25);
   --color-widget-selected: rgb(255 255 255 / 0.58);
   --color-port-connected: rgb(255 255 255 / 0.15);
 
@@ -33,6 +34,7 @@
    * A `border-radius` of 100% does not work because the element becomes an ellipse. */
   --radius-full: 9999px;
   --radius-default: 16px;
+  --node-border-radius: 16px;
   --section-gap: 160px;
   --selected-node-border-width: 20px;
   --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
