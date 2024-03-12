@@ -430,7 +430,7 @@ const documentation = computed<string | undefined>({
     <div class="binding" @pointerdown.stop v-text="node.pattern?.code()" />
     <button
       v-if="!menuVisible && isRecordingOverridden"
-      class="overrideRecordButton"
+      class="overrideRecordButton recording-overridden"
       @click="isRecordingOverridden = false"
     >
       <SvgIcon name="record" />
