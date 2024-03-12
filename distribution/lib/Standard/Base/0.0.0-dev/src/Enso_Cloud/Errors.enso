@@ -16,6 +16,7 @@ type Not_Logged_In
    Indicates that the session with Enso Cloud has expired and the user needs to log in again.
 type Cloud_Session_Expired
     ## PRIVATE
+       The `underlying_error` is not shown in the error message, but is saved for debugging purposes.
     Error underlying_error
 
     to_display_text : Text
