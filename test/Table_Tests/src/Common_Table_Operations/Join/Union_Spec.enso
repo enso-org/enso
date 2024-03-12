@@ -41,8 +41,6 @@ add_specs suite_builder setup =
         run_union_tests group_builder setup call_member_union
     db_pending = if setup.is_database then "Table.from_union is currently not implemented for the Database backend."
     suite_builder.group prefix+"Table.from_union" pending=db_pending group_builder->
-
-
         run_union_tests group_builder setup call_static_union
 
 run_union_tests group_builder setup call_union =
