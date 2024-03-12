@@ -10,6 +10,15 @@ type Not_Logged_In
     to_display_text self = "Not logged into Enso cloud. Please log in and restart."
 
 ## PRIVATE
+   Indicates that the session with Enso Cloud has expired and the user needs to log in again.
+type Cloud_Session_Expired
+    ## PRIVATE
+    Error underlying_error
+
+    to_display_text : Text
+    to_display_text self = "Login session with Enso Cloud has expired. Please log in again and restart."
+
+## PRIVATE
 type Enso_Cloud_Error
     ## PRIVATE
        An unhandled error response from Enso Cloud.
