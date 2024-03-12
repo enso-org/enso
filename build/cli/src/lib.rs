@@ -38,7 +38,6 @@ use crate::arg::BuildJob;
 use crate::arg::Cli;
 use crate::arg::IsTargetSource;
 use crate::arg::IsWatchableSource;
-use crate::arg::OutputPath;
 use crate::arg::Target;
 use crate::arg::WatchJob;
 use anyhow::Context;
@@ -537,9 +536,9 @@ impl Processor {
 
     pub fn handle_ide(&self, ide: arg::ide::Target) -> BoxFuture<'static, Result> {
         match ide.command {
-            arg::ide::Command::Build { params } => self.build_new_ide(params).void_ok().boxed(),
+            arg::ide::Command::Build { params } => self.build_ide(params).void_ok().boxed(),
             arg::ide::Command::Upload { params, release_id } => {
-                let build_job = self.build_new_ide(params);
+                let build_job = self.build_ide(params);
                 self.upload_ide_assets(build_job, release_id, None)
             }
         }
@@ -564,25 +563,8 @@ impl Processor {
         }
         .boxed()
     }
-    pub fn build_ide(
-        &self,
-        input: ide::BuildInput,
-        output_path: OutputPath<impl IsTargetSource + Send + Sync + 'static>,
-    ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
-        let artifact_name_prefix = input.artifact_name.clone();
-        let build_job = target.build(&self.context, input, output_path);
-        async move {
-            let artifacts = build_job.await?;
-            if is_in_env() {
-                artifacts.upload_as_ci_artifact(artifact_name_prefix).await?;
-            }
-            Ok(artifacts)
-        }
-        .boxed()
-    }
 
-    pub fn build_new_ide(
+    pub fn build_ide(
         &self,
         params: arg::ide::BuildInput,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
@@ -609,7 +591,18 @@ impl Processor {
             electron_target,
             artifact_name: "ide".into(),
         };
-        self.build_ide(input, output_path)
+
+        let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
+        let artifact_name_prefix = input.artifact_name.clone();
+        let build_job = target.build(&self.context, input, output_path);
+        async move {
+            let artifacts = build_job.await?;
+            if is_in_env() {
+                artifacts.upload_as_ci_artifact(artifact_name_prefix).await?;
+            }
+            Ok(artifacts)
+        }
+        .boxed()
     }
 
     pub fn target<Target: Resolvable>(&self) -> Result<Target> {
