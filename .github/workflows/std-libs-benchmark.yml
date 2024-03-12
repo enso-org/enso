@@ -90,7 +90,7 @@ jobs:
           clean: false
           submodules: recursive
       - name: Build Script Setup
-        run: ./run --help
+        run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (always())
