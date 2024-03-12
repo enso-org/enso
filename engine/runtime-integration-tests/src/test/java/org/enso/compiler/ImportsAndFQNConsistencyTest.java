@@ -13,12 +13,12 @@ import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.experimental.theories.DataPoints;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
+import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.junit.runners.model.Statement;
 
 /**
@@ -26,7 +26,7 @@ import org.junit.runners.model.Statement;
  * without any import, or with an import of its parent module. This rule is enforced by this test.
  * It uses symbols from standard libraries.
  */
-@RunWith(Theories.class)
+@RunWith(Parameterized.class)
 public class ImportsAndFQNConsistencyTest extends TestBase {
   private static Context ctx;
 
@@ -35,9 +35,17 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
 
   @Rule public final TestRule printCodeRule = new PrintCodeRule();
 
-  @DataPoints
-  public static final List<Symbol> symbols =
-      List.of(new Symbol("Standard.Base.Data.Vector"), new Symbol("Standard.Table.Data.Table"));
+  @Parameters(name = "{0}")
+  public static List<Symbol> parameters() {
+    return List.of(
+        new Symbol("Standard.Base.Data.Vector"),
+        new Symbol("Standard.Base.Data.Text.Regex"),
+        new Symbol("Standard.Base.Data.Text.Regex.Match"),
+        new Symbol("Standard.Base.Data.Text.Location"),
+        new Symbol("Standard.Database.Connection.Postgres_Details.Postgres_Details"),
+        new Symbol("Standard.Database.Connection.Connection_Details.Connection_Details"),
+        new Symbol("Standard.Table.Data.Table"));
+  }
 
   @BeforeClass
   public static void initCtx() {
@@ -49,6 +57,12 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
     ctx.close();
   }
 
+  private final Symbol symbol;
+
+  public ImportsAndFQNConsistencyTest(Symbol symbol) {
+    this.symbol = symbol;
+  }
+
   private void evalCode(Symbol symbol) {
     var res = TestBase.evalModule(ctx, code);
     assertThat(res.isString(), is(true));
@@ -56,13 +70,11 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
   }
 
   /** Tests that a symbol can be used via its simple name with an FQN import of that symbol. */
-  @Theory
-  public void testSymbolCanBeAccessedBySimpleNameWithFQNImport(Symbol symbol) {
+  @Test
+  public void testSymbolCanBeAccessedBySimpleNameWithFQNImport() {
     var sb = new StringBuilder();
-    sb.append("from ")
-        .append(symbol.getLibName())
-        .append(" import ")
-        .append(symbol.getTypeName())
+    sb.append("import ")
+        .append(symbol.getFqn())
         .append(System.lineSeparator());
     sb.append("main = ")
         .append(symbol.getTypeName())
@@ -72,23 +84,9 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
     evalCode(symbol);
   }
 
-  /** Tests that a symbol can be used via FQN with an FQN import of that symbol. */
-  @Theory
-  public void testSymbolCanBeAccessedByFQNWithFQNImport(Symbol symbol) {
-    var sb = new StringBuilder();
-    sb.append("from ")
-        .append(symbol.getLibName())
-        .append(" import ")
-        .append(symbol.getTypeName())
-        .append(System.lineSeparator());
-    sb.append("main = ").append(symbol.getFqn()).append(".to_text").append(System.lineSeparator());
-    code = sb.toString();
-    evalCode(symbol);
-  }
-
   /** Tests that a symbol can be used via FQN with an import of the library. */
-  @Theory
-  public void testSymbolCanBeAccessedByFQNWithLibImport(Symbol symbol) {
+  @Test
+  public void testSymbolCanBeAccessedByFQNWithLibImport() {
     var sb = new StringBuilder();
     sb.append("import ").append(symbol.getLibName()).append(System.lineSeparator());
     sb.append("main = ").append(symbol.getFqn()).append(".to_text").append(System.lineSeparator());
@@ -118,6 +116,22 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
       return pathItems.get(pathItems.size() - 1);
     }
 
+    String getPathParts(int startIdx, int endIdx) {
+      assert startIdx >= 0 && startIdx < endIdx && endIdx <= pathItems.size();
+      return String.join(".", pathItems.subList(startIdx, endIdx));
+    }
+
+    String getPathParts(int startIdx) {
+      return getPathParts(startIdx, pathItems.size());
+    }
+
+    /**
+     * Returns FQN of the module, without the last part, with library prefix.
+     */
+    String getModuleName() {
+      return String.join(".", pathItems.subList(0, pathItems.size() - 1));
+    }
+
     /** Returns qualified typename, without the library prefix. */
     String getQualifiedTypeName() {
       return String.join(".", pathItems.subList(2, pathItems.size()));
@@ -142,8 +156,10 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
           try {
             base.evaluate();
           } catch (Throwable e) {
-            String msg = "Test failed executing code:" + System.lineSeparator() + code;
-            throw new AssertionError(msg, e);
+            var sb = new StringBuilder();
+            sb.append("Test failed executing code:").append(System.lineSeparator());
+            sb.append(code).append(System.lineSeparator());
+            throw new AssertionError(sb.toString(), e);
           }
         }
       };
