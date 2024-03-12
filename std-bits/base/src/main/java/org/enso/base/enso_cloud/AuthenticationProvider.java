@@ -7,6 +7,7 @@ public class AuthenticationProvider {
 
   public interface AuthenticationService {
     String get_access_token();
+
     void force_refresh();
   }
 
@@ -20,9 +21,11 @@ public class AuthenticationProvider {
 
   private static Value createAuthenticationService() {
     var context = Context.getCurrent().getBindings("enso");
-    var module = context.invokeMember("get_module", "Standard.Base.Enso_Cloud.Internal.Authentication");
+    var module =
+        context.invokeMember("get_module", "Standard.Base.Enso_Cloud.Internal.Authentication");
     var moduleType = module.invokeMember("get_associated_type");
-    var factory = module.invokeMember("get_method", moduleType, "instantiate_authentication_service");
+    var factory =
+        module.invokeMember("get_method", moduleType, "instantiate_authentication_service");
     // The static method takes the module as the synthetic 'self' argument.
     return factory.execute(moduleType);
   }

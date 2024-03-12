@@ -11,6 +11,7 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
+import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudRoot;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
@@ -85,6 +86,7 @@ public class HTTPTestHelperServer {
     server.addHandler("/crash", new CrashingTestHandler());
     CloudRoot cloudRoot = new CloudRoot();
     server.addHandler(cloudRoot.prefix, cloudRoot);
+    server.addHandler("/enso-cloud-auth-renew", new CloudAuthRenew());
     setupFileServer(server, projectRoot);
   }
 

@@ -112,7 +112,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.locally_expired <|
                     previous_token = get_current_token
                     ## Trigger some cloud endpoint - it should succeed
-                    Enso_User.current . should_be_a Vector
+                    Enso_User.list . should_be_a Vector
 
                     ## And afterwards, the token should be refreshed
                     get_current_token . should_not_equal previous_token
@@ -121,7 +121,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 # This test is the same as the above, just with different credentials settings.
                 Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.remotely_expired <|
                     previous_token = get_current_token
-                    Enso_User.current . should_be_a Vector
+                    Enso_User.list . should_be_a Vector
                     ## Ideally, we'd also check that the `Enso_User.current` has been retried, failing with 401 at first try.
                        But all of these happens under the hood so it is not trivial to test. Unless I use a counter: TODO
                     get_current_token . should_not_equal previous_token
@@ -130,13 +130,13 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 # The token here is not yet expired, but we still refresh it.
                 Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.about_to_expire <|
                     previous_token = get_current_token
-                    Enso_User.current . should_be_a Vector
+                    Enso_User.list . should_be_a Vector
                     get_current_token . should_not_equal previous_token
 
             group_builder.specify "graciously fails if the refresh token is expired" <|
-                Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.invalid_refresh_token <|
+                Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.invalid_refresh_token.locally_expired <|
                     err = Test.expect_panic Cloud_Session_Expired <|
-                        Enso_User.current
+                        Enso_User.list
                     err.to_display_text . should_contain "Please log in again and restart"
 
 type Lazy_Ref

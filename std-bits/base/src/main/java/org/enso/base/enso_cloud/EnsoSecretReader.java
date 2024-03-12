@@ -60,7 +60,8 @@ class EnsoSecretReader {
     if (status == 401 || status == 403 || status >= 500) {
       if (retryCount < 0) {
         String kind = status >= 500 ? "server" : "authentication";
-        throw new IllegalArgumentException("Unable to read secret - numerous " + kind + " failures.");
+        throw new IllegalArgumentException(
+            "Unable to read secret - numerous " + kind + " failures.");
       } else {
         // We forcibly refresh the access token and try again.
         AuthenticationProvider.getAuthenticationService().force_refresh();
@@ -69,7 +70,8 @@ class EnsoSecretReader {
     }
 
     if (status != 200) {
-      throw new IllegalArgumentException("Unable to read secret - the service responded with status " + status + ".");
+      throw new IllegalArgumentException(
+          "Unable to read secret - the service responded with status " + status + ".");
     }
 
     var secretJSON = response.body();

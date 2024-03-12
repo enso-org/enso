@@ -116,7 +116,7 @@ type Mock_Credentials
 
     default (base_http_url : URI) -> Mock_Credentials =
         expire_at = (Date_Time.now.start_of Time_Period.Minute) + (Period.new years=1)
-        refresh_url = base_http_url / "enso-cloud-auth/"
+        refresh_url = base_http_url / "enso-cloud-auth-renew/"
         Mock_Credentials.Value "TEST-ENSO-TOKEN-caffee" expire_at "TEST-ENSO-REFRESH-caffee" refresh_url.to_text "TEST-ENSO-CLIENT-ID"
 
     to_json self -> Text =

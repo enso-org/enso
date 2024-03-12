@@ -6,7 +6,7 @@ import java.util.List;
 import org.enso.shttp.SimpleHttpHandler;
 
 public abstract class HandlerWithTokenAuth extends SimpleHttpHandler {
-  protected abstract String getSecretToken();
+  protected abstract boolean isTokenAllowed(String token);
 
   protected abstract void handleAuthorized(HttpExchange exchange) throws IOException;
 
@@ -29,7 +29,7 @@ public abstract class HandlerWithTokenAuth extends SimpleHttpHandler {
     }
 
     String providedToken = authHeader.substring(prefix.length());
-    boolean authorized = providedToken.equals(getSecretToken());
+    boolean authorized = isTokenAllowed(providedToken);
     if (!authorized) {
       sendResponse(401, "Invalid token.", exchange);
       return;

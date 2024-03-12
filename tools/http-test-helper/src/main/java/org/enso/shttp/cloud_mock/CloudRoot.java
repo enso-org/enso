@@ -8,14 +8,13 @@ import org.enso.shttp.auth.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
-
-  @Override
-  protected String getSecretToken() {
-    return "TEST-ENSO-TOKEN-caffee";
-  }
-
   private final CloudHandler[] handlers =
       new CloudHandler[] {new UsersHandler(), new SecretsHandler()};
+
+  @Override
+  protected boolean isTokenAllowed(String token) {
+    return token.equals("TEST-ENSO-TOKEN-caffee") || token.startsWith("TEST-RENEWED-");
+  }
 
   @Override
   protected void handleAuthorized(HttpExchange exchange) throws IOException {
@@ -57,7 +56,7 @@ public class CloudRoot extends HandlerWithTokenAuth {
 
       @Override
       public String decodeBodyAsText() throws IOException {
-        return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        return CloudRoot.this.decodeBodyAsText(exchange);
       }
     };
   }
