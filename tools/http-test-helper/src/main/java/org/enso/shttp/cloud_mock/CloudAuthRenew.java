@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.Objects;
 import org.enso.shttp.SimpleHttpHandler;
 
+/** An endpoint simulating the refresh token flow. */
 public class CloudAuthRenew extends SimpleHttpHandler {
   private int counter = 0;
 

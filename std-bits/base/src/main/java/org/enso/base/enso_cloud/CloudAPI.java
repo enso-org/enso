@@ -25,6 +25,7 @@ public class CloudAPI {
     }
 
     // TODO we should be able to fetch the name and organizationId from the cloud:
+    // To be done in https://github.com/enso-org/enso/issues/9289
     String directoryName = "???";
     String organizationId = "";
     cachedWorkingDirectory = new CloudWorkingDirectory(directoryName, directoryId, organizationId);
