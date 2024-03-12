@@ -111,6 +111,14 @@ type Cloud_Tests_Setup
 
             Cloud_Tests_Setup.Mock (URI.from enso_cloud_url) tmp_cred_file
 
+    ## Returns the number of times requests failed due to an expired token.
+       Only valid for Mock setup.
+    get_expired_token_failures_count self -> Integer = case self of
+        Cloud_Tests_Setup.Mock _ _ ->
+            uri = self.httpbin_uri / "COUNT-EXPIRED-TOKEN-FAILURES"
+            HTTP.fetch uri . decode_as_json
+        _ -> Panic.throw (Illegal_State.Error "This method is only valid for Mock setup.")
+
 type Mock_Credentials
     Value access_token:Text expire_at:Date_Time refresh_token:Text refresh_url:Text client_id:Text
 

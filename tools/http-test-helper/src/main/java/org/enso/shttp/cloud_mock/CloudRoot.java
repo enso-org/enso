@@ -1,15 +1,21 @@
 package org.enso.shttp.cloud_mock;
 
 import com.sun.net.httpserver.HttpExchange;
+import org.enso.shttp.auth.HandlerWithTokenAuth;
+
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import org.enso.shttp.auth.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
+
+  private final ExpiredTokensCounter expiredTokensCounter;
   private final CloudHandler[] handlers =
-      new CloudHandler[] {new UsersHandler(), new SecretsHandler()};
+      new CloudHandler[]{new UsersHandler(), new SecretsHandler()};
+
+  public CloudRoot(ExpiredTokensCounter expiredTokensCounter) {
+    this.expiredTokensCounter = expiredTokensCounter;
+  }
 
   @Override
   protected boolean isTokenAllowed(String token) {
@@ -19,7 +25,12 @@ public class CloudRoot extends HandlerWithTokenAuth {
   @Override
   protected int getInvalidTokenStatus(String token) {
     boolean isValidButExpired = token.equals("TEST-EXPIRED-TOKEN-beef");
-    return isValidButExpired ? 403 : 401;
+    if (isValidButExpired) {
+      expiredTokensCounter.registerExpiredTokenFailure();
+      return 403;
+    }
+
+    return 401;
   }
 
   @Override

@@ -110,12 +110,19 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
         group_builder.specify "retries if the token is considered expired by the backend" <|
             # This test is the same as the above, just with different credentials settings.
-            Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.remotely_expired <|
+            mock_setup = Cloud_Tests_Setup.prepare_mock_setup custom_credentials=base_credentials.get.remotely_expired
+            mock_setup.with_prepared_environment <|
+                count_before = mock_setup.get_expired_token_failures_count
                 previous_token = get_current_token
+
                 Enso_User.list . should_be_a Vector
-                ## Ideally, we'd also check that the `Enso_User.current` has been retried, failing with 401 at first try.
-                   But all of these happens under the hood so it is not trivial to test. Unless I use a counter: TODO
+
+                # The token should have been refreshed.
                 get_current_token . should_not_equal previous_token
+
+                # We also verify that one more request has failed due to expired token, proving that a retry was made.
+                count_after = mock_setup.get_expired_token_failures_count
+                count_after . should_equal count_before+1
 
         group_builder.specify "refreshes a token that is about to expire" <|
             # The token here is not yet expired, but we still refresh it.
