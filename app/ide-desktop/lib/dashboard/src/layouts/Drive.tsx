@@ -139,10 +139,10 @@ export default function Drive(props: DriveProps) {
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
       : isCloud && sessionType === authProvider.UserSessionType.offline
-      ? DriveStatus.offline
-      : isCloud && user?.isEnabled !== true
-      ? DriveStatus.notEnabled
-      : DriveStatus.ok
+        ? DriveStatus.offline
+        : isCloud && user?.isEnabled !== true
+          ? DriveStatus.notEnabled
+          : DriveStatus.ok
 
   React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {

@@ -71,6 +71,21 @@ type Table_Column_Helper
             if error_on_empty && result.is_empty then problem_builder.raise_no_output_columns_with_cause else result
 
     ## PRIVATE
+       A helper to returns a set of columns filtered by the type of the column.
+
+       Arguments:
+       - types: The types of columns to select.
+       - strict: If `True`, only columns with exactly the specified types will
+         be selected. If `False`, columns with types that are subtypes of the
+         specified types will also be selected (i.e. ignore size, precision).
+    select_by_type : Vector Value_Type -> Boolean -> Vector
+    select_by_type self types:Vector strict:Boolean=False =
+        columns = if strict then self.internal_columns.filter c-> types.contains c.value_type else
+            self.internal_columns.filter c-> types.any t-> c.value_type.is_same_type t
+        if columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
+            columns
+
+    ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`
        implementations of various Table variants. See the documentation for the
        Table type for details.
@@ -100,6 +115,22 @@ type Table_Column_Helper
             should_be_removed.not
         if result.is_empty then Error.throw No_Output_Columns.Error else
             problem_builder.attach_problems_after on_problems result
+
+    ## PRIVATE
+       A helper to returns a set of columns filtering out based on the type of
+       the column.
+
+       Arguments:
+       - types: The types of columns to remove.
+       - strict: If `True`, only columns with exactly the specified types will
+         be selected. If `False`, columns with types that are subtypes of the
+         specified types will also be selected (i.e. ignore size, precision).
+    remove_by_type : Vector Value_Type -> Boolean -> Vector
+    remove_by_type self types:Vector strict:Boolean=False =
+        columns = if strict then self.internal_columns.filter (c->(types.contains c.value_type).not) else
+            self.internal_columns.filter c->(types.all (t->(c.value_type.is_same_type t . not)))
+        if columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
+            columns
 
     ## PRIVATE
        A helper function encapsulating shared code for `reorder_columns`
@@ -469,7 +500,7 @@ filter_blank_rows table when treat_nans_as_blank =
    Currently, it relies on a hack - it checks if the object has a method
    `is_table` and if it returns `True`.
 is_column obj =
-    known_types = ["Standard.Table.Data.Column.Column", "Standard.Database.Data.DB_Column.DB_Column"]
+    known_types = ["Standard.Table.Data.Column.Column", "Standard.Database.DB_Column.DB_Column"]
     known_types.contains (Meta.get_qualified_type_name obj)
 
 ## PRIVATE

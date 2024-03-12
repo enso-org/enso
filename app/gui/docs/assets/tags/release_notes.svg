@@ -1,7 +1,0 @@
-<svg version="1.1" width="123" height="36" xmlns="http://www.w3.org/2000/svg">
-    <style>
-        .txt { font: 15px sans-serif; fill:white; }
-    </style>
-    <rect width="123" height="36" rx="18" fill="#5850ec"/>
-    <text x="12" y="23" class="txt">Release Notes</text>
-</svg>

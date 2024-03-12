@@ -21,6 +21,7 @@ export interface VisualizationConfig {
   fullscreen: boolean
   hide: () => void
   updateType: (type: VisualizationIdentifier) => void
+  addNode: (pos: Vec2 | undefined) => void
 }
 
 export { provideFn as provideVisualizationConfig }

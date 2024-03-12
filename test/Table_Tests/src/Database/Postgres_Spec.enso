@@ -7,8 +7,9 @@ import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type, Aggregate_Column, expr
 from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
-import Standard.Database.Data.DB_Column.DB_Column
-import Standard.Database.Data.SQL_Type.SQL_Type
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Postgres.Postgres_Entity_Naming_Properties
 import Standard.Database.Internal.Replace_Params.Replace_Params
@@ -718,20 +719,23 @@ with_secret name value callback =
     secret.should_succeed
     Panic.with_finalizer secret.delete (callback secret)
 
-create_connection_builder =
+get_configured_connection_details =
     db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
     db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
     db_host = db_host_port.at 0
     db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
     db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
     db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
+    if db_name.is_nothing then Nothing  else
+        Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)
 
-    case db_name.is_nothing of
-        True -> Nothing
-        False ->
-            _ -> Panic.rethrow <|
-                # TODO: Ensure that this returns a function and does not initialize the connection
-                Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password))
+## Returns a function that takes anything and returns a new connection.
+   The function creates a _new_ connection on each invocation
+   (this is needed for some tests that need multiple distinct connections).
+create_connection_builder =
+    connection_details = get_configured_connection_details
+    connection_details.if_not_nothing <|
+        _ -> Database.connect connection_details
 
 pgpass_file = enso_project.data / "pgpass.conf"
 
@@ -857,13 +861,58 @@ add_connection_setup_specs suite_builder = suite_builder.group "[PostgreSQL] Con
                     [c2, c3, c4].each c->
                         c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "other user", Pair.new "password" "other password"]
 
+add_datalink_specs suite_builder =
+    connection_details = get_configured_connection_details
+    pending = if connection_details.is_nothing then "PostgreSQL test database is not configured. See README.md for instructions."
+
+    # This transforms the datalink file, replacing prepared constants with actual values.
+    transform_file base_file =
+        contents = base_file.read Plain_Text
+        new_contents = contents
+            . replace "HOSTNAME" connection_details.host
+            . replace "12345" connection_details.port.to_text
+            . replace "DBNAME" connection_details.database
+            . replace "USERNAME" connection_details.credentials.username
+            . replace "PASSWORD" connection_details.credentials.password
+        tmp_file = File.create_temporary_file base_file.name base_file.extension
+        new_contents.write tmp_file . if_not_error tmp_file
+
+    suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
+        group_builder.specify "should be able to open a datalink setting up a connection to the database" <|
+            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
+
+            datalink_connection = Data.read datalink_file
+            Panic.with_finalizer datalink_connection.close <|
+                datalink_connection.tables.column_names . should_contain "Name"
+
+                # Test that this is really a DB connection:
+                q = datalink_connection.query 'SELECT 1 AS "A"'
+                q.column_names . should_equal ["A"]
+                q.at "A" . to_vector . should_equal [1]
+
+        group_builder.specify "should be able to open a datalink to a particular database table" <|
+            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-table.datalink")
+            connection = Database.connect connection_details
+            Panic.with_finalizer connection.close <|
+                # We create the table that will then be accessed through the datalink, and ensure it's cleaned up afterwards.
+                example_table = Panic.rethrow <|
+                    (Table.new [["X", [22]], ["Y", ["o"]]]).select_into_database_table connection "DatalinkedTable" temporary=False
+                Panic.with_finalizer (connection.drop_table example_table.name) <|
+                    ## Now we access this table but this time through a datalink.
+                       Btw. this will keep a connection open until the table is garbage collected, but that is probably fine...
+                    datalink_table = Data.read datalink_file
+                    datalink_table.should_be_a DB_Table
+                    datalink_table.column_names . should_equal ["X", "Y"]
+                    datalink_table.at "X" . to_vector . should_equal [22]
+                    datalink_table.at "Y" . to_vector . should_equal ["o"]
+
 add_specs suite_builder =
     add_table_specs suite_builder
     add_pgpass_specs suite_builder
     add_connection_setup_specs suite_builder
+    add_datalink_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

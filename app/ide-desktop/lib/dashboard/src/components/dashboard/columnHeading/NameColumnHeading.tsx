@@ -20,8 +20,8 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
         !isSortActive
           ? 'Sort by name'
           : sortDirection === SortDirection.ascending
-          ? 'Sort by name descending'
-          : 'Stop sorting by name'
+            ? 'Sort by name descending'
+            : 'Stop sorting by name'
       }
       className="flex items-center gap-2 pt-1 pb-1.5"
       onMouseEnter={() => {

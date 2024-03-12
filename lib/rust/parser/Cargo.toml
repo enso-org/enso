@@ -13,7 +13,6 @@ license-file = "../../LICENSE"
 enso-prelude = { path = "../prelude" }
 enso-reflect = { path = "../reflect" }
 enso-data-structures = { path = "../data-structures" }
-enso-types = { path = "../types" }
 enso-shapely-macros = { path = "../shapely/macros" }
 enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor" }
 serde = { workspace = true }
@@ -23,8 +22,6 @@ bincode = "1.3"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 enso-metamodel = { path = "../metamodel", features = ["rust"] }
-enso-metamodel-lexpr = { path = "../metamodel/lexpr" }
-lexpr = "0.2.6"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_distr = "0.4.3"
