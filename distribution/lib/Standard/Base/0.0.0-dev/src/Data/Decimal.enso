@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Numeric.Internal.Decimal_Internal
 import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
@@ -10,6 +11,7 @@ import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Integer, Float, Number, Number_Parse_Error
+from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
 from project.Errors.Common import Loss_Of_Numeric_Precision
 
@@ -569,12 +571,6 @@ attach_loss_of_numeric_precision f value =
 handle_java_exception ~action =
     Panic.catch ArithmeticException action caught_panic->
         Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
-
-## PRIVATE
-type Decimal_Comparator
-    compare (x : Decimal) (y : Decimal) =
-        Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
-    hash x:Decimal = Decimal_Utils.hashCodeOf x.big_decimal
 
 ## PRIVATE
 Comparable.from (_ : Decimal) = Decimal_Comparator
