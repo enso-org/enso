@@ -461,7 +461,7 @@ export function locateEditor(page: test.Page) {
   // This is fine as this element is defined in `index.html`, rather than from React.
   // Using `data-testid` may be more correct though.
   // eslint-disable-next-line no-restricted-properties
-  return page.locator('#root')
+  return page.locator('#app')
 }
 
 /** Find an assets table (if any) on the current page. */
