@@ -75,7 +75,7 @@ export default function TopBar(props: TopBarProps) {
       <div
         className={`grid transition-all duration-side-panel ${isAssetPanelVisible ? 'grid-cols-0fr' : 'grid-cols-1fr'}`}
       >
-        <div className="flex gap-top-bar-right overflow-hidden pointer-events-none-recursive invisible">
+        <div className="invisible flex gap-top-bar-right overflow-hidden pointer-events-none-recursive">
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
               isAssetPanelEnabled={isAssetPanelEnabled}
