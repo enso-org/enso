@@ -1,10 +1,6 @@
 package org.enso.interpreter.arrow.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.ImportStatic;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -21,21 +17,28 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
 
   private boolean sealed;
 
+  private WriteToArray writeToArray;
+
   public ArrowFixedSizeArrayBuilder(int size, LogicalLayout unit) {
     this.size = size;
     this.unit = unit;
     this.buffer = ByteBufferDirect.forSize(size, unit);
     this.index = 0;
     this.sealed = false;
-  }
-
-  public LogicalLayout getUnit() {
-    return unit;
+    this.writeToArray =
+        switch (unit) {
+          case Date32 -> new DayWriteToArray();
+          case Date64 -> new MillisecondsWriteToArray();
+          case Int8 -> new Int8WriteToArray();
+          case Int16 -> new Int16WriteToArray();
+          case Int32 -> new Int32WriteToArray();
+          case Int64 -> new Int64WriteToArray();
+        };
   }
 
   @ExportMessage
   public boolean hasArrayElements() {
-    return true;
+    return false;
   }
 
   @ExportMessage
@@ -58,10 +61,7 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
   }
 
   @ExportMessage
-  Object invokeMember(
-      String name,
-      Object[] args,
-      @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
+  Object invokeMember(String name, Object[] args, @CachedLibrary(limit = "1") InteropLibrary iop)
       throws UnsupportedMessageException, UnknownIdentifierException, UnsupportedTypeException {
     switch (name) {
       case "build":
@@ -76,7 +76,7 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
         }
         var current = index;
         try {
-          iop.writeArrayElement(this, current, args[0]);
+          writeToArray.write(this, current, args[0], iop);
         } catch (InvalidArrayIndexException e) {
           throw UnsupportedMessageException.create(e);
         }
@@ -88,18 +88,34 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
   }
 
   @ExportMessage
-  @ImportStatic(LogicalLayout.class)
-  static class WriteArrayElement {
+  final void writeArrayElement(long index, Object value)
+      throws UnsupportedMessageException, UnsupportedTypeException, InvalidArrayIndexException {}
 
-    @Specialization(guards = "receiver.getUnit() == Date32")
-    static void doDay(
-        ArrowFixedSizeArrayBuilder receiver,
-        long index,
-        Object value,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException, UnsupportedTypeException {
+  abstract class WriteToArray {
+    abstract void write(
+        ArrowFixedSizeArrayBuilder receiver, long index, Object value, InteropLibrary iop)
+        throws UnsupportedMessageException, UnsupportedTypeException, InvalidArrayIndexException;
+
+    void validAccess(ArrowFixedSizeArrayBuilder receiver, long index)
+        throws InvalidArrayIndexException, UnsupportedMessageException {
       if (receiver.sealed) {
         throw UnsupportedMessageException.create();
+      }
+      if (index >= receiver.size || index < 0) {
+        throw InvalidArrayIndexException.create(index);
+      }
+    }
+  }
+
+  private final class DayWriteToArray extends WriteToArray {
+
+    @Override
+    void write(ArrowFixedSizeArrayBuilder receiver, long index, Object value, InteropLibrary iop)
+        throws UnsupportedMessageException, UnsupportedTypeException, InvalidArrayIndexException {
+      validAccess(receiver, index);
+      if (iop.isNull(value)) {
+        receiver.buffer.setNull((int) index);
+        return;
       }
       if (!iop.isDate(value)) {
         throw UnsupportedTypeException.create(new Object[] {value}, "value is not a date");
@@ -108,16 +124,17 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
       var time = iop.asDate(value).toEpochDay();
       receiver.buffer.putInt(at, Math.toIntExact(time));
     }
+  }
 
-    @Specialization(guards = {"receiver.getUnit() == Date64", "!iop.isNull(value)"})
-    static void doMilliseconds(
-        ArrowFixedSizeArrayBuilder receiver,
-        long index,
-        Object value,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException, UnsupportedTypeException {
-      if (receiver.sealed) {
-        throw UnsupportedMessageException.create();
+  private final class MillisecondsWriteToArray extends WriteToArray {
+
+    @Override
+    void write(ArrowFixedSizeArrayBuilder receiver, long index, Object value, InteropLibrary iop)
+        throws UnsupportedMessageException, UnsupportedTypeException, InvalidArrayIndexException {
+      validAccess(receiver, index);
+      if (iop.isNull(value)) {
+        receiver.buffer.setNull((int) index);
+        return;
       }
       if (!iop.isDate(value) || !iop.isTime(value)) {
         throw UnsupportedTypeException.create(
@@ -154,101 +171,82 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
     private static Instant instantForOffset(LocalDate date, LocalTime time, ZoneOffset offset) {
       return date.atTime(time).toInstant(offset);
     }
+  }
 
-    @Specialization(guards = "iop.isNull(value)")
-    static void doNull(
-        ArrowFixedSizeArrayBuilder receiver,
-        long index,
-        Object value,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException {
-      if (receiver.sealed) {
-        throw UnsupportedMessageException.create();
-      }
-      receiver.buffer.setNull((int) index);
-    }
+  private final class Int8WriteToArray extends WriteToArray {
 
-    @Specialization(guards = "receiver.getUnit() == Int8")
-    public static void doByte(
-        ArrowFixedSizeArrayBuilder receiver,
-        long index,
-        Object value,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException, InvalidArrayIndexException, UnsupportedTypeException {
+    @Override
+    void write(ArrowFixedSizeArrayBuilder receiver, long index, Object value, InteropLibrary iop)
+        throws UnsupportedMessageException, UnsupportedTypeException, InvalidArrayIndexException {
       validAccess(receiver, index);
+      if (iop.isNull(value)) {
+        receiver.buffer.setNull((int) index);
+        return;
+      }
       if (!iop.fitsInByte(value)) {
         throw UnsupportedTypeException.create(new Object[] {value}, "value does not fit a byte");
       }
       receiver.buffer.put(typeAdjustedIndex(index, receiver.unit), (iop.asByte(value)));
     }
+  }
 
-    @Specialization(guards = "receiver.getUnit() == Int16")
-    public static void doShort(
-        ArrowFixedSizeArrayBuilder receiver,
-        long index,
-        Object value,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException, InvalidArrayIndexException, UnsupportedTypeException {
+  private final class Int16WriteToArray extends WriteToArray {
+
+    @Override
+    void write(ArrowFixedSizeArrayBuilder receiver, long index, Object value, InteropLibrary iop)
+        throws UnsupportedMessageException, UnsupportedTypeException, InvalidArrayIndexException {
       validAccess(receiver, index);
+      if (iop.isNull(value)) {
+        receiver.buffer.setNull((int) index);
+        return;
+      }
       if (!iop.fitsInShort(value)) {
         throw UnsupportedTypeException.create(
             new Object[] {value}, "value does not fit a 2 byte short");
       }
       receiver.buffer.putShort(typeAdjustedIndex(index, receiver.unit), (iop.asShort(value)));
     }
+  }
 
-    @Specialization(guards = "receiver.getUnit() == Int32")
-    public static void doInt(
-        ArrowFixedSizeArrayBuilder receiver,
-        long index,
-        int value,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedMessageException, InvalidArrayIndexException, UnsupportedTypeException {
+  private final class Int32WriteToArray extends WriteToArray {
+
+    @Override
+    void write(ArrowFixedSizeArrayBuilder receiver, long index, Object value, InteropLibrary iop)
+        throws UnsupportedMessageException, UnsupportedTypeException, InvalidArrayIndexException {
       validAccess(receiver, index);
+      if (iop.isNull(value)) {
+        receiver.buffer.setNull((int) index);
+        return;
+      }
       if (!iop.fitsInInt(value)) {
         throw UnsupportedTypeException.create(
             new Object[] {value}, "value does not fit a 4 byte int");
       }
       receiver.buffer.putInt(typeAdjustedIndex(index, receiver.unit), (iop.asInt(value)));
     }
+  }
 
-    @Specialization(guards = "receiver.getUnit() == Int64")
-    public static void doLong(ArrowFixedSizeArrayBuilder receiver, long index, long value)
-        throws UnsupportedMessageException, InvalidArrayIndexException {
+  private final class Int64WriteToArray extends WriteToArray {
+
+    @Override
+    void write(ArrowFixedSizeArrayBuilder receiver, long index, Object value, InteropLibrary iop)
+        throws UnsupportedMessageException, UnsupportedTypeException, InvalidArrayIndexException {
       validAccess(receiver, index);
-      receiver.buffer.putLong(typeAdjustedIndex(index, receiver.unit), value);
-    }
-
-    @Fallback
-    public static void doOther(
-        ArrowFixedSizeArrayBuilder receiver,
-        long index,
-        Object value,
-        @Cached.Shared("interop") @CachedLibrary(limit = "1") InteropLibrary iop)
-        throws UnsupportedTypeException {
-      throw UnsupportedTypeException.create(
-          new Object[] {index, value}, "unknown type of receiver");
-    }
-
-    private static void validAccess(ArrowFixedSizeArrayBuilder receiver, long index)
-        throws InvalidArrayIndexException, UnsupportedMessageException {
-      if (receiver.sealed) {
-        throw UnsupportedMessageException.create();
+      if (iop.isNull(value)) {
+        receiver.buffer.setNull((int) index);
+        return;
       }
-      if (index >= receiver.size || index < 0) {
-        throw InvalidArrayIndexException.create(index);
+      if (!iop.fitsInLong(value)) {
+        throw UnsupportedTypeException.create(
+            new Object[] {value}, "value does not fit a 8 byte long");
       }
+      receiver.buffer.putLong(typeAdjustedIndex(index, receiver.unit), (iop.asLong(value)));
     }
   }
 
   @ExportMessage
-  long getArraySize() {
-    return size;
-  }
-
-  @ExportMessage
-  boolean isArrayElementReadable(long index) {
-    return false;
+  long getArraySize() throws UnsupportedMessageException {
+    throw UnsupportedMessageException.create();
   }
 
   @ExportMessage
@@ -258,13 +256,18 @@ public final class ArrowFixedSizeArrayBuilder implements TruffleObject {
   }
 
   @ExportMessage
+  boolean isArrayElementReadable(long index) {
+    return false;
+  }
+
+  @ExportMessage
   boolean isArrayElementModifiable(long index) {
-    return !sealed && index >= 0 && index < size;
+    return false;
   }
 
   @ExportMessage
   boolean isArrayElementInsertable(long index) {
-    return !sealed && index >= 0 && index < size;
+    return false;
   }
 
   private static int typeAdjustedIndex(long index, SizeInBytes unit) {

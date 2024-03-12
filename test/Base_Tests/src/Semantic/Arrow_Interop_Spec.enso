@@ -19,9 +19,8 @@ add_specs suite_builder =
             arrow_array_constructor = new_arrow
             builder = arrow_array_constructor.new 10
 
-            builder.length . should_equal 10
-            Test.expect_panic_with (builder.at 1) Unsupported_Argument_Types
-            Test.expect_panic_with (builder.at 10) Unsupported_Argument_Types
+            Test.expect_panic_with (builder.length) No_Such_Method
+            Test.expect_panic_with (builder.at 1) No_Such_Method
             builder.append 2
             builder.append 10
             builder.append 127

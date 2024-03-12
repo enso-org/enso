@@ -8,6 +8,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
@@ -55,11 +56,12 @@ public class VerifyArrowTest {
     assertNotNull("Arrow is available", arrow);
     var date32Constr = ctx.eval("arrow", "new[Date32]");
 
-    Value date32ArrayBuilder = date32Constr.newInstance(10);
+    var arrLength = 10;
+    Value date32ArrayBuilder = date32Constr.newInstance(arrLength);
     assertNotNull("allocated value should not be null", date32ArrayBuilder);
-    assertTrue("allocated value should be an array", date32ArrayBuilder.hasArrayElements());
+    assertTrue("allocated value should not be an array", !date32ArrayBuilder.hasArrayElements());
     var startDate = LocalDate.now();
-    populateArrayWithConsecutiveDays(date32ArrayBuilder, startDate);
+    populateArrayWithConsecutiveDays(date32ArrayBuilder, startDate, arrLength, Set.of());
     Value date32Array = date32ArrayBuilder.invokeMember("build");
     var rawDayPlus2 = date32Array.getArrayElement(2);
     var dayPlus2 = rawDayPlus2.asDate();
@@ -68,7 +70,7 @@ public class VerifyArrowTest {
 
     date32ArrayBuilder = date32Constr.newInstance(10);
     var startDateTime = ZonedDateTime.now();
-    populateArrayWithConsecutiveDays(date32ArrayBuilder, startDateTime);
+    populateArrayWithConsecutiveDays(date32ArrayBuilder, startDateTime, arrLength, Set.of());
     date32Array = date32ArrayBuilder.invokeMember("build");
     rawDayPlus2 = date32Array.getArrayElement(2);
     assertFalse(rawDayPlus2.isTime());
@@ -93,12 +95,13 @@ public class VerifyArrowTest {
     assertNotNull("Arrow is available", arrow);
     var date64Constr = ctx.eval("arrow", "new[Date64]");
 
-    Value date64ArrayBuilder = date64Constr.newInstance(10);
+    var arrLength = 10;
+    Value date64ArrayBuilder = date64Constr.newInstance(arrLength);
     assertNotNull("allocated value should not be null", date64ArrayBuilder);
-    assertTrue("allocated value should be an array", date64ArrayBuilder.hasArrayElements());
+    assertTrue("allocated value should not be an array", !date64ArrayBuilder.hasArrayElements());
     var startDate = ZonedDateTime.now(ZoneId.of("Europe/Paris"));
     var startDateZone = startDate.getZone();
-    populateArrayWithConsecutiveDays(date64ArrayBuilder, startDate);
+    populateArrayWithConsecutiveDays(date64ArrayBuilder, startDate, arrLength, Set.of());
     Value date64Array = date64ArrayBuilder.invokeMember("build");
     var rawZonedDateTime = date64Array.getArrayElement(2);
     var dayPlus2 =
@@ -111,9 +114,7 @@ public class VerifyArrowTest {
     var startDate2 = ZonedDateTime.parse("2023-11-01T02:00:01+01:00[Europe/Paris]");
     var startDate2Zone = startDate2.getZone();
     var startDate2Pnf = ZonedDateTime.parse("2023-11-01T02:00:01-07:00[US/Pacific]");
-    populateArrayWithConsecutiveDays(date64ArrayBuilder, startDate2);
-    date64ArrayBuilder.setArrayElement(5, null);
-    date64ArrayBuilder.setArrayElement(9, null);
+    populateArrayWithConsecutiveDays(date64ArrayBuilder, startDate2, arrLength, Set.of(5, 9));
     assertTrue(date64ArrayBuilder.canInvokeMember("append"));
     date64Array = date64ArrayBuilder.invokeMember("build");
     rawZonedDateTime = date64Array.getArrayElement(2);
@@ -137,19 +138,19 @@ public class VerifyArrowTest {
     var int8Constr = ctx.eval("arrow", "new[Int8]");
     assertNotNull(int8Constr);
 
-    Value int8ArrayBuilder = int8Constr.newInstance(10);
+    var arrLength = 10;
+    Value int8ArrayBuilder = int8Constr.newInstance(arrLength);
     assertNotNull(int8ArrayBuilder);
-    populateIntArray(int8ArrayBuilder, (byte) 42, int8ArrayBuilder.getArraySize() - 1);
+    populateIntArray(int8ArrayBuilder, (byte) 42, arrLength - 1);
     assertThrows(RuntimeException.class, () -> int8ArrayBuilder.setArrayElement(5, 300));
     assertThrows(RuntimeException.class, () -> int8ArrayBuilder.invokeMember("append", 300));
-    int8ArrayBuilder.setArrayElement(5, 4);
     assertThrows(UnsupportedOperationException.class, () -> int8ArrayBuilder.getArrayElement(5));
     var int8Array = int8ArrayBuilder.invokeMember("build");
     var v = int8Array.getArrayElement(5);
-    assertEquals((byte) 4, v.asByte());
+    assertEquals((byte) 5, v.asByte());
     assertThrows(UnsupportedOperationException.class, () -> int8Array.setArrayElement(5, 21));
     v = int8Array.getArrayElement(5);
-    assertEquals((byte) 4, v.asByte());
+    assertEquals((byte) 5, v.asByte());
   }
 
   @Test
@@ -263,10 +264,11 @@ public class VerifyArrowTest {
     }
   }
 
-  private void populateArrayWithConsecutiveDays(Value arr, Temporal startDate) {
-    var len = arr.getArraySize();
+  private void populateArrayWithConsecutiveDays(
+      Value arr, Temporal startDate, int len, Set<Integer> skip) {
     for (int i = 0; i < len; i++) {
-      arr.invokeMember("append", startDate.plus(2, java.time.temporal.ChronoUnit.DAYS));
+      var date = skip.contains(i) ? null : startDate.plus(i, java.time.temporal.ChronoUnit.DAYS);
+      arr.invokeMember("append", date);
     }
   }
 
@@ -277,7 +279,7 @@ public class VerifyArrowTest {
   private void populateIntArray(Value arr, byte startValue, long until) {
     for (int i = 0; i < until; i++) {
       var v = startValue + i;
-      arr.setArrayElement(i, (byte) v);
+      arr.invokeMember("append", i, (byte) v);
     }
   }
 
