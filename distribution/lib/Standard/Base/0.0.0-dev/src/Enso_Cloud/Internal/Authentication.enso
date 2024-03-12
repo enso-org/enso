@@ -91,7 +91,7 @@ type Authentication_Data
     ## PRIVATE
     read_from_credentials -> Authentication_Data =
         content = credentials_file.read_text . catch File_Error error-> case error of
-            File_Error.Not_Found _ -> Panic.throw Not_Logged_In
+            File_Error.Not_Found _ -> Panic.throw Not_Logged_In.Error
             _ -> Panic.throw (Illegal_State.Error "Failed to read credentials file: "+error.to_display_text cause=error)
         as_json = content.parse_json.catch Invalid_JSON error->
             Panic.throw (Illegal_State.Error "Invalid credentials file format: "+error.to_display_text cause=error)

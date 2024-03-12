@@ -6,6 +6,9 @@ import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
    Error if the user is not logged into Enso Cloud.
 type Not_Logged_In
     ## PRIVATE
+    Error
+
+    ## PRIVATE
     to_display_text : Text
     to_display_text self = "Not logged into Enso cloud. Please log in and restart."
 
