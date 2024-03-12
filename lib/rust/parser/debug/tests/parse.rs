@@ -871,6 +871,7 @@ fn autoscope_operator() {
     test!("x = ..True", (Assignment (Ident x) "=" (AutoscopedIdentifier ".." True)));
     test!("x = f ..True",
         (Assignment (Ident x) "=" (App (Ident f) (AutoscopedIdentifier ".." True))));
+    expect_invalid_node("x = case a of ..True -> True");
     expect_invalid_node("x = ..4");
     expect_invalid_node("x = ..Foo.Bar");
     expect_invalid_node("x = f .. True");

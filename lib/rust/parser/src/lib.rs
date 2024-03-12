@@ -315,6 +315,8 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
             Tree::app(expression_to_pattern(func), expression_to_pattern(arg)),
         box Variant::TypeAnnotated(TypeAnnotated { expression, operator, type_ }) =>
             Tree::type_annotated(expression_to_pattern(expression), operator, type_),
+        box Variant::AutoscopedIdentifier(_) =>
+            return input.with_error("The autoscope operator (..) cannot be used in a pattern."),
         _ => return input,
     };
     out.span.left_offset += input.span.left_offset;
