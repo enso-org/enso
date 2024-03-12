@@ -3,6 +3,7 @@ private
 import project.Any.Any
 import project.Data.Json.Invalid_JSON
 import project.Data.Map.Map
+import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
@@ -70,8 +71,8 @@ flush_caches = CloudAPI.flushCloudCaches
 ## PRIVATE
    Performs a standard request to the Enso Cloud API,
    parsing the result as JSON.
-http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) -> Any ! Enso_Cloud_Error =
-    response = http_request method url body additional_headers error_handlers
+http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Any ! Enso_Cloud_Error =
+    response = http_request method url body additional_headers error_handlers retries
     response.decode_as_json.catch Invalid_JSON error->
         Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
@@ -82,21 +83,27 @@ http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = R
    Custom error handlers can be provided as a mapping from error codes
    (defined in the cloud project) to functions that take the full JSON payload
    and return a custom error.
-http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) -> Response ! Enso_Cloud_Error =
+http_request (method : HTTP_Method) (url : URI) (body : Request_Body = Request_Body.Empty) (additional_headers : Vector = []) (error_handlers : Map Text (Any -> Any) = Map.empty) (retries : Integer = 3) -> Response ! Enso_Cloud_Error =
     all_headers = [authorization_header] + additional_headers
     as_connection_error err = Error.throw (Enso_Cloud_Error.Connection_Error err)
     response = HTTP.new.request (Request.new method url headers=all_headers body=body) error_on_failure_code=False
         . catch HTTP_Error as_connection_error
         . catch Request_Error as_connection_error
-    if response.code.is_success then response else
-        if response.code == HTTP_Status_Code.unauthorized then Error.throw Enso_Cloud_Error.Unauthorized else
-            payload = response.decode_as_text
-            ## If the payload can be parsed as JSON, contains a `code` field and this `code` is found in the error
-               handlers, a specialized handler will be used for the error. Otherwise, a generic Unexpected_Service_Error
-               will be reported, containing the payload for inspection.
-            json_payload = payload.parse_json.catch Invalid_JSON (_->Nothing)
-            error_code = json_payload.get "code"
-            handler = error_code.if_not_nothing <| error_handlers.get error_code
-            case handler of
-                Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error response.code payload)
-                _ : Function -> handler json_payload
+    if response.is_error && (retries > 0) then http_request method url body additional_headers error_handlers (retries - 1) else
+        if response.code.is_success then response else
+            is_unauthorized = (response.code == HTTP_Status_Code.unauthorized) || (response.code == HTTP_Status_Code.forbidden)
+            case is_unauthorized of
+                True -> if retries < 0 then Error.throw Enso_Cloud_Error.Unauthorized else
+                    Authentication.refresh_access_token
+                    http_request method url body additional_headers error_handlers (retries - 1)
+                False ->
+                    payload = response.decode_as_text
+                    ## If the payload can be parsed as JSON, contains a `code` field and this `code` is found in the error
+                       handlers, a specialized handler will be used for the error. Otherwise, a generic Unexpected_Service_Error
+                       will be reported, containing the payload for inspection.
+                    json_payload = payload.parse_json.catch Invalid_JSON (_->Nothing)
+                    error_code = json_payload.get "code"
+                    handler = error_code.if_not_nothing <| error_handlers.get error_code
+                    case handler of
+                        Nothing -> Error.throw (Enso_Cloud_Error.Unexpected_Service_Error response.code payload)
+                        _ : Function -> handler json_payload

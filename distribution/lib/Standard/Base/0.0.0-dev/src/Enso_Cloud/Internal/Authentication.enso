@@ -44,6 +44,12 @@ get_access_token : Text
 get_access_token = AuthenticationProvider.getAccessToken
 
 ## PRIVATE
+   Forcibly refreshes the access token.
+refresh_access_token : Nothing
+refresh_access_token =
+    AuthenticationProvider.getAuthenticationServiceEnsoInstance.force_refresh
+
+## PRIVATE
 credentials_file : File
 credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
     Nothing -> File.home / ".enso" / "credentials"
