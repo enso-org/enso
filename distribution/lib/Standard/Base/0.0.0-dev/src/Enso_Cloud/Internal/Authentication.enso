@@ -132,7 +132,6 @@ type Refresh_Token_Data
                 Panic.throw (Enso_Cloud_Error.Connection_Error error)
         json = response.decode_as_json . catch Invalid_JSON error->
             Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
-        Standard.Base.IO.println json
         auth_result = json.get "AuthenticationResult" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AuthenticationResult` field in response."))
         access_token = auth_result.get "AccessToken" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AccessToken` field in response."))
         token_type = auth_result.get "TokenType" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `TokenType` field in response."))
