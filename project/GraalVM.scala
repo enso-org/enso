@@ -101,6 +101,11 @@ object GraalVM {
 
   val langsPkgs = jsPkgs ++ pythonPkgs ++ espressoPkgs
 
+  private val allowedJavaVendors = Seq(
+    "GraalVM Community",
+    "Oracle Corporation"
+  )
+
   /** Augments a state transition to do GraalVM version check.
     *
     * @param graalVersion  the GraalVM version that should be used for
@@ -125,10 +130,10 @@ object GraalVM {
       throw new IllegalStateException("GraalVM version check failed")
     }
     val javaVendor = System.getProperty("java.vendor")
-    if (javaVendor != "GraalVM Community") {
+    if (!allowedJavaVendors.contains(javaVendor)) {
       log.warn(
         s"Running on non-GraalVM JVM (The actual java.vendor is $javaVendor). " +
-        s"Expected GraalVM Community java.vendor."
+        s"Expected Java vendors: ${allowedJavaVendors.mkString(", ")}."
       )
     }
 

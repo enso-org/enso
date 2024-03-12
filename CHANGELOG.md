@@ -1073,6 +1073,7 @@
 - [Execute and debug individual Enso files in VSCode extension][8923]
 - [Check type of `self` when calling a method using the static syntax][8867]
 - [Autoscoped constructors][9190]
+- [Allow Oracle GraalVM JDK][9322]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1232,6 +1233,7 @@
 [8923]: https://github.com/enso-org/enso/pull/8923
 [8867]: https://github.com/enso-org/enso/pull/8867
 [9190]: https://github.com/enso-org/enso/pull/9190
+[9322]: https://github.com/enso-org/enso/pull/9322
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

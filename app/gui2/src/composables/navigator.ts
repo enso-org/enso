@@ -13,10 +13,8 @@ const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]
 const ZOOM_STEP_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 10]
 
 function elemRect(target: Element | undefined): Rect {
-  if (target != null && target instanceof Element) {
-    const domRect = target.getBoundingClientRect()
-    return new Rect(new Vec2(domRect.x, domRect.y), new Vec2(domRect.width, domRect.height))
-  }
+  if (target != null && target instanceof Element)
+    return Rect.FromDomRect(target.getBoundingClientRect())
   return Rect.Zero
 }
 
@@ -116,6 +114,11 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     let target = viewport.value
     for (const point of points.reverse()) target = target.offsetToInclude(point) ?? target
     targetCenter.value = target.center()
+  }
+
+  /** Pan immediately to center the viewport at the given point, in scene coordinates. */
+  function scrollTo(newCenter: Vec2) {
+    center.value = newCenter
   }
 
   let zoomPivot = Vec2.Zero
@@ -329,5 +332,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     panTo,
     viewport,
     stepZoom,
+    scrollTo,
   })
 }
