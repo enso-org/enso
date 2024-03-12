@@ -645,7 +645,8 @@ export default class RemoteBackend extends Backend {
     const response = await this.get<string>(remoteBackendPaths.getLogsPath(projectId))
     if (!responseIsSuccessful(response)) {
       return this.throw(
-        `Could not get logs for project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
+        `Could not get logs for project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`,
+        response
       )
     } else {
       return await response.text()
