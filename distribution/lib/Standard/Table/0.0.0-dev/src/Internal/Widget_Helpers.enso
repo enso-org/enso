@@ -19,7 +19,7 @@ from project.Extensions.Table_Conversions import all
    Make an aggregate column selector.
 make_aggregate_column_selector : Table -> Display -> Widget
 make_aggregate_column_selector table display=Display.Always =
-    col_names_selector = make_column_name_selector table display=Display.Always
+    col_names_selector = make_column_name_selector table display=Display.Always add_expression=True
     column_widget = ["column", col_names_selector]
 
     fqn = Meta.get_qualified_type_name Aggregate_Column
@@ -144,7 +144,7 @@ make_join_kind_selector : Display -> Widget
 make_join_kind_selector display=Display.Always =
     meta = Meta.meta Value_Type
     options = meta.constructors.map c-> Option c.name meta.qualified_name+"."+c.name
-    Single_Choice display=display values=names
+    Single_Choice display=display values=options
 
 ## PRIVATE
    Make a join condition selector.
