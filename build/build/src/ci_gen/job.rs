@@ -7,7 +7,9 @@ use crate::ci_gen::step;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
+use crate::engine::env;
 
+use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
@@ -17,6 +19,7 @@ use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
+use ide_ci::cache::goodie::graalvm;
 
 
 
@@ -172,21 +175,46 @@ impl JobArchetype for VerifyLicensePackages {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ScalaTests;
+pub struct ScalaTests {
+    pub graal_edition: graalvm::Edition,
+}
+
+
 impl JobArchetype for ScalaTests {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend test scala")
-            .customize(move |step| vec![step, step::engine_test_reporter(target)])
-            .build_job("Scala Tests", target)
-            .with_permission(Permission::Checks, Access::Write)
+        let graal_edition = self.graal_edition;
+        let job_name = format!("Scala Tests ({graal_edition})");
+        let mut job = RunStepsBuilder::new("backend test scala")
+            .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
+            .build_job(job_name, target)
+            .with_permission(Permission::Checks, Access::Write);
+        match graal_edition {
+            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Enterprise =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+        }
+        job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
     }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct StandardLibraryTests;
+pub struct StandardLibraryTests {
+    pub graal_edition: graalvm::Edition,
+}
+
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend test standard-library")
+        let graal_edition = self.graal_edition;
+        let job_name = format!("Standard Library Tests ({graal_edition})");
+        let mut job = RunStepsBuilder::new("backend test standard-library")
             .customize(move |step| {
                 let main_step = step
                     .with_secret_exposed_as(
@@ -201,10 +229,24 @@ impl JobArchetype for StandardLibraryTests {
                         secret::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                         crate::aws::env::AWS_SECRET_ACCESS_KEY,
                     );
-                vec![main_step, step::stdlib_test_reporter(target)]
+                vec![main_step, step::stdlib_test_reporter(target, graal_edition)]
             })
-            .build_job("Standard Library Tests", target)
-            .with_permission(Permission::Checks, Access::Write)
+            .build_job(job_name, target)
+            .with_permission(Permission::Checks, Access::Write);
+        match graal_edition {
+            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Enterprise =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+        }
+        job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
     }
 }
 
@@ -418,10 +460,27 @@ impl JobArchetype for PackageNewIde {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct CiCheckBackend;
+pub struct CiCheckBackend {
+    pub graal_edition: graalvm::Edition,
+}
 
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("backend ci-check").build_job("Engine", target)
+        let job_name = format!("Engine ({})", self.graal_edition);
+        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
+        match self.graal_edition {
+            graalvm::Edition::Community => job.env(env::GRAAL_EDITION, graalvm::Edition::Community),
+            graalvm::Edition::Enterprise =>
+                job.env(env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+        }
+        job
+    }
+
+    fn key(&self, (os, arch): Target) -> String {
+        format!(
+            "{}-{}-{os}-{arch}",
+            self.id_key_base(),
+            self.graal_edition.to_string().to_kebab_case()
+        )
     }
 }
