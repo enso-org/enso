@@ -2,6 +2,7 @@
 
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import * as url from 'node:url'
 
 import * as v from 'vitest'
 
@@ -28,7 +29,8 @@ function testSchema(json: unknown, fileName: string): void {
 }
 
 // We need to go up from `app/ide-desktop/lib/dashboard/` to the root of the repo
-const REPO_ROOT = '../../../../'
+const DIR_DEPTH = 7
+const REPO_ROOT = url.fileURLToPath(new URL('../'.repeat(DIR_DEPTH), import.meta.url))
 const BASE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Base_Tests/data/datalinks/')
 const S3_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/AWS_Tests/data/')
 const TABLE_DATA_LINKS_ROOT = path.resolve(REPO_ROOT, 'test/Table_Tests/data/datalinks/')

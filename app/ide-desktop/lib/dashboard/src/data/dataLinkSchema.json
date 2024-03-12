@@ -261,7 +261,7 @@
         "type": { "const": "workbook", "type": "string" },
         "defaultSheet": {
           "title": "Default sheet (for writing)",
-          "description": "The default sheet used when writing a table to this data link.",
+          "description": "The default sheet used when writing a table to the workbook that this data link points to.",
           "type": "string",
           "minLength": 1,
           "default": "EnsoSheet"
