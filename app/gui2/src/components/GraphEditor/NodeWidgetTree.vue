@@ -79,13 +79,18 @@ provideWidgetTree(
   },
 )
 </script>
+<script lang="ts">
+export const GRAB_HANDLE_X_MARGIN = 4
+const GRAB_HANDLE_X_MARGIN_PX = `${GRAB_HANDLE_X_MARGIN}px`
+export const ICON_WIDTH = 16
+</script>
 
 <template>
   <div class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
     <!-- Display an icon for the node if no widget in the tree provides one. -->
     <SvgIcon
       v-if="!props.connectedSelfArgumentId"
-      class="icon grab-handle"
+      class="icon grab-handle nodeCategoryIcon"
       :name="props.icon"
       @click.right.stop.prevent="emit('openFullMenu')"
     />
@@ -121,6 +126,6 @@ provideWidgetTree(
 
 .grab-handle {
   color: white;
-  margin: 0 4px;
+  margin: 0 v-bind('GRAB_HANDLE_X_MARGIN_PX');
 }
 </style>
