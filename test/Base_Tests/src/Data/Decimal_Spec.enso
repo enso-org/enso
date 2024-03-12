@@ -78,6 +78,20 @@ add_specs suite_builder =
             d.should_have_rep [12312, 5, 2]
             d.should_equal (Decimal.new "123.12")
 
+        group_builder.specify "should be able to explicity and implicitly specify infinite precision" <|
+            Decimal.new "123.125" (Math_Context.new 5) . should_equal 123.13
+            Decimal.new "123.125" (Math_Context.new Unlimited) . should_equal 123.125
+            Decimal.new "123.125" (Math_Context.new 0) . should_equal 123.125
+
+            d1 = Decimal.new "1"
+            d3 = Decimal.new "3"
+            d4 = Decimal.new "4"
+
+            d1.divide d4 (Math_Context.new Unlimited) . should_equal 0.25
+            d1.divide d3 (Math_Context.new 12) . internal_representation . should_equal [333333333333, 12, 12]
+            d1.divide d3 . should_fail_with Arithmetic_Error
+            d1.divide d3 (Math_Context.new Unlimited) . should_fail_with Arithmetic_Error
+
         group_builder.specify "should report precision loss accurately" <|
             mc4 = Math_Context.new 4
             mc5 = Math_Context.new 5

@@ -19,7 +19,7 @@ polyglot java import java.math.BigDecimal
 polyglot java import org.enso.base.numeric.Conversion_Result
 polyglot java import org.enso.base.numeric.Decimal_Utils
 
-## Decimal is the type of decimal (base-10-scaled) nubmers in Enso. An Enso
+## Decimal is the type of decimal (base-10-scaled) numbers in Enso. An Enso
    `Decimal` is a wrapper around a Java `BigDecimal`.
 
    `Decimal` values have more overhead than standard `Float` values, but they
