@@ -162,6 +162,7 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.scheduled]: true,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
+  [ProjectState.cloning]: true,
   [ProjectState.opened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
