@@ -327,11 +327,12 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
-      edit.getVersion(node.rootExpr).syncToCode(content)
+      const editExpr = edit.getVersion(node.innerExpr)
+      editExpr.syncToCode(content)
       if (withImports) {
         const conflicts = addMissingImports(edit, withImports)
         if (conflicts == null) return
-        const wholeAssignment = edit.getVersion(node.rootExpr)?.mutableParent()
+        const wholeAssignment = editExpr.mutableParent()
         if (wholeAssignment == null) {
           console.error('Cannot find parent of the node expression. Conflict resolution failed.')
           return
