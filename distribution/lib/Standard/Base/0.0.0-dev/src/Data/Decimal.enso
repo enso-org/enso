@@ -534,7 +534,7 @@ type Decimal
     scale self = self.big_decimal.scale
 
     ## PRIVATE
-       TODO: This +0 is needed to allow internal represeantations to be compared.
+       TODO: This +0 is needed to allow internal representations to be compared.
     unscaled_value : Integer
     unscaled_value self = self.big_decimal.unscaledValue + 0
 
