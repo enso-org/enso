@@ -1092,9 +1092,11 @@ lazy val testkit = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.apache.commons" % "commons-lang3" % commonsLangVersion,
-      "commons-io"         % "commons-io"    % commonsIoVersion,
-      "org.scalatest"     %% "scalatest"     % scalatestVersion
+      "org.apache.commons" % "commons-lang3"   % commonsLangVersion,
+      "commons-io"         % "commons-io"      % commonsIoVersion,
+      "org.scalatest"     %% "scalatest"       % scalatestVersion,
+      "junit"              % "junit"           % junitVersion,
+      "com.github.sbt"     % "junit-interface" % junitIfVersion
     )
   )
 
@@ -2216,8 +2218,7 @@ lazy val `engine-runner` = project
             "com.sun.imageio",
             "com.sun.jna.internal.Cleaner",
             "com.sun.jna.Structure$FFIType",
-            "akka.http",
-            "org.enso.interpreter.arrow.util.MemoryUtil"
+            "akka.http"
           )
         )
         .dependsOn(assembly)
@@ -2552,6 +2553,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
   )
   .dependsOn(cli)
   .dependsOn(`http-test-helper`)
+  .dependsOn(testkit % Test)
 
 lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
@@ -3030,7 +3032,8 @@ buildEngineDistribution := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value.map(_.data)
-  val engineModules = Seq(file("runtime.jar"))
+  val arrow         = Seq((`runtime-language-arrow` / Compile / packageBin).value)
+  val engineModules = Seq(file("runtime.jar")) ++ arrow
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
   val cacheFactory  = streams.value.cacheStoreFactory

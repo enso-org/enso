@@ -1,7 +1,7 @@
 <script lang="ts">
 export const name = 'Image'
 export const icon = 'image'
-export const inputType = 'Standard.Image.Data.Image.Image'
+export const inputType = 'Standard.Image.Image.Image'
 
 interface Data {
   mediaType?: string

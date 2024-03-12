@@ -1,4 +1,3 @@
-import { parseEnso } from '@/util/ast'
 import { normalizeQualifiedName, qnFromSegments } from '@/util/qualifiedName'
 import type {
   AstId,
@@ -17,10 +16,10 @@ import {
   Ident,
   MutableBodyBlock,
   MutableModule,
+  NumericLiteral,
   OprApp,
   PropertyAccess,
   Token,
-  abstract,
   isTokenId,
   print,
 } from 'shared/ast'
@@ -28,13 +27,9 @@ export * from 'shared/ast'
 
 export function deserialize(serialized: string): Owned {
   const parsed: SerializedPrintedSource = JSON.parse(serialized)
-  const module = MutableModule.Transient()
-  const tree = parseEnso(parsed.code)
-  const ast = abstract(module, tree, parsed.code)
-  // const nodes = new Map(unsafeEntries(parsed.info.nodes))
-  // const tokens = new Map(unsafeEntries(parsed.info.tokens))
-  // TODO: ast <- nodes,tokens
-  return ast.root
+  // Not implemented: restoring serialized external IDs. This is not the best approach anyway;
+  // Y.Js can't merge edits to objects when they're being serialized and deserialized.
+  return Ast.parse(parsed.code)
 }
 
 interface SerializedInfoMap {
@@ -195,6 +190,19 @@ export function substituteQualifiedName(
       substituteQualifiedName(module, child, pattern, to)
     }
   }
+}
+
+/** Try to convert the number to an Enso value.
+ *
+ *  Returns `undefined` if the input is not a real number. NOTE: The current implementation doesn't support numbers that
+ *  JS prints in scientific notation.
+ */
+export function tryNumberToEnso(value: number, module: MutableModule) {
+  if (!Number.isFinite(value)) return
+  const literal = NumericLiteral.tryParse(value.toString(), module)
+  if (!literal)
+    console.warn(`Not implemented: Converting scientific-notation number to Enso value`, value)
+  return literal
 }
 
 declare const tokenKey: unique symbol

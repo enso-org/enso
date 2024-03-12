@@ -8,12 +8,9 @@ from Standard.Table import Aggregate_Column, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
-import project.Data.DB_Column.DB_Column
-import project.Data.Dialect
-import project.Data.SQL.SQL_Builder
-import project.Data.SQL_Statement.SQL_Statement
-import project.Data.SQL_Type.SQL_Type
-import project.Data.DB_Table.DB_Table
+import project.DB_Column.DB_Column
+import project.DB_Table.DB_Table
+import project.Dialect
 import project.Internal.Base_Generator
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.Column_Fetcher.Column_Fetcher
@@ -33,6 +30,9 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
 import project.Internal.Statement_Setter.Statement_Setter
+import project.SQL.SQL_Builder
+import project.SQL_Statement.SQL_Statement
+import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 
 ## PRIVATE

@@ -32,6 +32,7 @@ use crate::syntax::token;
 use crate::syntax::token::Token;
 
 use enso_data_structures::im_list::List;
+use std::collections::HashMap;
 use std::collections::VecDeque;
 
 
@@ -66,7 +67,6 @@ enum Context {
     Expression,
     Statement,
 }
-
 
 
 // ==================
@@ -434,7 +434,7 @@ impl<'s> Resolver<'s> {
         for segment_entry in possible_segments {
             if let Some(first) = segment_entry.required_segments.head() {
                 let tail = segment_entry.required_segments.tail().cloned().unwrap_or_default();
-                let definition = segment_entry.definition.clone_ref();
+                let definition = segment_entry.definition.clone();
                 let entry = SegmentEntry { required_segments: tail, definition };
                 if let Some(node) = new_section_tree.get_mut(&first.header) {
                     node.push(entry);
@@ -442,13 +442,12 @@ impl<'s> Resolver<'s> {
                     new_section_tree.insert(first.header, NonEmptyVec::singleton(entry));
                 }
             } else {
-                *matched_macro_def = Some(segment_entry.definition.clone_ref());
+                *matched_macro_def = Some(segment_entry.definition.clone());
             }
         }
         new_section_tree
     }
 }
-
 
 
 // =============================
@@ -467,7 +466,6 @@ struct PartiallyMatchedMacro<'s> {
     /// Height in `segments` where this macro's resolved segments begin.
     segments_start:         usize,
 }
-
 
 
 // ======================

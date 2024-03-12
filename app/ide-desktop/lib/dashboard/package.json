@@ -9,6 +9,7 @@
   },
   "exports": {
     ".": "./src/index.tsx",
+    "./tailwind.config": "./tailwind.config.js",
     "./src/platform": "./src/platform.ts",
     "./src/tailwind.css": "./src/tailwind.css"
   },
@@ -21,15 +22,15 @@
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
     "test:unit:debug": "vitest",
-    "test:e2e": "npx playwright test",
-    "test:e2e:debug": "npx playwright test --ui"
+    "test:e2e": "cross-env NODE_ENV=production playwright test",
+    "test:e2e:debug": "cross-env NODE_ENV=production playwright test --ui"
   },
   "//": [
     "@fortawesome/fontawesome-svg-core is required as a peer dependency for @fortawesome/react-fontawesome"
   ],
   "dependencies": {
-    "@aws-amplify/auth": "^5.6.5",
-    "@aws-amplify/core": "^5.8.5",
+    "@aws-amplify/auth": "5.6.5",
+    "@aws-amplify/core": "5.8.5",
     "@fortawesome/fontawesome-svg-core": "^6.4.2",
     "@fortawesome/free-brands-svg-icons": "^6.4.2",
     "@fortawesome/react-fontawesome": "^0.2.0",
@@ -60,6 +61,7 @@
     "@typescript-eslint/parser": "^6.7.2",
     "@vitejs/plugin-react": "^4.2.1",
     "chalk": "^5.3.0",
+    "cross-env": "^7.0.3",
     "enso-chat": "git://github.com/enso-org/enso-bot",
     "esbuild": "^0.19.3",
     "esbuild-plugin-inline-image": "^0.0.9",

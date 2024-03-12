@@ -3,7 +3,7 @@ import Standard.Base.Errors.Common.Assertion_Error
 import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Database.Data.DB_Table import MAX_LITERAL_ELEMENT_COUNT
+from Standard.Database.DB_Table import MAX_LITERAL_ELEMENT_COUNT
 
 from Standard.Test import all
 

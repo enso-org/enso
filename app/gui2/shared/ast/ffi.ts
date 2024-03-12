@@ -14,7 +14,10 @@ export function xxHash128(input: string) {
 export async function initializeFFI(path?: string | undefined) {
   if (isNode) {
     const fs = await import('node:fs/promises')
-    const buffer = fs.readFile(path ?? './rust-ffi/pkg/rust_ffi_bg.wasm')
+    const { fileURLToPath, URL: nodeURL } = await import('node:url')
+    const buffer = fs.readFile(
+      path ?? fileURLToPath(new nodeURL('../../rust-ffi/pkg/rust_ffi_bg.wasm', import.meta.url)),
+    )
     await init(buffer)
   } else {
     await init()
