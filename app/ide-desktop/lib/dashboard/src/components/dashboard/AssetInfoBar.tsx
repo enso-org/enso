@@ -33,15 +33,6 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
         event.stopPropagation()
       }}
     >
-      {/*<Button
-        active={false}
-        disabled
-        image={DocsIcon}
-        error="Not implemented yet."
-        onClick={() => {
-          // No backend support yet.
-        }}
-      />*/}
       <Button
         alt={isAssetPanelVisible ? 'Close Asset Panel' : 'Open Asset Panel'}
         active={isAssetPanelVisible}
