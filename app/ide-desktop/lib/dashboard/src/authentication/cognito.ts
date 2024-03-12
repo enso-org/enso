@@ -422,8 +422,7 @@ function extractRefreshUrlFromSession(session: cognito.CognitoUserSession): stri
     throw new Error('Payload does not have an iss field.')
   } else {
     try {
-      new URL(iss)
-      return iss
+      return new URL(iss).toString()
     } catch (e) {
       throw new Error('iss field is not a valid URL')
     }
