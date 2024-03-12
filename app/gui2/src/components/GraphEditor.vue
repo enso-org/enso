@@ -374,7 +374,7 @@ const groupColors = computed(() => {
   return styles
 })
 
-function showComponentBrowser(nodePosition?: Vec2, usage?: Usage) {
+function showComponentBrowser(nodePosition?: Vec2 | undefined, usage?: Usage) {
   componentBrowserUsage.value = usage ?? { type: 'newNode', sourcePort: sourcePortForSelection() }
   componentBrowserNodePosition.value = nodePosition ?? targetComponentBrowserNodePosition()
   componentBrowserVisible.value = true
@@ -390,9 +390,9 @@ function addNodeAuto() {
   showComponentBrowser(targetPos)
 }
 
-function addNodeAt(pos: Vec2 | undefined) {
-  if (!pos) return addNodeAuto()
-  showComponentBrowser(pos)
+function addNodeAt(sourceNode: NodeId, pos: Vec2 | undefined) {
+  const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
+  showComponentBrowser(pos, { type: 'newNode', sourcePort })
 }
 
 function hideComponentBrowser() {
@@ -612,7 +612,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
-        @addNode="addNodeAt($event)"
+        @addNode="addNodeAt"
       />
     </div>
     <div
