@@ -52,7 +52,7 @@ export default function TopBar(props: TopBarProps) {
 
   return (
     <div
-      className={`relative flex ml-4.75 mr-2.25 h-8 gap-6 z-3 ${
+      className={`relative flex ml-4.75 mr-2.25 h-8 gap-6 z-1 ${
         page !== pageSwitcher.Page.home ? 'mt-2.25' : 'my-2.25'
       }`}
     >
