@@ -23,7 +23,7 @@ export class Vec2 {
     return new Vec2(point.clientWidth, point.clientHeight)
   }
 
-  static DotProduct(...values: Vec2[]): Vec2 {
+  static ElementwiseProduct(...values: Vec2[]): Vec2 {
     let x = 1
     let y = 1
     for (const value of values) {

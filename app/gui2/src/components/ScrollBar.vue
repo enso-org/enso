@@ -36,13 +36,13 @@ const xFull = ref(false)
 const yFull = ref(false)
 
 watchEffect(() => {
-  const viewportFraction = Vec2.DotProduct(viewportSize.value, range.value.reciprocal())
-  const barStartFraction = Vec2.DotProduct(props.position, range.value.reciprocal())
+  const viewportFraction = Vec2.ElementwiseProduct(viewportSize.value, range.value.reciprocal())
+  const barStartFraction = Vec2.ElementwiseProduct(props.position, range.value.reciprocal())
   const trackLength = viewportSize.value.sub(
     new Vec2(BAR_END_MARGIN * 2 + BAR_WIDTH, BAR_END_MARGIN * 2 + BAR_WIDTH),
   )
-  const barStart = Vec2.DotProduct(trackLength, barStartFraction).max(Vec2.Zero)
-  const barLength = Vec2.DotProduct(trackLength, viewportFraction)
+  const barStart = Vec2.ElementwiseProduct(trackLength, barStartFraction).max(Vec2.Zero)
+  const barLength = Vec2.ElementwiseProduct(trackLength, viewportFraction)
   const barEnd = barStart.add(barLength).min(trackLength)
   xStart.value = `${barStart.x}px`
   xLength.value = `${barEnd.x - barStart.x}px`
@@ -58,7 +58,7 @@ function dragEventsHandler(axis: 'x' | 'y') {
   return usePointer((pos, _event, eventType) => {
     switch (eventType) {
       case 'start': {
-        const factor = Vec2.DotProduct(range.value, viewportSize.value.reciprocal())
+        const factor = Vec2.ElementwiseProduct(range.value, viewportSize.value.reciprocal())
         const speed = new Vec2(axis === 'x' ? factor.x : 0, axis === 'y' ? factor.y : 0)
         if (speed.isZero()) return
         dragging.value = speed
@@ -67,7 +67,7 @@ function dragEventsHandler(axis: 'x' | 'y') {
       }
       case 'move': {
         if (!dragging.value) return
-        const startOffset = Vec2.DotProduct(pos.relative, dragging.value)
+        const startOffset = Vec2.ElementwiseProduct(pos.relative, dragging.value)
         emit('scroll', { type: 'move', startOffset })
         break
       }
