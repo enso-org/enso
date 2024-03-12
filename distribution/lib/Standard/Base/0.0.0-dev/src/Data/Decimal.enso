@@ -572,7 +572,6 @@ handle_java_exception ~action =
 
 ## PRIVATE
 type Decimal_Comparator
-    #compare x:Decimal y:Decimal =
     compare (x : Decimal) (y : Decimal) =
         Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
     hash x:Decimal = Decimal_Utils.hashCodeOf x.big_decimal
