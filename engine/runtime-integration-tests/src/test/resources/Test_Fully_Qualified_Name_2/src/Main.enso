@@ -1,0 +1,11 @@
+import local.Test_Fully_Qualified_Name_1
+
+main =
+    # A_Type is directly exported from Test_Fully_Qualified_Name_1's Main module, so this
+    # expression will surely work
+    type_via_logical_path = Test_Fully_Qualified_Name_1.A_Type
+
+    # Try to use it also via physical FQN
+    type_via_physical_path = Test_Fully_Qualified_Name_1.Synthetic_Module.A_Mod.A_Type
+
+    type_via_logical_path == type_via_physical_path

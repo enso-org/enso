@@ -1,0 +1,16 @@
+
+## We only export A_Type, such that it can be imported and used from other
+   projects with something like:
+     import local.Test_Fully_Qualified_Name_1
+     main = Test_Fully_Qualified_Name_1.A_Type
+
+   or:
+     from local.Test_Fully_Qualified_Name_1 import A_Type
+     main = A_Type
+
+   But we also have to ensure that it can be accessed via physical path:
+     import local.Test_Fully_Qualified_Name_1
+     main = Test_Fully_Qualified_Name_1.Synthetic_Mod.A_Mod.A_Type
+
+import project.Synthetic_Mod.A_Mod.A_Type
+export project.Synthetic_Mod.A_Mod.A_Type
