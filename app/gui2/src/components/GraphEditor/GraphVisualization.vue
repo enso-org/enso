@@ -13,6 +13,7 @@ import {
 } from '@/stores/visualization'
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { Ast } from '@/util/ast'
+import type { Pattern } from '@/util/ast/match'
 import { toError } from '@/util/data/error'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -60,6 +61,7 @@ const emit = defineEmits<{
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
   addNode: [pos: Vec2 | undefined]
+  createNode: [pattern: Pattern]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -294,6 +296,7 @@ provideVisualizationConfig({
   hide: () => emit('update:visible', false),
   updateType: (id) => emit('update:id', id),
   addNode: (pos) => emit('addNode', pos),
+  createNode: (pattern) => emit('createNode', pattern),
 })
 
 const effectiveVisualization = computed(() => {

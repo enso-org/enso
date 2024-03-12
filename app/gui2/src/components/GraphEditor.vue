@@ -29,6 +29,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { bail } from '@/util/assert'
+import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadataFields } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
@@ -385,6 +386,12 @@ function addNodeAt(sourceNode: NodeId, pos: Vec2 | undefined) {
   showComponentBrowser(pos, { type: 'newNode', sourcePort })
 }
 
+function createNodeWithContent(sourceNode: NodeId, content: Ast.Ast) {
+  const position = positionForNodeFromSource(sourceNode)
+  const createdNode = graphStore.createNode(position, content.code(), undefined, [])
+  if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
+}
+
 function hideComponentBrowser() {
   graphStore.editedNodeInfo = undefined
   componentBrowserVisible.value = false
@@ -571,12 +578,16 @@ function handleNodeOutputPortDoubleClick(id: AstId) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
     return
   }
-  const placementEnvironment = environmentForNodes([srcNode].values())
-  const position = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment, {
+  const position = positionForNodeFromSource(srcNode)
+  showComponentBrowser(position, { type: 'newNode', sourcePort: id })
+}
+
+function positionForNodeFromSource(sourceNode: NodeId) {
+  const placementEnvironment = environmentForNodes([sourceNode].values())
+  return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment, {
     horizontalGap: gapBetweenNodes,
     verticalGap: gapBetweenNodes,
   }).position
-  showComponentBrowser(position, { type: 'newNode', sourcePort: id })
 }
 
 const stackNavigator = useStackNavigator()
@@ -603,6 +614,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
         @addNode="addNodeAt"
+        @createNode="createNodeWithContent"
       />
     </div>
     <div

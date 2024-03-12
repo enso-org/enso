@@ -7,7 +7,9 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import type { AstId } from '@/util/ast/abstract.ts'
+import { Ast } from '@/util/ast'
+import type { AstId } from '@/util/ast/abstract'
+import type { Pattern } from '@/util/ast/match'
 import type { Vec2 } from '@/util/data/vec2'
 import { stackItemsEqual } from 'shared/languageServerTypes'
 import { computed, toRaw } from 'vue'
@@ -22,6 +24,7 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
   addNode: [source: NodeId, pos: Vec2 | undefined]
+  createNode: [source: NodeId, ast: Ast.Owned]
 }>()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
@@ -39,6 +42,18 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     stackItemsEqual(file.stackItem, toRaw(currentStackItem)),
   )
 })
+
+function createConnectedNode(
+  sourceId: NodeId,
+  pattern: Pattern,
+  sourceBinding: Ast.Ast | undefined,
+) {
+  if (!sourceBinding) {
+    console.error('Cannot create a node from a source without a binding.')
+    return
+  }
+  emit('createNode', sourceId, pattern.instantiateCopied([sourceBinding]))
+}
 </script>
 
 <template>
@@ -56,6 +71,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
     @doubleClick="emit('nodeDoubleClick', id)"
     @addNode="emit('addNode', id, $event)"
+    @createNode="createConnectedNode(id, $event, node.pattern)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
     @update:visualizationId="

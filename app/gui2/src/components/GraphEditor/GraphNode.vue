@@ -20,6 +20,7 @@ import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
+import type { Pattern } from '@/util/ast/match'
 import { prefixes } from '@/util/ast/node'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -51,6 +52,7 @@ const emit = defineEmits<{
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
   addNode: [pos: Vec2 | undefined]
+  createNode: [pattern: Pattern]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -469,6 +471,7 @@ const documentation = computed<string | undefined>({
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
       @addNode="emit('addNode', $event)"
+      @createNode="emit('createNode', $event)"
     />
     <Suspense>
       <GraphNodeComment
