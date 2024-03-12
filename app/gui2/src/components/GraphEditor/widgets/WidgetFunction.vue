@@ -78,10 +78,12 @@ const application = computed(() => {
     widgetCfg: widgetConfiguration.value,
     subjectAsSelf: selfArgumentPreapplied.value,
     notAppliedArguments:
-      noArgsCall != null &&
-      (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
-        ? noArgsCall.notAppliedArguments
-        : undefined,
+      (
+        noArgsCall != null &&
+        (!subjectTypeMatchesMethod.value || noArgsCall.notAppliedArguments.length > 0)
+      ) ?
+        noArgsCall.notAppliedArguments
+      : undefined,
   })
 })
 
@@ -93,12 +95,6 @@ const innerInput = computed(() => {
   }
 })
 
-const escapeString = (str: string): string => {
-  const escaped = str.replaceAll(/([\\'])/g, '\\$1')
-  return `'${escaped}'`
-}
-const makeArgsList = (args: string[]) => '[' + args.map(escapeString).join(', ') + ']'
-
 const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
   const analyzed = interpretCall(props.input.value, true)
   if (analyzed.kind === 'infix') {
@@ -107,9 +103,9 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
     const knownArguments = methodCallInfo.value?.suggestion?.arguments
     const hasSelfArgument = knownArguments?.[0]?.name === 'self'
     const selfArgument =
-      hasSelfArgument && !selfArgumentPreapplied.value
-        ? analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
-        : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
+      hasSelfArgument && !selfArgumentPreapplied.value ?
+        analyzed.args.find((a) => a.argName === 'self' || a.argName == null)?.argument
+      : getAccessOprSubject(analyzed.func) ?? analyzed.args[0]?.argument
 
     return selfArgument?.externalId
   }
@@ -134,7 +130,10 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
       definedOnType: 'Standard.Visualization.Widgets',
       name: 'get_widget_json',
     },
-    positionalArgumentsExpressions: [`.${name}`, makeArgsList(args)],
+    positionalArgumentsExpressions: [
+      `.${name}`,
+      Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+    ],
   }
 })
 
@@ -191,9 +190,9 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         newArg = Ast.parse(value, edit)
       }
       const name =
-        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name)
-          ? argApp.argument.argInfo.name
-          : undefined
+        argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name) ?
+          argApp.argument.argInfo.name
+        : undefined
       edit
         .getVersion(argApp.appTree)
         .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))

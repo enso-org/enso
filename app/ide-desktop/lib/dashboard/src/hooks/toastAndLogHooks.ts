@@ -25,7 +25,6 @@ export function useToastAndLog() {
         error == null
           ? `${messagePrefix ?? ''}.`
           : // DO NOT explicitly pass the generic parameter anywhere else.
-
             // It is only being used here because this function also checks for
             // `MustNotBeKnown<T>`.
             `${

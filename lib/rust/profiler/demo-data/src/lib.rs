@@ -5,6 +5,7 @@
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+
 // === Non-Standard Linter Configuration ===
 #![allow(unused_qualifications)]
 #![warn(missing_copy_implementations)]

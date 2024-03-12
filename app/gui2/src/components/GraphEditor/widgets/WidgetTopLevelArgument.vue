@@ -10,9 +10,9 @@ const props = defineProps(widgetProps(widgetDefinition))
 export const widgetDefinition = defineWidget(ArgumentInfoKey, {
   priority: -1,
   score: (props) =>
-    props.nesting < 2 && props.input[ArgumentInfoKey].appKind === ApplicationKind.Prefix
-      ? Score.Perfect
-      : Score.Mismatch,
+    props.nesting < 2 && props.input[ArgumentInfoKey].appKind === ApplicationKind.Prefix ?
+      Score.Perfect
+    : Score.Mismatch,
 })
 </script>
 

@@ -46,7 +46,7 @@ public class AutoscopedConstructorTest extends TestBase {
 
                       materialize v:N = v.to_text
 
-                  create n = N.materialize (~False)
+                  create n = N.materialize (..False)
                   """)
               .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
       assertTrue("Can evaluate", create.canExecute());
@@ -69,7 +69,7 @@ public class AutoscopedConstructorTest extends TestBase {
 
                       materialize v:M = v.value
 
-                  create n = M.materialize (~Construct n)
+                  create n = M.materialize (..Construct n)
                   """)
               .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
       assertTrue("Can evaluate", create.canExecute());
@@ -92,7 +92,7 @@ public class AutoscopedConstructorTest extends TestBase {
 
                       materialize v:M = [v.v1, v.v2]
 
-                  create a b = M.materialize (~Construct a b)
+                  create a b = M.materialize (..Construct a b)
                   """)
               .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
       assertTrue("Can evaluate", create.canExecute());
@@ -115,7 +115,7 @@ public class AutoscopedConstructorTest extends TestBase {
                       materialize v:M = [v.v1, v.v2]
 
                   create a b =
-                      v0 = ~Construct
+                      v0 = ..Construct
                       v1 = v0 a
                       v2 = v1 b
                       M.materialize v2
@@ -141,7 +141,7 @@ public class AutoscopedConstructorTest extends TestBase {
                       materialize v:M = [v.v1, v.v2]
 
                   create a b =
-                      v0 = ~Construct v2=a v1=b
+                      v0 = ..Construct v2=a v1=b
                       M.materialize v0
                   """)
               .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
@@ -164,15 +164,15 @@ public class AutoscopedConstructorTest extends TestBase {
 
                   materialize v:M = [v.v1, v.v2, v.v3, v.v4]
 
-              c0 _ = M.materialize (~Construct)
-              c1 a = M.materialize (~Construct a)
-              c12 a b = M.materialize (~Construct a b)
-              c123 a b c = M.materialize (~Construct a b c)
-              c1234 a b c d = M.materialize (~Construct a b c d)
-              c14 a d = M.materialize (~Construct a v4=d)
-              c13 a c = M.materialize (~Construct a v3=c)
-              c41 a d = M.materialize ((~Construct v4=d) a)
-              c31 a c = M.materialize ((~Construct v3=c) a)
+              c0 _ = M.materialize (..Construct)
+              c1 a = M.materialize (..Construct a)
+              c12 a b = M.materialize (..Construct a b)
+              c123 a b c = M.materialize (..Construct a b c)
+              c1234 a b c d = M.materialize (..Construct a b c d)
+              c14 a d = M.materialize (..Construct a v4=d)
+              c13 a c = M.materialize (..Construct a v3=c)
+              c41 a d = M.materialize ((..Construct v4=d) a)
+              c31 a c = M.materialize ((..Construct v3=c) a)
               """);
 
       var c0 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "c0");
@@ -211,7 +211,7 @@ public class AutoscopedConstructorTest extends TestBase {
 
                       materialize v:N = v.to_text
 
-                  create n = N.materialize (~True)
+                  create n = N.materialize (..True)
                   """)
               .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
       assertTrue("Can evaluate", create.canExecute());

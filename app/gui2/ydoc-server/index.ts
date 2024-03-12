@@ -21,7 +21,7 @@ type ConnectionData = {
   user: string
 }
 
-export async function createGatewayServer(httpServer: Server, rustFFIPath: string) {
+export async function createGatewayServer(httpServer: Server, rustFFIPath: string | undefined) {
   await initializeFFI(rustFFIPath)
   const wss = new WebSocketServer({ noServer: true })
   wss.on('connection', (ws: WebSocket, _request: IncomingMessage, data: ConnectionData) => {

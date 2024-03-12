@@ -69,7 +69,9 @@ export function lsDiagnosticsToCMDiagnostics(
       continue
     }
     const severity =
-      diagnostic.kind === 'Error' ? 'error' : diagnostic.kind === 'Warning' ? 'warning' : 'info'
+      diagnostic.kind === 'Error' ? 'error'
+      : diagnostic.kind === 'Warning' ? 'warning'
+      : 'info'
     results.push({ from, to, message: diagnostic.message, severity })
   }
   return results
