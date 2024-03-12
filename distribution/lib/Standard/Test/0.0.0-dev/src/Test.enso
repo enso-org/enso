@@ -42,6 +42,11 @@ type Test
         loc = Meta.get_source_location 1
         handle_panic caught_panic =
             payload = caught_panic.payload
+            is_internal_test_panic = payload.is_a Spec_Result
+            if is_internal_test_panic then
+                # If we just caught the internal test panic, we rethrow it.
+                Panic.throw caught_panic
+
             is_panic_matching = payload.is_a matcher
             if is_panic_matching then payload else
                 Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at "+loc+").")
