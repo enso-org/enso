@@ -2436,35 +2436,35 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="flex flex-col w-min min-w-full h-full">
-        {isCloud && (
-          <div className="sticky top-0 h-0 flex flex-col">
-            <div className="block sticky right-0 self-end w-29 px-2 pt-2.25 pb-1.75 z-1">
-              <div className="inline-flex gap-3">
-                {columnUtils.EXTRA_COLUMNS.map(column => (
-                  <Button
-                    key={column}
-                    active={extraColumns.has(column)}
-                    image={columnUtils.EXTRA_COLUMN_IMAGES[column]}
-                    alt={`${extraColumns.has(column) ? 'Show' : 'Hide'} ${
-                      columnUtils.COLUMN_NAME[column]
-                    }`}
-                    onClick={event => {
-                      event.stopPropagation()
-                      const newExtraColumns = new Set(extraColumns)
-                      if (extraColumns.has(column)) {
-                        newExtraColumns.delete(column)
-                      } else {
-                        newExtraColumns.add(column)
-                      }
-                      setExtraColumns(newExtraColumns)
-                    }}
-                  />
-                ))}
-              </div>
+      {isCloud && (
+        <div className="sticky top-0 h-0 flex flex-col">
+          <div className="block sticky right-0 self-end w-29 px-2 pt-2.25 pb-1.75 z-1">
+            <div className="inline-flex gap-3">
+              {columnUtils.EXTRA_COLUMNS.map(column => (
+                <Button
+                  key={column}
+                  active={extraColumns.has(column)}
+                  image={columnUtils.EXTRA_COLUMN_IMAGES[column]}
+                  alt={`${extraColumns.has(column) ? 'Show' : 'Hide'} ${
+                    columnUtils.COLUMN_NAME[column]
+                  }`}
+                  onClick={event => {
+                    event.stopPropagation()
+                    const newExtraColumns = new Set(extraColumns)
+                    if (extraColumns.has(column)) {
+                      newExtraColumns.delete(column)
+                    } else {
+                      newExtraColumns.add(column)
+                    }
+                    setExtraColumns(newExtraColumns)
+                  }}
+                />
+              ))}
             </div>
           </div>
-        )}
+        </div>
+      )}
+      <div className="flex flex-col w-min min-w-full h-full">
         {hiddenContextMenu}
         {table}
       </div>
