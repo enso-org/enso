@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Errors.Cloud_Session_Expired
 import Standard.Base.Enso_Cloud.Errors.Enso_Cloud_Error
 import Standard.Base.Enso_Cloud.Errors.Not_Logged_In
 import Standard.Base.Errors.Common.No_Such_Conversion
@@ -10,6 +11,7 @@ import Standard.Test.Test_Environment
 
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup.Mock_Credentials
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
@@ -101,13 +103,44 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                     r.catch.should_be_a Enso_Cloud_Error.Unauthorized
                     r.catch.to_display_text . should_contain "401"
 
-        suite_builder.group "Enso Cloud Authentication" group_builder->
-            # TODO tests against the mock here
-            group_builder.specify "should be able to refresh the token" pending=setup.pending <| setup.with_prepared_environment <|
-                authentication_service = AuthenticationProvider.getAuthenticationServiceEnsoInstance
-                IO.println authentication_service.auth_data.get.expire_at
-                authentication_service.force_refresh
-                IO.println authentication_service.auth_data.get.expire_at
+        suite_builder.group "Enso Cloud Authentication" pending=setup.httpbin_pending group_builder->
+            get_current_token =
+                AuthenticationProvider.getAccessToken
+            base_credentials = Lazy_Ref.Value <|
+                Mock_Credentials.default Cloud_Tests_Setup.prepare_mock_setup.httpbin_uri
+            group_builder.specify "refreshes an expired token" <|
+                Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.locally_expired <|
+                    previous_token = get_current_token
+                    ## Trigger some cloud endpoint - it should succeed
+                    Enso_User.current . should_be_a Vector
+
+                    ## And afterwards, the token should be refreshed
+                    get_current_token . should_not_equal previous_token
+
+            group_builder.specify "retries if the token is considered expired by the backend" <|
+                # This test is the same as the above, just with different credentials settings.
+                Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.remotely_expired <|
+                    previous_token = get_current_token
+                    Enso_User.current . should_be_a Vector
+                    ## Ideally, we'd also check that the `Enso_User.current` has been retried, failing with 401 at first try.
+                       But all of these happens under the hood so it is not trivial to test. Unless I use a counter: TODO
+                    get_current_token . should_not_equal previous_token
+
+            group_builder.specify "refreshes a token that is about to expire" <|
+                # The token here is not yet expired, but we still refresh it.
+                Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.about_to_expire <|
+                    previous_token = get_current_token
+                    Enso_User.current . should_be_a Vector
+                    get_current_token . should_not_equal previous_token
+
+            group_builder.specify "graciously fails if the refresh token is expired" <|
+                Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=base_credentials.get.invalid_refresh_token <|
+                    err = Test.expect_panic Cloud_Session_Expired <|
+                        Enso_User.current
+                    err.to_display_text . should_contain "Please log in again and restart"
+
+type Lazy_Ref
+    Value ~get
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
