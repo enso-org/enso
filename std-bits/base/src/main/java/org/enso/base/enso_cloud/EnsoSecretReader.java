@@ -57,9 +57,10 @@ class EnsoSecretReader {
     }
 
     int status = response.statusCode();
-    if (status == 401) {
+    if (status == 401 || status >= 500) {
       if (retryCount < 0) {
-        throw new IllegalArgumentException("Unable to read secret - numerous authentication failures.");
+        String kind = status == 401 ? "authentication " : "server";
+        throw new IllegalArgumentException("Unable to read secret - numerous " + kind + " failures.");
       } else {
         // We forcibly refresh the access token and try again.
         AuthenticationProvider.getAuthenticationService().force_refresh();
