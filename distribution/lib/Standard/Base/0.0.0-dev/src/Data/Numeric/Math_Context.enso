@@ -41,7 +41,7 @@ type Math_Context
          specifies exact operations.
        - rounding_mode: The rounding mode to use.
     new : Integer -> Rounding_Mode -> Math_Context
-    new (precision : Integer | Unlimited) (rounding_mode:Rounding_Mode)=Rounding_Mode.half_up =
+    new (precision : Integer | Unlimited) (rounding_mode : Rounding_Mode = Rounding_Mode.half_up) =
         case precision of
             _ : Integer -> Math_Context.Value (MathContext.new precision rounding_mode.rounding_mode)
             _ : Unlimited -> Math_Context.Value (MathContext.new 0 rounding_mode.rounding_mode)

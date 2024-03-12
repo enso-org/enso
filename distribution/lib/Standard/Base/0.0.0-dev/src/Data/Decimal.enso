@@ -77,7 +77,7 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
    `Arithmetic_Error` will be thrown. In this case, the solution is to specify
    an explicit precision using a `Math_Context`.
 type Decimal
-    Value (big_decimal:BigDecimal)
+    Value (big_decimal : BigDecimal)
 
     ## Construct a `Decimal` from a string or integer.
 
@@ -105,7 +105,7 @@ type Decimal
 
               c = Decimal.new "12.345"
     new : Text | Integer | Float -> Math_Context -> Decimal ! Arithmetic_Error | Number_Parse_Error
-    new (x : Text | Integer | Float) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
+    new (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal | Number_Parse_Error =
         handle_java_exception <|
             case x of
                 _ : Text -> Decimal.parse x mc
@@ -138,7 +138,7 @@ type Decimal
 
               d = Decimal.parse "12.345"
     parse : Text -> Math_Context -> Decimal ! Arithmetic_Error | Number_Parse_Error
-    parse (s : Text) (mc : Math_Context | Nothing)=Nothing -> Decimal | Number_Parse_Error =
+    parse (s : Text) (mc : Math_Context | Nothing = Nothing) -> Decimal | Number_Parse_Error =
         handle_java_exception <| handle_number_format_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss s <| Decimal_Utils.fromString s mc.math_context
@@ -164,7 +164,7 @@ type Decimal
 
               d = Decimal.from_integer 12
     from_integer : Integer -> Math_Context -> Decimal ! Arithmetic_Error
-    from_integer (i : Integer) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
+    from_integer (i : Integer) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case mc of
                 _ : Math_Context -> Decimal.Value <| handle_precision_loss i <| Decimal_Utils.fromInteger i mc.math_context
@@ -198,7 +198,7 @@ type Decimal
 
               d = Decimal.from_integer 12.345
     from_float : Float -> Math_Context -> Decimal ! Arithmetic_Error ! Illegal_Argument
-    from_float (f : Float) (mc : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error ! Illegal_Argument =
+    from_float (f : Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error ! Illegal_Argument =
         is_exceptional = f.is_nan || f.is_infinite
         if is_exceptional then Error.throw (Illegal_Argument.Error "Cannot convert "+f.to_text+" to a Decimal") else
             # We do not use `handle_precision_loss` here because we always attach a `Loss_Of_Numeric_Precision` warning in the Float case.
@@ -221,7 +221,7 @@ type Decimal
              Decimal.new 10 > 7
              # => True
     > : Decimal -> Boolean
-    > self (that:Decimal) -> Boolean = Decimal_Comparator.compare self that == Ordering.Greater
+    > self (that : Decimal) -> Boolean = Decimal_Comparator.compare self that == Ordering.Greater
 
     ## ALIAS greater than or equal
        GROUP Operators
@@ -237,7 +237,7 @@ type Decimal
              Decimal.new 10 >= 7
              # => True
     >= : Decimal -> Boolean
-    >= self (that:Decimal) -> Boolean =
+    >= self (that : Decimal) -> Boolean =
         ordering = Decimal_Comparator.compare self that
         ordering == Ordering.Greater || ordering == Ordering.Equal
 
@@ -255,7 +255,7 @@ type Decimal
              Decimal.new 10 < 7
              # => False
     < : Decimal -> Boolean
-    < self (that:Decimal) -> Boolean = Decimal_Comparator.compare self that == Ordering.Less
+    < self (that : Decimal) -> Boolean = Decimal_Comparator.compare self that == Ordering.Less
 
     ## ALIAS less than or equal
        GROUP Operators
@@ -271,7 +271,7 @@ type Decimal
              Decimal.new 10 <= 7
              # => False
     <= : Decimal -> Boolean
-    <= self (that:Decimal) -> Boolean =
+    <= self (that : Decimal) -> Boolean =
         ordering = Decimal_Comparator.compare self that
         ordering == Ordering.Less || ordering == Ordering.Equal
 
@@ -306,7 +306,7 @@ type Decimal
              a.add b (Math_Context.new 3)
              # => Decimal.new 30.5
     add : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
-    add self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
+    add self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.add that.big_decimal)
@@ -331,7 +331,7 @@ type Decimal
              c = a + b
              # => Decimal.new 30.55
     + : Decimal -> Decimal -> Decimal
-    + self (that:Decimal) = self.add that
+    + self (that : Decimal) = self.add that
 
     ## ALIAS minus
        GROUP Operators
@@ -364,7 +364,7 @@ type Decimal
              c = a.subtract b (Math_Context.new 3)
              # => Decimal.new 10.1
     subtract : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
-    subtract self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
+    subtract self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.subtract that.big_decimal)
@@ -390,7 +390,7 @@ type Decimal
              c = a - b
              # => Decimal.new 10.11
     - : Decimal -> Decimal -> Decimal
-    - self (that:Decimal) = self.subtract that
+    - self (that : Decimal) = self.subtract that
 
     ## ALIAS times
        GROUP Operators
@@ -423,7 +423,7 @@ type Decimal
              c = a.multiply b (Math_Context.new 4)
              # => Decimal.new 207.8
     multiply : Decimal -> Decimal -> Math_Context | Nothing -> Decimal ! Arithmetic_Error
-    multiply self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
+    multiply self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.multiply that.big_decimal)
@@ -448,7 +448,7 @@ type Decimal
              c = a * b
              # => Decimal.new 207.7726
     * : Decimal -> Decimal -> Decimal
-    * self (that:Decimal) = self.multiply that
+    * self (that : Decimal) = self.multiply that
 
     ## GROUP Operators
        ICON math
@@ -486,7 +486,7 @@ type Decimal
              c = a.divide b (Math_Context.new 3)
              # => Decimal.new 45.7
     divide : Decimal -> Decimal -> Math_Context | Nothing -> Decimal | Arithmetic_Error
-    divide self (that:Decimal) (math_context : Math_Context | Nothing)=Nothing -> Decimal ! Arithmetic_Error =
+    divide self (that : Decimal) (math_context : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error =
         handle_java_exception <|
             case math_context of
                 Nothing -> Decimal.Value (self.big_decimal.divide that.big_decimal)
@@ -511,7 +511,7 @@ type Decimal
              c = a / b
              # => Decimal.new 45.67
     / : Decimal -> Decimal -> Decimal
-    / self (that:Decimal) = self.divide that
+    / self (that : Decimal) = self.divide that
 
     ## GROUP Operators
        Compute the negation of this.
@@ -573,14 +573,14 @@ handle_java_exception ~action =
 ## PRIVATE
 type Decimal_Comparator
     #compare x:Decimal y:Decimal =
-    compare x:Decimal y:Decimal =
+    compare (x : Decimal) (y : Decimal) =
         Ordering.from_sign (x.big_decimal.compareTo y.big_decimal)
     hash x:Decimal = Decimal_Utils.hashCodeOf x.big_decimal
 
 ## PRIVATE
-Comparable.from (_:Decimal) = Decimal_Comparator
-Comparable.from (_:Number) = Decimal_Comparator
+Comparable.from (_ : Decimal) = Decimal_Comparator
+Comparable.from (_ : Number) = Decimal_Comparator
 
 ## PRIVATE
-Decimal.from (that:Text) = Decimal.parse that
-Decimal.from (that:Number) = Decimal.new that
+Decimal.from (that : Text) = Decimal.parse that
+Decimal.from (that : Number) = Decimal.new that
