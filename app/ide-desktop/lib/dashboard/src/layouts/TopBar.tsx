@@ -82,17 +82,19 @@ export default function TopBar(props: TopBarProps) {
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
           )}
-          {supportsCloudBackend && <UserBar
-            supportsLocalBackend={supportsLocalBackend}
-            page={page}
-            setPage={setPage}
-            isHelpChatOpen={isHelpChatOpen}
-            setIsHelpChatOpen={setIsHelpChatOpen}
-            projectAsset={projectAsset}
-            setProjectAsset={setProjectAsset}
-            doRemoveSelf={doRemoveSelf}
-            onSignOut={onSignOut}
-          />}
+          {supportsCloudBackend && (
+            <UserBar
+              supportsLocalBackend={supportsLocalBackend}
+              page={page}
+              setPage={setPage}
+              isHelpChatOpen={isHelpChatOpen}
+              setIsHelpChatOpen={setIsHelpChatOpen}
+              projectAsset={projectAsset}
+              setProjectAsset={setProjectAsset}
+              doRemoveSelf={doRemoveSelf}
+              onSignOut={onSignOut}
+            />
+          )}
         </div>
       </div>
       {root &&

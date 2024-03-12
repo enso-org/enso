@@ -98,7 +98,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 readOnly={readOnly}
                 value={typeof value === 'string' ? value : ''}
                 size={1}
-                className={`text grow w-data-link-text-input rounded-input border bg-transparent px-input-x read-only:read-only ${
+                className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
                   getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
                 }`}
                 placeholder="Enter text"
@@ -118,7 +118,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`text grow w-data-link-text-input rounded-input border bg-transparent px-input-x read-only:read-only ${
+              className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
                 getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter number"
@@ -139,7 +139,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`text grow w-data-link-text-input rounded-input border bg-transparent px-input-x read-only:read-only ${
+              className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
                 getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter integer"
