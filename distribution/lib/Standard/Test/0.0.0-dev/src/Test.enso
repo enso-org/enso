@@ -44,9 +44,9 @@ type Test
             payload = caught_panic.payload
             is_panic_matching = payload.is_a matcher
             if is_panic_matching then payload else
-                Test.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead (at "+loc+").")
+                Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at "+loc+").")
         Panic.catch Any handle_panic <|
-            action
+            res = action
 
             # If the action did not panic above, we fail the test.
             return_suffix = if res.is_nothing then "" else " and returned ["+res.to_text+"]"
