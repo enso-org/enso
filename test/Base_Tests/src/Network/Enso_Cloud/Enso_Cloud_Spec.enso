@@ -105,7 +105,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
         suite_builder.group "Enso Cloud Authentication" pending=setup.httpbin_pending group_builder->
             get_current_token =
-                AuthenticationProvider.getAccessToken
+                ## We cannot just use `getAccessToken` here, because it would trigger the refresh too early.
+                   Instead, we want to see the token as is currently set.
+                AuthenticationProvider.getAuthenticationServiceEnsoInstance.auth_data.get.access_token
             base_credentials = Lazy_Ref.Value <|
                 Mock_Credentials.default Cloud_Tests_Setup.prepare_mock_setup.httpbin_uri
             group_builder.specify "refreshes an expired token" <|

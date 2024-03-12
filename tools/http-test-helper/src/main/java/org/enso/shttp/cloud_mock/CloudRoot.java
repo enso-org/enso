@@ -17,6 +17,12 @@ public class CloudRoot extends HandlerWithTokenAuth {
   }
 
   @Override
+  protected int getInvalidTokenStatus(String token) {
+    boolean isValidButExpired = token.equals("TEST-EXPIRED-TOKEN-beef");
+    return isValidButExpired ? 403 : 401;
+  }
+
+  @Override
   protected void handleAuthorized(HttpExchange exchange) throws IOException {
     URI uri = exchange.getRequestURI();
     String path = uri.getPath();
