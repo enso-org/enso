@@ -648,6 +648,9 @@ function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): 
   if (verbatim && child.whitespace != null) return child
   return child.whitespace === '' ? child : { ...child, whitespace: '' }
 }
+function preferSpacedIf<T>(child: NodeChild<T>, condition: boolean): NodeChild<T> {
+  return condition ? preferSpaced(child) : preferUnspaced(child)
+}
 function preferUnspaced<T>(child: NodeChild<T>): NodeChild<T> {
   return child.whitespace === undefined ? { ...child, whitespace: '' } : child
 }
@@ -1777,12 +1780,7 @@ export class Function extends Ast {
     yield name
     for (const def of argumentDefinitions) yield* def
     yield { whitespace: equals.whitespace ?? ' ', node: this.module.getToken(equals.node) }
-    if (body)
-      yield ensureSpacedOnlyIf(
-        body,
-        !(this.module.tryGet(body.node) instanceof BodyBlock),
-        verbatim,
-      )
+    if (body) yield preferSpacedIf(body, this.module.tryGet(body.node) instanceof BodyBlock)
   }
 }
 export class MutableFunction extends Function implements MutableAst {
