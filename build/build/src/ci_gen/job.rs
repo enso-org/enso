@@ -264,16 +264,16 @@ pub struct NativeTest;
 
 impl JobArchetype for NativeTest {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Native GUI tests", "wasm test --no-wasm")
+        plain_job(target, "Native Rust tests", "wasm test --no-wasm")
     }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct NewGuiTest;
+pub struct GuiTest;
 
-impl JobArchetype for NewGuiTest {
+impl JobArchetype for GuiTest {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "New (Vue) GUI tests", "gui2 test")
+        plain_job(target, "GUI tests", "gui test")
     }
 }
 
@@ -283,10 +283,10 @@ pub struct NewGuiBuild;
 
 impl JobArchetype for NewGuiBuild {
     fn job(&self, target: Target) -> Job {
-        let command = "gui2 build";
+        let command = "gui build";
         RunStepsBuilder::new(command)
             .customize(|step| vec![expose_cloud_vars(step)])
-            .build_job("New (Vue) GUI build", target)
+            .build_job("GUI build", target)
     }
 }
 
@@ -295,7 +295,7 @@ pub struct WasmTest;
 
 impl JobArchetype for WasmTest {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "WASM GUI tests", "wasm test --no-native")
+        plain_job(target, "WASM tests", "wasm test --no-native")
     }
 }
 
@@ -309,18 +309,6 @@ impl JobArchetype for IntegrationTest {
             "IDE integration tests",
             "ide integration-test --backend-source current-ci-run",
         )
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct BuildWasm;
-
-impl JobArchetype for BuildWasm {
-    fn job(&self, target: Target) -> Job {
-        let command = "wasm build --wasm-upload-artifact ${{ runner.os == 'Linux' }}";
-        RunStepsBuilder::new(command)
-            .customize(|step| vec![step.with_secret_exposed(crate::env::ENSO_AG_GRID_LICENSE_KEY)])
-            .build_job("Build GUI (WASM)", target)
     }
 }
 
@@ -447,12 +435,12 @@ pub fn with_packaging_steps(os: OS) -> impl FnOnce(Step) -> Vec<Step> {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct PackageNewIde;
+pub struct PackageIde;
 
-impl JobArchetype for PackageNewIde {
+impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
-            "ide2 build --backend-source current-ci-run --gui2-upload-artifact false",
+            "ide build --backend-source current-ci-run --gui-upload-artifact false",
         )
         .customize(with_packaging_steps(target.0))
         .build_job("Package New IDE", target)
