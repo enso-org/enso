@@ -629,8 +629,8 @@
 - [Added `select_by_type` and `remove_by_type` to `Table` and `DB_Table`][9334]
 - [Make File./ only accept Text][9330]
 - [Implemented Excel Data Link][9346]
-- [Implemented constructors, comparisons, and arithmetic for a `Decimal` type.]
-  [9272]
+- [Implemented constructors, comparisons, and arithmetic for a `Decimal`
+  type.][9272]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
