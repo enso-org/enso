@@ -6,7 +6,7 @@
 
 import * as React from 'react'
 
-const UNSET_VALUE = Symbol('inset')
+const UNSET_VALUE = Symbol('unset')
 
 /**
  * A hook that returns a memoized function that will only be called once
@@ -22,5 +22,8 @@ export function useLazyMemo<T>(factory: T | (() => T), deps: React.DependencyLis
 
       return cachedValue
     }
+    // We assume that the callback should change only when
+    // the deps change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 }

@@ -14,17 +14,11 @@
 export function safeJsonParse<T = unknown>(
   value: string,
   defaultValue: T,
-  assert: (parsed: unknown) => parsed is T
+  predicate: (parsed: unknown) => parsed is T
 ): T {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const parsed: unknown = JSON.parse(value)
-
-    if (assert(parsed)) {
-      return parsed
-    } else {
-      return defaultValue
-    }
+    return predicate(parsed) ? parsed : defaultValue
   } catch {
     return defaultValue
   }
