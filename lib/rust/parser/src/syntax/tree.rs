@@ -955,8 +955,15 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
     }
     if opr.properties.is_autoscope() && let Some(rhs) = rhs {
         return if let box Variant::Ident(Ident { mut token }) = rhs.variant {
+            let applied_to_type = token.variant.is_type;
             token.left_offset = rhs.span.left_offset;
-            Tree::autoscoped_identifier(opr, token)
+            let autoscope_application = Tree::autoscoped_identifier(opr, token);
+            return if applied_to_type {
+                autoscope_application
+            } else {
+                autoscope_application
+                    .with_error("The auto-scope operator may only be applied to a capitalized identifier.")
+            }
         } else {
             Tree::unary_opr_app(opr, Some(rhs)).with_error("The auto-scope operator (..) may only be applied to an identifier.")
         }
