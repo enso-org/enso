@@ -68,7 +68,7 @@ Artifacts are platform specific and consist of the single image file.
 
 ### GUI
 
-GUI is the front-end part of the project. It also packages WASM-compiled parser 
+GUI is the front-end part of the project. It also packages WASM-compiled parser
 written in rust.
 
 Artifacts are portable across the platforms and consist of the web page that can
