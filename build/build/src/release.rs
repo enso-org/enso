@@ -9,11 +9,6 @@ use crate::paths::generated;
 use crate::paths::TargetTriple;
 use crate::paths::EDITION_FILE_ARTIFACT_NAME;
 use crate::project;
-use crate::project::gui;
-use crate::project::Gui;
-use crate::project::IsTarget;
-use crate::source::ExternalSource;
-use crate::source::FetchTargetJob;
 use crate::version;
 use crate::version::promote::Designation;
 use crate::version::Versions;
@@ -239,50 +234,6 @@ pub async fn deploy_to_ecr(context: &BuildContext, repository: String) -> Result
     let _image_id = generate_runtime_image(context, &tag).await?;
     let credentials = crate::aws::ecr::get_credentials(&client).await?;
     Docker.while_logged_in(credentials, || async move { Docker.push(&tag).await }).await?;
-    Ok(())
-}
-
-/// Download the GUI artifacts from the current CI run artifacts.
-pub async fn get_gui_from_current_ci_run(
-    context: &BuildContext,
-    out_dir: impl Into<PathBuf>,
-) -> Result<gui::Artifact> {
-    let target = Gui;
-    let source = ExternalSource::new_ongoing_ci_run(target.artifact_name());
-    let fetch_job = FetchTargetJob { destination: out_dir.into(), inner: source };
-    target.get_external(context.inner.clone(), fetch_job).await
-}
-
-/// Upload GUI to the cloud (AWS S3).
-pub async fn upload_gui_to_cloud_good(context: &BuildContext) -> Result {
-    let temp = tempdir()?;
-    let gui = get_gui_from_current_ci_run(context, temp.path()).await?;
-    upload_gui_to_cloud(&gui.assets, &context.triple.versions.version).await?;
-    notify_cloud_about_gui(&context.triple.versions.version).await?;
-    Ok(())
-}
-
-/// Upload GUI to the cloud (AWS S3).
-pub async fn upload_gui_to_cloud(
-    assets: &crate::paths::generated::RepoRootDistGuiAssets,
-    version: &Version,
-) -> Result {
-    let bucket = crate::aws::s3::gui::context(version).await?;
-
-    // Some file we upload as-is, some gzipped. This seems somewhat arbitrary now.
-    let files_to_upload = [
-        assets.pkg_opt_wasm.as_path(),
-        assets.style_css.as_path(),
-        assets.dynamic_assets.as_path(),
-    ];
-    let files_to_upload_gzipped = [assets.entrypoint_js.as_path(), assets.pkg_js.as_path()];
-
-    for file in files_to_upload.iter() {
-        bucket.put_item(file).await?;
-    }
-
-    put_files_gzipping(&bucket, &files_to_upload_gzipped).await?;
-
     Ok(())
 }
 

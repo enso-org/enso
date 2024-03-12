@@ -27,18 +27,12 @@ use octocrab::models::repos::Asset;
 pub mod backend;
 pub mod engine;
 pub mod gui;
-pub mod gui2;
 pub mod ide;
-pub mod ide2;
 pub mod project_manager;
 pub mod runtime;
-pub mod wasm;
 
 pub use backend::Backend;
-pub use gui::Gui;
-pub use ide::Ide;
 pub use runtime::Runtime;
-pub use wasm::Wasm;
 
 
 

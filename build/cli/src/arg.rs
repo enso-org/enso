@@ -20,14 +20,11 @@ pub mod backend;
 pub mod engine;
 pub mod git_clean;
 pub mod gui;
-pub mod gui2;
 pub mod ide;
-pub mod ide2;
 pub mod java_gen;
 pub mod project_manager;
 pub mod release;
 pub mod runtime;
-pub mod wasm;
 
 
 
@@ -112,24 +109,14 @@ macro_rules! source_args_hlp {
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Clone, Debug)]
 pub enum Target {
-    /// Build/Test the Rust part of the GUI.
-    Wasm(wasm::Target),
-    /// Build/Run the legacy Rust-based GUI that consists of WASM and JS parts.
+    /// Build/Run the Vue-based GUI.
     Gui(gui::Target),
-    /// Build/Run the new, Vue-based GUI.
-    Gui2(gui2::Target),
     /// Enso Engine Runtime.
     Runtime(runtime::Target),
-    // /// Project Manager package (just the binary, no Engine)
-    // ProjectManager(project_manager::Target),
-    // /// Enso Engine distribution.
-    // Engine(engine::Target),
     /// Build/Get Project Manager bundle (includes Enso Engine with GraalVM Runtime).
     Backend(backend::Target),
-    /// Build/Run/Test IDE bundle (includes Rust-based GUI and Project Manager).
-    Ide(ide::Target),
     /// Build/Run/Test IDE bundle (includes Vue-based GUI and Project Manager).
-    Ide2(ide2::Target),
+    Ide(ide::Target),
     /// Clean the repository. Keeps the IntelliJ's .idea directory intact. WARNING: This removes
     /// files that are not under version control in the repository subtree.
     GitClean(git_clean::Options),

@@ -56,16 +56,10 @@ use enso_build::project::backend;
 use enso_build::project::backend::Backend;
 use enso_build::project::gui;
 use enso_build::project::gui::Gui;
-use enso_build::project::gui2;
-use enso_build::project::gui2::Gui2;
 use enso_build::project::ide;
 use enso_build::project::ide::Ide;
-use enso_build::project::ide2;
 use enso_build::project::runtime;
 use enso_build::project::runtime::Runtime;
-use enso_build::project::wasm;
-use enso_build::project::wasm::Wasm;
-use enso_build::project::IsArtifact;
 use enso_build::project::IsTarget;
 use enso_build::project::IsWatchable;
 use enso_build::project::IsWatcher;
@@ -96,7 +90,6 @@ use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
-use tempfile::tempdir;
 use tokio::process::Child;
 
 pub fn void<T>(_t: T) {}
@@ -344,49 +337,26 @@ impl Processor {
         .boxed()
     }
 
-    pub fn handle_wasm(&self, wasm: arg::wasm::Target) -> BoxFuture<'static, Result> {
-        match wasm.command {
-            arg::wasm::Command::Watch(job) => self.watch_and_wait(job),
-            arg::wasm::Command::Build(job) => self.build(job).void_ok().boxed(),
-            arg::wasm::Command::Check => Wasm.check().boxed(),
-            arg::wasm::Command::Test { no_wasm, no_native, browser } => {
-                let wasm_browsers =
-                    if no_wasm { default() } else { browser.into_iter().map_into().collect_vec() };
-                let root = self.repo_root.to_path_buf();
-                async move { Wasm.test(root, &wasm_browsers, !no_native).await }.boxed()
-            }
-            arg::wasm::Command::Get(source) => self.get(source).void_ok().boxed(),
-        }
-    }
-
     pub fn handle_gui(&self, gui: arg::gui::Target) -> BoxFuture<'static, Result> {
         match gui.command {
             arg::gui::Command::Build(job) => self.build(job),
             arg::gui::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui::Command::Watch(job) => self.watch_and_wait(job),
-        }
-    }
-
-    pub fn handle_gui2(&self, gui: arg::gui2::Target) -> BoxFuture<'static, Result> {
-        match gui.command {
-            arg::gui2::Command::Build(job) => self.build(job),
-            arg::gui2::Command::Get(source) => self.get(source).void_ok().boxed(),
-            arg::gui2::Command::Test => {
+            arg::gui::Command::Test => {
                 let repo_root = self.repo_root.clone();
                 let gui_tests = run_and_upload_dir(
-                    gui2::tests(&repo_root),
+                    gui::tests(&repo_root),
                     &repo_root.app.gui_2.playwright_report,
-                    "gui2-playwright-report",
+                    "gui-playwright-report",
                 );
                 let dashboard_tests = run_and_upload_dir(
-                    gui2::dashboard_tests(&repo_root),
+                    gui::dashboard_tests(&repo_root),
                     &repo_root.app.ide_desktop.lib.dashboard.playwright_report,
                     "dashboard-playwright-report",
                 );
                 try_join(gui_tests, dashboard_tests).void_ok().boxed()
             }
-            arg::gui2::Command::Watch => gui2::watch(&self.repo_root),
-            arg::gui2::Command::Lint => gui2::lint(&self.repo_root),
+            arg::gui::Command::Watch => gui::watch(&self.repo_root),
+            arg::gui::Command::Lint => gui::lint(&self.repo_root),
         }
     }
 
@@ -556,76 +526,10 @@ impl Processor {
 
     pub fn handle_ide(&self, ide: arg::ide::Target) -> BoxFuture<'static, Result> {
         match ide.command {
-            arg::ide::Command::Build { params } => self.build_old_ide(params).void_ok().boxed(),
+            arg::ide::Command::Build { params } => self.build_new_ide(params).void_ok().boxed(),
             arg::ide::Command::Upload { params, release_id } => {
-                let build_job = self.build_old_ide(params);
-                self.upload_ide_assets(build_job, release_id, None)
-            }
-            arg::ide::Command::Start { params, ide_option } => {
-                let build_job = self.build_old_ide(params);
-                async move {
-                    let ide = build_job.await?;
-                    ide.start_unpacked(ide_option).run_ok().await?;
-                    Ok(())
-                }
-                .boxed()
-            }
-            arg::ide::Command::Watch { gui, project_manager, ide_option: ide_watch } => {
-                let context = self.context();
-                let watch_gui_job = self.resolve_watch_job(gui);
-                let project_manager = self.get(project_manager);
-                async move {
-                    crate::project::Ide::default()
-                        .watch(&context, watch_gui_job.await?, project_manager, ide_watch)
-                        .await
-                }
-                .boxed()
-            }
-            arg::ide::Command::IntegrationTest {
-                external_backend,
-                project_manager,
-                wasm_pack_options,
-                headless,
-                wasm_timeout,
-            } => {
-                let custom_root = tempdir();
-                let (custom_root, project_manager) = match custom_root {
-                    Ok(tempdir) => {
-                        let custom_root = Some(tempdir.path().into());
-                        (
-                            Some(tempdir),
-                            Ok(self.spawn_project_manager(project_manager, custom_root)),
-                        )
-                    }
-                    Err(e) => (None, Err(e)),
-                };
-                let source_root = self.repo_root.to_path_buf();
-                async move {
-                    let project_manager =
-                        if !external_backend { Some(project_manager?.await?) } else { None };
-                    Wasm.integration_test(
-                        source_root,
-                        project_manager,
-                        headless,
-                        wasm_pack_options,
-                        Some(wasm_timeout.into()),
-                    )
-                    .await?;
-                    // Custom root must live while the tests are being run.
-                    drop(custom_root);
-                    Ok(())
-                }
-                .boxed()
-            }
-        }
-    }
-
-    pub fn handle_ide2(&self, ide: arg::ide2::Target) -> BoxFuture<'static, Result> {
-        match ide.command {
-            arg::ide2::Command::Build { params } => self.build_new_ide(params).void_ok().boxed(),
-            arg::ide2::Command::Upload { params, release_id } => {
                 let build_job = self.build_new_ide(params);
-                self.upload_ide_assets(build_job, release_id, Some("ide2".into()))
+                self.upload_ide_assets(build_job, release_id, None)
             }
         }
     }
@@ -651,7 +555,7 @@ impl Processor {
     }
     pub fn build_ide(
         &self,
-        input: ide::BuildInput<impl IsArtifact>,
+        input: ide::BuildInput,
         output_path: OutputPath<impl IsTargetSource + Send + Sync + 'static>,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
@@ -667,25 +571,10 @@ impl Processor {
         .boxed()
     }
 
-    pub fn build_old_ide(
-        &self,
-        params: arg::ide::BuildInput<Gui>,
-    ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
-        let input = ide::BuildInput {
-            gui: self.get(gui),
-            project_manager: self.get(project_manager),
-            version: self.triple.versions.version.clone(),
-            electron_target,
-            artifact_name: "ide".into(),
-        };
-        self.build_ide(input, output_path)
-    }
-
     pub fn build_new_ide(
         &self,
-        params: arg::ide2::BuildInput,
-    ) -> BoxFuture<'static, Result<ide2::Artifact>> {
+        params: arg::ide::BuildInput,
+    ) -> BoxFuture<'static, Result<ide::Artifact>> {
         let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
 
         let build_info_get = self.js_build_info();
@@ -707,7 +596,7 @@ impl Processor {
             project_manager: self.get(project_manager),
             version: self.triple.versions.version.clone(),
             electron_target,
-            artifact_name: "ide2".into(),
+            artifact_name: "ide".into(),
         };
         self.build_ide(input, output_path)
     }
@@ -726,60 +615,9 @@ pub trait Resolvable: IsTarget + IsTargetSource + Clone {
     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>>;
 }
 
-impl Resolvable for Wasm {
-    fn prepare_target(_context: &Processor) -> Result<Self> {
-        Ok(Wasm {})
-    }
-
-    fn resolve(
-        _ctx: &Processor,
-        from: <Self as IsTargetSource>::BuildInput,
-    ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-        let arg::wasm::BuildInput {
-            crate_path,
-            wasm_profile,
-            wasm_opt_option: wasm_opt_options,
-            cargo_options,
-            profiling_level,
-            wasm_log_level,
-            wasm_uncollapsed_log_level,
-            wasm_size_limit,
-            skip_wasm_opt,
-            system_shader_tools,
-        } = from;
-        ok_ready_boxed(wasm::BuildInput {
-            crate_path,
-            wasm_opt_options,
-            skip_wasm_opt,
-            extra_cargo_options: cargo_options,
-            profile: wasm_profile,
-            profiling_level,
-            log_level: wasm_log_level,
-            uncollapsed_log_level: wasm_uncollapsed_log_level,
-            wasm_size_limit: wasm_size_limit.filter(|size_limit| size_limit.get_bytes() > 0),
-            system_shader_tools,
-        })
-    }
-}
-
 impl Resolvable for Gui {
     fn prepare_target(_context: &Processor) -> Result<Self> {
-        Ok(Gui {})
-    }
-
-    fn resolve(
-        ctx: &Processor,
-        from: <Self as IsTargetSource>::BuildInput,
-    ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-        let wasm_source = ctx.resolve(Wasm, from.wasm);
-        let build_info = ctx.js_build_info();
-        async move { Ok(gui::BuildInput { wasm: wasm_source.await?, build_info }) }.boxed()
-    }
-}
-
-impl Resolvable for Gui2 {
-    fn prepare_target(_context: &Processor) -> Result<Self> {
-        Ok(Gui2)
+        Ok(Gui)
     }
 
     fn resolve(
@@ -841,24 +679,6 @@ pub trait WatchResolvable: Resolvable + IsWatchableSource + IsWatchable {
     ) -> Result<<Self as IsWatchable>::WatchInput>;
 }
 
-impl WatchResolvable for Wasm {
-    fn resolve_watch(
-        _ctx: &Processor,
-        from: <Self as IsWatchableSource>::WatchInput,
-    ) -> Result<<Self as IsWatchable>::WatchInput> {
-        Ok(wasm::WatchInput { cargo_watch_options: from.cargo_watch_option })
-    }
-}
-
-impl WatchResolvable for Gui {
-    fn resolve_watch(
-        ctx: &Processor,
-        from: <Self as IsWatchableSource>::WatchInput,
-    ) -> Result<<Self as IsWatchable>::WatchInput> {
-        Ok(gui::WatchInput { wasm: Wasm::resolve_watch(ctx, from.wasm)? })
-    }
-}
-
 #[tracing::instrument(err, skip(config))]
 pub async fn main_internal(config: Option<Config>) -> Result {
     trace!("Starting the build process.");
@@ -868,11 +688,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
     });
 
     trace!("Creating the build context.");
-    // Setup that affects Cli parser construction.
-    if let Some(wasm_size_limit) = config.wasm_size_limit {
-        crate::arg::wasm::initialize_default_wasm_size_limit(wasm_size_limit)?;
-    }
-
     debug!("Initial configuration for the CLI driver: {config:#?}");
 
     let cli = Cli::parse();
@@ -900,16 +715,10 @@ pub async fn main_internal(config: Option<Config>) -> Result {
 
     let ctx: Processor = Processor::new(&cli).instrument(info_span!("Building context.")).await?;
     match cli.target {
-        Target::Wasm(wasm) => ctx.handle_wasm(wasm).await?,
         Target::Gui(gui) => ctx.handle_gui(gui).await?,
-        Target::Gui2(gui2) => ctx.handle_gui2(gui2).await?,
         Target::Runtime(runtime) => ctx.handle_runtime(runtime).await?,
-        // Target::ProjectManager(project_manager) =>
-        //     ctx.handle_project_manager(project_manager).await?,
-        // Target::Engine(engine) => ctx.handle_engine(engine).await?,
         Target::Backend(backend) => ctx.handle_backend(backend).await?,
         Target::Ide(ide) => ctx.handle_ide(ide).await?,
-        Target::Ide2(ide2) => ctx.handle_ide2(ide2).await?,
         Target::GitClean(options) => {
             let crate::arg::git_clean::Options { dry_run, cache, build_script } = options;
             let mut exclusions = vec![".idea"];

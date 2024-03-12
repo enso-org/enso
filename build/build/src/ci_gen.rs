@@ -400,16 +400,16 @@ impl JobArchetype for PublishRelease {
 
 /// Build new IDE and upload it as a release asset.
 #[derive(Clone, Copy, Debug)]
-pub struct UploadIde2;
+pub struct UploadIde;
 
-impl JobArchetype for UploadIde2 {
+impl JobArchetype for UploadIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
-            "ide2 upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
+            "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}",
         )
         .cleaning(RELEASE_CLEANING_POLICY)
         .customize(with_packaging_steps(target.0))
-        .build_job("Build New IDE", target)
+        .build_job("Build IDE", target)
     }
 }
 
@@ -481,9 +481,9 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
     for target in RELEASE_TARGETS {
         let backend_job_id = workflow.add_dependent(target, job::UploadBackend, [&prepare_job_id]);
 
-        let build_ide2_job_id =
-            workflow.add_dependent(target, UploadIde2, [&prepare_job_id, &backend_job_id]);
-        packaging_job_ids.push(build_ide2_job_id.clone());
+        let build_ide_job_id =
+            workflow.add_dependent(target, UploadIde, [&prepare_job_id, &backend_job_id]);
+        packaging_job_ids.push(build_ide_job_id.clone());
     }
 
     let publish_deps = {
@@ -583,9 +583,8 @@ pub fn gui() -> Result<Workflow> {
     let mut workflow = Workflow { name: "GUI CI".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
     workflow.add(PRIMARY_TARGET, job::Lint);
-    workflow.add(PRIMARY_TARGET, job::WasmTest);
     workflow.add(PRIMARY_TARGET, job::NativeTest);
-    workflow.add(PRIMARY_TARGET, job::NewGuiTest);
+    workflow.add(PRIMARY_TARGET, job::GuiTest);
 
     // FIXME: Integration tests are currently always failing.
     //        The should be reinstated when fixed.
@@ -595,7 +594,7 @@ pub fn gui() -> Result<Workflow> {
 
     for target in CHECKED_TARGETS {
         let project_manager_job = workflow.add(target, job::BuildBackend);
-        workflow.add_customized(target, job::PackageNewIde, |job| {
+        workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
         workflow.add(target, job::NewGuiBuild);
