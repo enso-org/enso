@@ -80,6 +80,9 @@ http_request_as_json (method : HTTP_Method) (url : URI) (body : Request_Body = R
    Performs a standard request to the Enso Cloud API,
    returning a raw response on success, but handling the error responses.
 
+   This method has built-in retry mechanism that may retry the request if it
+   failed due to a network error or access token expiration.
+
    Custom error handlers can be provided as a mapping from error codes
    (defined in the cloud project) to functions that take the full JSON payload
    and return a custom error.
