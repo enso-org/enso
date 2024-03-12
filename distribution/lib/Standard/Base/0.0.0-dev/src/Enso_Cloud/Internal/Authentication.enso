@@ -56,7 +56,7 @@ type Authentication_Service
 
     ## PRIVATE
     get_access_token self -> Text =
-        is_still_valid = self.auth_data.get.expire_at > (Date_Time.now + Duration.new minutes=2)
+        is_still_valid = self.auth_data.get.expire_at > (Date_Time.now + token_early_refresh_period)
         if is_still_valid then self.auth_data.get.access_token else
             # The token has expired or will expire soon, so we need to refresh it.
             self.force_refresh
@@ -136,14 +136,25 @@ type Refresh_Token_Data
                 _ -> Panic.throw (Enso_Cloud_Error.Connection_Error error)
             . catch Request_Error error->
                 Panic.throw (Enso_Cloud_Error.Connection_Error error)
+        response_received_time = Date_Time.now
+
         json = response.decode_as_json . catch Invalid_JSON error->
             Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
         auth_result = json.get "AuthenticationResult" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AuthenticationResult` field in response."))
         access_token = auth_result.get "AccessToken" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AccessToken` field in response."))
         token_type = auth_result.get "TokenType" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `TokenType` field in response."))
         expires_in = auth_result.get "ExpiresIn" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `ExpiresIn` field in response."))
-        expire_at = (Date_Time.now + (Duration.new seconds=expires_in)) . at_zone Time_Zone.utc
+
+        token_lifetime = Duration.new seconds=expires_in
+        if token_lifetime < token_early_refresh_period then
+            Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Token lifetime is too short: "+token_lifetime.to_display_text+", smaller than our minimum lifetime of "+token_early_refresh_period.to_display_text+".")
+        expire_at = (response_received_time + token_lifetime) . at_zone Time_Zone.utc
 
         if token_type != "Bearer" then
             Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Invalid `TokenType` field in response: expected `Bearer`, got `"+token_type+"`.")
         Authentication_Data.Value access_token=access_token expire_at=expire_at
+
+## PRIVATE
+   The amount of time before the token expiration that we pro-actively refresh
+   it to reduce the chance of it expiring during a request.
+token_early_refresh_period = Duration.new minutes=2
