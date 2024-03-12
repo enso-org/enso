@@ -301,26 +301,6 @@ fn is_qualified_name(tree: &syntax::Tree) -> bool {
     }
 }
 
-fn expression_to_type(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
-    use syntax::tree::*;
-    if let Variant::Wildcard(wildcard) = &mut *input.variant {
-        wildcard.de_bruijn_index = None;
-        return input;
-    }
-    let mut out = match input.variant {
-        box Variant::TemplateFunction(TemplateFunction { ast, .. }) => expression_to_type(ast),
-        box Variant::Group(Group { open, body: Some(body), close }) =>
-            Tree::group(open, Some(expression_to_type(body)), close),
-        box Variant::OprApp(OprApp { lhs, opr, rhs }) =>
-            Tree::opr_app(lhs.map(expression_to_type), opr, rhs.map(expression_to_type)),
-        box Variant::App(App { func, arg }) =>
-            Tree::app(expression_to_type(func), expression_to_type(arg)),
-        _ => return input,
-    };
-    out.span.left_offset += input.span.left_offset;
-    out
-}
-
 fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
     if let Variant::Wildcard(wildcard) = &mut *input.variant {

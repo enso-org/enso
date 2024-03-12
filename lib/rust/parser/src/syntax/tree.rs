@@ -902,10 +902,7 @@ pub fn apply_operator<'s>(
     }
     if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
         return match (lhs, rhs) {
-            (Some(lhs), Some(rhs)) => {
-                let rhs = crate::expression_to_type(rhs);
-                Tree::type_annotated(lhs, opr.unwrap(), rhs)
-            },
+            (Some(lhs), Some(rhs)) => Tree::type_annotated(lhs, opr.unwrap(), rhs),
             (lhs, rhs) => {
                 let invalid = Tree::opr_app(lhs, opr, rhs);
                 invalid.with_error("`:` operator must be applied to two operands.")

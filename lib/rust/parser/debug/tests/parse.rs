@@ -1022,7 +1022,10 @@ fn type_annotations() {
              (App (Ident foo)
               (Group (TypeAnnotated (Ident x) ":" (Ident Int)))))]),
         ("(x : My_Type _)", block![
-            (Group (TypeAnnotated (Ident x) ":" (App (Ident My_Type) (Wildcard -1))))]),
+            (Group
+             (TypeAnnotated (Ident x)
+                            ":"
+                            (App (Ident My_Type) (TemplateFunction 1 (Wildcard 0)))))]),
         ("x : List Int -> Int", block![
             (TypeSignature (Ident x) ":"
              (OprApp (App (Ident List) (Ident Int)) (Ok "->") (Ident Int)))]),
@@ -1236,8 +1239,13 @@ fn case_expression() {
         (CaseOf (Ident foo) #(
          ((() (TypeAnnotated (Ident v) ":" (Ident My_Type)) "->" (Ident x)))
          ((() (TypeAnnotated (Ident v) ":"
-            (Group (App (App (Ident My_Type) (Wildcard -1)) (Wildcard -1))))
-           "->" (Ident x)))))];
+          (Group (App
+                  (App
+                   (Ident My_Type)
+                   (TemplateFunction 1 (Wildcard 0)))
+                  (TemplateFunction 1 (Wildcard 0)))))
+          "->" (Ident x)))))
+    ];
     test(&code.join("\n"), expected);
 }
 
