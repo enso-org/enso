@@ -1,17 +1,16 @@
 package org.enso.shttp.cloud_mock;
 
 import com.sun.net.httpserver.HttpExchange;
-import org.enso.shttp.auth.HandlerWithTokenAuth;
-
 import java.io.IOException;
 import java.net.URI;
+import org.enso.shttp.auth.HandlerWithTokenAuth;
 
 public class CloudRoot extends HandlerWithTokenAuth {
   public final String prefix = "/enso-cloud-mock/";
 
   private final ExpiredTokensCounter expiredTokensCounter;
   private final CloudHandler[] handlers =
-      new CloudHandler[]{new UsersHandler(), new SecretsHandler()};
+      new CloudHandler[] {new UsersHandler(), new SecretsHandler()};
 
   public CloudRoot(ExpiredTokensCounter expiredTokensCounter) {
     this.expiredTokensCounter = expiredTokensCounter;

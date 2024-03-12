@@ -4,10 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.sun.net.httpserver.HttpExchange;
-import org.enso.shttp.SimpleHttpHandler;
-
 import java.io.IOException;
 import java.util.Objects;
+import org.enso.shttp.SimpleHttpHandler;
 
 public class CloudAuthRenew extends SimpleHttpHandler {
   private int counter = 0;
@@ -32,17 +31,17 @@ public class CloudAuthRenew extends SimpleHttpHandler {
     }
 
     String newToken = "TEST-RENEWED-" + (counter++);
-    var response = new RenewResponse(
-        new AuthenticationResult(newToken, "Bearer", 3600)
-    );
+    var response = new RenewResponse(new AuthenticationResult(newToken, "Bearer", 3600));
     sendResponse(200, jsonMapper.writeValueAsString(response), exchange);
   }
 
   private final ObjectMapper jsonMapper = new ObjectMapper();
+
   {
     jsonMapper.setPropertyNamingStrategy(PropertyNamingStrategies.UPPER_CAMEL_CASE);
   }
 
   private record RenewResponse(AuthenticationResult authenticationResult) {}
+
   private record AuthenticationResult(String accessToken, String tokenType, int expiresIn) {}
 }
