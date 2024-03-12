@@ -87,9 +87,7 @@ LocalStorage.registerKey('inputBindings', {
     typeof value !== 'object' || value == null
       ? null
       : Object.fromEntries(
-          // This is SAFE, as it is a readonly upcast.
-          // eslint-disable-next-line no-restricted-syntax
-          Object.entries(value as Readonly<Record<string, unknown>>).flatMap(kv => {
+          Object.entries<unknown>({ ...value }).flatMap(kv => {
             const [k, v] = kv
             return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
               ? [[k, v]]
