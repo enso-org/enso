@@ -118,7 +118,7 @@ export function locateChangeButton(page: test.Locator | test.Page) {
 
 /** Find a user menu button (if any) on the current locator. */
 export function locateUserMenuButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Open user menu')
+  return page.getByAltText('Open user menu').locator('visible=true')
 }
 
 /** Find a "sign out" button (if any) on the current locator. */
