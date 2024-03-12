@@ -196,9 +196,7 @@ export class Cognito {
     const amplifySession = currentSession.mapErr(intoCurrentSessionErrorType)
 
     return amplifySession
-      .map(session =>
-        parseUserSession(session, this.amplifyConfig.userPoolWebClientId, this.amplifyConfig.domain)
-      )
+      .map(session => parseUserSession(session, this.amplifyConfig.userPoolWebClientId))
       .unwrapOr(null)
   }
 
@@ -385,16 +383,10 @@ export interface UserSession {
 
 /** Parse a `CognitoUserSession` into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
-function parseUserSession(
-  session: cognito.CognitoUserSession,
-  clientId: string,
-  domain: string
-): UserSession {
+function parseUserSession(session: cognito.CognitoUserSession, clientId: string): UserSession {
   const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
-
-  domain = domain.startsWith('https://') ? domain : `https://${domain}`
-
+  const refreshUrl = extractRefreshUrlFromSession(session)
   /** The `email` field is mandatory, so we assert that it exists and is a string. */
   if (typeof email !== 'string') {
     throw new Error('Payload does not have an email field.')
@@ -411,9 +403,28 @@ function parseUserSession(
       email,
       clientId,
       expireAt,
+      refreshUrl,
       accessToken: session.getAccessToken().getJwtToken(),
       refreshToken: session.getRefreshToken().getToken(),
-      refreshUrl: new URL(domain).toString(),
+    }
+  }
+}
+
+/**
+ * Extract the refresh session endpoint URL from the JWT token payload
+ * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-the-access-token.html
+ * @throws Error if the `iss` field of the payload is not a valid URL.
+ */
+function extractRefreshUrlFromSession(session: cognito.CognitoUserSession): string {
+  const { iss } = session.getAccessToken().payload
+
+  if (typeof iss !== 'string') {
+    throw new Error('Payload does not have an iss field.')
+  } else {
+    try {
+      return new URL(iss).toString()
+    } catch (e) {
+      throw new Error('iss field is not a valid URL')
     }
   }
 }
