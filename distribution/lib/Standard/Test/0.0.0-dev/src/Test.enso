@@ -45,7 +45,7 @@ type Test
             is_panic_matching = payload.is_a matcher
             if is_panic_matching then payload else
                 Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at "+loc+").")
-        Panic.catch Any handle_panic <|
+        Panic.catch Any handler=handle_panic <|
             res = action
 
             # If the action did not panic above, we fail the test.
