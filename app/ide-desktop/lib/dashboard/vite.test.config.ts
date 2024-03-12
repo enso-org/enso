@@ -14,9 +14,6 @@ const SERVER_PORT = 8080
 export default vite.mergeConfig(
   config,
   vite.defineConfig({
-    define: {
-      'process.env.SUPPORTS_LOCAL_BACKEND': JSON.stringify('true'),
-    },
     resolve: {
       extensions: [
         '.mock.mjs',
@@ -37,6 +34,7 @@ export default vite.mergeConfig(
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),
+      'process.env.SUPPORTS_LOCAL_BACKEND': JSON.stringify('true'),
       'process.env.ENSO_CLOUD_REDIRECT': JSON.stringify(`http://localhost:${SERVER_PORT}`),
       'process.env.ENSO_CLOUD_ENVIRONMENT': JSON.stringify('production'),
       'process.env.ENSO_CLOUD_API_URL': JSON.stringify('https://mock'),
