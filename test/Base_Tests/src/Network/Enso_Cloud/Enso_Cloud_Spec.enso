@@ -11,7 +11,7 @@ import Standard.Test.Test_Environment
 
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup.Mock_Credentials
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Mock_Credentials
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
