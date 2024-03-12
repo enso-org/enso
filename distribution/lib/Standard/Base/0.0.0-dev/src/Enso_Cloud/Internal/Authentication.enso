@@ -133,7 +133,7 @@ type Refresh_Token_Data
                     if (400 <= status.code) && (status.code < 500) then Panic.throw (Cloud_Session_Expired.Error error) else
                         # Otherwise, we fail with the generic error that prints more details.
                         Panic.throw (Enso_Cloud_Error.Connection_Error error)
-                Panic.throw (Enso_Cloud_Error.Connection_Error error)
+                _ -> Panic.throw (Enso_Cloud_Error.Connection_Error error)
             . catch Request_Error error->
                 Panic.throw (Enso_Cloud_Error.Connection_Error error)
         json = response.decode_as_json . catch Invalid_JSON error->
