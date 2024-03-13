@@ -1553,8 +1553,8 @@ type DB_Table
     ## ALIAS find replace
        GROUP Standard.Base.Text
        ICON dataframe_map_column
-       Replaces values in `column` using `lookup_table` to specify a
-       mapping from old to new values.
+       Replaces values in the column or columns using `lookup_table` to specify
+       a mapping from old to new values.
 
        Arguments:
        - lookup_table: the table to use as a mapping from old to new values. A
