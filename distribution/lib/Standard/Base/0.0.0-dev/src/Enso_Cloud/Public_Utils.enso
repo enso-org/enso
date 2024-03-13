@@ -46,7 +46,7 @@ get_required_field (key : Text) js_object (show_value : Boolean = True) (expecte
      tokens, it may be better to just include the type of the field.
    - expected_type: The type that the field is expected to be.
      The type of `if_missing` is not checked against `expected_type`.
-get_optional_field (key : Text) js_object (~if_missing : Boolean = Nothing) (show_value : Boolean = True) (expected_type = Any) = case js_object of
+get_optional_field (key : Text) js_object (~if_missing = Nothing) (show_value : Boolean = True) (expected_type = Any) = case js_object of
     _ : JS_Object ->
         result = js_object.get key if_missing=Nothing
         case result of
