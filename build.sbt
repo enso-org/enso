@@ -2894,9 +2894,10 @@ lazy val `std-google-api` = project
     Compile / packageBin / artifactPath :=
       `google-api-polyglot-root` / "std-google-api.jar",
     libraryDependencies ++= Seq(
-      "com.google.api-client" % "google-api-client"          % "2.2.0" exclude ("com.google.code.findbugs", "jsr305"),
-      "com.google.apis"       % "google-api-services-sheets" % "v4-rev612-1.25.0" exclude ("com.google.code.findbugs", "jsr305"),
-      "com.google.analytics"  % "google-analytics-data"      % "0.44.0" exclude ("com.google.code.findbugs", "jsr305")
+      "com.google.api-client" % "google-api-client"            % "2.2.0" exclude ("com.google.code.findbugs", "jsr305"),
+      "com.google.apis"       % "google-api-services-sheets"   % "v4-rev612-1.25.0" exclude ("com.google.code.findbugs", "jsr305"),
+      "com.google.analytics"  % "google-analytics-data"        % "0.47.0",
+      "com.google.analytics"  % "google-analytics-data-parent" % "0.47.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
