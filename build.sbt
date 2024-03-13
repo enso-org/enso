@@ -47,19 +47,14 @@ val currentEdition = sys.env.getOrElse(
 val stdLibVersion       = defaultDevEnsoVersion
 val targetStdlibVersion = ensoVersion
 
-lazy val graalVMVersionCheck = taskKey[Unit]("Check GraalVM and Java versions")
-graalVMVersionCheck := {
+// Inspired by https://www.scala-sbt.org/1.x/docs/Howto-Startup.html#How+to+take+an+action+on+startup
+lazy val startupStateTransition: State => State = { s: State =>
   GraalVM.versionCheck(
     graalVersion,
     graalMavenPackagesVersion,
     javaVersion,
-    state.value.log
+    s
   )
-}
-
-// Inspired by https://www.scala-sbt.org/1.x/docs/Howto-Startup.html#How+to+take+an+action+on+startup
-lazy val startupStateTransition: State => State = { s: State =>
-  "graalVMVersionCheck" :: s
 }
 Global / onLoad := {
   val old = (Global / onLoad).value
