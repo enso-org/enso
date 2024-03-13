@@ -47,7 +47,7 @@ export interface WidgetEditInteraction extends Interaction {
  * is bound to two children, and one of them starts editing while the other is edited, the parent
  * will receive `cancel` feedback from the latter and then `start` from the former.
  *
- * |**The `click` handler is a special case:** it will be called only on top-most parent, but its
+ * **The `click` handler is a special case:** it will be called only on top-most parent, but its
  * handler may decide to delegate it further by calling child's handler passed as an additional
  * argument
  */

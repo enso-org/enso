@@ -132,11 +132,6 @@ export interface WidgetProps<T> {
   nesting: number
 }
 
-export interface PortUpdate {
-  value: Ast.Owned | string | undefined
-  origin: PortId
-}
-
 /**
  * Information about widget update.
  *

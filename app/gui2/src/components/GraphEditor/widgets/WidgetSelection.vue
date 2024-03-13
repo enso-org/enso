@@ -173,9 +173,9 @@ function toggleDropdownWidget() {
 function onClick(index: number, keepOpen: boolean) {
   selectedIndex.value = index
   if (!keepOpen) {
-    // We cancel interaction instead of ending it, because in case where we picked same entry,
-    // there may be no AST change so then inner widget won't be updated - we need to restore its
-    // content.
+    // We cancel interaction instead of ending it to restore the old value in the inner widget;
+    // if we clicked already selected entry, there would be no AST change which would update inner
+    // widget's content.
     dropDownInteraction.cancel()
   }
 }
