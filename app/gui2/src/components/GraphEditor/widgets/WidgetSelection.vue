@@ -35,8 +35,9 @@ interface Tag {
   expression: string
   requiredImports?: RequiredImport[]
   parameters?: ArgumentWidgetConfiguration[]
-  onClick?: () => void
 }
+
+type CustomTag = Tag & { onClick: () => void }
 
 function tagFromExpression(expression: string, label?: Opt<string>): Tag {
   const qn = tryQualifiedName(expression)
@@ -63,7 +64,7 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
   }
 }
 
-function tagFromCustomItem(item: CustomDropdownItem): Tag {
+function tagFromCustomItem(item: CustomDropdownItem): CustomTag {
   const expression = item.label
   return { expression, onClick: item.onClick }
 }
@@ -144,7 +145,7 @@ function toggleDropdownWidget() {
 
 function onClick(index: number, keepOpen: boolean) {
   if (index < customTags.value.length) {
-    customTags.value[index]!.onClick!()
+    customTags.value[index]!.onClick()
   } else {
     selectedIndex.value = index
   }
