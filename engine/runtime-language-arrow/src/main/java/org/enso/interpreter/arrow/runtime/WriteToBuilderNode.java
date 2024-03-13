@@ -23,7 +23,7 @@ abstract class WriteToBuilderNode extends Node {
       throws UnsupportedTypeException;
 
   @NeverDefault
-  public static WriteToBuilderNode build() {
+  static WriteToBuilderNode build() {
     return WriteToBuilderNodeGen.create();
   }
 
