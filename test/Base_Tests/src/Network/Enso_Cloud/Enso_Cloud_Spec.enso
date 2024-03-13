@@ -84,13 +84,27 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
         group_builder.specify "will fail if the token is malformed" pending=setup.pending <| setup.with_prepared_environment <|
             invalid_token_file = File.create_temporary_file "enso-test-credentials" "-invalid.txt"
-            "invalid-token".write invalid_token_file . should_succeed
-            Cloud_Tests_Setup.reset
-            Panic.with_finalizer Cloud_Tests_Setup.reset <|
-                r = Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" invalid_token_file.absolute.normalize.path <|
-                    Test.expect_panic Illegal_State <|
-                        Enso_User.current
-                r.to_display_text . should_contain "Invalid credentials file format"
+            run_with_token_payload payload ~action =
+                payload.write invalid_token_file . should_succeed
+                Cloud_Tests_Setup.reset
+                Panic.with_finalizer Cloud_Tests_Setup.reset <|
+                    Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" invalid_token_file.absolute.normalize.path <|
+                        action
+
+            r1 = run_with_token_payload "invalid-token" <|
+                Test.expect_panic Illegal_State <| Enso_User.current
+            r1.to_display_text . should_contain "Invalid credentials file format: Parse error in parsing JSON"
+
+            r2 = run_with_token_payload '{"access_token": 42}' <|
+                Test.expect_panic Illegal_State <| Enso_User.current
+            r2.to_display_text . should_contain "Invalid credentials file format:"
+            r2.to_display_text . should_contain "expected `access_token` to be a string"
+
+            r3 = run_with_token_payload '{"access_token": "foo", "expire_at": "yesterday"}' <|
+                Test.expect_panic Illegal_State <| Enso_User.current
+            r3.to_display_text . should_contain "Invalid credentials file format:"
+            r3.to_display_text . should_contain "invalid date format"
+            r3.to_display_text . should_contain "yesterday"
 
     suite_builder.group "Enso Cloud Authentication" pending=setup.httpbin_pending group_builder->
         get_current_token =
@@ -136,6 +150,16 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 err = Test.expect_panic Cloud_Session_Expired <|
                     Enso_User.list
                 err.to_display_text . should_contain "Please log in again and restart"
+
+        group_builder.specify "nicely handles errors if the response is malformed" <|
+            credentials = base_credentials.get
+                . locally_expired
+                . set_refresh_token "GET-MALFORMED-RESPONSE"
+            Cloud_Tests_Setup.run_with_mock_cloud custom_credentials=credentials <|
+                err = Test.expect_panic Enso_Cloud_Error <|
+                    Enso_User.list
+                err.to_display_text . should_contain "response from Enso Cloud could not be parsed"
+                err.to_display_text . should_contain "Expected field `TokenType` to be of type Text, but got Integer."
 
 type Lazy_Ref
     Value ~get

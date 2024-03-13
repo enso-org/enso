@@ -136,10 +136,13 @@ type Mock_Credentials
             + [["client_id", self.client_id]]
         JS_Object.from_pairs fields . to_json
 
+    set_refresh_token self token:Text =
+        Mock_Credentials.Value self.access_token self.expire_at token self.refresh_url self.client_id
+
     ## Returns a credential whose access token is invalid.
        This will test the case where the refresh token has expired and the user has to re-authenticate.
     invalid_refresh_token self -> Mock_Credentials =
-        Mock_Credentials.Value self.access_token self.expire_at "INVALID-ENSO-REFRESH-caffee" self.refresh_url self.client_id
+        self.set_refresh_token "INVALID-ENSO-REFRESH-caffee"
 
     ## Returns a credential whose token has already expired, according to the `expire_at` field.
     locally_expired self -> Mock_Credentials =

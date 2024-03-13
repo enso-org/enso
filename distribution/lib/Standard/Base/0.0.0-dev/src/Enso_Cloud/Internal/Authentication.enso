@@ -2,6 +2,7 @@ private
 
 import project.Data.Json.Invalid_JSON
 import project.Data.Json.JS_Object
+import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
@@ -13,6 +14,7 @@ import project.Enso_Cloud.Errors.Not_Logged_In
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Time_Error.Time_Error
+import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
@@ -30,6 +32,7 @@ import project.System.Environment
 import project.System.File.File
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Enso_Cloud.Public_Utils import get_required_field
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
@@ -99,14 +102,14 @@ type Authentication_Data
         content = credentials_file.read_text . catch File_Error error-> case error of
             File_Error.Not_Found _ -> Panic.throw Not_Logged_In.Error
             _ -> Panic.throw (Illegal_State.Error "Failed to read credentials file: "+error.to_display_text cause=error)
+        invalid_format_prefix = "Invalid credentials file format: "
         as_json = content.parse_json.catch Invalid_JSON error->
-            Panic.throw (Illegal_State.Error "Invalid credentials file format: "+error.to_display_text cause=error)
-        get_field field_name =
-            as_json.get field_name if_missing=(Panic.throw (Illegal_State.Error "Invalid credentials file format: missing field `"+field_name+"`."))
+            Panic.throw (Illegal_State.Error invalid_format_prefix+error.to_display_text cause=error)
+        get_field = file_get_required_string_field as_json invalid_format_prefix
         token = get_field "access_token"
         expiration_date_string = get_field "expire_at"
         expiration_date = Date_Time.parse expiration_date_string format=Date_Time_Formatter.iso_zoned_date_time . catch Time_Error error->
-            Panic.throw (Illegal_State.Error "Invalid credentials file format: invalid date format in `expire_at` field: "+error.to_display_text cause=error)
+            Panic.throw (Illegal_State.Error invalid_format_prefix+"invalid date format in `expire_at` field: "+error.to_display_text cause=error)
         Authentication_Data.Value access_token=token expire_at=expiration_date
 
 ## PRIVATE
@@ -120,8 +123,8 @@ type Refresh_Token_Data
             Panic.throw (Illegal_State.Error "Token refresh failed - cannot read credentials file: "+error.to_display_text cause=error)
         as_json = content.parse_json.catch Invalid_JSON error->
             Panic.throw (Illegal_State.Error "Token refresh failed due to invalid credentials file format: "+error.to_display_text cause=error)
-        get_field field_name =
-            as_json.get field_name if_missing=(Panic.throw (Illegal_State.Error "Token refresh failed due to invalid credentials file format: missing field `"+field_name+"`."))
+
+        get_field = file_get_required_string_field as_json "Token refresh failed due to invalid credentials file format: "
         client_id = get_field "client_id"
         refresh_url = get_field "refresh_url"
         refresh_token = get_field "refresh_token"
@@ -146,10 +149,10 @@ type Refresh_Token_Data
 
         json = response.decode_as_json . catch Invalid_JSON error->
             Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
-        auth_result = json.get "AuthenticationResult" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AuthenticationResult` field in response."))
-        access_token = auth_result.get "AccessToken" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `AccessToken` field in response."))
-        token_type = auth_result.get "TokenType" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `TokenType` field in response."))
-        expires_in = auth_result.get "ExpiresIn" if_missing=(Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Missing `ExpiresIn` field in response."))
+        auth_result = Panic.rethrow <| get_required_field "AuthenticationResult" json show_value=False expected_type=JS_Object
+        access_token = Panic.rethrow <| get_required_field "AccessToken" auth_result show_value=False expected_type=Text
+        token_type = Panic.rethrow <| get_required_field "TokenType" auth_result show_value=False expected_type=Text
+        expires_in = Panic.rethrow <| get_required_field "ExpiresIn" auth_result show_value=False expected_type=Integer
 
         token_lifetime = Duration.new seconds=expires_in
         if token_lifetime < token_early_refresh_period then
@@ -164,3 +167,16 @@ type Refresh_Token_Data
    The amount of time before the token expiration that we pro-actively refresh
    it to reduce the chance of it expiring during a request.
 token_early_refresh_period = Duration.new minutes=2
+
+## PRIVATE
+   A sibling to `get_required_field`.
+   This one raises `Illegal_State` error, because it is dealing with local files and not cloud responses.
+file_get_required_string_field json prefix field_name = case json of
+    _ : JS_Object ->
+        result = json.get field_name if_missing=(Panic.throw (Illegal_State.Error prefix+"missing field `"+field_name+"`."))
+        case result of
+            _ : Text -> result
+            _ ->
+                got_type = Meta.type_of result . to_display_text
+                Panic.throw (Illegal_State.Error prefix+"expected `"+field_name+"` to be a string, but got "+got_type+".")
+    _ -> Panic.throw (Illegal_State.Error prefix+"expected an object, got "+(Meta.type_of json))
