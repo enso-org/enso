@@ -6,7 +6,6 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
-import project.Data.Text.Helpers
 import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator_Value
