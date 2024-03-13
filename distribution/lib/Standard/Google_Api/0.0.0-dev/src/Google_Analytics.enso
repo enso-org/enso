@@ -5,6 +5,7 @@ from Standard.Base.Metadata import make_single_choice, Widget
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Table import Table
 import project.Google_Credential.Google_Credential
+from project.Internal.Google_Credential_Internal import all
 
 polyglot java import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 polyglot java import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
@@ -48,7 +49,7 @@ make_metrics_vector_selector =
 @dimensions make_dimensions_vector_selector
 @metrics make_metrics_vector_selector
 read : Text -> (Vector Text) -> (Vector Text) -> Date -> Date -> Google_Credential -> Table
-read property_id:Text dimensions:Vector=['country'] metrics:Vector=['activeUsers'] start_date:Date=(Date.today - 1.year) end_date:Date=Date.today credentials=Google_Credential.Default -> Table =
+read property_id:Text dimensions:Vector=['country'] metrics:Vector=['activeUsers'] start_date:Date=(Date.today.previous Date_Period.Year) end_date:Date=Date.today credentials=Google_Credential.Default -> Table =
     analytics_data = case credentials of 
         Google_Credential.Default -> BetaAnalyticsDataClient.create
         Google_Credential.From_File _ -> 
