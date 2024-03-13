@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ChangeSet, Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
 import { usePointer } from '@/composables/events'
+import SvgIcon from '@/components/SvgIcon.vue'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -349,7 +350,7 @@ const editorStyle = computed(() => {
         <circle cx="14" cy="14" r="1.5" />
       </svg>
     </div>
-    <div class="closeButton button" @click="emit('close')">+</div>
+    <SvgIcon name="enso_logo" class="closeButton button" @click="emit('close')" />
   </div>
 </template>
 
@@ -408,14 +409,9 @@ const editorStyle = computed(() => {
 
 .closeButton {
   position: absolute;
-  top: 0;
-  left: 4px;
-  width: 20px;
-  height: 20px;
-  font: var(--font-code);
-  font-size: 32px;
+  top: 4px;
+  left: 6px;
   color: red;
-  transform: rotate(45deg);
   opacity: 0.3;
 
   &:hover {

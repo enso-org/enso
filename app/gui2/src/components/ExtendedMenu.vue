@@ -14,40 +14,40 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
 </script>
 
 <template>
-  <div class="ExtendedMenu">
-    <div class="moreIcon" @pointerdown="isDropdownOpen = !isDropdownOpen">…</div>
-    <Transition name="dropdown">
-      <div v-show="isDropdownOpen" class="ExtendedMenuPane">
-        <div class="row">
-          <div class="label">Zoom</div>
-          <div class="zoomControl">
-            <div
-              class="zoomButton minus"
-              title="Decrease zoom"
-              @pointerdown.stop="emit('zoomOut')"
+  <div class="ExtendedMenu" @pointerdown.stop @pointerup.stop @click.stop="isDropdownOpen = !isDropdownOpen">
+    <SvgIcon name="folder_opened" class="moreIcon" />
+  </div>
+  <Transition name="dropdown">
+    <div v-show="isDropdownOpen" class="ExtendedMenuPane" @pointerdown.stop @pointerup.stop @click.stop>
+      <div class="row">
+        <div class="label">Zoom</div>
+        <div class="zoomControl">
+          <div
+            class="zoomButton minus"
+            title="Decrease zoom"
+            @click="emit('zoomOut')"
+          />
+          <span
+            class="zoomScaleLabel"
+            v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
+          ></span>
+          <div class="zoomButton plus" title="increase zoom" @click="emit('zoomIn')" />
+          <div class="divider"></div>
+          <div class="showAllIconHighlight">
+            <SvgIcon
+              name="show_all"
+              class="showAllIcon"
+              @click="emit('fitToAllClicked')"
             />
-            <span
-              class="zoomScaleLabel"
-              v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
-            ></span>
-            <div class="zoomButton plus" title="increase zoom" @pointerdown.stop="emit('zoomIn')" />
-            <div class="divider"></div>
-            <div class="showAllIconHighlight">
-              <SvgIcon
-                name="show_all"
-                class="showAllIcon"
-                @pointerdown.stop="emit('fitToAllClicked')"
-              />
-            </div>
           </div>
         </div>
-        <div class="row clickableRow" @pointerdown.stop="emit('toggleCodeEditor')">
-          <div class="label">Code Editor</div>
-          <div>{{ toggleCodeEditorShortcut }}</div>
-        </div>
       </div>
-    </Transition>
-  </div>
+      <div class="row clickableRow" @click="emit('toggleCodeEditor')">
+        <div class="label">Code Editor</div>
+        <div>{{ toggleCodeEditorShortcut }}</div>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -62,6 +62,7 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
   border-radius: var(--radius-full);
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
+  cursor: pointer;
 }
 
 .ExtendedMenuPane {
@@ -69,7 +70,7 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
   display: flex;
   flex-direction: column;
   width: 250px;
-  top: 32px;
+  top: 40px;
   margin-top: 6px;
   padding: 4px;
   right: 0px;
@@ -137,14 +138,8 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
 }
 
 .moreIcon {
-  width: 32px;
-  height: 32px;
-  text-align: center;
-  font-size: 24px;
-  font-family: var(--font-code);
-  transform: rotate(90deg);
   position: relative;
-  left: 2px;
+  left: 8px;
 }
 
 .zoomButton {
