@@ -545,9 +545,7 @@ export const useGraphStore = defineStore('graph', () => {
     edit((edit) => f(edit.getVersion(ast).mutableNodeMetadata()), true, true)
   }
 
-  function viewModule(): Module {
-    return syncModule.value!
-  }
+  const viewModule = computed(() => syncModule.value!)
 
   function mockExpressionUpdate(
     locator: string | { binding: string; expr: string },

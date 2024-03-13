@@ -12,6 +12,7 @@ import {
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
@@ -29,7 +30,6 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
 import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { bail } from '@/util/assert'
-import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadataFields } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
@@ -381,15 +381,18 @@ function addNodeAuto() {
   showComponentBrowser(targetPos)
 }
 
-function addNodeAt(sourceNode: NodeId, pos: Vec2 | undefined) {
+function createNodeFromSource(sourceNode: NodeId, options: NodeCreationOptions) {
+  const position = options.position ?? positionForNodeFromSource(sourceNode)
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
-  showComponentBrowser(pos, { type: 'newNode', sourcePort })
-}
-
-function createNodeWithContent(sourceNode: NodeId, content: Ast.Ast) {
-  const position = positionForNodeFromSource(sourceNode)
-  const createdNode = graphStore.createNode(position, content.code(), undefined, [])
-  if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
+  if (options.commit) {
+    const content = options.content
+      .instantiateCopied([graphStore.viewModule.get(sourcePort)])
+      .code()
+    const createdNode = graphStore.createNode(position, content, undefined, [])
+    if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
+  } else {
+    showComponentBrowser(position, { type: 'newNode', sourcePort })
+  }
 }
 
 function hideComponentBrowser() {
@@ -613,8 +616,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
-        @addNode="addNodeAt"
-        @createNode="createNodeWithContent"
+        @createNode="createNodeFromSource"
       />
     </div>
     <div

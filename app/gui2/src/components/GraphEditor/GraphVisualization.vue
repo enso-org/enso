@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { visualizationBindings } from '@/bindings'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import { focusIsIn, useEvent } from '@/composables/events'
@@ -13,7 +14,6 @@ import {
 } from '@/stores/visualization'
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { Ast } from '@/util/ast'
-import type { Pattern } from '@/util/ast/match'
 import { toError } from '@/util/data/error'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -60,8 +60,7 @@ const emit = defineEmits<{
   'update:visible': [visible: boolean]
   'update:fullscreen': [fullscreen: boolean]
   'update:width': [width: number]
-  addNode: [pos: Vec2 | undefined]
-  createNode: [pattern: Pattern]
+  createNode: [options: NodeCreationOptions]
 }>()
 
 const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -295,8 +294,7 @@ provideVisualizationConfig({
   },
   hide: () => emit('update:visible', false),
   updateType: (id) => emit('update:id', id),
-  addNode: (pos) => emit('addNode', pos),
-  createNode: (pattern) => emit('createNode', pattern),
+  createNode: (options) => emit('createNode', options),
 })
 
 const effectiveVisualization = computed(() => {

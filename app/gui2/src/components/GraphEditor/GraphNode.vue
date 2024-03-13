@@ -9,6 +9,7 @@ import NodeWidgetTree, {
   GRAB_HANDLE_X_MARGIN,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -20,7 +21,6 @@ import { asNodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
-import type { Pattern } from '@/util/ast/match'
 import { prefixes } from '@/util/ast/node'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -51,8 +51,7 @@ const emit = defineEmits<{
   outputPortClick: [portId: AstId]
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
-  addNode: [pos: Vec2 | undefined]
-  createNode: [pattern: Pattern]
+  createNode: [options: NodeCreationOptions]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -449,7 +448,7 @@ const documentation = computed<string | undefined>({
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
-      @addNode="emit('addNode', $event)"
+      @createNode="emit('createNode', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
     />
@@ -470,7 +469,6 @@ const documentation = computed<string | undefined>({
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
-      @addNode="emit('addNode', $event)"
       @createNode="emit('createNode', $event)"
     />
     <Suspense>

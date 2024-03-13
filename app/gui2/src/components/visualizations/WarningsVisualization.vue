@@ -30,7 +30,7 @@ const removeWarnings = Pattern.parse('__.remove_warnings')
           name="not_exclamation"
           data-testid="remove-warnings-button"
           alt="Remove warnings"
-          @click="config.createNode(removeWarnings)"
+          @click="config.createNode({ content: removeWarnings, commit: true })"
         />
       </button>
     </template>

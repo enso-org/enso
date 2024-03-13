@@ -1,5 +1,5 @@
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { createContextStore } from '@/providers'
-import type { Pattern } from '@/util/ast/match'
 import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
 import type { Icon } from '@/util/iconName'
@@ -22,8 +22,7 @@ export interface VisualizationConfig {
   fullscreen: boolean
   hide: () => void
   updateType: (type: VisualizationIdentifier) => void
-  addNode: (pos: Vec2 | undefined) => void
-  createNode: (pattern: Pattern) => void
+  createNode: (options: NodeCreationOptions) => void
 }
 
 export { provideFn as provideVisualizationConfig }

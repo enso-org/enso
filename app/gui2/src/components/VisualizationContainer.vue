@@ -114,7 +114,7 @@ const resizeBottomRight = usePointer((pos, _, type) => {
       <SmallPlusButton
         v-if="config.isCircularMenuVisible"
         class="below-viz"
-        @addNode="config.addNode($event)"
+        @createNode="config.createNode($event)"
       />
       <div
         ref="contentNode"
