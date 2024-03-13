@@ -2868,7 +2868,8 @@ type Table
         transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
-    ## ALIAS cumulative
+    ## PRIVATE
+       ALIAS cumulative
        GROUP Standard.Base.Values
        ICON dataframe_map_column
        Adds a new column to the table with a running calculation.
