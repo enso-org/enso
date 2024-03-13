@@ -78,12 +78,14 @@ export default function TopBar(props: TopBarProps) {
         <div className="invisible flex gap-top-bar-right overflow-hidden pointer-events-none-recursive">
           {page === pageSwitcher.Page.drive && (
             <AssetInfoBar
+              invisible
               isAssetPanelEnabled={isAssetPanelEnabled}
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             />
           )}
           {supportsCloudBackend && (
             <UserBar
+              invisible
               supportsLocalBackend={supportsLocalBackend}
               page={page}
               setPage={setPage}

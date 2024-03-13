@@ -5,6 +5,7 @@ import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import Label from '#/components/dashboard/Label'
 
@@ -70,6 +71,19 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const [isShiftPressed, setIsShiftPressed] = React.useState(false)
   const rootRef = React.useRef<HTMLLabelElement>(null)
   const searchRef = React.useRef<HTMLInputElement>(null)
+  const navigator2D = navigator2DProvider.useNavigator2D()
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (root == null) {
+      return
+    } else {
+      navigator2D.register(root)
+      return () => {
+        navigator2D.unregister(root)
+      }
+    }
+  }, [navigator2D])
 
   React.useEffect(() => {
     areSuggestionsVisibleRef.current = areSuggestionsVisible

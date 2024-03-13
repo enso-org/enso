@@ -12,6 +12,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -387,6 +388,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const navigator2D = navigator2DProvider.useNavigator2D()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -606,6 +608,18 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities]
   )
+
+  React.useEffect(() => {
+    const scrollContainer = scrollContainerRef.current
+    if (scrollContainer == null) {
+      return
+    } else {
+      navigator2D.register(scrollContainer)
+      return () => {
+        navigator2D.unregister(scrollContainer)
+      }
+    }
+  }, [navigator2D])
 
   React.useEffect(() => {
     if (category === Category.trash) {
@@ -1346,8 +1360,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
         case 'ArrowUp':
         case 'ArrowDown': {
-          event.preventDefault()
-          event.stopPropagation()
           if (!event.shiftKey) {
             selectionStartIndexRef.current = null
           }
@@ -1359,6 +1371,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                 : Math.min(visibleItems.length - 1, prevIndex + 1)
           setMostRecentlySelectedIndex(index, true)
           if (event.shiftKey) {
+            event.preventDefault()
+            event.stopPropagation()
             // On Windows, Ctrl+Shift+Arrow behaves the same as Shift+Arrow.
             if (selectionStartIndexRef.current == null) {
               selectionStartIndexRef.current = prevIndex ?? 0
@@ -1368,21 +1382,31 @@ export default function AssetsTable(props: AssetsTableProps) {
             const selection = visibleItems.slice(startIndex, endIndex)
             setSelectedKeys(new Set(selection.map(newItem => newItem.key)))
           } else if (event.ctrlKey) {
+            event.preventDefault()
+            event.stopPropagation()
             selectionStartIndexRef.current = null
-          } else {
+          } else if (index !== prevIndex) {
+            event.preventDefault()
+            event.stopPropagation()
             const newItem = visibleItems[index]
             if (newItem != null) {
               setSelectedKeys(new Set([newItem.key]))
             }
+            selectionStartIndexRef.current = null
+          } else {
+            // The arrow key will escape this container. In that case, do not stop propagation
+            // and let `navigator2D` navigate to a different container.
+            setSelectedKeys(new Set())
             selectionStartIndexRef.current = null
           }
           break
         }
       }
     }
-    document.addEventListener('keydown', onKeyDown)
+    const scrollContainer = scrollContainerRef.current
+    scrollContainer?.addEventListener('keydown', onKeyDown)
     return () => {
-      document.removeEventListener('keydown', onKeyDown)
+      scrollContainer?.removeEventListener('keydown', onKeyDown)
     }
   }, [
     visibleItems,

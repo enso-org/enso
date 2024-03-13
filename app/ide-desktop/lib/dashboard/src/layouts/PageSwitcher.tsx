@@ -5,6 +5,8 @@ import DriveIcon from 'enso-assets/drive.svg'
 import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+
 import Button from '#/components/Button'
 
 // ====================
@@ -50,8 +52,24 @@ export interface PageSwitcherProps {
 /** Switcher to choose the currently visible full-screen page. */
 export default function PageSwitcher(props: PageSwitcherProps) {
   const { page, setPage, isEditorDisabled } = props
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const navigator2D = navigator2DProvider.useNavigator2D()
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (root == null) {
+      return
+    } else {
+      navigator2D.register(root)
+      return () => {
+        navigator2D.unregister(root)
+      }
+    }
+  }, [navigator2D])
+
   return (
     <div
+      ref={rootRef}
       className={`pointer-events-auto flex shrink-0 cursor-default items-center gap-pages rounded-full px-page-switcher-x ${
         page === Page.editor ? 'bg-frame backdrop-blur-default' : ''
       }`}

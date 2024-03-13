@@ -7,6 +7,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
@@ -24,6 +25,9 @@ import * as backendModule from '#/services/Backend'
 
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
+  /** When `true`, the element occupies space in the layout but is not visible.
+   * Defaults to `false`. */
+  readonly invisible?: boolean
   readonly supportsLocalBackend: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
@@ -37,8 +41,8 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { supportsLocalBackend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
-  const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
+  const { invisible = false, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { supportsLocalBackend, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
@@ -57,9 +61,24 @@ export default function UserBar(props: UserBarProps) {
   const shouldShowInviteButton =
     sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const navigator2D = navigator2DProvider.useNavigator2D()
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (invisible || root == null) {
+      return
+    } else {
+      navigator2D.register(root)
+      return () => {
+        navigator2D.unregister(root)
+      }
+    }
+  }, [invisible, navigator2D])
 
   return (
     <div
+      ref={rootRef}
       className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default ${
         shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''
       }`}

@@ -5,14 +5,31 @@ import DiscordIcon from 'enso-assets/discord.svg'
 import IntegrationsImage from 'enso-assets/integrations.png'
 import YoutubeIcon from 'enso-assets/youtube.svg'
 
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+
 // ================
 // === WhatsNew ===
 // ================
 
 /** Community updates for the app. */
 export default function WhatsNew() {
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const navigator2D = navigator2DProvider.useNavigator2D()
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (root == null) {
+      return
+    } else {
+      navigator2D.register(root)
+      return () => {
+        navigator2D.unregister(root)
+      }
+    }
+  }, [navigator2D])
+
   return (
-    <div className="flex flex-col gap-subheading px-home-section-x">
+    <div ref={rootRef} className="flex flex-col gap-subheading px-home-section-x">
       <h2 className="text-subheading">Discover what&rsquo;s new</h2>
       <div className="grid grid-cols-fill-news-items gap-news-items">
         <a

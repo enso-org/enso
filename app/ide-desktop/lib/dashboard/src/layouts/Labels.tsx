@@ -5,6 +5,7 @@ import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
@@ -43,10 +44,25 @@ export default function Labels(props: LabelsProps) {
   const currentLabels = query.labels
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const navigator2D = navigator2DProvider.useNavigator2D()
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (root == null) {
+      return
+    } else {
+      navigator2D.register(root)
+      return () => {
+        navigator2D.unregister(root)
+      }
+    }
+  }, [navigator2D])
 
   return (
     <div
       data-testid="labels"
+      ref={rootRef}
       className="flex w-full flex-col items-start gap-sidebar-section-heading"
     >
       <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Labels</div>

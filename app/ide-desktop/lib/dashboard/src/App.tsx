@@ -51,6 +51,7 @@ import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalSt
 import LoggerProvider from '#/providers/LoggerProvider'
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import ModalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import SessionProvider from '#/providers/SessionProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
@@ -183,6 +184,7 @@ function AppRouter(props: AppProps) {
   // eslint-disable-next-line no-restricted-properties
   const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const navigator2D = navigator2DProvider.useNavigator2D()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -254,6 +256,15 @@ function AppRouter(props: AppProps) {
     : // This is safe, because the backend is always set by the authentication flow.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       null!
+
+  React.useEffect(() => {
+    const onKeyDown = navigator2D.onKeyDown.bind(navigator2D)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [navigator2D])
+
   React.useEffect(() => {
     let isClick = false
     const onMouseDown = () => {
@@ -292,6 +303,7 @@ function AppRouter(props: AppProps) {
       document.removeEventListener('selectstart', onSelectStart)
     }
   }, [])
+
   const routes = (
     <router.Routes>
       <React.Fragment>

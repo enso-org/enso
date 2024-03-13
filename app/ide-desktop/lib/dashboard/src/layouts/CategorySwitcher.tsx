@@ -7,6 +7,7 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -90,13 +91,27 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const navigator2D = navigator2DProvider.useNavigator2D()
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (root == null) {
+      return
+    } else {
+      navigator2D.register(root)
+      return () => {
+        navigator2D.unregister(root)
+      }
+    }
+  }, [navigator2D])
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
   }, [category, /* should never change */ localStorage])
 
   return (
-    <div className="flex w-full flex-col gap-sidebar-section-heading">
+    <div ref={rootRef} className="flex w-full flex-col gap-sidebar-section-heading">
       <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Category</div>
       <div className="flex flex-col items-start">
         {CATEGORIES.map(currentCategory => (

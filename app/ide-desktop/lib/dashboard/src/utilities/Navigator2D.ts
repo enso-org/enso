@@ -156,6 +156,7 @@ export default class Navigator2D {
           ? null
           : this.elements.get(targetNeighbor)?.primaryChild ?? targetNeighbor
       if (targetElement instanceof HTMLElement || targetElement instanceof SVGElement) {
+        event.stopImmediatePropagation()
         targetElement.focus()
       }
     }

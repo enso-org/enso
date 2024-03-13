@@ -16,7 +16,7 @@ const InputBindingsContext = React.createContext<InputBindingsContextType>(
 )
 
 /** Props for a {@link InputBindingsProvider}. */
-export interface InputBindingsProviderProps extends React.PropsWithChildren<object> {
+export interface InputBindingsProviderProps extends Readonly<React.PropsWithChildren> {
   readonly inputBindings?: inputBindingsModule.DashboardBindingNamespace
 }
 
@@ -24,7 +24,7 @@ export interface InputBindingsProviderProps extends React.PropsWithChildren<obje
 // === InputBindingsProvider ===
 // =============================
 
-/** A React Provider that lets components get the shortcut registry. */
+/** A React Provider that lets components get the input bindings. */
 export default function InputBindingsProvider(props: InputBindingsProviderProps) {
   const { inputBindings: inputBindingsRaw, children } = props
   const [inputBindings, setInputBindings] = React.useState(

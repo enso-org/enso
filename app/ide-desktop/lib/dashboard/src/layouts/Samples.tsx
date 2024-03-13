@@ -9,6 +9,8 @@ import ProjectIcon from 'enso-assets/project_icon.svg'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
 import VisualizeImage from 'enso-assets/visualize.png'
 
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
@@ -231,8 +233,27 @@ export interface SamplesProps {
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
   const { createProject } = props
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const navigator2D = navigator2DProvider.useNavigator2D()
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (root == null) {
+      return
+    } else {
+      navigator2D.register(root)
+      return () => {
+        navigator2D.unregister(root)
+      }
+    }
+  }, [navigator2D])
+
   return (
-    <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
+    <div
+      data-testid="samples"
+      ref={rootRef}
+      className="flex flex-col gap-subheading px-home-section-x"
+    >
       <h2 className="text-subheading">Sample and community projects</h2>
       <div className="grid grid-cols-fill-samples gap-samples">
         <ProjectsEntry createProject={createProject} />
