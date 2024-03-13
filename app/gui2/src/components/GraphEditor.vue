@@ -32,6 +32,7 @@ import { groupColorVar, useSuggestionDbStore } from '@/stores/suggestionDatabase
 import { bail } from '@/util/assert'
 import type { AstId, NodeMetadataFields } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
+import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import * as set from 'lib0/set'
@@ -381,15 +382,41 @@ function addNodeAuto() {
   showComponentBrowser(targetPos)
 }
 
-function createNodeFromSource(sourceNode: NodeId, options: NodeCreationOptions) {
+function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
+  const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
+  const [withPos, withoutPos] = partition(toCommit, (opts) => !!opts.position)
+  const created = new Set<NodeId>()
+  const createWithOptions = (opts: NodeCreationOptions) => {
+    const node = createNodeFromSource(sourceNode, opts)
+    if (node) created.add(node)
+  }
+  withPos.forEach(createWithOptions)
+  // When creating multiple nodes without specified positions, sleep between nodes so that each node can be placed
+  // taking the size and position of all previous nodes into account.
+  const nap = () => {
+    return new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  ;(async () => {
+    for (const nodeOptions of withoutPos) {
+      createWithOptions(nodeOptions)
+      await nap()
+    }
+    toEdit.forEach(createWithOptions)
+    if (created.size) nodeSelection.setSelection(created)
+  })()
+}
+
+function createNodeFromSource(
+  sourceNode: NodeId,
+  options: NodeCreationOptions,
+): NodeId | undefined {
   const position = options.position ?? positionForNodeFromSource(sourceNode)
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
   if (options.commit) {
     const content = options.content
       .instantiateCopied([graphStore.viewModule.get(sourcePort)])
       .code()
-    const createdNode = graphStore.createNode(position, content, undefined, [])
-    if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
+    return graphStore.createNode(position, content, undefined, []) ?? undefined
   } else {
     showComponentBrowser(position, { type: 'newNode', sourcePort })
   }
@@ -616,7 +643,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
-        @createNode="createNodeFromSource"
+        @createNodes="createNodesFromSource"
       />
     </div>
     <div

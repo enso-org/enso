@@ -19,7 +19,7 @@ const emit = defineEmits<{
   startEditingComment: []
   openFullMenu: []
   delete: []
-  createNode: [options: NodeCreationOptions]
+  createNodes: [options: NodeCreationOptions[]]
 }>()
 </script>
 
@@ -66,7 +66,7 @@ const emit = defineEmits<{
     <SmallPlusButton
       v-if="!isVisualizationVisible"
       class="below-slot5"
-      @createNode="emit('createNode', $event)"
+      @createNodes="emit('createNodes', $event)"
     />
   </div>
 </template>
