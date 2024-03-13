@@ -3508,7 +3508,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ConstantsGen.INTEGER,
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -3612,7 +3612,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ConstantsGen.VECTOR,
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("y"), false)
             )
           )
         ),
@@ -3729,7 +3729,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ),
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("x"), false)
             )
           )
         ),
@@ -3745,7 +3745,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           ),
           payload = Api.ExpressionUpdate.Payload.Value(
             Some(
-              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'"), false)
+              Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("x"), false)
             )
           )
         ),

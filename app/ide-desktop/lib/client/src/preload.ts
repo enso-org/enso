@@ -150,8 +150,8 @@ const AUTHENTICATION_API = {
      *
      * The backend doesn't have access to Electron's `localStorage` so we need to save access token
      * to a file. Then the token will be used to sign cloud API requests. */
-    saveAccessToken: (accessToken: string | null) => {
-        electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessToken)
+    saveAccessToken: (accessTokenPayload: SaveAccessTokenPayload | null) => {
+        electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessTokenPayload)
     },
 }
 electron.contextBridge.exposeInMainWorld(AUTHENTICATION_API_KEY, AUTHENTICATION_API)
