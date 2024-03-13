@@ -12,11 +12,26 @@ polyglot java import com.google.api.services.sheets.v4.Sheets
 polyglot java import com.google.api.services.sheets.v4.SheetsScopes
 polyglot java import java.util.Collections
 
-
-## PRIVATE
 type Google_Sheets
     ## PRIVATE
     Service java_service
+
+    ## Initializes the Google Sheets instance using the given credentials file.
+
+      Arguments:
+      - secret_file: a file containing Google Service Account credentials to use to
+        access Google services. The credentials file can be downloaded from the
+        Google Admin Console when generating a key.
+    initialize : File -> Google_Sheets
+    initialize secret_file =
+        app_name = 'Enso'
+        credential = secret_file.with_input_stream [File_Access.Read] stream->
+            stream.with_java_stream is->
+                GoogleCredential.fromStream is . createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
+        http_transport = GoogleNetHttpTransport.newTrustedTransport
+        json_factory = GsonFactory.getDefaultInstance
+        service = Sheets.Builder.new http_transport json_factory credential . setApplicationName app_name . build
+        Google_Sheets.Service service
 
     ## Gets a table with the given ID and sheet range.
 
@@ -32,20 +47,3 @@ type Google_Sheets
         values = Vector.from_polyglot_array response.getValues
         columned = values.map v-> [v.first, v.drop 1]
         Table.new columned
-
-## Initializes the Google Sheets instance using the given credentials file.
-
-   Arguments:
-   - secret_file: a file containing Google Service Account credentials to use to
-     access Google services. The credentials file can be downloaded from the
-     Google Admin Console when generating a key.
-initialize : File -> Google_Sheets
-initialize secret_file =
-    app_name = 'Enso'
-    credential = secret_file.with_input_stream [File_Access.Read] stream->
-        stream.with_java_stream is->
-            GoogleCredential.fromStream is . createScoped (Collections.singleton SheetsScopes.SPREADSHEETS)
-    http_transport = GoogleNetHttpTransport.newTrustedTransport
-    json_factory = GsonFactory.getDefaultInstance
-    service = Sheets.Builder.new http_transport json_factory credential . setApplicationName app_name . build
-    Google_Sheets.Service service
