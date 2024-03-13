@@ -157,17 +157,19 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 h-0 lg:h-auto">
-      <div className="flex flex-col gap-8 w-120">
-        <div className="flex flex-col gap-2.5">
-          <h3 className="font-bold text-xl h-9.5 py-0.5">Organization</h3>
+    <div className="flex-0 flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
+      <div className="flex w-settings-main-section flex-col gap-settings-subsection">
+        <div className="flex flex-col gap-settings-section-header">
+          <h3 className="settings-subheading">Organization</h3>
           <div className="flex flex-col">
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-40 h-8 py-1.25">Organization display name</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-organization-settings-label">
+                Organization display name
+              </span>
+              <span className="text my-auto grow font-bold">
                 <input
                   ref={nameRef}
-                  className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
+                  className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
                   key={organization.organization_name}
                   type="text"
                   size={1}
@@ -179,29 +181,12 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-40 h-8 py-1.25">Organization display name</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
-                <input
-                  ref={nameRef}
-                  className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
-                  key={organization.organization_name}
-                  type="text"
-                  size={1}
-                  defaultValue={organization.organization_name ?? ''}
-                  onBlur={doUpdateName}
-                  onKeyDown={event => {
-                    onKeyDown(event, organization.organization_name ?? '')
-                  }}
-                />
-              </span>
-            </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-40 h-8 py-1.25">Email</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-organization-settings-label">Email</span>
+              <span className="text my-auto grow font-bold">
                 <input
                   ref={emailRef}
-                  className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors invalid:border invalid:border-red-700"
+                  className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
                   key={organization.email}
                   type="text"
                   size={1}
@@ -224,12 +209,12 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-40 h-8 py-1.25">Website</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-organization-settings-label">Website</span>
+              <span className="text my-auto grow font-bold">
                 <input
                   ref={websiteRef}
-                  className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
+                  className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
                   key={organization.website}
                   type="text"
                   size={1}
@@ -241,12 +226,12 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-40 h-8 py-1.25">Location</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-organization-settings-label">Location</span>
+              <span className="text my-auto grow font-bold">
                 <input
                   ref={locationRef}
-                  className="rounded-full font-bold leading-5 w-full h-8 -mx-2 -my-1.25 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors"
+                  className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
                   key={organization.address}
                   type="text"
                   size={1}
@@ -261,9 +246,9 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Profile picture</h3>
-        <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
+      <div className="flex flex-col gap-settings-section-header">
+        <h3 className="settings-subheading">Profile picture</h3>
+        <label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <input
             type="file"
             className="hidden"
@@ -277,7 +262,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
             className="pointer-events-none"
           />
         </label>
-        <span className="py-1 w-64">
+        <span className="w-profile-picture-caption py-profile-picture-caption-y">
           Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
           should not be a default image provided by Enso.
         </span>
