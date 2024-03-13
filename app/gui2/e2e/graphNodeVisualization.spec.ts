@@ -30,7 +30,7 @@ test('Warnings visualization', async ({ page }) => {
   await locate.toggleVisualizationButton(page).click()
   await expect(locate.anyVisualization(page)).toExist()
   await locate.showVisualizationSelectorButton(page).click()
-  await page.getByText('Warnings').click()
+  await page.locator('.VisualizationSelector').getByRole('button', { name: 'Warnings' }).click()
   await expect(locate.warningsVisualization(page)).toExist()
   // Click the remove-warnings button, and ensure a node is created.
   const nodeCount = await locate.graphNode(page).count()
