@@ -83,7 +83,10 @@ export default class Navigator2D {
       let nearestRightNeighbor: Element | null = null
       let rightNeighborDistance = Infinity
       for (const otherData of datas) {
-        const distance = Math.abs(data.x - otherData.x) + Math.abs(data.y - otherData.y)
+        const distanceFromLeft = data.data.boundingBox.left - otherData.data.boundingBox.right
+        const distanceFromRight = otherData.data.boundingBox.left - data.data.boundingBox.right
+        const horizontalDistance = Math.max(0, distanceFromLeft, distanceFromRight)
+        const distance = horizontalDistance + Math.abs(data.y - otherData.y)
         if (otherData.x < data.x) {
           if (distance < leftNeighborDistance) {
             nearestLeftNeighbor = otherData.element
@@ -108,7 +111,10 @@ export default class Navigator2D {
       let nearestBelowNeighbor: Element | null = null
       let belowNeighborDistance = Infinity
       for (const otherData of datas) {
-        const distance = Math.abs(data.x - otherData.x) + Math.abs(data.y - otherData.y)
+        const distanceFromTop = data.data.boundingBox.top - otherData.data.boundingBox.bottom
+        const distanceFromBottom = otherData.data.boundingBox.bottom - data.data.boundingBox.top
+        const verticalDistance = Math.max(0, distanceFromTop, distanceFromBottom)
+        const distance = verticalDistance + Math.abs(data.y - otherData.y)
         if (otherData.y < data.y) {
           if (distance < aboveNeighborDistance) {
             nearestAboveNeighbor = otherData.element
