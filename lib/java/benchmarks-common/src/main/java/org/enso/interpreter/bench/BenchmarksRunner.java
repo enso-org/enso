@@ -21,15 +21,6 @@ import org.openjdk.jmh.runner.options.TimeValue;
 public class BenchmarksRunner {
   public static final File REPORT_FILE = new File("./bench-report.xml");
 
-  /**
-   * @return A list of qualified names of all benchmarks visible to JMH.
-   */
-  public List<String> getAvailable() {
-    return BenchmarkList.defaultList().getAll(null, new ArrayList<>()).stream()
-        .map(BenchmarkListEntry::getUsername)
-        .collect(Collectors.toList());
-  }
-
   public static void run(String[] args) throws RunnerException {
     CommandLineOptions cmdOpts = null;
     try {
