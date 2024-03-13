@@ -100,8 +100,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   const pathArg = argumentNames.filter({ has: page.getByText('path') })
   await pathArg.click()
   await expect(page.locator('.dropdownContainer')).toBeVisible()
-  await dropDown.expectVisibleWithOptions(page, ['Choose file…', '"File 1"', '"File 2"'])
-  await dropDown.clickOption(page, '"File 2"')
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
+  await dropDown.clickOption(page, 'File 2')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 2')
 
   // Change value on `path` (dynamic config)
@@ -114,8 +114,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     notAppliedArguments: [1],
   })
   await page.getByText('path').click()
-  await dropDown.expectVisibleWithOptions(page, ['Choose file…', '"File 1"', '"File 2"'])
-  await dropDown.clickOption(page, '"File 1"')
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
+  await dropDown.clickOption(page, 'File 1')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 1')
 })
 
@@ -133,14 +133,14 @@ test('File Browser widget', async ({ page }) => {
   // Wait for arguments to load.
   const node = locate.graphNodeByBinding(page, 'data')
   const argumentNames = node.locator('.WidgetArgumentName')
-  await expect(argumentNames).toHaveCount(3)
+  await expect(argumentNames).toHaveCount(1)
   const pathArg = argumentNames.filter({ has: page.getByText('path') })
 
   await pathArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['Choose file…', '"File 1"', '"File 2"'])
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
   await dropDown.clickOption(page, 'Choose file…')
-  await expect(pathArg.locator('.EnsoTextInputWidget > input')).toHaveValue(
-    "'/path/to/some/mock/file'",
+  await expect(pathArg.locator('.WidgetText > input')).toHaveValue(
+    "/path/to/some/mock/file",
   )
 })
 
@@ -218,8 +218,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // Set column
   const columnArg = firstItem.locator('.WidgetSelection').first()
   await columnArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['"column 1"', '"column 2"'])
-  await dropDown.clickOption(page, '"column 1"')
+  await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
+  await dropDown.clickOption(page, 'column 1')
   await expect(columnsArg.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
@@ -257,8 +257,8 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   const secondItem = columnsArg.locator('.item > .WidgetPort > .WidgetSelection').nth(1)
   const secondColumnArg = secondItem.locator('.WidgetSelection').first()
   await secondColumnArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['"column 1"', '"column 2"'])
-  await dropDown.clickOption(page, '"column 2"')
+  await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
+  await dropDown.clickOption(page, 'column 2')
   await expect(secondItem.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
