@@ -46,7 +46,7 @@ type Simple_Expression
             Simple_Calculation.Trim where what -> input_column.trim where (table.resolve what)
             Simple_Calculation.Text_Left length -> input_column.text_left (table.resolve length)
             Simple_Calculation.Text_Right length -> input_column.text_right (table.resolve length)
-            Simple_Calculation.Text_Length -> input_column.length
+            Simple_Calculation.Text_Length -> input_column.text_length
             Simple_Calculation.Format format -> input_column.format format
             Simple_Calculation.If condition true_value false_value ->
                 condition_column =  make_filter_column input_column (table.resolve_condition condition) on_problems
