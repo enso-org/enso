@@ -3,9 +3,9 @@ import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Text.Normalization.Normalization
-import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Meta
+import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 
 polyglot java import org.enso.base.Text_Utils
@@ -103,7 +103,7 @@ type Text
     @locale Locale.default_widget
     compare_to_ignore_case : Text -> Locale -> Ordering
     compare_to_ignore_case self that locale=Locale.default =
-        if that.is_nothing then Error.throw (Type_Error.Error Text that "that") else
+        if that.is_nothing then Panic.throw (Type_Error.Error Text that "Expected `that` to be a Text, but got {got}.") else
             comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
             Ordering.from_sign comparison_result
 

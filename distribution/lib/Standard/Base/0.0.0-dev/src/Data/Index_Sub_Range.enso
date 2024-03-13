@@ -280,7 +280,7 @@ handle_unmatched_type expected_types actual_value =
     m = Meta.meta actual_value
     return_type_error =
         expected_types_str = expected_types . map .to_text . join " | "
-        Error.throw (Type_Error.Error expected_types_str actual_value "range")
+        Panic.throw (Type_Error.Error expected_types_str actual_value "Expected range to be {exp}, but got {got}.")
     case m of
         _ : Meta.Constructor ->
             declaring_type = m.declaring_type

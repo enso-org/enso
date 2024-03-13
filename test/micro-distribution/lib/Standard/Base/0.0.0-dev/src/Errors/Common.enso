@@ -23,7 +23,13 @@ type Type_Error
         tpe = Meta.type_of self.actual
         if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
 
-    to_display_text self = "Type error: expected "+self.comment+" to be "+self.expected.to_display_text+", but got "+self.type_of_actual+"."
+    to_display_text self =
+        got = if self.type_of_actual.is_a Text then self.type_of_actual else "<ERR>"
+        exp = self.expected.to_display_text
+        msg = self.comment
+            . replace "{exp}" exp
+            . replace "{got}" got
+        "Type error: "+msg+"."
 
 @Builtin_Type
 type Not_Invokable
