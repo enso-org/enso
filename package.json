@@ -19,8 +19,7 @@
   "workspaces": [
     "app/ide-desktop",
     "app/ide-desktop/lib/*",
-    "app/gui2",
-    "lib/rust/enso-pack/js"
+    "app/gui2"
   ],
   "overrides": {
     "tslib": "$tslib"
