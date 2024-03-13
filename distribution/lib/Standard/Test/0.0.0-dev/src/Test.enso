@@ -55,8 +55,12 @@ type Test
             res = action
 
             # If the action did not panic above, we fail the test.
-            return_suffix = if res.is_nothing then "" else " and returned ["+res.to_text+"]"
-            Test.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at "+loc+").")
+            case res.is_error of
+                True ->
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action returned a Dataflow Error " + res.catch.to_display_text + " instead (at "+loc+").")
+                False ->
+                    return_suffix = if res.is_nothing then "" else " and returned ["+res.to_text+"]"
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at "+loc+").")
 
 
     ## Expect a function to fail with the provided panic.
