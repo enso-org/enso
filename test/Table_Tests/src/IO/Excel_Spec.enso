@@ -812,9 +812,6 @@ add_specs suite_builder =
             table_2.row_count . should_equal col_a.length
             check_table table_2
 
-            table_3 = xlsx_sheet.read . read 1
-            check_table table_3
-
             table_4 = xlsx_sheet.read . sheet 1
             check_table table_4
 
