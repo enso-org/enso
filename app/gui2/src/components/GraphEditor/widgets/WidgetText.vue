@@ -17,23 +17,19 @@ const widgetRoot = ref<HTMLElement>()
 
 const editing = WidgetEditHandler.New(props.input, {
   cancel() {
-    console.log('Text canceled')
     editedContents.value = textContents.value
     input.value?.blur()
   },
   click(event) {
-    console.log('Text clicked')
     if (targetIsOutside(event, unrefElement(input))) accepted()
     return false
   },
   end() {
-    console.log('Text ended')
     input.value?.blur()
   },
 })
 
 function accepted() {
-  console.log('Accepted in widget text', editedContents.value)
   editing.end()
   if (props.input.value instanceof Ast.TextLiteral) {
     const edit = graph.startEdit()
@@ -99,6 +95,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     <AutoSizedInput
       ref="input"
       v-model="editedContents"
+      autoSelect
       @pointerdown.stop
       @pointerup.stop
       @click.stop

@@ -147,9 +147,8 @@ const dropDownInteraction = WidgetEditHandler.New(props.input, {
     dropdownVisible.value = false
   },
   click: (e, _, childHandler) => {
-    console.log('Selection click')
     if (targetIsOutside(e, unrefElement(dropdownElement))) {
-      if (childHandler) return childHandler() !== false
+      if (childHandler) return childHandler()
       else dropdownVisible.value = false
     }
     return false
