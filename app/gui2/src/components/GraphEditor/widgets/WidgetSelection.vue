@@ -3,17 +3,12 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
-import {
-  defineWidget,
-  Score,
-  WidgetEditHandler,
-  WidgetInput,
-  widgetProps,
-} from '@/providers/widgetRegistry'
+import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   singleChoiceConfiguration,
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'

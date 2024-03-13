@@ -2,13 +2,8 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import { unrefElement } from '@/composables/events'
-import {
-  defineWidget,
-  Score,
-  WidgetEditHandler,
-  WidgetInput,
-  widgetProps,
-} from '@/providers/widgetRegistry'
+import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract'

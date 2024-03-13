@@ -6,12 +6,7 @@ import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract.ts'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
-import type { GraphNavigator } from './graphNavigator'
-import {
-  InteractionHandler,
-  injectInteractionHandler,
-  type Interaction,
-} from './interactionHandler'
+import type { WidgetEditHandler } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
