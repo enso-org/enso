@@ -78,7 +78,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     if (root == null) {
       return
     } else {
-      navigator2D.register(root)
+      navigator2D.register(root, { primaryChild: searchRef.current })
       return () => {
         navigator2D.unregister(root)
       }
@@ -141,8 +141,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   }, [selectedIndex])
 
   React.useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      setIsShiftPressed(event.shiftKey)
+    const onSearchKeyDown = (event: KeyboardEvent) => {
       if (areSuggestionsVisibleRef.current) {
         if (event.key === 'Tab' || event.key === 'ArrowUp' || event.key === 'ArrowDown') {
           event.preventDefault()
@@ -172,16 +171,19 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         if (event.key === 'Enter') {
           setAreSuggestionsVisible(false)
         }
-      }
-      if (event.key === 'Escape') {
-        if (querySource.current === QuerySource.tabbing) {
-          querySource.current = QuerySource.external
-          setQuery(baseQuery.current)
-          setAreSuggestionsVisible(false)
-        } else {
-          searchRef.current?.blur()
+        if (event.key === 'Escape') {
+          if (querySource.current === QuerySource.tabbing) {
+            querySource.current = QuerySource.external
+            setQuery(baseQuery.current)
+            setAreSuggestionsVisible(false)
+          } else {
+            searchRef.current?.blur()
+          }
         }
       }
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      setIsShiftPressed(event.shiftKey)
       // Allow `alt` key to be pressed in case it is being used to enter special characters.
       if (
         !(event.target instanceof HTMLInputElement) &&
@@ -206,9 +208,12 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     const onKeyUp = (event: KeyboardEvent) => {
       setIsShiftPressed(event.shiftKey)
     }
+    const root = rootRef.current
+    root?.addEventListener('keydown', onSearchKeyDown)
     document.addEventListener('keydown', onKeyDown)
     document.addEventListener('keyup', onKeyUp)
     return () => {
+      root?.removeEventListener('keydown', onSearchKeyDown)
       document.removeEventListener('keydown', onKeyDown)
       document.removeEventListener('keyup', onKeyUp)
     }

@@ -574,8 +574,8 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }
               }}
-              className={`h-row rounded-full outline-2 -outline-offset-2 outline-primary ease-in-out ${visibility} ${
-                isKeyboardSelected ? 'outline' : ''
+              className={`h-row rounded-full ease-in-out ${visibility} ${
+                isKeyboardSelected ? 'focus-ring' : ''
               } ${isDraggedOver || selected ? 'selected' : ''}`}
               onClick={event => {
                 unsetModal()

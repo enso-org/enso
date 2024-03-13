@@ -44,11 +44,16 @@ interface InternalCategorySwitcherItemProps {
 }
 
 /** An entry in a {@link CategorySwitcher}. */
-function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
+function CategorySwitcherItemInternal(
+  props: InternalCategorySwitcherItemProps,
+  ref: React.ForwardedRef<HTMLButtonElement>
+) {
   const { category, isCurrent, onClick } = props
   const { onDragOver, onDrop } = props
   return (
     <button
+      ref={ref}
+      tabIndex={0} // Required so that it is still selectable when disabled.
       disabled={isCurrent}
       title={`Go To ${category}`}
       className={`selectable ${
@@ -75,6 +80,11 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   )
 }
 
+/** An entry in a {@link CategorySwitcher}. */
+// This is a function, even though it does not contain a function expression.
+// eslint-disable-next-line no-restricted-syntax
+const CategorySwitcherItem = React.forwardRef(CategorySwitcherItemInternal)
+
 // ========================
 // === CategorySwitcher ===
 // ========================
@@ -92,6 +102,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const rootRef = React.useRef<HTMLDivElement>(null)
+  const [selectedChildElement, setSelectedChildElement] = React.useState<HTMLElement | null>(null)
   const navigator2D = navigator2DProvider.useNavigator2D()
 
   React.useEffect(() => {
@@ -99,12 +110,12 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     if (root == null) {
       return
     } else {
-      navigator2D.register(root)
+      navigator2D.register(root, { primaryChild: selectedChildElement })
       return () => {
         navigator2D.unregister(root)
       }
     }
-  }, [navigator2D])
+  }, [selectedChildElement, navigator2D])
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
@@ -116,6 +127,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
       <div className="flex flex-col items-start">
         {CATEGORIES.map(currentCategory => (
           <CategorySwitcherItem
+            ref={category === currentCategory ? setSelectedChildElement : null}
             key={currentCategory}
             category={currentCategory}
             isCurrent={category === currentCategory}

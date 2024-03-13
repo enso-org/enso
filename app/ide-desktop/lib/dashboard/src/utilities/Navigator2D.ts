@@ -1,6 +1,10 @@
 /** @file A class for handling navigation between elements on a 2D plane. */
 import * as object from '#/utilities/object'
 
+// =================
+// === Direction ===
+// =================
+
 /** The four cardinal directions. */
 export enum Direction {
   left = 'left',
@@ -9,28 +13,41 @@ export enum Direction {
   below = 'below',
 }
 
-/** The neighbors of an element in each of the four cardinal directions. */
-interface ElementNeighbors {
-  readonly [Direction.left]: Element | null
-  readonly [Direction.right]: Element | null
-  readonly [Direction.above]: Element | null
-  readonly [Direction.below]: Element | null
+/** Return an object that is a mapping from every {@link Direction} to a specific value,
+ * using the given mapping function. */
+function mapDirections<T>(map: (direction: Direction) => T): Readonly<Record<Direction, T>> {
+  return {
+    [Direction.left]: map(Direction.left),
+    [Direction.right]: map(Direction.right),
+    [Direction.above]: map(Direction.above),
+    [Direction.below]: map(Direction.below),
+  }
 }
 
+// ===================
+// === Navigator2D ===
+// ===================
+
+/** The neighbors of an element in each of the four cardinal directions. */
+type ElementNeighbors = Readonly<Record<Direction, Element | null>>
+
 /** All data associated with an element. */
-interface ElementData extends Required<Navigator2DElementOptions> {
+interface ElementData extends Omit<Required<Navigator2DElementOptions>, 'primaryChild'> {
   readonly boundingBox: DOMRectReadOnly
   readonly neighbors: ElementNeighbors
-  readonly allowedDirections: Record<Direction, boolean>
+  readonly allowedDirections: Readonly<Record<Direction, boolean>>
+  readonly focusWhenEnteringFrom: Readonly<Record<Direction, Element | null>>
   readonly dispose: () => void
 }
 
 /** Options when registering a element with a {@link Navigator2D}. */
 interface Navigator2DElementOptions {
-  /** `0` is the highest priority, `1` is the next highest, etc. */
-  readonly prority?: number
-  /** The child that should be focused instead of the parent (if any). */
+  /** The child that should be focused instead of the parent (if any).
+   * Used as the fallback . */
   readonly primaryChild?: Element | null
+  /** The child that should be focused instead of the parent (if any),
+   * when entering this element from the given direction. */
+  readonly focusWhenEnteringFrom?: Partial<Record<Direction, Element | null>>
   readonly allowedDirections?: Partial<Record<Direction, boolean>>
 }
 
@@ -47,7 +64,7 @@ export default class Navigator2D {
     [Direction.above]: 'ArrowUp',
     [Direction.below]: 'ArrowDown',
   }
-  private isLayoutDirty = false
+  private isLayoutDirty = true
   private readonly focusedElements = new Set<Element>()
   private readonly elements = new Map<Element, ElementData>()
   private readonly resizeObserver = new ResizeObserver(entries => {
@@ -75,7 +92,8 @@ export default class Navigator2D {
       const x = data.boundingBox.left + data.boundingBox.width / 2
       const y = data.boundingBox.top + data.boundingBox.height / 2
       return { element, data, x, y }
-    })
+      // It is fine to not update neighbors of elements that are not visible.
+    }).filter(data => data.data.boundingBox.width > 0 || data.data.boundingBox.height > 0)
     const byHorizontalCenter = [...datas].sort((a, b) => a.x - b.x)
     for (const data of byHorizontalCenter) {
       let nearestLeftNeighbor: Element | null = null
@@ -114,7 +132,7 @@ export default class Navigator2D {
         const distanceFromTop = data.data.boundingBox.top - otherData.data.boundingBox.bottom
         const distanceFromBottom = otherData.data.boundingBox.bottom - data.data.boundingBox.top
         const verticalDistance = Math.max(0, distanceFromTop, distanceFromBottom)
-        const distance = verticalDistance + Math.abs(data.y - otherData.y)
+        const distance = Math.abs(data.x - otherData.x) + verticalDistance
         if (otherData.y < data.y) {
           if (distance < aboveNeighborDistance) {
             nearestAboveNeighbor = otherData.element
@@ -160,7 +178,7 @@ export default class Navigator2D {
       const targetElement =
         targetNeighbor == null
           ? null
-          : this.elements.get(targetNeighbor)?.primaryChild ?? targetNeighbor
+          : this.elements.get(targetNeighbor)?.focusWhenEnteringFrom[direction] ?? targetNeighbor
       if (targetElement instanceof HTMLElement || targetElement instanceof SVGElement) {
         event.stopImmediatePropagation()
         targetElement.focus()
@@ -204,22 +222,16 @@ export default class Navigator2D {
     }
     const defaultAllowedDirections = options.allowedDirections == null
     this.elements.set(element, {
-      prority: options.prority ?? 0,
-      primaryChild: options.primaryChild ?? null,
       boundingBox: new DOMRectReadOnly(),
-      neighbors: {
-        [Direction.left]: null,
-        [Direction.right]: null,
-        [Direction.above]: null,
-        [Direction.below]: null,
-      },
-      allowedDirections: {
-        [Direction.left]: defaultAllowedDirections,
-        [Direction.right]: defaultAllowedDirections,
-        [Direction.above]: defaultAllowedDirections,
-        [Direction.below]: defaultAllowedDirections,
-        ...(options.allowedDirections ?? {}),
-      },
+      neighbors: mapDirections(() => null),
+      allowedDirections: mapDirections(
+        direction => options.allowedDirections?.[direction] ?? defaultAllowedDirections
+      ),
+      focusWhenEnteringFrom: mapDirections(direction =>
+        options.focusWhenEnteringFrom?.[direction] == null
+          ? null
+          : options.focusWhenEnteringFrom[direction] ?? options.primaryChild ?? null
+      ),
       dispose,
     })
   }
