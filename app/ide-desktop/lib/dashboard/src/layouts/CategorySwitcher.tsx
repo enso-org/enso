@@ -36,9 +36,10 @@ const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps {
+  readonly focusRing?: boolean
   readonly category: Category
   readonly isCurrent: boolean
-  readonly onClick: () => void
+  readonly onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
   readonly onDragOver: (event: React.DragEvent) => void
   readonly onDrop: (event: React.DragEvent) => void
 }
@@ -48,35 +49,36 @@ function CategorySwitcherItemInternal(
   props: InternalCategorySwitcherItemProps,
   ref: React.ForwardedRef<HTMLButtonElement>
 ) {
-  const { category, isCurrent, onClick } = props
-  const { onDragOver, onDrop } = props
+  const { focusRing = false, category, isCurrent, onClick, onDragOver, onDrop } = props
+
   return (
-    <button
-      ref={ref}
-      tabIndex={0} // Required so that it is still selectable when disabled.
-      disabled={isCurrent}
-      title={`Go To ${category}`}
-      className={`selectable ${
-        isCurrent ? 'bg-selected-frame active' : ''
-      } group flex h-row items-center gap-icon-with-text rounded-full px-button-x transition-colors hover:bg-selected-frame`}
-      onClick={onClick}
-      // Required because `dragover` does not fire on `mouseenter`.
-      onDragEnter={onDragOver}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
+    <div
+      className={`relative after:pointer-events-none after:absolute after:inset after:rounded-full after:transition-all ${focusRing ? 'after:focus-ring' : ''}`}
     >
-      <SvgMask
-        src={CATEGORY_ICONS[category]}
-        className={`group-hover:text-icon-selected ${
-          isCurrent ? 'text-icon-selected' : 'text-icon-not-selected'
-        } ${
-          // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
-          // eslint-disable-next-line no-restricted-syntax
-          category === Category.recent ? '-ml-0.5' : ''
-        }`}
-      />
-      <span>{category}</span>
-    </button>
+      <button
+        ref={ref}
+        tabIndex={0} // Required so that it is still selectable when disabled.
+        title={`Go To ${category}`}
+        className={`selectable ${
+          isCurrent ? 'disabled bg-selected-frame active' : ''
+        } group flex h-row items-center gap-icon-with-text rounded-full px-button-x hover:bg-selected-frame`}
+        onClick={onClick}
+        // Required because `dragover` does not fire on `mouseenter`.
+        onDragEnter={onDragOver}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+      >
+        <SvgMask
+          src={CATEGORY_ICONS[category]}
+          className={
+            // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
+            // eslint-disable-next-line no-restricted-syntax
+            category === Category.recent ? '-ml-0.5' : ''
+          }
+        />
+        <span>{category}</span>
+      </button>
+    </div>
   )
 }
 
@@ -102,8 +104,20 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const rootRef = React.useRef<HTMLDivElement>(null)
+  const childrenRef = React.useRef<(HTMLButtonElement | null)[]>([])
   const [selectedChildElement, setSelectedChildElement] = React.useState<HTMLElement | null>(null)
+  const [keyboardSelectedIndex, setKeyboardSelectedIndexRaw] = React.useState<number | null>(null)
+  const keyboardSelectedIndexRef = React.useRef(keyboardSelectedIndex)
+  const selectedChildIndexRef = React.useRef(0)
   const navigator2D = navigator2DProvider.useNavigator2D()
+
+  const setKeyboardSelectedIndex = React.useCallback((index: number | null) => {
+    keyboardSelectedIndexRef.current = index
+    setKeyboardSelectedIndexRaw(index)
+    if (index != null) {
+      childrenRef.current[index]?.focus()
+    }
+  }, [])
 
   React.useEffect(() => {
     const root = rootRef.current
@@ -119,20 +133,67 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
+    selectedChildIndexRef.current = CATEGORIES.indexOf(category)
   }, [category, /* should never change */ localStorage])
+
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      switch (event.key) {
+        case 'ArrowUp': {
+          event.stopPropagation()
+          const oldIndex = keyboardSelectedIndexRef.current ?? selectedChildIndexRef.current
+          const newIndex = Math.max(0, oldIndex - 1)
+          setKeyboardSelectedIndex(newIndex)
+          break
+        }
+        case 'ArrowDown': {
+          event.stopPropagation()
+          const oldIndex = keyboardSelectedIndexRef.current ?? selectedChildIndexRef.current
+          const newIndex = Math.min(CATEGORIES.length - 1, oldIndex + 1)
+          setKeyboardSelectedIndex(newIndex)
+          break
+        }
+        case 'Enter': {
+          event.stopPropagation()
+          // Should already be handled by the button's `onClick`.
+          break
+        }
+        case 'Escape': {
+          if (keyboardSelectedIndexRef.current != null) {
+            event.stopPropagation()
+            setKeyboardSelectedIndex(null)
+          }
+          break
+        }
+      }
+    }
+
+    const root = rootRef.current
+    root?.addEventListener('keydown', onKeyDown)
+    return () => {
+      root?.removeEventListener('keydown', onKeyDown)
+    }
+  }, [setCategory, /* should never change */ setKeyboardSelectedIndex])
 
   return (
     <div ref={rootRef} className="flex w-full flex-col gap-sidebar-section-heading">
       <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Category</div>
       <div className="flex flex-col items-start">
-        {CATEGORIES.map(currentCategory => (
+        {CATEGORIES.map((currentCategory, i) => (
           <CategorySwitcherItem
-            ref={category === currentCategory ? setSelectedChildElement : null}
             key={currentCategory}
+            ref={element => {
+              if (category === currentCategory) {
+                setSelectedChildElement(element)
+              }
+              childrenRef.current[i] = element
+            }}
+            focusRing={i === keyboardSelectedIndex}
             category={currentCategory}
             isCurrent={category === currentCategory}
             onClick={() => {
               setCategory(currentCategory)
+              setKeyboardSelectedIndex(null)
             }}
             onDragOver={event => {
               if (

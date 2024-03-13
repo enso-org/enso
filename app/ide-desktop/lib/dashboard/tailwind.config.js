@@ -432,11 +432,12 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
           // === Classes affecting opacity ===
 
           '.selectable': {
-            '@apply disabled:opacity-30 disabled:cursor-not-allowed opacity-50 hover:opacity-75 transition-all':
+            '@apply disabled:opacity-30 [&.disabled]:opacity-30 disabled:cursor-not-allowed [&.disabled]:cursor-not-allowed opacity-50 hover:opacity-75 transition-all':
               '',
           },
           '.active': {
-            '@apply opacity-100 disabled:opacity-100 hover:opacity-100 disabled:cursor-default': '',
+            '@apply opacity-100 disabled:opacity-100 [&.disabled]:opacity-100 hover:opacity-100 disabled:cursor-default [&.disabled]:cursor-default':
+              '',
           },
           '.placeholder': {
             '@apply opacity-75': '',
