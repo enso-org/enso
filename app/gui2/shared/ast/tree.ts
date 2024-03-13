@@ -608,7 +608,9 @@ export class App extends Ast {
     const spacedEquals = useParens && !!nameSpecification?.equals.whitespace
     if (useParens) yield ensureSpaced(parens.open, verbatim)
     if (nameSpecification) {
-      yield ensureSpacedIf(nameSpecification.name, !useParens, verbatim)
+      yield useParens ?
+        preferUnspaced(nameSpecification.name)
+      : ensureSpaced(nameSpecification.name, verbatim)
       yield ensureSpacedOnlyIf(nameSpecification.equals, spacedEquals, verbatim)
     }
     yield ensureSpacedOnlyIf(argument, !nameSpecification || spacedEquals, verbatim)
@@ -626,33 +628,39 @@ export class App extends Ast {
     return super.printSubtree(info, offset, parentIndent, verbatim_)
   }
 }
-function ensureSpacedIf<T>(
-  child: NodeChild<T>,
-  condition: boolean,
-  verbatim: boolean | undefined,
-): NodeChild<T> {
-  return condition ? ensureSpaced(child, verbatim) : child
-}
 function ensureSpacedOnlyIf<T>(
   child: NodeChild<T>,
   condition: boolean,
   verbatim: boolean | undefined,
-): NodeChild<T> {
+): ConcreteChild<T> {
   return condition ? ensureSpaced(child, verbatim) : ensureUnspaced(child, verbatim)
 }
-function ensureSpaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
-  if (verbatim && child.whitespace != null) return child
-  return child.whitespace ? child : { whitespace: ' ', ...child }
+
+type ConcreteChild<T> = { whitespace: string; node: T }
+function isConcrete<T>(child: NodeChild<T>): child is ConcreteChild<T> {
+  return child.whitespace !== undefined
 }
-function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
-  if (verbatim && child.whitespace != null) return child
-  return child.whitespace === '' ? child : { whitespace: '', ...child }
+function tryAsConcrete<T>(child: NodeChild<T>): ConcreteChild<T> | undefined {
+  return isConcrete(child) ? child : undefined
 }
-function preferUnspaced<T>(child: NodeChild<T>): NodeChild<T> {
-  return child.whitespace === undefined ? { whitespace: '', ...child } : child
+function ensureSpaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): ConcreteChild<T> {
+  const concreteInput = tryAsConcrete(child)
+  if (verbatim && concreteInput) return concreteInput
+  return concreteInput?.whitespace ? concreteInput : { ...child, whitespace: ' ' }
 }
-function preferSpaced<T>(child: NodeChild<T>): NodeChild<T> {
-  return child.whitespace === undefined ? { whitespace: ' ', ...child } : child
+function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): ConcreteChild<T> {
+  const concreteInput = tryAsConcrete(child)
+  if (verbatim && concreteInput) return concreteInput
+  return concreteInput?.whitespace === '' ? concreteInput : { ...child, whitespace: '' }
+}
+function preferSpacedIf<T>(child: NodeChild<T>, condition: boolean): ConcreteChild<T> {
+  return condition ? preferSpaced(child) : preferUnspaced(child)
+}
+function preferUnspaced<T>(child: NodeChild<T>): ConcreteChild<T> {
+  return tryAsConcrete(child) ?? { ...child, whitespace: '' }
+}
+function preferSpaced<T>(child: NodeChild<T>): ConcreteChild<T> {
+  return tryAsConcrete(child) ?? { ...child, whitespace: ' ' }
 }
 export class MutableApp extends App implements MutableAst {
   declare readonly module: MutableModule
@@ -1031,7 +1039,7 @@ function multiSegmentAppSegment<T extends MutableAst>(
   body: Owned<T> | undefined,
 ): MultiSegmentAppSegment<OwnedRefs> | undefined {
   return {
-    header: { node: Token.new(header, RawAst.Token.Type.Ident) },
+    header: autospaced(Token.new(header, RawAst.Token.Type.Ident)),
     body: spaced(body ? (body as any) : undefined),
   }
 }
@@ -1772,17 +1780,12 @@ export class Function extends Ast {
     }
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
     for (const def of argumentDefinitions) yield* def
     yield { whitespace: equals.whitespace ?? ' ', node: this.module.getToken(equals.node) }
-    if (body)
-      yield ensureSpacedOnlyIf(
-        body,
-        !(this.module.tryGet(body.node) instanceof BodyBlock),
-        verbatim,
-      )
+    if (body) yield preferSpacedIf(body, this.module.tryGet(body.node) instanceof BodyBlock)
   }
 }
 export class MutableFunction extends Function implements MutableAst {
@@ -1867,9 +1870,9 @@ export class Assignment extends Ast {
 
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { pattern, equals, expression } = getAll(this.fields)
-    yield pattern
+    yield ensureUnspaced(pattern, verbatim)
     yield ensureSpacedOnlyIf(equals, expression.whitespace !== '', verbatim)
-    yield expression
+    yield preferSpaced(expression)
   }
 }
 export class MutableAssignment extends Assignment implements MutableAst {
@@ -1928,7 +1931,7 @@ export class BodyBlock extends Ast {
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     for (const line of this.fields.get('lines')) {
-      yield line.newline ?? { node: Token.new('\n', RawAst.Token.Type.Newline) }
+      yield preferUnspaced(line.newline)
       if (line.expression) yield line.expression
     }
   }
@@ -2225,15 +2228,15 @@ export class Vector extends Ast {
     return Vector.tryBuild(inputs, elementBuilder, edit)
   }
 
-  *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
+  *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, elements, close } = getAll(this.fields)
-    yield unspaced(open.node)
+    yield ensureUnspaced(open, verbatim)
     let isFirst = true
     for (const { delimiter, value } of elements) {
       if (isFirst && value) {
         yield preferUnspaced(value)
       } else {
-        yield delimiter
+        yield preferUnspaced(delimiter)
         if (value) yield preferSpaced(value)
       }
       isFirst = false
@@ -2526,11 +2529,13 @@ function unspaced<T extends object | string>(node: T | undefined): NodeChild<T> 
   return { whitespace: '', node }
 }
 
-function autospaced<T extends object | string>(node: T): NodeChild<T>
-function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
-function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined {
+export function autospaced<T extends object | string>(node: T): NodeChild<T>
+export function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
+export function autospaced<T extends object | string>(
+  node: T | undefined,
+): NodeChild<T> | undefined {
   if (node === undefined) return node
-  return { node }
+  return { whitespace: undefined, node }
 }
 
 export interface Removed<T extends MutableAst> {

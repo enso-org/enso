@@ -19,7 +19,7 @@ object Cli {
 
   val FILESYSTEM_LIST             = "filesystem-list"
   val FILESYSTEM_CREATE_DIRECTORY = "filesystem-create-directory"
-  val FILESYSTEM_DELETE_DIRECTORY = "filesystem-delete-directory"
+  val FILESYSTEM_DELETE           = "filesystem-delete"
   val FILESYSTEM_MOVE_FROM        = "filesystem-move-from"
   val FILESYSTEM_MOVE_TO          = "filesystem-move-to"
 
@@ -105,12 +105,12 @@ object Cli {
       .desc("Create directory.")
       .build()
 
-    val filesystemDeleteDirectory: cli.Option = cli.Option.builder
+    val filesystemDelete: cli.Option = cli.Option.builder
       .hasArg(true)
       .numberOfArgs(1)
       .argName("path")
-      .longOpt(FILESYSTEM_DELETE_DIRECTORY)
-      .desc("Delete directory.")
+      .longOpt(FILESYSTEM_DELETE)
+      .desc("Delete file or directory recursively.")
       .build()
 
     val filesystemMoveFrom: cli.Option = cli.Option.builder
@@ -143,7 +143,7 @@ object Cli {
       .addOption(option.projectList)
       .addOption(option.filesystemList)
       .addOption(option.filesystemCreateDirectory)
-      .addOption(option.filesystemDeleteDirectory)
+      .addOption(option.filesystemDelete)
       .addOption(option.filesystemMoveFrom)
       .addOption(option.filesystemMoveTo)
 

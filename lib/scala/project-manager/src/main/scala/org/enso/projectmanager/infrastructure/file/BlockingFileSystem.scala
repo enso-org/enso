@@ -56,9 +56,9 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .timeoutFail(OperationTimeout)(ioTimeout)
 
   /** @inheritdoc */
-  override def removeDir(path: File): F[FileSystemFailure, Unit] =
+  override def remove(path: File): F[FileSystemFailure, Unit] =
     Sync[F]
-      .blockingOp { FileUtils.deleteDirectory(path) }
+      .blockingOp { FileUtils.forceDelete(path) }
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 

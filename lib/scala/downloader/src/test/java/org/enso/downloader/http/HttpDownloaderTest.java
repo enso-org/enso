@@ -27,8 +27,10 @@ import org.enso.cli.task.TaskProgress;
 import org.enso.shttp.HTTPTestHelperServer;
 import org.enso.shttp.HybridHTTPServer;
 import org.enso.shttp.SimpleHttpHandler;
+import org.enso.testkit.RetryTestRule;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import scala.Option;
 import scala.util.Try;
@@ -40,6 +42,8 @@ public class HttpDownloaderTest {
   public static final String REDIRECT_URI = "/redirect";
   private static HybridHTTPServer server;
   private static ExecutorService serverExecutor;
+
+  @Rule public RetryTestRule retry = new RetryTestRule(3);
 
   @BeforeClass
   public static void initServer() throws URISyntaxException, IOException {

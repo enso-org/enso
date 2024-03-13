@@ -144,8 +144,8 @@ impl<'s> Code<'s> {
 
     /// Length of the code in bytes.
     #[inline(always)]
-    pub fn len(&self) -> Bytes {
-        Bytes(self.repr.len())
+    pub fn len(&self) -> usize {
+        self.repr.len()
     }
 
     /// Length of the code.
