@@ -26,10 +26,8 @@ import * as uniqueString from '#/utilities/uniqueString'
 // ========================
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
-interface SharedWithColumnStateProp {
-  readonly category: column.AssetColumnProps['state']['category']
-  readonly dispatchAssetEvent: column.AssetColumnProps['state']['dispatchAssetEvent']
-}
+interface SharedWithColumnStateProp
+  extends Pick<column.AssetColumnProps['state'], 'category' | 'dispatchAssetEvent' | 'setQuery'> {}
 
 /** Props for a {@link SharedWithColumn}. */
 interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'item' | 'setItem'> {
@@ -39,7 +37,7 @@ interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'i
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state } = props
-  const { category, dispatchAssetEvent } = state
+  const { category, dispatchAssetEvent, setQuery } = state
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
@@ -60,15 +58,28 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
     [/* should never change */ setItem]
   )
   return (
-    <div className="group flex items-center gap-1">
+    <div className="group flex items-center gap-column-items">
       {(asset.permissions ?? []).map(otherUser => (
-        <PermissionDisplay key={otherUser.user.pk} action={otherUser.permission}>
+        <PermissionDisplay
+          key={otherUser.user.pk}
+          action={otherUser.permission}
+          onClick={event => {
+            setQuery(oldQuery =>
+              oldQuery.withToggled(
+                'owners',
+                'negativeOwners',
+                otherUser.user.user_name,
+                event.shiftKey
+              )
+            )
+          }}
+        >
           {otherUser.user.user_name}
         </PermissionDisplay>
       ))}
       {managesThisAsset && (
         <button
-          className="h-4 w-4 invisible pointer-events-none group-hover:visible group-hover:pointer-events-auto"
+          className="invisible shrink-0 group-hover:visible"
           onClick={event => {
             event.stopPropagation()
             setModal(
@@ -88,7 +99,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
             )
           }}
         >
-          <img className="w-4.5 h-4.5" src={Plus2Icon} />
+          <img className="size-plus-icon" src={Plus2Icon} />
         </button>
       )}
     </div>
