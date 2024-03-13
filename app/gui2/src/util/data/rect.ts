@@ -24,7 +24,21 @@ export class Rect {
   }
 
   static FromDomRect(domRect: DOMRect): Rect {
-    return new Rect(new Vec2(domRect.x, domRect.y), new Vec2(domRect.width, domRect.height))
+    return new Rect(Vec2.FromXY(domRect), Vec2.FromSize(domRect))
+  }
+
+  static Bounding(...rects: Rect[]): Rect {
+    let left = NaN
+    let top = NaN
+    let right = NaN
+    let bottom = NaN
+    for (const rect of rects) {
+      if (!(rect.left >= left)) left = rect.left
+      if (!(rect.top >= top)) top = rect.top
+      if (!(rect.right <= right)) right = rect.right
+      if (!(rect.bottom <= bottom)) bottom = rect.bottom
+    }
+    return this.FromBounds(left, top, right, bottom)
   }
 
   offsetBy(offset: Vec2): Rect {

@@ -6,7 +6,7 @@ import * as toastify from 'react-toastify'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
-import TriangleDownIcon from 'enso-assets/triangle_down.svg'
+import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import * as chat from 'enso-chat/chat'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
@@ -107,7 +107,7 @@ function ReactionBar(props: ReactionBarProps) {
   const { selectedReactions, doReact, doRemoveReaction, className } = props
 
   return (
-    <div className={`inline-block bg-white rounded-full m-1 ${className ?? ''}`}>
+    <div className={`m-chat-reaction-bar inline-block rounded-full bg-frame ${className ?? ''}`}>
       {REACTION_EMOJIS.map(emoji => (
         <button
           key={emoji}
@@ -118,8 +118,8 @@ function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
-            selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale hover:grayscale-0'
+          className={`m-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0 ${
+            selectedReactions.has(emoji) ? 'active' : 'grayscale'
           }`}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
@@ -174,7 +174,7 @@ function ChatMessage(props: ChatMessageProps) {
   const [isHovered, setIsHovered] = React.useState(false)
   return (
     <div
-      className="mx-4 my-2"
+      className="mx-chat-message-x my-chat-message-y"
       onMouseEnter={() => {
         setIsHovered(true)
       }}
@@ -186,11 +186,11 @@ function ChatMessage(props: ChatMessageProps) {
         <img
           crossOrigin="anonymous"
           src={message.avatar ?? DefaultUserIcon}
-          className="rounded-full h-8 w-8 my-1"
+          className="my-chat-profile-picture-y size-chat-profile-picture rounded-full"
         />
-        <div className="mx-2 leading-5">
+        <div className="mx-chat-message-info-x leading-cozy">
           <div className="font-bold">{message.name}</div>
-          <div className="text-opacity-50 text-primary">
+          <div className="text-primary text-opacity-unimportant">
             {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
           </div>
         </div>
@@ -207,7 +207,7 @@ function ChatMessage(props: ChatMessageProps) {
         />
       )}
       {message.isStaffMessage && !shouldShowReactionBar && isHovered && (
-        <div className="relative h-0 py-1 -my-1">
+        <div className="relative -my-chat-reaction-bar-py h py-chat-reaction-bar-y">
           <ReactionBar
             doReact={doReact}
             doRemoveReaction={doRemoveReaction}
@@ -269,22 +269,23 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
   return (
     <>
-      <div className="flex text-sm font-semibold mx-4 mt-2">
-        <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
+      <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
+        <button
+          className="flex grow items-center gap-icon-with-text"
+          onClick={toggleThreadListVisibility}
+        >
           <SvgMask
-            className={`transition-transform duration-300 shrink-0 ${
-              isThreadListVisible ? '-rotate-180' : ''
+            className={`shrink-0 transition-transform duration-arrow ${
+              isThreadListVisible ? '-rotate-90' : 'rotate-90'
             }`}
-            src={TriangleDownIcon}
+            src={FolderArrowIcon}
           />
-          {/* Spacing. */}
-          <div className="w-2" />
           <div className="grow">
             <input
               type="text"
               ref={titleInputRef}
               defaultValue={threadTitle}
-              className="bg-transparent w-full leading-6"
+              className="w-full bg-transparent leading-chat-thread-title"
               onClick={event => {
                 event.stopPropagation()
               }}
@@ -319,23 +320,23 @@ function ChatHeader(props: InternalChatHeaderProps) {
             />
           </div>
         </button>
-        <button className="mx-1" onClick={doClose}>
+        <button className="mx-close-icon" onClick={doClose}>
           <img src={CloseLargeIcon} />
         </button>
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-frame backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
+          className={`absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow ${
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
-          <div className="min-h-0 max-h-70 overflow-y-auto">
+          <div className="max-h-chat-thread-list min-h overflow-y-auto">
             {threads.map(thread => (
               <div
                 key={thread.id}
-                className={`flex p-1 ${
+                className={`flex p-chat-thread-button ${
                   thread.id === threadId
-                    ? 'cursor-default bg-frame-selected'
+                    ? 'cursor-default bg-selected-frame'
                     : 'cursor-pointer hover:bg-frame'
                 }`}
                 onClick={event => {
@@ -346,7 +347,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
                   }
                 }}
               >
-                <div className="w-8 text-center">
+                <div className="w-chat-indicator text-center">
                   {/* {thread.hasUnreadMessages ? '(!) ' : ''} */}
                 </div>
                 <div>{thread.title}</div>
@@ -659,7 +660,7 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-1 transition-transform ${isOpen ? '' : 'translate-x-full'}`}
+        className={`fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${isOpen ? '' : 'translate-x-full'}`}
       >
         <ChatHeader
           threads={threads}
@@ -738,13 +739,16 @@ export default function Chat(props: ChatProps) {
             />
           ))}
         </div>
-        <form className="rounded-2xl bg-frame p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
+        <form
+          className="mx-chat-form-x my-chat-form-y rounded-default bg-frame p-chat-form"
+          onSubmit={sendCurrentMessage}
+        >
           <textarea
             ref={messageInputRef}
             rows={1}
             required
             placeholder="Type your message ..."
-            className="w-full rounded-lg bg-transparent resize-none p-1"
+            className="w-full resize-none rounded-chat-input bg-transparent p-chat-input"
             onKeyDown={event => {
               switch (event.key) {
                 case 'Enter': {
@@ -769,11 +773,11 @@ export default function Chat(props: ChatProps) {
               }
             }}
           />
-          <div className="flex">
+          <div className="flex gap-chat-buttons">
             <button
               type="button"
               disabled={!isReplyEnabled}
-              className={`text-xxs text-white rounded-full grow text-left px-1.5 py-1 ${
+              className={`text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white ${
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
               }`}
               onClick={event => {
@@ -782,14 +786,10 @@ export default function Chat(props: ChatProps) {
             >
               New question? Click to start a new thread!
             </button>
-            {/* Spacing. */}
-            <div className="w-0.5" />
             <button
               type="submit"
               disabled={!isReplyEnabled}
-              className={`text-white bg-blue-600/90 rounded-full px-1.5 py-1 ${
-                isReplyEnabled ? '' : 'opacity-50'
-              }`}
+              className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
             >
               Reply!
             </button>
@@ -797,7 +797,9 @@ export default function Chat(props: ChatProps) {
         </form>
         {!isPaidUser && (
           <button
-            className="leading-5 rounded-2xl bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
+            // This UI element does not appear anywhere else.
+            // eslint-disable-next-line no-restricted-syntax
+            className="mx-2 my-1 rounded-default bg-call-to-action/90 p-2 text-center leading-cozy text-white"
             onClick={upgradeToPro}
           >
             Click here to upgrade to Enso Pro and get access to high-priority, live support!
