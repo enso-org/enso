@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { WidgetModule } from '@/providers/widgetRegistry'
-import { WidgetInput, injectWidgetRegistry, type WidgetUpdate } from '@/providers/widgetRegistry'
+import { injectWidgetRegistry, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import {
   injectWidgetUsageInfo,
