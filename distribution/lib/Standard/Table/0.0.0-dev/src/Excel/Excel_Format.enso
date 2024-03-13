@@ -6,6 +6,7 @@ import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Text_Input, Numeric_Input
+from Standard.Base.System.File_Format import parse_boolean_with_infer
 
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
@@ -189,3 +190,22 @@ as_section (format : Excel_Format) -> Excel_Section = case format of
         Excel_Section.Worksheet sheet headers skip_rows row_limit
     Excel_Format.Range address headers skip_rows row_limit _ ->
         Excel_Section.Cell_Range address headers skip_rows row_limit
+
+## PRIVATE
+   Constructs an `Excel_Format` instance from JSON.
+   Only a subset of options is currently supported.
+Excel_Format.from (that : JS_Object) =
+    section = that.get "section" if_missing=(Error.throw (Illegal_Argument.Error "The `section` field is required."))
+    case section.get "type" if_missing=(Error.throw (Illegal_Argument.Error "The `section.type` field is required.")) . to_case Case.Lower of
+        "workbook" ->
+            default_sheet = section.get "default_sheet" if_missing="EnsoSheet"
+            Excel_Format.Workbook default_sheet=default_sheet
+        "sheet" ->
+            name = section.get "name" if_missing=(Error.throw (Illegal_Argument.Error "The `name` field is required."))
+            headers = section.get "headers" |> parse_boolean_with_infer "headers"
+            Excel_Format.Sheet sheet=name headers=headers
+        "range" ->
+            address = section.get "address" if_missing=(Error.throw (Illegal_Argument.Error "The `address` field is required."))
+            headers = section.get "headers" |> parse_boolean_with_infer "headers"
+            Excel_Format.Range address=address headers=headers
+        unknown -> Error.throw (Illegal_Argument.Error "The `section.type` was "+unknown+" but it must be one of `workbook`, `sheet`, or `range`.")

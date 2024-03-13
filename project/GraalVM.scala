@@ -101,6 +101,11 @@ object GraalVM {
 
   val langsPkgs = jsPkgs ++ pythonPkgs ++ espressoPkgs
 
+  private val allowedJavaVendors = Seq(
+    "GraalVM Community",
+    "Oracle Corporation"
+  )
+
   /** Augments a state transition to do GraalVM version check.
     *
     * @param graalVersion  the GraalVM version that should be used for
@@ -115,20 +120,21 @@ object GraalVM {
     graalVersion: String,
     graalPackagesVersion: String,
     javaVersion: String,
-    log: ManagedLogger
-  ): Unit = {
+    oldState: State
+  ): State = {
+    val log = oldState.log
     if (graalPackagesVersion != version) {
       log.error(
         s"Expected GraalVM packages version $version, but got $graalPackagesVersion. " +
         s"Version specified in build.sbt and GraalVM.scala must be in sync"
       )
-      throw new IllegalStateException("GraalVM version check failed")
+      return oldState.fail
     }
     val javaVendor = System.getProperty("java.vendor")
-    if (javaVendor != "GraalVM Community") {
+    if (!allowedJavaVendors.contains(javaVendor)) {
       log.warn(
         s"Running on non-GraalVM JVM (The actual java.vendor is $javaVendor). " +
-        s"Expected GraalVM Community java.vendor."
+        s"Expected Java vendors: ${allowedJavaVendors.mkString(", ")}."
       )
     }
 
@@ -138,7 +144,7 @@ object GraalVM {
         s"Running on Java version $javaSpecVersion. " +
         s"Expected Java version $javaVersion."
       )
-      throw new IllegalStateException("java.specification.vendor check failed")
+      return oldState.fail
     }
 
     val vmVersion = System.getProperty("java.vm.version")
@@ -149,13 +155,15 @@ object GraalVM {
             s"Running on GraalVM version $version. " +
             s"Expected GraalVM version $graalVersion."
           )
-          throw new IllegalStateException("java.vm.version check failed")
+          oldState.fail
+        } else {
+          oldState
         }
       case None =>
         log.error(
           s"Could not parse GraalVM version from java.vm.version: $vmVersion."
         )
-        throw new IllegalStateException("java.vm.version check failed")
+        oldState.fail
     }
   }
 

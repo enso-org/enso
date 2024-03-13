@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use byte_unit::Byte;
 use ide_ci::program;
 use ide_ci::programs;
 use semver::VersionReq;
@@ -49,7 +48,6 @@ impl RecognizedProgram {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ConfigRaw {
-    pub wasm_size_limit:   Option<String>,
     pub required_versions: HashMap<String, String>,
 }
 
@@ -58,7 +56,6 @@ pub struct ConfigRaw {
 /// In our case, it is usually a configuration file in the main repository.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {
-    pub wasm_size_limit:   Option<Byte>,
     pub required_versions: HashMap<RecognizedProgram, VersionReq>,
 }
 
@@ -90,13 +87,7 @@ impl TryFrom<ConfigRaw> for Config {
             );
         }
 
-        Ok(Self {
-            wasm_size_limit: value
-                .wasm_size_limit
-                .map(|limit_text| <Byte as FromString>::from_str(&limit_text))
-                .transpose()?,
-            required_versions,
-        })
+        Ok(Self { required_versions })
     }
 }
 
