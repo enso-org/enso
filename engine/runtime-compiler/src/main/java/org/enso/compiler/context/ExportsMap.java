@@ -1,12 +1,14 @@
 package org.enso.compiler.context;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.ExportedSymbol;
 import org.enso.polyglot.ModuleExports;
 import org.enso.polyglot.Suggestion;
-import scala.Option;
 import scala.runtime.BoxedUnit;
 
 public final class ExportsMap {
@@ -14,18 +16,25 @@ public final class ExportsMap {
   private static final String MODULE_MAIN = "Main";
   private static final String TYPE_SUFFIX = "type";
 
-  private final Map<ExportedSymbol, QualifiedName> exportsMap;
+  private static final Comparator<QualifiedName> EXPORTS_COMPARATOR =
+      Comparator.comparingInt(ExportsMap::length);
+
+  private final Map<ExportedSymbol, SortedSet<QualifiedName>> exportsMap;
 
   public ExportsMap() {
     this.exportsMap = new HashMap<>();
   }
 
-  public ExportsMap(Map<ExportedSymbol, QualifiedName> exportsMap) {
+  public ExportsMap(Map<ExportedSymbol, SortedSet<QualifiedName>> exportsMap) {
     this.exportsMap = exportsMap;
   }
 
   public void add(ExportedSymbol symbol, QualifiedName moduleName) {
-    exportsMap.merge(symbol, moduleName, ExportsMap::getShortest);
+    exportsMap.compute(symbol, (_, v) -> {
+      var set = v == null ? new TreeSet<>(EXPORTS_COMPARATOR) : v;
+      set.add(moduleName);
+      return set;
+    });
   }
 
   public void addAll(QualifiedName moduleName, ModuleExports moduleExports) {
@@ -38,13 +47,10 @@ public final class ExportsMap {
             });
   }
 
-  public Option<QualifiedName> get(Suggestion suggestion) {
+  public SortedSet<QualifiedName> get(Suggestion suggestion) {
     return ExportedSymbol.fromSuggestion(suggestion)
-        .flatMap(symbol -> Option.apply(exportsMap.get(symbol)));
-  }
-
-  private static QualifiedName getShortest(QualifiedName name1, QualifiedName name2) {
-    return length(name1) <= length(name2) ? name1 : name2;
+        .map(symbol -> exportsMap.getOrDefault(symbol, new TreeSet<>(EXPORTS_COMPARATOR)))
+        .getOrElse(() -> new TreeSet<>(EXPORTS_COMPARATOR));
   }
 
   private static int length(QualifiedName qualifiedName) {

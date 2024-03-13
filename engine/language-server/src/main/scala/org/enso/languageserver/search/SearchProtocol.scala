@@ -137,7 +137,7 @@ object SearchProtocol {
       conversion.isStatic,
       conversion.documentation,
       conversion.annotations,
-      conversion.reexport
+      conversion.reexports
     )
 
   private def getterToMethod(
@@ -153,7 +153,7 @@ object SearchProtocol {
       getter.isStatic,
       getter.documentation,
       getter.annotations,
-      getter.reexport
+      getter.reexports
     )
 
   private val suggestionTypeDecoder: Decoder[Suggestion.Type] =
@@ -171,7 +171,7 @@ object SearchProtocol {
         documentation <- cursor
           .downField(CodecField.Documentation)
           .as[Option[String]]
-        reexport <- cursor.downField(CodecField.Reexport).as[Option[String]]
+        reexport <- cursor.downField(CodecField.Reexport).as[Set[String]]
       } yield {
         val returnType =
           QualifiedName.fromString(module).createChild(name).toString

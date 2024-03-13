@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
@@ -45,6 +46,8 @@ import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.Suggestion;
 import org.enso.polyglot.data.TypeGraph;
+import scala.collection.immutable.ListSet;
+import scala.collection.immutable.SetOps;
 
 final class TruffleCompilerContext implements CompilerContext {
 
@@ -557,8 +560,12 @@ final class TruffleCompilerContext implements CompilerContext {
               })
           .map(
               suggestion -> {
-                var reexport = exportsMap.get(suggestion).map(s -> s.toString());
-                return suggestion.withReexport(reexport);
+                scala.collection.immutable.Set<String> identity = new ListSet<>();
+                var reexports =
+                    exportsMap.get(suggestion).stream()
+                        .map(QualifiedName::toString)
+                        .reduce(identity, SetOps::incl, SetOps::union);
+                return suggestion.withReexports(reexports);
               })
           .foreach(suggestions::add);
 
@@ -569,7 +576,7 @@ final class TruffleCompilerContext implements CompilerContext {
               context
                   .getPackageRepository()
                   .getPackageForLibraryJava(libraryName)
-                  .map(p -> p.listSourcesJava()));
+                  .map(Package::listSourcesJava));
       var cache = SuggestionsCache.create(libraryName);
       var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
       return file != null;
