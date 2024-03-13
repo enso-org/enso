@@ -14,7 +14,7 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
 ## Defines a simple expression based off an input column and an operation to perform.
 type Simple_Expression
     ## A simple expression based off an input column and an operation to perform.
-    From (input : Column_Ref|Expression|Any = Column_Ref.Index) (operation : Simple_Calculation)
+    From (input : Column_Ref|Expression|Any = (Column_Ref.Index 0)) (operation : Simple_Calculation = Simple_Calculation.Add)
 
     ## PRIVATE
        Interprets the `Simple_Expression` as operation on columns of a provided
@@ -24,6 +24,7 @@ type Simple_Expression
     evaluate self table:Table_Ref use_input_name:Boolean on_problems:Problem_Behavior =
         input_column = table.resolve_as_column self.input
         derived = case self.operation of
+            Simple_Calculation.Copy -> input_column
             Simple_Calculation.Add rhs -> input_column + (table.resolve rhs)
             Simple_Calculation.Subtract rhs -> input_column - (table.resolve rhs)
             Simple_Calculation.Multiply rhs -> input_column * (table.resolve rhs)
@@ -69,6 +70,7 @@ type Simple_Expression
 
         builder = Vector.new_builder
         fqn = Meta.get_qualified_type_name Simple_Calculation
+        builder.append (Option "copy" fqn+".Copy")
         builder.append (Option "add" fqn+".Add" [["rhs", with_number_text]])
         builder.append (Option "subtract" fqn+".Subtract" [["rhs", with_number]])
         builder.append (Option "multiply" fqn+".Multiply" [["rhs", with_number]])
@@ -97,6 +99,9 @@ type Simple_Expression
 
 ## Defines the operation on a derived column.
 type Simple_Calculation
+    ## Creates a copy of the input column.
+    Copy
+
     ## Add two values/columns.
     Add (rhs : Column_Ref|Expression|Number|Text)
 
