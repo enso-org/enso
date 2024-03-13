@@ -320,12 +320,6 @@ final class EnsureCompiledJob(
           "Kept pending edits lock [EnsureCompiledJob] for {} milliseconds",
           System.currentTimeMillis() - pendingEditsLockTimestamp
         )
-        ctx.locking.releaseFileLock(file)
-        logger.log(
-          Level.FINEST,
-          "Kept file lock [EnsureCompiledJob] for {} milliseconds",
-          System.currentTimeMillis() - fileLockTimestamp
-        )
       }
     } finally {
       ctx.locking.releaseFileLock(file)
