@@ -630,6 +630,7 @@
 - [Make File./ only accept Text][9330]
 - [Implemented Excel Data Link][9346]
 - [Added Table.running][9346]
+- [Allow `Table.replace` to take mutiple target columns.][9406]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -915,6 +916,7 @@
 [9334]: https://github.com/enso-org/enso/pull/9334
 [9346]: https://github.com/enso-org/enso/pull/9346
 [9382]: https://github.com/enso-org/enso/pull/9382
+[9406]: https://github.com/enso-org/enso/pull/9406
 
 #### Enso Compiler
 
