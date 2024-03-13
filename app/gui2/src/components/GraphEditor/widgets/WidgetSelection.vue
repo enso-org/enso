@@ -82,7 +82,7 @@ const dynamicTags = computed<Tag[]>(() => {
 const customTags = computed(() => props.input[CustomDropdownItemsKey]?.map(tagFromCustomItem) ?? [])
 const tags = computed(() => {
   const standardTags = dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value
-  return customTags.value.concat(standardTags)
+  return [...customTags.value, ...standardTags]
 })
 const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
 
@@ -201,7 +201,7 @@ export interface CustomDropdownItem {
 export const CustomDropdownItemsKey: unique symbol = Symbol('CustomDropdownItems')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
-    [CustomDropdownItemsKey]?: CustomDropdownItem[]
+    [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
   }
 }
 </script>

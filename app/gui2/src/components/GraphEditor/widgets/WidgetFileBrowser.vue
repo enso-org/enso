@@ -53,36 +53,36 @@ function makeValue(edit: Ast.MutableModule, useFileConstructor: boolean, path: s
   }
 }
 
+const onClick = async () => {
+  const kind =
+    strictlyDirectory.value ? 'directory'
+    : strictlyFile.value ? 'file'
+    : 'any'
+  const selected = await window.fileBrowserApi.openFileBrowser(kind)
+  if (selected != null && selected[0] != null) {
+    const edit = graph.startEdit()
+    const value = makeValue(edit, insertAsFileConstructor.value, selected[0])
+    props.onUpdate({
+      edit,
+      portUpdate: {
+        value,
+        origin: props.input.portId,
+      },
+    })
+  }
+}
+
 const item = computed<CustomDropdownItem>(() => ({
   label: label.value,
-  onClick: async () => {
-    const kind =
-      strictlyDirectory.value ? 'directory'
-      : strictlyFile.value ? 'file'
-      : 'any'
-    const selected = await window.fileBrowserApi.openFileBrowser(kind)
-    if (selected != null && selected[0] != null) {
-      const edit = graph.startEdit()
-      const value = makeValue(edit, insertAsFileConstructor.value, selected[0])
-      props.onUpdate({
-        edit,
-        portUpdate: {
-          value,
-          origin: props.input.portId,
-        },
-      })
-    }
-  },
+  onClick,
 }))
 
 const innerWidgetInput = computed(() => {
-  const input = props.input
-  if (input[CustomDropdownItemsKey] != null) {
-    input[CustomDropdownItemsKey].push(item.value)
-  } else {
-    input[CustomDropdownItemsKey] = [item.value]
+  const existingItems = props.input[CustomDropdownItemsKey] ?? []
+  return {
+    ...props.input,
+    [CustomDropdownItemsKey]: [...existingItems, item.value],
   }
-  return input
 })
 </script>
 
