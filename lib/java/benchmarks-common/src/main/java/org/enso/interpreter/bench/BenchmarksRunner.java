@@ -66,8 +66,12 @@ public class BenchmarksRunner {
     }
   }
 
-  private static Collection<RunResult> runCompileOnly(List<String> includes)
-      throws RunnerException {
+  /**
+   * Results from compileOnly mode are not reported. Moreover, if some of the benchmarks in this
+   * mode fails, the whole process immediately fails. This behavior is different to *normal*
+   * benchmarks, where a single failure does not stop the whole process.
+   */
+  private static void runCompileOnly(List<String> includes) {
     if (includes.isEmpty()) {
       System.out.println("Running all benchmarks in compileOnly mode");
     } else {
@@ -78,27 +82,19 @@ public class BenchmarksRunner {
             .measurementTime(TimeValue.seconds(1))
             .measurementIterations(1)
             .warmupIterations(0)
+            .shouldFailOnError(true)
             .forks(0);
     includes.forEach(optsBuilder::include);
     var opts = optsBuilder.build();
     var runner = new Runner(opts);
-    return runner.run();
-  }
-
-  public static BenchmarkItem runSingle(String label) throws RunnerException, JAXBException {
-    String includeRegex = "^" + label + "$";
-    if (Boolean.getBoolean("bench.compileOnly")) {
-      var results = runCompileOnly(List.of(includeRegex));
-      var firstResult = results.iterator().next();
-      return reportResult(label, firstResult);
-    } else {
-      var opts =
-          new OptionsBuilder()
-              .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
-              .include(includeRegex)
-              .build();
-      RunResult benchmarksResult = new Runner(opts).runSingle();
-      return reportResult(label, benchmarksResult);
+    try {
+      runner.run();
+      System.out.println(
+          "benchmarks run successfully in compileOnly mode. Results are not reported.");
+    } catch (RunnerException e) {
+      System.err.println("Benchmark run failed: " + e.getMessage());
+      e.printStackTrace(System.err);
+      System.exit(1);
     }
   }
 
