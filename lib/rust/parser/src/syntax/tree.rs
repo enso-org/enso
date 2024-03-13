@@ -118,9 +118,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             #[reflect(as = "i32")]
             pub de_bruijn_index: Option<u32>,
         },
-        /// The auto-scoping marker, `...`.
-        AutoScope {
-            pub token: token::AutoScope<'s>,
+        /// The suspended-default-arguments marker, `...`.
+        SuspendedDefaultArguments {
+            pub token: token::SuspendedDefaultArguments<'s>,
         },
         TextLiteral {
             pub open:     Option<token::TextStart<'s>>,
@@ -161,6 +161,11 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         UnaryOprApp {
             pub opr: token::Operator<'s>,
             pub rhs: Option<Tree<'s>>,
+        },
+        /// Application of the autoscope operator to an identifier, e.g. `..True`.
+        AutoscopedIdentifier {
+            pub opr: token::Operator<'s>,
+            pub ident: token::Ident<'s>,
         },
         /// Defines the point where operator sections should be expanded to lambdas. Let's consider
         /// the expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
@@ -897,10 +902,7 @@ pub fn apply_operator<'s>(
     }
     if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
         return match (lhs, rhs) {
-            (Some(lhs), Some(rhs)) => {
-                let rhs = crate::expression_to_type(rhs);
-                Tree::type_annotated(lhs, opr.unwrap(), rhs)
-            },
+            (Some(lhs), Some(rhs)) => Tree::type_annotated(lhs, opr.unwrap(), rhs),
             (lhs, rhs) => {
                 let invalid = Tree::opr_app(lhs, opr, rhs);
                 invalid.with_error("`:` operator must be applied to two operands.")
@@ -951,6 +953,21 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
             false => Tree::annotated(opr, token, None, vec![], None),
         };
     }
+    if opr.properties.is_autoscope() && let Some(rhs) = rhs {
+        return if let box Variant::Ident(Ident { mut token }) = rhs.variant {
+            let applied_to_type = token.variant.is_type;
+            token.left_offset = rhs.span.left_offset;
+            let autoscope_application = Tree::autoscoped_identifier(opr, token);
+            return if applied_to_type {
+                autoscope_application
+            } else {
+                autoscope_application
+                    .with_error("The auto-scope operator may only be applied to a capitalized identifier.")
+            }
+        } else {
+            Tree::unary_opr_app(opr, Some(rhs)).with_error("The auto-scope operator (..) may only be applied to an identifier.")
+        }
+    }
     if !opr.properties.can_form_section() && rhs.is_none() {
         let error = format!("Operator `{opr:?}` must be applied to an operand.");
         let invalid = Tree::unary_opr_app(opr, rhs);
@@ -990,7 +1007,7 @@ pub fn to_ast(token: Token) -> Tree {
             Tree::text_literal(default(), default(), vec![newline], default(), default())
         }
         token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
-        token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
+        token::Variant::SuspendedDefaultArguments(t) => Tree::suspended_default_arguments(token.with_variant(t)),
         token::Variant::OpenSymbol(s) =>
             Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
         token::Variant::CloseSymbol(s) =>

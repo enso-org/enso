@@ -27,9 +27,12 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.edit: {
       return (
         <button
+          disabled={!onClick}
           className={`${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } inline-block rounded-full whitespace-nowrap h-6 px-1.75 py-0.5 ${className ?? ''}`}
+          } inline-block h-text whitespace-nowrap rounded-full px-permission-mini-button-x py-permission-mini-button-y ${
+            className ?? ''
+          }`}
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
@@ -42,21 +45,21 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     case permissionsModule.Permission.view: {
       return (
         <button
-          className={`relative inline-block rounded-full whitespace-nowrap ${className ?? ''}`}
+          className={`relative inline-block whitespace-nowrap rounded-full ${className ?? ''}`}
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
         >
           {permission.docs && (
-            <div className="border-permission-docs clip-path-top border-2 rounded-full absolute w-full h-full" />
+            <div className="absolute size-full rounded-full border-2 border-permission-docs clip-path-top" />
           )}
           {permission.execute && (
-            <div className="border-permission-exec clip-path-bottom border-2 rounded-full absolute w-full h-full" />
+            <div className="absolute size-full rounded-full border-2 border-permission-exec clip-path-bottom" />
           )}
           <div
             className={`${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } rounded-full h-6 px-1.75 py-0.5 m-1`}
+            } m-permission-with-border h-text rounded-full px-permission-mini-button-x py-permission-mini-button-y`}
           >
             {children}
           </div>

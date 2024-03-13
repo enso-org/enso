@@ -5,14 +5,13 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for a {@link Button}. */
 export interface ButtonProps {
-  /** When true, the button is not faded out even when not hovered. */
+  /** When `true`, the button is not faded out even when not hovered. */
   readonly active?: boolean
-  /** When true, the button is not clickable. */
+  /** When `true`, the button is not clickable. */
   readonly disabled?: boolean
-  readonly disabledOpacityClassName?: string
   readonly image: string
   readonly alt?: string
-  /** A title that is only shown when `disabled` is true. */
+  /** A title that is only shown when `disabled` is `true`. */
   readonly error?: string | null
   readonly className?: string
   readonly onClick: (event: React.MouseEvent) => void
@@ -20,18 +19,18 @@ export interface ButtonProps {
 
 /** A styled button. */
 export default function Button(props: ButtonProps) {
-  const { active = false, disabled = false, disabledOpacityClassName, image, alt, error } = props
-  const { className, onClick } = props
+  const { active = false, disabled = false, image, error } = props
+  const { alt, className, onClick } = props
 
   return (
-    <SvgMask
-      src={image}
-      {...(!active && disabled && error != null ? { title: error } : {})}
-      className={`${active ? '' : disabledOpacityClassName ?? 'opacity-50'} ${
-        disabled ? '' : 'cursor-pointer hover:opacity-100'
-      } ${!active && disabled ? 'cursor-not-allowed' : ''} ${className ?? ''}`}
-      {...(alt != null ? { alt } : {})}
-      {...(disabled ? {} : { onClick })}
-    />
+    <button disabled={disabled} className={`group flex selectable ${active ? 'active' : ''}`}>
+      <SvgMask
+        src={image}
+        {...(!active && disabled && error != null ? { title: error } : {})}
+        {...(alt != null ? { alt } : {})}
+        className={className}
+        onClick={onClick}
+      />
+    </button>
   )
 }
