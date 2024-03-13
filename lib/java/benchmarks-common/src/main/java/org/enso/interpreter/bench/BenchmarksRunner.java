@@ -68,7 +68,11 @@ public class BenchmarksRunner {
 
   private static Collection<RunResult> runCompileOnly(List<String> includes)
       throws RunnerException {
-    System.out.println("Running benchmarks " + includes + " in compileOnly mode");
+    if (includes.isEmpty()) {
+      System.out.println("Running all benchmarks in compileOnly mode");
+    } else {
+      System.out.println("Running benchmarks " + includes + " in compileOnly mode");
+    }
     var optsBuilder =
         new OptionsBuilder()
             .measurementTime(TimeValue.seconds(1))
