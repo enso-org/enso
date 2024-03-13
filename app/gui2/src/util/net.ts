@@ -6,10 +6,13 @@ import type {
 } from '@open-rpc/client-js/build/Request'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport'
 import type { ArgumentsType } from '@vueuse/core'
+import { ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
 import { LsRpcError } from 'shared/languageServer'
 import type { Notifications } from 'shared/languageServerTypes'
 import { WebsocketClient } from 'shared/websocket'
+import * as Y from 'yjs'
+import type { ProviderParams } from './crdt'
 
 export interface BackoffOptions<E> {
   maxRetries?: number

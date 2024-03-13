@@ -10,7 +10,8 @@ import { graphNodeByBinding } from './locate'
 /** Perform a successful login. */
 export async function goToGraph(page: Page) {
   await page.goto('/')
-  await expect(page.locator('.App')).toBeVisible()
+  // Initial load through vite can take a while. Make sure that the first locator has enough time.
+  await expect(page.locator('.GraphEditor')).toBeVisible({ timeout: 100000 })
   // Wait until nodes are loaded.
   await expect(locate.graphNode(page)).toExist()
   // Wait for position initialization

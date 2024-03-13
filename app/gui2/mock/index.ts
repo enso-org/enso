@@ -57,13 +57,11 @@ widgetRegistry.withGraphDb = function widgetRegistryWithGraphDb(graphDb: GraphDb
   return (app: App) => provideWidgetRegistry._mock([graphDb], app)
 }
 
-export function graphStore() {
+export function graphStore(): ReturnType<typeof useGraphStore> {
   return useGraphStore(getActivePinia())
 }
 
-type ProjectStore = ReturnType<typeof projectStore>
-
-export function projectStore() {
+export function projectStore(): ReturnType<typeof useProjectStore> {
   const projectStore = useProjectStore(getActivePinia())
   const mod = projectStore.projectModel.createNewModule('Main.enso')
   mod.doc.ydoc.emit('load', [])
@@ -76,8 +74,11 @@ export function projectStore() {
 }
 
 /** The stores should be initialized in this order, as `graphStore` depends on `projectStore`. */
-export function projectStoreAndGraphStore() {
-  return [projectStore(), graphStore()] satisfies [] | unknown[]
+export function projectStoreAndGraphStore(): readonly [
+  ReturnType<typeof useProjectStore>,
+  ReturnType<typeof useGraphStore>,
+] {
+  return [projectStore(), graphStore()] as const
 }
 
 /** This should only be used for supplying as initial props when testing.
@@ -86,7 +87,7 @@ export function node() {
   return mockNode()
 }
 
-export function waitForMainModule(projectStore?: ProjectStore) {
+export function waitForMainModule(projectStore?: ReturnType<typeof useProjectStore>) {
   const definedProjectStore = projectStore ?? useProjectStore(getActivePinia())
   return new Promise((resolve, reject) => {
     const handle1 = window.setInterval(() => {

@@ -17,6 +17,8 @@ const IS_CLOUD_BUILD = process.env.CLOUD_BUILD === 'true'
 
 await readEnvironmentFromFile()
 
+const entrypoint = process.env.E2E === 'true' ? './src/e2e-entrypoint.ts' : './src/entrypoint.ts'
+
 // https://vitejs.dev/config/
 export default defineConfig({
   cacheDir: '../../node_modules/.cache/vite',
@@ -33,9 +35,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      ...(process.env.E2E === 'true' ?
-        { '/src/main.ts': fileURLToPath(new URL('./e2e/main.ts', import.meta.url)) }
-      : {}),
+      '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
       shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },

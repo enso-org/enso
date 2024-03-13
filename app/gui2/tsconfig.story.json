@@ -10,6 +10,8 @@
     "shared/**/*.vue",
     "public/**/*",
     "public/**/*.vue",
+    "mock/**/*",
+    "mock/**/*.vue",
     "stories/**/*",
     "stories/**/*.json",
     "stories/**/*.vue"
