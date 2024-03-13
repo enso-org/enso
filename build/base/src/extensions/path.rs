@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use crate::extensions::os_str::OsStrExt;
 
-use serde::de::DeserializeOwned;
 use std::env::consts::EXE_EXTENSION;
 
 

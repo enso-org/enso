@@ -3,8 +3,6 @@ use crate::prelude::*;
 use crate::env::accessor::TypedVariable;
 use crate::extensions::child::ChildExt;
 
-use std::collections::HashMap;
-use std::fmt::Formatter;
 use std::process::Stdio;
 
 

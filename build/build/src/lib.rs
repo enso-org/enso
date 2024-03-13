@@ -1,5 +1,4 @@
 // === Features ===
-#![feature(trait_upcasting)]
 #![feature(try_blocks)]
 #![feature(hash_set_entry)]
 #![feature(type_alias_impl_trait)]
@@ -8,12 +7,8 @@
 #![feature(exit_status_error)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
-#![feature(option_result_contains)]
 #![feature(result_flattening)]
-#![feature(default_free_fn)]
-#![feature(result_option_inspect)]
 #![feature(associated_type_defaults)]
-#![feature(once_cell)]
 #![feature(duration_constants)]
 #![feature(slice_take)]
 #![feature(future_join)]

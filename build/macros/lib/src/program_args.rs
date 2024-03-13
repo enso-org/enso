@@ -8,11 +8,18 @@ pub struct Policy {
     pub format:    Option<String>,
 }
 
-impl const Default for Policy {
+impl Default for Policy {
     fn default() -> Self {
+        Self::default_const()
+    }
+}
+
+impl Policy {
+    pub const fn default_const() -> Self {
         Self { flag_case: Case::Kebab, format: None }
     }
 }
+
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Generator<'a> {
@@ -22,7 +29,7 @@ pub struct Generator<'a> {
 
 impl<'a> Generator<'a> {
     pub fn current_policy(&self) -> &Policy {
-        static DEFAULT_POLICY: Policy = Policy::default();
+        static DEFAULT_POLICY: Policy = Policy::default_const();
         self.policy.last().unwrap_or(&DEFAULT_POLICY)
     }
 

@@ -5,7 +5,6 @@
 #![feature(assert_matches)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
-#![feature(local_key_cell_methods)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -410,8 +409,7 @@ impl Lexer {
                 self.state = State::Normal;
                 self.normal_line(line, docs)
             }
-            (State::Tags, None) =>
-                raw.warn("Unneeded empty line before content or between tags."),
+            (State::Tags, None) => raw.warn("Unneeded empty line before content or between tags."),
             (State::ExampleDescription, None) => {
                 self.scopes.end_all().for_each(|scope| docs.end(scope));
                 // TODO: within_indent
@@ -421,7 +419,8 @@ impl Lexer {
             (State::ExampleExpectingCode { .. }, None) =>
                 raw.warn("Extra empty line before example code."),
             (State::ExampleExpectingCode { within_indent }, Some(line))
-                    if line.indent.visible <= within_indent => {
+                if line.indent.visible <= within_indent =>
+            {
                 line.content.warn("No code found in example section.");
                 self.state = State::Normal;
                 self.normal_line(line, docs)
@@ -434,7 +433,7 @@ impl Lexer {
             }
             (State::ExampleCode, None) if let Some(_) = self.scopes.raw() => {
                 docs.raw_line(raw.after());
-            },
+            }
             (State::ExampleCode, None) => (),
             (State::ExampleCode, Some(line)) => {
                 self.scopes.end_below(line.indent).for_each(|scope| docs.end(scope));
@@ -476,11 +475,11 @@ impl Lexer {
                 if marked.mark == Mark::Example {
                     self.state = State::ExampleDescription;
                 }
-            },
+            }
             t if let Some(t) = t.strip_suffix(':') => {
                 self.scopes.end_all().for_each(|scope| docs.end(scope));
                 docs.enter_keyed_section(t);
-            },
+            }
             t if let Some(content) = t.strip_prefix("- ") => {
                 self.scopes.end_below(indent).for_each(|scope| docs.end(scope));
                 if self.scopes.start_list_if_not_started(indent) {
@@ -499,7 +498,7 @@ impl Lexer {
                     docs.start_paragraph();
                 }
                 self.text(content, docs);
-            },
+            }
         }
     }
 

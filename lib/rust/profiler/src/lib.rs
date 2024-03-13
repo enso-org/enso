@@ -127,10 +127,8 @@
 
 // === Features ===
 #![feature(test)]
-#![feature(local_key_cell_methods)]
 #![feature(maybe_uninit_uninit_array)]
 #![feature(extend_one)]
-#![feature(result_option_inspect)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

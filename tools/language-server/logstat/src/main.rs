@@ -21,7 +21,6 @@ use clap::Parser;
 use clap::ValueHint;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::fmt;
 use std::io::Result;
 use std::path::PathBuf;
 use std::process;
@@ -266,7 +265,7 @@ fn calculate_durations(iterations: &mut Vec<Iteration>) {
     for iteration in iterations {
         let mut timestamp = OffsetDateTime::UNIX_EPOCH;
 
-        for mut op in iteration.operations.iter_mut() {
+        for op in iteration.operations.iter_mut() {
             if timestamp == OffsetDateTime::UNIX_EPOCH {
                 timestamp = op.timestamp
             }

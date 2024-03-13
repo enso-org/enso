@@ -3,7 +3,6 @@
 
 // === Features ===
 #![feature(let_chains)]
-#![feature(default_free_fn)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

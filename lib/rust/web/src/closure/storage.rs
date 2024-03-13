@@ -39,7 +39,7 @@ pub struct OptionalFmMutClosure<Arg> {
 impl<Arg> OptionalFmMutClosure<Arg> {
     /// An empty closure storage.
     pub fn new() -> OptionalFmMutClosure<Arg> {
-        default()
+        Default::default()
     }
 
     /// Stores the given closure.

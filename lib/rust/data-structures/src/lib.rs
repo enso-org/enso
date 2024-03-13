@@ -4,7 +4,6 @@
 #![feature(associated_type_bounds)]
 #![feature(test)]
 #![feature(trait_alias)]
-#![feature(core_intrinsics)]
 #![feature(cell_update)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

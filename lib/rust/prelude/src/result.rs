@@ -45,27 +45,3 @@ impl<T, E> ResultOps for Result<T, E> {
         }
     }
 }
-
-
-
-// ========================
-// === ResultUnwrapBoth ===
-// ========================
-
-pub trait ResultUnwrapBoth {
-    type Item;
-
-    /// Unwrap either `Ok` or `Err`. Possible only if both have the same type
-    fn unwrap_both(self) -> Self::Item;
-}
-
-impl<T> ResultUnwrapBoth for Result<T, T> {
-    type Item = T;
-
-    fn unwrap_both(self) -> Self::Item {
-        match self {
-            Ok(t) => t,
-            Err(t) => t,
-        }
-    }
-}

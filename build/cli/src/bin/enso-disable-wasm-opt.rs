@@ -3,7 +3,6 @@
 //! command line flag, so we have to disable it by setting an appropriate flag in each Cargo.toml.
 
 // === Features ===
-#![feature(option_result_contains)]
 #![feature(associated_type_bounds)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

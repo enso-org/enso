@@ -5,7 +5,6 @@
 // soon. It should not be reviewed now.
 
 // === Features ===
-#![feature(generators, generator_trait)]
 #![feature(type_ascription)]
 #![feature(marker_trait_attr)]
 // === Standard Linter Configuration ===
@@ -24,12 +23,10 @@
 
 pub mod cartesian;
 pub mod clone_ref;
-pub mod generator;
 pub mod shared;
 pub mod singleton;
 
 pub use enso_shapely_macros::*;
-pub use generator::GeneratingIterator;
 
 
 

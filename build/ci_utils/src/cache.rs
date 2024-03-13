@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use anyhow::Context;
-use serde::de::DeserializeOwned;
 use sha2::Digest;
 use std::hash::Hasher;
 
@@ -105,8 +104,8 @@ pub fn digest<S: Storable>(storable: &S) -> Result<String> {
     let key_serialized = bincode::serialize(&key)?;
 
     let mut digest = sha2::Sha224::default();
-    sha2::Digest::update(&mut digest, [VERSION]);
-    sha2::Digest::update(&mut digest, key_serialized);
+    Digest::update(&mut digest, [VERSION]);
+    Digest::update(&mut digest, key_serialized);
     std::any::TypeId::of::<S::Key>().hash(&mut HashToDigest(&mut digest));
     std::any::TypeId::of::<S>().hash(&mut HashToDigest(&mut digest));
     let digest = digest.finalize();

@@ -4,12 +4,9 @@
 //! Currently it is employed by the native build scripts code.
 
 // === Features ===
-#![feature(pin_macro)]
-#![feature(default_free_fn)]
 #![feature(result_flattening)]
 #![feature(associated_type_bounds)]
 #![feature(extend_one)]
-#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -42,7 +39,6 @@ pub mod prelude {
     pub use std::collections::BTreeSet;
     pub use std::collections::HashMap;
     pub use std::collections::HashSet;
-    pub use std::default::default;
     pub use std::ffi::OsStr;
     pub use std::ffi::OsString;
     pub use std::fmt::Debug;
@@ -110,4 +106,12 @@ pub mod prelude {
     pub use tracing::warn;
     pub use tracing::warn_span;
     pub use tracing::Instrument;
+
+    /// Get the default value of a type as defined by the `Default` trait.
+    ///
+    /// This is a convenience function that allows to get the default value of a type without
+    /// needing to specify the type explicitly.
+    pub fn default<T: Default>() -> T {
+        T::default()
+    }
 }

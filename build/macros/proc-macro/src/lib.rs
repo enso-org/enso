@@ -1,5 +1,4 @@
 // === Features ===
-#![feature(result_option_inspect)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

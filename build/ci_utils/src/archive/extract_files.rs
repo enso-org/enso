@@ -9,5 +9,6 @@ pub trait ExtractFiles {
     /// IMPORTANT: If the function uses its input path to generate an output path, care must be
     /// taken that the output path is not in an unexpected location, especially if coming from an
     /// untrusted archive.
+    #[allow(async_fn_in_trait)]
     async fn extract_files(self, filter: impl FnMut(&Path) -> Option<PathBuf>) -> Result;
 }

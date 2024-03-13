@@ -2,9 +2,6 @@
 
 use crate::*;
 
-use crate::data::vec_indexed_by;
-use crate::VecIndexedBy;
-
 use std::ops::Bound;
 use std::vec::Drain;
 

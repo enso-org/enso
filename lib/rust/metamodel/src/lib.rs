@@ -46,6 +46,7 @@
 // === Features ===
 #![feature(option_get_or_insert_default)]
 #![feature(type_alias_impl_trait)]
+#![feature(impl_trait_in_assoc_type)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

@@ -98,12 +98,20 @@ impl<'a> IsRepo for RepoRef<'a> {
 
 impl<'a> RepoRef<'a> {
     #[allow(missing_docs)]
-    pub const fn new<T1, T2>(owner: &'a T1, name: &'a T2) -> Self
+    pub fn new<T1, T2>(owner: &'a T1, name: &'a T2) -> Self
     where
-        T1: ~const AsRef<str> + ?Sized,
-        T2: ~const AsRef<str> + ?Sized, {
+        T1: AsRef<str> + ?Sized,
+        T2: AsRef<str> + ?Sized, {
         Self { owner: owner.as_ref(), name: name.as_ref() }
     }
+
+    // #[allow(missing_docs)]
+    // pub const fn new<T1, T2>(owner: &'a T1, name: &'a T2) -> Self
+    //     where
+    //         T1: ~const AsRef<str> + ?Sized,
+    //         T2: ~const AsRef<str> + ?Sized, {
+    //     Self { owner: owner.as_ref(), name: name.as_ref() }
+    // }
 }
 
 /// Note that we chose to implement `TryFrom` rather than `FromStr` for `RepoRef` because
@@ -411,12 +419,12 @@ impl<R: IsRepo> Handle<R> {
         inputs: &impl Serialize,
     ) -> Result {
         let default_branch = self.default_branch().await?;
-        crate::github::workflow::dispatch(self, workflow_id, default_branch, inputs).await
+        github::workflow::dispatch(self, workflow_id, default_branch, inputs).await
     }
 
     /// Get a handle for dealing with a release with a given id.
     pub fn release_handle(&self, id: ReleaseId) -> crate::github::release::Handle {
         let repo = Repo::new(self.owner(), self.name());
-        crate::github::release::Handle::new(&self.octocrab, repo, id)
+        github::release::Handle::new(&self.octocrab, repo, id)
     }
 }

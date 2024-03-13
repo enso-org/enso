@@ -1,7 +1,6 @@
 //! High-performance logging library.
 
 // === Features ===
-#![feature(local_key_cell_methods)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

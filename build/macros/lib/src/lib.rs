@@ -1,9 +1,7 @@
 // === Features ===
 #![feature(const_trait_impl)]
 #![feature(string_remove_matches)]
-#![feature(default_free_fn)]
-#![feature(once_cell)]
-#![feature(option_result_contains)]
+#![feature(once_cell_try)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -22,7 +20,6 @@ mod prelude {
     pub use proc_macro2::Span;
     pub use proc_macro2::TokenStream;
     pub use quote::quote;
-    pub use syn::parse::Parse;
     pub use syn::Data;
     pub use syn::DeriveInput;
     pub use syn::Ident;

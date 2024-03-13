@@ -15,7 +15,6 @@ use reqwest::header::HeaderMap;
 use reqwest::Body;
 use reqwest::Response;
 use reqwest::StatusCode;
-use serde::de::DeserializeOwned;
 use tokio::io::AsyncReadExt;
 
 
@@ -24,7 +23,6 @@ pub mod endpoints {
     use super::*;
     use crate::io::retry;
     use reqwest::header::HeaderValue;
-    use std::pin::Pin;
     use tokio::io::AsyncRead;
 
     /// Creates a file container for the new artifact in the remote blob storage/file service.

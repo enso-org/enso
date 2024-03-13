@@ -14,19 +14,10 @@
 use proc_macro2::TokenStream;
 use proc_macro2::TokenTree;
 use quote::quote;
-use std::iter::FromIterator;
 use syn::visit::Visit;
 use syn::WhereClause;
 use syn::WherePredicate;
 use syn_1 as syn;
-
-
-
-// =====================
-// === Trait Aliases ===
-// =====================
-
-pub trait Str = Into<String> + AsRef<str>;
 
 
 
@@ -131,7 +122,7 @@ pub fn field_names(fields: &syn::FieldsNamed) -> Vec<&syn::Ident> {
 // ==================
 
 /// Checks if a given `Path` consists of a single identifier same as given string.
-pub fn path_matching_ident(path: &syn::Path, str: impl Str) -> bool {
+pub fn path_matching_ident(path: &syn::Path, str: impl AsRef<str>) -> bool {
     path.get_ident().map_or(false, |ident| ident == str.as_ref())
 }
 
