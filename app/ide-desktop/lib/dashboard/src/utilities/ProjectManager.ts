@@ -55,11 +55,14 @@ export type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
 
-// This intentionally has the same brand as in the cloud backend API.
-/** An ID of a project. */
-export type ProjectId = newtype.Newtype<string, 'ProjectId'>
-/** Create a {@link ProjectId}. */
-export const ProjectId = newtype.newtypeConstructor<ProjectId>()
+/** A UUID. */
+export type UUID = newtype.Newtype<string, 'UUID'>
+/** Create a {@link UUID}. */
+export const UUID = newtype.newtypeConstructor<UUID>()
+/** A filesystem path. */
+export type Path = newtype.Newtype<string, 'Path'>
+/** Create a {@link Path}. */
+export const Path = newtype.newtypeConstructor<Path>()
 /** An ID of a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
 /** Create a {@link DirectoryId}. */
@@ -80,7 +83,7 @@ export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
 export interface ProjectMetadata {
   readonly name: ProjectName
   readonly namespace: string
-  readonly id: ProjectId
+  readonly id: UUID
   readonly engineVersion: string | null
   readonly created: UTCDateTime
   readonly lastOpened: UTCDateTime | null
@@ -99,7 +102,7 @@ export interface ProjectList {
 
 /** The return value of the "create project" endpoint. */
 export interface CreateProject {
-  readonly projectId: string
+  readonly projectId: UUID
 }
 
 /** The return value of the "open project" endpoint. */
@@ -129,14 +132,14 @@ export interface VersionList {
 
 /** Parameters for the "open project" endpoint. */
 export interface OpenProjectParams {
-  readonly projectId: ProjectId
+  readonly projectId: UUID
   readonly missingComponentAction: MissingComponentAction
   readonly projectsDirectory?: string
 }
 
 /** Parameters for the "close project" endpoint. */
 export interface CloseProjectParams {
-  readonly projectId: ProjectId
+  readonly projectId: UUID
 }
 
 /** Parameters for the "list projects" endpoint. */
@@ -150,20 +153,20 @@ export interface CreateProjectParams {
   readonly projectTemplate?: string
   readonly version?: string
   readonly missingComponentAction?: MissingComponentAction
-  readonly projectsDirectory?: DirectoryId
+  readonly projectsDirectory?: Path
 }
 
 /** Parameters for the "list samples" endpoint. */
 export interface RenameProjectParams {
-  readonly projectId: ProjectId
+  readonly projectId: UUID
   readonly name: ProjectName
-  readonly projectsDirectory?: DirectoryId
+  readonly projectsDirectory?: Path
 }
 
 /** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
-  readonly projectId: ProjectId
-  readonly projectsDirectory?: DirectoryId
+  readonly projectId: UUID
+  readonly projectsDirectory?: Path
 }
 
 // =======================

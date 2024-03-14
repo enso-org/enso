@@ -26,9 +26,7 @@ interface ProjectMetadata {
   /** The namespace of the project. */
   readonly namespace: string
   /** The project id. */
-  // This is defined as `UUID` in the Project Manager, however it is defined as `ProjectId` here
-  // for consistency with `RemoteBackend.ts`.
-  readonly id: backend.ProjectId
+  readonly id: projectManager.UUID
   /** The Enso Engine version to use for the project, represented by a semver version
    * string.
    *
@@ -62,21 +60,21 @@ enum FileSystemEntryType {
 /** Metadata for a file. */
 interface FileEntry {
   readonly type: FileSystemEntryType.FileEntry
-  readonly path: string
+  readonly path: projectManager.Path
   readonly attributes: Attributes
 }
 
 /** Metadata for a directory. */
 interface DirectoryEntry {
   readonly type: FileSystemEntryType.DirectoryEntry
-  readonly path: string
+  readonly path: projectManager.Path
   readonly attributes: Attributes
 }
 
 /** Metadata for a project. */
 interface ProjectEntry {
   readonly type: FileSystemEntryType.ProjectEntry
-  readonly path: string
+  readonly path: projectManager.Path
   readonly metadata: ProjectMetadata
   readonly attributes: Attributes
 }
@@ -95,54 +93,64 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 // ======================================
 
 /** Create a {@link backend.DirectoryId} from a path. */
-export function newDirectoryId(path: string) {
+export function newDirectoryId(path: projectManager.Path) {
   return backend.DirectoryId(`${backend.AssetType.directory}-${path}`)
 }
 
-/** Create a {@link backend.ProjectId} from a path. */
-export function newProjectId(path: string) {
-  return backend.ProjectId(`${backend.AssetType.project}-${path}`)
+/** Create a {@link backend.ProjectId} from a UUID. */
+export function newProjectId(uuid: projectManager.UUID) {
+  return backend.ProjectId(`${backend.AssetType.project}-${uuid}`)
 }
 
 /** Create a {@link backend.FileId} from a path. */
-export function newFileId(path: string) {
+export function newFileId(path: projectManager.Path) {
   return backend.FileId(`${backend.AssetType.file}-${path}`)
 }
 
-/** The subset of {@link backend.AssetId} that is handled by a {@link LocalBackend}. */
-type LocalAssetId = backend.DirectoryId | backend.FileId | backend.ProjectId
-
-/** A structure with an `id`. */
-interface HasId<Id extends backend.AssetId> {
-  readonly id: Id
+/** Construct a {@link projectManager.Path} from an existing {@link projectManager.Path} of
+ * the parent directory. */
+function joinPath(directoryPath: projectManager.Path, fileName: string) {
+  return projectManager.Path(`${directoryPath}/${fileName}`)
 }
 
-// `A extends A` is required to trigger distributive conditional types:
-// https://www.typescriptlang.org/docs/handbook/2/conditional-types.html#distributive-conditional-types
-/** An asset type and its corresponding id. */
-type AssetTypeAndId =
-  Extract<backend.AnyAsset, HasId<LocalAssetId>> extends infer A
-    ? A extends A
-      ? Pick<A, keyof A & ('id' | 'type')>
-      : never
-    : never
+/** The internal asset type and properly typed corresponding internal ID of a directory. */
+interface DirectoryTypeAndId {
+  readonly type: backend.AssetType.directory
+  readonly id: projectManager.Path
+}
 
-export function extractTypeAndId<Id extends backend.AssetId>(
-  id: Id
-): Extract<AssetTypeAndId, HasId<Id>>
+/** The internal asset type and properly typed corresponding internal ID of a project. */
+interface ProjectTypeAndId {
+  readonly type: backend.AssetType.project
+  readonly id: projectManager.UUID
+}
+
+/** The internal asset type and properly typed corresponding internal ID of a file. */
+interface FileTypeAndId {
+  readonly type: backend.AssetType.file
+  readonly id: projectManager.Path
+}
+
+/** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
+type AssetTypeAndId<Id extends backend.AssetId = backend.AssetId> =
+  | (backend.DirectoryId extends Id ? DirectoryTypeAndId : never)
+  | (backend.FileId extends Id ? FileTypeAndId : never)
+  | (backend.ProjectId extends Id ? ProjectTypeAndId : never)
+
+export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId<Id>
 /** Extracts the asset type and its corresponding internal ID from a {@link backend.AssetId}.
  * @throws {Error} if the id has an unknown type. */
 export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeAndId {
-  const [, typeRaw, idRaw] = id.match(/(.+?)-(.+)/) ?? []
+  const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
   switch (typeRaw) {
     case backend.AssetType.directory: {
-      return { type: backend.AssetType.directory, id: backend.DirectoryId(idRaw ?? '') }
+      return { type: backend.AssetType.directory, id: projectManager.Path(idRaw) }
     }
     case backend.AssetType.project: {
-      return { type: backend.AssetType.project, id: backend.ProjectId(idRaw ?? '') }
+      return { type: backend.AssetType.project, id: projectManager.UUID(idRaw) }
     }
     case backend.AssetType.file: {
-      return { type: backend.AssetType.file, id: backend.FileId(idRaw ?? '') }
+      return { type: backend.AssetType.file, id: projectManager.Path(idRaw) }
     }
     default: {
       throw new Error(`Invalid type '${typeRaw}'`)
@@ -157,9 +165,9 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export default class LocalBackend extends Backend {
-  static currentlyOpeningProjectId: backend.ProjectId | null = null
-  static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
-  readonly defaultRootDirectory = '~/enso/projects'
+  static currentlyOpeningProjectId: projectManager.UUID | null = null
+  static currentlyOpenProjects = new Map<projectManager.UUID, projectManager.OpenProject>()
+  readonly defaultRootDirectory = projectManager.Path('~/enso/projects')
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
   private readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
@@ -293,10 +301,10 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    if (LocalBackend.currentlyOpeningProjectId === projectId) {
+    if (LocalBackend.currentlyOpeningProjectId === id) {
       LocalBackend.currentlyOpeningProjectId = null
     }
-    LocalBackend.currentlyOpenProjects.delete(projectId)
+    LocalBackend.currentlyOpenProjects.delete(id)
     try {
       await this.projectManager.closeProject({ projectId: id })
       return
@@ -316,7 +324,7 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<backend.Project> {
     const { id } = extractTypeAndId(projectId)
-    const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
+    const cachedProject = LocalBackend.currentlyOpenProjects.get(id)
     if (cachedProject == null) {
       const result = await this.projectManager.listProjects({})
       const project = result.projects.find(listedProject => listedProject.id === id)
@@ -345,7 +353,7 @@ export default class LocalBackend extends Backend {
           projectId,
           state: {
             type:
-              projectId === LocalBackend.currentlyOpeningProjectId
+              id === LocalBackend.currentlyOpeningProjectId
                 ? backend.ProjectState.openInProgress
                 : project.lastOpened != null
                   ? backend.ProjectState.closed
@@ -388,8 +396,8 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    LocalBackend.currentlyOpeningProjectId = projectId
-    if (!LocalBackend.currentlyOpenProjects.has(projectId)) {
+    LocalBackend.currentlyOpeningProjectId = id
+    if (!LocalBackend.currentlyOpenProjects.has(id)) {
       try {
         const project = await this.projectManager.openProject({
           projectId: id,
@@ -398,7 +406,7 @@ export default class LocalBackend extends Backend {
             ? { projectsDirectory: extractTypeAndId(body.parentId).id }
             : {}),
         })
-        LocalBackend.currentlyOpenProjects.set(projectId, project)
+        LocalBackend.currentlyOpenProjects.set(id, project)
         return
       } catch (error) {
         throw new Error(
@@ -475,7 +483,7 @@ export default class LocalBackend extends Backend {
         if (LocalBackend.currentlyOpeningProjectId === typeAndId.id) {
           LocalBackend.currentlyOpeningProjectId = null
         }
-        LocalBackend.currentlyOpenProjects.delete(newProjectId(typeAndId.id))
+        LocalBackend.currentlyOpenProjects.delete(typeAndId.id)
         try {
           await this.projectManager.deleteProject({
             projectId: typeAndId.id,
@@ -591,7 +599,7 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.CreatedDirectory> {
     const parentDirectoryPath =
       body.parentId == null ? this.defaultRootDirectory : extractTypeAndId(body.parentId).id
-    const path = `${parentDirectoryPath}/${body.title}`
+    const path = joinPath(parentDirectoryPath, body.title)
     await this.runProjectManagerCommand(null, 'filesystem-create-directory', path)
     return {
       id: newDirectoryId(path),
@@ -630,7 +638,7 @@ export default class LocalBackend extends Backend {
       params.parentDirectoryId == null
         ? this.defaultRootDirectory
         : extractTypeAndId(params.parentDirectoryId).id
-    const path = `${parentPath}/${params.fileName}`
+    const path = joinPath(parentPath, params.fileName)
     await this.runProjectManagerCommand(file, 'filesystem-write-path', path)
     // `project` MUST BE `null` as uploading projects uses a separate endpoint.
     return { path, id: newFileId(path), project: null }
@@ -754,7 +762,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** List directories, projects and files in the given folder. */
-  private async projectManagerFilesystemList(parentId: backend.DirectoryId | null) {
+  private async projectManagerFilesystemList(parentId: projectManager.Path | null) {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
       readonly entries: FileSystemEntry[]
