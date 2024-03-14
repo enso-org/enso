@@ -426,22 +426,65 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.downloadSelected: {
         if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
           if (isCloud) {
-            if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog('Cannot download assets that are not files')
-            } else {
-              try {
-                const details = await backend.getFileDetails(asset.id, asset.title)
-                const file = details.file
-                download.download(details.url ?? download.s3URLToHTTPURL(file.path), asset.title)
-              } catch (error) {
-                toastAndLog('Could not download file', error)
+            switch (asset.type) {
+              case backendModule.AssetType.project: {
+                try {
+                  const details = await backend.getProjectDetails(asset.id, asset.title)
+                  if (details.url != null) {
+                    download.download(details.url, asset.title)
+                  } else {
+                    toastAndLog(
+                      `Could not download project '${asset.title}': project has no source files`
+                    )
+                  }
+                } catch (error) {
+                  toastAndLog(`Could not download project '${asset.title}'`, error)
+                }
+                break
+              }
+              case backendModule.AssetType.file: {
+                try {
+                  const details = await backend.getFileDetails(asset.id, asset.title)
+                  if (details.url != null) {
+                    download.download(details.url, asset.title)
+                  } else {
+                    toastAndLog(`Could not download file '${asset.title}': file not found`)
+                  }
+                } catch (error) {
+                  toastAndLog(`Could not download file '${asset.title}'`, error)
+                }
+                break
+              }
+              case backendModule.AssetType.dataLink: {
+                try {
+                  const value = await backend.getConnector(asset.id, asset.title)
+                  const fileName = `${asset.title}.datalink`
+                  download.download(
+                    URL.createObjectURL(
+                      new File([JSON.stringify(value)], fileName, {
+                        type: 'application/json+x-enso-data-link',
+                      })
+                    ),
+                    fileName
+                  )
+                } catch (error) {
+                  toastAndLog(`Could not download Data Link '${asset.title}'`, error)
+                }
+                break
+              }
+              default: {
+                toastAndLog('You can only download files and Data Links')
+                break
               }
             }
           } else {
-            download.download(
-              `./api/project-manager/projects/${localBackend.extractTypeAndId(asset.id).id}/enso-project`,
-              `${asset.title}.enso-project`
-            )
+            if (asset.type === backendModule.AssetType.project) {
+              const uuid = localBackend.extractTypeAndId(asset.id).id
+              download.download(
+                `./api/project-manager/projects/${uuid}/enso-project`,
+                `${asset.title}.enso-project`
+              )
+            }
           }
         }
         break

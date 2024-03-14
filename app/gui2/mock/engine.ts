@@ -1,3 +1,4 @@
+import type { MockYdocProviderImpl } from '@/util/crdt'
 import * as random from 'lib0/random'
 import * as Ast from 'shared/ast'
 import {
@@ -22,6 +23,7 @@ import type { SuggestionEntry } from 'shared/languageServerTypes/suggestions'
 import { uuidToBits } from 'shared/uuid'
 import type { MockTransportData, WebSocketHandler } from 'src/util/net'
 import type { QualifiedName } from 'src/util/qualifiedName'
+import * as Y from 'yjs'
 import { mockFsDirectoryHandle, type FileTree } from '../src/util/convert/fsAccess'
 import mockDb from '../stories/mockSuggestions.json' assert { type: 'json' }
 
@@ -490,3 +492,17 @@ export const mockDataHandler: WebSocketHandler = originalMockDataWSHandler(
   },
   (send) => (sendData = send),
 )
+
+export const mockYdocProvider: MockYdocProviderImpl = (msg, room, doc) => {
+  setTimeout(() => {
+    const srcFiles: Record<string, string> = fileTree.src
+    if (room === 'index') {
+      const modules = doc.getMap('modules')
+      for (const file in srcFiles) modules.set(file, new Y.Doc({ guid: `mock-${file}` }))
+    } else if (room.startsWith('mock-')) {
+      const fileContents = srcFiles[room.slice('mock-'.length)]
+      if (fileContents) new Ast.MutableModule(doc).syncToCode(fileContents)
+    }
+    msg.emit('sync', [])
+  }, 0)
+}
