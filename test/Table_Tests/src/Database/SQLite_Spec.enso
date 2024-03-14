@@ -394,6 +394,9 @@ type File_Connection
 
 add_specs suite_builder =
     in_file_prefix = "[SQLite File] "
+    # TODO: Add a suite-level teardown to delete this file at the end.
+    # https://github.com/enso-org/enso/issues/9436
+    # https://github.com/enso-org/enso/issues/9437
     database_file = Database_File.create
 
     sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection database_file.file)
