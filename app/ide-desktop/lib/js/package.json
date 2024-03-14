@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit",
     "build-asset-extractor": "tsup --format=cjs --target=esnext src/asset-extractor/asset-extractor.ts --sourcemap",
     "build-runtime-libs": "esbuild --bundle --platform=node --format=cjs src/runtime-libs/runtime-libs.ts",
-    "lint": "eslint src"
+    "lint": "eslint --debug --config .eslintrc.cjs src"
   },
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
