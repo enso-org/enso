@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ChangeSet, Diagnostic, Highlighter } from '@/components/CodeEditor/codemirror'
-import { usePointer } from '@/composables/events'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { usePointer } from '@/composables/events'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
