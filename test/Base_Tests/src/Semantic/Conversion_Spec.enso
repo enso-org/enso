@@ -252,8 +252,7 @@ add_specs suite_builder =
             check 1 "Ahoj" . should_equal "Aho"
 
             # Boolean can be converted to Foo, but is not Text
-            fail = Panic.recover Type_Error <| check 0 True
-            fail . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| check 0 True
 
         group_builder.specify "Requesting Foo & Not_Foo & Boolean" <|
             check a (n : Foo & Not_Foo & Boolean) = case a of
@@ -265,8 +264,7 @@ add_specs suite_builder =
             check 1 True . should_be_false
             check 2 True . should_be_true
 
-            fail = Panic.recover Type_Error <| check 0 "not a boolean"
-            fail . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| check 0 "not a boolean"
 
         group_builder.specify "Requesting Number & Integer & Float" <|
             m = MultiNumber.Value 5
@@ -452,11 +450,10 @@ add_specs suite_builder =
         group_builder.specify "Cannot find constructor" <|
             v = ..Value 10
 
-            b = Panic.recover Any <|
+            b = Test.expect_panic Type_Error <|
                 x = v:Back
                 x
 
-            b . should_fail_with Type_Error
             msg = b.to_display_text
             msg . should_contain "Cannot find constructor ..Value among Back"
 

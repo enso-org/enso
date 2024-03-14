@@ -379,7 +379,7 @@ add_specs suite_builder =
         group_builder.specify "reject wrong type" <|
             pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
             fill = pair.fill
-            Panic.catch Any (fill "Two") err->err.convert_to_dataflow_error . should_fail_with Type_Error
+            Test.expect_panic Type_Error (fill "Two")
 
         group_builder.specify "direct use of pair.fill" <|
             pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
