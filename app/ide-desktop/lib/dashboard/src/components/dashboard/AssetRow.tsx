@@ -574,7 +574,7 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }
               }}
-              className={`h-row rounded-full ease-in-out ${visibility} ${
+              className={`h-row rounded-full transition-all ease-in-out ${visibility} ${
                 isKeyboardSelected ? 'focus-ring' : ''
               } ${isDraggedOver || selected ? 'selected' : ''}`}
               onClick={event => {

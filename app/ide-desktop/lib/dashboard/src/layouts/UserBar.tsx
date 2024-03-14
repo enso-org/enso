@@ -4,6 +4,8 @@ import * as React from 'react'
 import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -63,18 +65,45 @@ export default function UserBar(props: UserBarProps) {
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
   const rootRef = React.useRef<HTMLDivElement>(null)
   const navigator2D = navigator2DProvider.useNavigator2D()
+  const childrenLengthRef = React.useRef(0)
+  childrenLengthRef.current = 2 + (shouldShowInviteButton ? 1 : 0) + (shouldShowShareButton ? 1 : 0)
+
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
+      axis: keyboardNavigationHooks.Axis.horizontal,
+      length: childrenLengthRef.current,
+    })
+  const keyboardSelectedChildId =
+    keyboardSelectedIndex == null
+      ? null
+      : (
+          [
+            'chat',
+            ...(shouldShowInviteButton ? (['invite'] as const) : ([] as const)),
+            ...(shouldShowShareButton ? (['share'] as const) : ([] as const)),
+            'user-menu',
+          ] as const
+        )[keyboardSelectedIndex] ?? null
 
   React.useEffect(() => {
     const root = rootRef.current
     if (invisible || root == null) {
       return
     } else {
-      navigator2D.register(root)
+      navigator2D.register(root, {
+        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
+        focusWhenPressed: {
+          left: () => {
+            setKeyboardSelectedIndex(childrenLengthRef.current - 1)
+          },
+          right: setKeyboardSelectedIndex.bind(null, 0),
+        },
+      })
       return () => {
         navigator2D.unregister(root)
       }
     }
-  }, [invisible, navigator2D])
+  }, [invisible, navigator2D, setKeyboardSelectedIndex])
 
   return (
     <div
@@ -84,6 +113,12 @@ export default function UserBar(props: UserBarProps) {
       }`}
     >
       <Button
+        ref={element => {
+          if (keyboardSelectedChildId === 'chat') {
+            element?.focus()
+          }
+        }}
+        focusRing={keyboardSelectedChildId === 'chat'}
         active={isHelpChatOpen}
         image={ChatIcon}
         onClick={() => {
@@ -92,7 +127,12 @@ export default function UserBar(props: UserBarProps) {
       />
       {shouldShowInviteButton && (
         <button
-          className="text my-auto rounded-full bg-share px-button-x text-inversed"
+          ref={element => {
+            if (keyboardSelectedChildId === 'invite') {
+              element?.focus()
+            }
+          }}
+          className={`text my-auto rounded-full bg-share px-button-x text-inversed ${keyboardSelectedChildId === 'invite' ? 'focus-ring' : ''}`}
           onClick={event => {
             event.stopPropagation()
             setModal(<InviteUsersModal eventTarget={null} />)
@@ -103,7 +143,12 @@ export default function UserBar(props: UserBarProps) {
       )}
       {shouldShowShareButton && (
         <button
-          className="text my-auto rounded-full bg-share px-button-x text-inversed"
+          ref={element => {
+            if (keyboardSelectedChildId === 'share') {
+              element?.focus()
+            }
+          }}
+          className={`text my-auto rounded-full bg-share px-button-x text-inversed ${keyboardSelectedChildId === 'invite' ? 'focus-ring' : ''}`}
           onClick={event => {
             event.stopPropagation()
             setModal(
@@ -121,7 +166,12 @@ export default function UserBar(props: UserBarProps) {
         </button>
       )}
       <button
-        className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+        ref={element => {
+          if (keyboardSelectedChildId === 'user-menu') {
+            element?.focus()
+          }
+        }}
+        className={`flex size-profile-picture select-none items-center overflow-clip rounded-full ${keyboardSelectedChildId === 'user-menu' ? 'focus-ring' : ''}`}
         onClick={event => {
           event.stopPropagation()
           updateModal(oldModal =>

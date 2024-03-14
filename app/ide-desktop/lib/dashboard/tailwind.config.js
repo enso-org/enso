@@ -427,7 +427,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
 
           // === Outline classes ===
 
-          '.focus-ring': {
+          '.focus-ring, .focus-ring:focus': {
             '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
           },
 

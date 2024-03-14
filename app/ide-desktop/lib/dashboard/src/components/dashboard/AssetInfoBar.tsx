@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import SettingsIcon from 'enso-assets/settings.svg'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
@@ -28,17 +30,23 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
   const rootRef = React.useRef<HTMLDivElement>(null)
   const navigator2D = navigator2DProvider.useNavigator2D()
 
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
+      axis: keyboardNavigationHooks.Axis.horizontal,
+      length: 1,
+    })
+
   React.useEffect(() => {
     const root = rootRef.current
     if (invisible || root == null) {
       return
     } else {
-      navigator2D.register(root)
+      navigator2D.register(root, { focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0) })
       return () => {
         navigator2D.unregister(root)
       }
     }
-  }, [invisible, navigator2D])
+  }, [invisible, navigator2D, setKeyboardSelectedIndex])
 
   return (
     <div
@@ -51,6 +59,12 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
       }}
     >
       <Button
+        focusRing={keyboardSelectedIndex === 0}
+        ref={element => {
+          if (keyboardSelectedIndex === 0) {
+            element?.focus()
+          }
+        }}
         alt={isAssetPanelEnabled ? 'Close Asset Panel' : 'Open Asset Panel'}
         active={isAssetPanelEnabled}
         image={SettingsIcon}
