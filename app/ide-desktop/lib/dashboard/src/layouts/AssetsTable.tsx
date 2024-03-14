@@ -2442,6 +2442,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div ref={scrollContainerRef} className="flex-1 overflow-auto container-size">
+      {hiddenContextMenu}
       {!hidden && (
         <SelectionBrush
           onDrag={onSelectionDrag}
@@ -2449,39 +2450,38 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      {isCloud && (
-        <div className="sticky top flex h flex-col">
-          <div className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y">
-            <div className="inline-flex gap-icons">
-              {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
-                column => (
-                  <Button
-                    key={column}
-                    active
-                    image={columnUtils.COLUMN_ICONS[column]}
-                    alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
-                      columnUtils.COLUMN_NAME[column]
-                    }`}
-                    onClick={event => {
-                      event.stopPropagation()
-                      const newExtraColumns = new Set(enabledColumns)
-                      if (enabledColumns.has(column)) {
-                        newExtraColumns.delete(column)
-                      } else {
-                        newExtraColumns.add(column)
-                      }
-                      setEnabledColumns(newExtraColumns)
-                    }}
-                  />
-                )
-              )}
+      <div className="w-max">
+        {isCloud && (
+          <div className="sticky top flex h flex-col">
+            <div className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y">
+              <div className="inline-flex gap-icons">
+                {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
+                  column => (
+                    <Button
+                      key={column}
+                      active
+                      image={columnUtils.COLUMN_ICONS[column]}
+                      alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
+                        columnUtils.COLUMN_NAME[column]
+                      }`}
+                      onClick={event => {
+                        event.stopPropagation()
+                        const newExtraColumns = new Set(enabledColumns)
+                        if (enabledColumns.has(column)) {
+                          newExtraColumns.delete(column)
+                        } else {
+                          newExtraColumns.add(column)
+                        }
+                        setEnabledColumns(newExtraColumns)
+                      }}
+                    />
+                  )
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      <div className="flex h-full w-min min-w-full flex-col">
-        {hiddenContextMenu}
-        {table}
+        )}
+        <div className="flex h-full w-min min-w-full flex-col">{table}</div>
       </div>
     </div>
   )
