@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Enso_Cloud.Errors.Missing_Data_Link_Library
 import project.Error.Error
@@ -11,13 +12,16 @@ import project.Errors.Unimplemented.Unimplemented
 import project.Meta
 import project.Nothing.Nothing
 import project.System.File.File
-import project.System.File.Generic.File_Like.File_Like
-import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File.File_Access.File_Access
+import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Infer
 import project.System.File_Format.JSON_Format
 import project.System.File_Format_Metadata.File_Format_Metadata
+import project.System.File.Generic.File_Like.File_Like
+import project.System.File.Generic.Writable_File.Writable_File
 import project.System.Input_Stream.Input_Stream
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Public_Utils import get_required_field
 
@@ -48,7 +52,7 @@ type Data_Link_Format
          represents a valid data-link. In some cases (e.g. testing), we may want
          to skip that.
     write_config (file : Writable_File) (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
-        checked = if skip_validation.not then validate_config config
+        checked = if skip_validation.not then Data_Link_Format.validate_config config
         checked.if_not_error <|
             bytes = config.to_json.bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
             Data_Link_Format.write_raw_config file bytes replace_existing
@@ -80,8 +84,8 @@ type Data_Link_Format
         exist_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
         options = exist_options + [File_Access.Write, Data_Link_Access.No_Follow]
 
-        r = bytes.if_not_error <| file.with_output_stream options output_stream->
-            output_stream.write_bytes bytes
+        r = raw_bytes.if_not_error <| file.with_output_stream options output_stream->
+            output_stream.write_bytes raw_bytes
         r.if_not_error file.file
 
     ## PRIVATE
