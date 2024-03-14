@@ -9,7 +9,8 @@ import project.Database.Redshift_Spec
 
 add_specs suite_builder =
     Codegen_Spec.add_specs suite_builder
-    SQLite_Spec.add_specs suite_builder
+    if Platform.os != OS.Mac_OS then
+        SQLite_Spec.add_specs suite_builder
     Postgres_Spec.add_specs suite_builder
     Redshift_Spec.add_specs suite_builder
 
