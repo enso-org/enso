@@ -22,6 +22,7 @@ test.test('drive view', async ({ page }) => {
   await test.expect(assetRows).toHaveCount(2)
   await test.expect(actions.locateEditor(page)).toBeVisible()
   await actions.locateDrivePageIcon(page).click()
+  await test.expect(assetRows).toHaveCount(2)
   // The last opened project needs to be stopped, to remove the toast notification notifying the
   // user that project creation may take a while. Previously opened projects are stopped when the
   // new project is created.

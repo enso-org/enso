@@ -1374,6 +1374,7 @@ type DB_Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
+    @join_kind Widget_Helpers.make_join_kind_selector
     @on Widget_Helpers.make_join_condition_selector
     join : DB_Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> DB_Table
     join self right (join_kind : Join_Kind = Join_Kind.Left_Outer) (on : Join_Condition | Text | Vector (Join_Condition | Text) = (default_join_condition self join_kind)) (right_prefix:Text="Right ") (on_problems:Problem_Behavior=Report_Warning) =
@@ -2494,6 +2495,7 @@ type DB_Table
 
     ## ALIAS count
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the amount of rows in this table.
     row_count : Integer
     row_count self = if self.internal_columns.is_empty then 0 else
@@ -2847,6 +2849,47 @@ type DB_Table
         resolved_new_text = table_ref.resolve new_text
         transformer col = col.text_replace resolved_term resolved_new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
+
+    ## ALIAS cumulative
+       GROUP Standard.Base.Values
+       ICON dataframe_map_column
+       Adds a new column to the table with a running calculation.
+
+       Arguments:
+       - statistic: The running statistic to calculate.
+       - of: The existing column to run the statistic over.
+       - as: The name of the new column.
+       - group_by: Specifies the columns to group by. The running statistic is
+         calculated separately for each group. By default, all rows are treated as
+         a single group.
+       - order_by: Specifies the columns to order by. Defaults to the order of
+         the rows in the table. The running statistic is calculated according to the
+         specified ordering.
+
+       ? Ordering of rows
+
+         Note that the ordering of rows from the original table is preserved in
+         all cases. The grouping and ordering settings affect how the running statistic is
+         calculated for each row, but the order of the rows itself is
+         not changed by this operation.
+
+       ! Error Conditions
+
+         - If the columns specified in `group_by` or `order_by` are not present
+           in the table, a `Missing_Input_Columns` error is raised.
+         - If the column with the same name as provided by `as` already exists,
+           a `Duplicate_Output_Column_Names` problem is reported and the
+           existing column is renamed to avoid the clash.
+         - If grouping on floating point numbers, a `Floating_Point_Equality`
+           problem is reported.
+    @group_by Widget_Helpers.make_column_name_vector_selector
+    @order_by Widget_Helpers.make_order_by_selector
+    @of Widget_Helpers.make_column_name_selector
+    running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+    running self (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
+        _ = [statistic, of, as, group_by, order_by, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "DB_Table.running is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+
 
 ## PRIVATE
 

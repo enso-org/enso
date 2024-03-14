@@ -9,6 +9,7 @@ export const graphNavigator: GraphNavigator = {
   clientToSceneRect: () => Rect.Zero,
   panAndZoomTo: () => {},
   panTo: () => {},
+  scrollTo: () => {},
   stepZoom: () => {},
   transform: '',
   prescaledTransform: '',

@@ -2,34 +2,18 @@ use enso_build::prelude::*;
 
 use crate::arg::BuildJob;
 use crate::arg::Source;
-use crate::arg::WatchJob;
 use crate::source_args_hlp;
-use crate::IsWatchableSource;
 
 use clap::Args;
 use clap::Subcommand;
 use enso_build::project::gui::Gui;
-use enso_build::project::wasm::Wasm;
 
 
 
 source_args_hlp!(Gui, "gui", BuildInput);
 
-impl IsWatchableSource for Gui {
-    type WatchInput = WatchInput;
-}
-
-#[derive(Args, Clone, Debug, PartialEq)]
-pub struct BuildInput {
-    #[clap(flatten)]
-    pub wasm: Source<Wasm>,
-}
-
-#[derive(Args, Clone, Debug, PartialEq)]
-pub struct WatchInput {
-    #[clap(flatten)]
-    pub wasm: <Wasm as IsWatchableSource>::WatchInput,
-}
+#[derive(Args, Clone, Copy, Debug, PartialEq)]
+pub struct BuildInput {}
 
 #[derive(Subcommand, Clone, Debug, PartialEq)]
 pub enum Command {
@@ -37,8 +21,12 @@ pub enum Command {
     Build(BuildJob<Gui>),
     /// Gets the GUI, either by compiling it from scratch or downloading from an external source.
     Get(Source<Gui>),
+    /// Runs the GUI's unit tests.
+    Test,
+    /// Run linter on the GUI's sources.
+    Lint,
     /// Continuously rebuilds GUI when its sources are changed and serves it using dev-server.
-    Watch(WatchJob<Gui>),
+    Watch,
 }
 
 #[derive(Args, Clone, Debug)]

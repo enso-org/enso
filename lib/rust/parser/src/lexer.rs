@@ -652,7 +652,7 @@ impl<'s> Lexer<'s> {
                 }
                 // Composed of operator characters, but not an operator node.
                 "..." => {
-                    let token = token.with_variant(token::Variant::auto_scope());
+                    let token = token.with_variant(token::Variant::suspended_default_arguments());
                     self.submit_token(token);
                 }
                 // Decimal vs. method-application must be distinguished before parsing because they
@@ -714,6 +714,11 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
                 .with_unary_prefix_mode(token::Precedence::max())
                 .as_compile_time_operation()
                 .as_suspension(),
+        ".." =>
+            return operator
+                .with_unary_prefix_mode(token::Precedence::min_valid())
+                .as_compile_time_operation()
+                .as_autoscope(),
         "@" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())

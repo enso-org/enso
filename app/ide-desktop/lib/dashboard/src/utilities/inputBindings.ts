@@ -302,7 +302,7 @@ const ALL_KEYS = [
   'F12',
 ] as const
 /** Common keyboard keys. */
-type Key = (typeof ALL_KEYS)[number]
+export type Key = (typeof ALL_KEYS)[number]
 /** Common keyboard keys, normalized to lowercase for autocomplete purposes. */
 type LowercaseKey = Lowercase<Key>
 /** A segment of a keyboard shortcut. */

@@ -15,10 +15,12 @@ import type Category from '#/layouts/CategorySwitcher/Category'
 import Button from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import DataLinkInput from '#/components/dashboard/DataLinkInput'
+import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
 import * as backendModule from '#/services/Backend'
 
+import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -33,14 +35,17 @@ export interface AssetPropertiesProps {
   readonly item: AssetTreeNode
   readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
   readonly category: Category
+  readonly labels: backendModule.Label[]
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
 }
 
 /** Display and modify the properties of an asset. */
 export default function AssetProperties(props: AssetPropertiesProps) {
-  const { item: rawItem, setItem: rawSetItem, category, dispatchAssetEvent } = props
+  const { item: itemRaw, setItem: setItemRaw, category, labels, setQuery } = props
+  const { dispatchAssetEvent } = props
 
-  const [item, innerSetItem] = React.useState(rawItem)
+  const [item, setItemInner] = React.useState(itemRaw)
   const [isEditingDescription, setIsEditingDescription] = React.useState(false)
   const [queuedDescription, setQueuedDescripion] = React.useState<string | null>(null)
   const [description, setDescription] = React.useState('')
@@ -58,10 +63,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const setItem = React.useCallback(
     (valueOrUpdater: React.SetStateAction<AssetTreeNode>) => {
-      innerSetItem(valueOrUpdater)
-      rawSetItem(valueOrUpdater)
+      setItemInner(valueOrUpdater)
+      setItemRaw(valueOrUpdater)
     },
-    [/* should never change */ rawSetItem]
+    [/* should never change */ setItemRaw]
   )
   const self = item.item.permissions?.find(permission => permission.user.user_email === user?.email)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
@@ -114,8 +119,8 @@ export default function AssetProperties(props: AssetPropertiesProps) {
 
   return (
     <>
-      <div className="flex flex-col items-start gap-1">
-        <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">
+      <div className="flex flex-col items-start gap-side-panel">
+        <span className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug">
           Description
           {ownsThisAsset && !isEditingDescription && (
             <Button
@@ -127,11 +132,14 @@ export default function AssetProperties(props: AssetPropertiesProps) {
             />
           )}
         </span>
-        <div data-testid="asset-panel-description" className="py-1 self-stretch">
+        <div
+          data-testid="asset-panel-description"
+          className="self-stretch py-side-panel-description-y"
+        >
           {!isEditingDescription ? (
-            <span className="leading-170 py-px">{item.item.description}</span>
+            <span className="text">{item.item.description}</span>
           ) : (
-            <form className="flex flex-col gap-2" onSubmit={doEditDescription}>
+            <form className="flex flex-col gap-modal" onSubmit={doEditDescription}>
               <textarea
                 ref={element => {
                   if (element != null && queuedDescription != null) {
@@ -159,39 +167,60 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 onChange={event => {
                   setDescription(event.currentTarget.value)
                 }}
-                className="bg-frame resize-none rounded-lg w-full p-2"
+                className="-m-multiline-input-p w-full resize-none rounded-input bg-frame p-multiline-input"
               />
-              <button type="submit" className="self-start bg-frame-selected rounded-full px-4 py-1">
-                Update
-              </button>
+              <div className="flex gap-buttons">
+                <button type="submit" className="button self-start bg-selected-frame">
+                  Update
+                </button>
+              </div>
             </form>
           )}
         </div>
       </div>
-      <div className="flex flex-col items-start gap-2">
-        <span className="text-lg leading-144.5 h-7 py-px">Settings</span>
+      <div className="flex flex-col items-start gap-side-panel-section">
+        <h2 className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug">
+          Settings
+        </h2>
         <table>
           <tbody>
-            <tr data-testid="asset-panel-permissions">
-              <td className="min-w-32 px-0 py-1">
-                <span className="inline-block leading-170 h-6 py-px">Shared with</span>
+            <tr data-testid="asset-panel-permissions" className="h-row">
+              <td className="text my-auto min-w-side-panel-label p">
+                <span className="text inline-block">Shared with</span>
               </td>
-              <td className="p-0 w-full">
+              <td className="w-full p">
                 <SharedWithColumn
                   item={item}
                   setItem={setItem}
-                  state={{ category, dispatchAssetEvent }}
+                  state={{ category, dispatchAssetEvent, setQuery }}
                 />
+              </td>
+            </tr>
+            <tr data-testid="asset-panel-labels" className="h-row">
+              <td className="text my-auto min-w-side-panel-label p">
+                <span className="text inline-block">Labels</span>
+              </td>
+              <td className="w-full p">
+                {item.item.labels?.map(value => {
+                  const label = labels.find(otherLabel => otherLabel.value === value)
+                  return label == null ? null : (
+                    <Label key={value} active disabled color={label.color} onClick={() => {}}>
+                      {value}
+                    </Label>
+                  )
+                })}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
       {isDataLink && (
-        <div className="flex flex-col items-start gap-1">
-          <span className="flex items-center gap-2 text-lg leading-144.5 h-7 py-px">Data Link</span>
+        <div className="flex flex-col items-start gap-side-panel-section">
+          <h2 className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug">
+            Data Link
+          </h2>
           {!isDataLinkFetched ? (
-            <div className="grid self-stretch place-items-center">
+            <div className="grid place-items-center self-stretch">
               <StatelessSpinner size={48} state={statelessSpinner.SpinnerState.loadingMedium} />
             </div>
           ) : (
@@ -203,11 +232,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 setValue={setEditedDataLinkValue}
               />
               {canEditThisAsset && (
-                <div className="flex gap-2">
+                <div className="flex gap-buttons">
                   <button
                     type="button"
                     disabled={dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable}
-                    className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                    className="button bg-invite text-white selectable enabled:active"
                     onClick={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.dataLink) {
@@ -233,7 +262,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   </button>
                   <button
                     type="button"
-                    className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
+                    className="button bg-selected-frame"
                     onClick={() => {
                       setEditedDataLinkValue(structuredClone(dataLinkValue))
                     }}

@@ -8,8 +8,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Test.Extensions
 
-from Standard.Table import Column, Value_Type, Auto
-import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table import Column, Value_Type, Auto, Bits
 from Standard.Table.Errors import Invalid_Value_Type, Invalid_Column_Names
 
 from Standard.Test import all
