@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Table import all
 from Standard.Database import all
 from Standard.AWS import all
+from Standard.Google_Api import all
 import Standard.Visualization
 
 main =
