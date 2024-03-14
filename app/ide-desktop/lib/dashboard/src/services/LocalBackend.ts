@@ -392,7 +392,9 @@ export default class LocalBackend extends Backend {
         const project = await this.projectManager.openProject({
           projectId: id,
           missingComponentAction: projectManager.MissingComponentAction.install,
-          ...(body?.parentId != null ? { projectsDirectory: body.parentId } : {}),
+          ...(body?.parentId != null
+            ? { projectsDirectory: extractTypeAndId(body.parentId).id }
+            : {}),
         })
         LocalBackend.currentlyOpenProjects.set(projectId, project)
         return
