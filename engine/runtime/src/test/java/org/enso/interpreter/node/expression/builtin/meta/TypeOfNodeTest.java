@@ -50,7 +50,6 @@ public class TypeOfNodeTest {
   }
 
   private void assertType(Object symbol, String expectedTypeName, boolean withPriming) {
-    var ctx = Context.create();
     executeInContext(
         ctx,
         () -> {
