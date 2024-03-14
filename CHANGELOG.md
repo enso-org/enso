@@ -629,6 +629,8 @@
 - [Added `select_by_type` and `remove_by_type` to `Table` and `DB_Table`][9334]
 - [Make File./ only accept Text][9330]
 - [Implemented Excel Data Link][9346]
+- [Added Table.running][9346]
+- [Added Google_Analytics.Read][9239]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -913,6 +915,8 @@
 [9330]: https://github.com/enso-org/enso/pull/9330
 [9334]: https://github.com/enso-org/enso/pull/9334
 [9346]: https://github.com/enso-org/enso/pull/9346
+[9382]: https://github.com/enso-org/enso/pull/9382
+[9239]: https://github.com/enso-org/enso/pull/9239
 
 #### Enso Compiler
 

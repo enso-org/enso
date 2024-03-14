@@ -1598,8 +1598,6 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    scalacOptions += "-Ymacro-annotations",
-    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,

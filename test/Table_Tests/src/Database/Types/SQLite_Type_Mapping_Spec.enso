@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Type.Value_Type.Bits
-from Standard.Table import Aggregate_Column, Value_Type, Table
+from Standard.Table import Aggregate_Column, Value_Type, Table, Bits
 from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
 import Standard.Database.Dialect
