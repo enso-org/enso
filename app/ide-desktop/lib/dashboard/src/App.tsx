@@ -67,6 +67,7 @@ import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
 import LocalStorage from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
 
@@ -77,9 +78,7 @@ import * as authServiceModule from '#/authentication/service'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly inputBindings: Partial<
-      Readonly<Record<inputBindingsModule.DashboardBindingKey, string[]>>
-    >
+    readonly inputBindings: Readonly<Record<string, readonly string[]>>
   }
 }
 
@@ -88,9 +87,7 @@ LocalStorage.registerKey('inputBindings', {
     typeof value !== 'object' || value == null
       ? null
       : Object.fromEntries(
-          // This is SAFE, as it is a readonly upcast.
-          // eslint-disable-next-line no-restricted-syntax
-          Object.entries(value as Readonly<Record<string, unknown>>).flatMap(kv => {
+          Object.entries<unknown>({ ...value }).flatMap(kv => {
             const [k, v] = kv
             return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
               ? [[k, v]]
@@ -190,16 +187,18 @@ function AppRouter(props: AppProps) {
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
-    for (const k in savedInputBindings) {
-      // This is UNSAFE, hence the `?? []` below.
-      // eslint-disable-next-line no-restricted-syntax
-      const bindingKey = k as inputBindingsModule.DashboardBindingKey
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings ?? []) {
-        inputBindingsRaw.delete(bindingKey, oldBinding)
-      }
-      for (const newBinding of savedInputBindings[bindingKey] ?? []) {
-        inputBindingsRaw.add(bindingKey, newBinding)
+    if (savedInputBindings != null) {
+      const filteredInputBindings = object.mapEntries(
+        inputBindingsRaw.metadata,
+        k => savedInputBindings[k]
+      )
+      for (const [bindingKey, newBindings] of object.unsafeEntries(filteredInputBindings)) {
+        for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings) {
+          inputBindingsRaw.delete(bindingKey, oldBinding)
+        }
+        for (const newBinding of newBindings ?? []) {
+          inputBindingsRaw.add(bindingKey, newBinding)
+        }
       }
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])

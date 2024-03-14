@@ -2431,6 +2431,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div ref={scrollContainerRef} className="flex-1 overflow-auto container-size">
+      {hiddenContextMenu}
       {!hidden && (
         <SelectionBrush
           onDrag={onSelectionDrag}
@@ -2438,7 +2439,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="flex min-h-full w-min min-w-full flex-col">
+      <div className="w-max">
         {isCloud && (
           <div className="sticky top flex h flex-col">
             <div className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y">
@@ -2469,8 +2470,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             </div>
           </div>
         )}
-        {hiddenContextMenu}
-        {table}
+        <div className="flex h-full w-min min-w-full flex-col">{table}</div>
       </div>
     </div>
   )
