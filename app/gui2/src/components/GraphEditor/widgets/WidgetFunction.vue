@@ -114,6 +114,52 @@ const selfArgumentExternalId = computed<Opt<ExternalId>>(() => {
 const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
   // Even if we inherit dynamic config in props.input.dynamicConfig, we should also read it for
   // the current call and then merge them.
+  function collectArgumentNamesAndUuids(v : Ast.Ast) {
+    var arr : Array<any> = [];
+    v.visitRecursiveAst(function(f) {
+      console.log("type: " + f.typeName())
+      if (f instanceof Ast.TextLiteral) {
+        // console.log("  raw2: " + f.rawTextContent)
+      } else if (f instanceof Ast.App) {
+        console.log("  argn: " + f.argumentName?.code())
+        console.log("  argv: " + f.argument.code())
+        arr.push({
+          name : f.argumentName?.code(),
+          code : f.argument.code(),
+          uuid : f.argument.externalId
+        })
+      } else if (f instanceof Ast.NumericLiteral) {
+        console.log("  num : " + f.code())
+      } else if (f instanceof Ast.Ident) {
+        console.log("  iden: " + f.code())
+      } else if (f instanceof Ast.PropertyAccess) {
+        console.log("  self: " + f.lhs?.code())
+        console.log("  oper: " + f.operator.code())
+        console.log("  meth: " + f.rhs.code())
+      } else {
+        console.log(f.typeName());
+      }
+      console.log("    has ID: " + f.externalId)
+    })
+    arr.reverse()
+
+    let m : any = {}
+    let index = 0
+    for (let e of arr) {
+      m["" + (index++)] = e.uuid
+      if (e.name) {
+        m[e.name] = e.uuid
+      }
+    }
+    return m
+  }
+
+  let v = props.input.value
+  let m = {}
+  if (v instanceof Ast.App) {
+    m = collectArgumentNamesAndUuids(v);
+  }
+
   const expressionId = selfArgumentExternalId.value
   const astId = props.input.value.id
   if (astId == null || expressionId == null) return null
@@ -122,6 +168,9 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
   const args = info.suggestion.annotations
   if (args.length === 0) return null
   const name = info.suggestion.name
+  let argsAndInfo = new Array()
+  argsAndInfo.push(...args)
+  argsAndInfo.push(JSON.stringify(m))
   return {
     expressionId,
     visualizationModule: 'Standard.Visualization.Widgets',
@@ -132,7 +181,7 @@ const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => 
     },
     positionalArgumentsExpressions: [
       `.${name}`,
-      Ast.Vector.build(args, Ast.TextLiteral.new).code(),
+      Ast.Vector.build(argsAndInfo, Ast.TextLiteral.new).code()
     ],
   }
 })
