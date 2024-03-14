@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { codeEditorBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { isMacLike } from '@/composables/events'
 import { ref } from 'vue'
 
 const isDropdownOpen = ref(false)
@@ -10,24 +10,30 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: []; toggleCodeEditor: [] }>()
 
-// TODO: replace with codeEditorBindigs.toggle: https://github.com/enso-org/enso/issues/9411.
-const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
+const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadable
 </script>
 
 <template>
-  <div class="ExtendedMenu" @pointerdown.stop @pointerup.stop @click.stop="isDropdownOpen = !isDropdownOpen">
+  <div
+    class="ExtendedMenu"
+    @pointerdown.stop
+    @pointerup.stop
+    @click.stop="isDropdownOpen = !isDropdownOpen"
+  >
     <SvgIcon name="folder_opened" class="moreIcon" />
   </div>
   <Transition name="dropdown">
-    <div v-show="isDropdownOpen" class="ExtendedMenuPane" @pointerdown.stop @pointerup.stop @click.stop>
+    <div
+      v-show="isDropdownOpen"
+      class="ExtendedMenuPane"
+      @pointerdown.stop
+      @pointerup.stop
+      @click.stop
+    >
       <div class="row">
         <div class="label">Zoom</div>
         <div class="zoomControl">
-          <div
-            class="zoomButton minus"
-            title="Decrease zoom"
-            @click="emit('zoomOut')"
-          />
+          <div class="zoomButton minus" title="Decrease zoom" @click="emit('zoomOut')" />
           <span
             class="zoomScaleLabel"
             v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
@@ -35,11 +41,7 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
           <div class="zoomButton plus" title="increase zoom" @click="emit('zoomIn')" />
           <div class="divider"></div>
           <div class="showAllIconHighlight">
-            <SvgIcon
-              name="show_all"
-              class="showAllIcon"
-              @click="emit('fitToAllClicked')"
-            />
+            <SvgIcon name="show_all" class="showAllIcon" @click="emit('fitToAllClicked')" />
           </div>
         </div>
       </div>
