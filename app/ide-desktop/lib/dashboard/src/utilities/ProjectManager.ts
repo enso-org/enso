@@ -2,6 +2,8 @@
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
 
+import * as appUtils from '#/appUtils'
+
 import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' assert { type: 'yaml' }
 import type * as dateTime from './dateTime'
 import * as newtype from './newtype'
@@ -79,14 +81,64 @@ export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
 
-/** Details for a project. */
-export interface ProjectMetadata {
-  readonly name: ProjectName
+/** Details of a project. */
+interface ProjectMetadata {
+  /** The name of the project. */
+  readonly name: string
+  /** The namespace of the project. */
   readonly namespace: string
+  /** The project id. */
   readonly id: UUID
-  readonly engineVersion: string | null
-  readonly created: UTCDateTime
-  readonly lastOpened: UTCDateTime | null
+  /** The Enso Engine version to use for the project, represented by a semver version
+   * string.
+   *
+   * If the edition associated with the project could not be resolved, the
+   * engine version may be missing. */
+  readonly engineVersion?: string
+  /** The project creation time. */
+  readonly created: dateTime.Rfc3339DateTime
+  /** The last opened datetime. */
+  readonly lastOpened?: dateTime.Rfc3339DateTime
+}
+
+/** Attributes of a file or folder. */
+interface Attributes {
+  readonly creationTime: dateTime.Rfc3339DateTime
+  readonly lastAccessTime: dateTime.Rfc3339DateTime
+  readonly lastModifiedTime: dateTime.Rfc3339DateTime
+  readonly byteSize: number
+}
+
+/** Metadata for an arbitrary file system entry. */
+type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
+
+/** The discriminator value for {@link FileSystemEntry}. */
+export enum FileSystemEntryType {
+  DirectoryEntry = 'DirectoryEntry',
+  ProjectEntry = 'ProjectEntry',
+  FileEntry = 'FileEntry',
+}
+
+/** Metadata for a file. */
+interface FileEntry {
+  readonly type: FileSystemEntryType.FileEntry
+  readonly path: Path
+  readonly attributes: Attributes
+}
+
+/** Metadata for a directory. */
+interface DirectoryEntry {
+  readonly type: FileSystemEntryType.DirectoryEntry
+  readonly path: Path
+  readonly attributes: Attributes
+}
+
+/** Metadata for a project. */
+interface ProjectEntry {
+  readonly type: FileSystemEntryType.ProjectEntry
+  readonly path: Path
+  readonly metadata: ProjectMetadata
+  readonly attributes: Attributes
 }
 
 /** A value specifying the hostname and port of a socket. */
@@ -169,6 +221,15 @@ export interface DeleteProjectParams {
   readonly projectsDirectory?: Path
 }
 
+// ================
+// === joinPath ===
+// ================
+
+/** Construct a {@link Path} from an existing {@link Path} of the parent directory. */
+export function joinPath(directoryPath: Path, fileName: string) {
+  return Path(`${directoryPath}/${fileName}`)
+}
+
 // =======================
 // === Project Manager ===
 // =======================
@@ -188,6 +249,8 @@ export default class ProjectManager {
   protected resolvers = new Map<number, (value: never) => void>()
   protected rejecters = new Map<number, (reason?: JSONRPCError) => void>()
   protected socketPromise: Promise<WebSocket>
+  private readonly defaultRootDirectory = Path('~/enso/projects')
+  private readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
 
   /** Create a {@link ProjectManager} */
   private constructor(protected readonly connectionUrl: string) {
@@ -255,22 +318,22 @@ export default class ProjectManager {
   }
 
   /** Open an existing project. */
-  public async openProject(params: OpenProjectParams): Promise<OpenProject> {
+  async openProject(params: OpenProjectParams): Promise<OpenProject> {
     return this.sendRequest<OpenProject>('project/open', params)
   }
 
   /** Close an open project. */
-  public async closeProject(params: CloseProjectParams): Promise<void> {
+  async closeProject(params: CloseProjectParams): Promise<void> {
     return this.sendRequest('project/close', params)
   }
 
   /** Get the projects list, sorted by open time. */
-  public async listProjects(params: ListProjectsParams): Promise<ProjectList> {
+  async listProjects(params: ListProjectsParams): Promise<ProjectList> {
     return this.sendRequest<ProjectList>('project/list', params)
   }
 
   /** Create a new project. */
-  public async createProject(params: CreateProjectParams): Promise<CreateProject> {
+  async createProject(params: CreateProjectParams): Promise<CreateProject> {
     return this.sendRequest<CreateProject>('project/create', {
       missingComponentAction: MissingComponentAction.install,
       ...params,
@@ -278,23 +341,57 @@ export default class ProjectManager {
   }
 
   /** Rename a project. */
-  public async renameProject(params: RenameProjectParams): Promise<void> {
+  async renameProject(params: RenameProjectParams): Promise<void> {
     return this.sendRequest('project/rename', params)
   }
 
   /** Delete a project. */
-  public async deleteProject(params: DeleteProjectParams): Promise<void> {
+  async deleteProject(params: DeleteProjectParams): Promise<void> {
     return this.sendRequest('project/delete', params)
   }
 
   /** List installed engine versions. */
-  public listInstalledEngineVersions(): Promise<VersionList> {
-    return this.sendRequest<VersionList>('engine/list-installed', {})
+  async listInstalledEngineVersions(): Promise<VersionList> {
+    return await this.sendRequest<VersionList>('engine/list-installed', {})
   }
 
   /** List available engine versions. */
-  public listAvailableEngineVersions(): Promise<VersionList> {
-    return this.sendRequest<VersionList>('engine/list-available', {})
+  async listAvailableEngineVersions(): Promise<VersionList> {
+    return await this.sendRequest<VersionList>('engine/list-available', {})
+  }
+
+  /** List directories, projects and files in the given folder. */
+  async listDirectory(parentId: Path | null) {
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly entries: FileSystemEntry[]
+    }
+    const response = await this.runStandaloneCommand<ResponseBody>(
+      null,
+      'filesystem-list',
+      parentId ?? this.defaultRootDirectory
+    )
+    return response.entries
+  }
+
+  /** Create a directory. */
+  async createDirectory(path: Path) {
+    await this.runStandaloneCommand(null, 'filesystem-create-directory', path)
+  }
+
+  /** Create a file. */
+  async createFile(path: Path, file: Blob) {
+    await this.runStandaloneCommand(file, 'filesystem-write-path', path)
+  }
+
+  /** Move a file or directory. */
+  async moveFile(from: Path, to: Path) {
+    await this.runStandaloneCommand(null, 'filesystem-move-from', from, '--filesystem-move-to', to)
+  }
+
+  /** Create a file or directory. */
+  async deleteFile(path: Path) {
+    await this.runStandaloneCommand(null, 'filesystem-delete', path)
   }
 
   /** Remove all handlers for a specified request ID. */
@@ -318,5 +415,33 @@ export default class ProjectManager {
         reject(value)
       })
     })
+  }
+
+  /** Run the Project Manager binary with the given command-line arguments. */
+  private async runStandaloneCommand<T = void>(
+    body: BodyInit | null,
+    name: string,
+    ...cliArguments: string[]
+  ): Promise<T> {
+    const searchParams = new URLSearchParams({
+      // The names come from a third-party API and cannot be changed.
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
+    }).toString()
+    const response = await fetch(
+      `${this.baseUrl}/api/run-project-manager-command?${searchParams}`,
+      {
+        method: 'POST',
+        body,
+      }
+    )
+    // There is no way to avoid this as `JSON.parse` returns `any`.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+    const json: JSONRPCResponse<never> = await response.json()
+    if ('result' in json) {
+      return json.result
+    } else {
+      throw new Error(json.error.message)
+    }
   }
 }

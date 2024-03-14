@@ -5,8 +5,6 @@
  * the API. */
 import * as detect from 'enso-common/src/detect'
 
-import * as appUtils from '#/appUtils'
-
 import Backend, * as backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
@@ -14,70 +12,6 @@ import * as errorModule from '#/utilities/error'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as projectManager from '#/utilities/ProjectManager'
 import ProjectManager from '#/utilities/ProjectManager'
-
-// =============
-// === Types ===
-// =============
-
-/** Details of a project. */
-interface ProjectMetadata {
-  /** The name of the project. */
-  readonly name: string
-  /** The namespace of the project. */
-  readonly namespace: string
-  /** The project id. */
-  readonly id: projectManager.UUID
-  /** The Enso Engine version to use for the project, represented by a semver version
-   * string.
-   *
-   * If the edition associated with the project could not be resolved, the
-   * engine version may be missing. */
-  readonly engineVersion?: string
-  /** The project creation time. */
-  readonly created: dateTime.Rfc3339DateTime
-  /** The last opened datetime. */
-  readonly lastOpened?: dateTime.Rfc3339DateTime
-}
-
-/** Attributes of a file or folder. */
-interface Attributes {
-  readonly creationTime: dateTime.Rfc3339DateTime
-  readonly lastAccessTime: dateTime.Rfc3339DateTime
-  readonly lastModifiedTime: dateTime.Rfc3339DateTime
-  readonly byteSize: number
-}
-
-/** Metadata for an arbitrary file system entry. */
-type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
-
-/** The discriminator value for {@link FileSystemEntry}. */
-enum FileSystemEntryType {
-  DirectoryEntry = 'DirectoryEntry',
-  ProjectEntry = 'ProjectEntry',
-  FileEntry = 'FileEntry',
-}
-
-/** Metadata for a file. */
-interface FileEntry {
-  readonly type: FileSystemEntryType.FileEntry
-  readonly path: projectManager.Path
-  readonly attributes: Attributes
-}
-
-/** Metadata for a directory. */
-interface DirectoryEntry {
-  readonly type: FileSystemEntryType.DirectoryEntry
-  readonly path: projectManager.Path
-  readonly attributes: Attributes
-}
-
-/** Metadata for a project. */
-interface ProjectEntry {
-  readonly type: FileSystemEntryType.ProjectEntry
-  readonly path: projectManager.Path
-  readonly metadata: ProjectMetadata
-  readonly attributes: Attributes
-}
 
 // =============================
 // === ipWithSocketToAddress ===
@@ -105,12 +39,6 @@ export function newProjectId(uuid: projectManager.UUID) {
 /** Create a {@link backend.FileId} from a path. */
 export function newFileId(path: projectManager.Path) {
   return backend.FileId(`${backend.AssetType.file}-${path}`)
-}
-
-/** Construct a {@link projectManager.Path} from an existing {@link projectManager.Path} of
- * the parent directory. */
-function joinPath(directoryPath: projectManager.Path, fileName: string) {
-  return projectManager.Path(`${directoryPath}/${fileName}`)
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a directory. */
@@ -170,7 +98,6 @@ export default class LocalBackend extends Backend {
   readonly defaultRootDirectory = projectManager.Path('~/enso/projects')
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
-  private readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
 
   /** Create a {@link LocalBackend}. */
   constructor(projectManagerUrl: string | null) {
@@ -195,11 +122,11 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.AnyAsset[]> {
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.defaultRootDirectory)
-    const entries = await this.projectManagerFilesystemList(parentIdRaw)
+    const entries = await this.projectManager.listDirectory(parentIdRaw)
     return entries
       .map(entry => {
         switch (entry.type) {
-          case FileSystemEntryType.DirectoryEntry: {
+          case projectManager.FileSystemEntryType.DirectoryEntry: {
             return {
               type: backend.AssetType.directory,
               id: newDirectoryId(entry.path),
@@ -212,7 +139,7 @@ export default class LocalBackend extends Backend {
               description: null,
             } satisfies backend.DirectoryAsset
           }
-          case FileSystemEntryType.ProjectEntry: {
+          case projectManager.FileSystemEntryType.ProjectEntry: {
             return {
               type: backend.AssetType.project,
               id: newProjectId(entry.metadata.id),
@@ -234,7 +161,7 @@ export default class LocalBackend extends Backend {
               description: null,
             } satisfies backend.ProjectAsset
           }
-          case FileSystemEntryType.FileEntry: {
+          case projectManager.FileSystemEntryType.FileEntry: {
             return {
               type: backend.AssetType.file,
               id: newFileId(entry.path),
@@ -437,9 +364,11 @@ export default class LocalBackend extends Backend {
           projectsDirectory: extractTypeAndId(body.parentId).id,
         })
       }
-      const result = await this.projectManagerFilesystemList(extractTypeAndId(body.parentId).id)
+      const parentId = extractTypeAndId(body.parentId).id
+      const result = await this.projectManager.listDirectory(parentId)
       const project = result.flatMap(listedProject =>
-        listedProject.type === FileSystemEntryType.ProjectEntry && listedProject.metadata.id === id
+        listedProject.type === projectManager.FileSystemEntryType.ProjectEntry &&
+        listedProject.metadata.id === id
           ? [listedProject.metadata]
           : []
       )[0]
@@ -476,7 +405,7 @@ export default class LocalBackend extends Backend {
     switch (typeAndId.type) {
       case backend.AssetType.directory:
       case backend.AssetType.file: {
-        await this.runProjectManagerCommand(null, 'filesystem-delete', typeAndId.id)
+        await this.projectManager.deleteFile(typeAndId.id)
         return
       }
       case backend.AssetType.project: {
@@ -599,8 +528,8 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.CreatedDirectory> {
     const parentDirectoryPath =
       body.parentId == null ? this.defaultRootDirectory : extractTypeAndId(body.parentId).id
-    const path = joinPath(parentDirectoryPath, body.title)
-    await this.runProjectManagerCommand(null, 'filesystem-create-directory', path)
+    const path = projectManager.joinPath(parentDirectoryPath, body.title)
+    await this.projectManager.createDirectory(path)
     return {
       id: newDirectoryId(path),
       parentId: newDirectoryId(parentDirectoryPath),
@@ -616,16 +545,13 @@ export default class LocalBackend extends Backend {
   ): Promise<void> {
     if (body.parentDirectoryId != null) {
       const typeAndId = extractTypeAndId(assetId)
-      const sourcePath =
-        typeAndId.type === backend.AssetType.project ? body.projectPath ?? '' : typeAndId.id
-      const fileName = fileInfo.fileName(sourcePath)
-      await this.runProjectManagerCommand(
-        null,
-        'filesystem-move-from',
-        sourcePath,
-        '--filesystem-move-to',
-        `${extractTypeAndId(body.parentDirectoryId).id}/${fileName}`
-      )
+      const from =
+        typeAndId.type === backend.AssetType.project
+          ? body.projectPath ?? projectManager.Path('')
+          : typeAndId.id
+      const fileName = fileInfo.fileName(from)
+      const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
+      await this.projectManager.moveFile(from, to)
     }
   }
 
@@ -638,8 +564,8 @@ export default class LocalBackend extends Backend {
       params.parentDirectoryId == null
         ? this.defaultRootDirectory
         : extractTypeAndId(params.parentDirectoryId).id
-    const path = joinPath(parentPath, params.fileName)
-    await this.runProjectManagerCommand(file, 'filesystem-write-path', path)
+    const path = projectManager.joinPath(parentPath, params.fileName)
+    await this.projectManager.createFile(path, file)
     // `project` MUST BE `null` as uploading projects uses a separate endpoint.
     return { path, id: newFileId(path), project: null }
   }
@@ -731,48 +657,5 @@ export default class LocalBackend extends Backend {
   /** Invalid operation. */
   override getCheckoutSession() {
     return this.invalidOperation()
-  }
-
-  /** Run the Project Manager with the given command-line arguments. */
-  private async runProjectManagerCommand<T = void>(
-    body: BodyInit | null,
-    name: string,
-    ...cliArguments: string[]
-  ): Promise<T> {
-    const searchParams = new URLSearchParams({
-      // The names come from a third-party API and cannot be changed.
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
-    }).toString()
-    const response = await fetch(
-      `${this.baseUrl}/api/run-project-manager-command?${searchParams}`,
-      {
-        method: 'POST',
-        body,
-      }
-    )
-    // There is no way to avoid this as `JSON.parse` returns `any`.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
-    const json: projectManager.JSONRPCResponse<never> = await response.json()
-    if ('result' in json) {
-      return json.result
-    } else {
-      throw new Error(json.error.message)
-    }
-  }
-
-  /** List directories, projects and files in the given folder. */
-  private async projectManagerFilesystemList(parentId: projectManager.Path | null) {
-    /** The type of the response body of this endpoint. */
-    interface ResponseBody {
-      readonly entries: FileSystemEntry[]
-    }
-
-    const response = await this.runProjectManagerCommand<ResponseBody>(
-      null,
-      'filesystem-list',
-      parentId ?? this.defaultRootDirectory
-    )
-    return response.entries
   }
 }

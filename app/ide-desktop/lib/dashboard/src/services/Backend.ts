@@ -86,6 +86,10 @@ export const Ami = newtype.newtypeConstructor<Ami>()
 export type Subject = newtype.Newtype<string, 'Subject'>
 export const Subject = newtype.newtypeConstructor<Subject>()
 
+/** An filesystem path. Only present on the local backend. */
+export type Path = newtype.Newtype<string, 'Path'>
+export const Path = newtype.newtypeConstructor<Path>()
+
 /* eslint-enable @typescript-eslint/no-redeclare */
 
 // =============
@@ -151,7 +155,7 @@ export interface ProjectStateType {
   readonly current_session_id?: string
   readonly opened_by?: EmailAddress
   /** Only present on the Local backend. */
-  readonly path?: string
+  readonly path?: Path
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -868,7 +872,7 @@ export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
   /** Only present on the Local backend. */
-  readonly projectPath: string | null
+  readonly projectPath: Path | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */

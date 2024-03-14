@@ -34,6 +34,7 @@ import * as fileInfo from '#/utilities/fileInfo'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
+import * as projectManager from '#/utilities/ProjectManager'
 import * as set from '#/utilities/set'
 import Visibility from '#/utilities/Visibility'
 
@@ -190,12 +191,17 @@ export default function AssetRow(props: AssetRowProps) {
                 asset.projectState,
                 asset.projectState.path == null
                   ? {}
-                  : { path: `${newParentPath}/${fileInfo.fileName(asset.projectState.path)}` }
+                  : {
+                      path: projectManager.joinPath(
+                        newParentPath,
+                        fileInfo.fileName(asset.projectState.path)
+                      ),
+                    }
               )
         let newId = asset.id
         if (!isCloud) {
           const oldPath = localBackend.extractTypeAndId(asset.id).id
-          const newPath = `${newParentPath}/${fileInfo.fileName(oldPath)}`
+          const newPath = projectManager.joinPath(newParentPath, fileInfo.fileName(oldPath))
           switch (asset.type) {
             case backendModule.AssetType.file: {
               newId = localBackend.newFileId(newPath)
