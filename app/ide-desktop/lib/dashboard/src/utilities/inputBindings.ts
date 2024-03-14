@@ -392,7 +392,7 @@ type Keybinds<T extends Record<keyof T, KeybindValue>> = never extends T
 
 const DEFINED_NAMESPACES = new Map<
   string,
-  // This is SAFE, as the value is only beings stored for bookkeeping purposes.
+  // This is SAFE, as the value is only being stored for bookkeeping purposes.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ReturnType<typeof defineBindingNamespace<Record<any, any>>>
 >()
