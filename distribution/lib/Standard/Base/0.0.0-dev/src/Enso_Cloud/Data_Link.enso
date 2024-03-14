@@ -3,6 +3,7 @@ import project.Data.Json.JS_Object
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Enso_Cloud.Errors.Missing_Data_Link_Library
 import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -10,12 +11,14 @@ import project.Errors.Unimplemented.Unimplemented
 import project.Meta
 import project.Nothing.Nothing
 import project.System.File.File
+import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Infer
 import project.System.File_Format.JSON_Format
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
+from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Public_Utils import get_required_field
 
 polyglot java import org.enso.base.enso_cloud.DataLinkSPI
@@ -25,38 +28,75 @@ polyglot java import org.enso.base.file_format.FileFormatSPI
    A file format for reading data links.
 type Data_Link_Format
     ## PRIVATE
-       If the File_Format supports reading from the file, return a configured instance.
-    for_read : File_Format_Metadata -> Data_Link_Format | Nothing
-    for_read file:File_Format_Metadata =
-        case file.guess_extension of
-            ".datalink" -> Data_Link_Format
-            _ -> Nothing
+       Reads the raw configuration data of a data-link.
+    read_config (file : File_Like) -> JS_Object =
+        bytes = Data_Link_Format.read_raw_config file
+        text = Text.from_bytes bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
+        text.parse_json
 
     ## PRIVATE
-       Currently writing data links is not supported.
-    for_file_write : Writable_File -> Nothing
-    for_file_write file =
-        _ = file
-        Nothing
+       Writes a data-link configuration to a file.
+
+       Arguments:
+       - file: The file to write the configuration to.
+       - config: The configuration to write to the file.
+       - replace_existing: A flag specifying if the operation should replace an
+         existing file. By default, the operation will fail if the file already
+         exists.
+       - skip_validation: A flag that allows to skip validation. By default,
+         before writing the config we try to parse it to ensure that it
+         represents a valid data-link. In some cases (e.g. testing), we may want
+         to skip that.
+    write_config (file : Writable_File) (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
+        checked = if skip_validation.not then validate_config config
+        checked.if_not_error <|
+            bytes = config.to_json.bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
+            Data_Link_Format.write_raw_config file bytes replace_existing
 
     ## PRIVATE
-       We currently don't display data-link as a specific format.
-       It relies on `Auto_Detect`.
-    get_dropdown_options = []
+         Reads the raw configuration data of a data-link, as a vector of bytes.
+
+         This is should mostly be used for testing, `read_config` is preferred for normal use.
+
+         Arguments:
+         - file: The file to read the configuration from.
+    read_raw_config (file : File_Like) -> Vector =
+        options = [File_Access.Read, Data_Link_Access.No_Follow]
+        file.underlying.with_input_stream options input_stream->
+            input_stream.read_all_bytes
 
     ## PRIVATE
-       Implements the `File.read` for this `File_Format`
-    read : File -> Problem_Behavior -> Any
-    read self file on_problems =
-        json = JSON_Format.read file on_problems
-        read_datalink json on_problems
+       Writes raw data as the data-link configuration.
+
+       This is should mostly be used for testing, `write_config` is preferred for normal use.
+
+       Arguments:
+       - file: The file to write the configuration to.
+       - raw_bytes: The raw data to write to the file.
+       - replace_existing: A flag specifying if the operation should replace an
+         existing file. By default, the operation will fail if the file already
+         exists.
+    write_raw_config (file : Writable_File) (raw_bytes : Text) (replace_existing : Boolean = False) =
+        exist_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
+        options = exist_options + [File_Access.Write, Data_Link_Access.No_Follow]
+
+        r = bytes.if_not_error <| file.with_output_stream options output_stream->
+            output_stream.write_bytes bytes
+        r.if_not_error file.file
 
     ## PRIVATE
-       Implements decoding the format from a stream.
-    read_stream : Input_Stream -> File_Format_Metadata -> Any
-    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
-        json = JSON_Format.read_stream stream metadata
-        read_datalink json Problem_Behavior.Report_Error
+       Checks if the config represents a valid data-link.
+
+       If the library providing the data-link is not imported, this function
+       will fail with `Missing_Data_Link_Library`, even if the config would be
+       valid.
+    validate_config (config : JS_Object) -> Nothing ! Missing_Data_Link_Library | Illegal_State =
+        interpret_json_as_datalink config . if_not_error Nothing
+
+
+## PRIVATE
+   All data-link config files should be saved with UTF-8 encoding.
+data_link_encoding = Encoding.utf_8
 
 ## PRIVATE
 interpret_json_as_datalink json =
@@ -64,7 +104,7 @@ interpret_json_as_datalink json =
     case DataLinkSPI.findDataLinkType typ of
         Nothing ->
             library_name = get_required_field "libraryName" json expected_type=Text
-            Error.throw (Illegal_State.Error "The data link for "+typ+" is provided by the library "+library_name+" which is not loaded. Please import the library, and if necessary, restart the project.")
+            Error.throw (Missing_Data_Link_Library.Error library_name typ)
         data_link_type ->
             data_link_type.parse json
 

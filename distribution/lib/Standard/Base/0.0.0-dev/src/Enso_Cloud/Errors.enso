@@ -47,3 +47,13 @@ type Enso_Cloud_Error
         Enso_Cloud_Error.Invalid_Response_Payload cause -> "Internal error: A response from Enso Cloud could not be parsed: " + cause.to_display_text
         Enso_Cloud_Error.Unauthorized -> "Enso Cloud credentials file was found, but the service responded with 401 Unauthorized. You may try logging in again and restarting the workflow."
         Enso_Cloud_Error.Connection_Error cause -> "Error connecting to Enso Cloud: " + cause.to_display_text
+
+## PRIVATE
+type Missing_Data_Link_Library
+    ## PRIVATE
+    Error (library_name : Text) (data_link_type : Text)
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "The data link for "+self.typ+" is provided by the library "+self.library_name+" which is not loaded. Please import the library, and if necessary, restart the project."

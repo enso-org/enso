@@ -1,0 +1,10 @@
+## PRIVATE
+   ADVANCED
+   Settings regarding how to handle data-links.
+type Data_Link_Access
+    ## PRIVATE
+       The setting that requests from the operation to not follow the data-link,
+       but instead read the raw data-link configuration directly.
+
+       This can be used when working with data-links programmatically.
+    No_Follow
