@@ -34,6 +34,7 @@ import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
+import org.enso.interpreter.node.expression.builtin.meta.InstrumentorBuiltin;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -76,6 +77,7 @@ public final class ExecutionService {
   private final CallRootNode call = new CallRootNode();
   private final InvokeMemberRootNode invoke = new InvokeMemberRootNode();
   private final Timer timer;
+  private RuntimeCache lastExecCache;
 
   /**
    * Creates a new instance of this service.
@@ -178,6 +180,7 @@ public final class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
+    lastExecCache = cache;
     var callbacks =
         new ExecutionCallbacks(
             visualizationHolder,
@@ -193,13 +196,17 @@ public final class ExecutionService {
         idExecutionInstrument.map(
             service ->
                 service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
-    Object p = context.getThreadManager().enter();
-    try {
-      execute.getCallTarget().call(call);
-    } finally {
-      context.getThreadManager().leave(p);
-      eventNodeFactory.ifPresent(EventBinding::dispose);
-    }
+    InstrumentorBuiltin.runWithCache(
+        cache,
+        () -> {
+          Object p = context.getThreadManager().enter();
+          try {
+            execute.getCallTarget().call(call);
+          } finally {
+            context.getThreadManager().leave(p);
+            eventNodeFactory.ifPresent(EventBinding::dispose);
+          }
+        });
   }
 
   /**
@@ -343,13 +350,19 @@ public final class ExecutionService {
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service -> service.bind(module, entryCallTarget, callbacks, this.timer));
-    Object p = context.getThreadManager().enter();
-    try {
-      return call.getCallTarget().call(function, arguments);
-    } finally {
-      context.getThreadManager().leave(p);
-      eventNodeFactory.ifPresent(EventBinding::dispose);
-    }
+    var ret = new Object[1];
+    InstrumentorBuiltin.runWithCache(
+        lastExecCache,
+        () -> {
+          Object p = context.getThreadManager().enter();
+          try {
+            ret[0] = call.getCallTarget().call(function, arguments);
+          } finally {
+            context.getThreadManager().leave(p);
+            eventNodeFactory.ifPresent(EventBinding::dispose);
+          }
+        });
+    return ret[0];
   }
 
   /**

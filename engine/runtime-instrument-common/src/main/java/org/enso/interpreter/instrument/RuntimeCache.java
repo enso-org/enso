@@ -9,9 +9,10 @@ import java.util.UUID;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
-public final class RuntimeCache {
+public final class RuntimeCache implements java.util.function.Function<String, Object> {
 
   private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
+  private final Map<UUID, SoftReference<Object>> all = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
@@ -25,9 +26,11 @@ public final class RuntimeCache {
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
+    var ref = new SoftReference<>(value);
     Double weight = weights.get(key);
+    all.put(key, ref);
     if (weight != null && weight > 0) {
-      cache.put(key, new SoftReference<>(value));
+      cache.put(key, ref);
       return true;
     }
     return false;
@@ -36,7 +39,16 @@ public final class RuntimeCache {
   /** Get the value from the cache. */
   public Object get(UUID key) {
     SoftReference<Object> ref = cache.get(key);
-    return ref != null ? ref.get() : null;
+    var res = ref != null ? ref.get() : null;
+    return res;
+  }
+
+  @Override
+  public Object apply(String uuid) {
+    var key = UUID.fromString(uuid);
+    var ref = all.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
   }
 
   /** Remove the value from the cache. */
