@@ -52,15 +52,15 @@ export interface WidgetEditInteraction extends Interaction {
  * argument
  */
 export class WidgetEditHandler {
-  private interactionHandler: InteractionHandler = injectInteractionHandler()
   private interaction: WidgetEditInteraction
   /** This, or one's child interaction which is currently active */
   private currentInteraction: WidgetEditInteraction | undefined
 
-  private constructor(
+  constructor(
     private portId: PortId,
     innerInteraction: WidgetEditInteraction,
     private parent?: WidgetEditHandler,
+    private interactionHandler: InteractionHandler = injectInteractionHandler(),
   ) {
     this.interaction = {
       cancel: () => {
@@ -73,7 +73,7 @@ export class WidgetEditHandler {
         const thisHandler =
           innerInteractionClick ?
             () => innerInteractionClick(event, navigator, childHandler)
-          : undefined
+          : childHandler
         if (parent && parent.interaction.click)
           return parent.interaction.click(event, navigator, thisHandler)
         else return thisHandler ? thisHandler() : false
