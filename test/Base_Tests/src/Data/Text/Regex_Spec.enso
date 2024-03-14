@@ -76,9 +76,9 @@ add_specs suite_builder =
             pattern = Regex.compile ""
             pattern.matches "ABC" . should_fail_with Illegal_Argument
 
-         group_builder.specify "`matches` against a non-Text should fail with Illegal_Argument" <|
-             pattern = Regex.compile "abc"
-             pattern.matches 1 . should_fail_with Type_Error
+        group_builder.specify "`matches` against a non-Text should fail with Illegal_Argument" <|
+            pattern = Regex.compile "abc"
+            pattern.matches 1 . should_fail_with Type_Error
 
 
     suite_builder.group "Pattern.match and .match_all" group_builder->
