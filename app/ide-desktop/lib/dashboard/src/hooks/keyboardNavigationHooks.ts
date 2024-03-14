@@ -20,7 +20,7 @@ export function useKeyboardChildNavigation(
   rootRef: React.RefObject<HTMLElement>,
   options: KeyboardChildNavigationOptions
 ) {
-  const { axis, length, defaultIndex } = options
+  const { axis = Axis.vertical, length, defaultIndex } = options
   const lengthRef = React.useRef(length)
   const defaultIndexRef = React.useRef(defaultIndex ?? 0)
   const [keyboardSelectedIndex, setKeyboardSelectedIndexRaw] = React.useState<number | null>(null)

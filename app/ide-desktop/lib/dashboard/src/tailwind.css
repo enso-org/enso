@@ -57,6 +57,8 @@
   --cozy-line-height: 170%;
   --default-backdrop-blur: 64px;
   --default-corner-radius: 1rem;
+  --button-focus-ring-corner-radius: 0.5rem;
+  --button-focus-ring-inset: -0.25rem;
   --profile-picture-large-size: 8rem;
   --profile-picture-caption-width: 16rem;
   --profile-picture-caption-padding-y: 0.25rem;

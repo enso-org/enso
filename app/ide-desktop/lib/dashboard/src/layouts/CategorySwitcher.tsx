@@ -59,7 +59,6 @@ function CategorySwitcherItemInternal(
     >
       <button
         ref={ref}
-        tabIndex={0} // Required so that it is still selectable when disabled.
         title={`Go To ${category}`}
         className={`selectable ${
           isCurrent ? 'disabled bg-selected-frame active' : ''
@@ -106,7 +105,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const rootRef = React.useRef<HTMLDivElement>(null)
-  const [selectedChildElement, setSelectedChildElement] = React.useState<HTMLElement | null>(null)
   const selectedChildIndexRef = React.useRef(0)
   const navigator2D = navigator2DProvider.useNavigator2D()
 
@@ -134,7 +132,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
         navigator2D.unregister(root)
       }
     }
-  }, [selectedChildElement, navigator2D, setKeyboardSelectedIndex])
+  }, [navigator2D, setKeyboardSelectedIndex])
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
@@ -149,9 +147,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           <CategorySwitcherItem
             key={currentCategory}
             ref={element => {
-              if (category === currentCategory) {
-                setSelectedChildElement(element)
-              }
               if (keyboardSelectedIndex === i) {
                 element?.focus()
               }
@@ -161,7 +156,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
             isCurrent={category === currentCategory}
             onClick={() => {
               setCategory(currentCategory)
-              setKeyboardSelectedIndex(null)
             }}
             onDragOver={event => {
               if (

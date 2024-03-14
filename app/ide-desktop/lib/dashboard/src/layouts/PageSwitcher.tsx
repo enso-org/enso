@@ -5,6 +5,8 @@ import DriveIcon from 'enso-assets/drive.svg'
 import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
+
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import Button from '#/components/Button'
@@ -41,6 +43,7 @@ const PAGE_DATA: PageUIData[] = [
   { page: Page.drive, icon: DriveIcon, alt: 'Go to drive page' },
   { page: Page.editor, icon: NetworkIcon, alt: 'Go to editor page' },
 ]
+const PAGE_DATA_WITHOUT_EDITOR = PAGE_DATA.filter(page => page.page !== Page.editor)
 
 /** Props for a {@link PageSwitcher}. */
 export interface PageSwitcherProps {
@@ -53,19 +56,54 @@ export interface PageSwitcherProps {
 export default function PageSwitcher(props: PageSwitcherProps) {
   const { page, setPage, isEditorDisabled } = props
   const rootRef = React.useRef<HTMLDivElement>(null)
+  const selectedChildIndexRef = React.useRef(0)
   const navigator2D = navigator2DProvider.useNavigator2D()
+  const lastChildIndexRef = React.useRef(0)
+  const selectablePageData = isEditorDisabled ? PAGE_DATA_WITHOUT_EDITOR : PAGE_DATA
+
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
+      axis: keyboardNavigationHooks.Axis.horizontal,
+      length: selectablePageData.length,
+      defaultIndex: selectedChildIndexRef.current,
+    })
+
+  const keyboardSelectedPage =
+    keyboardSelectedIndex == null ? null : selectablePageData[keyboardSelectedIndex]?.page ?? null
 
   React.useEffect(() => {
     const root = rootRef.current
     if (root == null) {
       return
     } else {
-      navigator2D.register(root)
+      navigator2D.register(root, {
+        focusPrimaryChild: () => {
+          setKeyboardSelectedIndex(selectedChildIndexRef.current)
+        },
+        focusWhenPressed: {
+          right: setKeyboardSelectedIndex.bind(null, 0),
+          left: () => {
+            setKeyboardSelectedIndex(lastChildIndexRef.current)
+          },
+        },
+      })
       return () => {
         navigator2D.unregister(root)
       }
     }
-  }, [navigator2D])
+  }, [navigator2D, setKeyboardSelectedIndex])
+
+  React.useEffect(() => {
+    selectedChildIndexRef.current = PAGE_DATA.findIndex(data => data.page === page)
+  }, [page])
+
+  React.useEffect(() => {
+    if (isEditorDisabled) {
+      lastChildIndexRef.current = PAGE_DATA.length - 2
+    } else {
+      lastChildIndexRef.current = PAGE_DATA.length - 1
+    }
+  }, [isEditorDisabled])
 
   return (
     <div
@@ -75,15 +113,20 @@ export default function PageSwitcher(props: PageSwitcherProps) {
       }`}
     >
       {PAGE_DATA.map(pageData => {
-        const isDisabled =
-          pageData.page === page || (pageData.page === Page.editor && isEditorDisabled)
         return (
           <Button
             key={pageData.page}
+            ref={element => {
+              if (pageData.page === keyboardSelectedPage) {
+                element?.focus()
+              }
+            }}
+            focusRing={pageData.page === keyboardSelectedPage}
             alt={pageData.alt}
             image={pageData.icon}
             active={page === pageData.page}
-            disabled={isDisabled}
+            softDisabled={page === pageData.page}
+            disabled={pageData.page === Page.editor && isEditorDisabled}
             error={ERRORS[pageData.page]}
             onClick={() => {
               setPage(pageData.page)
