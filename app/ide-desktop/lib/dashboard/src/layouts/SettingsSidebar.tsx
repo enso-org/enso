@@ -8,6 +8,8 @@ import PeopleIcon from 'enso-assets/people.svg'
 import SettingsIcon from 'enso-assets/settings.svg'
 import SlidersIcon from 'enso-assets/sliders.svg'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
+
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import SettingsTab from '#/layouts/Settings/SettingsTab'
@@ -69,6 +71,9 @@ const SECTIONS: SettingsSectionData[] = [
     ],
   },
 ]
+const ALL_TABS = SECTIONS.flatMap(section =>
+  section.tabs.filter(tab => tab.visible).map(tab => tab.settingsTab)
+)
 
 // =============
 // === Types ===
@@ -103,19 +108,39 @@ export interface SettingsSidebarProps {
 export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { settingsTab, setSettingsTab } = props
   const rootRef = React.useRef<HTMLDivElement>(null)
+  const selectedChildIndexRef = React.useRef(0)
   const navigator2D = navigator2DProvider.useNavigator2D()
+
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
+      defaultIndex: selectedChildIndexRef.current,
+      length: ALL_TABS.length,
+    })
+  const keyboardSelectedTab = keyboardSelectedIndex == null ? null : ALL_TABS[keyboardSelectedIndex]
 
   React.useEffect(() => {
     const root = rootRef.current
     if (root == null) {
       return
     } else {
-      navigator2D.register(root)
+      navigator2D.register(root, {
+        focusPrimaryChild: () => {
+          setKeyboardSelectedIndex(selectedChildIndexRef.current)
+        },
+        focusWhenPressed: {
+          down: setKeyboardSelectedIndex.bind(null, 0),
+          up: setKeyboardSelectedIndex.bind(null, ALL_TABS.length - 1),
+        },
+      })
       return () => {
         navigator2D.unregister(root)
       }
     }
-  }, [navigator2D])
+  }, [navigator2D, setKeyboardSelectedIndex])
+
+  React.useEffect(() => {
+    selectedChildIndexRef.current = ALL_TABS.indexOf(settingsTab)
+  }, [settingsTab])
 
   return (
     <div
@@ -138,8 +163,12 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                   {tabs.map(tab => (
                     <li key={tab.settingsTab}>
                       <button
-                        disabled={tab.settingsTab === settingsTab}
-                        className="button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame disabled:bg-selected-frame disabled:active"
+                        ref={element => {
+                          if (tab.settingsTab === keyboardSelectedTab) {
+                            element?.focus()
+                          }
+                        }}
+                        className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${tab.settingsTab === settingsTab ? 'disabled bg-selected-frame active' : ''} ${tab.settingsTab === keyboardSelectedTab ? 'focus-ring' : ''}`}
                         onClick={() => {
                           setSettingsTab(tab.settingsTab)
                         }}

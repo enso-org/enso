@@ -26,16 +26,17 @@ export function useKeyboardChildNavigation(
   const catchAllArrowKeysRef = React.useRef(catchAllArrowKeys)
   const lengthRef = React.useRef(length)
   const defaultIndexRef = React.useRef(defaultIndex ?? 0)
-  const [keyboardSelectedIndex, setKeyboardSelectedIndexRaw] = React.useState<number | null>(null)
-  const keyboardSelectedIndexRef = React.useRef(keyboardSelectedIndex)
+  const keyboardSelectedIndexRef = React.useRef<number | null>(null)
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] = React.useReducer(
+    (_state: number | null, action: number | null) => {
+      keyboardSelectedIndexRef.current = action
+      return action
+    },
+    null
+  )
   catchAllArrowKeysRef.current = catchAllArrowKeys
   lengthRef.current = length
   defaultIndexRef.current = defaultIndex ?? 0
-
-  const setKeyboardSelectedIndex = React.useCallback((index: number | null) => {
-    keyboardSelectedIndexRef.current = index
-    setKeyboardSelectedIndexRaw(index)
-  }, [])
 
   React.useEffect(() => {
     const previousKey = axis === Axis.horizontal ? 'ArrowLeft' : 'ArrowUp'
@@ -96,7 +97,9 @@ export function useKeyboardChildNavigation(
         event.relatedTarget instanceof HTMLElement &&
         !event.currentTarget.contains(event.relatedTarget)
       ) {
-        setKeyboardSelectedIndex(null)
+        if (keyboardSelectedIndexRef.current != null) {
+          setKeyboardSelectedIndex(null)
+        }
       }
     }
 
@@ -107,7 +110,20 @@ export function useKeyboardChildNavigation(
       root?.removeEventListener('keydown', onKeyDown)
       root?.removeEventListener('focusout', onFocusOut)
     }
-  }, [rootRef, axis, /* should never change */ setKeyboardSelectedIndex])
+  }, [rootRef, axis])
+
+  React.useEffect(() => {
+    const onClick = () => {
+      if (keyboardSelectedIndexRef.current != null) {
+        setKeyboardSelectedIndex(null)
+      }
+    }
+
+    document.addEventListener('click', onClick, { capture: true })
+    return () => {
+      document.removeEventListener('click', onClick, { capture: true })
+    }
+  }, [])
 
   return [keyboardSelectedIndex, setKeyboardSelectedIndex] as const
 }
