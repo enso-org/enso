@@ -10,6 +10,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: []; toggleCodeEditor: [] }>()
 
+// TODO: replace with codeEditorBindigs.toggle: https://github.com/enso-org/enso/issues/9411.
 const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
 </script>
 
