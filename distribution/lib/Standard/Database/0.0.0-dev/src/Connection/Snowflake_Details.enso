@@ -1,0 +1,48 @@
+from Standard.Base import all
+import Standard.Base.Data.Numbers.Number_Parse_Error
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+import project.Connection.Connection_Options.Connection_Options
+import project.Connection.Credentials.Credentials
+import project.Internal.Snowflake.Snowflake_Connection.Snowflake_Connection
+
+polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
+
+type Snowflake_Details
+    ## Connect to a Snowflake database.
+
+       Arguments:
+       - account: The account to connect to.
+       - credentials: The credentials to use for the connection.
+    Snowflake account:Text credentials:Credentials database:Text="SNOWFLAKE" schema:Text="PUBLIC"
+
+    ## PRIVATE
+       Build the Connection resource.
+
+       Arguments:
+       - options: Overrides for the connection properties.
+    connect : Connection_Options -> Snowflake_Connection
+    connect self options =
+        properties = options.merge self.jdbc_properties
+
+        ## Cannot use default argument values as gets in an infinite loop if you do.
+        make_new database schema =
+            Snowflake_Details.Snowflake self.account self.credentials (database.if_nothing self.database) (schema.if_nothing self.schema) . connect options
+
+        Snowflake_Connection.create self.jdbc_url properties make_new
+
+    ## PRIVATE
+       Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url self =
+        'jdbc:snowflake://' + self.account + ".snowflakecomputing.com"
+
+    ## PRIVATE
+       Provides the properties for the connection.
+    jdbc_properties : Vector (Pair Text Text)
+    jdbc_properties self =
+        account = [Pair.new 'account' self.account]
+        credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
+        database = [Pair.new 'db' self.database]
+        schema = [Pair.new 'schema' self.schema]
+        account + credentials + database + schema

@@ -2926,7 +2926,8 @@ lazy val `std-database` = project
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"       % "postgresql"              % "42.4.0"
+      "org.postgresql"       % "postgresql"              % "42.4.0",
+      "net.snowflake"        % "snowflake-jdbc"          % "3.15.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

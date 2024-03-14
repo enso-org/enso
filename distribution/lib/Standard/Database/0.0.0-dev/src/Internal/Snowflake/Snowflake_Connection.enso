@@ -13,7 +13,7 @@ import project.DB_Table.DB_Table
 import project.Dialect
 import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
-import project.Internal.Postgres.Postgres_Entity_Naming_Properties
+import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
@@ -23,20 +23,20 @@ from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.Result_Set import read_column
 from project.Internal.Upload_Table import first_column_name_in_structure
 
-type Postgres_Connection
+type Snowflake_Connection
     ## PRIVATE
 
-       Creates a Postgres connection based on a URL and properties.
+       Creates a Snowflake connection based on a URL and properties.
 
        Arguments:
        - url: The URL to connect to.
        - properties: A vector of properties for the connection.
        - make_new: A function that returns a new connection.
-    create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Postgres_Connection
+    create : Text -> Vector -> (Text -> Text -> Snowflake_Connection) -> Snowflake_Connection
     create url properties make_new =
         jdbc_connection = JDBC_Connection.create url properties
-        entity_naming_properties = Postgres_Entity_Naming_Properties.new jdbc_connection
-        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties) make_new
+        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=False
+        Snowflake_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties) make_new
 
     ## PRIVATE
 
@@ -58,10 +58,7 @@ type Postgres_Connection
     ## ICON metadata
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
-    databases self =
-        self.connection.jdbc_connection.with_connection connection->
-            result_set = connection.createStatement.executeQuery "select datname from pg_database where datname not in ('template0', 'template1')"
-            read_column result_set "datname"
+    databases self = self.connection.databases
 
     ## ICON metadata
        Returns the name of the current database (or catalog).
