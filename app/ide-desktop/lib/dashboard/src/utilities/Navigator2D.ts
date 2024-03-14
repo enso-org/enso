@@ -73,7 +73,7 @@ export default class Navigator2D {
       if (data != null) {
         this.isLayoutDirty = true
         // This usage of `unsafeMutable` is SAFE, as `boundingBox` is mutable internally.
-        object.unsafeMutable(data).boundingBox = entry.contentRect
+        object.unsafeMutable(data).boundingBox = entry.target.getBoundingClientRect()
       }
     }
   })
@@ -106,7 +106,7 @@ export default class Navigator2D {
         const distanceFromRight = otherData.data.boundingBox.left - data.data.boundingBox.right
         const horizontalDistance = Math.max(distanceFromLeft, distanceFromRight)
         // The horizontal spans MUST NOT overlap.
-        if (horizontalDistance >= 0) {
+        if (data.element !== otherData.element && horizontalDistance >= 0) {
           const distance = horizontalDistance + Math.abs(data.y - otherData.y)
           if (otherData.x < data.x) {
             if (distance < leftNeighborDistance) {
@@ -137,7 +137,7 @@ export default class Navigator2D {
         const distanceFromBottom = otherData.data.boundingBox.bottom - data.data.boundingBox.top
         const verticalDistance = Math.max(distanceFromTop, distanceFromBottom)
         // The vertical spans MUST NOT overlap.
-        if (verticalDistance >= 0) {
+        if (data.element !== otherData.element && verticalDistance >= 0) {
           const distance = Math.abs(data.x - otherData.x) + verticalDistance
           if (otherData.y < data.y) {
             if (distance < aboveNeighborDistance) {
@@ -217,9 +217,18 @@ export default class Navigator2D {
         if (entry.target instanceof Element) {
           const data = this.elements.get(entry.target)
           if (data != null) {
-            this.isLayoutDirty = true
-            // This usage of `unsafeMutable` is SAFE, as `boundingBox` is mutable internally.
-            object.unsafeMutable(data).boundingBox = entry.target.getBoundingClientRect()
+            const oldBoundingBox = data.boundingBox
+            const newBoundingBox = entry.target.getBoundingClientRect()
+            if (
+              newBoundingBox.left !== oldBoundingBox.left ||
+              newBoundingBox.top !== oldBoundingBox.top ||
+              newBoundingBox.width !== oldBoundingBox.width ||
+              newBoundingBox.height !== oldBoundingBox.height
+            ) {
+              this.isLayoutDirty = true
+              // This usage of `unsafeMutable` is SAFE, as `boundingBox` is mutable internally.
+              object.unsafeMutable(data).boundingBox = newBoundingBox
+            }
           }
         }
       }

@@ -125,6 +125,10 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
         focusPrimaryChild: () => {
           setKeyboardSelectedIndex(selectedChildIndexRef.current)
         },
+        focusWhenPressed: {
+          up: setKeyboardSelectedIndex.bind(null, CATEGORIES.length - 1),
+          down: setKeyboardSelectedIndex.bind(null, 0),
+        },
       })
       return () => {
         navigator2D.unregister(root)
