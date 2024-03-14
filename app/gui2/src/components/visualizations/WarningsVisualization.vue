@@ -1,4 +1,6 @@
 <script lang="ts">
+import { Pattern } from '@/util/ast/match'
+
 export const name = 'Warnings'
 export const icon = 'exclamation'
 export const inputType = 'Any'
@@ -6,11 +8,12 @@ export const defaultPreprocessor = [
   'Standard.Visualization.Warnings',
   'process_to_json_text',
 ] as const
+
+const removeWarnings = Pattern.parse('__.remove_warnings')
 </script>
 
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import { Pattern } from '@/util/ast/match'
 import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
 
 type Data = string[]
@@ -18,8 +21,6 @@ type Data = string[]
 const props = defineProps<{ data: Data }>()
 
 const config = useVisualizationConfig()
-
-const removeWarnings = Pattern.parse('__.remove_warnings')
 </script>
 
 <template>
