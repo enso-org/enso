@@ -1,6 +1,8 @@
 /** @file A context menu. */
 import * as React from 'react'
 
+import * as detect from 'enso-common/src/detect'
+
 import Modal from '#/components/Modal'
 
 // ===================
@@ -17,32 +19,24 @@ export interface ContextMenusProps extends Readonly<React.PropsWithChildren> {
 /** A context menu that opens at the current mouse position. */
 export default function ContextMenus(props: ContextMenusProps) {
   const { hidden = false, children, event } = props
-  const contextMenuRef = React.useRef<HTMLDivElement>(null)
-  const [left, setLeft] = React.useState(event.pageX)
-  const [top, setTop] = React.useState(event.pageY)
-
-  React.useLayoutEffect(() => {
-    if (contextMenuRef.current != null) {
-      setTop(Math.min(top, window.innerHeight - contextMenuRef.current.clientHeight))
-      const boundingBox = contextMenuRef.current.getBoundingClientRect()
-      setLeft(event.pageX - boundingBox.width / 2)
-    }
-  }, [children, top, event.pageX])
 
   return hidden ? (
     <>{children}</>
   ) : (
     <Modal
-      className="absolute overflow-hidden bg-dim w-full h-full"
+      className="absolute size-full overflow-hidden bg-dim"
       onContextMenu={innerEvent => {
         innerEvent.preventDefault()
       }}
     >
       <div
         data-testid="context-menus"
-        ref={contextMenuRef}
-        style={{ left, top }}
-        className="sticky flex pointer-events-none items-start gap-0.5 w-min"
+        style={{ left: event.pageX, top: event.pageY }}
+        className={`pointer-events-none sticky flex w-min items-start gap-context-menus ${
+          detect.isOnMacOS()
+            ? '-translate-x-context-menu-macos-half-x'
+            : '-translate-x-context-menu-half-x'
+        }`}
         onClick={clickEvent => {
           clickEvent.stopPropagation()
         }}

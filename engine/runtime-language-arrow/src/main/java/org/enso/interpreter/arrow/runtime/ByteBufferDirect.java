@@ -19,6 +19,7 @@ final class ByteBufferDirect implements AutoCloseable {
   private ByteBufferDirect(int valueCount, SizeInBytes unit) {
     var padded = RoundingUtil.forValueCount(valueCount, unit);
     var buffer = ByteBuffer.allocate(padded.getTotalSizeInBytes());
+
     this.allocated = buffer;
     this.dataBuffer = buffer.slice(0, padded.getDataBufferSizeInBytes());
     this.bitmapBuffer = buffer.slice(dataBuffer.capacity(), padded.getValidityBitmapSizeInBytes());
@@ -129,7 +130,7 @@ final class ByteBufferDirect implements AutoCloseable {
     return dataBuffer.getInt(index);
   }
 
-  public void putInt(int index, int value) throws UnsupportedMessageException {
+  public void putInt(int index, int value) {
     setValidityBitmap(index, 4);
     dataBuffer.putInt(index, value);
   }
@@ -143,7 +144,7 @@ final class ByteBufferDirect implements AutoCloseable {
     return dataBuffer.getLong(index);
   }
 
-  public void putLong(int index, long value) throws UnsupportedMessageException {
+  public void putLong(int index, long value) {
     setValidityBitmap(index, 8);
     dataBuffer.putLong(index, value);
   }

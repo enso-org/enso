@@ -37,11 +37,16 @@ interface Tag {
   parameters?: ArgumentWidgetConfiguration[]
 }
 
+type CustomTag = Tag & { onClick: () => void }
+
 function tagFromExpression(expression: string, label?: Opt<string>): Tag {
   const qn = tryQualifiedName(expression)
   if (!qn.ok) return { expression, ...(label ? { label } : {}) }
   const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
-  if (entry) return tagFromEntry(entry)
+  if (entry) {
+    const tag = tagFromEntry(entry)
+    return label ? { ...tag, label: label } : tag
+  }
   return {
     label: label ?? qnLastSegment(qn.value),
     expression: qn.value,
@@ -59,6 +64,11 @@ function tagFromEntry(entry: SuggestionEntry): Tag {
   }
 }
 
+function tagFromCustomItem(item: CustomDropdownItem): CustomTag {
+  const expression = item.label
+  return { expression, onClick: item.onClick }
+}
+
 const staticTags = computed<Tag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
@@ -74,7 +84,11 @@ const dynamicTags = computed<Tag[]>(() => {
   }))
 })
 
-const tags = computed(() => (dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value))
+const customTags = computed(() => props.input[CustomDropdownItemsKey]?.map(tagFromCustomItem) ?? [])
+const tags = computed(() => {
+  const standardTags = dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value
+  return [...customTags.value, ...standardTags]
+})
 const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
 
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
@@ -130,7 +144,11 @@ function toggleDropdownWidget() {
 }
 
 function onClick(index: number, keepOpen: boolean) {
-  selectedIndex.value = index
+  if (index < customTags.value.length) {
+    customTags.value[index]!.onClick()
+  } else {
+    selectedIndex.value = index
+  }
   showDropdownWidget.value = keepOpen
 }
 
@@ -165,6 +183,7 @@ function hasBooleanTagValues(parameter: SuggestionEntryArgument): boolean {
 export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 50,
   score: (props) => {
+    if (props.input[CustomDropdownItemsKey] != null) return Score.Perfect
     if (props.input.dynamicConfig?.kind === 'Single_Choice') return Score.Perfect
     // Boolean arguments also have tag values, but the checkbox widget should handle them.
     if (
@@ -175,6 +194,21 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     return Score.Mismatch
   },
 })
+
+/** Custom item added to dropdown. These items can’t be selected, but can be clicked. */
+export interface CustomDropdownItem {
+  /** Displayed label. */
+  label: string
+  /** Action to perform when clicked. */
+  onClick: () => void
+}
+
+export const CustomDropdownItemsKey: unique symbol = Symbol('CustomDropdownItems')
+declare module '@/providers/widgetRegistry' {
+  export interface WidgetInput {
+    [CustomDropdownItemsKey]?: readonly CustomDropdownItem[]
+  }
+}
 </script>
 
 <template>
