@@ -45,8 +45,10 @@ export class InteractionHandler {
     return hasCurrent
   }
 
-  handleClick(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    if (!this.currentInteraction?.click) return false
+  handleClick(event: PointerEvent, graphNavigator: GraphNavigator, mod: boolean): boolean {
+    if (!this.currentInteraction) return false
+    const handler = mod ? this.currentInteraction.modClick : this.currentInteraction.click
+    if (!handler) return false
     const handled = this.currentInteraction.click(event, graphNavigator) !== false
     if (handled) {
       event.stopImmediatePropagation()
@@ -60,4 +62,6 @@ export interface Interaction {
   cancel?(): void
   /** Uses a `capture` event handler to allow an interaction to respond to clicks over any element. */
   click?(event: PointerEvent, navigator: GraphNavigator): boolean | void
+  /** If the modifier key is held, this will be called instead of `click`. */
+  modClick?(event: PointerEvent, navigator: GraphNavigator): boolean | void
 }

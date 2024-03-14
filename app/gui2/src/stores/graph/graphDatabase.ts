@@ -12,6 +12,7 @@ import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
+import { syncSet } from '@/util/reactivity'
 import * as random from 'lib0/random'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
@@ -368,6 +369,7 @@ export class GraphDb {
           primarySubject,
           prefixes,
           documentation,
+          conditionalPorts,
         } = newNode
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
@@ -383,6 +385,7 @@ export class GraphDb {
           )
         )
           node.prefixes = prefixes
+        syncSet(node.conditionalPorts, conditionalPorts)
         // Ensure new fields can't be added to `NodeAstData` without this code being updated.
         const _allFieldsHandled = {
           outerExprId,
@@ -392,6 +395,7 @@ export class GraphDb {
           primarySubject,
           prefixes,
           documentation,
+          conditionalPorts,
         } satisfies NodeDataFromAst
       }
     }
@@ -496,6 +500,7 @@ export interface NodeDataFromAst {
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
   documentation: string | undefined
+  conditionalPorts: Set<Ast.AstId>
 }
 
 export interface NodeDataFromMetadata {
@@ -511,6 +516,7 @@ const baseMockNode = {
   prefixes: { enableRecording: undefined },
   primarySubject: undefined,
   documentation: undefined,
+  conditionalPorts: new Set(),
 } satisfies Partial<Node>
 
 /** This should only be used for supplying as initial props when testing.

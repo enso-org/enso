@@ -26,7 +26,10 @@ const editingEdge: Interaction = {
   cancel() {
     graph.clearUnconnected()
   },
-  click(_e: PointerEvent, graphNavigator: GraphNavigator): boolean {
+  modClick(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
+    return click(event, graphNavigator)
+  },
+  click(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
     if (graph.unconnectedEdge == null) return false
     let source: AstId | undefined
     let sourceNode: NodeId | undefined
@@ -53,6 +56,7 @@ const editingEdge: Interaction = {
       }
       graph.clearUnconnected()
     })
+    event.stopPropagation()
     return true
   },
 }

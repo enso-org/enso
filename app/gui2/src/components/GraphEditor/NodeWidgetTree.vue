@@ -15,10 +15,12 @@ const props = defineProps<{
   icon: Icon
   connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
+  conditionalPorts: Set<Ast.AstId>
   extended: boolean
 }>()
 const emit = defineEmits<{
   openFullMenu: []
+  targetablePortsChanged: []
 }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
@@ -72,6 +74,8 @@ provideWidgetTree(
   toRef(props, 'icon'),
   toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
+  toRef(props, 'conditionalPorts'),
+  () => emit('targetablePortsChanged'),
   toRef(props, 'extended'),
   layoutTransitions.active,
   () => {

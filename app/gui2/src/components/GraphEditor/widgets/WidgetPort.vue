@@ -4,6 +4,7 @@ import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
+import { injectKeyboard } from '@/providers/keyboard'
 import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
@@ -117,6 +118,15 @@ function updateRect() {
   if (portRect.value != null && localRect.equals(portRect.value)) return
   portRect.value = localRect
 }
+
+const keyboard = injectKeyboard()
+
+const enabled = computed(() => {
+  const input = props.input.value
+  const isConditional = input instanceof Ast.Ast && tree.conditionalPorts.has(input.id)
+  return !isConditional || keyboard.mod
+})
+watch(enabled, () => tree.emitTargetablePortsChanged())
 </script>
 
 <script lang="ts">
@@ -159,6 +169,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     ref="rootNode"
     class="WidgetPort"
     :class="{
+      enabled,
       connected,
       isTarget,
       isSelfArgument,

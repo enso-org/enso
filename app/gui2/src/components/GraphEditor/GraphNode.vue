@@ -51,6 +51,7 @@ const emit = defineEmits<{
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
   addNode: [pos: Vec2 | undefined]
+  targetablePortsChanged: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -492,8 +493,10 @@ const documentation = computed<string | undefined>({
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
+        :conditionalPorts="props.node.conditionalPorts"
         :extended="isOnlyOneSelected"
         @openFullMenu="openFullMenu"
+        @targetablePortsChanged="emit('targetablePortsChanged')"
       />
     </div>
     <div class="statuses">

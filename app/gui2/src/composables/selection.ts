@@ -6,13 +6,14 @@ import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import type { Vec2 } from '@/util/data/vec2'
-import { computed, proxyRefs, ref, shallowReactive, shallowRef } from 'vue'
+import { computed, proxyRefs, ref, shallowReactive, shallowRef, type Ref } from 'vue'
 
 export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
   margin: number,
+  targetablePortChanges: Ref<unknown>,
   callbacks: {
     onSelected?: (element: T) => void
     onDeselected?: (element: T) => void
@@ -22,21 +23,27 @@ export function useSelection<T>(
   const initiallySelected = new Set<T>()
   const selected = shallowReactive(new Set<T>())
   const hoveredNode = ref<NodeId>()
-  const hoveredPort = ref<PortId>()
+  const hoveredElement = ref<Element>()
 
   useEvent(document, 'pointerover', (event) => {
-    if (event.target instanceof Element) {
-      const widgetPort = event.target.closest('.WidgetPort')
-      hoveredPort.value =
-        (
-          widgetPort instanceof HTMLElement &&
-          'port' in widgetPort.dataset &&
-          typeof widgetPort.dataset.port === 'string'
-        ) ?
-          (widgetPort.dataset.port as PortId)
-        : undefined
-    }
+    hoveredElement.value = event.target instanceof Element ? event.target : undefined
   })
+
+  const hoveredPort = computed<PortId | undefined>(() => {
+    const _portChangesEffect = targetablePortChanges.value
+    const widgetPort = hoveredElement.value?.closest('.WidgetPort.enabled')
+    return widgetPort ? elementPortId(widgetPort) : undefined
+  })
+
+  function elementPortId(element: Element): PortId | undefined {
+    return (
+        element instanceof HTMLElement &&
+          'port' in element.dataset &&
+          typeof element.dataset.port === 'string'
+      ) ?
+        (element.dataset.port as PortId)
+      : undefined
+  }
 
   function readInitiallySelected() {
     initiallySelected.clear()
