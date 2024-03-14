@@ -292,9 +292,12 @@ const { handleClick } = useDoubleClick(
 )
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
+const toggleCodeEditor = () => {
+  showCodeEditor.value = !showCodeEditor.value
+}
 const codeEditorHandler = codeEditorBindings.handler({
   toggle() {
-    showCodeEditor.value = !showCodeEditor.value
+    toggleCodeEditor()
   },
 })
 
@@ -595,11 +598,12 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @fitToAllClicked="zoomToSelected"
       @zoomIn="graphNavigator.stepZoom(+1)"
       @zoomOut="graphNavigator.stepZoom(-1)"
+      @toggleCodeEditor="toggleCodeEditor"
     />
     <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>
       <Suspense ref="codeEditorArea">
-        <CodeEditor v-if="showCodeEditor" />
+        <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
       </Suspense>
     </Transition>
     <SceneScroller
