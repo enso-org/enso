@@ -67,7 +67,7 @@ const KEY_CHARACTER: Readonly<Record<string, string>> = {
   ArrowLeft: '←',
   ArrowRight: '→',
   /* eslint-enable @typescript-eslint/naming-convention */
-} satisfies Partial<Record<inputBindingsModule.Key, React.ReactNode>>
+} satisfies Partial<Record<inputBindingsModule.Key, string>>
 
 /** Props for a {@link KeyboardShortcut}, specifying the keyboard action. */
 export interface KeyboardShortcutActionProps {
