@@ -120,7 +120,7 @@ def write_bench_reports_to_csv(bench_reports: List[JobReport], csv_fname: str) -
 async def main():
     default_since: datetime = (datetime.now() - timedelta(days=14))
     default_until: datetime = datetime.now()
-    default_csv_out = "Engine_Benchs/data/benchs.csv"
+    default_csv_out = "benchs.csv"
     date_format_help = DATE_FORMAT.replace("%", "%%")
 
     def _parse_bench_source(_bench_source: str) -> Source:
