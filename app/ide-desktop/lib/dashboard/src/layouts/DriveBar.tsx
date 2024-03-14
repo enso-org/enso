@@ -157,7 +157,6 @@ export default function DriveBar(props: DriveBarProps) {
                 multiple
                 id="upload_files_input"
                 name="upload_files_input"
-                {...(isCloud ? {} : { accept: '.enso-project' })}
                 className="hidden"
                 onInput={event => {
                   if (event.currentTarget.files != null) {
