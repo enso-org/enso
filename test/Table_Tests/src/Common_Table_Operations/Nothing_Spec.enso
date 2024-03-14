@@ -216,8 +216,6 @@ add_specs suite_builder setup =
 
         group_builder.teardown <|
             data.teardown
-            IO.println 12
-            Nothing
 
         table_builder_typed columns value_type =
             cast_columns = columns.map c->

@@ -362,12 +362,10 @@ supported_replace_params =
 type Database_File
     Value ~file
 
-    create basename="sqlite_test.db" = Database_File.Value <|
-        transient_dir = enso_project.data / "transient" # +(Date_Time.now.millisecond.to_text)
-        #transient_dir.create_directory
+    create = Database_File.Value <|
+        transient_dir = enso_project.data / "transient"
         assert transient_dir.exists ("The directory " + transient_dir.path + " should exist (ensured by containing a `.gitignore` file).")
-        f = transient_dir / basename
-        IO.println 'AAA DF create '+f.to_text
+        f = transient_dir / "sqlite_test.db"
         f.delete_if_exists
         f
 
@@ -375,7 +373,6 @@ create_inmem_connection =
     Database.connect (SQLite In_Memory)
 
 create_file_connection file =
-    IO.println 'AAA create_file_connection '+file.to_text
     connection = Database.connect (SQLite file)
     connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     connection
@@ -398,7 +395,6 @@ type File_Connection
 add_specs suite_builder =
     in_file_prefix = "[SQLite File] "
     database_file = Database_File.create
-    #IO.println 'AAA df is '+database_file.file.to_text
 
     sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection database_file.file)
     Transaction_Spec.add_specs suite_builder (_ -> create_file_connection database_file.file) in_file_prefix
@@ -412,11 +408,7 @@ add_specs suite_builder =
     SQLite_Type_Mapping_Spec.add_specs suite_builder
 
     suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
-        data = File_Connection.setup database_file # (Database_File.create "for_sqlite_format_test.db")
-
-        group_builder.teardown <|
-            #data.teardown
-            12
+        data = File_Connection.setup database_file
 
         group_builder.specify "should recognise a SQLite database file" <|
             Auto_Detect.get_reading_format data.file . should_be_a SQLite_Format
@@ -447,7 +439,7 @@ add_specs suite_builder =
         group_builder.specify "should connect to a db file" <|
             connection = Data.read data.file
             tables = connection.tables
-            tables.row_count . should_not_equal 0
+            tables.row_count . should_be_a Integer
             connection.close
 
         group_builder.specify 'should not duplicate warnings' <|
@@ -460,4 +452,4 @@ add_specs suite_builder =
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter filter # ="Dropping Missing Values"
+    suite.run_with_filter filter

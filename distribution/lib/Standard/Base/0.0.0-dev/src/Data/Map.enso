@@ -1,4 +1,3 @@
-import project.Data.Text.Regex.Regex
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair

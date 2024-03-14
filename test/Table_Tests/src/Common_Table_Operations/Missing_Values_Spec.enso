@@ -43,8 +43,6 @@ type Data
     teardown self =
         self.connection.close
 
-type Blah
-    Value x
 
 add_specs suite_builder setup =
     prefix = setup.prefix
@@ -187,11 +185,6 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"Filling Missing Values" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
-        if prefix == "[SQLite File] " then
-            doit unused =
-                _ = [unused]
-                setup.table_builder [["X", [1, 2, 3]]] connection=data.connection . row_count
-            Regex.put (Blah.Value doit)
 
         group_builder.teardown <|
             data.teardown

@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Data.Array.Array
-import project.Runtime.Ref.Ref
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Json.JS_Object
 import project.Data.Map.Map
@@ -37,13 +36,6 @@ polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Text_Utils
 
 type Regex
-    get = Text_Utils.get
-    put x = Text_Utils.put x
-    run =
-        x = Regex.get
-        if x.is_nothing then 'notyet' else
-            x.x 1
-
     ## Compile the provided `expression` into a `Regex` that can be used for
        matching.
 

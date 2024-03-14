@@ -28,8 +28,6 @@ run_specs_from_group (specs : Vector Spec) (group : Group) =
         False ->
             test_results = specs.map spec->
                 assert (group_contains_spec group spec)
-                IO.println "Run "+group.name+" "+spec.name
-                IO.println "Run2 "+Regex.run.to_text
                 pair = run_spec spec
                 spec_res = pair.second
                 time_taken = pair.first

@@ -1,4 +1,3 @@
-import project.Data.Text.Regex.Regex
 import project.Any.Any
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Filter_Condition.Filter_Condition
