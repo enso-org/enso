@@ -17,9 +17,6 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'hover-bg': 'rgb(0 0 0 / 10%)',
         frame: 'var(--frame-color)',
         'selected-frame': 'var(--selected-frame-color)',
-        'not-selected': 'rgb(0 0 0 / 40%)',
-        'icon-selected': 'rgb(0 0 0 / 50%)',
-        'icon-not-selected': 'rgb(0 0 0 / 30%)',
         'ide-bg': '#ebeef1',
         selected: 'rgb(255 255 255 / 40%)',
         // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.

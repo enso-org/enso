@@ -22,7 +22,7 @@ export default function AssetVersion(props: AssetVersionProps) {
   return (
     <div className="flex cursor-pointer select-none flex-col overflow-y-auto rounded-default p-version transition-colors hover:bg-frame">
       <div>version {number}</div>
-      <div className="text-xs text-not-selected">
+      <div className="text-xs opacity-unimportant">
         on {dateTime.formatDateTime(new Date(version.lastModified))}
       </div>
     </div>

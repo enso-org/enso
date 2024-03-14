@@ -158,9 +158,8 @@ export default function Labels(props: LabelsProps) {
         })}
         <li>
           <Label
-            active
             color={labelUtils.DEFAULT_LABEL_COLOR}
-            className="bg-frame text-not-selected"
+            className="bg-selected-frame"
             onClick={event => {
               event.stopPropagation()
               setModal(

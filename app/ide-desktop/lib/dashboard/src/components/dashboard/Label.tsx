@@ -44,13 +44,11 @@ function Label(props: InternalLabelProps, ref: React.ForwardedRef<HTMLButtonElem
     ? '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     : color.lightness <= 50
       ? 'text-tag-text'
-      : active
-        ? 'text-primary'
-        : 'text-not-selected'
+      : 'text-primary'
 
   return (
     <div
-      className={`relative after:absolute after:inset after:rounded-full ${focusRing ? 'after:focus-ring' : ''}`}
+      className={`relative after:pointer-events-none after:absolute after:inset after:rounded-full ${focusRing ? 'after:focus-ring' : ''}`}
     >
       <button
         data-testid={dataTestId}

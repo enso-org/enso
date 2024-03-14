@@ -144,14 +144,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                           setSettingsTab(tab.settingsTab)
                         }}
                       >
-                        <SvgMask
-                          src={tab.icon}
-                          className={
-                            tab.settingsTab === settingsTab
-                              ? 'text-icon-selected'
-                              : 'text-icon-not-selected'
-                          }
-                        />
+                        <SvgMask src={tab.icon} />
                         <span className="text">{tab.name}</span>
                       </button>
                     </li>
