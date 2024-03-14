@@ -137,7 +137,7 @@ export default function Dashboard(props: DashboardProps) {
   const [assetEvents, dispatchAssetEvent] = eventHooks.useEvent<assetEvent.AssetEvent>()
   const [assetPanelProps, setAssetPanelProps] =
     React.useState<assetPanel.AssetPanelRequiredProps | null>(null)
-  const [isAssetPanelVisible, setIsAssetPanelVisible] = React.useState(
+  const [isAssetPanelEnabled, setIsAssetPanelEnabled] = React.useState(
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
@@ -145,6 +145,8 @@ export default function Dashboard(props: DashboardProps) {
   const isCloud = backend.type === backendModule.BackendType.remote
   const self = asyncEffectHooks.useAsyncEffect(user, () => backend.self(), [backend])
   const rootDirectory = React.useMemo(() => self?.rootDirectory() ?? null, [self])
+  const isAssetPanelVisible =
+    page === pageSwitcher.Page.drive && (isAssetPanelEnabled || isAssetPanelTemporarilyVisible)
 
   React.useEffect(() => {
     setInitialized(true)
@@ -251,8 +253,8 @@ export default function Dashboard(props: DashboardProps) {
   }, [projectStartupInfo, /* should never change */ localStorage])
 
   React.useEffect(() => {
-    localStorage.set('isAssetPanelVisible', isAssetPanelVisible)
-  }, [isAssetPanelVisible, /* should never change */ localStorage])
+    localStorage.set('isAssetPanelVisible', isAssetPanelEnabled)
+  }, [isAssetPanelEnabled, /* should never change */ localStorage])
 
   React.useEffect(() => {
     if (page !== pageSwitcher.Page.settings) {
@@ -388,12 +390,14 @@ export default function Dashboard(props: DashboardProps) {
   return (
     <>
       <div
-        className={`flex text-primary text-xs ${
-          page === pageSwitcher.Page.editor ? 'cursor-none pointer-events-none' : ''
+        className={`flex text-xs text-primary ${
+          page === pageSwitcher.Page.editor ? 'pointer-events-none cursor-none' : ''
         }`}
       >
         <div
-          className="flex flex-col grow container-size gap-2 overflow-hidden relative select-none h-screen pb-2"
+          className={`relative flex h-screen grow select-none flex-col overflow-hidden container-size ${
+            page === pageSwitcher.Page.home ? 'pb-home-page-b' : 'gap-top-level'
+          }`}
           onContextMenu={event => {
             event.preventDefault()
             unsetModal()
@@ -415,16 +419,11 @@ export default function Dashboard(props: DashboardProps) {
             setQuery={setQuery}
             labels={labels}
             suggestions={suggestions}
-            canToggleAssetPanel={assetPanelProps != null}
-            isAssetPanelVisible={isAssetPanelVisible && assetPanelProps != null}
-            setIsAssetPanelVisible={setIsAssetPanelVisible}
+            isAssetPanelVisible={isAssetPanelVisible}
+            isAssetPanelEnabled={isAssetPanelEnabled}
+            setIsAssetPanelEnabled={setIsAssetPanelEnabled}
             doRemoveSelf={doRemoveSelf}
-            onSignOut={() => {
-              if (page === pageSwitcher.Page.editor) {
-                setPage(pageSwitcher.Page.drive)
-              }
-              setProjectStartupInfo(null)
-            }}
+            onSignOut={onSignOut}
           />
           <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
           <Drive
@@ -477,34 +476,24 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </div>
         <div
-          className={`flex flex-col duration-500 transition-min-width ease-in-out overflow-hidden ${
-            (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && assetPanelProps != null
-              ? 'min-w-120'
-              : 'min-w-0 invisible'
+          className={`flex flex-col overflow-hidden transition-min-width duration-side-panel ease-in-out ${
+            isAssetPanelVisible ? 'min-w-side-panel' : 'invisible min-w'
           }`}
         >
-          {assetPanelProps && (isAssetPanelVisible || isAssetPanelTemporarilyVisible) && (
+          {isAssetPanelVisible && (
             <AssetPanel
-              key={assetPanelProps.item.item.value.id}
-              {...assetPanelProps}
-              isCloud={isCloud}
-              supportsLocalBackend={supportsLocalBackend}
-              page={page}
-              setPage={setPage}
+              key={assetPanelProps?.item?.item.value.id}
+              item={assetPanelProps?.item ?? null}
+              setItem={assetPanelProps?.setItem ?? null}
+              setQuery={setQuery}
               category={Category.home}
-              isHelpChatOpen={isHelpChatOpen}
-              setIsHelpChatOpen={setIsHelpChatOpen}
-              setVisibility={setIsAssetPanelVisible}
+              labels={labels}
               dispatchAssetEvent={dispatchAssetEvent}
-              projectAsset={projectStartupInfo?.projectAsset ?? null}
-              setProjectAsset={projectStartupInfo?.setProjectAsset ?? null}
-              doRemoveSelf={doRemoveSelf}
-              onSignOut={onSignOut}
             />
           )}
         </div>
       </div>
-      <div className="text-xs text-primary select-none">
+      <div className="select-none text-xs text-primary">
         <TheModal />
       </div>
     </>

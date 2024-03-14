@@ -13,14 +13,15 @@ test.test('drive view', async ({ page }) => {
   await actions.expectPlaceholderRow(page)
   // Assets table with one asset
   await actions.locateNewProjectButton(page).click()
+  await test.expect(actions.locateEditor(page)).toBeVisible()
   await actions.locateDrivePageIcon(page).click()
   // The placeholder row becomes hidden.
   await test.expect(assetRows).toHaveCount(1)
   await test.expect(actions.locateAssetsTable(page)).toBeVisible()
   await actions.locateNewProjectButton(page).click()
+  await test.expect(actions.locateEditor(page)).toBeVisible()
   await actions.locateDrivePageIcon(page).click()
   await test.expect(assetRows).toHaveCount(2)
-  await actions.locateDrivePageIcon(page).click()
   // The last opened project needs to be stopped, to remove the toast notification notifying the
   // user that project creation may take a while. Previously opened projects are stopped when the
   // new project is created.

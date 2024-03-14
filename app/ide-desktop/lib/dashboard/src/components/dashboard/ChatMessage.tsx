@@ -49,7 +49,7 @@ export default function ChatMessage(props: ChatMessageProps) {
   const [isHovered, setIsHovered] = React.useState(false)
   return (
     <div
-      className="mx-4 my-2"
+      className="mx-chat-message-x my-chat-message-y"
       onMouseEnter={() => {
         setIsHovered(true)
       }}
@@ -61,11 +61,11 @@ export default function ChatMessage(props: ChatMessageProps) {
         <img
           crossOrigin="anonymous"
           src={message.avatar ?? DefaultUserIcon}
-          className="rounded-full h-8 w-8 my-1"
+          className="my-chat-profile-picture-y size-chat-profile-picture rounded-full"
         />
-        <div className="mx-2 leading-5">
+        <div className="mx-chat-message-info-x leading-cozy">
           <div className="font-bold">{message.name}</div>
-          <div className="text-opacity-50 text-primary">
+          <div className="text-primary text-opacity-unimportant">
             {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
           </div>
         </div>
@@ -82,7 +82,7 @@ export default function ChatMessage(props: ChatMessageProps) {
         />
       )}
       {message.isStaffMessage && !shouldShowReactionBar && isHovered && (
-        <div className="relative h-0 py-1 -my-1">
+        <div className="relative -my-chat-reaction-bar-py h py-chat-reaction-bar-y">
           <ReactionBar
             doReact={doReact}
             doRemoveReaction={doRemoveReaction}

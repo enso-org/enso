@@ -45,10 +45,10 @@ export default function Login(props: LoginProps) {
   const shouldReportValidityRef = React.useRef(true)
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
-      <div className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md">
-        <div className="font-medium self-center text-xl">Login to your account</div>
-        <div className="flex flex-col gap-6">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
+      <div className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md">
+        <div className="self-center text-xl font-medium">Login to your account</div>
+        <div className="flex flex-col gap-auth">
           <button
             onMouseDown={() => {
               shouldReportValidityRef.current = false
@@ -57,11 +57,11 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGoogle()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
+            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
           >
             <SvgMask
               src={GoogleIcon}
-              className="absolute left-0 top-1/2 -translate-y-1/2 text-blue-500 mx-3 h-full w-4"
+              className="absolute left top h-full w-icon px-font-awesome-icon-x text-blue-500"
             />
             Sign up or login with Google
           </button>
@@ -73,22 +73,18 @@ export default function Login(props: LoginProps) {
               event.preventDefault()
               await signInWithGitHub()
             }}
-            className="relative rounded-full bg-cloud/10 hover:bg-cloud/20 focus:bg-cloud/20 transition-all duration-300 py-2"
+            className="relative rounded-full bg-cloud/10 py-auth-input-y transition-all duration-auth hover:bg-cloud/20 focus:bg-cloud/20"
           >
             <SvgMask
               src={GithubIcon}
-              className="absolute left-0 top-1/2 -translate-y-1/2 text-blue-500 mx-3 h-full w-4"
+              className="absolute left top h-full w-icon px-font-awesome-icon-x text-blue-500"
             />
             Sign up or login with GitHub
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="grow border-t border-primary/30 h-0" />
-          <span className="text-xs self-center text-primary/60">or login with email</span>
-          <div className="grow border-t border-primary/30 h-0" />
-        </div>
+        <div />
         <form
-          className="flex flex-col gap-6"
+          className="flex flex-col gap-auth"
           onSubmit={async event => {
             event.preventDefault()
             setIsSubmitting(true)
@@ -102,35 +98,33 @@ export default function Login(props: LoginProps) {
             validate
             type="email"
             autoComplete="email"
-            label="Email"
             icon={AtIcon}
             placeholder="Enter your email"
             value={email}
             setValue={setEmail}
             shouldReportValidityRef={shouldReportValidityRef}
           />
-          <Input
-            required
-            validate
-            allowShowingPassword
-            type="password"
-            autoComplete="current-password"
-            label="Password"
-            icon={LockIcon}
-            placeholder="Enter your password"
-            error={validation.PASSWORD_ERROR}
-            value={password}
-            setValue={setPassword}
-            shouldReportValidityRef={shouldReportValidityRef}
-            footer={
-              <router.Link
-                to={appUtils.FORGOT_PASSWORD_PATH}
-                className="text-xs text-blue-500 hover:text-blue-700 focus:text-blue-700 transition-all duration-300 text-end"
-              >
-                Forgot Your Password?
-              </router.Link>
-            }
-          />
+          <div className="flex flex-col">
+            <Input
+              required
+              validate
+              allowShowingPassword
+              type="password"
+              autoComplete="current-password"
+              icon={LockIcon}
+              placeholder="Enter your password"
+              error={validation.PASSWORD_ERROR}
+              value={password}
+              setValue={setPassword}
+              shouldReportValidityRef={shouldReportValidityRef}
+            />
+            <router.Link
+              to={appUtils.FORGOT_PASSWORD_PATH}
+              className="text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
+            >
+              Forgot Your Password?
+            </router.Link>
+          </div>
           <SubmitButton disabled={isSubmitting} text="Login" icon={ArrowRightIcon} />
         </form>
       </div>

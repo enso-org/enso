@@ -348,7 +348,13 @@ export default function AuthProvider(props: AuthProviderProps) {
           document.cookie = `logged_in=yes;max-age=34560000;domain=${parentDomain};samesite=strict;secure`
 
           // Save access token so can it be reused by the backend.
-          cognito?.saveAccessToken(session.accessToken)
+          cognito?.saveAccessToken({
+            accessToken: session.accessToken,
+            clientId: session.clientId,
+            expireAt: session.expireAt,
+            refreshToken: session.refreshToken,
+            refreshUrl: session.refreshUrl,
+          })
 
           // Execute the callback that should inform the Electron app that the user has logged in.
           // This is done to transition the app from the authentication/dashboard view to the IDE.

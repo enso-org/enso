@@ -1,12 +1,13 @@
-/** @file The header bar for a `Chat`. Includes the title, close button,
- * and threads list. */
+/** @file The header bar for a `Chat`. Includes the title, close button, and threads list. */
 import * as React from 'react'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
-import TriangleDownIcon from 'enso-assets/triangle_down.svg'
+import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import * as chat from 'enso-chat/chat'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
+
+import SvgMask from '#/components/SvgMask'
 
 import * as object from '#/utilities/object'
 
@@ -26,8 +27,7 @@ interface InternalChatHeaderProps {
   readonly doClose: () => void
 }
 
-/** The header bar for a `Chat`. Includes the title, close button,
- * and threads list. */
+/** The header bar for a `Chat`. Includes the title, close button, and threads list. */
 export default function ChatHeader(props: InternalChatHeaderProps) {
   const { threads, setThreads, threadId, threadTitle, setThreadTitle } = props
   const { switchThread, sendMessage, doClose } = props
@@ -60,22 +60,23 @@ export default function ChatHeader(props: InternalChatHeaderProps) {
 
   return (
     <>
-      <div className="flex text-sm font-semibold mx-4 mt-2">
-        <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
-          <img
-            className={`transition-transform duration-300 shrink-0 ${
-              isThreadListVisible ? '-rotate-180' : ''
+      <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
+        <button
+          className="flex grow items-center gap-icon-with-text"
+          onClick={toggleThreadListVisibility}
+        >
+          <SvgMask
+            className={`shrink-0 transition-transform duration-arrow ${
+              isThreadListVisible ? '-rotate-90' : 'rotate-90'
             }`}
-            src={TriangleDownIcon}
+            src={FolderArrowIcon}
           />
-          {/* Spacing. */}
-          <div className="w-2" />
           <div className="grow">
             <input
               type="text"
               ref={titleInputRef}
               defaultValue={threadTitle}
-              className="bg-transparent w-full leading-6"
+              className="w-full bg-transparent leading-chat-thread-title"
               onClick={event => {
                 event.stopPropagation()
               }}
@@ -110,23 +111,23 @@ export default function ChatHeader(props: InternalChatHeaderProps) {
             />
           </div>
         </button>
-        <button className="mx-1" onClick={doClose}>
+        <button className="mx-close-icon" onClick={doClose}>
           <img src={CloseLargeIcon} />
         </button>
       </div>
       <div className="relative text-sm font-semibold">
         <div
-          className={`grid absolute shadow-soft clip-path-bottom-shadow bg-frame backdrop-blur-3xl overflow-hidden transition-grid-template-rows w-full z-1 ${
+          className={`absolute z-1 grid w-full overflow-hidden bg-frame shadow-soft backdrop-blur-default transition-grid-template-rows clip-path-bottom-shadow ${
             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
           }`}
         >
-          <div className="min-h-0 max-h-70 overflow-y-auto">
+          <div className="max-h-chat-thread-list min-h overflow-y-auto">
             {threads.map(thread => (
               <div
                 key={thread.id}
-                className={`flex p-1 ${
+                className={`flex p-chat-thread-button ${
                   thread.id === threadId
-                    ? 'cursor-default bg-frame-selected'
+                    ? 'cursor-default bg-selected-frame'
                     : 'cursor-pointer hover:bg-frame'
                 }`}
                 onClick={event => {
@@ -137,7 +138,7 @@ export default function ChatHeader(props: InternalChatHeaderProps) {
                   }
                 }}
               >
-                <div className="w-8 text-center">
+                <div className="w-chat-indicator text-center">
                   {/* {thread.hasUnreadMessages ? '(!) ' : ''} */}
                 </div>
                 <div>{thread.title}</div>

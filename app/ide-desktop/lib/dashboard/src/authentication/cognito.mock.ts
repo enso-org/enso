@@ -41,7 +41,7 @@ import * as listen from './listen.mock'
 // This file exports a subset of the values from the original file.
 // @ts-expect-error This is a mock file that needs to reference its original file.
 // eslint-disable-next-line no-restricted-syntax
-export { CognitoErrorType, isAmplifyError } from './cognito.ts'
+export { UserSession, CognitoErrorType, isAmplifyError } from './cognito.ts'
 
 // There are unused function parameters in this file.
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -211,23 +211,9 @@ export class Cognito implements original.Cognito {
 // === UserSession ===
 // ===================
 
-/** User's session, provides information for identifying and authenticating the user. */
-export interface UserSession {
-  /** User's email address, used to uniquely identify the user.
-   *
-   * Provided by the identity provider the user used to log in. One of:
-   *
-   * - GitHub,
-   * - Google, or
-   * - Email. */
-  readonly email: string
-  /** User's access token, used to authenticate the user (e.g., when making API calls). */
-  readonly accessToken: string
-}
-
-/** Parse a {@link cognito.CognitoUserSession} into a {@link UserSession}.
+/** Parse a {@link cognito.CognitoUserSession} into an {@link original.UserSession}.
  * @throws If the `email` field of the payload is not a string. */
-function parseUserSession(session: cognito.CognitoUserSession): UserSession {
+function parseUserSession(session: cognito.CognitoUserSession): original.UserSession {
   const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
   /** The `email` field is mandatory, so we assert that it exists and is a string. */
@@ -235,7 +221,7 @@ function parseUserSession(session: cognito.CognitoUserSession): UserSession {
     throw new Error('Payload does not have an email field.')
   } else {
     const accessToken = `.${window.btoa(JSON.stringify({ username: email }))}.`
-    return { email, accessToken }
+    return { email, accessToken, refreshToken: '', clientId: '', expireAt: '', refreshUrl: '' }
   }
 }
 

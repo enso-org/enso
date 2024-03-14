@@ -79,6 +79,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
   const [conflictingProjects, setConflictingProjects] = React.useState(conflictingProjectsRaw)
+  const [didUploadNonConflicting, setDidUploadNonConflicting] = React.useState(false)
   const siblingFileNames = React.useRef(new Set<string>())
   const siblingProjectNames = React.useRef(new Set<string>())
   const count = conflictingFiles.length + conflictingProjects.length
@@ -190,7 +191,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
       <form
         data-testid="new-label-modal"
         tabIndex={-1}
-        className="relative flex flex-col gap-2 rounded-2xl pointer-events-auto w-96 p-4 pt-2 before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-duplicate-assets-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -213,16 +214,20 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           Found
         </h1>
         {nonConflictingCount > 0 && (
-          <div className="relative flex flex-col gap-0.5">
-            <span>
+          <div className="relative flex flex-col">
+            <span className="text">
               {nonConflictingCount} {pluralizeFile(nonConflictingCount)} without conflicts
             </span>
             <button
+              disabled={didUploadNonConflicting}
               type="button"
-              className="relative self-start hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
-              onClick={doUploadNonConflicting}
+              className="button relative self-start rounded-full bg-selected-frame selectable enabled:active"
+              onClick={() => {
+                doUploadNonConflicting()
+                setDidUploadNonConflicting(true)
+              }}
             >
-              Upload
+              {didUploadNonConflicting ? 'Uploaded' : 'Upload'}
             </button>
           </div>
         )}
@@ -242,10 +247,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               />
             </div>
             {count > 1 && (
-              <div className="relative flex gap-2">
+              <div className="relative flex gap-icons">
                 <button
                   type="button"
-                  className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                  className="button bg-selected-frame active"
                   onClick={() => {
                     doUpdate([firstConflict])
                     switch (firstConflict.new.type) {
@@ -264,7 +269,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 </button>
                 <button
                   type="button"
-                  className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+                  className="button  bg-selected-frame active"
                   onClick={() => {
                     doRename([firstConflict])
                     switch (firstConflict.new.type) {
@@ -288,10 +293,10 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         {(otherFilesText !== '' || otherProjectsText !== '' || nonConflictingCount > 0) && (
           <span className="relative">{[otherFilesText, otherProjectsText].join(' ')}</span>
         )}
-        <div className="relative flex gap-2">
+        <div className="relative flex gap-icons">
           <button
             type="button"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+            className="button bg-invite text-white active"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -302,7 +307,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           </button>
           <button
             type="button"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+            className="button bg-invite text-white active"
             onClick={() => {
               unsetModal()
               doUploadNonConflicting()
@@ -313,11 +318,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               ? `Rename New ${firstConflictTypeName}`
               : `Rename New ${firstConflictTypeName}s`}
           </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
-            onClick={unsetModal}
-          >
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
             Cancel
           </button>
         </div>

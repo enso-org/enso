@@ -17,10 +17,10 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
 import ContextMenuSeparator from '#/components/ContextMenuSeparator'
 import type * as assetRow from '#/components/dashboard/AssetRow'
-import MenuEntry from '#/components/MenuEntry'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -89,7 +89,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
         <ContextMenu hidden={hidden}>
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="undelete"
             label="Restore From Trash"
@@ -98,7 +98,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set([asset.id]) })
             }}
           />
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="delete"
             label="Delete Forever"
@@ -124,7 +124,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           canExecute &&
           !isRunningProject &&
           !isOtherUserUsingProject && (
-            <MenuEntry
+            <ContextMenuEntry
               hidden={hidden}
               action="open"
               doAction={() => {
@@ -139,7 +139,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             />
           )}
         {asset.type === backendModule.AssetType.project && isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="run"
             doAction={() => {
@@ -157,7 +157,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           canExecute &&
           isRunningProject &&
           !isOtherUserUsingProject && (
-            <MenuEntry
+            <ContextMenuEntry
               hidden={hidden}
               action="close"
               doAction={() => {
@@ -170,7 +170,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             />
           )}
         {asset.type === backendModule.AssetType.project && !isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="uploadToCloud"
             doAction={async () => {
@@ -206,7 +206,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             disabled={
               asset.type !== backendModule.AssetType.project &&
@@ -220,7 +220,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {smartAsset.type === backendModule.AssetType.secret && canEditThisAsset && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="edit"
             doAction={() => {
@@ -241,7 +241,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             disabled
             action="snapshot"
@@ -251,7 +251,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {ownsThisAsset && !isRunningProject && !isOtherUserUsingProject && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="delete"
             label={isCloud ? 'Delete' : 'Move To Trash'}
@@ -272,7 +272,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         {isCloud && <ContextMenuSeparator hidden={hidden} />}
         {isCloud && managesThisAsset && self != null && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="share"
             doAction={() => {
@@ -291,7 +291,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="label"
             doAction={() => {
@@ -308,7 +308,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           />
         )}
         {isCloud && managesThisAsset && self != null && <ContextMenuSeparator hidden={hidden} />}
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           disabled={!isCloud}
           action="duplicate"
@@ -322,11 +322,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             })
           }}
         />
-        {isCloud && <MenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
+        {isCloud && <ContextMenuEntry hidden={hidden} action="copy" doAction={doCopy} />}
         {isCloud && !isOtherUserUsingProject && (
-          <MenuEntry hidden={hidden} action="cut" doAction={doCut} />
+          <ContextMenuEntry hidden={hidden} action="cut" doAction={doCut} />
         )}
-        <MenuEntry
+        <ContextMenuEntry
           hidden={hidden}
           disabled={isCloud && asset.type !== backendModule.AssetType.file}
           action="download"
@@ -339,7 +339,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           }}
         />
         {hasPasteData && (
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="paste"
             doAction={() => {

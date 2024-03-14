@@ -20,7 +20,6 @@ import MenuEntry from '#/components/MenuEntry'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
-import * as assetQuery from '#/utilities/AssetQuery'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
@@ -49,7 +48,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   return (
-    <div className="group flex items-center gap-1">
+    <div className="group flex items-center gap-column-items">
       {(asset.labels ?? [])
         .filter(label => !deletedLabelNames.has(label))
         .map(label => (
@@ -63,7 +62,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             negated={temporarilyRemovedLabels.has(label)}
             className={
               temporarilyRemovedLabels.has(label)
-                ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
+                ? 'relative before:absolute before:inset before:h-full before:w-full before:rounded-full before:border-2 before:border-delete'
                 : ''
             }
             onContextMenu={event => {
@@ -97,7 +96,9 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             onClick={event => {
               event.preventDefault()
               event.stopPropagation()
-              setQuery(oldQuery => assetQuery.toggleLabel(oldQuery, label, event.shiftKey))
+              setQuery(oldQuery =>
+                oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey)
+              )
             }}
           >
             {label}
@@ -118,7 +119,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         ))}
       {managesThisAsset && (
         <button
-          className="h-4 w-4 invisible group-hover:visible"
+          className="invisible shrink-0 group-hover:visible"
           onClick={event => {
             event.stopPropagation()
             setModal(
@@ -133,7 +134,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             )
           }}
         >
-          <img className="w-4.5 h-4.5" src={Plus2Icon} />
+          <img className="size-plus-icon" src={Plus2Icon} />
         </button>
       )}
     </div>

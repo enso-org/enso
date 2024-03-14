@@ -362,7 +362,7 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
+        className={`fixed right top z-3 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${
           detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >
@@ -443,13 +443,16 @@ export default function Chat(props: ChatProps) {
             />
           ))}
         </div>
-        <form className="rounded-2xl bg-frame p-1 mx-2 my-1" onSubmit={sendCurrentMessage}>
+        <form
+          className="mx-chat-form-x my-chat-form-y rounded-default bg-frame p-chat-form"
+          onSubmit={sendCurrentMessage}
+        >
           <textarea
             ref={messageInputRef}
             rows={1}
             required
             placeholder="Type your message ..."
-            className="w-full rounded-lg bg-transparent resize-none p-1"
+            className="w-full resize-none rounded-chat-input bg-transparent p-chat-input"
             onKeyDown={event => {
               switch (event.key) {
                 case 'Enter': {
@@ -474,11 +477,11 @@ export default function Chat(props: ChatProps) {
               }
             }}
           />
-          <div className="flex">
+          <div className="flex gap-chat-buttons">
             <button
               type="button"
               disabled={!isReplyEnabled}
-              className={`text-xxs text-white rounded-full grow text-left px-1.5 py-1 ${
+              className={`text-xxs grow rounded-full px-chat-button-x py-chat-button-y text-left text-white ${
                 isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
               }`}
               onClick={event => {
@@ -487,14 +490,10 @@ export default function Chat(props: ChatProps) {
             >
               New question? Click to start a new thread!
             </button>
-            {/* Spacing. */}
-            <div className="w-0.5" />
             <button
               type="submit"
               disabled={!isReplyEnabled}
-              className={`text-white bg-blue-600/90 rounded-full px-1.5 py-1 ${
-                isReplyEnabled ? '' : 'opacity-50'
-              }`}
+              className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
             >
               Reply!
             </button>
@@ -502,7 +501,9 @@ export default function Chat(props: ChatProps) {
         </form>
         {!isPaidUser && (
           <button
-            className="leading-5 rounded-2xl bg-call-to-action/90 text-center text-white p-2 mx-2 my-1"
+            // This UI element does not appear anywhere else.
+            // eslint-disable-next-line no-restricted-syntax
+            className="mx-2 my-1 rounded-default bg-call-to-action/90 p-2 text-center leading-cozy text-white"
             onClick={upgradeToPro}
           >
             Click here to upgrade to Enso Pro and get access to high-priority, live support!

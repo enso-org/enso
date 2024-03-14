@@ -74,7 +74,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             }
             children.push(
               <div
-                className={`rounded-2xl border ${
+                className={`rounded-default border ${
                   isValid ? 'border-black/10' : 'border-red-700/60'
                 }`}
               >
@@ -100,7 +100,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 readOnly={readOnly}
                 value={typeof value === 'string' ? value : ''}
                 size={1}
-                className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+                className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
                   getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
                 }`}
                 placeholder="Enter text"
@@ -120,7 +120,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+              className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
                 getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter number"
@@ -141,7 +141,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               value={typeof value === 'number' ? value : ''}
               size={1}
-              className={`rounded-full w-40 px-2 bg-transparent border leading-170 h-6 py-px disabled:opacity-50 read-only:opacity-75 read-only:cursor-not-allowed ${
+              className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
                 getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
               }`}
               placeholder="Enter integer"
@@ -181,22 +181,26 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           )
           if (jsonSchema.constantValue(defs, schema).length !== 1) {
             children.push(
-              <div className="flex flex-col gap-1 rounded-2xl border border-black/10 p-2">
+              <div className="flex flex-col gap-json-schema rounded-default border border-black/10 p-json-schema-object-input">
                 {propertyDefinitions.map(definition => {
                   const { key, schema: childSchema } = definition
                   const isOptional = !requiredProperties.includes(key)
                   return jsonSchema.constantValue(defs, childSchema).length === 1 ? null : (
                     <div
                       key={key}
-                      className="flex flex-wrap items-center"
+                      className="flex flex-wrap items-center gap-buttons"
                       {...('description' in childSchema
                         ? { title: String(childSchema.description) }
                         : {})}
                     >
-                      <div
-                        className={`inline-block h-6 leading-170 py-px w-28 whitespace-nowrap ${
-                          isOptional ? 'cursor-pointer' : ''
-                        } ${value != null && key in value ? '' : 'opacity-50'}`}
+                      <button
+                        type="button"
+                        disabled={!isOptional}
+                        className={`text selectable ${
+                          value != null && key in value ? 'active' : ''
+                        } inline-block w-json-schema-object-key whitespace-nowrap rounded-full px-button-x text-left ${
+                          isOptional ? 'hover:bg-hover-bg' : ''
+                        }`}
                         onClick={() => {
                           if (isOptional) {
                             setValue(oldValue => {
@@ -220,7 +224,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                         }}
                       >
                         {'title' in childSchema ? String(childSchema.title) : key}
-                      </div>
+                      </button>
                       {value != null && key in value && (
                         <JSONSchemaInput
                           readOnly={readOnly}
@@ -303,10 +307,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         />
       )
       children.push(
-        <div className={`flex flex-col gap-1 ${childValue.length === 0 ? 'w-full' : ''}`}>
+        <div className={`flex flex-col gap-json-schema ${childValue.length === 0 ? 'w-full' : ''}`}>
           {dropdownTitle != null ? (
-            <div className="flex items-center">
-              <div className="w-12 h-6 py-1">{dropdownTitle}</div>
+            <div className="flex h-row items-center">
+              <div className="h-text w-json-schema-dropdown-title">{dropdownTitle}</div>
               {dropdown}
             </div>
           ) : (
@@ -346,7 +350,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     return children.length === 0 ? null : children.length === 1 && children[0] != null ? (
       children[0]
     ) : (
-      <div className="flex flex-col gap-1">{...children}</div>
+      <div className="flex flex-col gap-json-schema">{...children}</div>
     )
   }
 }

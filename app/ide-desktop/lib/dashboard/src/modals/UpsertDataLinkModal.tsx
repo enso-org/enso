@@ -40,7 +40,7 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   return (
     <Modal centered className="bg-dim">
       <form
-        className="relative flex flex-col gap-2 rounded-2xl w-96 p-4 pt-2 pointer-events-auto before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-upsert-data-link-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -56,12 +56,12 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         }}
       >
         <h1 className="relative text-sm font-semibold">Create Data Link</h1>
-        <div className="relative flex" title="Must not be blank.">
-          <div className="w-12 h-6 py-1">Name</div>
+        <div className="relative flex items-center" title="Must not be blank.">
+          <div className="text w-modal-label">Name</div>
           <input
             autoFocus
             placeholder="Enter the name of the Data Link"
-            className={`grow bg-transparent border rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50 ${
+            className={`text grow rounded-full border bg-transparent px-input-x ${
               name !== '' ? 'border-black/10' : 'border-red-700/60'
             }`}
             value={name}
@@ -73,19 +73,15 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
         <div className="relative">
           <DataLinkInput dropdownTitle="Type" value={value} setValue={setValue} />
         </div>
-        <div className="relative flex gap-2">
+        <div className="relative flex gap-buttons">
           <button
             type="submit"
             disabled={!isSubmittable}
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
+            className="button bg-invite text-white enabled:active"
           >
             Create
           </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
-            onClick={unsetModal}
-          >
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
             Cancel
           </button>
         </div>

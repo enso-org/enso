@@ -26,37 +26,35 @@ export default function MembersSettingsTab() {
   const isLoading = members == null
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Members</h3>
-        <div className="flex gap-2.5">
+    <div className="flex flex-col gap-settings-subsection">
+      <div className="flex flex-col gap-settings-section-header">
+        <h3 className="settings-subheading">Members</h3>
+        <div className="flex gap-drive-bar">
           <button
-            className="flex items-center bg-frame rounded-full h-8 px-2.5"
+            className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
             onClick={event => {
               event.stopPropagation()
               setModal(<InviteUsersModal eventTarget={null} />)
             }}
           >
-            <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">
-              Invite Members
-            </span>
+            <span className="text whitespace-nowrap font-semibold">Invite Members</span>
           </button>
         </div>
-        <table className="self-start table-fixed">
+        <table className="table-fixed self-start rounded-rows">
           <thead>
-            <tr className="h-8">
-              <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0 text-sm font-semibold w-32">
+            <tr className="h-row">
+              <th className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
                 Name
               </th>
-              <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0 text-sm font-semibold w-48">
+              <th className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
                 Email
               </th>
             </tr>
           </thead>
           <tbody className="select-text">
             {isLoading ? (
-              <tr className="h-8">
-                <td colSpan={2}>
+              <tr className="h-row">
+                <td colSpan={2} className="rounded-full">
                   <div className="flex justify-center">
                     <StatelessSpinner
                       size={32}
@@ -67,9 +65,13 @@ export default function MembersSettingsTab() {
               </tr>
             ) : (
               members.map(member => (
-                <tr key={member.id} className="h-8">
-                  <td>{member.name}</td>
-                  <td>{member.email}</td>
+                <tr key={member.id} className="h-row">
+                  <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 ">
+                    {member.name}
+                  </td>
+                  <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 ">
+                    {member.email}
+                  </td>
                 </tr>
               ))
             )}

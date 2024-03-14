@@ -203,6 +203,10 @@ export async function mockApi({ page }: MockParams) {
   }
 
   await test.test.step('Mock API', async () => {
+    await page.route('https://cdn.enso.org/**', async route => {
+      await route.fulfill()
+    })
+
     await page.route('https://www.google-analytics.com/**', async route => {
       await route.fulfill()
     })

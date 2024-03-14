@@ -182,8 +182,8 @@ export class Cognito {
   }
 
   /** Save the access token to a file for further reuse. */
-  saveAccessToken(accessToken: string | null) {
-    this.amplifyConfig.saveAccessToken?.(accessToken)
+  saveAccessToken(accessTokenPayload: SaveAccessTokenPayload | null) {
+    this.amplifyConfig.saveAccessToken?.(accessTokenPayload)
   }
 
   /** Return the current {@link UserSession}, or `None` if the user is not logged in.
@@ -192,7 +192,7 @@ export class Cognito {
   async userSession() {
     try {
       const session = await amplify.Auth.currentSession()
-      return parseUserSession(session)
+      return parseUserSession(session, this.amplifyConfig.userPoolWebClientId)
     } catch {
       return null
     }
@@ -375,19 +375,61 @@ export interface UserSession {
   readonly email: string
   /** User's access token, used to authenticate the user (e.g., when making API calls). */
   readonly accessToken: string
+  /** User's refresh token, used to refresh the access token when it expires. */
+  readonly refreshToken: string
+  /** URL to refresh the access token. */
+  readonly refreshUrl: string
+  /** Time when the access token will expire, date and time in ISO 8601 format (UTC timezone). */
+  readonly expireAt: string
+  /** Cognito app integration client id.. */
+  readonly clientId: string
 }
 
 /** Parse a `CognitoUserSession` into a {@link UserSession}.
  * @throws If the `email` field of the payload is not a string. */
-function parseUserSession(session: cognito.CognitoUserSession): UserSession {
+function parseUserSession(session: cognito.CognitoUserSession, clientId: string): UserSession {
   const payload: Readonly<Record<string, unknown>> = session.getIdToken().payload
   const email = payload.email
+  const refreshUrl = extractRefreshUrlFromSession(session)
   /** The `email` field is mandatory, so we assert that it exists and is a string. */
   if (typeof email !== 'string') {
     throw new Error('Payload does not have an email field.')
   } else {
-    const accessToken = session.getAccessToken().getJwtToken()
-    return { email, accessToken }
+    const expirationTimestamp = session.getAccessToken().getExpiration()
+
+    const expireAt = (() => {
+      const date = new Date(0)
+      date.setUTCSeconds(expirationTimestamp)
+      return date.toISOString()
+    })()
+
+    return {
+      email,
+      clientId,
+      expireAt,
+      refreshUrl,
+      accessToken: session.getAccessToken().getJwtToken(),
+      refreshToken: session.getRefreshToken().getToken(),
+    }
+  }
+}
+
+/**
+ * Extract the refresh session endpoint URL from the JWT token payload
+ * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-the-access-token.html
+ * @throws Error if the `iss` field of the payload is not a valid URL.
+ */
+function extractRefreshUrlFromSession(session: cognito.CognitoUserSession): string {
+  const { iss } = session.getAccessToken().payload
+
+  if (typeof iss !== 'string') {
+    throw new Error('Payload does not have an iss field.')
+  } else {
+    try {
+      return new URL(iss).toString()
+    } catch (e) {
+      throw new Error('iss field is not a valid URL')
+    }
   }
 }
 

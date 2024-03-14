@@ -6,5 +6,9 @@ import type * as column from '#/components/dashboard/column'
 /** A column listing the users with which this asset is shared. */
 export default function DocsColumn(props: column.AssetColumnProps) {
   const { item } = props
-  return <div className="flex items-center gap-1">{item.item.value.description}</div>
+  return (
+    <div className="flex max-w-drive-docs-column items-center gap-column-items overflow-hidden whitespace-nowrap">
+      {item.item.value.description}
+    </div>
+  )
 }

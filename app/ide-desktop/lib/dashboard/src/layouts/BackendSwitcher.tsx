@@ -21,49 +21,32 @@ export interface BackendSwitcherProps {
 /** Switcher for choosing the project management backend. */
 export default function BackendSwitcher(props: BackendSwitcherProps) {
   const { backendType, setBackendType } = props
+  const isCloud = backendType === backendModule.BackendType.remote
 
   return (
     <div className="flex shrink-0 gap-px">
       <button
-        disabled={backendType === backendModule.BackendType.remote}
-        title="Switch to cloud drive"
-        className={`rounded-l-full px-2.5 py-1 ${
-          backendType === backendModule.BackendType.remote
-            ? 'bg-frame-selected text-cloud'
-            : 'bg-frame text-black'
-        }`}
+        disabled={isCloud}
+        className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
         onClick={() => {
           setBackendType(backendModule.BackendType.remote)
         }}
       >
-        <div
-          className={`flex items-center gap-2 ${
-            backendType === backendModule.BackendType.remote ? '' : 'opacity-30'
-          }`}
-        >
+        <div className="flex items-center gap-icon-with-text">
           <SvgMask src={CloudIcon} />
-          <span className="leading-5 h-6 py-px">Cloud</span>
+          <span className="text">Cloud</span>
         </div>
       </button>
       <button
-        disabled={backendType === backendModule.BackendType.local}
-        title="Switch to local drive"
-        className={`rounded-r-full px-2.5 py-1 ${
-          backendType === backendModule.BackendType.local
-            ? 'bg-frame-selected text-cloud'
-            : 'bg-frame text-black'
-        }`}
+        disabled={!isCloud}
+        className="flex w-backend-switcher-option flex-col items-start bg-selected-frame px-selector-x py-selector-y text-primary selectable first:rounded-l-full last:rounded-r-full disabled:text-cloud disabled:active"
         onClick={() => {
           setBackendType(backendModule.BackendType.local)
         }}
       >
-        <div
-          className={`flex items-center gap-2 ${
-            backendType === backendModule.BackendType.local ? '' : 'opacity-30'
-          }`}
-        >
+        <div className="flex items-center gap-icon-with-text">
           <SvgMask src={NotCloudIcon} />
-          <span className="leading-5 h-6 py-px">Local</span>
+          <span className="text">Local</span>
         </div>
       </button>
     </div>

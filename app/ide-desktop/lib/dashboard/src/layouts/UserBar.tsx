@@ -56,12 +56,12 @@ export default function UserBar(props: UserBarProps) {
   const shouldShowInviteButton =
     sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
+
   return (
     <div
-      className={
-        'flex shrink-0 items-center bg-frame backdrop-blur-3xl rounded-full gap-3 h-8 pl-2 pr-0.75 cursor-default pointer-events-auto' +
-        (shouldMakeSpaceForExtendedEditorMenu ? ' mr-10' : '')
-      }
+      className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default ${
+        shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''
+      }`}
     >
       <Button
         active={isHelpChatOpen}
@@ -72,7 +72,7 @@ export default function UserBar(props: UserBarProps) {
       />
       {shouldShowInviteButton && (
         <button
-          className="text-inversed bg-share rounded-full leading-5 h-6 px-2 py-px"
+          className="text my-auto rounded-full bg-share px-button-x text-inversed"
           onClick={event => {
             event.stopPropagation()
             setModal(<InviteUsersModal eventTarget={null} />)
@@ -83,7 +83,7 @@ export default function UserBar(props: UserBarProps) {
       )}
       {shouldShowShareButton && (
         <button
-          className="text-inversed bg-share rounded-full leading-5 h-6 px-2 py-px"
+          className="text my-auto rounded-full bg-share px-button-x text-inversed"
           onClick={event => {
             event.stopPropagation()
             setModal(
@@ -101,7 +101,7 @@ export default function UserBar(props: UserBarProps) {
         </button>
       )}
       <button
-        className="flex items-center select-none rounded-full overflow-clip w-7.25 h-7.25"
+        className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
         onClick={event => {
           event.stopPropagation()
           updateModal(oldModal =>

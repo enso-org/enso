@@ -34,14 +34,14 @@ test.test('delete and restore (keyboard)', async ({ page }) => {
   await actions.locateNewFolderIcon(page).click()
   await test.expect(assetRows).toHaveCount(1)
 
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await actions.press(page, 'Delete')
   await actions.expectPlaceholderRow(page)
 
   await actions.locateTrashButton(page).click()
   await test.expect(assetRows).toHaveCount(1)
 
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await actions.press(page, 'Mod+R')
   await actions.expectTrashPlaceholderRow(page)
 

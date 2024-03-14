@@ -473,6 +473,37 @@ export default class AssetQuery {
     return this.withUpdates(updates)
   }
 
+  /** Try to cycle the tag between:
+   * - not present
+   * - present as a positive tag, and
+   * - present as a negative tag. */
+  withToggled(
+    positiveTag: AssetQueryKey,
+    negativeTag: AssetQueryKey,
+    value: string,
+    fromLastTerm = false
+  ) {
+    // This aliasing is INTENTIONAL because the variable is (potentially) reassigned.
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let newQuery: AssetQuery = this
+    if (fromLastTerm) {
+      newQuery = newQuery.deleteFromLastTerm({ [negativeTag]: [value] })
+      if (newQuery === this) {
+        newQuery = newQuery.deleteFromLastTerm({ [positiveTag]: [value] })
+        newQuery = newQuery.addToLastTerm({
+          [newQuery === this ? positiveTag : negativeTag]: [value],
+        })
+      }
+    } else {
+      newQuery = newQuery.delete({ [negativeTag]: [[value]] })
+      if (newQuery === this) {
+        newQuery = newQuery.delete({ [positiveTag]: [[value]] })
+        newQuery = newQuery.add({ [newQuery === this ? positiveTag : negativeTag]: [[value]] })
+      }
+    }
+    return newQuery
+  }
+
   /** Returns a string representation usable in the search bar. */
   toString() {
     const segments: string[] = []
@@ -589,34 +620,4 @@ export default class AssetQuery {
       )
     )
   }
-}
-
-// ===================
-// === toggleLabel ===
-// ===================
-
-/** Tries to cycle the label between:
- * - not present
- * - present as a positive search, and
- * - present as a negative search. */
-export function toggleLabel(query: AssetQuery, label: string, fromLastTerm = false) {
-  let newQuery = query
-  if (fromLastTerm) {
-    newQuery = newQuery.deleteFromLastTerm({ negativeLabels: [label] })
-    if (newQuery === query) {
-      newQuery = newQuery.deleteFromLastTerm({ labels: [label] })
-      newQuery = newQuery.addToLastTerm(
-        newQuery === query ? { labels: [label] } : { negativeLabels: [label] }
-      )
-    }
-  } else {
-    newQuery = newQuery.delete({ negativeLabels: [[label]] })
-    if (newQuery === query) {
-      newQuery = newQuery.delete({ labels: [[label]] })
-      newQuery = newQuery.add(
-        newQuery === query ? { labels: [[label]] } : { negativeLabels: [[label]] }
-      )
-    }
-  }
-  return newQuery
 }

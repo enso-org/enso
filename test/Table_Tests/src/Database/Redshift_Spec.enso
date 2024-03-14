@@ -1,8 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-import Standard.Table.Data.Type.Value_Type.Bits
-from Standard.Table import Table, Value_Type
+from Standard.Table import Table, Value_Type, Bits
 
 from Standard.Database import all
 

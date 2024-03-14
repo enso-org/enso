@@ -22,7 +22,7 @@ export const VALID_EMAIL = 'email@example.com'
 
 /** Find an email input (if any). */
 export function locateEmailInput(page: test.Locator | test.Page) {
-  return page.getByLabel('Email')
+  return page.getByPlaceholder('Enter your email')
 }
 
 /** Find a password input (if any). */
@@ -32,7 +32,7 @@ export function locatePasswordInput(page: test.Locator | test.Page) {
 
 /** Find a "confirm password" input (if any). */
 export function locateConfirmPasswordInput(page: test.Locator | test.Page) {
-  return page.getByLabel('Confirm password')
+  return page.getByPlaceholder('Confirm your password')
 }
 
 /** Find a "current password" input (if any) on the current page. */
@@ -123,7 +123,7 @@ export function locateChangeButton(page: test.Locator | test.Page) {
 
 /** Find an "open user menu" button (if any). */
 export function locateUserMenuButton(page: test.Locator | test.Page) {
-  return page.getByAltText('Open user menu')
+  return page.getByAltText('Open user menu').locator('visible=true')
 }
 
 /** Find a change password button (if any). */
@@ -390,7 +390,10 @@ export function locateDownloadFilesIcon(page: test.Locator | test.Page) {
 
 /** Find an icon to open or close the asset panel (if any). */
 export function locateAssetPanelIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Open Asset Panel').or(page.getByAltText('Close Asset Panel'))
+  return page
+    .getByAltText('Open Asset Panel')
+    .or(page.getByAltText('Close Asset Panel'))
+    .locator('visible=true')
 }
 
 /** Find a list of tags in the search bar (if any). */
@@ -644,6 +647,24 @@ export async function expectClassSelected(locator: test.Locator) {
   })
 }
 
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectNotTransparent(locator: test.Locator) {
+  await test.test.step('expect.not.transparent', async () => {
+    await test.expect
+      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
+      .not.toBe('0')
+  })
+}
+
+/** A test assertion to confirm that the element has the class `selected`. */
+export async function expectTransparent(locator: test.Locator) {
+  await test.test.step('expect.transparent', async () => {
+    await test.expect
+      .poll(() => locator.evaluate(element => getComputedStyle(element).opacity))
+      .toBe('0')
+  })
+}
+
 // ============================
 // === expectPlaceholderRow ===
 // ============================
@@ -666,6 +687,16 @@ export async function expectTrashPlaceholderRow(page: test.Page) {
     await test.expect(assetRows).toHaveCount(1)
     await test.expect(assetRows).toHaveText(/Your trash is empty/)
   })
+}
+
+// =======================
+// === Mouse utilities ===
+// =======================
+
+/** Click an asset row. The center must not be clicked as that is the button for adding a label. */
+export async function clickAssetRow(assetRow: test.Locator) {
+  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+  await assetRow.click({ position: { x: 300, y: 16 } })
 }
 
 // ==========================

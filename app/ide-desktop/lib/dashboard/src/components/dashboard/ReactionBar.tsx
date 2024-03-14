@@ -32,11 +32,11 @@ export interface ReactionBarProps {
 }
 
 /** A list of emoji reactions to choose from. */
-export default function ReactionBar(props: ReactionBarProps) {
+function ReactionBar(props: ReactionBarProps) {
   const { selectedReactions, doReact, doRemoveReaction, className } = props
 
   return (
-    <div className={`inline-block bg-white rounded-full m-1 ${className ?? ''}`}>
+    <div className={`m-chat-reaction-bar inline-block rounded-full bg-frame ${className ?? ''}`}>
       {REACTION_EMOJIS.map(emoji => (
         <button
           key={emoji}
@@ -47,9 +47,8 @@ export default function ReactionBar(props: ReactionBarProps) {
               doReact(emoji)
             }
           }}
-          // FIXME: Grayscale has the wrong lightness
-          className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
-            selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale hover:grayscale-0'
+          className={`m-chat-reaction rounded-full p-chat-reaction selectable hover:bg-hover-bg hover:grayscale-0 ${
+            selectedReactions.has(emoji) ? 'active' : 'grayscale'
           }`}
         >
           <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
