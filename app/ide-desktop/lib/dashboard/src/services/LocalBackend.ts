@@ -13,6 +13,25 @@ import * as fileInfo from '#/utilities/fileInfo'
 import * as projectManager from '#/utilities/ProjectManager'
 import ProjectManager from '#/utilities/ProjectManager'
 
+// ====================
+// === ProjectState ===
+// ====================
+
+/** A project that is currently opening. */
+interface OpenInProgressProjectState {
+  readonly state: backend.ProjectState.openInProgress
+}
+
+/** A project that is currently opened. */
+interface OpenedProjectState {
+  readonly state: backend.ProjectState.opened
+  readonly data: projectManager.OpenProject
+}
+
+/** Possible states and associated metadata of a project.
+ * The "closed" state is omitted as it is the default state. */
+type ProjectState = OpenedProjectState | OpenInProgressProjectState
+
 // =============================
 // === ipWithSocketToAddress ===
 // =============================
@@ -93,8 +112,7 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export default class LocalBackend extends Backend {
-  static currentlyOpeningProjectId: projectManager.UUID | null = null
-  static currentlyOpenProjects = new Map<projectManager.UUID, projectManager.OpenProject>()
+  static projects = new Map<projectManager.UUID, ProjectState>()
   readonly defaultRootDirectory = projectManager.Path('~/enso/projects')
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
@@ -148,11 +166,9 @@ export default class LocalBackend extends Backend {
               parentId,
               permissions: [],
               projectState: {
-                type: LocalBackend.currentlyOpenProjects.has(entry.metadata.id)
-                  ? backend.ProjectState.opened
-                  : entry.metadata.id === LocalBackend.currentlyOpeningProjectId
-                    ? backend.ProjectState.openInProgress
-                    : backend.ProjectState.closed,
+                type:
+                  LocalBackend.projects.get(entry.metadata.id)?.state ??
+                  backend.ProjectState.closed,
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 volume_id: '',
                 path: entry.path,
@@ -228,10 +244,7 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    if (LocalBackend.currentlyOpeningProjectId === id) {
-      LocalBackend.currentlyOpeningProjectId = null
-    }
-    LocalBackend.currentlyOpenProjects.delete(id)
+    LocalBackend.projects.delete(id)
     try {
       await this.projectManager.closeProject({ projectId: id })
       return
@@ -251,7 +264,8 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<backend.Project> {
     const { id } = extractTypeAndId(projectId)
-    const cachedProject = LocalBackend.currentlyOpenProjects.get(id)
+    const state = LocalBackend.projects.get(id)
+    const cachedProject = state?.state === backend.ProjectState.opened ? state.data : null
     if (cachedProject == null) {
       const result = await this.projectManager.listProjects({})
       const project = result.projects.find(listedProject => listedProject.id === id)
@@ -279,12 +293,7 @@ export default class LocalBackend extends Backend {
           packageName: project.name,
           projectId,
           state: {
-            type:
-              id === LocalBackend.currentlyOpeningProjectId
-                ? backend.ProjectState.openInProgress
-                : project.lastOpened != null
-                  ? backend.ProjectState.closed
-                  : backend.ProjectState.created,
+            type: LocalBackend.projects.get(id)?.state ?? backend.ProjectState.closed,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             volume_id: '',
           },
@@ -323,26 +332,25 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    LocalBackend.currentlyOpeningProjectId = id
-    if (!LocalBackend.currentlyOpenProjects.has(id)) {
+    LocalBackend.projects.set(id, { state: backend.ProjectState.openInProgress })
+    if (!LocalBackend.projects.has(id)) {
       try {
-        const project = await this.projectManager.openProject({
+        const data = await this.projectManager.openProject({
           projectId: id,
           missingComponentAction: projectManager.MissingComponentAction.install,
           ...(body?.parentId != null
             ? { projectsDirectory: extractTypeAndId(body.parentId).id }
             : {}),
         })
-        LocalBackend.currentlyOpenProjects.set(id, project)
+        LocalBackend.projects.set(id, { state: backend.ProjectState.opened, data })
         return
       } catch (error) {
+        LocalBackend.projects.delete(id)
         throw new Error(
           `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
             errorModule.tryGetMessage(error) ?? 'unknown error'
           }.`
         )
-      } finally {
-        LocalBackend.currentlyOpeningProjectId = null
       }
     }
   }
@@ -409,10 +417,7 @@ export default class LocalBackend extends Backend {
         return
       }
       case backend.AssetType.project: {
-        if (LocalBackend.currentlyOpeningProjectId === typeAndId.id) {
-          LocalBackend.currentlyOpeningProjectId = null
-        }
-        LocalBackend.currentlyOpenProjects.delete(typeAndId.id)
+        LocalBackend.projects.delete(typeAndId.id)
         try {
           await this.projectManager.deleteProject({
             projectId: typeAndId.id,
