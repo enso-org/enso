@@ -467,9 +467,8 @@ export default function Dashboard(props: DashboardProps) {
           <Home hidden={page !== pageSwitcher.Page.home} createProject={doCreateProject} />
           <Drive
             supportsLocalBackend={supportsLocalBackend}
-            // The Drive must be "visible" when the home page is opened, so that clicking on
-            // templates works.
-            hidden={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
+            hidden={page !== pageSwitcher.Page.drive}
+            hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
             initialProjectName={initialProjectName}
             query={query}
             setQuery={setQuery}
