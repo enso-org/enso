@@ -23,7 +23,6 @@ import SvgMask from '#/components/SvgMask'
 import * as backendModule from '#/services/Backend'
 import * as remoteBackend from '#/services/RemoteBackend'
 
-import * as errorModule from '#/utilities/error'
 import * as object from '#/utilities/object'
 
 // =================
@@ -178,9 +177,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       } catch (error) {
         const project = await backend.getProjectDetails(item.id, item.title)
         setItem(object.merger({ projectState: project.state }))
-        toastAndLog(
-          errorModule.tryGetMessage(error)?.slice(0, -1) ?? `Could not open project '${item.title}'`
-        )
+        toastAndLog(`Could not open project '${item.title}'`, error)
         setState(backendModule.ProjectState.closed)
       }
     },

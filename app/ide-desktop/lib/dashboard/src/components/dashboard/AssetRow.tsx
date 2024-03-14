@@ -29,7 +29,6 @@ import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
-import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as indent from '#/utilities/indent'
@@ -331,10 +330,7 @@ export default function AssetRow(props: AssetRowProps) {
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
-        toastAndLog(
-          errorModule.tryGetMessage(error)?.slice(0, -1) ??
-            `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
-        )
+        toastAndLog(`Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
       }
     },
     [
