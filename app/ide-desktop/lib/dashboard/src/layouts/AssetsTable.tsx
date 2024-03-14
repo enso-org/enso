@@ -422,6 +422,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       : query.query !== ''
         ? QUERY_PLACEHOLDER
         : PLACEHOLDER
+  /** Events sent when the asset list was still loading. */
+  const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
@@ -1470,7 +1472,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     [rootDirectoryId]
   )
 
-  eventHooks.useEventHandler(assetListEvents, event => {
+  // This is not a React component, even though it contains JSX.
+  // eslint-disable-next-line no-restricted-syntax
+  const onAssetListEvent = (event: assetListEvent.AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
         const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
@@ -1762,6 +1766,15 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
     }
+  }
+  const onAssetListEventRef = React.useRef(onAssetListEvent)
+  onAssetListEventRef.current = onAssetListEvent
+  eventHooks.useEventHandler(assetListEvents, event => {
+    if (!isLoading) {
+      onAssetListEvent(event)
+    } else {
+      queuedAssetListEventsRef.current.push(event)
+    }
   })
 
   const doOpenManually = React.useCallback(
@@ -2005,6 +2018,13 @@ export default function AssetsTable(props: AssetsTableProps) {
         setSpinnerState(spinner.SpinnerState.loadingFast)
       })
     } else {
+      const queuedAssetEvents = queuedAssetListEventsRef.current
+      if (queuedAssetEvents.length !== 0) {
+        queuedAssetListEventsRef.current = []
+        for (const event of queuedAssetEvents) {
+          onAssetListEventRef.current(event)
+        }
+      }
       setSpinnerState(spinner.SpinnerState.initial)
     }
   }, [isLoading])
