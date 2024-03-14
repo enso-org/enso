@@ -177,6 +177,7 @@ export default function UserBar(props: UserBarProps) {
           updateModal(oldModal =>
             oldModal?.type === UserMenu ? null : (
               <UserMenu
+                keyboardNavigating={keyboardSelectedChildId === 'user-menu'}
                 setPage={setPage}
                 supportsLocalBackend={supportsLocalBackend}
                 onSignOut={onSignOut}

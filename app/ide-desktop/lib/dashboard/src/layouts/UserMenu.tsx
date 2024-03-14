@@ -5,6 +5,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as appUtils from '#/appUtils'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -25,6 +26,8 @@ import * as github from '#/utilities/github'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {
+  /** If `true`, the focus ring will immediately be visible. */
+  readonly keyboardNavigating?: boolean
   /** If `true`, disables `data-testid` because it will not be visible. */
   readonly hidden?: boolean
   readonly setPage: (page: pageSwitcher.Page) => void
@@ -34,13 +37,49 @@ export interface UserMenuProps {
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
-  const { hidden = false, setPage, supportsLocalBackend, onSignOut } = props
+  const {
+    keyboardNavigating = false,
+    hidden = false,
+    setPage,
+    supportsLocalBackend,
+    onSignOut,
+  } = props
   const [initialized, setInitialized] = React.useState(false)
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const rootRef = React.useRef<HTMLDivElement>(null)
+
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
+      length: 3,
+    })
+
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (keyboardSelectedIndex == null) {
+        switch (event.key) {
+          case 'ArrowUp': {
+            event.stopImmediatePropagation()
+            setKeyboardSelectedIndex(2)
+            break
+          }
+          case 'ArrowDown': {
+            event.stopImmediatePropagation()
+            setKeyboardSelectedIndex(0)
+            break
+          }
+        }
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown, { capture: true })
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, { capture: true })
+    }
+  }, [keyboardSelectedIndex, setKeyboardSelectedIndex])
 
   React.useEffect(() => {
     requestAnimationFrame(() => {
@@ -48,9 +87,16 @@ export default function UserMenu(props: UserMenuProps) {
     })
   }, [])
 
+  React.useEffect(() => {
+    if (keyboardNavigating) {
+      setKeyboardSelectedIndex(0)
+    }
+  }, [keyboardNavigating, setKeyboardSelectedIndex])
+
   return (
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
+        ref={rootRef}
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
@@ -78,6 +124,12 @@ export default function UserMenu(props: UserMenuProps) {
               <div className="flex flex-col overflow-hidden">
                 {!supportsLocalBackend && (
                   <MenuEntry
+                    ref={element => {
+                      if (keyboardSelectedIndex === 0) {
+                        element?.focus()
+                      }
+                    }}
+                    focusRing={keyboardSelectedIndex === 0}
                     action="downloadApp"
                     doAction={async () => {
                       unsetModal()
@@ -91,6 +143,12 @@ export default function UserMenu(props: UserMenuProps) {
                   />
                 )}
                 <MenuEntry
+                  ref={element => {
+                    if (keyboardSelectedIndex === 1) {
+                      element?.focus()
+                    }
+                  }}
+                  focusRing={keyboardSelectedIndex === 1}
                   action="settings"
                   doAction={() => {
                     unsetModal()
@@ -98,6 +156,12 @@ export default function UserMenu(props: UserMenuProps) {
                   }}
                 />
                 <MenuEntry
+                  ref={element => {
+                    if (keyboardSelectedIndex === 2) {
+                      element?.focus()
+                    }
+                  }}
+                  focusRing={keyboardSelectedIndex === 2}
                   action="signOut"
                   doAction={() => {
                     onSignOut()

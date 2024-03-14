@@ -9,6 +9,8 @@ export enum Axis {
 
 /** Options for {@link useKeyboardChildNavigation}. */
 export interface KeyboardChildNavigationOptions {
+  /** If `true`, handles all arrow key presses, even ones that are a no-op. */
+  readonly catchAllArrowKeys?: boolean
   readonly axis?: Axis
   /** The length of the list of children. */
   readonly length: number
@@ -20,16 +22,15 @@ export function useKeyboardChildNavigation(
   rootRef: React.RefObject<HTMLElement>,
   options: KeyboardChildNavigationOptions
 ) {
-  const { axis = Axis.vertical, length, defaultIndex } = options
+  const { catchAllArrowKeys = false, axis = Axis.vertical, length, defaultIndex } = options
+  const catchAllArrowKeysRef = React.useRef(catchAllArrowKeys)
   const lengthRef = React.useRef(length)
   const defaultIndexRef = React.useRef(defaultIndex ?? 0)
   const [keyboardSelectedIndex, setKeyboardSelectedIndexRaw] = React.useState<number | null>(null)
   const keyboardSelectedIndexRef = React.useRef(keyboardSelectedIndex)
-
-  React.useEffect(() => {
-    lengthRef.current = length
-    defaultIndexRef.current = defaultIndex ?? 0
-  }, [length, defaultIndex])
+  catchAllArrowKeysRef.current = catchAllArrowKeys
+  lengthRef.current = length
+  defaultIndexRef.current = defaultIndex ?? 0
 
   const setKeyboardSelectedIndex = React.useCallback((index: number | null) => {
     keyboardSelectedIndexRef.current = index
@@ -39,9 +40,21 @@ export function useKeyboardChildNavigation(
   React.useEffect(() => {
     const previousKey = axis === Axis.horizontal ? 'ArrowLeft' : 'ArrowUp'
     const nextKey = axis === Axis.horizontal ? 'ArrowRight' : 'ArrowDown'
+    const otherPreviousKey = axis === Axis.horizontal ? 'ArrowUp' : 'ArrowLeft'
+    const otherNextKey = axis === Axis.horizontal ? 'ArrowDown' : 'ArrowRight'
     const onKeyDown = (event: KeyboardEvent) => {
       switch (event.key) {
+        case otherPreviousKey:
+        case otherNextKey: {
+          if (catchAllArrowKeysRef.current) {
+            event.stopPropagation()
+          }
+          break
+        }
         case previousKey: {
+          if (catchAllArrowKeysRef.current) {
+            event.stopPropagation()
+          }
           const oldIndex = keyboardSelectedIndexRef.current ?? defaultIndexRef.current
           const newIndex = Math.max(0, oldIndex - 1)
           if (newIndex !== oldIndex) {
@@ -51,6 +64,9 @@ export function useKeyboardChildNavigation(
           break
         }
         case nextKey: {
+          if (catchAllArrowKeysRef.current) {
+            event.stopPropagation()
+          }
           const oldIndex = keyboardSelectedIndexRef.current ?? defaultIndexRef.current
           const newIndex = Math.min(lengthRef.current - 1, oldIndex + 1)
           if (newIndex !== oldIndex) {

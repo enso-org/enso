@@ -18,6 +18,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps {
+  readonly focusRing?: boolean
   readonly hidden?: boolean
   readonly action: inputBindings.DashboardBindingKey
   /** Overrides the text for the menu entry. */
@@ -30,16 +31,9 @@ export interface MenuEntryProps {
 }
 
 /** An item in a menu. */
-export default function MenuEntry(props: MenuEntryProps) {
-  const {
-    hidden = false,
-    action,
-    label,
-    disabled = false,
-    title,
-    isContextMenuEntry = false,
-  } = props
-  const { doAction } = props
+function MenuEntry(props: MenuEntryProps, ref: React.ForwardedRef<HTMLButtonElement>) {
+  const { focusRing = false, hidden = false, action, label, disabled = false, title } = props
+  const { isContextMenuEntry = false, doAction } = props
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
   React.useEffect(() => {
@@ -56,11 +50,12 @@ export default function MenuEntry(props: MenuEntryProps) {
 
   return hidden ? null : (
     <button
+      ref={ref}
       disabled={disabled}
       title={title}
       className={`flex h-row place-content-between items-center rounded-menu-entry p-menu-entry text-left selectable hover:bg-hover-bg enabled:active disabled:bg-transparent ${
         isContextMenuEntry ? 'px-context-menu-entry-x' : ''
-      }`}
+      } ${focusRing ? 'focus-ring' : ''}`}
       onClick={event => {
         event.stopPropagation()
         doAction()
@@ -74,3 +69,5 @@ export default function MenuEntry(props: MenuEntryProps) {
     </button>
   )
 }
+
+export default React.forwardRef(MenuEntry)
