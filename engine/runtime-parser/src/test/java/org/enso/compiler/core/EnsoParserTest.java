@@ -934,7 +934,7 @@ public class EnsoParserTest {
   }
 
   @Test
-  public void testAutoScope() throws Exception {
+  public void testSuspendedDefaultArguments() throws Exception {
     parseTest("""
     fn that_meta =
         c_2 = that_meta.constructor ...
@@ -942,7 +942,7 @@ public class EnsoParserTest {
   }
 
   @Test
-  public void testAutoScope2() throws Exception {
+  public void testSuspendedDefaultArguments2() throws Exception {
     parseTest("""
     fn1 = fn ...
     fn2 = fn 1 ...

@@ -46,7 +46,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       <form
         data-testid="upsert-secret-modal"
         tabIndex={-1}
-        className="relative flex flex-col gap-2 rounded-2xl w-96 p-4 pt-2 pointer-events-auto before:inset-0 before:absolute before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-upsert-secret-modal flex-col gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -63,43 +63,35 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         <h1 className="relative text-sm font-semibold">
           {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
         </h1>
-        <label className="relative flex">
-          <div className="w-12 h-6 py-1">Name</div>
+        <label className="relative flex h-row items-center">
+          <div className="text w-modal-label">Name</div>
           <input
             autoFocus
             disabled={!isNameEditable}
             placeholder="Enter the name of the secret"
-            className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px disabled:opacity-50"
+            className="text grow rounded-full border border-black/10 bg-transparent px-input-x selectable enabled:active"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
             }}
           />
         </label>
-        <label className="relative flex">
-          <div className="w-12 h-6 py-1">Value</div>
+        <label className="relative flex h-row items-center">
+          <div className="text w-modal-label">Value</div>
           <input
             autoFocus={!isNameEditable}
-            placeholder="Enter the value of the secret"
-            className="grow bg-transparent border border-black/10 rounded-full leading-170 h-6 px-4 py-px"
+            placeholder={isNameEditable ? 'Enter the value of the secret' : '●●●●●●●●'}
+            className="text grow rounded-full border border-black/10 bg-transparent px-input-x"
             onInput={event => {
               setValue(event.currentTarget.value)
             }}
           />
         </label>
-        <div className="relative flex gap-2">
-          <button
-            disabled={!canSubmit}
-            type="submit"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50 disabled:cursor-default"
-          >
+        <div className="relative flex gap-buttons">
+          <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
             {isCreatingSecret ? 'Create' : 'Update'}
           </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
-            onClick={unsetModal}
-          >
+          <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
             Cancel
           </button>
         </div>

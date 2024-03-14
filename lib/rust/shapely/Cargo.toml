@@ -28,4 +28,3 @@ version = "0.3.4"
 
 [dev-dependencies]
 enso-prelude = { path = "../prelude" }
-wasm-bindgen-test = "0.3.8"

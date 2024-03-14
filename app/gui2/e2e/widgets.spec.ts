@@ -1,5 +1,6 @@
-import test, { expect, type Locator, type Page } from 'playwright/test'
+import test, { type Locator, type Page } from 'playwright/test'
 import * as actions from './actions'
+import { expect } from './customExpect'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 
@@ -32,7 +33,7 @@ test('Widget in plain AST', async ({ page }) => {
   const numberNode = locate.graphNodeByBinding(page, 'five')
   const numberWidget = numberNode.locator('.WidgetNumber')
   await expect(numberWidget).toBeVisible()
-  await expect(numberWidget.locator('.value')).toHaveValue('5')
+  await expect(numberWidget.locator('input')).toHaveValue('5')
 
   const listNode = locate.graphNodeByBinding(page, 'list')
   const listWidget = listNode.locator('.WidgetVector')
@@ -41,7 +42,7 @@ test('Widget in plain AST', async ({ page }) => {
   const textNode = locate.graphNodeByBinding(page, 'text')
   const textWidget = textNode.locator('.WidgetText')
   await expect(textWidget).toBeVisible()
-  await expect(textWidget.locator('.value')).toHaveValue("'test'")
+  await expect(textWidget.locator('input')).toHaveValue('test')
 })
 
 test('Selection widgets in Data.read node', async ({ page }) => {
@@ -60,14 +61,18 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   // Check initially visible arguments
   const node = locate.graphNodeByBinding(page, 'data')
   const argumentNames = node.locator('.WidgetArgumentName')
+  await expect(argumentNames).toHaveCount(1)
+
+  // Check arguments after selecting node
+  await node.click()
   await expect(argumentNames).toHaveCount(3)
 
   // Set value on `on_problems` (static drop-down)
   const onProblemsArg = argumentNames.filter({ has: page.getByText('on_problems') })
   await onProblemsArg.click()
-  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report Warning', 'Report Error'])
-  await dropDown.clickOption(page, 'Report Error')
-  await expect(onProblemsArg.locator('.WidgetToken')).toHaveText([
+  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report_Warning', 'Report_Error'])
+  await dropDown.clickOption(page, 'Report_Error')
+  await expect(onProblemsArg.locator('.WidgetToken')).toContainText([
     'Problem_Behavior',
     '.',
     'Report_Error',
@@ -83,9 +88,9 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     notAppliedArguments: [0, 1],
   })
   await page.getByText('Report_Error').click()
-  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report Warning', 'Report Error'])
-  await dropDown.clickOption(page, 'Report Warning')
-  await expect(onProblemsArg.locator('.WidgetToken')).toHaveText([
+  await dropDown.expectVisibleWithOptions(page, ['Ignore', 'Report_Warning', 'Report_Error'])
+  await dropDown.clickOption(page, 'Report_Warning')
+  await expect(onProblemsArg.locator('.WidgetToken')).toContainText([
     'Problem_Behavior',
     '.',
     'Report_Warning',
@@ -97,7 +102,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await expect(page.locator('.dropdownContainer')).toBeVisible()
   await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
   await dropDown.clickOption(page, 'File 2')
-  await expect(pathArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"File 2"')
+  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 2')
 
   // Change value on `path` (dynamic config)
   await mockMethodCallInfo(page, 'data', {
@@ -111,7 +116,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await page.getByText('path').click()
   await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
   await dropDown.clickOption(page, 'File 1')
-  await expect(pathArg.locator('.EnsoTextInputWidget > input')).toHaveValue('"File 1"')
+  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 1')
 })
 
 test('Managing aggregates in `aggregate` node', async ({ page }) => {
@@ -129,12 +134,20 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // Check initially visible arguments
   const node = locate.graphNodeByBinding(page, 'aggregated')
   const argumentNames = node.locator('.WidgetArgumentName')
+  await expect(argumentNames).toHaveCount(1)
+
+  // Check arguments after selecting node
+  await node.click()
   await expect(argumentNames).toHaveCount(3)
 
   // Add first aggregate
   const columnsArg = argumentNames.filter({ has: page.getByText('columns') })
   await columnsArg.locator('.add-item').click()
-  await expect(columnsArg.locator('.WidgetToken')).toHaveText(['Aggregate_Column', '.', 'Group_By'])
+  await expect(columnsArg.locator('.WidgetToken')).toContainText([
+    'Aggregate_Column',
+    '.',
+    'Group_By',
+  ])
   await mockMethodCallInfo(
     page,
     {
@@ -154,9 +167,9 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // Change aggregation type
   const firstItem = columnsArg.locator('.item > .WidgetPort > .WidgetSelection')
   await firstItem.click()
-  await dropDown.expectVisibleWithOptions(page, ['Group By', 'Count', 'Count Distinct'])
-  await dropDown.clickOption(page, 'Count Distinct')
-  await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+  await dropDown.expectVisibleWithOptions(page, ['Group_By', 'Count', 'Count_Distinct'])
+  await dropDown.clickOption(page, 'Count_Distinct')
+  await expect(columnsArg.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
     'Count_Distinct',
@@ -182,16 +195,16 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await columnArg.click()
   await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
   await dropDown.clickOption(page, 'column 1')
-  await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+  await expect(columnsArg.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
     'Count_Distinct',
   ])
-  await expect(columnsArg.locator('.EnsoTextInputWidget > input').first()).toHaveValue('"column 1"')
+  await expect(columnsArg.locator('.WidgetText > input').first()).toHaveValue('column 1')
 
   // Add another aggregate
   await columnsArg.locator('.add-item').click()
-  await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+  await expect(columnsArg.locator('.WidgetToken')).toContainText([
     'Aggregate_Column',
     '.',
     'Count_Distinct',
@@ -221,8 +234,12 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   await secondColumnArg.click()
   await dropDown.expectVisibleWithOptions(page, ['column 1', 'column 2'])
   await dropDown.clickOption(page, 'column 2')
-  await expect(secondItem.locator('.WidgetToken')).toHaveText(['Aggregate_Column', '.', 'Group_By'])
-  await expect(secondItem.locator('.EnsoTextInputWidget > input').first()).toHaveValue('"column 2"')
+  await expect(secondItem.locator('.WidgetToken')).toContainText([
+    'Aggregate_Column',
+    '.',
+    'Group_By',
+  ])
+  await expect(secondItem.locator('.WidgetText > input').first()).toHaveValue('column 2')
 
   // Switch aggregates
   //TODO[ao] I have no idea how to emulate drag. Simple dragTo does not work (some element seem to capture event).
@@ -236,7 +253,7 @@ test('Managing aggregates in `aggregate` node', async ({ page }) => {
   // await columnsArg.locator('.item > .handle').nth(0).hover({ force: true })
   // await columnsArg.locator('.item > .handle').nth(0).hover()
   // await page.mouse.up()
-  // await expect(columnsArg.locator('.WidgetToken')).toHaveText([
+  // await expect(columnsArg.locator('.WidgetToken')).toContainText([
   //   'Aggregate_Column',
   //   '.',
   //   'Group_By',

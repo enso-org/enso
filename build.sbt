@@ -47,19 +47,14 @@ val currentEdition = sys.env.getOrElse(
 val stdLibVersion       = defaultDevEnsoVersion
 val targetStdlibVersion = ensoVersion
 
-lazy val graalVMVersionCheck = taskKey[Unit]("Check GraalVM and Java versions")
-graalVMVersionCheck := {
+// Inspired by https://www.scala-sbt.org/1.x/docs/Howto-Startup.html#How+to+take+an+action+on+startup
+lazy val startupStateTransition: State => State = { s: State =>
   GraalVM.versionCheck(
     graalVersion,
     graalMavenPackagesVersion,
     javaVersion,
-    state.value.log
+    s
   )
-}
-
-// Inspired by https://www.scala-sbt.org/1.x/docs/Howto-Startup.html#How+to+take+an+action+on+startup
-lazy val startupStateTransition: State => State = { s: State =>
-  "graalVMVersionCheck" :: s
 }
 Global / onLoad := {
   val old = (Global / onLoad).value
@@ -1092,9 +1087,11 @@ lazy val testkit = project
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.apache.commons" % "commons-lang3" % commonsLangVersion,
-      "commons-io"         % "commons-io"    % commonsIoVersion,
-      "org.scalatest"     %% "scalatest"     % scalatestVersion
+      "org.apache.commons" % "commons-lang3"   % commonsLangVersion,
+      "commons-io"         % "commons-io"      % commonsIoVersion,
+      "org.scalatest"     %% "scalatest"       % scalatestVersion,
+      "junit"              % "junit"           % junitVersion,
+      "com.github.sbt"     % "junit-interface" % junitIfVersion
     )
   )
 
@@ -1601,8 +1598,6 @@ lazy val runtime = (project in file("engine/runtime"))
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    scalacOptions += "-Ymacro-annotations",
-    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= GraalVM.langsPkgs ++ Seq(
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion,
       "org.apache.tika"      % "tika-core"               % tikaVersion,
@@ -1833,6 +1828,7 @@ lazy val `runtime-benchmarks` =
         "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
         "com.sun.xml.bind"    % "jaxb-impl"                % jaxbVersion,
         "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion,
+        "org.graalvm.truffle" % "truffle-dsl-processor"    % graalMavenPackagesVersion % "provided",
         "org.slf4j"           % "slf4j-api"                % slf4jVersion,
         "org.slf4j"           % "slf4j-nop"                % slf4jVersion
       ),
@@ -1848,6 +1844,14 @@ lazy val `runtime-benchmarks` =
         frgaalSourceLevel,
         "--enable-preview"
       ),
+      javacOptions ++= Seq(
+        "-s",
+        (Compile / sourceManaged).value.getAbsolutePath,
+        "-Xlint:unchecked"
+      ),
+      Compile / compile := (Compile / compile)
+        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+        .value,
       parallelExecution := false,
       modulePath := {
         val requiredModIds = GraalVM.modules ++ GraalVM.langsPkgs ++ Seq(
@@ -2207,8 +2211,7 @@ lazy val `engine-runner` = project
             "com.sun.imageio",
             "com.sun.jna.internal.Cleaner",
             "com.sun.jna.Structure$FFIType",
-            "akka.http",
-            "org.enso.interpreter.arrow.util.MemoryUtil"
+            "akka.http"
           )
         )
         .dependsOn(assembly)
@@ -2543,6 +2546,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
   )
   .dependsOn(cli)
   .dependsOn(`http-test-helper`)
+  .dependsOn(testkit % Test)
 
 lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
@@ -3021,7 +3025,8 @@ buildEngineDistribution := {
   val _ = (`engine-runner` / assembly).value
   updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value.map(_.data)
-  val engineModules = Seq(file("runtime.jar"))
+  val arrow         = Seq((`runtime-language-arrow` / Compile / packageBin).value)
+  val engineModules = Seq(file("runtime.jar")) ++ arrow
   val root          = engineDistributionRoot.value
   val log           = streams.value.log
   val cacheFactory  = streams.value.cacheStoreFactory

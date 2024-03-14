@@ -12,24 +12,19 @@ import SortDirection, * as sortDirectionModule from '#/utilities/SortDirection'
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
   const { sortColumn, setSortColumn, sortDirection, setSortDirection } = state
-  const [isHovered, setIsHovered] = React.useState(false)
   const isSortActive = sortColumn === columnUtils.Column.name && sortDirection != null
+  const isDescending = sortDirection === SortDirection.descending
+
   return (
     <button
       title={
         !isSortActive
           ? 'Sort by name'
           : sortDirection === SortDirection.ascending
-          ? 'Sort by name descending'
-          : 'Stop sorting by name'
+            ? 'Sort by name descending'
+            : 'Stop sorting by name'
       }
-      className="flex items-center gap-2 pt-1 pb-1.5"
-      onMouseEnter={() => {
-        setIsHovered(true)
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false)
-      }}
+      className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
       onClick={event => {
         event.stopPropagation()
         if (sortColumn === columnUtils.Column.name) {
@@ -40,17 +35,17 @@ export default function NameColumnHeading(props: column.AssetColumnHeadingProps)
         }
       }}
     >
-      <span className="leading-144.5 h-6 py-0.5">
-        {columnUtils.COLUMN_NAME[columnUtils.Column.name]}
-      </span>
+      <span className="text-header">{columnUtils.COLUMN_NAME[columnUtils.Column.name]}</span>
       <img
         alt={
           !isSortActive || sortDirection === SortDirection.ascending
             ? 'Sort Ascending'
             : 'Sort Descending'
         }
-        src={isSortActive ? columnUtils.SORT_ICON[sortDirection] : SortAscendingIcon}
-        className={isSortActive ? '' : isHovered ? 'opacity-50' : 'invisible'}
+        src={SortAscendingIcon}
+        className={`transition-all duration-arrow ${
+          isSortActive ? 'selectable active' : 'transparent group-hover:selectable'
+        } ${isDescending ? 'rotate-180' : ''}`}
       />
     </button>
   )

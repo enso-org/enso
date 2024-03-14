@@ -52,7 +52,7 @@ interface AuthenticationApi {
      * via a deep link. See `setDeepLinkHandler` for details. */
     readonly setDeepLinkHandler: (callback: (url: string) => void) => void
     /** Saves the access token to a file. */
-    readonly saveAccessToken: (accessToken: string | null) => void
+    readonly saveAccessToken: (accessToken: SaveAccessTokenPayload | null) => void
 }
 
 // =====================================
@@ -71,12 +71,57 @@ declare global {
 
     namespace NodeJS {
         /** Environment variables. */
+        // `TZ` MUST NOT be `readonly`, or else `@types/node` will error.
+        // eslint-disable-next-line no-restricted-syntax
         interface ProcessEnv {
+            readonly [key: string]: never
             // These are environment variables, and MUST be in CONSTANT_CASE.
             /* eslint-disable @typescript-eslint/naming-convention */
+            // This is declared in `@types/node`. It MUST be re-declared here to suppress the error
+            // about this property conflicting with the index signature above.
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            TZ?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly CI?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly CSC_LINK?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly APPLEID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly APPLEIDPASS?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly APPLETEAMID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_BUILD_ICONS?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly npm_package_name?: string
+
+            // === Cloud environment variables ===
+
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_REDIRECT: string
+            // When unset, the `.env` loader tries to load `.env` rather than `.<name>.env`.
+            // Set to the empty string to load `.env`.
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_ENVIRONMENT: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_API_URL?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_CHAT_URL?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_SENTRY_DSN?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_STRIPE_KEY?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_COGNITO_USER_POOL_ID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_COGNITO_DOMAIN?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_CLOUD_COGNITO_REGION?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly ENSO_SUPPORTS_VIBRANCY?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
@@ -86,15 +131,5 @@ declare global {
     const BUNDLED_ENGINE_VERSION: string
     const BUILD_INFO: buildJson.BuildInfo
     const PROJECT_MANAGER_IN_BUNDLE_PATH: string
-    // This will be `undefined` when it is not defined by esbuild.
-    // eslint-disable-next-line no-restricted-syntax
-    const REDIRECT_OVERRIDE: string | undefined
     const IS_VITE: boolean
-    // eslint-disable-next-line no-restricted-syntax
-    const CLOUD_ENV: 'npekin' | 'pbuchu' | 'production' | undefined
-    /* eslint-disable @typescript-eslint/naming-convention */
-    /** Only exists in development mode. */
-    // This is a function.
-    // eslint-disable-next-line no-restricted-syntax
-    const assert: (invariant: boolean, message: string) => void
 }

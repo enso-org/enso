@@ -127,15 +127,14 @@ export function graphNodeByBinding(page: Locator | Page, binding: string): Node 
   }) as Node
 }
 export function graphNodeIcon(node: Node) {
-  return node.locator('.icon')
+  return node.locator('.nodeCategoryIcon')
 }
 
 // === Data locators ===
 
-type SanitizeClassName<T extends string> = T extends `${infer A}.${infer B}`
-  ? SanitizeClassName<`${A}${B}`>
-  : T extends `${infer A} ${infer B}`
-  ? SanitizeClassName<`${A}${B}`>
+type SanitizeClassName<T extends string> =
+  T extends `${infer A}.${infer B}` ? SanitizeClassName<`${A}${B}`>
+  : T extends `${infer A} ${infer B}` ? SanitizeClassName<`${A}${B}`>
   : T
 
 function componentLocator<T extends string>(className: SanitizeClassName<T>) {
@@ -151,6 +150,7 @@ export const circularMenu = componentLocator('CircularMenu')
 export const addNewNodeButton = componentLocator('PlusButton')
 export const componentBrowser = componentLocator('ComponentBrowser')
 export const nodeOutputPort = componentLocator('outputPortHoverArea')
+export const smallPlusButton = componentLocator('SmallPlusButton')
 
 export function componentBrowserEntry(
   page: Locator | Page,

@@ -21,6 +21,7 @@ const navigator = injectGraphNavigator(true)
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
+  addNode: [source: NodeId, pos: Vec2 | undefined]
 }>()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
@@ -48,16 +49,22 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :edited="id === graphStore.editedNodeInfo?.id"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
+    @delete="graphStore.deleteNodes([id])"
     @dragging="nodeIsDragged(id, $event)"
     @draggingCommited="dragging.finishDrag()"
     @outputPortClick="graphStore.createEdgeFromOutput($event)"
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
     @doubleClick="emit('nodeDoubleClick', id)"
+    @addNode="emit('addNode', id, $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
-    @update:visualizationId="graphStore.setNodeVisualizationId(id, $event)"
+    @update:visualizationId="
+      graphStore.setNodeVisualization(id, $event != null ? { identifier: $event } : {})
+    "
     @update:visualizationRect="graphStore.updateVizRect(id, $event)"
-    @update:visualizationVisible="graphStore.setNodeVisualizationVisible(id, $event)"
+    @update:visualizationVisible="graphStore.setNodeVisualization(id, { visible: $event })"
+    @update:visualizationFullscreen="graphStore.setNodeVisualization(id, { fullscreen: $event })"
+    @update:visualizationWidth="graphStore.setNodeVisualization(id, { width: $event })"
   />
   <UploadingFile
     v-for="(nameAndFile, index) in uploadingFiles"

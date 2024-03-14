@@ -615,9 +615,21 @@
 - [Allow removing rows using a Filter_Condition.][8861]
 - [Added `Table.to_xml`.][8979]
 - [Implemented Write support for `S3_File`.][8921]
+- [Implemented `Table.replace` for the database backend.][8986]
 - [Separate `Group_By` from `columns` into new argument on `aggregate`.][9027]
 - [Allow `copy_to` and `move_to` to work between local and S3 files.][9054]
 - [Adjusted expression handling and new `Simple_Expression` type.][9128]
+- [Allow reading Data Links configured locally or in the Cloud.][9215]
+- [Allow using `enso://` paths in `Data.read` and other places.][9225]
+- [Update the XML methods and add more capabilities to document.][9233]
+- [Added `Data.download` and a few other changes.][9249]
+- [Implement Data Links to Postgres (accessing a DB connection or a table
+  directly)][9269]
+- [Added `Xml_Document.write`][9299]
+- [Added `select_by_type` and `remove_by_type` to `Table` and `DB_Table`][9334]
+- [Make File./ only accept Text][9330]
+- [Implemented Excel Data Link][9346]
+- [Added Table.running][9346]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -887,11 +899,22 @@
 [8865]: https://github.com/enso-org/enso/pull/8865
 [8935]: https://github.com/enso-org/enso/pull/8935
 [8861]: https://github.com/enso-org/enso/pull/8861
-[8979]: https://github.com/enso-org/enso/pull/8979
 [8921]: https://github.com/enso-org/enso/pull/8921
+[8979]: https://github.com/enso-org/enso/pull/8979
+[8986]: https://github.com/enso-org/enso/pull/8986
 [9027]: https://github.com/enso-org/enso/pull/9027
 [9054]: https://github.com/enso-org/enso/pull/9054
 [9128]: https://github.com/enso-org/enso/pull/9128
+[9215]: https://github.com/enso-org/enso/pull/9215
+[9225]: https://github.com/enso-org/enso/pull/9225
+[9233]: https://github.com/enso-org/enso/pull/9233
+[9249]: https://github.com/enso-org/enso/pull/9249
+[9269]: https://github.com/enso-org/enso/pull/9269
+[9299]: https://github.com/enso-org/enso/pull/9299
+[9330]: https://github.com/enso-org/enso/pull/9330
+[9334]: https://github.com/enso-org/enso/pull/9334
+[9346]: https://github.com/enso-org/enso/pull/9346
+[9382]: https://github.com/enso-org/enso/pull/9382
 
 #### Enso Compiler
 
@@ -1051,6 +1074,8 @@
 - [Add run_google_report method][8907]
 - [Execute and debug individual Enso files in VSCode extension][8923]
 - [Check type of `self` when calling a method using the static syntax][8867]
+- [Autoscoped constructors][9190]
+- [Allow Oracle GraalVM JDK][9322]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1209,6 +1234,8 @@
 [8907]: https://github.com/enso-org/enso/pull/8907
 [8923]: https://github.com/enso-org/enso/pull/8923
 [8867]: https://github.com/enso-org/enso/pull/8867
+[9190]: https://github.com/enso-org/enso/pull/9190
+[9322]: https://github.com/enso-org/enso/pull/9322
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

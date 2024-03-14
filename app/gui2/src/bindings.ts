@@ -13,7 +13,6 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
   applySuggestion: ['Tab'],
   acceptSuggestion: ['Enter'],
   acceptInput: ['Mod+Enter'],
-  cancelEditing: ['Escape'],
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],
 })
@@ -23,7 +22,6 @@ export const graphBindings = defineKeybinds('graph-editor', {
   redo: ['Mod+Y', 'Mod+Shift+Z'],
   dragScene: ['PointerAux', 'Mod+PointerMain'],
   openComponentBrowser: ['Enter'],
-  newNode: ['N'],
   toggleVisualization: ['Space'],
   deleteSelected: ['OsDelete'],
   zoomToSelected: ['Mod+Shift+A'],
@@ -36,6 +34,12 @@ export const graphBindings = defineKeybinds('graph-editor', {
   stopProfiling: ['Mod+Alt+.'],
   enterNode: ['Mod+E'],
   exitNode: ['Mod+Shift+E'],
+})
+
+export const visualizationBindings = defineKeybinds('visualization', {
+  nextType: ['Mod+Space'],
+  toggleFullscreen: ['Shift+Space'],
+  exitFullscreen: ['Escape'],
 })
 
 export const selectionMouseBindings = defineKeybinds('selection', {

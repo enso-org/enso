@@ -123,8 +123,6 @@ pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_reflect as reflect;
     pub use enso_reflect::Reflect;
-    pub use enso_types::traits::*;
-    pub use enso_types::unit2::Bytes;
 
     /// Return type for functions that will only fail in case of a bug in the implementation.
     #[derive(Debug, Default)]
@@ -153,7 +151,6 @@ pub mod prelude {
         }
     }
 }
-
 
 
 // ==============
@@ -240,15 +237,15 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
             if return_spec.is_none() {
                 if let Some(rhs) = rhs {
                     if let Variant::Ident(ident) = &*leftmost.variant && ident.token.variant.is_type {
-                        // If the LHS is a type, this is a (destructuring) assignment.
-                        let lhs = expression_to_pattern(mem::take(lhs));
-                        tree.variant = Box::new(Variant::Assignment(Assignment{
-                            pattern: lhs,
-                            equals: mem::take(opr),
-                            expr: mem::take(rhs),
-                        }));
-                        return tree;
-                    }
+                            // If the LHS is a type, this is a (destructuring) assignment.
+                            let lhs = expression_to_pattern(mem::take(lhs));
+                            tree.variant = Box::new(Variant::Assignment(Assignment {
+                                pattern: lhs,
+                                equals: mem::take(opr),
+                                expr: mem::take(rhs),
+                            }));
+                            return tree;
+                        }
                     if !is_invalid_pattern(&leftmost) && args.is_empty() && !is_body_block(rhs) {
                         // If the LHS has no arguments, and there is a RHS, and the RHS is not a
                         // body block, this is a variable assignment.
@@ -303,26 +300,6 @@ fn is_qualified_name(tree: &syntax::Tree) -> bool {
     }
 }
 
-fn expression_to_type(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
-    use syntax::tree::*;
-    if let Variant::Wildcard(wildcard) = &mut *input.variant {
-        wildcard.de_bruijn_index = None;
-        return input;
-    }
-    let mut out = match input.variant {
-        box Variant::TemplateFunction(TemplateFunction { ast, .. }) => expression_to_type(ast),
-        box Variant::Group(Group { open, body: Some(body), close }) =>
-            Tree::group(open, Some(expression_to_type(body)), close),
-        box Variant::OprApp(OprApp { lhs, opr, rhs }) =>
-            Tree::opr_app(lhs.map(expression_to_type), opr, rhs.map(expression_to_type)),
-        box Variant::App(App { func, arg }) =>
-            Tree::app(expression_to_type(func), expression_to_type(arg)),
-        _ => return input,
-    };
-    out.span.left_offset += input.span.left_offset;
-    out
-}
-
 fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
     if let Variant::Wildcard(wildcard) = &mut *input.variant {
@@ -337,6 +314,8 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
             Tree::app(expression_to_pattern(func), expression_to_pattern(arg)),
         box Variant::TypeAnnotated(TypeAnnotated { expression, operator, type_ }) =>
             Tree::type_annotated(expression_to_pattern(expression), operator, type_),
+        box Variant::AutoscopedIdentifier(_) =>
+            return input.with_error("The autoscope operator (..) cannot be used in a pattern."),
         _ => return input,
     };
     out.span.left_offset += input.span.left_offset;
@@ -474,7 +453,6 @@ fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
 }
 
 
-
 // ==================
 // === Benchmarks ===
 // ==================
@@ -482,7 +460,9 @@ fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
 #[cfg(test)]
 mod benches {
     use super::*;
+
     extern crate test;
+
     use test::Bencher;
 
     #[bench]

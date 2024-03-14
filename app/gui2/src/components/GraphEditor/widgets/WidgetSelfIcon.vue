@@ -14,14 +14,18 @@ const icon = computed(() => tree.icon)
 export const widgetDefinition = defineWidget(WidgetInput.isAst, {
   priority: 1,
   score: (props, _db) =>
-    props.input.value.id === injectWidgetTree().connectedSelfArgumentId
-      ? Score.Perfect
-      : Score.Mismatch,
+    props.input.value.id === injectWidgetTree().connectedSelfArgumentId ?
+      Score.Perfect
+    : Score.Mismatch,
 })
 </script>
 
 <template>
-  <SvgIcon class="icon" :name="icon" @click.right.stop.prevent="tree.emitOpenFullMenu()" />
+  <SvgIcon
+    class="icon nodeCategoryIcon"
+    :name="icon"
+    @click.right.stop.prevent="tree.emitOpenFullMenu()"
+  />
 </template>
 
 <style scoped>

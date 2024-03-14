@@ -21,7 +21,7 @@ import * as eventModule from '#/utilities/event'
 import * as fileIcon from '#/utilities/fileIcon'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // ================
 // === FileName ===
@@ -66,6 +66,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -76,7 +77,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
         // Ignored. These events should all be unrelated to projects.
-        // `deleteMultiple`, `restoreMultiple`, `download`, and `downloadSelected`
+        // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
         // are handled by `AssetRow`.
         break
       }
@@ -120,7 +121,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
   return (
     <div
-      className={`flex text-left items-center align-middle whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -136,11 +137,11 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
     >
-      <SvgMask src={fileIcon.fileIcon()} className="m-1" />
+      <SvgMask src={fileIcon.fileIcon()} className="m-name-column-icon size-icon" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={false}
-        className="bg-transparent grow leading-170 h-6 py-px"
+        className="text grow bg-transparent"
         checkSubmittable={newTitle =>
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>

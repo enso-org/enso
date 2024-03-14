@@ -32,8 +32,6 @@ import * as object from '#/utilities/object'
 
 /** The size of the icon, in pixels. */
 const ICON_SIZE_PX = 24
-/** The styles of the icons. */
-const ICON_CLASSES = 'w-6 h-6'
 const LOADING_MESSAGE =
   'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -234,6 +232,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -243,9 +242,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
       case AssetEventType.addLabels:
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
-        // Ignored. Any missing project-related events should be handled by
-        // `ProjectNameColumn`. `deleteMultiple`, `restoreMultiple`, `download`,
-        // and `downloadSelected` are handled by `AssetRow`.
+        // Ignored. Any missing project-related events should be handled by `ProjectNameColumn`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
       case AssetEventType.openProject: {
@@ -337,14 +336,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closed:
       return (
         <button
-          className="w-6 h-6 disabled:opacity-50"
+          className="size-project-icon"
           onClick={clickEvent => {
             clickEvent.stopPropagation()
             unsetModal()
             doOpenManually(item.id)
           }}
         >
-          <SvgMask alt="Open in editor" className={ICON_CLASSES} src={PlayIcon} />
+          <SvgMask alt="Open in editor" src={PlayIcon} className="size-project-icon" />
         </button>
       )
     case backendModule.ProjectState.openInProgress:
@@ -355,20 +354,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <button
           disabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="w-6 h-6 disabled:opacity-50"
+          className="size-project-icon selectable enabled:active"
           onClick={async clickEvent => {
             clickEvent.stopPropagation()
             unsetModal()
             await closeProject(!isRunningInBackground)
           }}
         >
-          <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
+          <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
             <Spinner size={ICON_SIZE_PX} state={spinnerState} />
           </div>
           <SvgMask
             alt="Stop execution"
             src={StopIcon}
-            className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+            className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
           />
         </button>
       )
@@ -378,32 +377,32 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <button
             disabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="w-6 h-6 disabled:opacity-50"
+            className="size-project-icon selectable enabled:active"
             onClick={async clickEvent => {
               clickEvent.stopPropagation()
               unsetModal()
               await closeProject(!isRunningInBackground)
             }}
           >
-            <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
-              <Spinner size={24} state={spinnerState} />
+            <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+              <Spinner className="size-project-icon" state={spinnerState} />
             </div>
             <SvgMask
               alt="Stop execution"
               src={StopIcon}
-              className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+              className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
             />
           </button>
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <button
-              className="w-6 h-6"
+              className="size-project-icon"
               onClick={clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()
                 doOpenEditor(true)
               }}
             >
-              <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />
+              <SvgMask alt="Open in editor" src={ArrowUpIcon} className="size-project-icon" />
             </button>
           )}
         </div>

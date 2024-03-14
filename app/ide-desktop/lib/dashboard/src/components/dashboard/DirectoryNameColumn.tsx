@@ -24,7 +24,7 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // =====================
 // === DirectoryName ===
@@ -81,6 +81,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -91,8 +92,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
         // Ignored. These events should all be unrelated to directories.
-        // `deleteMultiple`, `restoreMultiple`, `download`,
-        // and `downloadSelected` are handled by `AssetRow`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
       case AssetEventType.newFolder: {
@@ -130,7 +131,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   return (
     <div
-      className={`group flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+      className={`group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -154,7 +155,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <SvgMask
         src={FolderArrowIcon}
         alt={item.children == null ? 'Expand' : 'Collapse'}
-        className={`hidden group-hover:inline-block cursor-pointer h-4 w-4 m-1 transition-transform duration-300 ${
+        className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
           item.children != null ? 'rotate-90' : ''
         }`}
         onClick={event => {
@@ -162,11 +163,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
           doToggleDirectoryExpansion(asset.id, item.key, asset.title)
         }}
       />
-      <SvgMask src={FolderIcon} className="group-hover:hidden h-4 w-4 m-1" />
+      <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`cursor-pointer bg-transparent grow leading-170 h-6 py-px ${
+        className={`text grow cursor-pointer bg-transparent ${
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
         }`}
         checkSubmittable={newTitle =>

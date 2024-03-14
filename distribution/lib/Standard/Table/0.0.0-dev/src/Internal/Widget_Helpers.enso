@@ -19,7 +19,7 @@ from project.Extensions.Table_Conversions import all
    Make an aggregate column selector.
 make_aggregate_column_selector : Table -> Display -> Widget
 make_aggregate_column_selector table display=Display.Always =
-    col_names_selector = make_column_name_selector table display=Display.Always
+    col_names_selector = make_column_name_selector table display=Display.Always add_expression=True
     column_widget = ["column", col_names_selector]
 
     fqn = Meta.get_qualified_type_name Aggregate_Column
@@ -139,6 +139,14 @@ make_filter_condition_selector table display=Display.Always =
     Single_Choice builder.to_vector display=display
 
 ## PRIVATE
+   Make a join kind selector - Needed to override display.
+make_join_kind_selector : Display -> Widget
+make_join_kind_selector display=Display.Always =
+    meta = Meta.meta Value_Type
+    options = meta.constructors.map c-> Option c.name meta.qualified_name+"."+c.name
+    Single_Choice display=display values=options
+
+## PRIVATE
    Make a join condition selector.
 make_join_condition_selector : Table -> Display -> Widget
 make_join_condition_selector table display=Display.Always =
@@ -210,3 +218,12 @@ make_format_chooser_for_type value_type =
     include_time = value_type==Value_Type.Time || value_type==Value_Type.Mixed
     include_boolean = value_type.is_boolean || value_type==Value_Type.Mixed
     make_format_chooser include_number include_date include_date_time include_time include_boolean
+
+## PRIVATE
+   Make value type selector for type filtering
+make_value_type_vector_selector : Widget
+make_value_type_vector_selector =
+    meta = Meta.meta Value_Type
+    options = meta.constructors.map c-> Option c.name meta.qualified_name+"."+c.name
+    item_editor = Single_Choice display=Display.Always values=options
+    Vector_Editor item_editor=item_editor item_default="Value_Type.Boolean" display=Display.Always

@@ -87,7 +87,7 @@ binds the function name. This means that:
   user-defined type for the function.
 
   ```ruby
-  sum : (a: Monoid) -> a -> a
+  sum : (a:Monoid) -> a -> a
   sum : x -> y -> x + y
   sum x y = x + y
   ```
@@ -113,11 +113,11 @@ Methods can be defined in Enso in two ways:
 ```ruby
 type Maybe a
     Nothing
-    type Just (value : a)
+    Just (value : a)
 
-    isJust = case this of
-        Nothing -> False
-        Just _ -> True
+    is_just self = case self of
+        Maybe.Nothing -> False
+        Maybe.Just _ -> True
 ```
 
 2. **As an Extension Method:** A function defined _explicitly_ on an atom counts
@@ -125,7 +125,7 @@ type Maybe a
    to all the atoms within that typeset.
 
 ```ruby
-Number.floor = case this of
+Number.floor self = case self of
     Integer -> ...
     ...
 ```

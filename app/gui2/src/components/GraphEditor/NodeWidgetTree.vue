@@ -15,6 +15,7 @@ const props = defineProps<{
   icon: Icon
   connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
+  extended: boolean
 }>()
 const emit = defineEmits<{
   openFullMenu: []
@@ -47,7 +48,9 @@ function handleWidgetUpdates(update: WidgetUpdate) {
     const { value, origin } = update.portUpdate
     if (Ast.isAstId(origin)) {
       const ast =
-        value instanceof Ast.Ast ? value : value == null ? Ast.Wildcard.new(edit) : undefined
+        value instanceof Ast.Ast ? value
+        : value == null ? Ast.Wildcard.new(edit)
+        : undefined
       if (ast) {
         edit.replaceValue(origin as Ast.AstId, ast)
       } else if (typeof value === 'string') {
@@ -69,11 +72,17 @@ provideWidgetTree(
   toRef(props, 'icon'),
   toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
+  toRef(props, 'extended'),
   layoutTransitions.active,
   () => {
     emit('openFullMenu')
   },
 )
+</script>
+<script lang="ts">
+export const GRAB_HANDLE_X_MARGIN = 4
+const GRAB_HANDLE_X_MARGIN_PX = `${GRAB_HANDLE_X_MARGIN}px`
+export const ICON_WIDTH = 16
 </script>
 
 <template>
@@ -81,7 +90,7 @@ provideWidgetTree(
     <!-- Display an icon for the node if no widget in the tree provides one. -->
     <SvgIcon
       v-if="!props.connectedSelfArgumentId"
-      class="icon grab-handle"
+      class="icon grab-handle nodeCategoryIcon"
       :name="props.icon"
       @click.right.stop.prevent="emit('openFullMenu')"
     />
@@ -103,7 +112,7 @@ provideWidgetTree(
   }
 
   &:has(.WidgetPort.newToConnect > .r-24:only-child) {
-    margin-left: 4px;
+    margin-left: 0px;
   }
 }
 
@@ -117,6 +126,6 @@ provideWidgetTree(
 
 .grab-handle {
   color: white;
-  margin: 0 4px;
+  margin: 0 v-bind('GRAB_HANDLE_X_MARGIN_PX');
 }
 </style>

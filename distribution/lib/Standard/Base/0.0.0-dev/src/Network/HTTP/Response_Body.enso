@@ -119,7 +119,7 @@ type Response_Body
     @format decode_format_selector
     decode : File_Format -> Any -> Any
     decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =
-        case format of
+        File_Format.handle_format_missing_arguments format <| case format of
             Auto_Detect ->
                 detected_format = Auto_Detect.get_reading_format self.metadata
                 if detected_format.is_nothing then Throw_Unsupported_Error.handle_default_or_overridden_value if_unsupported self else
@@ -180,7 +180,8 @@ type Response_Body
     to_text : Text
     to_text self = "Response_Body"
 
-    ## GROUP Output
+    ## ALIAS to_file
+       GROUP Output
        Write response body to a File.
 
        Arguments:
@@ -194,10 +195,10 @@ type Response_Body
 
              import Standard.Examples
 
-             example_to_file =
-                Examples.get_geo_data.to_file Examples.scratch_file
-    to_file : Writable_File -> Existing_File_Behavior -> File
-    to_file self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+             example_write =
+                Examples.get_geo_data.write Examples.scratch_file
+    write : Writable_File -> Existing_File_Behavior -> File
+    write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
         self.with_stream body_stream->
             file.write on_existing_file output_stream->
                 r = output_stream.write_stream body_stream

@@ -7,14 +7,14 @@ import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Errors import Floating_Point_Equality
 
 import project.Connection.Connection.Connection
-import project.Data.SQL_Type.SQL_Type
-import project.Data.DB_Table.DB_Table
+import project.DB_Table.DB_Table
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.SQL_Type.SQL_Type
 
 ## PRIVATE
 make_join_helpers left_table right_table left_column_mapping right_column_mapping =

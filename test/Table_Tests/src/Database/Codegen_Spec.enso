@@ -5,8 +5,8 @@ from Standard.Table import Sort_Column, Value_Type, Blank_Selector, Aggregate_Co
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column
 
 from Standard.Database import all
-import Standard.Database.Data.Dialect
-import Standard.Database.Data.SQL_Type.SQL_Type
+import Standard.Database.Dialect
+import Standard.Database.SQL_Type.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import all

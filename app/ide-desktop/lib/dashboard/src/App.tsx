@@ -44,8 +44,6 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
-import * as navigateHooks from '#/hooks/navigateHooks'
-
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -155,7 +153,7 @@ export default function App(props: AppProps) {
         theme="light"
         closeOnClick={false}
         draggable={false}
-        toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
+        toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
         transition={toastify.Zoom}
         limit={3}
       />
@@ -180,8 +178,11 @@ export default function App(props: AppProps) {
 function AppRouter(props: AppProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl } = props
+  // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
+  // yet been initialized at this point.
+  // eslint-disable-next-line no-restricted-properties
+  const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const navigate = navigateHooks.useNavigate()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -254,8 +255,8 @@ function AppRouter(props: AppProps) {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
   }, [props, /* should never change */ navigate])
-  const userSession = authService.cognito.userSession.bind(authService.cognito)
-  const registerAuthEventListener = authService.registerAuthEventListener
+  const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
+  const registerAuthEventListener = authService?.registerAuthEventListener ?? null
   const initialBackend: Backend = isAuthenticationDisabled
     ? new LocalBackend(projectManagerUrl)
     : // This is safe, because the backend is always set by the authentication flow.

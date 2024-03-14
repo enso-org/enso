@@ -90,7 +90,7 @@ export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 
 /** The corresponding {@link Permissions} for each {@link PermissionAction}. */
-export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Readonly<Permissions>>> = {
+export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Permissions>> = {
   [PermissionAction.own]: { type: Permission.owner },
   [PermissionAction.admin]: { type: Permission.admin },
   [PermissionAction.edit]: { type: Permission.edit },
@@ -157,8 +157,8 @@ export function toPermissionAction(permissions: Permissions): PermissionAction {
             PermissionAction.readAndExec
           : PermissionAction.readAndExec
         : permissions.docs
-        ? PermissionAction.readAndDocs
-        : PermissionAction.read
+          ? PermissionAction.readAndDocs
+          : PermissionAction.read
     }
     case Permission.view: {
       return permissions.execute
@@ -167,8 +167,8 @@ export function toPermissionAction(permissions: Permissions): PermissionAction {
             PermissionAction.viewAndExec
           : PermissionAction.viewAndExec
         : permissions.docs
-        ? PermissionAction.viewAndDocs
-        : PermissionAction.view
+          ? PermissionAction.viewAndDocs
+          : PermissionAction.view
     }
   }
 }

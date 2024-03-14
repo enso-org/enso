@@ -1,11 +1,14 @@
 import project.Any.Any
+import project.Data.Json.JS_Object
 import project.Data.Json.Json
 import project.Data.Numbers.Integer
+import project.Data.Text.Case.Case
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.File_Error.File_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
@@ -89,26 +92,21 @@ type File_Format
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Create the constructor code for a File_Format type.
-    constructor_code : Any -> Text
-    constructor_code type_obj =
-        ## Workaround for JSON and Auto_Detect
-        case type_obj of
-            JSON_Format -> "JSON_Format"
-            Auto_Detect -> "Auto_Detect"
-            _ ->
-                type_name = Meta.get_qualified_type_name type_obj
-                ctors = Meta.meta type_obj . constructors
-                is_singleton_type = ctors.length == 0
-                if is_singleton_type then type_name else
-                    type_name + "." + ctors.first.name
-
-    ## PRIVATE
     default_widget : Widget
     default_widget =
-        all_types = [Auto_Detect] + format_types
-        make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
-        Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
+        options = [Option "Auto Detect" "Auto_Detect"] +
+            format_types.flat_map .get_dropdown_options
+        Single_Choice display=Display.Always values=options
+
+    ## PRIVATE
+       Checks if the `format` argument is valid and raises a more user-friendly
+       error if it is a `Function` (meaning that some arguments were missing).
+    handle_format_missing_arguments : Any -> Any -> Any
+    handle_format_missing_arguments format ~action =
+        case format of
+            _ : Function ->
+                Error.throw (Illegal_Argument.Error "Expected a file format, but got a function. Perhaps the format is missing some required arguments?")
+            _ -> action
 
 ## A file format for plain text files.
 type Plain_Text_Format
@@ -142,6 +140,10 @@ type Plain_Text_Format
        If this File_Format should be used for writing to that file, return a configured instance.
     for_file_write : Writable_File -> Plain_Text_Format | Nothing
     for_file_write file = Plain_Text_Format.for_read file
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Plain Text" (Meta.get_qualified_type_name Plain_Text_Format)+".Plain_Text"]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -179,6 +181,10 @@ type Bytes
     for_file_write file = Bytes.for_read file
 
     ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Bytes" (Meta.get_qualified_type_name Bytes)]
+
+    ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
@@ -214,6 +220,10 @@ type JSON_Format
     for_file_write file = JSON_Format.for_read file
 
     ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "JSON" (Meta.get_qualified_type_name JSON_Format)]
+
+    ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
@@ -229,5 +239,24 @@ type JSON_Format
         _ = metadata
         Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . parse_json
 
+## PRIVATE
+JSON_Format.from (that : JS_Object) =
+    _ = that
+    JSON_Format
+
 ## A setting to infer the default behaviour of some option.
 type Infer
+
+
+## PRIVATE
+   A helper for parsing the JSON representation of `Boolean | Infer`.
+   It defaults to `Infer` if the value was `Nothing`.
+parse_boolean_with_infer (field_name : Text) (value : Boolean | Text | Nothing) -> Boolean | Infer = case value of
+    True -> True
+    False -> False
+    Nothing -> Infer
+    headers_text : Text -> case headers_text.to_case Case.Lower of
+        "infer" -> Infer
+        "true" -> True
+        "false" -> False
+        _ -> Error.throw (Illegal_Argument.Error ("The field `"+field_name+"` must be a boolean or the string `infer`."))

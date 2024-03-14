@@ -609,13 +609,13 @@ final class TreeToIr {
     );
   }
 
-  private Expression translateCall(Tree ast, boolean isMethod) {
+  private Expression translateCall(Tree ast, boolean isMethod) throws SyntaxException {
     var args = new java.util.ArrayList<CallArgument>();
     var hasDefaultsSuspended = false;
     var tree = ast;
     for (;;) {
       switch (tree) {
-        case Tree.App app when app.getArg() instanceof Tree.AutoScope -> {
+        case Tree.App app when app.getArg() instanceof Tree.SuspendedDefaultArguments -> {
           hasDefaultsSuspended = true;
           tree = app.getFunc();
         }
@@ -1054,11 +1054,20 @@ final class TreeToIr {
       case Tree.App app -> {
           var fn = translateExpression(app.getFunc(), isMethod);
           var loc = getIdentifiedLocation(app);
-          if (app.getArg() instanceof Tree.AutoScope) {
+          if (app.getArg() instanceof Tree.SuspendedDefaultArguments) {
               yield new Application.Prefix(fn, nil(), true, loc, meta(), diag());
           } else {
               yield fn.setLocation(loc);
           }
+      }
+      case Tree.AutoscopedIdentifier autoscopedIdentifier -> {
+        var methodName = buildName(autoscopedIdentifier.getIdent());
+        yield new Name.MethodReference(
+                Option.empty(),
+                methodName,
+                methodName.location(),
+                meta(), diag()
+        );
       }
       case Tree.Invalid __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateExpression"));
@@ -1093,7 +1102,7 @@ final class TreeToIr {
         case Tree.BodyBlock ignored -> null;
         case Tree.Number ignored -> null;
         case Tree.Wildcard ignored -> null;
-        case Tree.AutoScope ignored -> null;
+        case Tree.SuspendedDefaultArguments ignored -> null;
         case Tree.ForeignFunction ignored -> null;
         case Tree.Import ignored -> null;
         case Tree.Export ignored -> null;

@@ -14,8 +14,8 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
-import MenuEntry from '#/components/MenuEntry'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
@@ -86,6 +86,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         )
         return selfPermission?.permission === permissions.PermissionAction.own
       }).every(isOwner => isOwner))
+
   // This is not a React component even though it contains JSX.
   // eslint-disable-next-line no-restricted-syntax
   const doDeleteAll = () => {
@@ -104,27 +105,40 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       )
     }
   }
-  // This is not a React component even though it contains JSX.
-  // eslint-disable-next-line no-restricted-syntax
-  const doRestoreAll = () => {
-    unsetModal()
-    dispatchAssetEvent({
-      type: AssetEventType.restore,
-      ids: selectedKeys,
-    })
-  }
+
   if (category === Category.trash) {
     return selectedKeys.size === 0 ? (
       <></>
     ) : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         <ContextMenu hidden={hidden}>
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="undelete"
             label="Restore All From Trash"
-            doAction={doRestoreAll}
+            doAction={() => {
+              unsetModal()
+              dispatchAssetEvent({ type: AssetEventType.restore, ids: selectedKeys })
+            }}
           />
+          {isCloud && (
+            <ContextMenuEntry
+              hidden={hidden}
+              action="delete"
+              label="Delete All Forever"
+              doAction={() => {
+                setModal(
+                  <ConfirmDeleteModal
+                    actionText={`delete ${selectedKeys.size} selected ${pluralized} forever`}
+                    doDelete={() => {
+                      clearSelectedKeys()
+                      dispatchAssetEvent({ type: AssetEventType.deleteForever, ids: selectedKeys })
+                    }}
+                  />
+                )
+              }}
+            />
+          )}
         </ContextMenu>
       </ContextMenus>
     )
@@ -136,7 +150,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         {selectedKeys.size !== 0 && (
           <ContextMenu hidden={hidden}>
             {ownsAllSelectedAssets && (
-              <MenuEntry
+              <ContextMenuEntry
                 hidden={hidden}
                 action="delete"
                 label={isCloud ? 'Move All To Trash' : 'Delete All'}
@@ -144,13 +158,13 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               />
             )}
             {isCloud && (
-              <MenuEntry hidden={hidden} action="copy" label="Copy All" doAction={doCopy} />
+              <ContextMenuEntry hidden={hidden} action="copy" label="Copy All" doAction={doCopy} />
             )}
             {isCloud && ownsAllSelectedAssets && (
-              <MenuEntry hidden={hidden} action="cut" label="Cut All" doAction={doCut} />
+              <ContextMenuEntry hidden={hidden} action="cut" label="Cut All" doAction={doCut} />
             )}
             {pasteData != null && pasteData.data.size > 0 && (
-              <MenuEntry
+              <ContextMenuEntry
                 hidden={hidden}
                 action="paste"
                 label="Paste All"

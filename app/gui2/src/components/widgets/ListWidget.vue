@@ -46,9 +46,9 @@ const dragMetaMimePrefix = 'application/x-enso-list-item;item='
 
 function stringToHex(str: string) {
   return Array.from(str, (c) =>
-    c.charCodeAt(0) < 128
-      ? c.charCodeAt(0).toString(16)
-      : encodeURIComponent(c).replace(/%/g, '').toLowerCase(),
+    c.charCodeAt(0) < 128 ?
+      c.charCodeAt(0).toString(16)
+    : encodeURIComponent(c).replace(/%/g, '').toLowerCase(),
   ).join('')
 }
 

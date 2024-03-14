@@ -1,3 +1,4 @@
+import type { DeepReadonly } from 'vue'
 import type {
   Identifier,
   IdentifierOrOperatorIdentifier,
@@ -15,8 +16,10 @@ import {
   ROOT_ID,
   Token,
   asOwned,
+  escapeTextLiteral,
   isIdentifier,
   isToken,
+  isTokenChild,
   isTokenId,
   newExternalId,
   parentId,
@@ -35,6 +38,7 @@ import {
   print,
   printAst,
   printBlock,
+  printDocumented,
   syncToCode,
 } from './parse'
 
@@ -340,11 +344,14 @@ export abstract class MutableAst extends Ast {
 
 /** Values that may be found in fields of `Ast` subtypes. */
 type FieldData<T extends TreeRefs = RawRefs> =
-  | T['ast']
-  | T['token']
-  | FieldData<T>[]
-  | undefined
-  | StructuralField<T>
+  | NonArrayFieldData<T>
+  | NonArrayFieldData<T>[]
+  | (T['ast'] | T['token'])[]
+
+// Logically `FieldData<T>[]` could be a type of `FieldData`, but the type needs to be non-recursive so that it can be
+// used with `DeepReadonly`.
+type NonArrayFieldData<T extends TreeRefs> = T['ast'] | T['token'] | undefined | StructuralField<T>
+
 /** Objects that do not directly contain `AstId`s or `SyncTokenId`s, but may have `NodeChild` fields. */
 type StructuralField<T extends TreeRefs = RawRefs> =
   | MultiSegmentAppSegment<T>
@@ -352,22 +359,26 @@ type StructuralField<T extends TreeRefs = RawRefs> =
   | OpenCloseTokens<T>
   | NameSpecification<T>
   | TextElement<T>
+  | ArgumentDefinition<T>
+  | VectorElement<T>
+
 /** Type whose fields are all suitable for storage as `Ast` fields. */
 interface FieldObject<T extends TreeRefs> {
   [field: string]: FieldData<T>
 }
+
 /** Returns the fields of an `Ast` subtype that are not part of `AstFields`. */
 function* fieldDataEntries<Fields>(map: FixedMapView<Fields>) {
   for (const entry of map.entries()) {
     // All fields that are not from `AstFields` are `FieldData`.
-    if (!astFieldKeys.includes(entry[0] as any)) yield entry as [string, FieldData]
+    if (!astFieldKeys.includes(entry[0] as any)) yield entry as [string, DeepReadonly<FieldData>]
   }
 }
 
 function idRewriter(
   f: (id: AstId) => AstId | undefined,
-): (field: FieldData) => FieldData | undefined {
-  return (field: FieldData) => {
+): (field: DeepReadonly<FieldData>) => FieldData | undefined {
+  return (field: DeepReadonly<FieldData>) => {
     if (typeof field !== 'object') return
     if (!('node' in field)) return
     if (isTokenId(field.node)) return
@@ -411,35 +422,32 @@ export function syncNodeMetadata(target: MutableNodeMetadata, source: NodeMetada
 }
 
 function rewriteFieldRefs<T extends TreeRefs, U extends TreeRefs>(
-  field: FieldData<T>,
-  f: (t: FieldData<T>) => FieldData<U> | undefined,
+  field: DeepReadonly<FieldData<T>>,
+  f: (t: DeepReadonly<FieldData<T>>) => FieldData<U> | undefined,
 ): FieldData<U> {
   const newValue = f(field)
   if (newValue) return newValue
   if (typeof field !== 'object') return
-  if (Array.isArray(field)) {
-    let fieldChanged = false
+  // `Array.isArray` doesn't work with `DeepReadonly`, but we just need a narrowing that distinguishes it from all
+  // `StructuralField` types.
+  if ('forEach' in field) {
+    const newValues = new Map<number, FieldData<U>>()
     field.forEach((subfield, i) => {
       const newValue = rewriteFieldRefs(subfield, f)
-      if (newValue !== undefined) {
-        field[i] = newValue
-        fieldChanged = true
-      }
+      if (newValue !== undefined) newValues.set(i, newValue)
     })
-    if (fieldChanged) return field
+    if (newValues.size) return Array.from(field, (oldValue, i) => newValues.get(i) ?? oldValue)
   } else {
-    const fieldObject = field satisfies StructuralField
-    let fieldChanged = false
+    const fieldObject = field satisfies DeepReadonly<StructuralField>
+    const newValues = new Map<string, FieldData<U>>()
     for (const [key, value] of Object.entries(fieldObject)) {
       const newValue = rewriteFieldRefs(value, f)
-      if (newValue !== undefined) {
-        // This update is safe because `newValue` was obtained by reading `fieldObject[key]` and modifying it in a
-        // type-preserving way.
-        ;(fieldObject as any)[key] = newValue
-        fieldChanged = true
-      }
+      if (newValue !== undefined) newValues.set(key, newValue)
     }
-    if (fieldChanged) return fieldObject
+    if (newValues.size)
+      return Object.fromEntries(
+        Object.entries(fieldObject).map(([key, oldValue]) => [key, newValues.get(key) ?? oldValue]),
+      )
   }
 }
 
@@ -463,6 +471,10 @@ function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: ArgumentDefinition<T>,
   f: MapRef<T, U>,
 ): ArgumentDefinition<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: VectorElement<T>,
+  f: MapRef<T, U>,
+): VectorElement<U>
 function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: FieldData<T>,
   f: MapRef<T, U>,
@@ -596,7 +608,9 @@ export class App extends Ast {
     const spacedEquals = useParens && !!nameSpecification?.equals.whitespace
     if (useParens) yield ensureSpaced(parens.open, verbatim)
     if (nameSpecification) {
-      yield ensureSpacedIf(nameSpecification.name, !useParens, verbatim)
+      yield useParens ?
+        preferUnspaced(nameSpecification.name)
+      : ensureSpaced(nameSpecification.name, verbatim)
       yield ensureSpacedOnlyIf(nameSpecification.equals, spacedEquals, verbatim)
     }
     yield ensureSpacedOnlyIf(argument, !nameSpecification || spacedEquals, verbatim)
@@ -614,30 +628,39 @@ export class App extends Ast {
     return super.printSubtree(info, offset, parentIndent, verbatim_)
   }
 }
-function ensureSpacedIf<T>(
-  child: NodeChild<T>,
-  condition: boolean,
-  verbatim: boolean | undefined,
-): NodeChild<T> {
-  return condition ? ensureSpaced(child, verbatim) : child
-}
 function ensureSpacedOnlyIf<T>(
   child: NodeChild<T>,
   condition: boolean,
   verbatim: boolean | undefined,
-): NodeChild<T> {
+): ConcreteChild<T> {
   return condition ? ensureSpaced(child, verbatim) : ensureUnspaced(child, verbatim)
 }
-function ensureSpaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
-  if (verbatim && child.whitespace != null) return child
-  return child.whitespace ? child : { whitespace: ' ', ...child }
+
+type ConcreteChild<T> = { whitespace: string; node: T }
+function isConcrete<T>(child: NodeChild<T>): child is ConcreteChild<T> {
+  return child.whitespace !== undefined
 }
-function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
-  if (verbatim && child.whitespace != null) return child
-  return child.whitespace === '' ? child : { whitespace: '', ...child }
+function tryAsConcrete<T>(child: NodeChild<T>): ConcreteChild<T> | undefined {
+  return isConcrete(child) ? child : undefined
 }
-function preferUnspaced<T>(child: NodeChild<T>): NodeChild<T> {
-  return child.whitespace === undefined ? { whitespace: '', ...child } : child
+function ensureSpaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): ConcreteChild<T> {
+  const concreteInput = tryAsConcrete(child)
+  if (verbatim && concreteInput) return concreteInput
+  return concreteInput?.whitespace ? concreteInput : { ...child, whitespace: ' ' }
+}
+function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): ConcreteChild<T> {
+  const concreteInput = tryAsConcrete(child)
+  if (verbatim && concreteInput) return concreteInput
+  return concreteInput?.whitespace === '' ? concreteInput : { ...child, whitespace: '' }
+}
+function preferSpacedIf<T>(child: NodeChild<T>, condition: boolean): ConcreteChild<T> {
+  return condition ? preferSpaced(child) : preferUnspaced(child)
+}
+function preferUnspaced<T>(child: NodeChild<T>): ConcreteChild<T> {
+  return tryAsConcrete(child) ?? { ...child, whitespace: '' }
+}
+function preferSpaced<T>(child: NodeChild<T>): ConcreteChild<T> {
+  return tryAsConcrete(child) ?? { ...child, whitespace: ' ' }
 }
 export class MutableApp extends App implements MutableAst {
   declare readonly module: MutableModule
@@ -1016,7 +1039,7 @@ function multiSegmentAppSegment<T extends MutableAst>(
   body: Owned<T> | undefined,
 ): MultiSegmentAppSegment<OwnedRefs> | undefined {
   return {
-    header: { node: Token.new(header, RawAst.Token.Type.Ident) },
+    header: autospaced(Token.new(header, RawAst.Token.Type.Ident)),
     body: spaced(body ? (body as any) : undefined),
   }
 }
@@ -1189,24 +1212,6 @@ export interface MutableImport extends Import, MutableAst {
 }
 applyMixins(MutableImport, [MutableAst])
 
-const mapping: Record<string, string> = {
-  '\b': '\\b',
-  '\f': '\\f',
-  '\n': '\\n',
-  '\r': '\\r',
-  '\t': '\\t',
-  '\v': '\\v',
-  '"': '\\"',
-  "'": "\\'",
-  '`': '``',
-}
-
-/** Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
- * NOT USABLE to insert into raw strings. Does not include quotes. */
-function escape(string: string) {
-  return string.replace(/[\0\b\f\n\r\t\v"'`]/g, (match) => mapping[match]!)
-}
-
 interface TreeRefs {
   token: any
   ast: any
@@ -1242,6 +1247,16 @@ function rawToConcrete(module: Module): RefMap<RawRefs, ConcreteRefs> {
     else return { ...child, node: module.get(child.node) }
   }
 }
+
+function concreteToOwned(module: MutableModule): RefMap<ConcreteRefs, OwnedRefs> {
+  return (child: FieldData<ConcreteRefs>) => {
+    if (typeof child !== 'object') return
+    if (!('node' in child)) return
+    if (isTokenChild(child)) return child
+    else return { ...child, node: module.copy(child.node) }
+  }
+}
+
 export interface TextToken<T extends TreeRefs = RawRefs> {
   type: 'token'
   readonly token: T['token']
@@ -1283,7 +1298,7 @@ function rawTextElementValue(raw: TextElement, module: Module): string {
   return textElementValue(mapRefs(raw, rawToConcrete(module)))
 }
 
-function uninterpolatedText(elements: TextElement[], module: Module): string {
+function uninterpolatedText(elements: DeepReadonly<TextElement[]>, module: Module): string {
   return elements.reduce((s, e) => s + rawTextElementValue(e, module), '')
 }
 
@@ -1330,19 +1345,22 @@ export class TextLiteral extends Ast {
     return asOwned(new MutableTextLiteral(module, fields))
   }
 
-  static new(rawText: string, module: MutableModule): Owned<MutableTextLiteral> {
-    const escaped = escape(rawText)
+  static new(rawText: string, module?: MutableModule): Owned<MutableTextLiteral> {
+    const escaped = escapeTextLiteral(rawText)
     const parsed = parse(`'${escaped}'`, module)
     if (!(parsed instanceof MutableTextLiteral)) {
       console.error(`Failed to escape string for interpolated text`, rawText, escaped, parsed)
-      const safeText = rawText.replaceAll(/[^-+A-Za-z0-9_. ]/, '')
-      return this.new(safeText, module)
+      const safeText = rawText.replaceAll(/[^-+A-Za-z0-9_. ]/g, '')
+      return TextLiteral.new(safeText, module)
     }
     return parsed
   }
 
-  /** Return the value of the string, interpreted except for any interpolated expressions. */
-  contentUninterpolated(): string {
+  /**
+   * Return the literal value of the string with all escape sequences applied, but without
+   * evaluating any interpolated expressions.
+   */
+  get rawTextContent(): string {
     return uninterpolatedText(this.fields.get('elements'), this.module)
   }
 
@@ -1353,16 +1371,69 @@ export class TextLiteral extends Ast {
     for (const e of elements) yield* fieldConcreteChildren(e)
     if (close) yield close
   }
+
+  boundaryTokenCode(): string | undefined {
+    return (this.open || this.close)?.code()
+  }
+
+  isInterpolated(): boolean {
+    const token = this.boundaryTokenCode()
+    return token === "'" || token === "'''"
+  }
+
+  get open(): Token | undefined {
+    return this.module.getToken(this.fields.get('open')?.node)
+  }
+
+  get close(): Token | undefined {
+    return this.module.getToken(this.fields.get('close')?.node)
+  }
+
+  get elements(): TextElement<ConcreteRefs>[] {
+    return this.fields.get('elements').map((e) => mapRefs(e, rawToConcrete(this.module)))
+  }
 }
 export class MutableTextLiteral extends TextLiteral implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & TextLiteralFields>
+
+  setBoundaries(code: string) {
+    this.fields.set('open', unspaced(Token.new(code)))
+    this.fields.set('close', unspaced(Token.new(code)))
+  }
+
+  setElements(elements: TextElement<OwnedRefs>[]) {
+    this.fields.set(
+      'elements',
+      elements.map((e) => mapRefs(e, ownedToRaw(this.module, this.id))),
+    )
+  }
+
+  /**
+   * Set literal value of the string. The code representation of assigned text will be automatically
+   * transformed to use escape sequences when necessary.
+   */
+  setRawTextContent(rawText: string) {
+    let boundary = this.boundaryTokenCode()
+    const isInterpolated = this.isInterpolated()
+    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.includes(boundary))
+    if (mustBecomeInterpolated) {
+      boundary = "'"
+      this.setBoundaries(boundary)
+    }
+    const literalContents =
+      isInterpolated || mustBecomeInterpolated ? escapeTextLiteral(rawText) : rawText
+    const parsed = parse(`${boundary}${literalContents}${boundary}`)
+    assert(parsed instanceof TextLiteral)
+    const elements = parsed.elements.map((e) => mapRefs(e, concreteToOwned(this.module)))
+    this.setElements(elements)
+  }
 }
 export interface MutableTextLiteral extends TextLiteral, MutableAst {}
 applyMixins(MutableTextLiteral, [MutableAst])
 
 interface DocumentedFields {
-  open: NodeChild<SyncTokenId> | undefined
+  open: NodeChild<SyncTokenId>
   elements: TextToken[]
   newlines: NodeChild<SyncTokenId>[]
   expression: NodeChild<AstId> | undefined
@@ -1378,19 +1449,29 @@ export class Documented extends Ast {
     if (parsed instanceof MutableDocumented) return parsed
   }
 
+  static new(text: string, expression: Owned) {
+    return this.concrete(
+      expression.module,
+      undefined,
+      textToUninterpolatedElements(text),
+      undefined,
+      autospaced(expression),
+    )
+  }
+
   static concrete(
     module: MutableModule,
     open: NodeChild<Token> | undefined,
     elements: TextToken<OwnedRefs>[],
-    newlines: NodeChild<Token>[],
+    newlines: NodeChild<Token>[] | undefined,
     expression: NodeChild<Owned> | undefined,
   ) {
     const base = module.baseObject('Documented')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
-      open,
+      open: open ?? unspaced(Token.new('##', RawAst.Token.Type.Operator)),
       elements: elements.map((e) => mapRefs(e, ownedToRaw(module, id_))),
-      newlines,
+      newlines: newlines ?? [unspaced(Token.new('\n', RawAst.Token.Type.Newline))],
       expression: concreteChild(module, expression, id_),
     })
     return asOwned(new MutableDocumented(module, fields))
@@ -1408,15 +1489,33 @@ export class Documented extends Ast {
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, elements, newlines, expression } = getAll(this.fields)
-    if (open) yield open
-    for (const e of elements) yield* fieldConcreteChildren(e)
+    yield open
+    for (const { token } of elements) yield token
     yield* newlines
     if (expression) yield expression
+  }
+
+  printSubtree(
+    info: SpanMap,
+    offset: number,
+    parentIndent: string | undefined,
+    verbatim?: boolean,
+  ): string {
+    return printDocumented(this, info, offset, parentIndent, verbatim)
   }
 }
 export class MutableDocumented extends Documented implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & DocumentedFields>
+
+  setDocumentationText(text: string) {
+    this.fields.set(
+      'elements',
+      textToUninterpolatedElements(text).map((owned) =>
+        mapRefs(owned, ownedToRaw(this.module, this.id)),
+      ),
+    )
+  }
 
   setExpression<T extends MutableAst>(value: Owned<T> | undefined) {
     this.fields.set('expression', unspaced(this.claimChild(value)))
@@ -1426,6 +1525,22 @@ export interface MutableDocumented extends Documented, MutableAst {
   get expression(): MutableAst | undefined
 }
 applyMixins(MutableDocumented, [MutableAst])
+
+function textToUninterpolatedElements(text: string): TextToken<OwnedRefs>[] {
+  const elements = new Array<TextToken<OwnedRefs>>()
+  text.split('\n').forEach((line, i) => {
+    if (i)
+      elements.push({
+        type: 'token',
+        token: unspaced(Token.new('\n', RawAst.Token.Type.TextNewline)),
+      })
+    elements.push({
+      type: 'token',
+      token: autospaced(Token.new(line, RawAst.Token.Type.TextSection)),
+    })
+  })
+  return elements
+}
 
 interface InvalidFields {
   expression: NodeChild<AstId>
@@ -1665,17 +1780,12 @@ export class Function extends Ast {
     }
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
     for (const def of argumentDefinitions) yield* def
     yield { whitespace: equals.whitespace ?? ' ', node: this.module.getToken(equals.node) }
-    if (body)
-      yield ensureSpacedOnlyIf(
-        body,
-        !(this.module.tryGet(body.node) instanceof BodyBlock),
-        verbatim,
-      )
+    if (body) yield preferSpacedIf(body, this.module.tryGet(body.node) instanceof BodyBlock)
   }
 }
 export class MutableFunction extends Function implements MutableAst {
@@ -1760,9 +1870,9 @@ export class Assignment extends Ast {
 
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { pattern, equals, expression } = getAll(this.fields)
-    yield pattern
+    yield ensureUnspaced(pattern, verbatim)
     yield ensureSpacedOnlyIf(equals, expression.whitespace !== '', verbatim)
-    yield expression
+    yield preferSpaced(expression)
   }
 }
 export class MutableAssignment extends Assignment implements MutableAst {
@@ -1821,7 +1931,7 @@ export class BodyBlock extends Ast {
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     for (const line of this.fields.get('lines')) {
-      yield line.newline ?? { node: Token.new('\n', RawAst.Token.Type.Newline) }
+      yield preferUnspaced(line.newline)
       if (line.expression) yield line.expression
     }
   }
@@ -1904,8 +2014,9 @@ function lineFromRaw(raw: RawBlockLine, module: Module): BlockLine {
   const expression = raw.expression ? module.get(raw.expression.node) : undefined
   return {
     newline: { ...raw.newline, node: module.getToken(raw.newline.node) },
-    expression: expression
-      ? {
+    expression:
+      expression ?
+        {
           whitespace: raw.expression?.whitespace,
           node: expression,
         }
@@ -1917,8 +2028,9 @@ function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockL
   const expression = raw.expression ? module.get(raw.expression.node).takeIfParented() : undefined
   return {
     newline: { ...raw.newline, node: module.getToken(raw.newline.node) },
-    expression: expression
-      ? {
+    expression:
+      expression ?
+        {
           whitespace: raw.expression?.whitespace,
           node: expression,
         }
@@ -1929,8 +2041,9 @@ function ownedLineFromRaw(raw: RawBlockLine, module: MutableModule): OwnedBlockL
 function lineToRaw(line: OwnedBlockLine, module: MutableModule, block: AstId): RawBlockLine {
   return {
     newline: line.newline ?? unspaced(Token.new('\n', RawAst.Token.Type.Newline)),
-    expression: line.expression
-      ? {
+    expression:
+      line.expression ?
+        {
           whitespace: line.expression?.whitespace,
           node: claimChild(module, line.expression.node, block),
         }
@@ -2035,40 +2148,135 @@ export class MutableWildcard extends Wildcard implements MutableAst {
 export interface MutableWildcard extends Wildcard, MutableAst {}
 applyMixins(MutableWildcard, [MutableAst])
 
-export type Mutable<T extends Ast = Ast> = T extends App
-  ? MutableApp
-  : T extends Assignment
-  ? MutableAssignment
-  : T extends BodyBlock
-  ? MutableBodyBlock
-  : T extends Documented
-  ? MutableDocumented
-  : T extends Function
-  ? MutableFunction
-  : T extends Generic
-  ? MutableGeneric
-  : T extends Group
-  ? MutableGroup
-  : T extends Ident
-  ? MutableIdent
-  : T extends Import
-  ? MutableImport
-  : T extends Invalid
-  ? MutableInvalid
-  : T extends NegationApp
-  ? MutableNegationApp
-  : T extends NumericLiteral
-  ? MutableNumericLiteral
-  : T extends OprApp
-  ? MutableOprApp
-  : T extends PropertyAccess
-  ? MutablePropertyAccess
-  : T extends TextLiteral
-  ? MutableTextLiteral
-  : T extends UnaryOprApp
-  ? MutableUnaryOprApp
-  : T extends Wildcard
-  ? MutableWildcard
+type AbstractVectorElement<T extends TreeRefs> = {
+  delimiter?: T['token']
+  value: T['ast'] | undefined
+}
+function delimitVectorElement(element: AbstractVectorElement<OwnedRefs>): VectorElement<OwnedRefs> {
+  return {
+    ...element,
+    delimiter: element.delimiter ?? unspaced(Token.new(',', RawAst.Token.Type.Operator)),
+  }
+}
+type VectorElement<T extends TreeRefs> = { delimiter: T['token']; value: T['ast'] | undefined }
+interface VectorFields {
+  open: NodeChild<Token>
+  elements: VectorElement<RawRefs>[]
+  close: NodeChild<Token>
+}
+export class Vector extends Ast {
+  declare fields: FixedMapView<AstFields & VectorFields>
+  constructor(module: Module, fields: FixedMapView<AstFields & VectorFields>) {
+    super(module, fields)
+  }
+
+  static concrete(
+    module: MutableModule,
+    open: NodeChild<Token> | undefined,
+    elements: AbstractVectorElement<OwnedRefs>[],
+    close: NodeChild<Token> | undefined,
+  ) {
+    const base = module.baseObject('Vector')
+    const id_ = base.get('id')
+    const fields = composeFieldData(base, {
+      open: open ?? unspaced(Token.new('[', RawAst.Token.Type.OpenSymbol)),
+      elements: elements.map(delimitVectorElement).map((e) => mapRefs(e, ownedToRaw(module, id_))),
+      close: close ?? unspaced(Token.new(']', RawAst.Token.Type.CloseSymbol)),
+    })
+    return asOwned(new MutableVector(module, fields))
+  }
+
+  static new(module: MutableModule, elements: Owned[]) {
+    return this.concrete(
+      module,
+      undefined,
+      elements.map((value) => ({ value: autospaced(value) })),
+      undefined,
+    )
+  }
+
+  static tryBuild<T>(
+    inputs: Iterable<T>,
+    elementBuilder: (input: T, module: MutableModule) => Owned,
+    edit?: MutableModule,
+  ): Owned<MutableVector>
+  static tryBuild<T>(
+    inputs: Iterable<T>,
+    elementBuilder: (input: T, module: MutableModule) => Owned | undefined,
+    edit?: MutableModule,
+  ): Owned<MutableVector> | undefined
+  static tryBuild<T>(
+    inputs: Iterable<T>,
+    valueBuilder: (input: T, module: MutableModule) => Owned | undefined,
+    edit?: MutableModule,
+  ): Owned<MutableVector> | undefined {
+    const module = edit ?? MutableModule.Transient()
+    const elements = new Array<AbstractVectorElement<OwnedRefs>>()
+    for (const input of inputs) {
+      const value = valueBuilder(input, module)
+      if (!value) return
+      elements.push({ value: autospaced(value) })
+    }
+    return Vector.concrete(module, undefined, elements, undefined)
+  }
+
+  static build<T>(
+    inputs: Iterable<T>,
+    elementBuilder: (input: T, module: MutableModule) => Owned,
+    edit?: MutableModule,
+  ): Owned<MutableVector> {
+    return Vector.tryBuild(inputs, elementBuilder, edit)
+  }
+
+  *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
+    const { open, elements, close } = getAll(this.fields)
+    yield ensureUnspaced(open, verbatim)
+    let isFirst = true
+    for (const { delimiter, value } of elements) {
+      if (isFirst && value) {
+        yield preferUnspaced(value)
+      } else {
+        yield preferUnspaced(delimiter)
+        if (value) yield preferSpaced(value)
+      }
+      isFirst = false
+    }
+    yield preferUnspaced(close)
+  }
+
+  *values(): IterableIterator<Ast> {
+    for (const element of this.fields.get('elements'))
+      if (element.value) yield this.module.get(element.value.node)
+  }
+}
+export class MutableVector extends Vector implements MutableAst {
+  declare readonly module: MutableModule
+  declare readonly fields: FixedMap<AstFields & VectorFields>
+}
+export interface MutableVector extends Vector, MutableAst {
+  values(): IterableIterator<MutableAst>
+}
+applyMixins(MutableVector, [MutableAst])
+
+export type Mutable<T extends Ast = Ast> =
+  T extends App ? MutableApp
+  : T extends Assignment ? MutableAssignment
+  : T extends BodyBlock ? MutableBodyBlock
+  : T extends Documented ? MutableDocumented
+  : T extends Function ? MutableFunction
+  : T extends Generic ? MutableGeneric
+  : T extends Group ? MutableGroup
+  : T extends Ident ? MutableIdent
+  : T extends Import ? MutableImport
+  : T extends Invalid ? MutableInvalid
+  : T extends NegationApp ? MutableNegationApp
+  : T extends NumericLiteral ? MutableNumericLiteral
+  : T extends OprApp ? MutableOprApp
+  : T extends PropertyAccess ? MutablePropertyAccess
+  : T extends TextLiteral ? MutableTextLiteral
+  : T extends UnaryOprApp ? MutableUnaryOprApp
+  : T extends Vector ? MutableVector
+  : T extends Wildcard ? MutableWildcard
   : MutableAst
 
 export function materializeMutable(module: MutableModule, fields: FixedMap<AstFields>): MutableAst {
@@ -2077,36 +2285,38 @@ export function materializeMutable(module: MutableModule, fields: FixedMap<AstFi
   switch (type) {
     case 'App':
       return new MutableApp(module, fieldsForType)
-    case 'UnaryOprApp':
-      return new MutableUnaryOprApp(module, fieldsForType)
-    case 'NegationApp':
-      return new MutableNegationApp(module, fieldsForType)
-    case 'OprApp':
-      return new MutableOprApp(module, fieldsForType)
-    case 'PropertyAccess':
-      return new MutablePropertyAccess(module, fieldsForType)
-    case 'Generic':
-      return new MutableGeneric(module, fieldsForType)
-    case 'Import':
-      return new MutableImport(module, fieldsForType)
-    case 'TextLiteral':
-      return new MutableTextLiteral(module, fieldsForType)
-    case 'Documented':
-      return new MutableDocumented(module, fieldsForType)
-    case 'Invalid':
-      return new MutableInvalid(module, fieldsForType)
-    case 'Group':
-      return new MutableGroup(module, fieldsForType)
-    case 'NumericLiteral':
-      return new MutableNumericLiteral(module, fieldsForType)
-    case 'Function':
-      return new MutableFunction(module, fieldsForType)
     case 'Assignment':
       return new MutableAssignment(module, fieldsForType)
     case 'BodyBlock':
       return new MutableBodyBlock(module, fieldsForType)
+    case 'Documented':
+      return new MutableDocumented(module, fieldsForType)
+    case 'Function':
+      return new MutableFunction(module, fieldsForType)
+    case 'Generic':
+      return new MutableGeneric(module, fieldsForType)
+    case 'Group':
+      return new MutableGroup(module, fieldsForType)
     case 'Ident':
       return new MutableIdent(module, fieldsForType)
+    case 'Import':
+      return new MutableImport(module, fieldsForType)
+    case 'Invalid':
+      return new MutableInvalid(module, fieldsForType)
+    case 'NegationApp':
+      return new MutableNegationApp(module, fieldsForType)
+    case 'NumericLiteral':
+      return new MutableNumericLiteral(module, fieldsForType)
+    case 'OprApp':
+      return new MutableOprApp(module, fieldsForType)
+    case 'PropertyAccess':
+      return new MutablePropertyAccess(module, fieldsForType)
+    case 'TextLiteral':
+      return new MutableTextLiteral(module, fieldsForType)
+    case 'UnaryOprApp':
+      return new MutableUnaryOprApp(module, fieldsForType)
+    case 'Vector':
+      return new MutableVector(module, fieldsForType)
     case 'Wildcard':
       return new MutableWildcard(module, fieldsForType)
   }
@@ -2119,36 +2329,38 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
   switch (type) {
     case 'App':
       return new App(module, fields_)
-    case 'UnaryOprApp':
-      return new UnaryOprApp(module, fields_)
-    case 'NegationApp':
-      return new NegationApp(module, fields_)
-    case 'OprApp':
-      return new OprApp(module, fields_)
-    case 'PropertyAccess':
-      return new PropertyAccess(module, fields_)
-    case 'Generic':
-      return new Generic(module, fields_)
-    case 'Import':
-      return new Import(module, fields_)
-    case 'TextLiteral':
-      return new TextLiteral(module, fields_)
-    case 'Documented':
-      return new Documented(module, fields_)
-    case 'Invalid':
-      return new Invalid(module, fields_)
-    case 'Group':
-      return new Group(module, fields_)
-    case 'NumericLiteral':
-      return new NumericLiteral(module, fields_)
-    case 'Function':
-      return new Function(module, fields_)
     case 'Assignment':
       return new Assignment(module, fields_)
     case 'BodyBlock':
       return new BodyBlock(module, fields_)
+    case 'Documented':
+      return new Documented(module, fields_)
+    case 'Function':
+      return new Function(module, fields_)
+    case 'Generic':
+      return new Generic(module, fields_)
+    case 'Group':
+      return new Group(module, fields_)
     case 'Ident':
       return new Ident(module, fields_)
+    case 'Import':
+      return new Import(module, fields_)
+    case 'Invalid':
+      return new Invalid(module, fields_)
+    case 'NegationApp':
+      return new NegationApp(module, fields_)
+    case 'NumericLiteral':
+      return new NumericLiteral(module, fields_)
+    case 'OprApp':
+      return new OprApp(module, fields_)
+    case 'PropertyAccess':
+      return new PropertyAccess(module, fields_)
+    case 'TextLiteral':
+      return new TextLiteral(module, fields_)
+    case 'UnaryOprApp':
+      return new UnaryOprApp(module, fields_)
+    case 'Vector':
+      return new Vector(module, fields_)
     case 'Wildcard':
       return new Wildcard(module, fields_)
   }
@@ -2156,7 +2368,8 @@ export function materialize(module: Module, fields: FixedMapView<AstFields>): As
 }
 
 export interface FixedMapView<Fields> {
-  get<Key extends string & keyof Fields>(key: Key): Fields[Key]
+  get<Key extends string & keyof Fields>(key: Key): DeepReadonly<Fields[Key]>
+  /** @internal Unsafe. The caller must ensure the yielded values are not modified. */
   entries(): IterableIterator<readonly [string, unknown]>
   clone(): FixedMap<Fields>
   has(key: string): boolean
@@ -2166,8 +2379,12 @@ export interface FixedMap<Fields> extends FixedMapView<Fields> {
   set<Key extends string & keyof Fields>(key: Key, value: Fields[Key]): void
 }
 
-function getAll<Fields extends object>(map: FixedMapView<Fields>): Fields {
-  return Object.fromEntries(map.entries()) as Fields
+type DeepReadonlyFields<T> = {
+  [K in keyof T]: DeepReadonly<T[K]>
+}
+
+function getAll<Fields extends object>(map: FixedMapView<Fields>): DeepReadonlyFields<Fields> {
+  return Object.fromEntries(map.entries()) as DeepReadonlyFields<Fields>
 }
 
 declare const brandLegalFieldContent: unique symbol
@@ -2242,15 +2459,27 @@ function concreteChild(
 }
 
 type StrictIdentLike = Identifier | IdentifierToken
-function toIdentStrict(ident: StrictIdentLike): IdentifierToken {
-  return isToken(ident) ? ident : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierToken)
+function toIdentStrict(ident: StrictIdentLike): IdentifierToken
+function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined
+function toIdentStrict(ident: StrictIdentLike | undefined): IdentifierToken | undefined {
+  return (
+    ident ?
+      isToken(ident) ? ident
+      : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierToken)
+    : undefined
+  )
 }
 
 type IdentLike = IdentifierOrOperatorIdentifier | IdentifierOrOperatorIdentifierToken
-function toIdent(ident: IdentLike): IdentifierOrOperatorIdentifierToken {
-  return isToken(ident)
-    ? ident
-    : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierOrOperatorIdentifierToken)
+function toIdent(ident: IdentLike): IdentifierOrOperatorIdentifierToken
+function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined
+function toIdent(ident: IdentLike | undefined): IdentifierOrOperatorIdentifierToken | undefined {
+  return (
+    ident ?
+      isToken(ident) ? ident
+      : (Token.new(ident, RawAst.Token.Type.Ident) as IdentifierOrOperatorIdentifierToken)
+    : undefined
+  )
 }
 
 function makeEquals(): Token {
@@ -2281,7 +2510,7 @@ function setNode<
 >(map: FixedMap<Fields>, key: Key, node: AstId | undefined): void {
   // The signature correctly only allows this function to be called if `Fields[Key] instanceof NodeChild<SyncId>`,
   // but it doesn't prove that property to TSC, so we have to cast here.
-  const old = map.get(key as string & keyof Fields)
+  const old = map.get(key as string & keyof Fields) as DeepReadonly<NodeChild<AstId>>
   const updated = old ? { ...old, node } : autospaced(node)
   map.set(key, updated as Fields[Key])
 }
@@ -2300,11 +2529,13 @@ function unspaced<T extends object | string>(node: T | undefined): NodeChild<T> 
   return { whitespace: '', node }
 }
 
-function autospaced<T extends object | string>(node: T): NodeChild<T>
-function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
-function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined {
+export function autospaced<T extends object | string>(node: T): NodeChild<T>
+export function autospaced<T extends object | string>(node: T | undefined): NodeChild<T> | undefined
+export function autospaced<T extends object | string>(
+  node: T | undefined,
+): NodeChild<T> | undefined {
   if (node === undefined) return node
-  return { node }
+  return { whitespace: undefined, node }
 }
 
 export interface Removed<T extends MutableAst> {

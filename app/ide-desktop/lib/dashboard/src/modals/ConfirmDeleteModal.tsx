@@ -43,7 +43,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:inset-0 before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-confirm-delete-modal flex-col gap-modal rounded-default p-modal-wide py-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -54,24 +54,15 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         }}
         onSubmit={event => {
           event.preventDefault()
-          // Consider not calling `onSubmit()` here to make it harder to accidentally
-          // delete an important asset.
           onSubmit()
         }}
       >
         <div className="relative">Are you sure you want to {actionText}?</div>
-        <div className="relative flex gap-2">
-          <button
-            type="submit"
-            className="hover:cursor-pointer inline-block text-white bg-delete rounded-full px-4 py-1"
-          >
+        <div className="relative flex gap-buttons">
+          <button type="submit" className="button bg-delete text-white active">
             {actionButtonLabel}
           </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
-            onClick={unsetModal}
-          >
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
             Cancel
           </button>
         </div>

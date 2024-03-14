@@ -34,7 +34,7 @@ const DEFAULT_IMPORT_ONLY_MODULES =
 const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|detect|file-associations|index|ipc|log|naming|paths|preload|project-management|security|url-associations|#\\u002F.*'
-const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|${RELATIVE_MODULES}`
+const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!do[A-Z])(?!_?([A-Z][a-z0-9]*)+$)/'
@@ -231,7 +231,24 @@ const RESTRICTED_SYNTAXES = [
     {
         selector:
             'JSXElement[closingElement!=null]:not(:has(.children:matches(JSXText[raw=/\\S/], :not(JSXText))))',
-        message: 'Use self-closing tags (`<tag />`) for tags without children.',
+        message: 'Use self-closing tags (`<tag />`) for tags without children',
+    },
+    {
+        // TODO [sb]: https://github.com/enso-org/cloud-v2/issues/946
+        // `z-3` should be eliminated, but is currently still required.
+        selector: `:matches(\
+            TemplateElement[value.raw=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px|\\[)/],\
+            Literal[value=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px|\\[)/]\
+        )`,
+        message: 'Fixed values for Tailwind `size-`, `w-`, `h-`, `p-`, `m-` are not allowed',
+    },
+    {
+        selector: `:matches(\
+            TemplateElement[value.raw=/\\b(?:opacity|gap|rounded(?:-[lrbtxy])?|leading|duration|grid-cols-fill)-(?:xs|sm|md|lg|xl|\\d|\\[)/],\
+            Literal[value=/\\b(?:opacity|gap|rounded(?:-[lrbtxy])?|leading|duration|grid-cols-fill)-(?:xs|sm|md|lg|xl|\\d|\\[)/]\
+        )`,
+        message:
+            'Fixed values for Tailwind `opacity-`, `rounded-`, `leading-`, `duration-` and `grid-cols-fill` are not allowed',
     },
 ]
 
@@ -244,7 +261,7 @@ export default [
     eslintJs.configs.recommended,
     {
         // Playwright build cache.
-        ignores: ['**/.cache/**'],
+        ignores: ['**/.cache/**', '**/playwright-report'],
     },
     {
         settings: {
@@ -298,14 +315,6 @@ export default [
                 },
             ],
             'no-constant-condition': ['error', { checkLoops: false }],
-            'no-restricted-properties': [
-                'error',
-                {
-                    object: 'router',
-                    property: 'useNavigate',
-                    message: 'Use `hooks.useNavigate` instead.',
-                },
-            ],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
@@ -489,6 +498,11 @@ export default [
         rules: {
             'no-restricted-properties': [
                 'error',
+                {
+                    object: 'router',
+                    property: 'useNavigate',
+                    message: 'Use `hooks.useNavigate` instead.',
+                },
                 {
                     object: 'console',
                     message: 'Avoid leaving debugging statements when committing code',

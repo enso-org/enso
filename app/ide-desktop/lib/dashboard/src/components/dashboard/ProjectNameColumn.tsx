@@ -27,7 +27,7 @@ import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // ===================
 // === ProjectName ===
@@ -102,6 +102,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       case AssetEventType.cancelCut:
       case AssetEventType.move:
       case AssetEventType.delete:
+      case AssetEventType.deleteForever:
       case AssetEventType.restore:
       case AssetEventType.download:
       case AssetEventType.downloadSelected:
@@ -112,8 +113,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       case AssetEventType.removeLabels:
       case AssetEventType.deleteLabel: {
         // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
-        // `deleteMultiple`, `restoreMultiple`, `download`, and `downloadSelected`
-        // are handled by `AssetRow`.
+        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
+        // are handled by`AssetRow`.
         break
       }
       case AssetEventType.newProject: {
@@ -264,7 +265,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   return (
     <div
-      className={`flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -288,7 +289,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       }}
     >
       {!canExecute ? (
-        <SvgMask src={NetworkIcon} className="m-1" />
+        <SvgMask src={NetworkIcon} className="m-name-column-icon size-icon" />
       ) : (
         <ProjectIcon
           keyProp={item.key}
@@ -309,12 +310,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`bg-transparent grow leading-170 h-6 py-px ${
+        className={`text grow bg-transparent ${
           rowState.isEditingName
             ? 'cursor-text'
             : canExecute && !isOtherUserUsingProject
-            ? 'cursor-pointer'
-            : ''
+              ? 'cursor-pointer'
+              : ''
         }`}
         checkSubmittable={newTitle =>
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(

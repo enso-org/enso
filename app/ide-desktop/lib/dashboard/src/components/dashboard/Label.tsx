@@ -23,9 +23,6 @@ interface InternalLabelProps
   /** When true, the button cannot be clicked. */
   readonly disabled?: boolean
   readonly color: backend.LChColor
-  /** When true, will turn opaque when the nearest ancestor `.group` is hovered.
-   * Otherwise, will turn opaque only when itself is hovered. */
-  readonly group?: boolean
   readonly className?: string
 }
 
@@ -39,27 +36,24 @@ export default function Label(props: InternalLabelProps) {
     negated = false,
     className = 'text-tag-text',
     children,
-    group = true,
     ...passthrough
   } = props
   const textColorClassName = /\btext-/.test(className)
     ? '' // eslint-disable-next-line @typescript-eslint/no-magic-numbers
     : color.lightness <= 50
-    ? 'text-tag-text'
-    : active
-    ? 'text-primary'
-    : 'text-not-selected'
+      ? 'text-tag-text'
+      : active
+        ? 'text-primary'
+        : 'text-not-selected'
   return (
     <button
       data-testid={dataTestId}
       disabled={disabled}
-      className={`flex items-center rounded-full whitespace-nowrap gap-1.5 h-6 px-2.25 transition-all ${className} ${
-        negated
-          ? 'relative before:absolute before:rounded-full before:border-2 before:border-delete before:inset-0 before:w-full before:h-full'
-          : ''
-      } ${active ? '' : 'opacity-50'} ${
-        disabled ? '' : group ? 'group-hover:opacity-100' : 'hover:opacity-100'
-      } ${textColorClassName}`}
+      className={`selectable ${
+        active ? 'active' : ''
+      } relative flex h-text items-center whitespace-nowrap rounded-full px-label-x transition-all before:absolute before:inset before:rounded-full ${
+        negated ? 'before:border-2 before:border-delete' : ''
+      } ${className} ${textColorClassName}`}
       style={{ backgroundColor: backend.lChColorToCssColor(color) }}
       {...passthrough}
     >

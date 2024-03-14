@@ -57,6 +57,7 @@ import {
   PropertyAccess,
   TextLiteral,
   UnaryOprApp,
+  Vector,
   Wildcard,
 } from './tree'
 
@@ -204,8 +205,9 @@ class Abstractor {
       }
       case RawAst.Tree.Type.OprApp: {
         const lhs = tree.lhs ? this.abstractTree(tree.lhs) : undefined
-        const opr = tree.opr.ok
-          ? [this.abstractToken(tree.opr.value)]
+        const opr =
+          tree.opr.ok ?
+            [this.abstractToken(tree.opr.value)]
           : Array.from(tree.opr.error.payload.operators, this.abstractToken.bind(this))
         const rhs = tree.rhs ? this.abstractTree(tree.rhs) : undefined
         const soleOpr = tryGetSoleValue(opr)
@@ -287,6 +289,20 @@ class Abstractor {
         const as = tree.as ? recurseSegment(tree.as) : undefined
         const hiding = tree.hiding ? recurseSegment(tree.hiding) : undefined
         node = Import.concrete(this.module, polyglot, from, import_, all, as, hiding)
+        break
+      }
+      case RawAst.Tree.Type.Array: {
+        const left = this.abstractToken(tree.left)
+        const elements = []
+        if (tree.first) elements.push({ value: this.abstractTree(tree.first) })
+        for (const rawElement of tree.rest) {
+          elements.push({
+            delimiter: this.abstractToken(rawElement.operator),
+            value: rawElement.body && this.abstractTree(rawElement.body),
+          })
+        }
+        const right = this.abstractToken(tree.right)
+        node = Vector.concrete(this.module, left, elements, right)
         break
       }
       default: {
@@ -513,6 +529,49 @@ export function printBlock(
   }
   const span = nodeKey(offset, code.length)
   map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(block)
+  return code
+}
+
+/** @internal Use `Ast.code()' to stringify. */
+export function printDocumented(
+  documented: Documented,
+  info: SpanMap,
+  offset: number,
+  parentIndent: string | undefined,
+  verbatim?: boolean,
+): string {
+  const open = documented.fields.get('open')
+  const topIndent = parentIndent ?? open.whitespace ?? ''
+  let code = ''
+  code += open.node.code_
+  const minWhitespaceLength = topIndent.length + 1
+  let preferredWhitespace = topIndent + '  '
+  documented.fields.get('elements').forEach(({ token }, i) => {
+    if (i === 0) {
+      const whitespace = token.whitespace ?? ' '
+      code += whitespace
+      code += token.node.code_
+      preferredWhitespace += whitespace
+    } else if (token.node.tokenType_ === RawAst.Token.Type.TextSection) {
+      if (token.whitespace && (verbatim || token.whitespace.length >= minWhitespaceLength))
+        code += token.whitespace
+      else code += preferredWhitespace
+      code += token.node.code_
+    } else {
+      code += token.whitespace ?? ''
+      code += token.node.code_
+    }
+  })
+  code += documented.fields
+    .get('newlines')
+    .map(({ whitespace, node }) => (whitespace ?? '') + node.code_)
+    .join('')
+  if (documented.expression) {
+    code += documented.fields.get('expression')?.whitespace ?? topIndent
+    code += documented.expression.printSubtree(info, offset + code.length, topIndent, verbatim)
+  }
+  const span = nodeKey(offset, code.length)
+  map.setIfUndefined(info.nodes, span, (): Ast[] => []).unshift(documented)
   return code
 }
 
@@ -788,9 +847,9 @@ function calculateCorrespondence(
     for (const partAfter of partsAfter) {
       const astBefore = partAfterToAstBefore.get(sourceRangeKey(partAfter))!
       if (astBefore.typeName() === astAfter.typeName()) {
-        ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter)
-          ? toSync
-          : candidates
+        ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter) ?
+          toSync
+        : candidates
         ).set(astBefore.id, astAfter)
         break
       }
@@ -889,9 +948,9 @@ function syncTree(
     const editAst = edit.getVersion(ast)
     if (syncFieldsFrom) {
       const originalAssignmentExpression =
-        ast instanceof Assignment
-          ? metadataSource.get(ast.fields.get('expression').node)
-          : undefined
+        ast instanceof Assignment ?
+          metadataSource.get(ast.fields.get('expression').node)
+        : undefined
       syncFields(edit.getVersion(ast), syncFieldsFrom, childReplacerFor(ast.id))
       if (editAst instanceof MutableAssignment && originalAssignmentExpression) {
         if (editAst.expression.externalId !== originalAssignmentExpression.externalId)

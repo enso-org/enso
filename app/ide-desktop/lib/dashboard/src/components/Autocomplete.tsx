@@ -184,7 +184,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
             size={1}
             value={text ?? ''}
             placeholder={placeholder}
-            className="grow bg-transparent leading-170 h-6 py-px px-2"
+            className="text grow bg-transparent px-button-x"
             onFocus={() => {
               setIsDropdownVisible(true)
             }}
@@ -202,7 +202,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
           <div
             ref={element => element?.focus()}
             tabIndex={-1}
-            className="grow cursor-pointer bg-transparent leading-170 h-6 py-px px-2"
+            className="text grow cursor-pointer bg-transparent px-button-x"
             onClick={() => {
               setIsDropdownVisible(true)
             }}
@@ -216,22 +216,26 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
           </div>
         )}
       </div>
-      <div className="h-0">
+      <div className="h">
         <div
-          className={`relative rounded-2xl shadow-soft w-full h-max top-2 z-1 before:absolute before:rounded-2xl before:backdrop-blur-3xl before:top-0 before:w-full before:h-full ${
-            isDropdownVisible ? 'before:border before:border-black/10' : ''
+          className={`relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default ${
+            isDropdownVisible && matchingItems.length !== 0
+              ? 'before:border before:border-black/10'
+              : ''
           }`}
         >
           <div
-            className={`relative rounded-2xl overflow-auto w-full max-h-10lh ${
-              isDropdownVisible ? '' : 'h-0'
+            className={`relative max-h-autocomplete-suggestions w-full overflow-auto rounded-default ${
+              isDropdownVisible && matchingItems.length !== 0 ? '' : 'h'
             }`}
           >
+            {/* FIXME: "Invite" modal does not take into account the height of the autocomplete,
+             * so the suggestions may go offscreen. */}
             {matchingItems.map((item, index) => (
               <div
                 key={itemToKey(item)}
-                className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black/5 py-1 px-2 ${
-                  index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-black/10' : ''
+                className={`text relative cursor-pointer px-input-x first:rounded-t-default last:rounded-b-default hover:bg-black/5 ${
+                  index === selectedIndex ? 'bg-black/5' : valuesSet.has(item) ? 'bg-hover-bg' : ''
                 }`}
                 onMouseDown={event => {
                   event.preventDefault()
