@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.callable;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -131,8 +132,8 @@ public final class UnresolvedSymbol implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    var ctx = EnsoContext.get(thisLib);
+  Type getType(@Bind("$node") Node node) {
+    var ctx = EnsoContext.get(node);
     return ctx.getBuiltins().function();
   }
 }
