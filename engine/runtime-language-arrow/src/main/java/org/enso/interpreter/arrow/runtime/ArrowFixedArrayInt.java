@@ -16,9 +16,8 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   private final ByteBufferDirect buffer;
   private final LogicalLayout unit;
 
-  public ArrowFixedArrayInt(ByteBufferDirect buffer, LogicalLayout unit)
-      throws UnsupportedMessageException {
-    this.size = buffer.capacity() / unit.sizeInBytes();
+  public ArrowFixedArrayInt(ByteBufferDirect buffer, int size, LogicalLayout unit) {
+    this.size = size;
     this.unit = unit;
     this.buffer = buffer;
   }

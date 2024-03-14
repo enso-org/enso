@@ -8,7 +8,6 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 
-import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
 from Standard.Table.Errors import all
 
