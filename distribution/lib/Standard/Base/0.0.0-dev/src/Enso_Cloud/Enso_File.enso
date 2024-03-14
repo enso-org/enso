@@ -220,9 +220,7 @@ type Enso_File
                 if real_format == Nothing then Error.throw (File_Error.Unsupported_Type self) else
                     self.read real_format on_problems
             _ ->
-                # TODO this is just a placeholder, until we implement the proper path
-                path = "enso://"+self.id
-                metadata = File_Format_Metadata.Value path=path name=self.name
+                metadata = File_Format_Metadata.from self
                 self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
@@ -374,7 +372,17 @@ Enso_Asset_Type.from (that:Text) = case that of
     _ -> Error.throw (Illegal_Argument.Error "Invalid asset type: "+that.pretty+".")
 
 ## PRIVATE
-File_Format_Metadata.from (that:Enso_File) = File_Format_Metadata.Value Nothing that.name (that.extension.catch _->Nothing)
+File_Format_Metadata.from (that:Enso_File) =
+    # TODO this is just a placeholder, until we implement the proper path
+    path = Nothing
+    case that.asset_type of
+        Enso_Asset_Type.Data_Link ->
+            File_Format_Metadata.Value path=path name=that.name content_type=Data_Link.data_link_content_type
+        Enso_Asset_Type.Directory ->
+            File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
+        Enso_Asset_Type.File ->
+            File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
+        _ -> Error.throw (Illegal_Argument.Error "`File_Format_Metadata` is not available for: "+self.asset_type.to_text+".")
 
 ## PRIVATE
    Fetches the basic information about a file from the Cloud endpoint.

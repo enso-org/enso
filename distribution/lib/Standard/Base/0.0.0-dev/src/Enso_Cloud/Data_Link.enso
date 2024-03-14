@@ -18,6 +18,7 @@ import project.System.File_Format.Auto_Detect
 import project.System.File_Format.Infer
 import project.System.File_Format.JSON_Format
 import project.System.File_Format_Metadata.File_Format_Metadata
+import project.System.File_Format_Metadata.Content_Type_Metadata
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.Input_Stream.Input_Stream
@@ -101,6 +102,24 @@ type Data_Link_Format
 ## PRIVATE
    All data-link config files should be saved with UTF-8 encoding.
 data_link_encoding = Encoding.utf_8
+
+## PRIVATE
+data_link_content_type = "application/x-enso-datalink"
+
+## PRIVATE
+data_link_extension = ".datalink"
+
+## PRIVATE
+   Checks if the given file is a data-link.
+is_data_link (file_metadata : File_Format_Metadata) -> Boolean =
+    case file_metadata.interpret_content_type of
+        content_type : Content_Type_Metadata ->
+            content_type.base_type == data_link_content_type
+        Nothing ->
+            case file_metadata.guess_extension of
+                extension : Text ->
+                    extension == data_link_extension
+                Nothing -> False
 
 ## PRIVATE
 interpret_json_as_datalink json =
