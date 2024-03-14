@@ -100,7 +100,7 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   const pathArg = argumentNames.filter({ has: page.getByText('path') })
   await pathArg.click()
   await expect(page.locator('.dropdownContainer')).toBeVisible()
-  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
   await dropDown.clickOption(page, 'File 2')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 2')
 
@@ -114,22 +114,12 @@ test('Selection widgets in Data.read node', async ({ page }) => {
     notAppliedArguments: [1],
   })
   await page.getByText('path').click()
-  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
   await dropDown.clickOption(page, 'File 1')
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 1')
 })
 
 test('Selection widget with text widget as input', async ({ page }) => {
-  await actions.goToGraph(page)
-  await mockMethodCallInfo(page, 'data', {
-    methodPointer: {
-      module: 'Standard.Base.Data',
-      definedOnType: 'Standard.Base.Data',
-      name: 'read',
-    },
-    notAppliedArguments: [0, 1, 2],
-  })
-
   const dropDown = new DropDownLocator(page)
   const node = locate.graphNodeByBinding(page, 'data')
   const argumentNames = node.locator('.WidgetArgumentName')
@@ -179,6 +169,29 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveValue('Foo')
   await expect(dropDown.dropDown).not.toBeVisible()
+})
+
+test('File Browser widget', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockMethodCallInfo(page, 'data', {
+    methodPointer: {
+      module: 'Standard.Base.Data',
+      definedOnType: 'Standard.Base.Data',
+      name: 'read',
+    },
+    notAppliedArguments: [0, 1, 2],
+  })
+  const dropDown = new DropDownLocator(page)
+  // Wait for arguments to load.
+  const node = locate.graphNodeByBinding(page, 'data')
+  const argumentNames = node.locator('.WidgetArgumentName')
+  await expect(argumentNames).toHaveCount(1)
+  const pathArg = argumentNames.filter({ has: page.getByText('path') })
+
+  await pathArg.click()
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
+  await dropDown.clickOption(page, 'Choose file…')
+  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('/path/to/some/mock/file')
 })
 
 test('Managing aggregates in `aggregate` node', async ({ page }) => {

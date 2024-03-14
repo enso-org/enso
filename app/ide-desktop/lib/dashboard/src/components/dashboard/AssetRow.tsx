@@ -34,7 +34,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
-import Visibility, * as visibilityModule from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // =================
 // === Constants ===
@@ -46,7 +46,9 @@ const HEADER_HEIGHT_PX = 34
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
 /** Placeholder row for directories that are empty. */
-const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
+const EMPTY_DIRECTORY_PLACEHOLDER = (
+  <span className="px-name-column-x placeholder">This folder is empty.</span>
+)
 
 // ================
 // === AssetRow ===
@@ -572,11 +574,9 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }
               }}
-              className={`h-8 transition duration-300 ease-in-out rounded-full outline-2 -outline-offset-2 outline-prmary ${
-                visibilityModule.CLASS_NAME[visibility]
-              } ${isKeyboardSelected ? 'outline' : ''} ${
-                isDraggedOver || selected ? 'selected' : ''
-              }`}
+              className={`h-row rounded-full outline-2 -outline-offset-2 outline-primary ease-in-out ${visibility} ${
+                isKeyboardSelected ? 'outline' : ''
+              } ${isDraggedOver || selected ? 'selected' : ''}`}
               onClick={event => {
                 unsetModal()
                 onClick(innerProps, event)
@@ -744,9 +744,9 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialLoading: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
+          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex justify-center rounded-full h-8 py-1 w-container ${indent.indentClass(
+              className={`flex h-row w-container justify-center rounded-full ${indent.indentClass(
                 item.depth
               )}`}
             >
@@ -759,11 +759,9 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialEmpty: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
+          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex items-center rounded-full h-8 py-2 ${indent.indentClass(
-                item.depth
-              )}`}
+              className={`flex h-row items-center rounded-full ${indent.indentClass(item.depth)}`}
             >
               <img src={BlankIcon} />
               {EMPTY_DIRECTORY_PLACEHOLDER}

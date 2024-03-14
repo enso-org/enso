@@ -23,4 +23,6 @@ export enum Channel {
     saveAccessToken = 'save-access-token',
     /** Channel for importing a project or project bundle from the given path. */
     importProjectFromPath = 'import-project-from-path',
+    /** Channel for selecting files and directories using the system file browser. */
+    openFileBrowser = 'open-file-browser',
 }

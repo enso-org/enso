@@ -14,8 +14,8 @@ export interface ContextMenuSeparatorProps {
 export default function ContextMenuSeparator(props: ContextMenuSeparatorProps) {
   const { hidden = false } = props
   return hidden ? null : (
-    <div className="py-0.5">
-      <div className="border-t-0.5 border-black/[0.16]" />
+    <div className="py-context-menu-separator-y">
+      <div className="border-t-[0.5px] border-black/[0.16]" />
     </div>
   )
 }
