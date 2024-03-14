@@ -75,10 +75,10 @@ read property_id:Text dimensions:Vector=['country'] metrics:Vector=['activeUsers
     headers = dimension_headers + metric_headers
 
     row_count = response.getRowCount
-    row_proxy = Array_Proxy.new row_count i->
+    rows = Vector.new row_count i->
         row = response.getRows i
         dimension_values = 0.up_to dimension_count . map i-> row.getDimensionValues i . getValue
         metric_values = 0.up_to metric_count . map i-> row.getMetricValues i . getValue
         dimension_values + metric_values
 
-    Table.from_rows headers (Vector.from_polyglot_array row_proxy)
+    Table.from_rows headers rows
