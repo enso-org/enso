@@ -25,13 +25,20 @@ export interface MenuEntryProps {
   /** When true, the button is not clickable. */
   readonly disabled?: boolean
   readonly title?: string
-  readonly paddingClassName?: string
+  readonly isContextMenuEntry?: boolean
   readonly doAction: () => void
 }
 
 /** An item in a menu. */
 export default function MenuEntry(props: MenuEntryProps) {
-  const { hidden = false, action, label, disabled = false, title, paddingClassName } = props
+  const {
+    hidden = false,
+    action,
+    label,
+    disabled = false,
+    title,
+    isContextMenuEntry = false,
+  } = props
   const { doAction } = props
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
@@ -51,16 +58,16 @@ export default function MenuEntry(props: MenuEntryProps) {
     <button
       disabled={disabled}
       title={title}
-      className={`flex items-center place-content-between h-8 disabled:bg-transparent rounded-lg text-left disabled:opacity-50 hover:bg-black/10 ${
-        paddingClassName ?? 'px-3 py-1'
+      className={`flex h-row place-content-between items-center rounded-menu-entry p-menu-entry text-left selectable hover:bg-hover-bg enabled:active disabled:bg-transparent ${
+        isContextMenuEntry ? 'px-context-menu-entry-x' : ''
       }`}
       onClick={event => {
         event.stopPropagation()
         doAction()
       }}
     >
-      <div className="flex items-center gap-3">
-        <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="w-4 h-4" />
+      <div className="flex items-center gap-menu-entry whitespace-nowrap">
+        <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
         {label ?? info.name}
       </div>
       <KeyboardShortcut action={action} />

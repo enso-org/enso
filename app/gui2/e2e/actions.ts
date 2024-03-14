@@ -19,6 +19,10 @@ export async function goToGraph(page: Page) {
 }
 
 export async function expectNodePositionsInitialized(page: Page, yPos: number) {
+  // Wait until edges are initialized and displayed correctly.
+  await expect(page.getByTestId('broken-edge')).toHaveCount(0)
+  // Wait until node sizes are initialized.
+  await expect(locate.graphNode(page).first().locator('.bgFill')).toBeVisible()
   // TODO: The yPos should not need to be a variable. Instead, first automatically positioned nodes
   // should always have constant known position. This is a bug caused by incorrect layout after
   // entering a function. To be fixed with #9255
