@@ -348,7 +348,7 @@ add_specs suite_builder =
                 x.to_text . should_equal "{FOOL True}"
                 (x:Fool).to_text . should_equal "{FOOL True}"
                 (x:Boolean).to_text . should_equal "True"
-                Panic.recover Any (x:Integer).to_text . should_fail_with Type_Error
+                Test.expect_panic Type_Error <| (x:Integer).to_text
 
             do_boolean True
 
@@ -365,7 +365,7 @@ add_specs suite_builder =
                 x.to_text . should_equal "Hello"
                 (x:Fool).to_text . should_equal "{FOOL Hello}"
                 (x:Text).to_text . should_equal "Hello"
-                Panic.recover Any (x:Boolean).to_text . should_fail_with Type_Error
+                Test.expect_panic Type_Error <| (x:Boolean).to_text
 
             do_text "Hello"
 
@@ -480,8 +480,8 @@ add_specs suite_builder =
             m_bar (m:Bar|Foo) = m
             m_back (m:Foo|Bar|Back) = m
 
-            Panic.recover Any (m_foo v) . should_fail_with Type_Error
-            Panic.recover Any (m_bar v) . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| (m_foo v)
+            Test.expect_panic Type_Error <| (m_bar v)
             m_back v . should_equal <| Back.Times 10
 
         group_builder.specify "Lazy constructor with State" <|
@@ -531,7 +531,7 @@ add_specs suite_builder =
             (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
 
         group_builder.specify "f1 42" <|
-            Panic.recover Any (f1 42).to_display_text . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| (f1 42).to_display_text
 
         group_builder.specify "f2 AAA" <|
             (f2 "AAA").to_display_text . should_equal "TEXT: AAA"
@@ -589,7 +589,7 @@ add_specs suite_builder =
             (f1 d).to_display_text . should_contain "ParseCaseSensitive(false)(Value"
 
         group_builder.specify "f1 42" <|
-            Panic.recover Any (f1 42).to_display_text . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| (f1 42).to_display_text
 
         group_builder.specify "f2 foo AAA" <|
             (f2 <| Foo.Value "AAA").to_display_text . should_equal "HELLO: (Say 'AAA ')"
@@ -635,4 +635,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-
