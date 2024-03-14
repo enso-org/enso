@@ -17,11 +17,11 @@ trait FileSystemServiceApi[F[+_, +_]] {
     */
   def createDirectory(path: File): F[FileSystemServiceFailure, Unit]
 
-  /** Deletes a directory with its contents.
+  /** Deletes a file or a directory with its contents.
     *
-    * @param path the directory to delete
+    * @param path the file or directory to delete
     */
-  def deleteDirectory(path: File): F[FileSystemServiceFailure, Unit]
+  def delete(path: File): F[FileSystemServiceFailure, Unit]
 
   /** Moves a file or directory recursively.
     *

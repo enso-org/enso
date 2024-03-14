@@ -27,7 +27,7 @@ export interface AmplifyConfig {
   readonly userPoolId: string
   readonly userPoolWebClientId: string
   readonly urlOpener: ((url: string, redirectUrl: string) => void) | null
-  readonly saveAccessToken: ((accessToken: string | null) => void) | null
+  readonly saveAccessToken: ((accessToken: SaveAccessTokenPayload | null) => void) | null
   readonly domain: string
   readonly scope: string[]
   readonly redirectSignIn: string
@@ -125,6 +125,7 @@ export function initAuthService(authConfig: AuthConfig): AuthService | null {
     amplifyConfig == null
       ? null
       : new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
+
   return cognito == null
     ? null
     : { cognito, registerAuthEventListener: listen.registerAuthEventListener }
@@ -137,14 +138,14 @@ function loadAmplifyConfig(
   navigate: (url: string) => void
 ): AmplifyConfig | null {
   let urlOpener: ((url: string) => void) | null = null
-  let saveAccessToken: ((accessToken: string | null) => void) | null = null
+  let saveAccessToken: ((accessToken: SaveAccessTokenPayload | null) => void) | null = null
   if ('authenticationApi' in window) {
     // When running on desktop we want to have option to save access token to a file,
     // so it can be reused later when issuing requests to the Cloud API.
     //
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
-    saveAccessToken = (accessToken: string | null) => {
+    saveAccessToken = (accessToken: SaveAccessTokenPayload | null) => {
       window.authenticationApi.saveAccessToken(accessToken)
     }
   }
@@ -239,7 +240,7 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
             try {
               // @ts-expect-error `_handleAuthResponse` is a private method without typings.
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-              await amplify.Auth._handleAuthResponse(url)
+              await amplify.Auth._handleAuthResponse(url.toString())
             } finally {
               // Restore the original `history.replaceState` function.
               history.replaceState = replaceState

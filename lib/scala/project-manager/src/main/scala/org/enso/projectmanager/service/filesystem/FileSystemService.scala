@@ -43,11 +43,11 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
       )
 
   /** @inheritdoc */
-  override def deleteDirectory(path: File): F[FileSystemServiceFailure, Unit] =
+  override def delete(path: File): F[FileSystemServiceFailure, Unit] =
     fileSystem
-      .removeDir(path)
+      .remove(path)
       .mapError(_ =>
-        FileSystemServiceFailure.FileSystem("Failed to delete directory")
+        FileSystemServiceFailure.FileSystem("Failed to delete path")
       )
 
   /** @inheritdoc */

@@ -15,10 +15,10 @@ Enso IDE is the main product of the Enso project. The packages are stand-alone, 
 
 Download links:
 
-- [Linux]({{download_prefix}}/ide2-enso-linux-x86_64-{{version}}.AppImage) (AppImage);
-- [macOS (x64)]({{download_prefix}}/ide2-enso-mac-x64-{{version}}.dmg) (DMG);
-- [macOS (arm64)]({{download_prefix}}/ide2-enso-mac-arm64-{{version}}.dmg) (DMG);
-- [Windows]({{download_prefix}}/ide2-enso-win-x64-{{version}}.exe) (Installer Executable).
+- [Linux]({{download_prefix}}/enso-linux-x86_64-{{version}}.AppImage) (AppImage);
+- [macOS (x64)]({{download_prefix}}/enso-mac-x64-{{version}}.dmg) (DMG);
+- [macOS (arm64)]({{download_prefix}}/enso-mac-arm64-{{version}}.dmg) (DMG);
+- [Windows]({{download_prefix}}/enso-win-x64-{{version}}.exe) (Installer Executable).
 
 This is the recommended download for most users.
 

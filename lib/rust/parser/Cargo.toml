@@ -13,7 +13,6 @@ license-file = "../../LICENSE"
 enso-prelude = { path = "../prelude" }
 enso-reflect = { path = "../reflect" }
 enso-data-structures = { path = "../data-structures" }
-enso-types = { path = "../types" }
 enso-shapely-macros = { path = "../shapely/macros" }
 enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor" }
 serde = { workspace = true }

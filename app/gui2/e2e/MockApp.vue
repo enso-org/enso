@@ -19,6 +19,12 @@ const graphStore = useGraphStore()
 onMounted(() => {
   const window_ = window as any
   window_.mockExpressionUpdate = graphStore.mockExpressionUpdate
+  // Mock FileBrowserApi that is usually provided by Electron.
+  window_.fileBrowserApi = {
+    openFileBrowser: async () => {
+      return ['/path/to/some/mock/file']
+    },
+  }
 })
 </script>
 

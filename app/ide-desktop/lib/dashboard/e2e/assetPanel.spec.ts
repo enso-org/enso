@@ -12,7 +12,7 @@ test.test('open and close asset panel', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await test.expect(actions.locateAssetPanel(page)).not.toBeVisible()
   await actions.locateAssetPanelIcon(page).click()
   await test.expect(actions.locateAssetPanel(page)).toBeVisible()
@@ -46,7 +46,7 @@ test.test('asset panel contents', async ({ page }) => {
   await page.goto('/')
   await actions.login({ page })
 
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await actions.locateAssetPanelIcon(page).click()
   await test.expect(actions.locateAssetPanelDescription(page)).toHaveText(description)
   // `getByText` is required so that this assertion works if there are multiple permissions.
