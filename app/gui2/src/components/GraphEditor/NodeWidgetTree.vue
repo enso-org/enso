@@ -7,7 +7,7 @@ import { provideWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import type { Icon } from '@/util/iconName'
-import { computed, toRef } from 'vue'
+import { computed, ref, toRef } from 'vue'
 
 const props = defineProps<{
   ast: Ast.Ast
@@ -65,6 +65,8 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   return true
 }
 
+const deepDisableClipping = ref(false)
+
 const layoutTransitions = useTransitioning(observedLayoutTransitions)
 provideWidgetTree(
   toRef(props, 'ast'),
@@ -77,6 +79,7 @@ provideWidgetTree(
   () => {
     emit('openFullMenu')
   },
+  (clippingInhibitorsExist) => (deepDisableClipping.value = clippingInhibitorsExist),
 )
 </script>
 <script lang="ts">
@@ -86,7 +89,12 @@ export const ICON_WIDTH = 16
 </script>
 
 <template>
-  <div class="NodeWidgetTree" spellcheck="false" v-on="layoutTransitions.events">
+  <div
+    class="NodeWidgetTree"
+    :class="{ deepDisableClipping }"
+    spellcheck="false"
+    v-on="layoutTransitions.events"
+  >
     <!-- Display an icon for the node if no widget in the tree provides one. -->
     <SvgIcon
       v-if="!props.connectedSelfArgumentId"
@@ -127,5 +135,9 @@ export const ICON_WIDTH = 16
 .grab-handle {
   color: white;
   margin: 0 v-bind('GRAB_HANDLE_X_MARGIN_PX');
+}
+
+.deepDisableClipping :deep(.overridableClipState) {
+  overflow: visible !important;
 }
 </style>
