@@ -160,7 +160,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             {isCloud && (
               <ContextMenuEntry hidden={hidden} action="copy" label="Copy All" doAction={doCopy} />
             )}
-            {isCloud && ownsAllSelectedAssets && (
+            {ownsAllSelectedAssets && (
               <ContextMenuEntry hidden={hidden} action="cut" label="Cut All" doAction={doCut} />
             )}
             {pasteData != null && pasteData.data.size > 0 && (
