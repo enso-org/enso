@@ -57,7 +57,7 @@
     "build": "tsx bundle.ts",
     "dist": "tsx dist.ts",
     "watch": "tsx watch.ts",
-    "watch:linux": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-$HOME/.cache/enso-ide-watch}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\"",
-    "watch:macos": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-$HOME/Library/Caches/enso-ide-watch}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\""
+    "watch:linux": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\"",
+    "watch:macos": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" tsx watch.ts \"$@\""
   }
 }
