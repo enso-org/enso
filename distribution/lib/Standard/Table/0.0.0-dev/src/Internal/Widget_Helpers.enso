@@ -67,10 +67,17 @@ make_aggregate_column_vector_selector table display=Display.Always =
     Vector_Editor item_editor=item_editor item_default="(Aggregate_Column.Count)" display=display
 
 ## PRIVATE
+intersect_column_names table:Table (right_table:Nothing|Table) =
+    IO.println "intersect_column_names, right table: "+right_table.to_text
+    if right_table.is_nothing then table.column_names else
+        table.column_names.filter n->
+            right_table.column_names.contains n
+
+## PRIVATE
    Make a column name selector.
 make_column_name_selector : Table -> Boolean -> Display -> Widget
-make_column_name_selector table add_expression:Boolean=False display=Display.Always =
-    col_names = table.column_names
+make_column_name_selector table add_expression:Boolean=False display=Display.Always right_table=Nothing =
+    col_names = intersect_column_names table right_table
     names = col_names.map n-> Option n n.pretty
     expression = if add_expression then [Option "<Expression>" "(expr '["+table.column_names.first+"]')"] else []
     Single_Choice display=display values=(expression+names)
@@ -138,6 +145,9 @@ make_filter_condition_selector table display=Display.Always =
     builder.append (Option "Is In" fqn+".Is_In")
     Single_Choice builder.to_vector display=display
 
+foreign js dbg = """
+    debugger;
+
 ## PRIVATE
    Make a join kind selector - Needed to override display.
 make_join_kind_selector : Display -> Widget
@@ -148,9 +158,17 @@ make_join_kind_selector display=Display.Always =
 
 ## PRIVATE
    Make a join condition selector.
-make_join_condition_selector : Table -> Display -> Widget
-make_join_condition_selector table display=Display.Always =
-    col_names_selector = make_column_name_selector table display=Display.Always
+make_join_condition_selector : Table -> Display -> Function -> Widget
+make_join_condition_selector table display=Display.Always cache=Nothing =
+    right = if cache.is_nothing.not then
+        dbg
+        right_arg = cache "right"
+        if right_arg.is_nothing.not then right_arg else
+            zero_arg = cache 0
+            zero_arg
+
+    col_names = intersect_column_names table right
+    col_names_selector = make_column_name_selector table display=Display.Always right_table=right
 
     fqn = Meta.get_qualified_type_name Join_Condition
     equals = Option "Equals" fqn+".Equals" [["left", col_names_selector], ["right", Text_Input]]
@@ -159,7 +177,7 @@ make_join_condition_selector table display=Display.Always =
     names=[equals, equals_ci, between]
 
     item_editor = Single_Choice display=display values=names
-    Vector_Editor item_editor=item_editor item_default="(Join_Condition.Equals "+table.column_names.first.pretty+")" display=display
+    Vector_Editor item_editor=item_editor item_default="(Join_Condition.Equals "+col_names.first.pretty+")" display=display
 
 ## PRIVATE
    Make a column name selector.
