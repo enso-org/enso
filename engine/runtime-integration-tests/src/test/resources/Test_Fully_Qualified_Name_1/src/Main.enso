@@ -13,4 +13,7 @@
      main = Test_Fully_Qualified_Name_1.Synthetic_Mod.A_Mod.A_Type
 
 import project.Synthetic_Mod.A_Mod.A_Type
+from project.Synthetic_Mod.A_Mod import static_method
+
 export project.Synthetic_Mod.A_Mod.A_Type
+from project.Synthetic_Mod.A_Mod export static_method

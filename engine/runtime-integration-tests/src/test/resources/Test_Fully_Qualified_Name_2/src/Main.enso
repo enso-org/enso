@@ -8,4 +8,7 @@ main =
     # Try to use it also via physical FQN
     type_via_physical_path = Test_Fully_Qualified_Name_1.Synthetic_Module.A_Mod.A_Type
 
-    type_via_logical_path == type_via_physical_path
+    method_via_logical_path = Test_Fully_Qualified_Name_1.static_method "foo"
+    method_via_physical_path = Test_Fully_Qualified_Name_1.Synthetic_Module.A_Mod.static_method "foo"
+
+    [type_via_logical_path == type_via_physical_path, method_via_logical_path == method_via_physical_path]
