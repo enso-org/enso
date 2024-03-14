@@ -58,7 +58,7 @@ export function bundlerOptions(
             BUNDLED_ENGINE_VERSION: JSON.stringify(bundledEngineVersion),
             PROJECT_MANAGER_IN_BUNDLE_PATH: JSON.stringify(projectManagerInBundlePath),
             'process.env.ELECTRON_DEV_MODE': JSON.stringify(String(devMode)),
-            'process.env.GUI2_CONFIG_PATH': JSON.stringify(
+            'process.env.GUI_CONFIG_PATH': JSON.stringify(
                 path.resolve('../../../gui2/vite.config.ts')
             ),
         },

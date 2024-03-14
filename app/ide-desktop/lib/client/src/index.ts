@@ -423,11 +423,16 @@ class App {
             address.search = new URLSearchParams(searchParams).toString()
             logger.log(`Loading the window address '${address.toString()}'.`)
             if (process.env.ELECTRON_DEV_MODE === 'true') {
+                // Vite takes a while to be `import`ed, so the first load almost always fails.
+                // Reload every second until Vite is ready
+                // (i.e. when `index.html` has a non-empty body).
                 const window = this.window
                 const onLoad = () => {
                     void window.webContents.mainFrame
+                        // Get the HTML contents of `document.body`.
                         .executeJavaScript('document.body.innerHTML')
                         .then(html => {
+                            // If `document.body` is empty, then `index.html` failed to load.
                             if (html === '') {
                                 console.warn('Loading failed, reloading...')
                                 window.webContents.once('did-finish-load', onLoad)
@@ -438,6 +443,8 @@ class App {
                             }
                         })
                 }
+                // Wait for page to load before checking content, because of course the content is
+                // empty if the page isn't loaded.
                 window.webContents.once('did-finish-load', onLoad)
             }
             await this.window.loadURL(address.toString())

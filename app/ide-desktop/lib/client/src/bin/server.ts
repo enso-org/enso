@@ -142,7 +142,7 @@ export class Server {
                                         middlewareMode: true,
                                         hmr: httpServer ? { server: httpServer } : {},
                                     },
-                                    configFile: process.env.GUI2_CONFIG_PATH ?? false,
+                                    configFile: process.env.GUI_CONFIG_PATH ?? false,
                                 })
                                 .then(devServer => (this.devServer = devServer))
                         }
@@ -153,7 +153,8 @@ export class Server {
     }
 
     /** Respond to an incoming request.
-     * @throws {Error} on malformed input. */
+     * @throws {Error} when passing invalid JSON to
+     * `/api/run-project-manager-command?cli-arguments=<urlencoded-json>`. */
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
         if (requestUrl == null) {
@@ -228,7 +229,7 @@ export class Server {
                     ) {
                         response
                             .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
-                            .end('Command arguments must be an array of strings')
+                            .end('Command arguments must be an array of strings.')
                     } else {
                         const commandOutput =
                             this.config.externalFunctions.runProjectManagerCommand(

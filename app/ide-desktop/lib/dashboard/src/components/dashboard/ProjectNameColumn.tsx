@@ -125,7 +125,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           rowState.setVisibility(Visibility.faded)
           try {
             const createdProject = await backend.createProject({
-              parentId: asset.parentId,
+              parentDirectoryId: asset.parentId,
               projectName: asset.title,
               projectTemplateName: event.templateId,
             })

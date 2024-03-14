@@ -882,7 +882,7 @@ export interface DeleteAssetRequestBody {
 export interface CreateProjectRequestBody {
   readonly projectName: string
   readonly projectTemplateName: string | null
-  readonly parentId: DirectoryId | null
+  readonly parentDirectoryId: DirectoryId | null
 }
 
 /** HTTP request body for the "update project" endpoint.
@@ -987,17 +987,14 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   if (relativeTypeOrder !== 0) {
     return relativeTypeOrder
   }
-  const aModified = new Date(a.modifiedAt)
-  const bModified = new Date(b.modifiedAt)
-  return aModified > bModified
-    ? -1
-    : aModified < bModified
-      ? 1
-      : a.title > b.title
-        ? 1
-        : a.title < b.title
-          ? -1
-          : 0
+  const aModified = Number(new Date(a.modifiedAt))
+  const bModified = Number(new Date(b.modifiedAt))
+  const modifiedDelta = aModified - bModified
+  if (modifiedDelta !== 0) {
+    return modifiedDelta
+  } else {
+    return a.title > b.title ? 1 : a.title < b.title ? -1 : 0
+  }
 }
 
 // ==================

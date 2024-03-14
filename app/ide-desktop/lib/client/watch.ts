@@ -50,7 +50,8 @@ await fs.symlink(
 const ALL_BUNDLES_READY = new Promise<Watches>((resolve, reject) => {
     void (async () => {
         console.log('Bundling client.')
-        const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv(true)
+        const devMode = true
+        const clientBundlerOpts = clientBundler.bundlerOptionsFromEnv(devMode)
         clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
         // Eslint is wrong here; `clientBundlerOpts.plugins` is actually `undefined`.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

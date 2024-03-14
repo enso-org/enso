@@ -129,7 +129,7 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ELECTRON_DEV_MODE?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-            readonly GUI2_CONFIG_PATH?: string
+            readonly GUI_CONFIG_PATH?: string
             /* eslint-enable @typescript-eslint/naming-convention */
         }
     }
