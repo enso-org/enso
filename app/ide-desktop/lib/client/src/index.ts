@@ -378,6 +378,25 @@ class App {
             const info = projectManagement.importProjectFromPath(path)
             event.reply(ipc.Channel.importProjectFromPath, path, info)
         })
+        electron.ipcMain.handle(
+            ipc.Channel.openFileBrowser,
+            async (_event, kind: 'any' | 'directory' | 'file') => {
+                /** Helper for `showOpenDialog`, which has weird types by default. */
+                type Properties = ('openDirectory' | 'openFile')[]
+                const properties: Properties =
+                    kind === 'file'
+                        ? ['openFile']
+                        : kind === 'directory'
+                          ? ['openDirectory']
+                          : ['openFile', 'openDirectory']
+                const { canceled, filePaths } = await electron.dialog.showOpenDialog({ properties })
+                if (!canceled) {
+                    return filePaths
+                } else {
+                    return null
+                }
+            }
+        )
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration

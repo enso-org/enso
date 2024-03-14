@@ -24,6 +24,5 @@ Check `bench_download -h` for documentation and usage. Ensure that your
 creates `generated_site` directory with HTML files for visualizing the benchmark
 results.
 
-One can also analyze the benchmarks in Enso IDE by running
-`bench_download.py --create-csv` and then running `Engine_Benchs` project. The
-created CSV is pasted into `Engine_Benchs/data` directory by default.
+One can also download only a CSV file representing all the selected benchmark
+results with `bench_download.py --create-csv`.

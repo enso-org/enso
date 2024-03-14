@@ -630,6 +630,7 @@
 - [Make File./ only accept Text][9330]
 - [Implemented Excel Data Link][9346]
 - [Added Table.running][9346]
+- [Added Google_Analytics.Read][9239]
 - [Allow `Table.replace` to take mutiple target columns.][9406]
 
 [debug-shortcuts]:
@@ -909,6 +910,7 @@
 [9215]: https://github.com/enso-org/enso/pull/9215
 [9225]: https://github.com/enso-org/enso/pull/9225
 [9233]: https://github.com/enso-org/enso/pull/9233
+[9239]: https://github.com/enso-org/enso/pull/9239
 [9249]: https://github.com/enso-org/enso/pull/9249
 [9269]: https://github.com/enso-org/enso/pull/9269
 [9299]: https://github.com/enso-org/enso/pull/9299
