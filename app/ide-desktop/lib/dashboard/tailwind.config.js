@@ -426,7 +426,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
           // === Outline classes ===
 
           '.focus-ring': {
-            '@apply outline outline-2 -outline-offset-2 outline-primary': '',
+            '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
           },
 
           // === Classes affecting opacity ===

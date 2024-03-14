@@ -15,6 +15,7 @@ interface InternalLabelProps
   // This matches the capitalization of `data-` attributes in React.
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly 'data-testid'?: string
+  readonly focusRing?: boolean
   /** When true, the button is not faded out even when not hovered. */
   readonly active?: boolean
   /** When true, the button has a red border signifying that it will be deleted,
@@ -27,9 +28,10 @@ interface InternalLabelProps
 }
 
 /** An label that can be applied to an asset. */
-export default function Label(props: InternalLabelProps) {
+function Label(props: InternalLabelProps, ref: React.ForwardedRef<HTMLButtonElement>) {
   const {
     'data-testid': dataTestId,
+    focusRing = false,
     active = false,
     disabled = false,
     color,
@@ -45,19 +47,27 @@ export default function Label(props: InternalLabelProps) {
       : active
         ? 'text-primary'
         : 'text-not-selected'
+
   return (
-    <button
-      data-testid={dataTestId}
-      disabled={disabled}
-      className={`selectable ${
-        active ? 'active' : ''
-      } relative flex h-text items-center whitespace-nowrap rounded-full px-label-x transition-all before:absolute before:inset before:rounded-full ${
-        negated ? 'before:border-2 before:border-delete' : ''
-      } ${className} ${textColorClassName}`}
-      style={{ backgroundColor: backend.lChColorToCssColor(color) }}
-      {...passthrough}
+    <div
+      className={`relative after:absolute after:inset after:rounded-full ${focusRing ? 'after:focus-ring' : ''}`}
     >
-      {children}
-    </button>
+      <button
+        data-testid={dataTestId}
+        ref={ref}
+        disabled={disabled}
+        className={`selectable ${
+          active ? 'active' : ''
+        } relative flex h-text items-center whitespace-nowrap rounded-full px-label-x transition-all before:absolute before:inset before:rounded-full ${
+          negated ? 'before:border-2 before:border-delete' : ''
+        } ${className} ${textColorClassName}`}
+        style={{ backgroundColor: backend.lChColorToCssColor(color) }}
+        {...passthrough}
+      >
+        {children}
+      </button>
+    </div>
   )
 }
+
+export default React.forwardRef(Label)

@@ -4,6 +4,8 @@ import * as React from 'react'
 import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
@@ -44,20 +46,37 @@ export default function Labels(props: LabelsProps) {
   const currentLabels = query.labels
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
-  const rootRef = React.useRef<HTMLDivElement>(null)
   const navigator2D = navigator2DProvider.useNavigator2D()
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  const displayLabels = React.useMemo(
+    () =>
+      labels
+        .filter(label => !deletedLabelNames.has(label.value))
+        .sort((a, b) => string.compareCaseInsensitive(a.value, b.value)),
+    [deletedLabelNames, labels]
+  )
+
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
+      length: labels.length,
+    })
 
   React.useEffect(() => {
     const root = rootRef.current
     if (root == null) {
       return
     } else {
-      navigator2D.register(root)
+      navigator2D.register(root, {
+        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
+        focusWhenPressed: {
+          up: setKeyboardSelectedIndex.bind(null, displayLabels.length - 1),
+        },
+      })
       return () => {
         navigator2D.unregister(root)
       }
     }
-  }, [navigator2D])
+  }, [displayLabels.length, setKeyboardSelectedIndex, navigator2D])
 
   return (
     <div
@@ -67,73 +86,76 @@ export default function Labels(props: LabelsProps) {
     >
       <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Labels</div>
       <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
-        {labels
-          .filter(label => !deletedLabelNames.has(label.value))
-          .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
-          .map(label => {
-            const negated = currentNegativeLabels.some(term =>
-              array.shallowEqual(term, [label.value])
-            )
-            return (
-              <li key={label.id} className="group flex items-center gap-label-icons">
-                <Label
-                  draggable
-                  color={label.color}
-                  active={
-                    negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
+        {displayLabels.map((label, i) => {
+          const negated = currentNegativeLabels.some(term =>
+            array.shallowEqual(term, [label.value])
+          )
+          return (
+            <li key={label.id} className="group flex items-center gap-label-icons">
+              <Label
+                ref={element => {
+                  if (keyboardSelectedIndex === i) {
+                    element?.focus()
                   }
-                  negated={negated}
-                  disabled={newLabelNames.has(label.value)}
+                }}
+                draggable
+                focusRing={i === keyboardSelectedIndex}
+                color={label.color}
+                active={
+                  negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
+                }
+                negated={negated}
+                disabled={newLabelNames.has(label.value)}
+                onClick={event => {
+                  setQuery(oldQuery =>
+                    oldQuery.withToggled('labels', 'negativeLabels', label.value, event.shiftKey)
+                  )
+                }}
+                onDragStart={event => {
+                  drag.setDragImageToBlank(event)
+                  const payload: drag.LabelsDragPayload = new Set([label.value])
+                  drag.LABELS.bind(event, payload)
+                  setModal(
+                    <DragModal
+                      event={event}
+                      doCleanup={() => {
+                        drag.LABELS.unbind(payload)
+                      }}
+                    >
+                      <Label active color={label.color} onClick={() => {}}>
+                        {label.value}
+                      </Label>
+                    </DragModal>
+                  )
+                }}
+              >
+                {label.value}
+              </Label>
+              {!newLabelNames.has(label.value) && (
+                <button
+                  className="flex"
                   onClick={event => {
-                    setQuery(oldQuery =>
-                      oldQuery.withToggled('labels', 'negativeLabels', label.value, event.shiftKey)
-                    )
-                  }}
-                  onDragStart={event => {
-                    drag.setDragImageToBlank(event)
-                    const payload: drag.LabelsDragPayload = new Set([label.value])
-                    drag.LABELS.bind(event, payload)
+                    event.stopPropagation()
                     setModal(
-                      <DragModal
-                        event={event}
-                        doCleanup={() => {
-                          drag.LABELS.unbind(payload)
+                      <ConfirmDeleteModal
+                        actionText={`delete the label '${label.value}'`}
+                        doDelete={() => {
+                          doDeleteLabel(label.id, label.value)
                         }}
-                      >
-                        <Label active color={label.color} onClick={() => {}}>
-                          {label.value}
-                        </Label>
-                      </DragModal>
+                      />
                     )
                   }}
                 >
-                  {label.value}
-                </Label>
-                {!newLabelNames.has(label.value) && (
-                  <button
-                    className="flex"
-                    onClick={event => {
-                      event.stopPropagation()
-                      setModal(
-                        <ConfirmDeleteModal
-                          actionText={`delete the label '${label.value}'`}
-                          doDelete={() => {
-                            doDeleteLabel(label.id, label.value)
-                          }}
-                        />
-                      )
-                    }}
-                  >
-                    <SvgMask
-                      src={Trash2Icon}
-                      alt="Delete"
-                      className="size-icon text-delete transition-all transparent group-hover:active"
-                    />
-                  </button>
-                )}
-              </li>
-            )
-          })}
+                  <SvgMask
+                    src={Trash2Icon}
+                    alt="Delete"
+                    className="size-icon text-delete transition-all transparent group-hover:active"
+                  />
+                </button>
+              )}
+            </li>
+          )
+        })}
         <li>
           <Label
             active
