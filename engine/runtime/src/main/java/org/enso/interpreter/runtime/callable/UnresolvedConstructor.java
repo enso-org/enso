@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
@@ -14,10 +15,12 @@ import java.util.Objects;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -29,6 +32,7 @@ import org.enso.interpreter.runtime.state.State;
  * known.
  */
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(TypesLibrary.class)
 public final class UnresolvedConstructor implements EnsoObject {
   private static final CallArgumentInfo[] NONE = new CallArgumentInfo[0];
   private final String name;
@@ -157,5 +161,16 @@ public final class UnresolvedConstructor implements EnsoObject {
       var r = invoke.execute(fn, frame, state, unresolved.args);
       return r;
     }
+  }
+
+  @ExportMessage
+  boolean hasType() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    var ctx = EnsoContext.get(thisLib);
+    return ctx.getBuiltins().function();
   }
 }

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.concurrent.Callable;
+import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.graalvm.polyglot.Context;
@@ -30,15 +31,25 @@ public class TypeOfNodeTest {
 
   @Test
   public void typeOfUnknownSymbol() throws Exception {
-    assertType("Function", false);
+    assertType(UnresolvedSymbol.build("unknown_name", null), "Function", false);
   }
 
   @Test
   public void primeThenTypeUnknownSymbol() throws Exception {
-    assertType("Function", true);
+    assertType(UnresolvedSymbol.build("unknown_name", null), "Function", true);
   }
 
-  private void assertType(String expectedTypeName, boolean withPriming) {
+  @Test
+  public void typeOfUnknownConstructor() throws Exception {
+    assertType(UnresolvedConstructor.build("Unknown_Name"), "Function", false);
+  }
+
+  @Test
+  public void primeThenTypeUnknownConstructor() throws Exception {
+    assertType(UnresolvedConstructor.build("Unknown_Name"), "Function", true);
+  }
+
+  private void assertType(Object symbol, String expectedTypeName, boolean withPriming) {
     var ctx = Context.create();
     executeInContext(
         ctx,
@@ -51,7 +62,6 @@ public class TypeOfNodeTest {
             assertTrue(
                 "Empty foreign is unknown: " + foreignType, foreignType instanceof DataflowError);
           }
-          var symbol = UnresolvedSymbol.build("unknown_name", null);
           var symbolType = node.execute(symbol);
           var symbolTypeValue = ctx.asValue(symbolType);
           assertTrue("It is meta object: " + symbolTypeValue, symbolTypeValue.isMetaObject());
