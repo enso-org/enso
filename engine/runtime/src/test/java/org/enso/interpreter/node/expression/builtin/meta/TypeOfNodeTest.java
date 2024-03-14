@@ -4,12 +4,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.interop.TruffleObject;
+import java.lang.System.Logger.Level;
+import java.nio.file.Paths;
 import java.util.concurrent.Callable;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -21,7 +25,7 @@ public class TypeOfNodeTest {
 
   @BeforeClass
   public static void initCtx() throws Exception {
-    ctx = Context.create();
+    ctx = defaultContextBuilder().build();
   }
 
   @AfterClass
@@ -67,6 +71,20 @@ public class TypeOfNodeTest {
           assertEquals(expectedTypeName, symbolTypeValue.getMetaSimpleName());
           return null;
         });
+  }
+
+  private static Context.Builder defaultContextBuilder(String... languages) {
+    return Context.newBuilder(languages)
+        .allowExperimentalOptions(true)
+        .allowIO(IOAccess.ALL)
+        .allowAllAccess(true)
+        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+        .logHandler(System.err)
+        .option(RuntimeOptions.STRICT_ERRORS, "true")
+        .option(
+            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+            Paths.get("../../distribution/component").toFile().getAbsolutePath());
   }
 
   private static Value executeInContext(Context ctx, Callable<Object> callable) {
