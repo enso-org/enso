@@ -95,17 +95,17 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 // ======================================
 
 /** Create a {@link backend.DirectoryId} from a path. */
-function newDirectoryId(path: string) {
+export function newDirectoryId(path: string) {
   return backend.DirectoryId(`${backend.AssetType.directory}-${path}`)
 }
 
 /** Create a {@link backend.ProjectId} from a path. */
-function newProjectId(path: string) {
+export function newProjectId(path: string) {
   return backend.ProjectId(`${backend.AssetType.project}-${path}`)
 }
 
 /** Create a {@link backend.FileId} from a path. */
-function newFileId(path: string) {
+export function newFileId(path: string) {
   return backend.FileId(`${backend.AssetType.file}-${path}`)
 }
 

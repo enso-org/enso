@@ -191,6 +191,7 @@ export default function AssetRow(props: AssetRowProps) {
           oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
         )
         setAsset(oldAsset => {
+          const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
           const newProjectState =
             oldAsset.projectState == null
               ? null
@@ -198,11 +199,37 @@ export default function AssetRow(props: AssetRowProps) {
                   oldAsset.projectState,
                   oldAsset.projectState.path == null
                     ? {}
-                    : {
-                        path: `${localBackend.extractTypeAndId(nonNullNewParentId).id}/${fileInfo.fileName(oldAsset.projectState.path)}`,
-                      }
+                    : { path: `${newParentPath}/${fileInfo.fileName(oldAsset.projectState.path)}` }
                 )
+          let newId = oldAsset.id
+          if (!isCloud) {
+            const internalId = localBackend.extractTypeAndId(oldAsset.id).id
+            switch (oldAsset.type) {
+              case backendModule.AssetType.file: {
+                newId = localBackend.newFileId(internalId)
+                break
+              }
+              case backendModule.AssetType.directory: {
+                newId = localBackend.newDirectoryId(internalId)
+                break
+              }
+              case backendModule.AssetType.project:
+              case backendModule.AssetType.secret:
+              case backendModule.AssetType.dataLink:
+              case backendModule.AssetType.specialLoading:
+              case backendModule.AssetType.specialEmpty: {
+                // Ignored.
+                // Project paths are not stored in their `id`;
+                // The other asset types either do not exist on the Local backend,
+                // or do not have a path.
+                break
+              }
+            }
+          }
           return object.merge(oldAsset, {
+            // This is SAFE as the type of `newId` is not changed from its original type.
+            // eslint-disable-next-line no-restricted-syntax
+            id: newId as never,
             parentId: nonNullNewParentId,
             projectState: newProjectState,
           })
@@ -218,7 +245,15 @@ export default function AssetRow(props: AssetRowProps) {
         )
       } catch (error) {
         toastAndLog(`Could not move '${asset.title}'`, error)
-        setAsset(object.merger({ parentId: asset.parentId, projectState: asset.projectState }))
+        setAsset(
+          object.merger({
+            // This is SAFE as the type of `newId` is not changed from its original type.
+            // eslint-disable-next-line no-restricted-syntax
+            id: asset.id as never,
+            parentId: asset.parentId,
+            projectState: asset.projectState,
+          })
+        )
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
         )
@@ -233,6 +268,7 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
+      isCloud,
       backend,
       user,
       asset,
