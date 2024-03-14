@@ -23,9 +23,9 @@ export default function AssetVersion(props: AssetVersionProps) {
   const { getText } = textProvider.useText()
 
   return (
-    <div className="flex flex-col cursor-pointer rounded-2xl p-2 select-none overflow-y-auto hover:bg-frame transition-colors">
+    <div className="flex cursor-pointer select-none flex-col overflow-y-auto rounded-default p-version transition-colors hover:bg-frame">
       <div>{getText('versionX', String(number))}</div>
-      <div className="text-not-selected text-xs">
+      <div className="text-xs text-not-selected">
         {getText('onDateX', dateTime.formatDateTime(new Date(version.lastModified)))}
       </div>
     </div>

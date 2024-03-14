@@ -87,7 +87,6 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
   flex-direction: row;
   place-items: center;
   max-width: 2000px;
-  overflow-x: clip;
 }
 
 .collapse-argument-enter-active {
@@ -98,8 +97,17 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
   transition: max-width 0.5s cubic-bezier(0, 0.76, 0, 0.99);
 }
 
+/* Clipping is part of the show/hide animation, but must not be applied when the argument is fully-shown because
+   attachments such as dropdowns extend beyond the element and may be children of the argument. */
+.collapse-argument-enter-active,
+.collapse-argument-leave-active,
 .collapse-argument-enter-from,
 .collapse-argument-leave-to {
-  max-width: 0px;
+  overflow-x: clip;
+}
+
+.collapse-argument-enter-from,
+.collapse-argument-leave-to {
+  max-width: 0;
 }
 </style>

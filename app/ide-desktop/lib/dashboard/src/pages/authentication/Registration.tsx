@@ -68,9 +68,9 @@ export default function Registration() {
   }, [localStorage, redirectTo])
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
       <form
-        className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
+        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
         onSubmit={async event => {
           event.preventDefault()
           setIsSubmitting(true)
@@ -78,13 +78,14 @@ export default function Registration() {
           setIsSubmitting(false)
         }}
       >
-        <div className="font-medium self-center text-xl">{getText('createANewAccount')}</div>
+        <div className="self-center text-auth-heading font-medium">
+          {getText('createANewAccount')}
+        </div>
         <Input
           required
           validate
           type="email"
           autoComplete="email"
-          label={getText('email')}
           icon={AtIcon}
           placeholder={getText('emailPlaceholder')}
           value={email}
@@ -96,7 +97,6 @@ export default function Registration() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label={getText('password')}
           icon={LockIcon}
           placeholder={getText('passwordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
@@ -110,7 +110,6 @@ export default function Registration() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label={getText('confirmPasswordLabel')}
           icon={LockIcon}
           placeholder={getText('confirmPasswordPlaceholder')}
           pattern={string.regexEscape(password)}

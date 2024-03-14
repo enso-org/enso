@@ -66,11 +66,11 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col items-center gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:inset-0 before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-capture-keyboard-shortcut-modal flex-col items-center gap-modal rounded-default p-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-3xl"
         onKeyDown={event => {
           if (event.key === 'Escape' && key === 'Escape') {
             // Ignore.
-          } else if (event.key === 'Enter' && key === 'Enter') {
+          } else if (event.key === 'Enter' && key != null) {
             event.currentTarget.requestSubmit()
           } else {
             event.stopPropagation()
@@ -108,9 +108,7 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
           }`}
         >
           {shortcut === '' ? (
-            <span className="leading-170 text-primary/30 h-6 py-px">
-              {getText('noShortcutEntered')}
-            </span>
+            <span className="text text-primary/30">{getText('noShortcutEntered')}</span>
           ) : (
             <KeyboardShortcut shortcut={shortcut} />
           )}
@@ -118,19 +116,15 @@ export default function CaptureKeyboardShortcutModal(props: CaptureKeyboardShort
         <span className="relative text-red-600">
           {doesAlreadyExist ? 'This shortcut already exists.' : ''}
         </span>
-        <div className="relative flex self-start gap-2">
+        <div className="relative flex gap-buttons self-start">
           <button
             disabled={!canSubmit}
             type="submit"
-            className="hover:cursor-pointer inline-block text-white bg-invite rounded-full px-4 py-1 disabled:opacity-50"
+            className="button bg-invite text-white enabled:active"
           >
             {getText('confirm')}
           </button>
-          <button
-            type="button"
-            className="hover:cursor-pointer inline-block bg-frame-selected rounded-full px-4 py-1"
-            onClick={unsetModal}
-          >
+          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
             {getText('cancel')}
           </button>
         </div>

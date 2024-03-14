@@ -49,7 +49,7 @@ where T: serde::Serialize + Reflect {
         vec![Digits::reflect(), NumberBase::reflect(), Operator::reflect(), TextSection::reflect()];
     let stringish_tokens = stringish_tokens.into_iter().map(|t| rust_to_meta[&t.id]);
     let skip_tokens = vec![
-        AutoScope::reflect(),
+        SuspendedDefaultArguments::reflect(),
         CloseSymbol::reflect(),
         Newline::reflect(),
         OpenSymbol::reflect(),

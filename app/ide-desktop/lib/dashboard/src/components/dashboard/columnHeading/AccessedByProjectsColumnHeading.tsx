@@ -5,15 +5,28 @@ import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 
 import * as textProvider from '#/providers/TextProvider'
 
+import type * as column from '#/components/dashboard/column'
+import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
 
 /** A heading for the "Accessed by projects" column. */
-export default function AccessedByProjectsColumnHeading(): JSX.Element {
+export default function AccessedByProjectsColumnHeading(props: column.AssetColumnHeadingProps) {
+  const { state } = props
+  const { hideColumn } = state
   const { getText } = textProvider.useText()
+
   return (
-    <div className="flex items-center gap-2">
-      <SvgMask src={AccessedByProjectsIcon} className="h-4 w-4" />
-      <span className="leading-144.5 h-6 py-0.5">{getText('accessedByProjectsColumnName')}</span>
+    <div className="flex h-drive-table-heading w-full items-center gap-icon-with-text">
+      <SvgMask
+        src={AccessedByProjectsIcon}
+        className="size-icon"
+        title={getText('hideThisColumn')}
+        onClick={event => {
+          event.stopPropagation()
+          hideColumn(columnUtils.Column.accessedByProjects)
+        }}
+      />
+      <span className="text-header">{getText('accessedByProjectsColumnName')}</span>
     </div>
   )
 }

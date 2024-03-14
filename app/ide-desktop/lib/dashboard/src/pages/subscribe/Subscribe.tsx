@@ -115,10 +115,10 @@ export default function Subscribe() {
   }, [sessionId])
 
   return (
-    <Modal centered className="bg-black/10 text-primary text-xs">
+    <Modal centered className="bg-hover-bg text-xs text-primary">
       <div
         data-testid="subscribe-modal"
-        className="flex flex-col gap-2 bg-frame-selected backdrop-blur-3xl rounded-2xl p-8 w-full max-w-md max-h-[100vh]"
+        className="flex max-h-screen w-full max-w-md flex-col gap-modal rounded-default bg-selected-frame p-auth backdrop-blur-default"
         onClick={event => {
           event.stopPropagation()
         }}
@@ -126,7 +126,7 @@ export default function Subscribe() {
         <div className="self-center text-xl">
           {getText('upgradeTo', string.capitalizeFirst(plan))}
         </div>
-        <div className="flex items-stretch rounded-full bg-gray-500/30 text-base h-8">
+        <div className="flex h-row items-stretch rounded-full bg-gray-500/30 text-base">
           {backendModule.PLANS.map(newPlan => (
             <button
               key={newPlan}
@@ -138,7 +138,7 @@ export default function Subscribe() {
                 setPlan(newPlan)
               }}
             >
-              {string.capitalizeFirst(newPlan)}
+              {getText(`${newPlan}PlanName`)}
             </button>
           ))}
         </div>
@@ -159,7 +159,7 @@ export default function Subscribe() {
             </stripeReact.EmbeddedCheckoutProvider>
           </div>
         ) : (
-          <div className="h-155 transition-all" />
+          <div className="h-payment-form transition-all" />
         )}
       </div>
     </Modal>

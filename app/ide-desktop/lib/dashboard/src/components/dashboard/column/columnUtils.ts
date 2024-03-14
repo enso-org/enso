@@ -1,24 +1,13 @@
 /** @file Types and constants related to `Column`s. */
 import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 import AccessedDataIcon from 'enso-assets/accessed_data.svg'
+import BlankIcon from 'enso-assets/blank.svg'
 import DocsIcon from 'enso-assets/docs.svg'
-import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
-import SortDescendingIcon from 'enso-assets/sort_descending.svg'
+import PeopleIcon from 'enso-assets/people.svg'
 import TagIcon from 'enso-assets/tag.svg'
+import TimeIcon from 'enso-assets/time.svg'
 
 import * as backend from '#/services/Backend'
-
-import SortDirection from '#/utilities/SortDirection'
-
-// =================
-// === Constants ===
-// =================
-
-/** The corresponding icon URL for each {@link SortDirection}. */
-export const SORT_ICON: Readonly<Record<SortDirection, string>> = {
-  [SortDirection.ascending]: SortAscendingIcon,
-  [SortDirection.descending]: SortDescendingIcon,
-}
 
 // =============
 // === Types ===
@@ -49,9 +38,6 @@ export enum Column {
   docs = 'docs',
 }
 
-/** Columns that can be toggled between visible and hidden. */
-export type ExtraColumn = (typeof EXTRA_COLUMNS)[number]
-
 /** Columns that can be used as a sort column. */
 export type SortableColumn = Column.modified | Column.name
 
@@ -59,16 +45,34 @@ export type SortableColumn = Column.modified | Column.name
 // === Constants ===
 // =================
 
-/** The list of extra columns, in order. */
+export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
+  Column.name,
+  Column.modified,
+  Column.sharedWith,
+  Column.labels,
+])
+
+/** The list of all possible columns for the local backend, in order. */
+export const LOCAL_COLUMNS = Object.freeze([Column.name, Column.modified] as const)
+
+/** The list of all possible columns for the cloud backend, in order. */
 // This MUST be `as const`, to generate the `ExtraColumn` type above.
-export const EXTRA_COLUMNS = [
+export const CLOUD_COLUMNS = Object.freeze([
+  Column.name,
+  Column.modified,
+  Column.sharedWith,
   Column.labels,
   Column.accessedByProjects,
   Column.accessedData,
   Column.docs,
-] as const
+] as const)
 
-export const EXTRA_COLUMN_IMAGES: Readonly<Record<ExtraColumn, string>> = {
+export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
+  /* The file column does not have an icon, however this does not matter as it is not
+   * collapsible. */
+  [Column.name]: BlankIcon,
+  [Column.modified]: TimeIcon,
+  [Column.sharedWith]: PeopleIcon,
   [Column.labels]: TagIcon,
   [Column.accessedByProjects]: AccessedByProjectsIcon,
   [Column.accessedData]: AccessedDataIcon,
@@ -76,18 +80,18 @@ export const EXTRA_COLUMN_IMAGES: Readonly<Record<ExtraColumn, string>> = {
 }
 
 const COLUMN_CSS_CLASSES =
-  'text-left bg-clip-padding border-transparent border-l-2 border-r-2 last:border-r-0'
-const NORMAL_COLUMN_CSS_CLASSES = `px-2 last:rounded-r-full last:w-full ${COLUMN_CSS_CLASSES}`
+  'text-left bg-clip-padding border-transparent border-y border-2 last:border-r-0 last:rounded-r-full last:w-full'
+const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */
 export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
-  [Column.name]: `rounded-rows-skip-level min-w-61.25 p-0 border-l-0 ${COLUMN_CSS_CLASSES}`,
-  [Column.modified]: `min-w-33.25 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.sharedWith]: `min-w-40 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.labels]: `min-w-80 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.accessedByProjects]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.accessedData]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
-  [Column.docs]: `min-w-96 ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.name]: `rounded-rows-skip-level min-w-drive-name-column h-full p border-l-0 ${COLUMN_CSS_CLASSES}`,
+  [Column.modified]: `min-w-drive-modified-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.sharedWith]: `min-w-drive-shared-with-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.labels]: `min-w-drive-labels-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.accessedByProjects]: `min-w-drive-accessed-by-projects-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.accessedData]: `min-w-drive-accessed-data-column ${NORMAL_COLUMN_CSS_CLASSES}`,
+  [Column.docs]: `min-w-drive-docs-column ${NORMAL_COLUMN_CSS_CLASSES}`,
 }
 
 // =====================
@@ -95,18 +99,20 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 // =====================
 
 /** Return the full list of columns given the relevant current state. */
-export function getColumnList(backendType: backend.BackendType, extraColumns: Set<ExtraColumn>) {
+export function getColumnList(
+  backendType: backend.BackendType,
+  enabledColumns: ReadonlySet<Column>
+) {
+  let columns: readonly Column[]
   switch (backendType) {
     case backend.BackendType.local: {
-      return [Column.name, Column.modified]
+      columns = LOCAL_COLUMNS
+      break
     }
     case backend.BackendType.remote: {
-      return [
-        Column.name,
-        Column.modified,
-        Column.sharedWith,
-        ...EXTRA_COLUMNS.filter(column => extraColumns.has(column)),
-      ]
+      columns = CLOUD_COLUMNS
+      break
     }
   }
+  return columns.filter(column => enabledColumns.has(column))
 }

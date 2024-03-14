@@ -44,6 +44,7 @@ interface PlaceholderOverrides {
   readonly lastModifiedOn: [string]
   readonly versionX: [string]
   readonly onDateX: [string]
+  readonly xUsersSelected: [string]
   readonly upgradeTo: [string]
   readonly enterTheNewKeyboardShortcutFor: [string]
 

@@ -19,7 +19,8 @@ import * as permissionsModule from '#/utilities/permissions'
 const TYPE_SELECTOR_X_OFFSET_PX = -8
 /** The vertical offset of the {@link PermissionTypeSelector} from its parent element. */
 const TYPE_SELECTOR_Y_OFFSET_PX = 28
-/** The vertical offset of the label's clip path from its parent element. */
+/** The vertical offset of the label's clip path from its parent element.
+ * Optimized for 100% zoom. */
 const LABEL_CLIP_Y_OFFSET_PX = 0.5
 /** The border radius of the permission label. */
 const LABEL_BORDER_RADIUS_PX = 12
@@ -33,8 +34,10 @@ const LABEL_STRAIGHT_WIDTH_PX = 97
 /** Props for a {@link PermissionSelector}. */
 export interface PermissionSelectorProps {
   readonly showDelete?: boolean
-  /** When true, the button is not clickable. */
+  /** When `true`, the button is not clickable. */
   readonly disabled?: boolean
+  /** When `true`, the button has lowered opacity when it is disabled. */
+  readonly input?: boolean
   /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
   readonly typeSelectorYOffsetPx?: number
   readonly error?: string | null
@@ -49,8 +52,9 @@ export interface PermissionSelectorProps {
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-  const { showDelete = false, disabled = false, typeSelectorYOffsetPx, error } = props
-  const { selfPermission, action: actionRaw, assetType, className, onChange, doDelete } = props
+  const { showDelete = false, disabled = false, input = false, typeSelectorYOffsetPx } = props
+  const { error, selfPermission, action: actionRaw, assetType, className } = props
+  const { onChange, doDelete } = props
   const { getText } = textProvider.useText()
   const [action, setActionRaw] = React.useState(actionRaw)
   const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
@@ -88,12 +92,12 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
         : function Child() {
             return (
               <Modal
-                className="fixed w-full h-full"
+                className="fixed size-full overflow-auto"
                 onClick={() => {
                   setTheChild(null)
                 }}
               >
-                <div style={{ clipPath }} className="absolute bg-dim w-full h-full" />
+                <div style={{ clipPath }} className="absolute size-full bg-dim" />
                 <PermissionTypeSelector
                   showDelete={showDelete}
                   type={permission.type}
@@ -105,7 +109,13 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                     if (type === permissionsModule.Permission.delete) {
                       doDelete?.()
                     } else {
-                      setAction(permissionsModule.TYPE_TO_PERMISSION_ACTION[type])
+                      const newAction = permissionsModule.TYPE_TO_PERMISSION_ACTION[type]
+                      const newPermissions = permissionsModule.FROM_PERMISSION_ACTION[newAction]
+                      if ('docs' in permission && 'docs' in newPermissions) {
+                        setAction(permissionsModule.toPermissionAction({ ...permission, type }))
+                      } else {
+                        setAction(permissionsModule.TYPE_TO_PERMISSION_ACTION[type])
+                      }
                     }
                   }}
                 />
@@ -121,14 +131,14 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     case permissionsModule.Permission.read:
     case permissionsModule.Permission.view: {
       permissionDisplay = (
-        <div className="flex gap-px w-30.25">
+        <div className="flex w-permission-display gap-px">
           <button
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`${
+            className={`selectable ${!disabled || !input ? 'active' : ''} ${
               permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-            } grow rounded-l-full h-6 px-1.75 py-0.5 disabled:opacity-30`}
+            } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={doShowPermissionTypeSelector}
           >
             {getText(`${permission.type}PermissionType`)}
@@ -137,9 +147,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`${
+            className={`selectable ${permission.docs && (!disabled || !input) ? 'active' : ''} ${
               permissionsModule.DOCS_CLASS_NAME
-            } grow h-6 px-1.75 py-0.5 disabled:opacity-30 ${permission.docs ? '' : 'opacity-30'}`}
+            } h-text grow px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={event => {
               event.stopPropagation()
               setAction(
@@ -157,11 +167,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             type="button"
             disabled={disabled}
             {...(disabled && error != null ? { title: error } : {})}
-            className={`${
+            className={`selectable ${permission.execute && (!disabled || !input) ? 'active' : ''} ${
               permissionsModule.EXEC_CLASS_NAME
-            } grow rounded-r-full h-6 px-1.75 py-0.5 disabled:opacity-30 ${
-              permission.execute ? '' : 'opacity-30'
-            }`}
+            } h-text grow rounded-r-full px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={event => {
               event.stopPropagation()
               setAction(
@@ -185,9 +193,9 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           type="button"
           disabled={disabled}
           {...(disabled && error != null ? { title: error } : {})}
-          className={`${
+          className={`selectable ${!disabled || !input ? 'active' : ''} ${
             permissionsModule.PERMISSION_CLASS_NAME[permission.type]
-          } rounded-full h-6 w-30.25 disabled:opacity-30`}
+          } h-text w-permission-display rounded-full`}
           onClick={doShowPermissionTypeSelector}
         >
           {getText(`${permission.type}PermissionType`)}

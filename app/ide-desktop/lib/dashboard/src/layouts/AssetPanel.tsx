@@ -9,14 +9,11 @@ import type * as assetEvent from '#/events/assetEvent'
 import AssetProperties from '#/layouts/AssetProperties'
 import AssetVersions from '#/layouts/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
-import type * as pageSwitcher from '#/layouts/PageSwitcher'
-import UserBar from '#/layouts/UserBar'
-
-import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
 
 import * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
+import type AssetQuery from '#/utilities/AssetQuery'
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import LocalStorage from '#/utilities/LocalStorage'
 
@@ -52,31 +49,21 @@ LocalStorage.registerKey('assetPanelTab', {
 
 /** The subset of {@link AssetPanelProps} that are required to be supplied by the row. */
 export interface AssetPanelRequiredProps {
-  readonly item: AssetTreeNode
-  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly item: AssetTreeNode | null
+  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>> | null
 }
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
-  readonly supportsLocalBackend: boolean
-  readonly page: pageSwitcher.Page
-  readonly setPage: (page: pageSwitcher.Page) => void
+  readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
-  readonly isHelpChatOpen: boolean
-  readonly setIsHelpChatOpen: React.Dispatch<React.SetStateAction<boolean>>
-  readonly setVisibility: React.Dispatch<React.SetStateAction<boolean>>
+  readonly labels: backend.Label[]
   readonly dispatchAssetEvent: (event: assetEvent.AssetEvent) => void
-  readonly projectAsset: backend.ProjectAsset | null
-  readonly setProjectAsset: React.Dispatch<React.SetStateAction<backend.ProjectAsset>> | null
-  readonly doRemoveSelf: () => void
-  readonly onSignOut: () => void
 }
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { item, setItem, supportsLocalBackend, page, setPage, category } = props
-  const { isHelpChatOpen, setIsHelpChatOpen, setVisibility } = props
-  const { dispatchAssetEvent, projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
+  const { item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
 
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
@@ -84,8 +71,8 @@ export default function AssetPanel(props: AssetPanelProps) {
   const [tab, setTab] = React.useState(() => {
     const savedTab = localStorage.get('assetPanelTab') ?? AssetPanelTab.properties
     if (
-      (item.item.type === backend.AssetType.secret ||
-        item.item.type === backend.AssetType.directory) &&
+      (item?.item.type === backend.AssetType.secret ||
+        item?.item.type === backend.AssetType.directory) &&
       savedTab === AssetPanelTab.versions
     ) {
       return AssetPanelTab.properties
@@ -111,17 +98,18 @@ export default function AssetPanel(props: AssetPanelProps) {
   return (
     <div
       data-testid="asset-panel"
-      className="absolute flex flex-col h-full border-black/[0.12] border-l-2 gap-8 w-120 pl-3 pr-4 py-2.25"
+      className="absolute flex h-full w-asset-panel flex-col gap-asset-panel border-l-2 border-black/[0.12] p-top-bar-margin pl-asset-panel-l"
       onClick={event => {
         event.stopPropagation()
       }}
     >
       <div className="flex">
-        {item.item.type !== backend.AssetType.secret &&
+        {item != null &&
+          item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
             <button
-              className={`rounded-full leading-5 px-2 select-none bg-frame hover:bg-frame-selected transition-colors ${
-                tab !== AssetPanelTab.versions ? '' : 'bg-frame-selected'
+              className={`button select-none bg-frame px-button-x leading-cozy transition-colors hover:bg-selected-frame ${
+                tab !== AssetPanelTab.versions ? '' : 'bg-selected-frame active'
               }`}
               onClick={() => {
                 setTab(oldTab =>
@@ -134,36 +122,28 @@ export default function AssetPanel(props: AssetPanelProps) {
               {getText('versions')}
             </button>
           )}
-        {/* Spacing. */}
+        {/* Spacing. The top right asset and user bars overlap this area. */}
         <div className="grow" />
-        <div className="flex gap-2">
-          <AssetInfoBar
-            canToggleAssetPanel={true}
-            isAssetPanelVisible={true}
-            setIsAssetPanelVisible={setVisibility}
-          />
-          <UserBar
-            supportsLocalBackend={supportsLocalBackend}
-            isHelpChatOpen={isHelpChatOpen}
-            setIsHelpChatOpen={setIsHelpChatOpen}
-            onSignOut={onSignOut}
-            page={page}
-            setPage={setPage}
-            projectAsset={projectAsset}
-            setProjectAsset={setProjectAsset}
-            doRemoveSelf={doRemoveSelf}
-          />
-        </div>
       </div>
-      {tab === AssetPanelTab.properties && (
-        <AssetProperties
-          item={item}
-          setItem={setItem}
-          category={category}
-          dispatchAssetEvent={dispatchAssetEvent}
-        />
+      {item == null || setItem == null ? (
+        <div className="grid grow place-items-center text-lg">
+          {getText('selectExactlyOneAssetToViewItsDetails')}
+        </div>
+      ) : (
+        <>
+          {tab === AssetPanelTab.properties && (
+            <AssetProperties
+              item={item}
+              setItem={setItem}
+              category={category}
+              labels={labels}
+              setQuery={setQuery}
+              dispatchAssetEvent={dispatchAssetEvent}
+            />
+          )}
+          <AssetVersions hidden={tab !== AssetPanelTab.versions} item={item} />
+        </>
       )}
-      <AssetVersions hidden={tab !== AssetPanelTab.versions} item={item} />
     </div>
   )
 }

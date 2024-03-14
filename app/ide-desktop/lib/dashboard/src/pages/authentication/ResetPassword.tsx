@@ -63,15 +63,15 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
       <form
-        className="flex flex-col gap-6 bg-frame-selected rounded-4xl shadow-md p-8 w-full max-w-md"
+        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
         onSubmit={async event => {
           event.preventDefault()
           await onSubmit()
         }}
       >
-        <div className="font-medium self-center text-xl">{getText('resetYourPassword')}</div>
+        <div className="self-center text-xl font-medium">{getText('resetYourPassword')}</div>
         <input
           required
           readOnly
@@ -96,7 +96,6 @@ export default function ResetPassword() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label={getText('newPasswordLabel')}
           icon={LockIcon}
           placeholder={getText('newPasswordPlaceholder')}
           pattern={validation.PASSWORD_PATTERN}
@@ -110,7 +109,6 @@ export default function ResetPassword() {
           allowShowingPassword
           type="password"
           autoComplete="new-password"
-          label={getText('confirmNewPasswordLabel')}
           icon={LockIcon}
           placeholder={getText('confirmNewPasswordPlaceholder')}
           pattern={string.regexEscape(newPassword)}

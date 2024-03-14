@@ -26,13 +26,13 @@ const ICON_SIZE_PX = 13
 
 const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX }
 
-/** Props for values of {@link MODIFIER_MAPPINGS}. */
+/** Props for values of {@link MODIFIER_JSX}. */
 interface InternalModifierProps {
   readonly getText: ReturnType<typeof textProvider.useText>['getText']
 }
 
 /** Icons for modifier keys (if they exist). */
-const MODIFIER_MAPPINGS: Readonly<
+const MODIFIER_JSX: Readonly<
   Record<
     detect.Platform,
     Partial<
@@ -53,7 +53,7 @@ const MODIFIER_MAPPINGS: Readonly<
   },
   [detect.Platform.linux]: {
     Meta: props => (
-      <span key="Meta" className="leading-170 h-6 py-px">
+      <span key="Meta" className="text">
         {props.getText('superModifier')}
       </span>
     ),
@@ -62,13 +62,23 @@ const MODIFIER_MAPPINGS: Readonly<
     // Assume the system is Unix-like and calls the key that triggers `event.metaKey`
     // the "Super" key.
     Meta: props => (
-      <span key="Meta" className="leading-170 h-6 py-px">
+      <span key="Meta" className="text">
         {props.getText('superModifier')}
       </span>
     ),
   },
   /* eslint-enable @typescript-eslint/naming-convention */
 }
+
+const KEY_CHARACTER: Readonly<Record<string, string>> = {
+  // The names come from a third-party API (the DOM spec) and cannot be changed.
+  /* eslint-disable @typescript-eslint/naming-convention */
+  ArrowDown: '↓',
+  ArrowUp: '↑',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  /* eslint-enable @typescript-eslint/naming-convention */
+} satisfies Partial<Record<inputBindingsModule.Key, string>>
 
 /** Props for a {@link KeyboardShortcut}, specifying the keyboard action. */
 export interface KeyboardShortcutActionProps {
@@ -97,11 +107,15 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       .sort(inputBindingsModule.compareModifiers)
       .map(inputBindingsModule.toModifierKey)
     return (
-      <div className={`flex items-center h-6 ${detect.isOnMacOS() ? 'gap-0.5' : 'gap-0.75'}`}>
+      <div
+        className={`flex h-text items-center ${
+          detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers'
+        }`}
+      >
         {modifiers.map(
           modifier =>
-            MODIFIER_MAPPINGS[detect.platform()][modifier]?.({ getText }) ?? (
-              <span key={modifier} className="leading-170 h-6 py-px">
+            MODIFIER_JSX[detect.platform()][modifier]?.({ getText }) ?? (
+              <span key={modifier} className="text">
                 {
                   // This is SAFE, as `Lowercase` behaves identically to `toLowerCase`.
                   // eslint-disable-next-line no-restricted-syntax
@@ -110,8 +124,8 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
               </span>
             )
         )}
-        <span className="leading-170 h-6 py-px">
-          {shortcut.key === ' ' ? 'Space' : shortcut.key}
+        <span className="text">
+          {shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}
         </span>
       </div>
     )

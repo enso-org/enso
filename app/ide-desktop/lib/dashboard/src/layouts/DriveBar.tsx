@@ -56,7 +56,7 @@ export default function DriveBar(props: DriveBarProps) {
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
-  const isHomeCategory = category === Category.home || !isCloud
+  const effectiveCategory = isCloud ? category : Category.home
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -76,131 +76,129 @@ export default function DriveBar(props: DriveBarProps) {
     })
   }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
 
-  return category === Category.trash ? (
-    <div className="flex h-8 py-0.5">
-      <div className="flex gap-2.5">
-        <button
-          className="flex items-center bg-frame rounded-full h-8 px-2.5"
-          onClick={event => {
-            event.stopPropagation()
-            setModal(
-              <ConfirmDeleteModal actionText="all trashed items forever" doDelete={doEmptyTrash} />
-            )
-          }}
-        >
-          <span className="font-semibold whitespace-nowrap leading-5 h-6 py-px">
-            {getText('clearTrash')}
-          </span>
-        </button>
-      </div>
-    </div>
-  ) : (
-    <div className="flex h-8 py-0.5">
-      <div className="flex gap-2.5">
-        <button
-          disabled={!isHomeCategory}
-          className="flex items-center bg-frame rounded-full h-8 px-2.5"
-          {...(!isHomeCategory ? { title: getText('newProjectInHomeOnly') } : {})}
-          onClick={() => {
-            unsetModal()
-            doCreateProject()
-          }}
-        >
-          <span
-            className={`font-semibold whitespace-nowrap leading-5 h-6 py-px ${
-              !isHomeCategory ? 'opacity-50' : ''
-            }`}
-          >
-            {getText('newProject')}
-          </span>
-        </button>
-        <div className="flex items-center text-black/50 bg-frame rounded-full gap-3 h-8 px-3">
-          {isCloud && (
-            <Button
-              active={isHomeCategory}
-              disabled={!isHomeCategory}
-              error={getText('newFolderInHomeOnly')}
-              image={AddFolderIcon}
-              alt={getText('newFolder')}
-              disabledOpacityClassName="opacity-20"
+  switch (effectiveCategory) {
+    case Category.recent: {
+      // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
+      // in the given directory, to avoid name collisions.
+      return (
+        <div className="flex h-row py-drive-bar-y">
+          <div className="flex gap-drive-bar" />
+        </div>
+      )
+    }
+    case Category.trash: {
+      return (
+        <div className="flex h-row py-drive-bar-y">
+          <div className="flex gap-drive-bar">
+            <button
+              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              onClick={event => {
+                event.stopPropagation()
+                setModal(
+                  <ConfirmDeleteModal
+                    actionText={getText('allTrashedItemsForever')}
+                    doDelete={doEmptyTrash}
+                  />
+                )
+              }}
+            >
+              <span className="text whitespace-nowrap font-semibold">{getText('clearTrash')}</span>
+            </button>
+          </div>
+        </div>
+      )
+    }
+    case Category.home: {
+      return (
+        <div className="flex h-row py-drive-bar-y">
+          <div className="flex gap-drive-bar">
+            <button
+              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
               onClick={() => {
                 unsetModal()
-                doCreateDirectory()
+                doCreateProject()
               }}
-            />
-          )}
-          {isCloud && (
-            <Button
-              active={isHomeCategory}
-              disabled={!isHomeCategory}
-              error={getText('newSecretInHomeOnly')}
-              image={AddKeyIcon}
-              alt={getText('newSecret')}
-              disabledOpacityClassName="opacity-20"
-              onClick={event => {
-                event.stopPropagation()
-                setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
-              }}
-            />
-          )}
-          {isCloud && (
-            <Button
-              active={isHomeCategory}
-              disabled={!isHomeCategory}
-              error={getText('newDataLinkInHomeOnly')}
-              image={AddConnectorIcon}
-              alt={getText('newDataLink')}
-              disabledOpacityClassName="opacity-20"
-              onClick={event => {
-                event.stopPropagation()
-                setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
-              }}
-            />
-          )}
-          <input
-            ref={uploadFilesRef}
-            type="file"
-            multiple
-            id="upload_files_input"
-            name="upload_files_input"
-            {...(isCloud ? {} : { accept: '.enso-project' })}
-            className="hidden"
-            onInput={event => {
-              if (event.currentTarget.files != null) {
-                doUploadFiles(Array.from(event.currentTarget.files))
-              }
-              // Clear the list of selected files. Otherwise, `onInput` will not be
-              // dispatched again if the same file is selected.
-              event.currentTarget.value = ''
-            }}
-          />
-          <Button
-            active={isHomeCategory}
-            disabled={!isHomeCategory}
-            error={getText('uploadToHomeOnly')}
-            image={DataUploadIcon}
-            alt={getText('uploadFiles')}
-            disabledOpacityClassName="opacity-20"
-            onClick={() => {
-              unsetModal()
-              uploadFilesRef.current?.click()
-            }}
-          />
-          <Button
-            active={canDownloadFiles}
-            disabled={!canDownloadFiles}
-            image={DataDownloadIcon}
-            alt={getText('downloadFiles')}
-            error={getText('canOnlyDownloadFilesError')}
-            disabledOpacityClassName="opacity-20"
-            onClick={event => {
-              event.stopPropagation()
-              unsetModal()
-              dispatchAssetEvent({ type: AssetEventType.downloadSelected })
-            }}
-          />
+            >
+              <span className="text whitespace-nowrap font-semibold">{getText('newFolder')}</span>
+            </button>
+            <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
+              {isCloud && (
+                <Button
+                  active
+                  image={AddFolderIcon}
+                  alt={getText('newFolder')}
+                  onClick={() => {
+                    unsetModal()
+                    doCreateDirectory()
+                  }}
+                />
+              )}
+              {isCloud && (
+                <Button
+                  active
+                  image={AddKeyIcon}
+                  alt={getText('newSecret')}
+                  onClick={event => {
+                    event.stopPropagation()
+                    setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
+                  }}
+                />
+              )}
+              {isCloud && (
+                <Button
+                  active
+                  image={AddConnectorIcon}
+                  alt={getText('newDataLink')}
+                  onClick={event => {
+                    event.stopPropagation()
+                    setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
+                  }}
+                />
+              )}
+              <input
+                ref={uploadFilesRef}
+                type="file"
+                multiple
+                id="upload_files_input"
+                name="upload_files_input"
+                {...(isCloud ? {} : { accept: '.enso-project' })}
+                className="hidden"
+                onInput={event => {
+                  if (event.currentTarget.files != null) {
+                    doUploadFiles(Array.from(event.currentTarget.files))
+                  }
+                  // Clear the list of selected files. Otherwise, `onInput` will not be
+                  // dispatched again if the same file is selected.
+                  event.currentTarget.value = ''
+                }}
+              />
+              <Button
+                active
+                image={DataUploadIcon}
+                alt={getText('uploadFiles')}
+                onClick={() => {
+                  unsetModal()
+                  uploadFilesRef.current?.click()
+                }}
+              />
+              <Button
+                active={canDownloadFiles}
+                disabled={!canDownloadFiles}
+                image={DataDownloadIcon}
+                alt={getText('downloadFiles')}
+                error={
+                  isCloud ? getText('canOnlyDownloadFilesError') : getText('noProjectSelectedError')
+                }
+                onClick={event => {
+                  event.stopPropagation()
+                  unsetModal()
+                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+                }}
+              />
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  )
+      )
+    }
+  }
 }

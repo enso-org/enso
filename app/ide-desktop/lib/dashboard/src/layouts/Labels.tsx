@@ -18,9 +18,9 @@ import NewLabelModal from '#/modals/NewLabelModal'
 import type * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import * as assetQuery from '#/utilities/AssetQuery'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as drag from '#/utilities/drag'
+import * as string from '#/utilities/string'
 
 // ==============
 // === Labels ===
@@ -47,22 +47,23 @@ export default function Labels(props: LabelsProps) {
   const { getText } = textProvider.useText()
 
   return (
-    <div data-testid="labels" className="flex flex-col items-start w-30">
-      <div className="pl-2 pb-1.5">
-        <span className="inline-block font-bold text-sm leading-144.5 h-6 py-0.5">
-          {getText('labels')}
-        </span>
+    <div
+      data-testid="labels"
+      className="flex w-full flex-col items-start gap-sidebar-section-heading"
+    >
+      <div className="text-header px-sidebar-section-heading-x text-sm font-bold">
+        {getText('labels')}
       </div>
-      <ul data-testid="labels-list" className="flex flex-col items-start gap-1">
+      <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
         {labels
           .filter(label => !deletedLabelNames.has(label.value))
-          .sort((a, b) => (a.value > b.value ? 1 : a.value < b.value ? -1 : 0))
+          .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
           .map(label => {
             const negated = currentNegativeLabels.some(term =>
               array.shallowEqual(term, [label.value])
             )
             return (
-              <li key={label.id} className="group flex items-center gap-1">
+              <li key={label.id} className="group flex items-center gap-label-icons">
                 <Label
                   draggable
                   color={label.color}
@@ -73,7 +74,7 @@ export default function Labels(props: LabelsProps) {
                   disabled={newLabelNames.has(label.value)}
                   onClick={event => {
                     setQuery(oldQuery =>
-                      assetQuery.toggleLabel(oldQuery, label.value, event.shiftKey)
+                      oldQuery.withToggled('labels', 'negativeLabels', label.value, event.shiftKey)
                     )
                   }}
                   onDragStart={event => {
@@ -114,7 +115,7 @@ export default function Labels(props: LabelsProps) {
                     <SvgMask
                       src={Trash2Icon}
                       alt={getText('delete')}
-                      className="opacity-0 group-hover:opacity-100 text-delete w-4 h-4"
+                      className="size-icon text-delete transition-all transparent group-hover:active"
                     />
                   </button>
                 )}
@@ -137,8 +138,10 @@ export default function Labels(props: LabelsProps) {
               )
             }}
           >
-            <img src={PlusIcon} className="w-1.5 h-1.5" />
-            <span className="leading-144.5 h-6 py-0.5">{getText('newLabelButtonLabel')}</span>
+            {/* This is a non-standard-sized icon. */}
+            {/* eslint-disable-next-line no-restricted-syntax */}
+            <img src={PlusIcon} className="mr-[6px] size-[6px]" />
+            <span className="text-header">{getText('newLabelButtonLabel')}</span>
           </Label>
         </li>
       </ul>

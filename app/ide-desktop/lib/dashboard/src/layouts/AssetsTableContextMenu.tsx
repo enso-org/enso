@@ -15,8 +15,8 @@ import Category from '#/layouts/CategorySwitcher/Category'
 import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 
 import ContextMenu from '#/components/ContextMenu'
+import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
-import MenuEntry from '#/components/MenuEntry'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
@@ -109,7 +109,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     ) : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         <ContextMenu hidden={hidden}>
-          <MenuEntry
+          <ContextMenuEntry
             hidden={hidden}
             action="undelete"
             label={getText('restoreAllFromTrashShortcut')}
@@ -119,7 +119,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
             }}
           />
           {isCloud && (
-            <MenuEntry
+            <ContextMenuEntry
               hidden={hidden}
               action="delete"
               label={getText('deleteAllForeverShortcut')}
@@ -147,7 +147,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         {selectedKeys.size !== 0 && (
           <ContextMenu hidden={hidden}>
             {ownsAllSelectedAssets && (
-              <MenuEntry
+              <ContextMenuEntry
                 hidden={hidden}
                 action="delete"
                 label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
@@ -155,7 +155,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               />
             )}
             {isCloud && (
-              <MenuEntry
+              <ContextMenuEntry
                 hidden={hidden}
                 action="copy"
                 label={getText('copyAllShortcut')}
@@ -163,7 +163,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               />
             )}
             {isCloud && ownsAllSelectedAssets && (
-              <MenuEntry
+              <ContextMenuEntry
                 hidden={hidden}
                 action="cut"
                 label={getText('cutAllShortcut')}
@@ -171,7 +171,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               />
             )}
             {pasteData != null && pasteData.data.size > 0 && (
-              <MenuEntry
+              <ContextMenuEntry
                 hidden={hidden}
                 action="paste"
                 label={getText('pasteAllShortcut')}

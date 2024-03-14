@@ -76,16 +76,18 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex flex-col flex-1 gap-8 overflow-hidden">
-      <div className="flex gap-2.5 font-bold text-xl h-9.5 px-4.75">
-        <span className="py-0.5">{getText('settingsFor')}</span>
-        <div className="rounded-full leading-144.5 bg-frame h-9 px-2.25 pt-0.5 pb-1.25">
+    <div className="flex flex-1 flex-col gap-settings-header overflow-hidden px-page-x">
+      <div className="flex h-heading px-heading-x text-xl font-bold">
+        <span className="py-heading-y">{getText('settingsFor')}</span>
+        {/* This UI element does not appear anywhere else. */}
+        {/* eslint-disable-next-line no-restricted-syntax */}
+        <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
           {settingsTab !== SettingsTab.organization
             ? user?.name ?? 'your account'
             : organization.organization_name ?? 'your organization'}
         </div>
       </div>
-      <div className="flex flex-1 gap-8 pl-3 overflow-hidden">
+      <div className="flex flex-1 gap-settings overflow-hidden">
         <SettingsSidebar settingsTab={settingsTab} setSettingsTab={setSettingsTab} />
         {content}
       </div>

@@ -28,18 +28,18 @@ export default function Home(props: HomeProps) {
   const { getText } = textProvider.useText()
   return (
     <div
-      className={`flex flex-col flex-1 overflow-auto scroll-hidden gap-12 ${
+      className={`flex flex-1 flex-col gap-home overflow-auto scroll-hidden ${
         hidden ? 'hidden' : ''
       }`}
     >
       {/* For spacing */}
       <div />
       {/* Header */}
-      <div className="flex flex-col gap-2 px-9.75 py-2.25">
-        <h1 className="self-center text-center leading-144.5 text-4xl py-0.5">
+      <div className="flex flex-col gap-banner px-banner-x py-banner-y">
+        <h1 className="self-center py-banner-item text-center text-4xl leading-snug">
           {getText('welcomeMessage')}
         </h1>
-        <h2 className="self-center text-center font-normal leading-144.5 text-xl py-0.5">
+        <h2 className="self-center py-banner-item text-center text-xl font-normal leading-snug">
           {getText('welcomeSubtitle')}
         </h2>
       </div>

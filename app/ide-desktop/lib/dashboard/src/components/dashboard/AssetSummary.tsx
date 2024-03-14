@@ -25,12 +25,14 @@ export default function AssetSummary(props: AssetSummaryProps) {
   const { asset, new: isNew = false, newName, className } = props
   const { getText } = textProvider.useText()
   return (
-    <div className={`flex items-center gap-2.5 rounded-2xl bg-frame px-2 ${className}`}>
-      <div className="grid place-items-center h-8 w-4">
+    <div
+      className={`flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x ${className}`}
+    >
+      <div className="grid size-icon place-items-center">
         <AssetIcon asset={asset} />
       </div>
       <div className="flex flex-col">
-        <span className="flex items-center gap-2 font-semibold">
+        <span className="flex items-center gap-icon-with-text font-semibold">
           {asset.title}
           {newName != null && (
             <>

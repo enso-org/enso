@@ -39,21 +39,23 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   } else {
     return reactDom.createPortal(
       <div
-        className={`text-xs text-primary flex flex-col fixed top-0 right-0 backdrop-blur-3xl h-screen shadow-soft w-83.5 py-1 z-3 transition-transform ${
+        className={`fixed right top z-3 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${
           detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
         } ${isOpen ? '' : 'translate-x-full'}`}
       >
-        <div className="flex text-sm font-semibold mx-4 mt-2">
+        <div className="mx-chat-header-x mt-chat-header-t flex text-sm font-semibold">
           <div className="grow" />
-          <button className="mx-1" onClick={doClose}>
+          <button className="mx-close-icon" onClick={doClose}>
             <img src={CloseLargeIcon} />
           </button>
         </div>
-        <div className="grow grid place-items-center">
-          <div className="flex flex-col gap-3 text-base text-center">
-            <div className="px-4">{getText('placeholderChatPrompt')}</div>
+        <div className="grid grow place-items-center">
+          <div className="flex flex-col gap-status-page text-center text-base">
+            <div className="px-missing-functionality-text-x">
+              {getText('placeholderChatPrompt')}
+            </div>
             <button
-              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+              className="button self-center bg-help text-white"
               onClick={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
@@ -61,7 +63,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
               {getText('login')}
             </button>
             <button
-              className="block self-center whitespace-nowrap text-base text-white bg-help rounded-full leading-170 h-8 py-px px-2 w-min"
+              className="button self-center bg-help text-white"
               onClick={() => {
                 navigate(appUtils.REGISTRATION_PATH)
               }}

@@ -68,7 +68,7 @@ function Input(props: InternalInputProps) {
 
   const input = (
     <input
-      className="rounded-full font-bold leading-5 w-full h-6 px-2 py-1.25 bg-transparent hover:bg-frame-selected focus:bg-frame-selected transition-colors placeholder-primary/30 invalid:border invalid:border-red-700"
+      className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
       type={isShowingPassword ? 'text' : type}
       size={1}
       defaultValue={originalValue}
@@ -91,7 +91,7 @@ function Input(props: InternalInputProps) {
       {
         <SvgMask
           src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
-          className="absolute cursor-pointer rounded-full right-2 top-1"
+          className="absolute right-2 top-1 cursor-pointer rounded-full"
           onClick={() => {
             setIsShowingPassword(show => !show)
           }}
@@ -158,29 +158,31 @@ export default function AccountSettingsTab() {
   }
 
   return (
-    <div className="flex gap-8">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-2.5">
-          <h3 className="font-bold text-xl h-9.5 py-0.5">{getText('userAccount')}</h3>
+    <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
+      <div className="flex w-settings-main-section flex-col gap-settings-subsection">
+        <div className="flex flex-col gap-settings-section-header">
+          <h3 className="settings-subheading">{getText('userAccount')}</h3>
           <div className="flex flex-col">
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-12 h-8 py-1.25">{getText('name')}</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-user-account-settings-label">{getText('name')}</span>
+              <span className="text my-auto grow font-bold">
                 <Input originalValue={user?.name ?? ''} onSubmit={doUpdateName} />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-12 h-8 py-1.25">{getText('email')}</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">{user?.email ?? ''}</span>
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-user-account-settings-label">{getText('email')}</span>
+              <span className="settings-value my-auto grow font-bold">{user?.email ?? ''}</span>
             </div>
           </div>
         </div>
         {canChangePassword && (
           <div key={passwordFormKey}>
-            <h3 className="font-bold text-xl h-9.5 py-0.5">{getText('changePassword')}</h3>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-36 h-8 py-1.25">{getText('currentPasswordLabel')}</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <h3 className="settings-subheading">{getText('changePassword')}</h3>
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-change-password-settings-label">
+                {getText('currentPasswordLabel')}
+              </span>
+              <span className="text my-auto grow font-bold">
                 <Input
                   type="password"
                   originalValue=""
@@ -191,9 +193,11 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-36 h-8 py-1.25">{getText('newPasswordLabel')}</span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-change-password-settings-label">
+                {getText('newPasswordLabel')}
+              </span>
+              <span className="text my-auto grow font-bold">
                 <Input
                   type="password"
                   originalValue=""
@@ -210,11 +214,11 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex gap-4.75">
-              <span className="leading-5 w-36 h-8 py-1.25">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-change-password-settings-label">
                 {getText('confirmNewPasswordLabel')}
               </span>
-              <span className="grow font-bold leading-5 h-8 py-1.25">
+              <span className="text my-auto grow font-bold">
                 <Input
                   type="password"
                   originalValue=""
@@ -229,7 +233,7 @@ export default function AccountSettingsTab() {
                 />
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex h-row items-center gap-buttons">
               <button
                 disabled={
                   currentPassword === '' ||
@@ -239,7 +243,7 @@ export default function AccountSettingsTab() {
                   !validation.PASSWORD_REGEX.test(newPassword)
                 }
                 type="submit"
-                className="text-white bg-invite font-medium rounded-full h-6 py-px px-2 -my-px disabled:opacity-50"
+                className={`settings-value rounded-full bg-invite font-medium text-white selectable enabled:active`}
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -252,7 +256,7 @@ export default function AccountSettingsTab() {
               </button>
               <button
                 type="button"
-                className="bg-frame-selected font-medium rounded-full h-6 py-px px-2 -my-px"
+                className="settings-value rounded-full bg-selected-frame font-medium"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -265,11 +269,13 @@ export default function AccountSettingsTab() {
             </div>
           </div>
         )}
-        <div className="flex flex-col gap-2.5 rounded-2.5xl border-2 border-danger px-4 pt-2.25 pb-3.75">
-          <h3 className="text-danger font-bold text-xl h-9.5 py-0.5">{getText('dangerZone')}</h3>
-          <div className="flex gap-2">
+        {/* This UI element does not appear anywhere else. */}
+        {/* eslint-disable-next-line no-restricted-syntax */}
+        <div className="flex flex-col items-start gap-settings-section-header rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]">
+          <h3 className="settings-subheading text-danger">{getText('dangerZone')}</h3>
+          <div className="flex gap-buttons">
             <button
-              className="rounded-full bg-danger text-inversed px-2 py-1"
+              className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
               onClick={event => {
                 event.stopPropagation()
                 setModal(
@@ -282,15 +288,15 @@ export default function AccountSettingsTab() {
                 )
               }}
             >
-              <span className="leading-5 h-6 py-px">{getText('deleteUserAccountButtonLabel')}</span>
+              <span className="text inline-block">{getText('deleteUserAccountButtonLabel')}</span>
             </button>
-            <span className="leading-5 h-8 py-1.25">{getText('deleteUserAccountWarning')}</span>
+            <span className="text my-auto">{getText('deleteUserAccountWarning')}</span>
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">{getText('profilePicture')}</h3>
-        <label className="flex items-center cursor-pointer rounded-full overflow-clip h-32 w-32 hover:bg-frame transition-colors">
+      <div className="flex flex-col gap-settings-section-header">
+        <h3 className="settings-subheading">{getText('profilePicture')}</h3>
+        <label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
           <img
             src={user?.profilePicture ?? DefaultUserIcon}
@@ -299,7 +305,9 @@ export default function AccountSettingsTab() {
             className="pointer-events-none"
           />
         </label>
-        <span className="py-1 w-64">{getText('profilePictureWarning')}</span>
+        <span className="w-profile-picture-caption py-profile-picture-caption-y">
+          {getText('profilePictureWarning')}
+        </span>
       </div>
     </div>
   )

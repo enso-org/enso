@@ -36,6 +36,7 @@ export interface UserMenuProps {
 /** Handling the UserMenuItem click event logic and displaying its content. */
 export default function UserMenu(props: UserMenuProps) {
   const { hidden = false, setPage, supportsLocalBackend, onSignOut } = props
+  const [initialized, setInitialized] = React.useState(false)
   const navigate = navigateHooks.useNavigate()
   const { signOut } = authProvider.useAuth()
   const { user } = authProvider.useNonPartialUserSession()
@@ -43,76 +44,82 @@ export default function UserMenu(props: UserMenuProps) {
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
+  React.useEffect(() => {
+    requestAnimationFrame(() => {
+      setInitialized(true)
+    })
+  }, [])
+
   return (
-    <Modal hidden={hidden} className="absolute overflow-hidden bg-dim w-full h-full">
+    <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
-        className="absolute flex flex-col bg-frame-selected backdrop-blur-3xl rounded-2xl gap-3 right-2.25 top-2.25 w-51.5 px-2 py-2.25"
+        className={`absolute right-top-bar-margin top-top-bar-margin flex flex-col gap-user-menu rounded-default bg-selected-frame backdrop-blur-default transition-all duration-user-menu ${initialized ? 'w-user-menu p-user-menu' : 'size-row-h p-profile-picture'}`}
         onClick={event => {
           event.stopPropagation()
         }}
       >
         {user != null ? (
           <>
-            <div className="flex items-center gap-3 px-1">
-              <div className="flex items-center rounded-full overflow-clip w-7.25 h-7.25">
+            <div
+              className={`flex items-center gap-icons overflow-hidden transition-all duration-user-menu ${initialized ? 'px-menu-entry' : ''}`}
+            >
+              <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
                 <img
                   src={user.profilePicture ?? DefaultUserIcon}
-                  height={28}
-                  width={28}
-                  className="pointer-events-none"
+                  className="pointer-events-none size-profile-picture"
                 />
               </div>
-              <span className="leading-170 h-6 py-px">{user.name}</span>
+              <span className="text">{user.name}</span>
             </div>
-            <div className="flex flex-col">
-              {!supportsLocalBackend && (
+            <div
+              className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
+            >
+              <div className="flex flex-col overflow-hidden">
+                {!supportsLocalBackend && (
+                  <MenuEntry
+                    action="downloadApp"
+                    doAction={async () => {
+                      unsetModal()
+                      const downloadUrl = await github.getDownloadUrl()
+                      if (downloadUrl == null) {
+                        toastAndLog('noAppDownloadError')
+                      } else {
+                        download.download(downloadUrl)
+                      }
+                    }}
+                  />
+                )}
                 <MenuEntry
-                  action="downloadApp"
-                  paddingClassName="p-1"
-                  doAction={async () => {
+                  action="settings"
+                  doAction={() => {
                     unsetModal()
-                    const downloadUrl = await github.getDownloadUrl()
-                    if (downloadUrl == null) {
-                      toastAndLog('noAppDownloadError')
-                    } else {
-                      download.download(downloadUrl)
-                    }
+                    setPage(pageSwitcher.Page.settings)
                   }}
                 />
-              )}
-              <MenuEntry
-                action="settings"
-                paddingClassName="p-1"
-                doAction={() => {
-                  unsetModal()
-                  setPage(pageSwitcher.Page.settings)
-                }}
-              />
-              <MenuEntry
-                action="signOut"
-                paddingClassName="p-1"
-                doAction={() => {
-                  onSignOut()
-                  // Wait until React has switched back to drive view, before signing out.
-                  window.setTimeout(() => {
-                    void signOut()
-                  }, 0)
-                }}
-              />
+                <MenuEntry
+                  action="signOut"
+                  doAction={() => {
+                    onSignOut()
+                    // Wait until React has switched back to drive view, before signing out.
+                    window.setTimeout(() => {
+                      void signOut()
+                    }, 0)
+                  }}
+                />
+              </div>
             </div>
           </>
         ) : (
           <>
-            <div className="flex items-center h-7">
-              <span className="leading-170 h-6 py-px">{getText('youAreNotLoggedIn')}</span>
+            <div className="flex h-profile-picture items-center">
+              <span className="text">{getText('youAreNotLoggedIn')}</span>
             </div>
             <div className="flex flex-col">
               <MenuEntry
                 action="signIn"
-                paddingClassName="p-1"
                 doAction={() => {
                   navigate(appUtils.LOGIN_PATH)
                 }}

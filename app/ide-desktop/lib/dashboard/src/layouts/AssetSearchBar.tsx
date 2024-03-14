@@ -12,8 +12,9 @@ import Label from '#/components/dashboard/Label'
 import type * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
-import AssetQuery, * as assetQuery from '#/utilities/AssetQuery'
+import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
+import * as string from '#/utilities/string'
 
 // =============
 // === Types ===
@@ -228,9 +229,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           setAreSuggestionsVisible(false)
         }
       }}
-      className="group search-bar relative flex items-center text-primary rounded-full gap-2.5 h-8 grow max-w-98.25 xl:max-w-screen-1/3 px-2"
+      className="search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide"
     >
-      <img src={FindIcon} className="relative z-1 opacity-80" />
+      <img src={FindIcon} className="relative z-1 placeholder" />
       <input
         ref={searchRef}
         type="search"
@@ -240,7 +241,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             ? getText('remoteBackendSearchPlaceholder')
             : getText('localBackendSearchPlaceholder')
         }
-        className="peer relative z-1 grow bg-transparent leading-5 h-6 py-px placeholder:text-center"
+        className="peer text relative z-1 grow bg-transparent placeholder:text-center"
         onChange={event => {
           if (querySource.current !== QuerySource.internal) {
             querySource.current = QuerySource.typing
@@ -260,14 +261,14 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           }
         }}
       />
-      <div className="absolute flex flex-col top-0 left-0 overflow-hidden w-full before:absolute before:bg-frame before:inset-0 before:backdrop-blur-3xl rounded-2xl pointer-events-none transition-all duration-300">
-        <div className="relative padding h-8" />
+      <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
+        <div className="padding relative h-row" />
         {areSuggestionsVisible && (
-          <div className="relative flex flex-col gap-2">
+          <div className="relative flex flex-col gap-search-suggestions">
             {/* Tags (`name:`, `modified:`, etc.) */}
             <div
               data-testid="asset-search-tag-names"
-              className="flex flex-wrap gap-2 whitespace-nowrap px-2 pointer-events-auto"
+              className="pointer-events-auto flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions"
             >
               {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
                 const [key, tag] = entry
@@ -276,7 +277,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                   : [
                       <button
                         key={key}
-                        className="bg-frame rounded-full h-6 px-2 hover:bg-frame-selected transition-all"
+                        className="h-text rounded-full bg-frame px-button-x transition-all hover:bg-selected-frame"
                         onClick={() => {
                           querySource.current = QuerySource.internal
                           setQuery(query.add({ [key]: [[]] }))
@@ -289,42 +290,47 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             </div>
             {/* Asset labels */}
             {isCloud && labels.length !== 0 && (
-              <div data-testid="asset-search-labels" className="flex gap-2 p-2 pointer-events-auto">
-                {labels.map(label => {
-                  const negated = query.negativeLabels.some(term =>
-                    array.shallowEqual(term, [label.value])
-                  )
-                  return (
-                    <Label
-                      key={label.id}
-                      color={label.color}
-                      group={false}
-                      active={
-                        negated ||
-                        query.labels.some(term => array.shallowEqual(term, [label.value]))
-                      }
-                      negated={negated}
-                      onClick={event => {
-                        querySource.current = QuerySource.internal
-                        setQuery(oldQuery => {
-                          const newQuery = assetQuery.toggleLabel(
-                            oldQuery,
-                            label.value,
-                            event.shiftKey
-                          )
-                          baseQuery.current = newQuery
-                          return newQuery
-                        })
-                      }}
-                    >
-                      {label.value}
-                    </Label>
-                  )
-                })}
+              <div
+                data-testid="asset-search-labels"
+                className="pointer-events-auto flex gap-buttons p-search-suggestions"
+              >
+                {labels
+                  .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
+                  .map(label => {
+                    const negated = query.negativeLabels.some(term =>
+                      array.shallowEqual(term, [label.value])
+                    )
+                    return (
+                      <Label
+                        key={label.id}
+                        color={label.color}
+                        active={
+                          negated ||
+                          query.labels.some(term => array.shallowEqual(term, [label.value]))
+                        }
+                        negated={negated}
+                        onClick={event => {
+                          querySource.current = QuerySource.internal
+                          setQuery(oldQuery => {
+                            const newQuery = oldQuery.withToggled(
+                              'labels',
+                              'negativeLabels',
+                              label.value,
+                              event.shiftKey
+                            )
+                            baseQuery.current = newQuery
+                            return newQuery
+                          })
+                        }}
+                      >
+                        {label.value}
+                      </Label>
+                    )
+                  })}
               </div>
             )}
             {/* Suggestions */}
-            <div className="flex flex-col max-h-[16rem] overflow-y-auto">
+            <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto">
               {suggestions.map((suggestion, index) => (
                 // This should not be a `<button>`, since `render()` may output a
                 // tree containing a button.
@@ -337,9 +343,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     }
                   }}
                   tabIndex={-1}
-                  className={`cursor-pointer px-2 py-1 mx-1 rounded-2xl text-left hover:bg-frame-selected last:mb-1 transition-colors pointer-events-auto ${
+                  className={`pointer-events-auto mx-search-suggestion cursor-pointer rounded-default px-search-suggestions py-search-suggestion-y text-left transition-colors last:mb-search-suggestion hover:bg-selected-frame ${
                     index === selectedIndex
-                      ? 'bg-frame-selected'
+                      ? 'bg-selected-frame'
                       : selectedIndices.has(index)
                         ? 'bg-frame'
                         : ''

@@ -26,21 +26,20 @@ export default function ForgotPassword() {
   const [email, setEmail] = React.useState('')
 
   return (
-    <div className="flex flex-col gap-6 text-primary text-sm items-center justify-center min-h-screen">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
       <form
-        className="flex flex-col gap-6 bg-frame-selected rounded-2xl shadow-md p-8 w-full max-w-md"
+        className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md"
         onSubmit={async event => {
           event.preventDefault()
           await forgotPassword(email)
         }}
       >
-        <div className="font-medium self-center text-xl">{getText('forgotYourPassword')}</div>
+        <div className="self-center text-xl font-medium">{getText('forgotYourPassword')}</div>
         <Input
           required
           validate
           type="email"
           autoComplete="email"
-          label={getText('email')}
           icon={AtIcon}
           placeholder={getText('emailPlaceholder')}
           value={email}

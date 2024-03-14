@@ -12,8 +12,8 @@ import type * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 
-/** Props for a {@link UserPermissions}. */
-export interface UserPermissionsProps {
+/** Props for a {@link UserPermission}. */
+export interface UserPermissionProps {
   readonly asset: backendModule.Asset
   readonly self: backendModule.UserPermission
   readonly isOnlyOwner: boolean
@@ -23,22 +23,22 @@ export interface UserPermissionsProps {
 }
 
 /** A user and their permissions for a specific asset. */
-export default function UserPermissions(props: UserPermissionsProps) {
+export default function UserPermission(props: UserPermissionProps) {
   const { asset, self, isOnlyOwner, doDelete } = props
   const { userPermission: initialUserPermission, setUserPermission: outerSetUserPermission } = props
   const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const [userPermissions, setUserPermissions] = React.useState(initialUserPermission)
+  const [userPermission, setUserPermission] = React.useState(initialUserPermission)
   const assetTypeName = getText(`${asset.type}AssetType`)
 
   React.useEffect(() => {
-    setUserPermissions(initialUserPermission)
+    setUserPermission(initialUserPermission)
   }, [initialUserPermission])
 
   const doSetUserPermission = async (newUserPermissions: backendModule.UserPermission) => {
     try {
-      setUserPermissions(newUserPermissions)
+      setUserPermission(newUserPermissions)
       outerSetUserPermission(newUserPermissions)
       await backend.createPermission({
         userSubjects: [newUserPermissions.user.pk],
@@ -46,29 +46,29 @@ export default function UserPermissions(props: UserPermissionsProps) {
         action: newUserPermissions.permission,
       })
     } catch (error) {
-      setUserPermissions(userPermissions)
-      outerSetUserPermission(userPermissions)
+      setUserPermission(userPermission)
+      outerSetUserPermission(userPermission)
       toastAndLog('setPermissionsError', error, newUserPermissions.user.user_email)
     }
   }
 
   return (
-    <div className="flex gap-3 items-center">
+    <div className="flex items-center gap-user-permission">
       <PermissionSelector
         showDelete
-        disabled={isOnlyOwner && userPermissions.user.pk === self.user.pk}
+        disabled={isOnlyOwner && userPermission.user.pk === self.user.pk}
         error={isOnlyOwner ? getText('needsOwnerError', assetTypeName) : null}
         selfPermission={self.permission}
-        action={userPermissions.permission}
+        action={userPermission.permission}
         assetType={asset.type}
         onChange={async permissions => {
-          await doSetUserPermission(object.merge(userPermissions, { permission: permissions }))
+          await doSetUserPermission(object.merge(userPermission, { permission: permissions }))
         }}
         doDelete={() => {
-          doDelete(userPermissions.user)
+          doDelete(userPermission.user)
         }}
       />
-      <span className="leading-170 h-6 py-px">{userPermissions.user.user_name}</span>
+      <span className="text">{userPermission.user.user_name}</span>
     </div>
   )
 }

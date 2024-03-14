@@ -32,8 +32,6 @@ import * as object from '#/utilities/object'
 
 /** The size of the icon, in pixels. */
 const ICON_SIZE_PX = 24
-/** The styles of the icons. */
-const ICON_CLASSES = 'w-6 h-6'
 const LOADING_MESSAGE =
   'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -337,14 +335,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closed:
       return (
         <button
-          className="w-6 h-6 disabled:opacity-50"
+          className="size-project-icon"
           onClick={clickEvent => {
             clickEvent.stopPropagation()
             unsetModal()
             doOpenManually(item.id)
           }}
         >
-          <SvgMask alt={getText('openInEditor')} className={ICON_CLASSES} src={PlayIcon} />
+          <SvgMask alt={getText('openInEditor')} src={PlayIcon} className="size-project-icon" />
         </button>
       )
     case backendModule.ProjectState.openInProgress:
@@ -355,20 +353,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <button
           disabled={isOtherUserUsingProject}
           {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-          className="w-6 h-6 disabled:opacity-50"
+          className="size-project-icon selectable enabled:active"
           onClick={async clickEvent => {
             clickEvent.stopPropagation()
             unsetModal()
             await closeProject(!isRunningInBackground)
           }}
         >
-          <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
+          <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
             <Spinner size={ICON_SIZE_PX} state={spinnerState} />
           </div>
           <SvgMask
             alt={getText('stopExecution')}
             src={StopIcon}
-            className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+            className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
           />
         </button>
       )
@@ -378,32 +376,36 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <button
             disabled={isOtherUserUsingProject}
             {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="w-6 h-6 disabled:opacity-50"
+            className="size-project-icon selectable enabled:active"
             onClick={async clickEvent => {
               clickEvent.stopPropagation()
               unsetModal()
               await closeProject(!isRunningInBackground)
             }}
           >
-            <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
-              <Spinner size={24} state={spinnerState} />
+            <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+              <Spinner className="size-project-icon" state={spinnerState} />
             </div>
             <SvgMask
               alt={getText('stopExecution')}
               src={StopIcon}
-              className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+              className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
             />
           </button>
           {!isOtherUserUsingProject && !isRunningInBackground && (
             <button
-              className="w-6 h-6"
+              className="size-project-icon"
               onClick={clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()
                 doOpenEditor(true)
               }}
             >
-              <SvgMask alt={getText('openInEditor')} src={ArrowUpIcon} className={ICON_CLASSES} />
+              <SvgMask
+                alt={getText('openInEditor')}
+                src={ArrowUpIcon}
+                className="size-project-icon"
+              />
             </button>
           )}
         </div>
