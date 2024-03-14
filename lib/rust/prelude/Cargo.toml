@@ -21,23 +21,16 @@ enso-reflect = { path = "../reflect" }
 enso-shapely = { path = "../shapely" }
 enso-zst = { path = "../zst" }
 anyhow = { workspace = true }
-assert_approx_eq = { workspace = true }
-backtrace = { workspace = true }
 boolinator = { workspace = true }
 derivative = { workspace = true }
 derive_more = { workspace = true }
 failure = { workspace = true }
 futures = { workspace = true }
 itertools = { workspace = true }
-lazy_static = { workspace = true }
 paste = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 smallvec = { workspace = true }
-wasm-bindgen = { workspace = true }
-weak-table = { workspace = true }
-gen-iter = { workspace = true }
-bytemuck = { workspace = true }
 
 [dependencies.web-sys]
 version = "0.3.4"

@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Column, Value_Type, Auto
-import Standard.Table.Data.Type.Value_Type.Bits
+from Standard.Table import Column, Value_Type, Auto, Bits
 
 from Standard.Test import Bench
 

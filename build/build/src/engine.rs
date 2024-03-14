@@ -11,6 +11,7 @@ use crate::paths::generated;
 
 use artifact::IsArtifact;
 use bundle::IsBundle;
+use ide_ci::cache::goodie::graalvm::Edition;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::github::Repo;
 use package::IsPackage;
@@ -310,9 +311,12 @@ pub async fn deduce_graal(
     build_sbt: &generated::RepoRootBuildSbt,
 ) -> Result<ide_ci::cache::goodie::graalvm::GraalVM> {
     let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    let graal_edition = env::GRAAL_EDITION.get().map_or(Edition::default(), |e| e);
+
     Ok(ide_ci::cache::goodie::graalvm::GraalVM {
         client,
         graal_version: get_graal_version(&build_sbt_content)?,
+        edition: graal_edition,
         os: TARGET_OS,
         arch: TARGET_ARCH,
     })
