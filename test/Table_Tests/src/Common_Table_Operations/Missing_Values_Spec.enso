@@ -52,11 +52,6 @@ add_specs suite_builder setup =
     test_selection = setup.test_selection
     suite_builder.group prefix+"Dropping Missing Values" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
-        if prefix == "[SQLite File] " then
-            doit unused =
-                _ = [unused]
-                setup.table_builder [["X", [1, 2, 3]]] connection=data.connection . row_count
-            Regex.put (Blah.Value doit)
 
         group_builder.teardown <|
             data.teardown
@@ -192,6 +187,11 @@ add_specs suite_builder setup =
 
     suite_builder.group prefix+"Filling Missing Values" group_builder->
         data = Data.setup create_connection_fn setup.table_builder
+        if prefix == "[SQLite File] " then
+            doit unused =
+                _ = [unused]
+                setup.table_builder [["X", [1, 2, 3]]] connection=data.connection . row_count
+            Regex.put (Blah.Value doit)
 
         group_builder.teardown <|
             data.teardown

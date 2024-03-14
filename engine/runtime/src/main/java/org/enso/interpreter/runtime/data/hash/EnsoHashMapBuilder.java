@@ -49,7 +49,7 @@ final class EnsoHashMapBuilder {
 
   /** Create a new builder with default size being {@code 11}. */
   public static EnsoHashMapBuilder create() {
-    return new EnsoHashMapBuilder(11);
+    return new EnsoHashMapBuilder(1441);
   }
 
   /** Returns count of elements in the storage. */

@@ -362,11 +362,11 @@ supported_replace_params =
 type Database_File
     Value ~file
 
-    create = Database_File.Value <|
+    create basename="sqlite_test.db" = Database_File.Value <|
         transient_dir = enso_project.data / "transient" # +(Date_Time.now.millisecond.to_text)
         #transient_dir.create_directory
         assert transient_dir.exists ("The directory " + transient_dir.path + " should exist (ensured by containing a `.gitignore` file).")
-        f = transient_dir / "sqlite_test.db"
+        f = transient_dir / basename
         IO.println 'AAA DF create '+f.to_text
         f.delete_if_exists
         f
@@ -412,10 +412,11 @@ add_specs suite_builder =
     SQLite_Type_Mapping_Spec.add_specs suite_builder
 
     suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
-        data = File_Connection.setup database_file
+        data = File_Connection.setup database_file # (Database_File.create "for_sqlite_format_test.db")
 
         group_builder.teardown <|
-            data.teardown
+            #data.teardown
+            12
 
         group_builder.specify "should recognise a SQLite database file" <|
             Auto_Detect.get_reading_format data.file . should_be_a SQLite_Format

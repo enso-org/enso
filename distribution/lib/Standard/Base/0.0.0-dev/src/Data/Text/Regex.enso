@@ -39,6 +39,10 @@ polyglot java import org.enso.base.Text_Utils
 type Regex
     get = Text_Utils.get
     put x = Text_Utils.put x
+    run =
+        x = Regex.get
+        if x.is_nothing then 'notyet' else
+            x.x 1
 
     ## Compile the provided `expression` into a `Regex` that can be used for
        matching.
