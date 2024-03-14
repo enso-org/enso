@@ -139,9 +139,7 @@ test('File Browser widget', async ({ page }) => {
   await pathArg.click()
   await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
   await dropDown.clickOption(page, 'Choose file…')
-  await expect(pathArg.locator('.WidgetText > input')).toHaveValue(
-    "/path/to/some/mock/file",
-  )
+  await expect(pathArg.locator('.WidgetText > input')).toHaveValue('/path/to/some/mock/file')
 })
 
 test('Managing aggregates in `aggregate` node', async ({ page }) => {
