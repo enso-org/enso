@@ -4,6 +4,8 @@ import * as React from 'react'
 import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
+
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
@@ -70,20 +72,23 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const querySource = React.useRef(QuerySource.external)
   const [isShiftPressed, setIsShiftPressed] = React.useState(false)
   const rootRef = React.useRef<HTMLLabelElement>(null)
-  const searchRef = React.useRef<HTMLInputElement>(null)
+  const searchRef = React.useRef<HTMLInputElement | null>(null)
   const navigator2D = navigator2DProvider.useNavigator2D()
+
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: 1 })
 
   React.useEffect(() => {
     const root = rootRef.current
     if (root == null) {
       return
     } else {
-      navigator2D.register(root, { primaryChild: searchRef.current })
+      navigator2D.register(root, { focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0) })
       return () => {
         navigator2D.unregister(root)
       }
     }
-  }, [navigator2D])
+  }, [navigator2D, setKeyboardSelectedIndex])
 
   React.useEffect(() => {
     areSuggestionsVisibleRef.current = areSuggestionsVisible
@@ -249,35 +254,6 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       className="search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide"
     >
       <img src={FindIcon} className="relative z-1 placeholder" />
-      <input
-        ref={searchRef}
-        type="search"
-        size={1}
-        placeholder={
-          isCloud
-            ? 'Type to search for projects, Data Links, users, and more.'
-            : 'Type to search for projects.'
-        }
-        className="peer text relative z-1 grow bg-transparent placeholder:text-center"
-        onChange={event => {
-          if (querySource.current !== QuerySource.internal) {
-            querySource.current = QuerySource.typing
-            setQuery(AssetQuery.fromString(event.target.value))
-          }
-        }}
-        onKeyDown={event => {
-          if (
-            event.key === 'Enter' &&
-            !event.shiftKey &&
-            !event.altKey &&
-            !event.metaKey &&
-            !event.ctrlKey
-          ) {
-            // Clone the query to refresh results.
-            setQuery(query.clone())
-          }
-        }}
-      />
       <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
         <div className="padding relative h-row" />
         {areSuggestionsVisible && (
@@ -393,6 +369,44 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             </div>
           </div>
         )}
+      </div>
+      <div
+        className={`before:inset-x-button-focus-ring-inset relative grow before:text before:absolute before:my-auto before:rounded-full before:transition-all ${keyboardSelectedIndex === 0 ? 'before:focus-ring' : ''}`}
+      >
+        <input
+          ref={element => {
+            searchRef.current = element
+            if (keyboardSelectedIndex === 0) {
+              element?.focus()
+            }
+          }}
+          type="search"
+          size={1}
+          placeholder={
+            isCloud
+              ? 'Type to search for projects, Data Links, users, and more.'
+              : 'Type to search for projects.'
+          }
+          className="peer text relative z-1 w-full bg-transparent placeholder:text-center"
+          onChange={event => {
+            if (querySource.current !== QuerySource.internal) {
+              querySource.current = QuerySource.typing
+              setQuery(AssetQuery.fromString(event.target.value))
+            }
+          }}
+          onKeyDown={event => {
+            if (
+              event.key === 'Enter' &&
+              !event.shiftKey &&
+              !event.altKey &&
+              !event.metaKey &&
+              !event.ctrlKey
+            ) {
+              // Clone the query to refresh results.
+              setQuery(query.clone())
+            }
+          }}
+        />
       </div>
     </label>
   )
