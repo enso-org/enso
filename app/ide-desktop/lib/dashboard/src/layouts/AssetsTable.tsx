@@ -973,15 +973,20 @@ export default function AssetsTable(props: AssetsTableProps) {
     null,
     async signal => {
       try {
-        const newAssets = await backend.listDirectory(
-          {
-            parentId: null,
-            filterBy: CATEGORY_TO_FILTER_BY[category],
-            recentProjects: category === Category.recent,
-            labels: null,
-          },
-          null
-        )
+        const newAssets = await backend
+          .listDirectory(
+            {
+              parentId: null,
+              filterBy: CATEGORY_TO_FILTER_BY[category],
+              recentProjects: category === Category.recent,
+              labels: null,
+            },
+            null
+          )
+          .catch(error => {
+            toastAndLog('Could not list root folder', error)
+            throw error
+          })
         if (!signal.aborted) {
           setIsLoading(false)
           overwriteNodes(newAssets)
@@ -1105,15 +1110,20 @@ export default function AssetsTable(props: AssetsTableProps) {
         void (async () => {
           const abortController = new AbortController()
           directoryListAbortControllersRef.current.set(directoryId, abortController)
-          const childAssets = await backend.listDirectory(
-            {
-              parentId: directoryId,
-              filterBy: CATEGORY_TO_FILTER_BY[category],
-              recentProjects: category === Category.recent,
-              labels: null,
-            },
-            title ?? null
-          )
+          const childAssets = await backend
+            .listDirectory(
+              {
+                parentId: directoryId,
+                filterBy: CATEGORY_TO_FILTER_BY[category],
+                recentProjects: category === Category.recent,
+                labels: null,
+              },
+              title ?? null
+            )
+            .catch(error => {
+              toastAndLog(`Could not list folder${title != null ? ` '${title}'` : ''}`, error)
+              throw error
+            })
           if (!abortController.signal.aborted) {
             setAssetTree(oldAssetTree =>
               oldAssetTree.map(item => {
@@ -1160,7 +1170,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         })()
       }
     },
-    [category, backend]
+    [category, backend, toastAndLog]
   )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)

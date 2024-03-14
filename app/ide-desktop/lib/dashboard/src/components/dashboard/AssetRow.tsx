@@ -179,60 +179,60 @@ export default function AssetRow(props: AssetRowProps) {
       const nonNullNewParentKey = newParentKey ?? rootDirectoryId
       const nonNullNewParentId = newParentId ?? rootDirectoryId
       try {
+        setItem(oldItem =>
+          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
+        )
+        const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
+        const newProjectState =
+          asset.projectState == null
+            ? null
+            : object.merge(
+                asset.projectState,
+                asset.projectState.path == null
+                  ? {}
+                  : { path: `${newParentPath}/${fileInfo.fileName(asset.projectState.path)}` }
+              )
+        let newId = asset.id
+        if (!isCloud) {
+          const oldPath = localBackend.extractTypeAndId(asset.id).id
+          const newPath = `${newParentPath}/${fileInfo.fileName(oldPath)}`
+          switch (asset.type) {
+            case backendModule.AssetType.file: {
+              newId = localBackend.newFileId(newPath)
+              break
+            }
+            case backendModule.AssetType.directory: {
+              newId = localBackend.newDirectoryId(newPath)
+              break
+            }
+            case backendModule.AssetType.project:
+            case backendModule.AssetType.secret:
+            case backendModule.AssetType.dataLink:
+            case backendModule.AssetType.specialLoading:
+            case backendModule.AssetType.specialEmpty: {
+              // Ignored.
+              // Project paths are not stored in their `id`;
+              // The other asset types either do not exist on the Local backend,
+              // or do not have a path.
+              break
+            }
+          }
+        }
+        const newAsset = object.merge(asset, {
+          // This is SAFE as the type of `newId` is not changed from its original type.
+          // eslint-disable-next-line no-restricted-syntax
+          id: newId as never,
+          parentId: nonNullNewParentId,
+          projectState: newProjectState,
+        })
         dispatchAssetListEvent({
           type: AssetListEventType.move,
           newParentKey: nonNullNewParentKey,
           newParentId: nonNullNewParentId,
           key: item.key,
-          item: asset,
+          item: newAsset,
         })
-        setItem(oldItem =>
-          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
-        )
-        setAsset(oldAsset => {
-          const newParentPath = localBackend.extractTypeAndId(nonNullNewParentId).id
-          const newProjectState =
-            oldAsset.projectState == null
-              ? null
-              : object.merge(
-                  oldAsset.projectState,
-                  oldAsset.projectState.path == null
-                    ? {}
-                    : { path: `${newParentPath}/${fileInfo.fileName(oldAsset.projectState.path)}` }
-                )
-          let newId = oldAsset.id
-          if (!isCloud) {
-            const internalId = localBackend.extractTypeAndId(oldAsset.id).id
-            switch (oldAsset.type) {
-              case backendModule.AssetType.file: {
-                newId = localBackend.newFileId(internalId)
-                break
-              }
-              case backendModule.AssetType.directory: {
-                newId = localBackend.newDirectoryId(internalId)
-                break
-              }
-              case backendModule.AssetType.project:
-              case backendModule.AssetType.secret:
-              case backendModule.AssetType.dataLink:
-              case backendModule.AssetType.specialLoading:
-              case backendModule.AssetType.specialEmpty: {
-                // Ignored.
-                // Project paths are not stored in their `id`;
-                // The other asset types either do not exist on the Local backend,
-                // or do not have a path.
-                break
-              }
-            }
-          }
-          return object.merge(oldAsset, {
-            // This is SAFE as the type of `newId` is not changed from its original type.
-            // eslint-disable-next-line no-restricted-syntax
-            id: newId as never,
-            parentId: nonNullNewParentId,
-            projectState: newProjectState,
-          })
-        })
+        setAsset(newAsset)
         await backend.updateAsset(
           asset.id,
           {
