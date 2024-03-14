@@ -70,6 +70,12 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     db.run(applyActionsQuery(actions).transactionally)
 
   /** @inheritdoc */
+  def getExportedSymbols(
+    actions: Seq[ExportsUpdate]
+  ): Future[Seq[QueryResult[ExportsUpdate]]] =
+    db.run(getExportedSymbolsQuery(actions).transactionally)
+
+  /** @inheritdoc */
   override def remove(suggestion: Suggestion): Future[Option[Long]] =
     db.run(removeQuery(suggestion))
 
@@ -329,6 +335,49 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     }
     DBIO.sequence(removeActions)
   }
+
+  /** The query to get the suggestions related to the export updates.
+    *
+    * @param actions the list of updates
+    * @return the suggestions ids associated with the export updates
+    */
+  private def getExportedSymbolsQuery(
+    actions: Seq[ExportsUpdate]
+  ): DBIO[Seq[QueryResult[ExportsUpdate]]] = {
+    val qs = actions.map { action =>
+      val actionIdQueries = action.exports.symbols.toSeq.map { symbol =>
+        selectExportedSymbolQuery(
+          symbol.module,
+          symbol.name,
+          symbol.kind
+        ).result
+      }
+      for {
+        ids <- DBIO.sequence(actionIdQueries)
+      } yield QueryResult(ids.flatten, action)
+    }
+    DBIO.sequence(qs)
+  }
+
+  /** The query to select the exported symbol.
+    *
+    * @param module the module name of the exported symbol
+    * @param name the name of the exported symbol
+    * @param kind the kind of the exported symbol
+    * @return the database query returning the list of ids corresponding to the
+    * exported symbol
+    */
+  private def selectExportedSymbolQuery(
+    module: String,
+    name: String,
+    kind: Suggestion.Kind
+  ): Query[Rep[Long], Long, Seq] =
+    Suggestions
+      .filter(_.module === module)
+      .filter(_.kind === SuggestionKind(kind))
+      .filter(_.name === name)
+      .take(1)
+      .map(_.id)
 
   /** The query to select the suggestion.
     *

@@ -1,7 +1,9 @@
 package org.enso.searcher.sql
 
-import org.enso.polyglot.Suggestion
+import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionEntry
+import org.enso.searcher.data.QueryResult
 import org.enso.searcher.sql.SqlSuggestionsRepo.UniqueConstraintViolatedError
 import org.enso.searcher.sql.equality.SuggestionsEquality
 import org.enso.testkit.RetrySpec
@@ -68,7 +70,7 @@ class SuggestionsRepoTest
       thrown.version shouldEqual wrongSchemaVersion
     }
 
-    "insert all suggestions111" taggedAs Retry in withRepo { repo =>
+    "insert all suggestions" taggedAs Retry in withRepo { repo =>
       val action =
         for {
           v1        <- repo.currentVersion
@@ -664,6 +666,47 @@ class SuggestionsRepoTest
         val (updatedIds, v1, v2) = Await.result(action, Timeout)
         updatedIds shouldEqual Seq(None)
         v1 shouldEqual v2
+    }
+
+    "get exported symbols" taggedAs Retry in withRepo { repo =>
+      val reexport = "Foo.Bar"
+      val method   = suggestion.method.copy(reexports = Set(reexport))
+      val updates = Seq(
+        Api.ExportsUpdate(
+          ModuleExports(
+            reexport,
+            Set(ExportedSymbol.Module(suggestion.module.module))
+          ),
+          Api.ExportsAction.Add()
+        ),
+        Api.ExportsUpdate(
+          ModuleExports(
+            reexport,
+            Set(ExportedSymbol.Method(method.module, method.name))
+          ),
+          Api.ExportsAction.Remove()
+        )
+      )
+      val action = for {
+        (_, ids) <- repo.insertAll(
+          Seq(
+            suggestion.module,
+            suggestion.tpe,
+            suggestion.constructor,
+            method,
+            suggestion.conversion,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        results <- repo.getExportedSymbols(updates)
+      } yield (ids, results)
+
+      val (ids, results) = Await.result(action, Timeout)
+      results should contain theSameElementsAs Seq(
+        QueryResult(Seq(ids(0)), updates(0)),
+        QueryResult(Seq(ids(3)), updates(1))
+      )
     }
 
     "search suggestion by empty query" taggedAs Retry in withRepo { repo =>

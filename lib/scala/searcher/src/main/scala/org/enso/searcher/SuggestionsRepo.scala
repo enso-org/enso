@@ -2,6 +2,7 @@ package org.enso.searcher
 
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api.{
+  ExportsUpdate,
   SuggestionUpdate,
   SuggestionsDatabaseAction
 }
@@ -81,6 +82,15 @@ trait SuggestionsRepo[F[_]] {
   def applyActions(
     actions: Seq[SuggestionsDatabaseAction]
   ): F[Seq[QueryResult[SuggestionsDatabaseAction]]]
+
+  /** Get the suggestions related to the export updates.
+    *
+    * @param actions the list of updates
+    * @return the suggestions ids associated with the export updates
+    */
+  def getExportedSymbols(
+    actions: Seq[ExportsUpdate]
+  ): F[Seq[QueryResult[ExportsUpdate]]]
 
   /** Remove the suggestion.
     *
