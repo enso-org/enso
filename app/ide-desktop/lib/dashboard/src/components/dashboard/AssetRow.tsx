@@ -384,31 +384,9 @@ export default function AssetRow(props: AssetRowProps) {
         }
         break
       }
-      case AssetEventType.download: {
-        if (event.ids.has(item.key)) {
-          if (isCloud) {
-            if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog('Cannot download assets that are not files')
-            } else {
-              try {
-                const details = await backend.getFileDetails(asset.id, asset.title)
-                const file = details.file
-                download.download(download.s3URLToHTTPURL(file.path), asset.title)
-              } catch (error) {
-                toastAndLog('Could not download file', error)
-              }
-            }
-          } else {
-            download.download(
-              `./api/project-manager/projects/${asset.id}/enso-project`,
-              `${asset.title}.enso-project`
-            )
-          }
-        }
-        break
-      }
+      case AssetEventType.download:
       case AssetEventType.downloadSelected: {
-        if (selected) {
+        if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
           if (isCloud) {
             if (asset.type !== backendModule.AssetType.file) {
               toastAndLog('Cannot download assets that are not files')
@@ -418,12 +396,12 @@ export default function AssetRow(props: AssetRowProps) {
                 const file = details.file
                 download.download(details.url ?? download.s3URLToHTTPURL(file.path), asset.title)
               } catch (error) {
-                toastAndLog('Could not download selected files', error)
+                toastAndLog('Could not download file', error)
               }
             }
           } else {
             download.download(
-              `./api/project-manager/projects/${asset.id}/enso-project`,
+              `./api/project-manager/projects/${localBackend.extractTypeAndId(asset.id).id}/enso-project`,
               `${asset.title}.enso-project`
             )
           }

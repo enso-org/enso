@@ -28,6 +28,7 @@ import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 
 import HttpClient from '#/utilities/HttpClient'
@@ -196,7 +197,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   const client = new HttpClient([['Authorization', `Bearer ${accessToken}`]])
                   const remoteBackend = new RemoteBackend(client, logger)
                   const projectResponse = await fetch(
-                    `./api/project-manager/projects/${asset.id}/enso-project`
+                    `./api/project-manager/projects/${localBackend.extractTypeAndId(asset.id).id}/enso-project`
                   )
                   // This DOES NOT update the cloud assets list when it
                   // completes, as the current backend is not the remote
