@@ -59,7 +59,7 @@ export default function UserMenu(props: UserMenuProps) {
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (keyboardSelectedIndex == null) {
+      if (!hidden && keyboardSelectedIndex == null) {
         switch (event.key) {
           case 'ArrowUp': {
             event.stopImmediatePropagation()
@@ -79,7 +79,7 @@ export default function UserMenu(props: UserMenuProps) {
     return () => {
       document.removeEventListener('keydown', onKeyDown, { capture: true })
     }
-  }, [keyboardSelectedIndex, setKeyboardSelectedIndex])
+  }, [hidden, keyboardSelectedIndex, setKeyboardSelectedIndex])
 
   React.useEffect(() => {
     requestAnimationFrame(() => {
