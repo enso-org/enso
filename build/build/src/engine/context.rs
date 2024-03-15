@@ -338,55 +338,29 @@ impl RunContext {
         // we don't want to call this in environments like GH-hosted runners.
 
         // === Build project-manager distribution and native image ===
-        debug!("Bulding project-manager distribution and Native Image");
-        if crate::ci::big_memory_machine() {
-            let mut tasks = vec![];
-
-            if self.config.build_engine_package() {
-                tasks.push("buildEngineDistribution");
-                tasks.push("engine-runner/assembly");
-            }
-            if self.config.build_native_runner {
-                tasks.push("engine-runner/buildNativeImage");
-            }
-
-            if self.config.build_project_manager_package() {
-                tasks.push("buildProjectManagerDistribution");
-            }
-
-            if self.config.build_launcher_package() {
-                tasks.push("buildLauncherDistribution");
-            }
-
-            if !tasks.is_empty() {
-                sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
-            }
-        } else {
-            // If we are run on a weak machine (like GH-hosted runner), we need to build things one
-            // by one.
-            sbt.call_arg("compile").await?;
-
-            // Build the Runner & Runtime Uberjars
-            sbt.call_arg("engine-runner/assembly").await?;
-
-            // Build the Launcher Native Image
-            sbt.call_arg("launcher/assembly").await?;
-            sbt.call_args(&["--mem", "1536", "launcher/buildNativeImage"]).await?;
-
-            // Build the PM Native Image
-            sbt.call_arg("project-manager/assembly").await?;
-            sbt.call_args(&["--mem", "1536", "project-manager/buildNativeImage"]).await?;
-
-            // Prepare Launcher Distribution
-            //create_launcher_package(&paths)?;
-            sbt.call_arg("buildLauncherDistribution").await?;
-
-            // Prepare Engine Distribution
-            sbt.call_arg("buildEngineDistribution").await?;
-
-            // Prepare Project Manager Distribution
-            sbt.call_arg("buildProjectManagerDistribution").await?;
+        let mut tasks = vec![];
+        if self.config.build_engine_package() {
+            tasks.push("buildEngineDistribution");
         }
+        if self.config.build_native_runner {
+            tasks.push("engine-runner/buildNativeImage");
+        }
+        if self.config.build_project_manager_package() {
+            tasks.push("buildProjectManagerDistribution");
+        }
+        if self.config.build_launcher_package() {
+            tasks.push("buildLauncherDistribution");
+        }
+
+        if !tasks.is_empty() {
+            debug!("Building distributions and native images.");
+            if crate::ci::big_memory_machine() {
+                sbt.call_arg(Sbt::concurrent_tasks(tasks)).await?;
+            } else {
+                sbt.call_arg(Sbt::sequential_tasks(tasks)).await?;
+            }
+        }
+
         // === End of Build project-manager distribution and native image ===
 
         let ret = self.expected_artifacts();
