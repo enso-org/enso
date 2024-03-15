@@ -86,6 +86,30 @@
 					}]
 				},
 				{
+					"name": "entity.name.function",
+					"contentName": "foreign.js",
+					"begin": "^(\\s*)(foreign)\\s+js\\s*([^\\s]+).*=(.*$)",
+					"end": "^(?!\\1\\s+)(?!\\s*$)",
+					"beginCaptures": {
+						"2" : { "name": "keyword.other" },
+						"3" : { "name": "entity.name.function"},
+						"4" : { "name": "header"}
+					},
+					"patterns": [ { "include": "source.js" }]
+				},
+				{
+					"name": "entity.name.function",
+					"contentName": "foreign.python",
+					"begin": "^(\\s*)(foreign)\\s+python\\s*([^\\s]+).*=(.*$)",
+					"end": "^(?!\\1\\s+)(?!\\s*$)",
+					"beginCaptures": {
+						"2" : { "name": "keyword.other" },
+						"3" : { "name": "entity.name.function"},
+						"4" : { "name": "header"}
+					},
+					"patterns": [ { "include": "source.python" }]
+				},
+				{
 					"contentName": "string.quoted.triple.begin",
 					"begin": "^(\\s*)(\"\"\"|''')",
 					"end": "^(?!\\1\\s+)(?!\\s*$)",
