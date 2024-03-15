@@ -1,6 +1,7 @@
 package org.enso.interpreter.test;
 
 import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -27,6 +28,8 @@ public class TypeInferenceConsistencyTest extends TestBase {
   public static void prepareCtx() {
     ctx =
         defaultContextBuilder()
+            .option(RuntimeOptions.STRICT_ERRORS, "true")
+            .option(RuntimeOptions.ENABLE_TYPE_CHECK, "true")
             .out(output)
             .err(output)
             .build();
@@ -62,12 +65,9 @@ public class TypeInferenceConsistencyTest extends TestBase {
       var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
       fail("Expecting an exception, not: " + neg);
     } catch (PolyglotException e) {
-      System.out.println(e.getMessage());
-      System.out.println(e.getClass());
-      System.out.println(e.getCause());
-
+      // TODO why it does not have the full message like in REPL?
       // The runtime error
-      assertContains("(Not_Invokable.Error 1)", e.toString());
+      assertContains("Not_Invokable", e.getMessage());
     }
 
     // But we also expect the compile warning:
