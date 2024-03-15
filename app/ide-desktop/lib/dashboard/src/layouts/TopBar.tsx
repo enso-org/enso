@@ -54,7 +54,7 @@ export default function TopBar(props: TopBarProps) {
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
 
   return (
-    <div className="relative z-3 m-top-bar mb flex h-row gap-top-bar">
+    <div className="relative z-1 m-top-bar mb flex h-row gap-top-bar">
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
         <BackendSwitcher setBackendType={setBackendType} />
