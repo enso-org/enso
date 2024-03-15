@@ -287,6 +287,7 @@ test('Component browser handling of overridden record-mode', async ({ page }) =>
   await locate.graphNodeIcon(node).hover()
   await expect(node.getByTestId('overrideRecordingButton')).not.toHaveClass(/recording-overridden/)
   await page.getByAltText('Enable recording').click()
+  await page.mouse.move(100, 80)
   await expect(node.getByTestId('recordingOverriddenButton')).toBeVisible()
   await locate.graphNodeIcon(node).hover()
   await expect(node.getByTestId('overrideRecordingButton')).toHaveClass(/recording-overridden/)
