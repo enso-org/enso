@@ -9,3 +9,6 @@ libraries:
   - name: Test.Logical_Export
     repository: main
     version: 0.0.0-dev
+  - name: Test.Fully_Qualified_Names
+    repository: main
+    version: 0.0.0-dev
