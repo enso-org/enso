@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import { injectWidgetTree } from '@/providers/widgetTree'
 import type { Icon } from '@/util/iconName'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 enum SortDirection {
   none = 'none',
@@ -12,14 +11,6 @@ enum SortDirection {
 
 const props = defineProps<{ color: string; selectedValue: string | undefined; values: string[] }>()
 const emit = defineEmits<{ click: [index: number, keepOpen: boolean] }>()
-
-const tree = injectWidgetTree()
-
-let endClippingInhibition: (() => void) | undefined
-onMounted(() => {
-  endClippingInhibition = tree.inhibitClipping()
-})
-onUnmounted(() => endClippingInhibition?.())
 
 const sortDirection = ref<SortDirection>(SortDirection.none)
 
