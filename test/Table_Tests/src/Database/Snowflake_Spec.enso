@@ -9,11 +9,9 @@ from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, D
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.SQL_Type.SQL_Type
-import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all
-from Standard.Database.Internal.Postgres.Postgres_Connection import parse_postgres_encoding
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -22,62 +20,26 @@ import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec
 import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
-import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Common_Table_Operations
 from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
+from project.Database.Postgres_Spec import Basic_Test_Data, Postgres_Tables_Data
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 
-type Basic_Test_Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Basic_Test_Data.Value (create_connection_fn Nothing)
-
-    teardown self =
-        self.connection.close
-
-
-type Postgres_Tables_Data
-    Value ~data
-
-    connection self = self.data.at 0
-    tinfo self = self.data.at 1
-    vinfo self = self.data.at 2
-    temporary_table self = self.data.at 3
-
-    setup create_connection_fn = Postgres_Tables_Data.Value <|
-        connection = create_connection_fn Nothing
-        tinfo = Name_Generator.random_name "TestTable"
-        connection.execute_update 'CREATE TABLE "'+tinfo+'" ("A" VARCHAR)'
-
-        vinfo = Name_Generator.random_name "TestView"
-        connection.execute_update 'CREATE VIEW "'+vinfo+'" AS SELECT "A" FROM "'+tinfo+'";'
-
-        temporary_table = Name_Generator.random_name "TemporaryTable"
-        (Table.new [["X", [1, 2, 3]]]).select_into_database_table connection temporary_table temporary=True
-        [connection, tinfo, vinfo, temporary_table]
-
-    teardown self =
-        self.connection.execute_update 'DROP VIEW "'+self.vinfo+'";'
-        self.connection.execute_update 'DROP TABLE "'+self.tinfo+'";'
-        self.connection.close
-
-
-type Postgres_Info_Data
+type Snowflake_Info_Data
     Value ~data
 
     connection self = self.data.at 0
     tinfo self = self.data.at 1
     t self = self.data.at 2
 
-    setup create_connection_fn = Postgres_Info_Data.Value <|
+    setup create_connection_fn = Snowflake_Info_Data.Value <|
         connection = create_connection_fn Nothing
         tinfo = Name_Generator.random_name "Tinfo"
-        connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" BIGINT, "bools" BOOLEAN, "doubles" DOUBLE PRECISION)'
+        connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" NUMBER(38,0), "bools" BOOLEAN, "doubles" FLOAT8)'
         t = connection.query (SQL_Query.Table_Name tinfo)
         row1 = ["a", Nothing, False, 1.2]
         row2 = ["abc", Nothing, Nothing, 1.3]
@@ -91,30 +53,11 @@ type Postgres_Info_Data
         self.connection.close
 
 
-type Postgres_Aggregate_Data
-    Value ~data
-
-    connection self = self.data.at 0
-    name self = self.data.at 1
-    t self = self.data.at 2
-
-    setup create_connection_fn = Postgres_Aggregate_Data.Value <|
-        connection = create_connection_fn Nothing
-        name = Name_Generator.random_name "Ttypes"
-        connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("txt" VARCHAR, "i1" SMALLINT, "i2" INT, "i3" BIGINT, "i4" NUMERIC, "r1" REAL, "r2" DOUBLE PRECISION, "bools" BOOLEAN)'
-        t = connection.query (SQL_Query.Table_Name name)
-        [connection, name, t]
-
-    teardown self =
-        self.connection.execute_update 'DROP TABLE "'+self.name+'"'
-        self.connection.close
-
-
-postgres_specific_spec suite_builder create_connection_fn db_name setup =
+snowflake_specific_spec suite_builder create_connection_fn db_name setup =
     table_builder = setup.table_builder
     materialize = setup.materialize
 
-    suite_builder.group "[PostgreSQL] Schemas and Databases" group_builder->
+    suite_builder.group "[Snowflake] Schemas and Databases" group_builder->
         data = Basic_Test_Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -149,7 +92,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                 # Nop - skip the test
                 _ -> Nothing
 
-    suite_builder.group "[PostgreSQL] Tables and Table Types" group_builder->
+    suite_builder.group "[Snowflake] Tables and Table Types" group_builder->
         data = Postgres_Tables_Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -174,8 +117,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
         group_builder.specify "should be able to filter tables by name" <|
             tables = data.connection.tables data.tinfo
             tables.row_count . should_equal 1
-            ## The database check is disabled as the Postgres JDBC driver does not return the database name.
-            ## tables.at "Database" . to_vector . at 0 . should_equal db_name
+            tables.at "Database" . to_vector . at 0 . should_equal db_name
             tables.at "Schema" . to_vector . at 0 . should_equal "public"
             tables.at "Name" . to_vector . at 0 . should_equal data.tinfo
             tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
@@ -192,33 +134,8 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             tables.at "Name" . to_vector . contains data.vinfo . should_be_true
 
 
-    suite_builder.group "[PostgreSQL] Database Encoding" group_builder->
-        group_builder.specify "connector should support all known Postgres encodings" <|
-            known_encodings = (enso_project.data / "postgres_known_encodings.txt") . read . lines
-            known_encodings.length . should_equal 41
-
-            ## For these encoding there is no JVM counterpart currently
-               available, so we fallback either to the closest similar one
-               (like EUC_JIS_2004 falling back to JIS_X0212) or just to UTF-8.
-               Given that the encoding is only used to check for validity of
-               column/table names and their lengths, this should not be a big
-               problem usually, so only a warning is issued. It may however lead
-               to data integrity issues in some very rare edge cases.
-            unsupported_encodings = Set.from_vector <|
-                ["EUC_JIS_2004", "LATIN6", "LATIN8", "MULE_INTERNAL", "SHIFT_JIS_2004"]
-
-            known_encodings.each encoding_name->
-                encoding = parse_postgres_encoding Nothing encoding_name
-                encoding.should_be_a Encoding
-
-                case unsupported_encodings.contains encoding_name of
-                    True ->
-                        Problems.expect_warning Unsupported_Database_Encoding encoding
-                    False ->
-                        Problems.assume_no_problems encoding
-
-    suite_builder.group "[PostgreSQL] Info" group_builder->
-        data = Postgres_Info_Data.setup create_connection_fn
+    suite_builder.group "[Snowflake] Info" group_builder->
+        data = Snowflake_Info_Data.setup create_connection_fn
 
         group_builder.teardown <|
             data.teardown
@@ -241,7 +158,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             data.t.at "bools" . value_type . is_boolean . should_be_true
             data.t.at "doubles" . value_type . is_floating_point . should_be_true
 
-        group_builder.specify "should preserve Postgres types when table is materialized, where possible" <|
+        group_builder.specify "should preserve Snowflake types when table is materialized, where possible" <|
             name = Name_Generator.random_name "types-test"
             Problems.assume_no_problems <|
                 data.connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("int4" int4, "int2" int2, "txt-limited" varchar(10), "txt-fixed" char(3))'
@@ -257,8 +174,8 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             in_memory.at "txt-limited" . value_type . should_equal (Value_Type.Char size=10 variable_length=True)
             in_memory.at "txt-fixed" . value_type . should_equal (Value_Type.Char size=3 variable_length=False)
 
-    suite_builder.group "[PostgreSQL] Dialect-specific codegen" group_builder->
-        data = Postgres_Info_Data.setup create_connection_fn
+    suite_builder.group "[Snowflake] Dialect-specific codegen" group_builder->
+        data = Snowflake_Info_Data.setup create_connection_fn
 
         group_builder.teardown <|
             data.teardown
@@ -269,8 +186,8 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             expected_code = code_template.replace "{Tinfo}" data.tinfo
             t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
-    suite_builder.group "[PostgreSQL] Table.aggregate should correctly infer result types" group_builder->
-        data = Postgres_Aggregate_Data.setup create_connection_fn
+    suite_builder.group "[Snowflake] Table.aggregate should correctly infer result types" group_builder->
+        data = Snowflake_Info_Data.setup create_connection_fn
 
         group_builder.teardown <|
             data.teardown
@@ -306,7 +223,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             r.columns.at 5 . value_type . should_equal Value_Type.Float
 
 
-    suite_builder.group "[PostgreSQL] Warning/Error handling" group_builder->
+    suite_builder.group "[Snowflake] Warning/Error handling" group_builder->
         data = Basic_Test_Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -349,7 +266,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             r4 = data.connection.query 'SELECT 1 AS ""'
             r4.should_fail_with SQL_Error
 
-    suite_builder.group "[PostgreSQL] Edge Cases" group_builder->
+    suite_builder.group "[Snowflake] Edge Cases" group_builder->
         data = Basic_Test_Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -531,7 +448,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                         t2.row_count . should_equal 0
                         t2.at "A" . to_vector . should_equal []
 
-    suite_builder.group "[PostgreSQL] math functions" group_builder->
+    suite_builder.group "[Snowflake] math functions" group_builder->
         data = Basic_Test_Data.setup create_connection_fn
 
         group_builder.teardown <|
@@ -605,7 +522,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             do_round data 231 -1 . should_be_a Float
 
 add_postgres_specs suite_builder create_connection_fn db_name =
-    prefix = "[PostgreSQL] "
+    prefix = "[Snowflake] "
     name_counter = Ref.new 0
 
     table_builder columns connection=(create_connection_fn Nothing) =
@@ -634,7 +551,7 @@ add_postgres_specs suite_builder create_connection_fn db_name =
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_fn
 
-    postgres_specific_spec suite_builder create_connection_fn db_name setup
+    snowflake_specific_spec suite_builder create_connection_fn db_name setup
     Common_Table_Operations.Main.add_specs suite_builder setup
 
 ## PRIVATE
@@ -658,7 +575,7 @@ add_table_specs suite_builder =
 
     ssl_pending = if ca_cert_file.is_nothing then "PostgreSQL SSL test not configured." else Nothing
 
-    suite_builder.group "[PostgreSQL] SSL connectivity tests" pending=ssl_pending group_builder->
+    suite_builder.group "[Snowflake] SSL connectivity tests" pending=ssl_pending group_builder->
         group_builder.specify "should connect without ssl parameter" <|
             Database.connect (Postgres db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)) . should_succeed
 
@@ -687,15 +604,14 @@ add_table_specs suite_builder =
     case create_connection_builder of
         Nothing ->
             message = "PostgreSQL test database is not configured. See README.md for instructions."
-            suite_builder.group "[PostgreSQL] Database tests" pending=message (_-> Nothing)
+            suite_builder.group "[Snowflake] Database tests" pending=message (_-> Nothing)
         connection_builder ->
             add_postgres_specs suite_builder connection_builder db_name
-            Postgres_Type_Mapping_Spec.add_specs suite_builder connection_builder
 
-            Transaction_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
-            Upload_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
+            Transaction_Spec.add_specs suite_builder connection_builder "[Snowflake] "
+            Upload_Spec.add_specs suite_builder connection_builder "[Snowflake] "
 
-            suite_builder.group "[PostgreSQL] Secrets in connection settings" group_builder->
+            suite_builder.group "[Snowflake] Secrets in connection settings" group_builder->
                 cloud_setup = Cloud_Tests_Setup.prepare
                 group_builder.specify "should allow to set up a connection with the password passed as a secret" pending=cloud_setup.pending <|
                     cloud_setup.with_prepared_environment <|
@@ -736,180 +652,8 @@ create_connection_builder =
     connection_details.if_not_nothing <|
         _ -> Database.connect connection_details
 
-pgpass_file = enso_project.data / "pgpass.conf"
-
-add_pgpass_specs suite_builder = suite_builder.group "[PostgreSQL] .pgpass" group_builder->
-    make_pair username password =
-        [Pair.new "user" username, Pair.new "password" password]
-    group_builder.specify "should correctly parse the file, including escapes, blank lines and comments" <|
-        result = Pgpass.parse_file pgpass_file
-        result.length . should_equal 12
-        e1 = Pgpass.Pgpass_Entry.Value "localhost" "5432" "postgres" "postgres" "postgres"
-        e2 = Pgpass.Pgpass_Entry.Value "192.168.4.0" "1234" "foo" "bar" "baz"
-        e3 = Pgpass.Pgpass_Entry.Value "host with : semicolons in it? what?" "*" "*" "*" "well yes, that is possible, the :password: can contain those as well"
-        e4 = Pgpass.Pgpass_Entry.Value ":" ":" ":" ":" ":"
-        e5 = Pgpass.Pgpass_Entry.Value "you can escape an escape too: see \\" "*" "*" "*" "yes it is possible"
-        e6 = Pgpass.Pgpass_Entry.Value "other escapes like \n or \? " "*" "*" "*" "are just parsed as-is"
-        e7 = Pgpass.Pgpass_Entry.Value "a trailing escape character" "*" "*" "*" "is treated as a regular slash\"
-        e8 = Pgpass.Pgpass_Entry.Value "passwords should preserve leading space" "*" "*" "*" "   pass"
-        e9 = Pgpass.Pgpass_Entry.Value "\:" "*" "*" "*" "\:"
-        e10 = Pgpass.Pgpass_Entry.Value "::1" "*" "database_name" "user_that_has_no_password" ""
-        e11 = Pgpass.Pgpass_Entry.Value "*" "*" "*" "*" "fallback_password"
-        e12 = Pgpass.Pgpass_Entry.Value "order_matters" "1234" "this" "will_still_match_the_fallback_password" "not_this_one"
-        entries = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12]
-        result.should_equal entries
-
-    if Platform.is_unix then
-        group_builder.specify "should only accept the .pgpass file if it has correct permissions" <|
-            Process.run "chmod" ["0777", pgpass_file.absolute.path] . exit_code . should_equal Exit_Code.Success
-            Test_Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
-                Pgpass.verify pgpass_file . should_equal False
-                Pgpass.read "passwords should preserve leading space" "1" "some database name that is really : weird" . should_equal []
-
-            Process.run "chmod" ["0400", pgpass_file.absolute.path] . exit_code . should_equal Exit_Code.Success
-            Test_Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
-                Pgpass.verify pgpass_file . should_equal True
-                Pgpass.read "passwords should preserve leading space" "1" "some database name that is really : weird" . should_equal (make_pair "*" "   pass")
-
-    group_builder.specify "should correctly match wildcards and use the first matching entry" <|
-        Test_Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
-            Pgpass.read "localhost" 5432 "postgres" . should_equal (make_pair "postgres" "postgres")
-            Pgpass.read "192.168.4.0" "1234" "foo" . should_equal (make_pair "bar" "baz")
-            Pgpass.read "" "" "" . should_equal (make_pair "*" "fallback_password")
-            Pgpass.read "blah" "5324" "blah" . should_equal (make_pair "*" "fallback_password")
-            Pgpass.read "::1" "55999" "database_name" . should_equal (make_pair "user_that_has_no_password" "")
-            Pgpass.read "order_matters" "1234" "this" . should_equal (make_pair "*" "fallback_password")
-            Pgpass.read "\:" "1234" "blah" . should_equal (make_pair "*" "\:")
-            Pgpass.read ":" ":" ":" . should_equal (make_pair ":" ":")
-
-add_connection_setup_specs suite_builder = suite_builder.group "[PostgreSQL] Connection setup" group_builder->
-    group_builder.specify "should use environment variables as host, port and database defaults and fall back to hardcoded defaults" <|
-        c1 = Postgres "example.com" 12345 "my_db"
-        c2 = Postgres
-        c3 = Test_Environment.unsafe_with_environment_override "PGHOST" "192.168.0.1" <|
-            Test_Environment.unsafe_with_environment_override "PGPORT" "1000" <|
-                Test_Environment.unsafe_with_environment_override "PGDATABASE" "ensoDB" <|
-                    Postgres
-
-        c1.host . should_equal "example.com"
-        c1.port . should_equal 12345
-        c1.database . should_equal "my_db"
-        c1.jdbc_url . should_equal "jdbc:postgresql://example.com:12345/my_db"
-
-        c2.host . should_equal "localhost"
-        c2.port . should_equal 5432
-        c2.database . should_equal "postgres"
-        c2.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
-
-        c3.host . should_equal "192.168.0.1"
-        c3.port . should_equal 1000
-        c3.database . should_equal "ensoDB"
-        c3.jdbc_url . should_equal "jdbc:postgresql://192.168.0.1:1000/ensoDB"
-
-        ## Currently we require the port to be numeric. When we support
-           Unix-sockets, we may lift that restriction.
-        c4 = Test_Environment.unsafe_with_environment_override "PGPORT" "foobar" <|
-            Postgres
-        c4.host . should_equal "localhost"
-        c4.port . should_equal 5432
-        c4.database . should_equal "postgres"
-        c4.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
-
-    add_ssl props = props+[Pair.new 'sslmode' 'prefer']
-    group_builder.specify "should use the given credentials" <|
-        c = Postgres credentials=(Credentials.Username_And_Password "myuser" "mypass")
-        c.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
-        c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "myuser", Pair.new "password" "mypass"]
-
-    group_builder.specify "should fallback to environment variables and fill-out missing information based on the PGPASS file (if available)" <|
-        c1 = Postgres
-        c1.jdbc_url . should_equal "jdbc:postgresql://localhost:5432/postgres"
-
-        c1.jdbc_properties . should_equal <| add_ssl []
-        Test_Environment.unsafe_with_environment_override "PGPASSWORD" "somepassword" <|
-            c1.jdbc_properties . should_fail_with Illegal_State
-            c1.jdbc_properties.catch.message . should_equal "PGPASSWORD is set, but PGUSER is not."
-
-            Test_Environment.unsafe_with_environment_override "PGUSER" "someuser" <|
-                c1.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "someuser", Pair.new "password" "somepassword"]
-
-        c2 = Postgres "192.168.4.0" 1234 "foo"
-        c3 = Postgres "::1" 55999 "database_name"
-        c4 = Postgres "::1" 55999 "otherDB"
-        c2.jdbc_properties . should_equal <| add_ssl []
-        c3.jdbc_properties . should_equal <| add_ssl []
-        c4.jdbc_properties . should_equal <| add_ssl []
-
-        Test_Environment.unsafe_with_environment_override "PGPASSFILE" pgpass_file.absolute.path <|
-            c2.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "bar", Pair.new "password" "baz"]
-            c3.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "user_that_has_no_password", Pair.new "password" ""]
-            c4.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "*", Pair.new "password" "fallback_password"]
-
-            Test_Environment.unsafe_with_environment_override "PGUSER" "bar" <|
-                c2.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "bar", Pair.new "password" "baz"]
-                [c3, c4].each c->
-                    c.jdbc_properties . should_equal <|
-                        add_ssl [Pair.new "user" "*", Pair.new "password" "fallback_password"]
-
-            Test_Environment.unsafe_with_environment_override "PGUSER" "other user" <|
-                [c2, c3, c4].each c->
-                    c.jdbc_properties . should_equal <|
-                        add_ssl [Pair.new "user" "*", Pair.new "password" "fallback_password"]
-
-                Test_Environment.unsafe_with_environment_override "PGPASSWORD" "other password" <|
-                    [c2, c3, c4].each c->
-                        c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "other user", Pair.new "password" "other password"]
-
-add_datalink_specs suite_builder =
-    connection_details = get_configured_connection_details
-    pending = if connection_details.is_nothing then "PostgreSQL test database is not configured. See README.md for instructions."
-
-    # This transforms the datalink file, replacing prepared constants with actual values.
-    transform_file base_file =
-        contents = base_file.read Plain_Text
-        new_contents = contents
-            . replace "HOSTNAME" connection_details.host
-            . replace "12345" connection_details.port.to_text
-            . replace "DBNAME" connection_details.database
-            . replace "USERNAME" connection_details.credentials.username
-            . replace "PASSWORD" connection_details.credentials.password
-        tmp_file = File.create_temporary_file base_file.name base_file.extension
-        new_contents.write tmp_file . if_not_error tmp_file
-
-    suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
-        group_builder.specify "should be able to open a datalink setting up a connection to the database" <|
-            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
-
-            datalink_connection = Data.read datalink_file
-            Panic.with_finalizer datalink_connection.close <|
-                datalink_connection.tables.column_names . should_contain "Name"
-
-                # Test that this is really a DB connection:
-                q = datalink_connection.query 'SELECT 1 AS "A"'
-                q.column_names . should_equal ["A"]
-                q.at "A" . to_vector . should_equal [1]
-
-        group_builder.specify "should be able to open a datalink to a particular database table" <|
-            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-table.datalink")
-            connection = Database.connect connection_details
-            Panic.with_finalizer connection.close <|
-                # We create the table that will then be accessed through the datalink, and ensure it's cleaned up afterwards.
-                example_table = Panic.rethrow <|
-                    (Table.new [["X", [22]], ["Y", ["o"]]]).select_into_database_table connection "DatalinkedTable" temporary=False
-                Panic.with_finalizer (connection.drop_table example_table.name) <|
-                    ## Now we access this table but this time through a datalink.
-                       Btw. this will keep a connection open until the table is garbage collected, but that is probably fine...
-                    datalink_table = Data.read datalink_file
-                    datalink_table.should_be_a DB_Table
-                    datalink_table.column_names . should_equal ["X", "Y"]
-                    datalink_table.at "X" . to_vector . should_equal [22]
-                    datalink_table.at "Y" . to_vector . should_equal ["o"]
-
 add_specs suite_builder =
     add_table_specs suite_builder
-    add_pgpass_specs suite_builder
-    add_connection_setup_specs suite_builder
-    add_datalink_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->
