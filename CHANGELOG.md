@@ -631,6 +631,8 @@
 - [Implemented Excel Data Link][9346]
 - [Added Table.running][9346]
 - [Added Google_Analytics.Read][9239]
+- [Added `Table.from_union` to allow expanding a vector of tables in one
+  step][9343]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -917,6 +919,7 @@
 [9346]: https://github.com/enso-org/enso/pull/9346
 [9382]: https://github.com/enso-org/enso/pull/9382
 [9239]: https://github.com/enso-org/enso/pull/9239
+[9343]: https://github.com/enso-org/enso/pull/9343
 
 #### Enso Compiler
 

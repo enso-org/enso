@@ -119,6 +119,71 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await expect(pathArg.locator('.WidgetText > input')).toHaveValue('File 1')
 })
 
+test('Selection widget with text widget as input', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockMethodCallInfo(page, 'data', {
+    methodPointer: {
+      module: 'Standard.Base.Data',
+      definedOnType: 'Standard.Base.Data',
+      name: 'read',
+    },
+    notAppliedArguments: [0, 1, 2],
+  })
+
+  const dropDown = new DropDownLocator(page)
+  const node = locate.graphNodeByBinding(page, 'data')
+  const argumentNames = node.locator('.WidgetArgumentName')
+  const pathArg = argumentNames.filter({ has: page.getByText('path') })
+  const pathArgInput = pathArg.locator('.WidgetText > input')
+  await pathArg.click()
+  await expect(page.locator('.dropdownContainer')).toBeVisible()
+  await dropDown.clickOption(page, 'File 2')
+  await expect(pathArgInput).toHaveValue('File 2')
+
+  // Editing text input shows and filters drop down
+  await pathArgInput.click()
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
+  await page.keyboard.insertText('File 1')
+  await dropDown.expectVisibleWithOptions(page, ['File 1'])
+  // Clearing input should show all text literal options
+  await pathArgInput.clear()
+  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
+
+  // Esc should cancel editing and close drop down
+  await page.keyboard.press('Escape')
+  await expect(pathArgInput).not.toBeFocused()
+  await expect(pathArgInput).toHaveValue('File 2')
+  await expect(dropDown.dropDown).not.toBeVisible()
+
+  // Choosing entry should finish editing
+  await pathArgInput.click()
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
+  await page.keyboard.insertText('File')
+  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
+  await dropDown.clickOption(page, 'File 1')
+  await expect(pathArgInput).not.toBeFocused()
+  await expect(pathArgInput).toHaveValue('File 1')
+  await expect(dropDown.dropDown).not.toBeVisible()
+
+  // Clicking-off and pressing enter should accept text as-is
+  await pathArgInput.click()
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
+  await page.keyboard.insertText('File')
+  await page.keyboard.press('Enter')
+  await expect(pathArgInput).not.toBeFocused()
+  await expect(pathArgInput).toHaveValue('File')
+  await expect(dropDown.dropDown).not.toBeVisible()
+
+  await pathArgInput.click()
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
+  await page.keyboard.insertText('Foo')
+  await expect(pathArgInput).toHaveValue('Foo')
+  await page.mouse.click(200, 200)
+  await expect(pathArgInput).not.toBeFocused()
+  await expect(pathArgInput).toHaveValue('Foo')
+  await expect(dropDown.dropDown).not.toBeVisible()
+})
+
 test('File Browser widget', async ({ page }) => {
   await actions.goToGraph(page)
   await mockMethodCallInfo(page, 'data', {
