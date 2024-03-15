@@ -26,7 +26,7 @@ export interface WidgetEditInteraction extends Interaction {
  * Widget edit handler.
  *
  * This handler takes an extended interaction and allows cooperation between parent/child
- * interactions. A usage example is WidgetSelection, which want's to open when the child is edited
+ * interactions. A usage example is WidgetSelection, which wants to open when the child is edited
  * and filters entries by edited temporary value.
  *
  * Widget's edit state should be manipulated by `start`, `end` and `cancel` methods; they will set
