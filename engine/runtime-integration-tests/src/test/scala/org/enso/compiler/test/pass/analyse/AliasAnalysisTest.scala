@@ -16,8 +16,9 @@ import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
-import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
+import org.enso.compiler.pass.analyse.AliasAnalysisGraph.{Link, Occurrence}
+import org.enso.compiler.pass.analyse.{AliasAnalysisGraph => Graph}
+import org.enso.compiler.pass.analyse.{AliasAnalysisInfo => Info}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
@@ -413,7 +414,7 @@ class AliasAnalysisTest extends CompilerTest {
         .members
         .head
     val goodMeta  = goodAtom.getMetadata(AliasAnalysis)
-    val goodGraph = goodMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
+    val goodGraph = goodMeta.get.unsafeAs[Info.Scope.Root].graph
 
     val badAtom =
       """
@@ -424,7 +425,7 @@ class AliasAnalysisTest extends CompilerTest {
         .members
         .head
     val badMeta  = badAtom.getMetadata(AliasAnalysis)
-    val badGraph = badMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
+    val badGraph = badMeta.get.unsafeAs[Info.Scope.Root].graph
 
     "assign Info.Scope.Root metadata to the atom" in {
       goodMeta shouldBe defined

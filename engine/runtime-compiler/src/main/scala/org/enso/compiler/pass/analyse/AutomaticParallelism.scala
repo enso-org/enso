@@ -78,7 +78,7 @@ object AutomaticParallelism extends IRPass {
     ir: Expression,
     parallelismStatus: ParallelismStatus,
     id: Int,
-    assignment: Option[AliasAnalysis.Graph.Id],
+    assignment: Option[AliasAnalysisGraph.Id],
     dependencies: Set[Int],
     blockAssignment: Option[BlockAssignment]
   )
@@ -215,7 +215,7 @@ object AutomaticParallelism extends IRPass {
               AliasAnalysis,
               "Alias analysis left a binding behind"
             )
-            .asInstanceOf[AliasAnalysis.Info.Occurrence]
+            .asInstanceOf[AliasAnalysisInfo.Occurrence]
           line.copy(assignment = Some(aaInfo.id))
         case _ => line
       }
@@ -233,7 +233,7 @@ object AutomaticParallelism extends IRPass {
           n
         }
         .flatMap(_.getMetadata(AliasAnalysis))
-        .collect { case occ: AliasAnalysis.Info.Occurrence =>
+        .collect { case occ: AliasAnalysisInfo.Occurrence =>
           occ
         }
         .flatMap(occ => occ.graph.defLinkFor(occ.id))

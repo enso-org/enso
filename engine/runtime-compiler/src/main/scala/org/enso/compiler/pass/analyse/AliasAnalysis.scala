@@ -2,42 +2,18 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.{CompilerError, ExternalID, IR, Identifier}
-import org.enso.compiler.core.ir.{
-  CallArgument,
-  DefinitionArgument,
-  Expression,
-  Function,
-  Literal,
-  Module,
-  Name,
-  Pattern,
-  Type
-}
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.core.ir.module.scope.Definition
-import org.enso.compiler.core.ir.module.scope.definition
-import org.enso.compiler.core.ir.expression.{
-  errors,
-  Application,
-  Case,
-  Comment,
-  Error,
-  Operator,
-  Section
-}
 import org.enso.compiler.core.ir.expression.errors.Redefined
-import org.enso.compiler.core.ir.`type`
+import org.enso.compiler.core.ir.expression.{Application, Case, Comment, Error, Operator, Section, errors}
+import org.enso.compiler.core.ir.module.scope.{Definition, definition}
+import org.enso.compiler.core.ir.{CallArgument, DefinitionArgument, Expression, Function, Literal, Module, Name, Pattern, Type, `type`}
+import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
+import org.enso.compiler.pass.analyse.AliasAnalysisGraph.{Occurrence, Scope}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.syntax.text.Debug
 
-import java.io.Serializable
-import java.util.UUID
 import scala.collection.mutable
-import scala.reflect.ClassTag
 
 /** This pass performs scope identification and analysis, as well as symbol
   * resolution where it is possible to do so statically.
@@ -74,7 +50,7 @@ import scala.reflect.ClassTag
 case object AliasAnalysis extends IRPass {
 
   /** Alias information for the IR. */
-  override type Metadata = Info
+  override type Metadata = AliasAnalysisInfo
   override type Config   = Configuration
 
   override lazy val precursorPasses: Seq[IRPass] = List(
@@ -163,7 +139,7 @@ case object AliasAnalysis extends IRPass {
 
       sourceRootScopeGraphOpt.foreach { sourceRootScopeGraphScope =>
         val sourceRootScopeGraph =
-          sourceRootScopeGraphScope.asInstanceOf[Info.Scope.Root].graph
+          sourceRootScopeGraphScope.asInstanceOf[AliasAnalysisInfo.Scope.Root].graph
 
         val scopeMapping = mutable.Map[Scope, Scope]()
         val copyRootScopeGraph =
@@ -178,14 +154,14 @@ case object AliasAnalysis extends IRPass {
           sourceNode.getMetadata(this) match {
             case Some(meta) =>
               val newMeta = meta match {
-                case root: Info.Scope.Root =>
+                case root: AliasAnalysisInfo.Scope.Root =>
                   root.copy(graph = copyRootScopeGraph)
-                case child: Info.Scope.Child =>
+                case child: AliasAnalysisInfo.Scope.Child =>
                   child.copy(
                     graph = copyRootScopeGraph,
                     scope = child.scope.deepCopy(scopeMapping)
                   )
-                case occ: Info.Occurrence =>
+                case occ: AliasAnalysisInfo.Occurrence =>
                   occ.copy(graph = copyRootScopeGraph)
               }
               copyNode.updateMetadata(new MetadataPair(this, newMeta))
@@ -231,7 +207,7 @@ case object AliasAnalysis extends IRPass {
   def analyseModuleDefinition(
     ir: Definition
   ): Definition = {
-    val topLevelGraph = new Graph
+    val topLevelGraph = new AliasAnalysisGraph
 
     ir match {
       case m: definition.Method.Conversion =>
@@ -245,7 +221,7 @@ case object AliasAnalysis extends IRPass {
                 lambdaReuseScope = true
               )
             ).updateMetadata(
-              new MetadataPair(this, Info.Scope.Root(topLevelGraph))
+              new MetadataPair(this, AliasAnalysisInfo.Scope.Root(topLevelGraph))
             )
           case _ =>
             throw new CompilerError(
@@ -263,7 +239,7 @@ case object AliasAnalysis extends IRPass {
                 lambdaReuseScope = true
               )
             ).updateMetadata(
-              new MetadataPair(this, Info.Scope.Root(topLevelGraph))
+              new MetadataPair(this, AliasAnalysisInfo.Scope.Root(topLevelGraph))
             )
           case _ =>
             throw new CompilerError(
@@ -282,7 +258,7 @@ case object AliasAnalysis extends IRPass {
             topLevelGraph.rootScope
           ),
           members = t.members.map(d => {
-            val graph = new Graph
+            val graph = new AliasAnalysisGraph
             d.copy(
               arguments = analyseArgumentDefs(
                 d.arguments,
@@ -299,12 +275,12 @@ case object AliasAnalysis extends IRPass {
                     )
                   )
                   .updateMetadata(
-                    new MetadataPair(this, Info.Scope.Root(topLevelGraph))
+                    new MetadataPair(this, AliasAnalysisInfo.Scope.Root(topLevelGraph))
                   )
               }
-            ).updateMetadata(new MetadataPair(this, Info.Scope.Root(graph)))
+            ).updateMetadata(new MetadataPair(this, AliasAnalysisInfo.Scope.Root(graph)))
           })
-        ).updateMetadata(new MetadataPair(this, Info.Scope.Root(topLevelGraph)))
+        ).updateMetadata(new MetadataPair(this, AliasAnalysisInfo.Scope.Root(topLevelGraph)))
       case _: Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
@@ -334,7 +310,7 @@ case object AliasAnalysis extends IRPass {
             )
           )
           .updateMetadata(
-            new MetadataPair(this, Info.Scope.Root(topLevelGraph))
+            new MetadataPair(this, AliasAnalysisInfo.Scope.Root(topLevelGraph))
           )
       case err: Error => err
     }
@@ -356,10 +332,10 @@ case object AliasAnalysis extends IRPass {
     * @return `expression`, potentially with aliasing information attached
     */
   private def analyseExpression(
-    expression: Expression,
-    graph: Graph,
-    parentScope: Scope,
-    lambdaReuseScope: Boolean = false
+                                 expression: Expression,
+                                 graph: AliasAnalysisGraph,
+                                 parentScope: Scope,
+                                 lambdaReuseScope: Boolean = false
   ): Expression = {
     expression match {
       case fn: Function =>
@@ -400,7 +376,7 @@ case object AliasAnalysis extends IRPass {
             )
           )
           .updateMetadata(
-            new MetadataPair(this, Info.Scope.Child(graph, currentScope))
+            new MetadataPair(this, AliasAnalysisInfo.Scope.Child(graph, currentScope))
           )
       case binding @ Expression.Binding(name, expression, _, _, _) =>
         if (!parentScope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)) {
@@ -430,7 +406,7 @@ case object AliasAnalysis extends IRPass {
               )
             )
             .updateMetadata(
-              new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
+              new MetadataPair(this, AliasAnalysisInfo.Occurrence(graph, occurrenceId))
             )
         } else {
           errors.Redefined.Binding(binding)
@@ -456,7 +432,7 @@ case object AliasAnalysis extends IRPass {
     * @param parentScope the parent scope in which `value` occurs
     * @return `value`, annotated with aliasing information
     */
-  def analyseType(value: Type, graph: Graph, parentScope: Scope): Type = {
+  def analyseType(value: Type, graph: AliasAnalysisGraph, parentScope: Scope): Type = {
     value match {
       case member @ `type`.Set.Member(label, memberType, value, _, _, _) =>
         val memberTypeScope = memberType match {
@@ -481,7 +457,7 @@ case object AliasAnalysis extends IRPass {
             value      = analyseExpression(value, graph, valueScope)
           )
           .updateMetadata(
-            new MetadataPair(this, Info.Occurrence(graph, labelId))
+            new MetadataPair(this, AliasAnalysisInfo.Occurrence(graph, labelId))
           )
       case x =>
         x.mapExpressions(analyseExpression(_, graph, parentScope))
@@ -505,9 +481,9 @@ case object AliasAnalysis extends IRPass {
     * @return `args`, potentially
     */
   private def analyseArgumentDefs(
-    args: List[DefinitionArgument],
-    graph: Graph,
-    scope: Scope
+                                   args: List[DefinitionArgument],
+                                   graph: AliasAnalysisGraph,
+                                   scope: Scope
   ): List[DefinitionArgument] = {
     args.map {
       case arg @ DefinitionArgument.Specified(
@@ -522,7 +498,7 @@ case object AliasAnalysis extends IRPass {
         // Synthetic `self` must not be added to the scope, but it has to be added as a
         // definition for frame index metadata
         val occurrenceId = graph.nextId()
-        val definition = Graph.Occurrence.Def(
+        val definition = AliasAnalysisGraph.Occurrence.Def(
           occurrenceId,
           selfName.name,
           arg.getId(),
@@ -531,7 +507,7 @@ case object AliasAnalysis extends IRPass {
         scope.addDefinition(definition)
         arg
           .updateMetadata(
-            new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
+            new MetadataPair(this, AliasAnalysisInfo.Occurrence(graph, occurrenceId))
           )
           .copy(
             ascribedType =
@@ -548,13 +524,13 @@ case object AliasAnalysis extends IRPass {
             _
           ) =>
         val nameOccursInScope =
-          scope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)
+          scope.hasSymbolOccurrenceAs[AliasAnalysisGraph.Occurrence.Def](name.name)
         if (!nameOccursInScope) {
           val newDefault =
             value.map((ir: Expression) => analyseExpression(ir, graph, scope))
 
           val occurrenceId = graph.nextId()
-          val definition = Graph.Occurrence.Def(
+          val definition = AliasAnalysisGraph.Occurrence.Def(
             occurrenceId,
             name.name,
             arg.getId(),
@@ -571,7 +547,7 @@ case object AliasAnalysis extends IRPass {
                 arg.ascribedType.map(analyseExpression(_, graph, scope))
             )
             .updateMetadata(
-              new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
+              new MetadataPair(this, AliasAnalysisInfo.Occurrence(graph, occurrenceId))
             )
         } else {
           val f = scope.occurrences.collectFirst {
@@ -582,7 +558,7 @@ case object AliasAnalysis extends IRPass {
               ascribedType = Some(new Redefined.Arg(name, arg.location))
             )
             .updateMetadata(
-              new MetadataPair(this, Info.Occurrence(graph, f.get.id))
+              new MetadataPair(this, AliasAnalysisInfo.Occurrence(graph, f.get.id))
             )
         }
     }
@@ -597,8 +573,8 @@ case object AliasAnalysis extends IRPass {
     */
   def analyseApplication(
     application: Application,
-    graph: AliasAnalysis.Graph,
-    scope: AliasAnalysis.Graph.Scope
+    graph: AliasAnalysisGraph,
+    scope: AliasAnalysisGraph.Scope
   ): Application = {
     application match {
       case app @ Application.Prefix(fun, arguments, _, _, _, _) =>
@@ -615,7 +591,7 @@ case object AliasAnalysis extends IRPass {
         tSet
           .copy(expression = expr.map(analyseExpression(_, graph, newScope)))
           .updateMetadata(
-            new MetadataPair(this, Info.Scope.Child(graph, newScope))
+            new MetadataPair(this, AliasAnalysisInfo.Scope.Child(graph, newScope))
           )
       case _: Operator.Binary =>
         throw new CompilerError(
@@ -637,8 +613,8 @@ case object AliasAnalysis extends IRPass {
     */
   private def analyseCallArguments(
     args: List[CallArgument],
-    graph: AliasAnalysis.Graph,
-    parentScope: AliasAnalysis.Graph.Scope
+    graph: AliasAnalysisGraph,
+    parentScope: AliasAnalysisGraph.Scope
   ): List[CallArgument] = {
     args.map { case arg @ CallArgument.Specified(_, expr, _, _, _) =>
       val currentScope = expr match {
@@ -648,7 +624,7 @@ case object AliasAnalysis extends IRPass {
       arg
         .copy(value = analyseExpression(expr, graph, currentScope))
         .updateMetadata(
-          new MetadataPair(this, Info.Scope.Child(graph, currentScope))
+          new MetadataPair(this, AliasAnalysisInfo.Scope.Child(graph, currentScope))
         )
     }
   }
@@ -663,10 +639,10 @@ case object AliasAnalysis extends IRPass {
     * @return `function`, with alias analysis information attached
     */
   def analyseFunction(
-    function: Function,
-    graph: Graph,
-    parentScope: Scope,
-    lambdaReuseScope: Boolean = false
+                       function: Function,
+                       graph: AliasAnalysisGraph,
+                       parentScope: Scope,
+                       lambdaReuseScope: Boolean = false
   ): Function = {
     val currentScope =
       if (lambdaReuseScope) parentScope else parentScope.addChild()
@@ -683,7 +659,7 @@ case object AliasAnalysis extends IRPass {
             )
           )
           .updateMetadata(
-            new MetadataPair(this, Info.Scope.Child(graph, currentScope))
+            new MetadataPair(this, AliasAnalysisInfo.Scope.Child(graph, currentScope))
           )
       case _: Function.Binding =>
         throw new CompilerError(
@@ -704,11 +680,11 @@ case object AliasAnalysis extends IRPass {
     * @return `name`, with alias analysis information attached
     */
   def analyseName(
-    name: Name,
-    isInPatternContext: Boolean,
-    isConstructorNameInPatternContext: Boolean,
-    graph: Graph,
-    parentScope: Scope
+                   name: Name,
+                   isInPatternContext: Boolean,
+                   isConstructorNameInPatternContext: Boolean,
+                   graph: AliasAnalysisGraph,
+                   parentScope: Scope
   ): Name = {
     val occurrenceId = graph.nextId()
 
@@ -728,7 +704,7 @@ case object AliasAnalysis extends IRPass {
       }
     }
     name.updateMetadata(
-      new MetadataPair(this, Info.Occurrence(graph, occurrenceId))
+      new MetadataPair(this, AliasAnalysisInfo.Occurrence(graph, occurrenceId))
     )
   }
 
@@ -740,9 +716,9 @@ case object AliasAnalysis extends IRPass {
     * @return `ir`, possibly with alias analysis information attached
     */
   def analyseCase(
-    ir: Case,
-    graph: Graph,
-    parentScope: Scope
+                   ir: Case,
+                   graph: AliasAnalysisGraph,
+                   parentScope: Scope
   ): Case = {
     ir match {
       case caseExpr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
@@ -764,9 +740,9 @@ case object AliasAnalysis extends IRPass {
     * @return `branch`, possibly with alias analysis information attached
     */
   def analyseCaseBranch(
-    branch: Case.Branch,
-    graph: Graph,
-    parentScope: Scope
+                         branch: Case.Branch,
+                         graph: AliasAnalysisGraph,
+                         parentScope: Scope
   ): Case.Branch = {
     val currentScope = parentScope.addChild()
 
@@ -780,7 +756,7 @@ case object AliasAnalysis extends IRPass {
         )
       )
       .updateMetadata(
-        new MetadataPair(this, Info.Scope.Child(graph, currentScope))
+        new MetadataPair(this, AliasAnalysisInfo.Scope.Child(graph, currentScope))
       )
   }
 
@@ -792,9 +768,9 @@ case object AliasAnalysis extends IRPass {
     * @return `pattern`, possibly with alias analysis information attached
     */
   def analysePattern(
-    pattern: Pattern,
-    graph: Graph,
-    parentScope: Scope
+                      pattern: Pattern,
+                      graph: AliasAnalysisGraph,
+                      parentScope: Scope
   ): Pattern = {
     pattern match {
       case named @ Pattern.Name(name, _, _, _) =>
@@ -854,788 +830,9 @@ case object AliasAnalysis extends IRPass {
 
   // === Data Definitions =====================================================
 
-  /** Information about the aliasing state for a given IR node. */
-  sealed trait Info extends IRPass.IRMetadata {
 
-    /** The aliasing graph. */
-    val graph: Graph
-  }
-  object Info {
-    sealed trait Scope extends Info
-    object Scope {
 
-      /** Aliasing information for a root scope.
-        *
-        * A root scope has a 1:1 correspondence with a top-level binding.
-        *
-        * @param graph the graph containing the alias information for that node
-        */
-      sealed case class Root(override val graph: Graph) extends Scope {
-        override val metadataName: String = "AliasAnalysis.Info.Scope.Root"
 
-        /** @inheritdoc */
-        override def prepareForSerialization(
-          compiler: Compiler
-        ): Root = this
-
-        /** @inheritdoc */
-        override def restoreFromSerialization(
-          compiler: Compiler
-        ): Option[Root] = Some(this)
-
-        /** @inheritdoc */
-        override def duplicate(): Option[IRPass.IRMetadata] = None
-      }
-
-      /** Aliasing information about a child scope.
-        *
-        * @param graph the graph
-        * @param scope the child scope in `graph`
-        */
-      sealed case class Child(override val graph: Graph, scope: Graph.Scope)
-          extends Scope {
-        override val metadataName: String = "AliasAnalysis.Info.Scope.Child"
-
-        /** @inheritdoc */
-        override def prepareForSerialization(
-          compiler: Compiler
-        ): Child = this
-
-        /** @inheritdoc */
-        override def restoreFromSerialization(
-          compiler: Compiler
-        ): Option[Child] = Some(this)
-
-        /** @inheritdoc */
-        override def duplicate(): Option[IRPass.IRMetadata] = None
-      }
-    }
-
-    /** Aliasing information for a piece of [[IR]] that is contained within a
-      * [[Scope]].
-      *
-      * @param graph the graph in which this IR node can be found
-      * @param id the identifier of this IR node in `graph`
-      */
-    sealed case class Occurrence(override val graph: Graph, id: Graph.Id)
-        extends Info {
-      override val metadataName: String = "AliasAnalysis.Info.Occurrence"
-
-      /** @inheritdoc */
-      override def prepareForSerialization(
-        compiler: Compiler
-      ): Occurrence = this
-
-      /** @inheritdoc */
-      override def restoreFromSerialization(
-        compiler: Compiler
-      ): Option[Occurrence] = Some(this)
-
-      /** @inheritdoc */
-      override def duplicate(): Option[IRPass.IRMetadata] = None
-    }
-  }
-
-  /** A graph containing aliasing information for a given root scope in Enso. */
-  sealed class Graph extends Serializable {
-    var rootScope: Graph.Scope = new Graph.Scope()
-    var links: Set[Graph.Link] = Set()
-    var nextIdCounter          = 0
-
-    private var globalSymbols: Map[Graph.Symbol, Occurrence.Global] = Map()
-
-    /** @return a deep structural copy of `this` */
-    def deepCopy(
-      scope_mapping: mutable.Map[Scope, Scope] = mutable.Map()
-    ): Graph = {
-      val copy = new Graph
-      copy.rootScope     = this.rootScope.deepCopy(scope_mapping)
-      copy.links         = this.links
-      copy.globalSymbols = this.globalSymbols
-      copy.nextIdCounter = this.nextIdCounter
-      copy
-    }
-
-    /** Registers a requested global symbol in the aliasing scope.
-      *
-      * @param sym the symbol occurrence
-      */
-    def addGlobalSymbol(sym: Occurrence.Global): Unit = {
-      if (!globalSymbols.contains(sym.symbol)) {
-        globalSymbols = globalSymbols + (sym.symbol -> sym)
-      }
-    }
-
-    /** Creates a deep copy of the aliasing graph structure.
-      *
-      * @return a copy of the graph structure
-      */
-    def copy: Graph = {
-      val graph = new Graph
-      graph.links         = links
-      graph.rootScope     = rootScope.deepCopy(mutable.Map())
-      graph.nextIdCounter = nextIdCounter
-
-      graph
-    }
-
-    /** Determines whether `this` is equal to `obj`.
-      *
-      * @param obj the object to compare against.
-      * @return `true` if `this == obj`, otherwise `false`
-      */
-    override def equals(obj: Any): Boolean =
-      obj match {
-        case that: Graph =>
-          (this.links == that.links) && (this.rootScope == that.rootScope)
-        case _ => false
-      }
-
-    /** Generates a new identifier for a node in the graph.
-      *
-      * @return a unique identifier for this graph
-      */
-    def nextId(): Graph.Id = {
-      val nextId = nextIdCounter
-      nextIdCounter += 1
-      nextId
-    }
-
-    /** Resolves any links for the given usage of a symbol, assuming the symbol
-      * is a local variable.
-      *
-      * @param occurrence the symbol usage
-      * @return the link, if it exists
-      */
-    def resolveLocalUsage(
-      occurrence: Graph.Occurrence.Use
-    ): Option[Graph.Link] = {
-      scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
-        links += link
-        link
-      })
-    }
-
-    /** Resolves any links for the given usage of a symbol, assuming the symbol
-      * is global (i.e. method, constructor etc.)
-      *
-      * @param occurrence the symbol usage
-      * @return the link, if it exists
-      */
-    def resolveGlobalUsage(
-      occurrence: Graph.Occurrence.Use
-    ): Option[Graph.Link] = {
-      scopeFor(occurrence.id) match {
-        case Some(scope) =>
-          globalSymbols
-            .get(occurrence.symbol)
-            .map(g => Graph.Link(occurrence.id, scope.scopesToRoot + 1, g.id))
-        case None => None
-      }
-    }
-
-    /** Returns a string representation of the graph.
-      *
-      * @return a string representation of `this`
-      */
-    override def toString: String =
-      s"Graph(links = $links, rootScope = $rootScope)"
-
-    /** Pretty prints the graph.
-      *
-      * @return a pretty-printed string representation of the graph
-      */
-    def pprint: String = {
-      val original = toString
-      Debug.pretty(original)
-    }
-
-    /** Gets all links in which the provided `id` is a participant.
-      *
-      * @param id the identifier for the symbol
-      * @return a list of links in which `id` occurs
-      */
-    def linksFor(id: Graph.Id): Set[Graph.Link] = {
-      links.filter(l => l.source == id || l.target == id)
-    }
-
-    /** Finds all links in the graph where `symbol` appears in the role
-      * specified by `T`.
-      *
-      * @param symbol the symbol to find links for
-      * @tparam T the role in which `symbol` should occur
-      * @return a set of all links in which `symbol` occurs with role `T`
-      */
-    def linksFor[T <: Occurrence: ClassTag](
-      symbol: Graph.Symbol
-    ): Set[Graph.Link] = {
-      val idsForSym = rootScope.symbolToIds[T](symbol)
-
-      links.filter(l =>
-        idsForSym.contains(l.source) || idsForSym.contains(l.target)
-      )
-    }
-
-    /** Obtains the occurrence for a given ID, from whichever scope in which it
-      * occurs.
-      *
-      * @param id the occurrence identifier
-      * @return the occurrence for `id`, if it exists
-      */
-    def getOccurrence(id: Graph.Id): Option[Occurrence] =
-      scopeFor(id).flatMap(_.getOccurrence(id))
-
-    /** Gets the link from an id to the definition of the symbol it represents.
-      *
-      * @param id the identifier to find the definition link for
-      * @return the definition link for `id` if it exists
-      */
-    def defLinkFor(id: Graph.Id): Option[Graph.Link] = {
-      linksFor(id).find { edge =>
-        val occ = getOccurrence(edge.target)
-        occ match {
-          case Some(Occurrence.Def(_, _, _, _, _)) => true
-          case _                                   => false
-        }
-      }
-    }
-
-    /** Gets the scope where a given ID is defined in the graph.
-      *
-      * @param id the id to find the scope for
-      * @return the scope where `id` occurs
-      */
-    def scopeFor(id: Graph.Id): Option[Graph.Scope] = {
-      rootScope.scopeFor(id)
-    }
-
-    /** Finds the scopes in which a name occurs with a given role.
-      *
-      * @param symbol the symbol
-      * @tparam T the role in which `symbol` occurs
-      * @return all the scopes where `symbol` occurs with role `T`
-      */
-    def scopesFor[T <: Graph.Occurrence: ClassTag](
-      symbol: Graph.Symbol
-    ): List[Graph.Scope] = {
-      rootScope.scopesForSymbol[T](symbol)
-    }
-
-    /** Counts the number of scopes in this scope.
-      *
-      * @return the number of scopes that are either this scope or children of
-      *         it
-      */
-    def numScopes: Int = {
-      rootScope.scopeCount
-    }
-
-    /** Determines the maximum nesting depth of scopes through this scope.
-      *
-      * @return the maximum nesting depth of scopes through this scope.
-      */
-    def nesting: Int = {
-      rootScope.maxNesting
-    }
-
-    /** Determines if the provided ID is capable of shadowing other bindings
-      *
-      * @param id the occurrence identifier
-      * @return `true` if `id` shadows other bindings, otherwise `false`
-      */
-    def canShadow(id: Graph.Id): Boolean = {
-      scopeFor(id)
-        .flatMap(
-          _.getOccurrence(id).flatMap {
-            case d: Occurrence.Def => Some(d)
-            case _                 => None
-          }
-        )
-        .isDefined
-    }
-
-    /** Computes the bindings that are shadowed by the binding with the provided
-      * `definition`.
-      *
-      * Please note that just because [[canShadow]] states that an identifier is
-      * _capable_ of shadowing, that does not mean that it is necessarily known
-      * to do so.
-      *
-      * @param definition the definition to find the 'shadowees' of
-      * @return the bindings shadowed by `definition`
-      */
-    def knownShadowedDefinitions(
-      definition: Occurrence
-    ): Set[Graph.Occurrence] = {
-      def getShadowedIds(scope: Graph.Scope): Set[Graph.Occurrence] = {
-        scope.occurrences.collect {
-          case d: Occurrence.Def if d.symbol == definition.symbol    => d
-          case g: Occurrence.Global if g.symbol == definition.symbol => g
-        } ++ scope.parent.map(getShadowedIds).getOrElse(Set())
-      }
-
-      definition match {
-        case d: Occurrence.Def =>
-          scopeFor(d.id).flatMap(_.parent) match {
-            case Some(scope) => getShadowedIds(scope) // + globals
-            case None        => Set()
-          }
-        case _: Occurrence.Global => Set()
-        case _: Occurrence.Use    => Set()
-      }
-    }
-
-    /** Determines if the provided id is linked to a binding that shadows
-      * another binding.
-      *
-      * @param id the identifier to check
-      * @return `true` if the definition of the symbol for `id` shadows another
-      *        binding for the same symbol, `false`, otherwise
-      */
-    def linkedToShadowingBinding(id: Graph.Id): Boolean = {
-      defLinkFor(id).isDefined
-    }
-
-    /** Gets all symbols defined in the graph.
-      *
-      * @return the set of symbols defined in this graph
-      */
-    def symbols: Set[Graph.Symbol] = {
-      rootScope.symbols
-    }
-
-    /** Goes from a symbol to all identifiers that relate to that symbol in
-      * the role specified by `T`.
-      *
-      * @param symbol the symbol to find identifiers for
-      * @tparam T the role in which `symbol` should occur
-      * @return a list of identifiers for that symbol
-      */
-    def symbolToIds[T <: Occurrence: ClassTag](
-      symbol: Graph.Symbol
-    ): List[Graph.Id] = {
-      rootScope.symbolToIds[T](symbol)
-    }
-
-    /** Goes from an identifier to the associated symbol.
-      *
-      * @param id the identifier of an occurrence
-      * @return the symbol associated with `id`, if it exists
-      */
-    def idToSymbol(id: Graph.Id): Option[Graph.Symbol] = {
-      rootScope.idToSymbol(id)
-    }
-  }
-  object Graph {
-
-    /** The type of symbols on the graph. */
-    type Symbol = String
-
-    /** The type of identifiers on the graph. */
-    type Id = Int
-
-    /** A representation of a local scope in Enso.
-      *
-      * @param childScopes all scopes that are _direct_ children of `this`
-      * @param occurrences all symbol occurrences in `this` scope
-      * @param allDefinitions all definitions in this scope, including synthetic ones.
-      *                       Note that there may not be a link for all these definitions.
-      */
-    sealed class Scope(
-      var childScopes: List[Scope]             = List(),
-      var occurrences: Set[Occurrence]         = Set(),
-      var allDefinitions: List[Occurrence.Def] = List()
-    ) extends Serializable {
-
-      var parent: Option[Scope] = None
-
-      /** Counts the number of scopes from this scope to the root.
-        *
-        * This count includes the root scope, but not the current scope.
-        *
-        * @return the number of scopes from this scope to the root
-        */
-      def scopesToRoot: Int = {
-        parent.flatMap(scope => Some(scope.scopesToRoot + 1)).getOrElse(0)
-      }
-
-      /** Sets the parent of the scope.
-        *
-        * The parent scope must not be redefined.
-        *
-        * @return this scope with parent scope set
-        */
-      def withParent(parentScope: Scope): this.type = {
-        assert(parent.isEmpty)
-        this.parent = Some(parentScope)
-        this
-      }
-
-      /** Creates a structural copy of this scope, ensuring that replicated
-        * scopes are memoised.
-        *
-        * @return a copy of `this`
-        */
-      def deepCopy(
-        mapping: mutable.Map[Scope, Scope] = mutable.Map()
-      ): Scope = {
-        mapping.get(this) match {
-          case Some(newCorrespondingScope) => newCorrespondingScope
-          case None =>
-            val childScopeCopies: mutable.ListBuffer[Scope] =
-              mutable.ListBuffer()
-            this.childScopes.foreach(scope =>
-              childScopeCopies += scope.deepCopy(mapping)
-            )
-            val newScope =
-              new Scope(childScopeCopies.toList, occurrences, allDefinitions)
-            mapping.put(this, newScope)
-            newScope
-        }
-      }
-
-      /** Checks whether `this` is equal to `obj`.
-        *
-        * @param obj the object to compare `this` against
-        * @return `true` if `this == obj`, otherwise `false`
-        */
-      override def equals(obj: Any): Boolean =
-        obj match {
-          case that: Scope =>
-            if (this.childScopes.length == that.childScopes.length) {
-              val childScopesEqual =
-                this.childScopes.zip(that.childScopes).forall(t => t._1 == t._2)
-              val occurrencesEqual = this.occurrences == that.occurrences
-
-              childScopesEqual && occurrencesEqual
-            } else {
-              false
-            }
-          case _ => false
-        }
-
-      /** Creates and returns a scope that is a child of this one.
-        *
-        * @return a scope that is a child of `this`
-        */
-      def addChild(): Scope = {
-        val scope = new Scope()
-        scope.parent = Some(this)
-        childScopes ::= scope
-
-        scope
-      }
-
-      /** Adds the specified symbol occurrence to this scope.
-        *
-        * @param occurrence the occurrence to add
-        */
-      def add(occurrence: Occurrence): Unit = {
-        occurrences += occurrence
-      }
-
-      /** Adds a definition, including a definition with synthetic name, without
-        * any links.
-        *
-        * @param definition The definition to add.
-        */
-      def addDefinition(definition: Occurrence.Def): Unit = {
-        allDefinitions = allDefinitions ++ List(definition)
-      }
-
-      /** Finds an occurrence for the provided ID in the current scope, if it
-        * exists.
-        *
-        * @param id the occurrence identifier
-        * @return the occurrence for `id`, if it exists
-        */
-      def getOccurrence(id: Graph.Id): Option[Occurrence] = {
-        occurrences.find(o => o.id == id)
-      }
-
-      /** Finds any occurrences for the provided symbol in the current scope, if
-        * it exists.
-        *
-        * @param symbol the symbol of the occurrence
-        * @tparam T the role for the symbol
-        * @return the occurrences for `name`, if they exist
-        */
-      def getOccurrences[T <: Occurrence: ClassTag](
-        symbol: Graph.Symbol
-      ): Set[Occurrence] = {
-        occurrences.collect {
-          case o: T if o.symbol == symbol => o
-        }
-      }
-
-      /** Unsafely gets the occurrence for the provided ID in the current scope.
-        *
-        * Please note that this will crash if the ID is not defined in this
-        * scope.
-        *
-        * @param id the occurrence identifier
-        * @return the occurrence for `id`
-        */
-      def unsafeGetOccurrence(id: Graph.Id): Occurrence = {
-        getOccurrence(id).get
-      }
-
-      /** Checks whether a symbol occurs in a given role in the current scope.
-        *
-        * @param symbol the symbol to check for
-        * @tparam T the role for it to occur in
-        * @return `true` if `symbol` occurs in role `T` in this scope, `false`
-        *         otherwise
-        */
-      def hasSymbolOccurrenceAs[T <: Occurrence: ClassTag](
-        symbol: Graph.Symbol
-      ): Boolean = {
-        occurrences.collect { case x: T if x.symbol == symbol => x }.nonEmpty
-      }
-
-      /** Resolves usages of symbols into links where possible, creating an edge
-        * from the usage site to the definition site.
-        *
-        * @param occurrence the symbol usage
-        * @param parentCounter the number of scopes that the link has traversed
-        * @return the link from `occurrence` to the definition of that symbol, if it
-        *         exists
-        */
-      def resolveUsage(
-        occurrence: Graph.Occurrence.Use,
-        parentCounter: Int = 0
-      ): Option[Graph.Link] = {
-        val definition = occurrences.find {
-          case Graph.Occurrence.Def(_, name, _, _, _) =>
-            name == occurrence.symbol
-          case _ => false
-        }
-
-        definition match {
-          case None =>
-            parent.flatMap(_.resolveUsage(occurrence, parentCounter + 1))
-          case Some(target) =>
-            Some(Graph.Link(occurrence.id, parentCounter, target.id))
-        }
-      }
-
-      /** Creates a string representation of the scope.
-        *
-        * @return a string representation of `this`
-        */
-      override def toString: String =
-        s"Scope(occurrences = $occurrences, childScopes = $childScopes)"
-
-      /** Counts the number of scopes in this scope.
-        *
-        * @return the number of scopes that are either this scope or children of
-        *         it
-        */
-      def scopeCount: Int = {
-        childScopes.map(_.scopeCount).sum + 1
-      }
-
-      /** Determines the maximum nesting depth of scopes through this scope.
-        *
-        * @return the maximum nesting depth of scopes through this scope.
-        */
-      def maxNesting: Int = {
-        childScopes.map(_.maxNesting).foldLeft(0)(Math.max) + 1
-      }
-
-      /** Gets the scope where a given ID is defined in the graph.
-        *
-        * @param id the id to find the scope for
-        * @return the scope where `id` occurs
-        */
-      def scopeFor(id: Graph.Id): Option[Scope] = {
-        val possibleCandidates = occurrences.filter(o => o.id == id)
-
-        if (possibleCandidates.isEmpty) {
-          if (childScopes.isEmpty) {
-            None
-          } else {
-            var childCandidate: Scope = null
-            val iter                  = childScopes.iterator
-            var moreThanOne           = false
-            while (iter.hasNext && !moreThanOne) {
-              iter.next().scopeFor(id) match {
-                case Some(s) =>
-                  if (childCandidate == null) {
-                    childCandidate = s
-                  } else {
-                    moreThanOne = true
-                  }
-                case None =>
-              }
-            }
-
-            if (childCandidate == null) {
-              None
-            } else if (moreThanOne) {
-              throw new CompilerError(s"ID $id defined in multiple scopes.")
-            } else {
-              Some(childCandidate)
-            }
-          }
-        } else if (possibleCandidates.size == 1) {
-          Some(this)
-        } else {
-          throw new CompilerError(s"Multiple occurrences found for ID $id.")
-        }
-      }
-
-      /** Gets the n-th parent of `this` scope.
-        *
-        * @param n the number of scopes to walk up
-        * @return the n-th parent of `this` scope, if present
-        */
-      def nThParent(n: Int): Option[Scope] = {
-        if (n == 0) Some(this) else this.parent.flatMap(_.nThParent(n - 1))
-      }
-
-      /** Finds the scopes in which a symbol occurs with a given role.
-        *
-        * Users of this function _must_ explicitly specify `T`, otherwise the
-        * results will be an empty list.
-        *
-        * @param symbol the symbol
-        * @tparam T the role in which `name` occurs
-        * @return all the scopes where `name` occurs with role `T`
-        */
-      def scopesForSymbol[T <: Occurrence: ClassTag](
-        symbol: Graph.Symbol
-      ): List[Scope] = {
-        val occursInThisScope = hasSymbolOccurrenceAs[T](symbol)
-
-        val occurrencesInChildScopes =
-          childScopes.flatMap(_.scopesForSymbol[T](symbol))
-
-        if (occursInThisScope) {
-          this +: occurrencesInChildScopes
-        } else {
-          occurrencesInChildScopes
-        }
-      }
-
-      /** Gets the set of all symbols in this scope and its children.
-        *
-        * @return the set of symbols
-        */
-      def symbols: Set[Graph.Symbol] = {
-        val symbolsInThis        = occurrences.map(_.symbol)
-        val symbolsInChildScopes = childScopes.flatMap(_.symbols)
-
-        symbolsInThis ++ symbolsInChildScopes
-      }
-
-      /** Goes from a symbol to all identifiers that relate to that symbol in
-        * the role specified by `T`.
-        *
-        * @param symbol the symbol to find identifiers for
-        * @tparam T the role in which `symbol` should occur
-        * @return a list of identifiers for that symbol
-        */
-      def symbolToIds[T <: Occurrence: ClassTag](
-        symbol: Graph.Symbol
-      ): List[Graph.Id] = {
-        val scopes =
-          scopesForSymbol[T](symbol).flatMap(_.getOccurrences[T](symbol))
-        scopes.map(_.id)
-      }
-
-      /** Goes from an identifier to the associated symbol.
-        *
-        * @param id the identifier of an occurrence
-        * @return the symbol associated with `id`, if it exists
-        */
-      def idToSymbol(id: Graph.Id): Option[Graph.Symbol] = {
-        scopeFor(id).flatMap(_.getOccurrence(id)).map(_.symbol)
-      }
-
-      /** Checks if `this` scope is a child of the provided `scope`.
-        *
-        * @param scope the potential parent scope
-        * @return `true` if `this` is a child of `scope`, otherwise `false`
-        */
-      def isChildOf(scope: Scope): Boolean = {
-        val isDirectChildOf = scope.childScopes.contains(this)
-
-        val isChildOfChildren = scope.childScopes
-          .map(scope => this.isChildOf(scope))
-          .foldLeft(false)(_ || _)
-
-        isDirectChildOf || isChildOfChildren
-      }
-    }
-
-    /** A link in the [[Graph]].
-      *
-      * The source of the link should always be an [[Occurrence.Use]] while the
-      * target of the link should always be an [[Occurrence.Def]].
-      *
-      * @param source the source ID of the link in the graph
-      * @param scopeCount the number of scopes that the link traverses
-      * @param target the target ID of the link in the graph
-      */
-    sealed case class Link(source: Id, scopeCount: Int, target: Id)
-        extends Serializable
-
-    /** An occurrence of a given symbol in the aliasing graph. */
-    sealed trait Occurrence extends Serializable {
-      val id: Id
-      val symbol: Graph.Symbol
-    }
-    object Occurrence {
-
-      /** The definition of a symbol in the aliasing graph.
-        *
-        * @param id the identifier of the name in the graph
-        * @param symbol the text of the name
-        * @param identifier the identifier of the symbol
-        * @param externalId the external identifier for the IR node defining
-        *                   the symbol
-        * @param isLazy whether or not the symbol is defined as lazy
-        */
-      sealed case class Def(
-        override val id: Id,
-        override val symbol: Graph.Symbol,
-        identifier: UUID @Identifier,
-        externalId: Option[UUID @ExternalID],
-        isLazy: Boolean = false
-      ) extends Occurrence
-
-      /** A usage of a symbol in the aliasing graph
-        *
-        * Name usages _need not_ correspond to name definitions, as dynamic
-        * symbol resolution means that a name used at runtime _may not_ be
-        * statically visible in the scope.
-        *
-        * @param id the identifier of the name in the graph
-        * @param symbol the text of the name
-        * @param identifier the identifier of the symbol
-        * @param externalId the external identifier for the IR node defining
-        *                   the symbol
-        */
-      sealed case class Use(
-        override val id: Id,
-        override val symbol: Graph.Symbol,
-        identifier: UUID @Identifier,
-        externalId: Option[UUID @ExternalID]
-      ) extends Occurrence
-
-      // TODO [AA] At some point the analysis should make use of these.
-      /** Represents a global symbol that has been _asked for_ in the program.
-        *
-        * @param id the identifier of the name in the graph
-        * @param symbol the text of the name
-        */
-      sealed case class Global(
-        override val id: Id,
-        override val symbol: Graph.Symbol
-      ) extends Occurrence
-    }
-  }
 
   // === Pass Configuration ===================================================
 

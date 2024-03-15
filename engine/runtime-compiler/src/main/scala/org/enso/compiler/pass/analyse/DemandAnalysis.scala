@@ -202,7 +202,7 @@ case object DemandAnalysis extends IRPass {
         AliasAnalysis,
         "Missing alias occurrence information for a name usage"
       )
-      .unsafeAs[AliasAnalysis.Info.Occurrence]
+      .unsafeAs[AliasAnalysisInfo.Occurrence]
 
     aliasInfo.graph.defLinkFor(aliasInfo.id).isDefined
   }

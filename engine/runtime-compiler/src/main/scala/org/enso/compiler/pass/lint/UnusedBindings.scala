@@ -2,20 +2,11 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
-import org.enso.compiler.core.ir.{
-  DefinitionArgument,
-  Expression,
-  Function,
-  Literal,
-  Module,
-  Name,
-  Pattern,
-  Warning
-}
-import org.enso.compiler.core.ir.expression.{errors, warnings, Case, Foreign}
+import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Function, Literal, Module, Name, Pattern, Warning}
+import org.enso.compiler.core.ir.expression.{Case, Foreign, errors, warnings}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.AliasAnalysis
+import org.enso.compiler.pass.analyse.{AliasAnalysis, AliasAnalysisInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, IgnoredBindings}
@@ -109,7 +100,7 @@ case object UnusedBindings extends IRPass {
         AliasAnalysis,
         "Aliasing information is required for linting."
       )
-      .unsafeAs[AliasAnalysis.Info.Occurrence]
+      .unsafeAs[AliasAnalysisInfo.Occurrence]
     val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
     if (!isIgnored && !isUsed) {
@@ -188,7 +179,7 @@ case object UnusedBindings extends IRPass {
         "Aliasing information missing from function argument but is " +
         "required for linting."
       )
-      .unsafeAs[AliasAnalysis.Info.Occurrence]
+      .unsafeAs[AliasAnalysisInfo.Occurrence]
     val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
     argument match {
@@ -270,7 +261,7 @@ case object UnusedBindings extends IRPass {
             "Aliasing information missing from pattern but is " +
             "required for linting."
           )
-          .unsafeAs[AliasAnalysis.Info.Occurrence]
+          .unsafeAs[AliasAnalysisInfo.Occurrence]
         val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
         if (!isIgnored && !isUsed) {
@@ -300,7 +291,7 @@ case object UnusedBindings extends IRPass {
             "Aliasing information missing from pattern but is " +
             "required for linting."
           )
-          .unsafeAs[AliasAnalysis.Info.Occurrence]
+          .unsafeAs[AliasAnalysisInfo.Occurrence]
         val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
         if (!isIgnored && !isUsed) {

@@ -548,7 +548,7 @@ case object DataflowAnalysis extends IRPass {
           "Name occurrence with missing aliasing information."
         )
       )
-      .asInstanceOf[AliasAnalysis.Info.Occurrence]
+      .asInstanceOf[AliasAnalysisInfo.Occurrence]
 
     name match {
       case _: Name.Blank =>
@@ -560,7 +560,7 @@ case object DataflowAnalysis extends IRPass {
         val key: DependencyInfo.Type = defIdForName match {
           case Some(defLink) =>
             aliasInfo.graph.getOccurrence(defLink.target) match {
-              case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, ext, _)) =>
+              case Some(AliasAnalysisGraph.Occurrence.Def(_, _, id, ext, _)) =>
                 DependencyInfo.Type.Static(id, ext)
               case _ =>
                 DependencyInfo.Type.Dynamic(name.name, None)

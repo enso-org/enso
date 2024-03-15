@@ -3,30 +3,18 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{
-  CallArgument,
-  DefinitionArgument,
-  Expression,
-  Module,
-  Name,
-  Type
-}
+import org.enso.compiler.core.ir.{CallArgument, DefinitionArgument, Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{
-  Resolution,
-  ResolutionNotFound,
-  ResolvedMethod,
-  ResolvedModule
-}
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolutionNotFound, ResolvedMethod, ResolvedModule}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, AliasAnalysisInfo, BindingAnalysis}
 
 /** Resolves name occurences in non-pattern contexts.
   *
@@ -435,7 +423,7 @@ case object GlobalNames extends IRPass {
         AliasAnalysis,
         "no alias analysis info on a name"
       )
-      .unsafeAs[AliasAnalysis.Info.Occurrence]
+      .unsafeAs[AliasAnalysisInfo.Occurrence]
     val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
     defLink.isDefined
   }
