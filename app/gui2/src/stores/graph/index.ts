@@ -14,7 +14,7 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
-import { Ast, RawAst, visitRecursive } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import type {
   AstId,
   Module,
@@ -23,6 +23,7 @@ import type {
   NodeMetadataFields,
 } from '@/util/ast/abstract'
 import { MutableModule, isIdentifier } from '@/util/ast/abstract'
+import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'

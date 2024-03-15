@@ -1,5 +1,6 @@
 import { assert } from '@/util/assert'
-import { RawAst, RawAstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast/extended'
+import { RawAst } from '@/util/ast/raw'
 import { zip } from '@/util/data/iterable'
 import { mapIterator } from 'lib0/iterator'
 
