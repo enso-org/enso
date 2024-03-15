@@ -32,7 +32,7 @@ export interface ReactionBarProps {
 }
 
 /** A list of emoji reactions to choose from. */
-function ReactionBar(props: ReactionBarProps) {
+export default function ReactionBar(props: ReactionBarProps) {
   const { selectedReactions, doReact, doRemoveReaction, className } = props
 
   return (
