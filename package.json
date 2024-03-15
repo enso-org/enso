@@ -19,6 +19,7 @@
   "workspaces": [
     "app/ide-desktop",
     "app/ide-desktop/lib/*",
+    "lib/js/runner",
     "app/gui2"
   ],
   "overrides": {
