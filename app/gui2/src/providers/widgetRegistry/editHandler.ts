@@ -38,7 +38,7 @@ export interface WidgetEditInteraction extends Interaction {
  * along with any further ancestors. In particular:
  * - Starting, ending and cancelling (including automatic canceling by the global interaction
  *   handler) of child edit will also call proper callbacks in parent.
- * - Cancelling or ending parent edit will candel/end the child's interaction.
+ * - Cancelling or ending parent edit will cancel/end the child's interaction.
  * - `isActive` method of both edit handlers will return true.
  *
  * This `edited` state is propagated only upwards: if only parent is edited, its children are not
