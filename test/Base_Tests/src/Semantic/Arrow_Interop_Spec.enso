@@ -19,17 +19,19 @@ add_specs suite_builder =
             arrow_array_constructor = new_arrow
             builder = arrow_array_constructor.new 10
 
-            builder.length . should_equal 10
-            builder.at 1 . should_equal Nothing
-            builder.at 10 . should_fail_with Index_Out_Of_Bounds
+            Test.expect_panic_with (builder.length) No_Such_Method
+            Test.expect_panic_with (builder.at 1) No_Such_Method
             builder.append 2
             builder.append 10
-            builder.at 1 . should_equal 10
             builder.append 127
 
             # Check that the value that will not fit into a byte is rejected
             Test.expect_panic_with (builder.append 128) Unsupported_Argument_Types
             v = builder.build
+            v.length . should_equal 10
+            v.at 1 . should_equal 10
+            v.at 11 . should_fail_with Index_Out_Of_Bounds
+            v.at 25 . should_fail_with Index_Out_Of_Bounds # Capacity of data buffer after padding will be 24
             v.at 2 . should_equal 127
             Test.expect_panic_with (builder.append 21) No_Such_Method
             v.at 4 . should_equal Nothing

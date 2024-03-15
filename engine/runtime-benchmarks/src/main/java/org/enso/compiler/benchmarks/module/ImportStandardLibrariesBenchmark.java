@@ -3,7 +3,6 @@ package org.enso.compiler.benchmarks.module;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -93,9 +92,6 @@ from Standard.Visualization import all
     this.out = new ByteArrayOutputStream();
     this.context =
         Utils.createDefaultContextBuilder()
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
             // Enable IR caches - we don't want to compile the imported modules from the standard
             // libraries
             .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
