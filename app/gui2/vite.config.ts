@@ -31,7 +31,7 @@ export default defineConfig({
     ...(process.env.ELECTRON_DEV_MODE === 'true' ?
       [
         (await import('@vitejs/plugin-react')).default({
-          include: '../ide-desktop/lib/dashboard/**/*.tsx',
+          include: fileURLToPath(new URL('../ide-desktop/lib/dashboard/**/*.tsx', import.meta.url)),
           babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
         }),
       ]
