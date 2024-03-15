@@ -4,9 +4,10 @@
 
 import * as appUtils from '#/appUtils'
 
+import type * as dateTime from '#/utilities/dateTime'
+import * as newtype from '#/utilities/newtype'
+
 import GLOBAL_CONFIG from '../../../../../gui2/config.yaml' assert { type: 'yaml' }
-import type * as dateTime from './dateTime'
-import * as newtype from './newtype'
 
 // =================
 // === Constants ===

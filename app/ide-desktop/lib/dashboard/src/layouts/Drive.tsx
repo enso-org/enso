@@ -28,13 +28,13 @@ import Labels from '#/layouts/Labels'
 import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
+import * as projectManager from '#/services/ProjectManager'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import LocalStorage from '#/utilities/LocalStorage'
-import * as projectManager from '#/utilities/ProjectManager'
 import * as uniqueString from '#/utilities/uniqueString'
 
 // ============================

@@ -24,6 +24,7 @@ import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinn
 
 import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 
 import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
@@ -34,7 +35,6 @@ import * as fileInfo from '#/utilities/fileInfo'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as projectManager from '#/utilities/ProjectManager'
 import * as set from '#/utilities/set'
 import Visibility from '#/utilities/Visibility'
 

@@ -8,12 +8,12 @@ import * as detect from 'enso-common/src/detect'
 import * as appUtils from '#/appUtils'
 
 import Backend, * as backend from '#/services/Backend'
+import * as projectManager from '#/services/ProjectManager'
+import ProjectManager from '#/services/ProjectManager'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
 import * as fileInfo from '#/utilities/fileInfo'
-import * as projectManager from '#/utilities/ProjectManager'
-import ProjectManager from '#/utilities/ProjectManager'
 
 // ====================
 // === ProjectState ===

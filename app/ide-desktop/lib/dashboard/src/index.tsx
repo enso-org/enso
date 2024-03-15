@@ -12,7 +12,7 @@ import * as detect from 'enso-common/src/detect'
 import type * as app from '#/App'
 import App from '#/App'
 
-import ProjectManager from '#/utilities/ProjectManager'
+import ProjectManager from '#/services/ProjectManager'
 
 // =================
 // === Constants ===
