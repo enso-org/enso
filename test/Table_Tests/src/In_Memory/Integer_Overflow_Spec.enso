@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import all
 from Standard.Table.Errors import Arithmetic_Overflow, Conversion_Failure, Invalid_Value_Type, No_Common_Type, Loss_Of_Integer_Precision
 
