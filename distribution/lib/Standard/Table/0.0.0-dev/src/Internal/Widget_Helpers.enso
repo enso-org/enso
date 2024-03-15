@@ -143,8 +143,8 @@ make_filter_condition_selector table display=Display.Always =
    Make a join kind selector - Needed to override display.
 make_join_kind_selector : Display -> Widget
 make_join_kind_selector display=Display.Always =
-    meta = Meta.meta Join_Kind
-    options = meta.constructors.map c-> Option c.name meta.qualified_name+"."+c.name
+    fqn = Meta.get_qualified_type_name Join_Kind
+    options = ["Inner", "Left_Outer", "Right_Outer", "Full", "Left_Exclusive", "Right_Exclusive"].map n-> Option n fqn+"."+n
     Single_Choice display=display values=options
 
 ## PRIVATE
