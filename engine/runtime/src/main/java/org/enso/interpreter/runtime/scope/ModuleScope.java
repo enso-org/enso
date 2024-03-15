@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,9 +20,11 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** A representation of Enso's per-file top-level scope. */
+@ExportLibrary(TypesLibrary.class)
 public final class ModuleScope implements EnsoObject {
   private final Type associatedType;
   private final Module module;
@@ -300,6 +304,7 @@ public final class ModuleScope implements EnsoObject {
     return types;
   }
 
+  @ExportMessage.Ignore
   public Optional<Type> getType(String name) {
     if (associatedType.getName().equals(name)) {
       return Optional.of(associatedType);
@@ -424,6 +429,16 @@ public final class ModuleScope implements EnsoObject {
         conversions,
         imports,
         exports);
+  }
+
+  @ExportMessage
+  boolean hasType() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getType() {
+    return getAssociatedType();
   }
 
   @Override
