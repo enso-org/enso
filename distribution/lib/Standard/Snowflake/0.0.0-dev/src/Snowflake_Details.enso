@@ -2,9 +2,10 @@ from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Connection.Connection_Options.Connection_Options
-import project.Connection.Credentials.Credentials
-import project.Internal.Snowflake.Snowflake_Connection.Snowflake_Connection
+import Standard.Database.Connection.Connection_Options.Connection_Options
+import Standard.Database.Connection.Credentials.Credentials
+
+import project.Internal.Snowflake_Connection.Snowflake_Connection
 
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
 

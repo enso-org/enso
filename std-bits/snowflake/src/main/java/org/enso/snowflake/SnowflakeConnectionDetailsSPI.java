@@ -1,4 +1,4 @@
-package org.enso.database.snowflake;
+package org.enso.snowflake;
 
 import org.enso.database.DatabaseConnectionDetailsSPI;
 
@@ -6,7 +6,7 @@ import org.enso.database.DatabaseConnectionDetailsSPI;
 public class SnowflakeConnectionDetailsSPI extends DatabaseConnectionDetailsSPI {
   @Override
   protected String getModuleName() {
-    return "Standard.Database.Connection.Snowflake_Details";
+    return "Standard.Snowflake.Snowflake_Details";
   }
 
   @Override

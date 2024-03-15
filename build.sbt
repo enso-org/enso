@@ -157,7 +157,8 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution("Table", Distribution.sbtProjects(`std-table`)),
   makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
   makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`)),
-  makeStdLibDistribution("AWS", Distribution.sbtProjects(`std-aws`))
+  makeStdLibDistribution("AWS", Distribution.sbtProjects(`std-aws`)),
+  makeStdLibDistribution("Snowflake", Distribution.sbtProjects(`std-snowflake`))
 )
 
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -330,6 +331,7 @@ lazy val enso = (project in file("."))
     `std-image`,
     `std-table`,
     `std-aws`,
+    `std-snowflake`,
     `http-test-helper`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
@@ -1650,6 +1652,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-google-api` / Compile / packageBin)
       .dependsOn(`std-table` / Compile / packageBin)
       .dependsOn(`std-aws` / Compile / packageBin)
+      .dependsOn(`std-snowflake` / Compile / packageBin)
       .value
   )
   .dependsOn(`common-polyglot-core-utils`)
@@ -2704,6 +2707,8 @@ val `database-polyglot-root` =
   stdLibComponentRoot("Database") / "polyglot" / "java"
 val `std-aws-polyglot-root` =
   stdLibComponentRoot("AWS") / "polyglot" / "java"
+val `std-snowflake-polyglot-root` =
+  stdLibComponentRoot("Snowflake") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -2926,8 +2931,7 @@ lazy val `std-database` = project
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
       "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"       % "postgresql"              % "42.4.0",
-      "net.snowflake"        % "snowflake-jdbc"          % "3.15.0"
+      "org.postgresql"       % "postgresql"              % "42.4.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -2969,6 +2973,36 @@ lazy val `std-aws` = project
         .copyDependencies(
           `std-aws-polyglot-root`,
           Seq("std-aws.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
+
+lazy val `std-snowflake` = project
+  .in(file("std-bits") / "snowflake")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-snowflake-polyglot-root` / "std-snowflake.jar",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "net.snowflake"        % "snowflake-jdbc"          % "3.15.0"
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `std-snowflake-polyglot-root`,
+          Seq("std-snowflake.jar"),
           ignoreScalaLibrary = true
         )
         .value
@@ -3124,6 +3158,7 @@ val stdBitsProjects =
     "Database",
     "Google_Api",
     "Image",
+    "Snowflake",
     "Table"
   ) ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
@@ -3192,6 +3227,8 @@ pkgStdLibInternal := Def.inputTask {
       (`benchmark-java-helpers` / Compile / packageBin).value
     case "AWS" =>
       (`std-aws` / Compile / packageBin).value
+    case "Snowflake" =>
+      (`std-snowflake` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -3202,6 +3239,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-image` / Compile / packageBin).value
       (`std-google-api` / Compile / packageBin).value
       (`std-aws` / Compile / packageBin).value
+      (`std-snowflake` / Compile / packageBin).value
     case _ =>
   }
   val libs =
