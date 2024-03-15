@@ -1,10 +1,8 @@
-export interface UrlParams {
-  [key: string]: string | UrlParams
-}
+import type { StringConfig } from './config'
 
 /** Returns the parameters passed in the URL query string. */
-export function urlParams(): UrlParams {
-  const params: UrlParams = {}
+export function urlParams(): StringConfig {
+  const params: StringConfig = {}
   const urlParams = new URLSearchParams(window.location.search)
   for (const [name, value] of urlParams.entries()) {
     let obj = params

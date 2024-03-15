@@ -26,7 +26,7 @@ const ICON_SIZE_PX = 13
 const ICON_STYLE = { width: ICON_SIZE_PX, height: ICON_SIZE_PX }
 
 /** Icons for modifier keys (if they exist). */
-const MODIFIER_MAPPINGS: Readonly<
+const MODIFIER_JSX: Readonly<
   Record<detect.Platform, Partial<Record<inputBindingsModule.ModifierKey, React.ReactNode>>>
 > = {
   // The names are intentionally not in `camelCase`, as they are case-sensitive.
@@ -58,6 +58,16 @@ const MODIFIER_MAPPINGS: Readonly<
   },
   /* eslint-enable @typescript-eslint/naming-convention */
 }
+
+const KEY_CHARACTER: Readonly<Record<string, string>> = {
+  // The names come from a third-party API (the DOM spec) and cannot be changed.
+  /* eslint-disable @typescript-eslint/naming-convention */
+  ArrowDown: '↓',
+  ArrowUp: '↑',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  /* eslint-enable @typescript-eslint/naming-convention */
+} satisfies Partial<Record<inputBindingsModule.Key, string>>
 
 /** Props for a {@link KeyboardShortcut}, specifying the keyboard action. */
 export interface KeyboardShortcutActionProps {
@@ -92,13 +102,15 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       >
         {modifiers.map(
           modifier =>
-            MODIFIER_MAPPINGS[detect.platform()][modifier] ?? (
+            MODIFIER_JSX[detect.platform()][modifier] ?? (
               <span key={modifier} className="text">
                 {modifier}
               </span>
             )
         )}
-        <span className="text">{shortcut.key === ' ' ? 'Space' : shortcut.key}</span>
+        <span className="text">
+          {shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}
+        </span>
       </div>
     )
   }
