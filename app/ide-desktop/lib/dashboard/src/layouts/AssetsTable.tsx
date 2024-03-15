@@ -2395,6 +2395,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         </tbody>
       </table>
       <div
+        data-testid="root-directory-dropzone"
         className="grow"
         onClick={() => {
           setSelectedKeys(new Set())
@@ -2473,7 +2474,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             </div>
           </div>
         )}
-        <div className="flex h-full w-min min-w-full flex-col">{table}</div>
+        <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
       </div>
     </div>
   )

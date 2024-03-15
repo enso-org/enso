@@ -75,3 +75,20 @@ test.test('extra columns should stick to top of scroll container', async ({ page
     })
     .toPass()
 })
+
+test.test('can drop onto root directory dropzone', async ({ page }) => {
+  const { api } = await actions.mockAllAndLogin({ page })
+  const assetRows = actions.locateAssetRows(page)
+  const asset = api.addDirectory('a')
+  api.addFile('b', { parentId: asset.id })
+  await actions.login({ page })
+
+  await assetRows.nth(0).dblclick()
+  const parentLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
+  const childLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
+  test.expect(childLeft, 'child is indented further than parent').toBeGreaterThan(parentLeft)
+  await assetRows.nth(1).dragTo(actions.locateRootDirectoryDropzone(page))
+  const firstLeft = await actions.getAssetRowLeftPx(assetRows.nth(0))
+  const secondLeft = await actions.getAssetRowLeftPx(assetRows.nth(1))
+  test.expect(firstLeft, 'siblings have same indentation').toEqual(secondLeft)
+})

@@ -575,6 +575,14 @@ export function locateExtraColumns(page: test.Page) {
   return page.getByTestId('extra-columns')
 }
 
+/** Find a root directory dropzone (if any) on the current page.
+ * This is the empty space below the assets table, if it doesn't take up the whole screen
+ * vertically. */
+export function locateRootDirectoryDropzone(page: test.Page) {
+  // This has no identifying features.
+  return page.getByTestId('root-directory-dropzone')
+}
+
 // === Content locators ===
 
 /** Find an asset description in an asset panel (if any) on the current page. */
