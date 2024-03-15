@@ -271,8 +271,11 @@ case class Review(root: File, dependencySummary: DependencySummary) {
         val directory   = root / Paths.reviewedLicenses
         val fileName    = Review.normalizeName(info.license.name)
         var settingPath = directory / fileName
-        val reviewedLicenseFiles = Option(directory.listFiles).getOrElse(Array())
-        reviewedLicenseFiles.filter(_.getName.equalsIgnoreCase(fileName)) match {
+        val reviewedLicenseFiles =
+          Option(directory.listFiles).getOrElse(Array())
+        reviewedLicenseFiles.filter(
+          _.getName.equalsIgnoreCase(fileName)
+        ) match {
           case Array(settingPath) =>
             readFile(settingPath)
               .map { content =>
