@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.polyglot.LanguageInfo;
@@ -21,6 +22,9 @@ public class Utils {
   public static Context.Builder createDefaultContextBuilder() {
     return Context.newBuilder()
         .allowExperimentalOptions(true)
+        .option(
+            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+            Paths.get("../../distribution/component").toFile().getAbsolutePath())
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
         .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
         .option(RuntimeOptions.STRICT_ERRORS, "true")

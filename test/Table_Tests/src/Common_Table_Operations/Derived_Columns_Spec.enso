@@ -38,6 +38,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "arithmetics" <|
             t = table_builder [["A", [1, 2]], ["B", [10, 40]]]
+            t.set (Simple_Expression.From (Column_Ref.Name "A") Simple_Calculation.Copy) "C" . at "C" . to_vector . should_equal [1, 2]
             t.set (Simple_Expression.From (Column_Ref.Name "A") (Simple_Calculation.Add (Column_Ref.Name "B"))) "C" . at "C" . to_vector . should_equal [11, 42]
             t.set (Simple_Expression.From 100 (Simple_Calculation.Add (Column_Ref.Name "B"))) "C" . at "C" . to_vector . should_equal [110, 140]
             t.set (Simple_Expression.From (Column_Ref.Name "A") (Simple_Calculation.Add 100)) "C" . at "C" . to_vector . should_equal [101, 102]
