@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { codeEditorBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { isMacLike } from '@/composables/events'
 import { ref } from 'vue'
 
 const isDropdownOpen = ref(false)
@@ -9,9 +9,7 @@ const props = defineProps<{
   zoomLevel: number
 }>()
 const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: []; toggleCodeEditor: [] }>()
-
-// TODO: replace with codeEditorBindigs.toggle: https://github.com/enso-org/enso/issues/9411.
-const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
+const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadable
 </script>
 
 <template>
@@ -77,7 +75,7 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
   top: 40px;
   margin-top: 6px;
   padding: 4px;
-  right: 0px;
+  right: 8px;
   border-radius: 12px;
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
