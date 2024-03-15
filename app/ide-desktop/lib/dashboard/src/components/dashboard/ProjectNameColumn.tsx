@@ -20,6 +20,8 @@ import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
+import * as localBackend from '#/services/LocalBackend'
+import * as projectManager from '#/services/ProjectManager'
 
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
@@ -184,7 +186,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 id = await response.text()
               }
               const listedProject = await backend.getProjectDetails(
-                backendModule.ProjectId(id),
+                localBackend.newProjectId(projectManager.UUID(id)),
                 null
               )
               rowState.setVisibility(Visibility.visible)
