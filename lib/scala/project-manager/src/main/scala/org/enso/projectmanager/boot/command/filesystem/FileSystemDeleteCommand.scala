@@ -17,21 +17,21 @@ import org.enso.projectmanager.service.filesystem.{
 
 import java.io.File
 
-final class FileSystemDeleteDirectoryCommand[F[+_, +_]: CovariantFlatMap](
+final class FileSystemDeleteCommand[F[+_, +_]: CovariantFlatMap](
   service: FileSystemServiceApi[F],
   path: File
 ) {
 
   def run: F[FileSystemServiceFailure, FileSystemDeleteDirectory.Result] =
-    service.deleteDirectory(path).map(_ => FileSystemDeleteDirectory.Result)
+    service.delete(path).map(_ => FileSystemDeleteDirectory.Result)
 }
 
-object FileSystemDeleteDirectoryCommand {
+object FileSystemDeleteCommand {
 
   def apply[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel: Sync](
     config: ProjectManagerConfig,
     path: File
-  ): FileSystemDeleteDirectoryCommand[F] = {
+  ): FileSystemDeleteCommand[F] = {
     val clock      = new RealClock[F]
     val fileSystem = new BlockingFileSystem[F](config.timeout.ioTimeout)
     val gen        = new SystemGenerator[F]
@@ -44,6 +44,6 @@ object FileSystemDeleteDirectoryCommand {
 
     val service = new FileSystemService[F](fileSystem, projectRepositoryFactory)
 
-    new FileSystemDeleteDirectoryCommand[F](service, path)
+    new FileSystemDeleteCommand[F](service, path)
   }
 }

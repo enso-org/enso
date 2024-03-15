@@ -49,7 +49,13 @@ export function useEvent<K extends keyof ElementEventMap>(
 export function useEvent(
   target: EventTarget,
   event: string,
-  handler: (event: unknown) => void,
+  handler: EventListenerOrEventListenerObject,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent(
+  target: EventTarget,
+  event: string,
+  handler: EventListenerOrEventListenerObject,
   options?: boolean | AddEventListenerOptions,
 ): void {
   target.addEventListener(event, handler, options)

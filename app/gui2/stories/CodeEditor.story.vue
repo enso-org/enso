@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 
 import CodeEditor from '@/components/CodeEditor.vue'
-import MockProjectStoreWrapper from './MockProjectStoreWrapper.vue'
+import MockProjectStoreWrapper from '../mock/MockProjectStoreWrapper.vue'
 import HstCode from './histoire/HstCode.vue'
 
 const text = ref(`\

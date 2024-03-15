@@ -8,6 +8,7 @@ from Standard.Base.Widget_Helpers import make_format_chooser
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Join_Condition.Join_Condition
+import project.Data.Join_Kind.Join_Kind
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Auto
@@ -19,7 +20,7 @@ from project.Extensions.Table_Conversions import all
    Make an aggregate column selector.
 make_aggregate_column_selector : Table -> Display -> Widget
 make_aggregate_column_selector table display=Display.Always =
-    col_names_selector = make_column_name_selector table display=Display.Always
+    col_names_selector = make_column_name_selector table display=Display.Always add_expression=True
     column_widget = ["column", col_names_selector]
 
     fqn = Meta.get_qualified_type_name Aggregate_Column
@@ -137,6 +138,14 @@ make_filter_condition_selector table display=Display.Always =
     builder.append (Option "Like" fqn+".Like" [["pattern", with_text]])
     builder.append (Option "Is In" fqn+".Is_In")
     Single_Choice builder.to_vector display=display
+
+## PRIVATE
+   Make a join kind selector - Needed to override display.
+make_join_kind_selector : Display -> Widget
+make_join_kind_selector display=Display.Always =
+    fqn = Meta.get_qualified_type_name Join_Kind
+    options = ["Inner", "Left_Outer", "Right_Outer", "Full", "Left_Exclusive", "Right_Exclusive"].map n-> Option n fqn+"."+n
+    Single_Choice display=display values=options
 
 ## PRIVATE
    Make a join condition selector.

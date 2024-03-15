@@ -1,5 +1,5 @@
 /** @file ⚠️⚠️⚠️ THIS SCRIPT IS PROVIDED ONLY FOR CONVENIENCE. ⚠️⚠️⚠️
- * The sources of truth are at `build/build/src/project/gui2.rs` and
+ * The sources of truth are at `build/build/src/project/gui.rs` and
  * `build/build/src/ide/web/fonts.rs`. */
 
 import * as fsSync from 'node:fs'

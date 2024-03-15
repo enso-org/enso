@@ -156,38 +156,51 @@ export function onOpenUrl(url: URL, window: () => electron.BrowserWindow) {
  * The credentials file is placed in the user's home directory in the `.enso` subdirectory
  * in the `credentials` file. */
 function initSaveAccessTokenListener() {
-    electron.ipcMain.on(ipc.Channel.saveAccessToken, (event, accessToken: string | null) => {
-        event.preventDefault()
+    electron.ipcMain.on(
+        ipc.Channel.saveAccessToken,
+        (event, accessTokenPayload: SaveAccessTokenPayload | null) => {
+            event.preventDefault()
 
-        /** Home directory for the credentials file.  */
-        const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
-        /** File name of the credentials file. */
-        const credentialsFileName = 'credentials'
-        /** System agnostic credentials directory home path. */
-        const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
+            /** Home directory for the credentials file.  */
+            const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
+            /** File name of the credentials file. */
+            const credentialsFileName = 'credentials'
+            /** System agnostic credentials directory home path. */
+            const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
 
-        if (accessToken == null) {
-            try {
-                fs.unlinkSync(path.join(credentialsHomePath, credentialsFileName))
-            } catch {
-                // Ignored, most likely the path does not exist.
-            }
-        } else {
-            fs.mkdir(credentialsHomePath, { recursive: true }, error => {
-                if (error) {
-                    logger.error(`Couldn't create ${credentialsDirectoryName} directory.`)
-                } else {
-                    fs.writeFile(
-                        path.join(credentialsHomePath, credentialsFileName),
-                        accessToken,
-                        innerError => {
-                            if (innerError) {
-                                logger.error(`Could not write to ${credentialsFileName} file.`)
-                            }
-                        }
-                    )
+            if (accessTokenPayload == null) {
+                try {
+                    fs.unlinkSync(path.join(credentialsHomePath, credentialsFileName))
+                } catch {
+                    // Ignored, most likely the path does not exist.
                 }
-            })
+            } else {
+                fs.mkdir(credentialsHomePath, { recursive: true }, error => {
+                    if (error) {
+                        logger.error(`Could not create '${credentialsDirectoryName}' directory.`)
+                    } else {
+                        fs.writeFile(
+                            path.join(credentialsHomePath, credentialsFileName),
+                            JSON.stringify({
+                                /* eslint-disable @typescript-eslint/naming-convention */
+                                client_id: accessTokenPayload.clientId,
+                                access_token: accessTokenPayload.accessToken,
+                                refresh_token: accessTokenPayload.refreshToken,
+                                refresh_url: accessTokenPayload.refreshUrl,
+                                expire_at: accessTokenPayload.expireAt,
+                                /* eslint-enable @typescript-eslint/naming-convention */
+                            }),
+                            innerError => {
+                                if (innerError) {
+                                    logger.error(
+                                        `Could not write to '${credentialsFileName}' file.`
+                                    )
+                                }
+                            }
+                        )
+                    }
+                })
+            }
         }
-    })
+    )
 }

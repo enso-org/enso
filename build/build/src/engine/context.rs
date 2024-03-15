@@ -453,7 +453,7 @@ impl RunContext {
             // TODO [mwu] It should be possible to run them through context config option.
             if self.config.build_benchmarks {
                 tasks.extend([
-                    "runtime/Benchmark/compile",
+                    "runtime-benchmarks/compile",
                     "language-server/Benchmark/compile",
                     "searcher/Benchmark/compile",
                     "std-benchmarks/Benchmark/compile",
