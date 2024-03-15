@@ -345,6 +345,14 @@ type Connection
         self.jdbc_connection.raw_fetch_columns statement needs_execute_query statement_setter
 
     ## PRIVATE
+       Internal helper method to run a query and read a single column from the
+       result as a Vector.
+    read_single_column : Text -> Text -> Vector Text
+    read_single_column self query column_name = self.jdbc_connection.with_connection connection->
+        result_set = connection.createStatement.executeQuery query
+        read_column result_set column_name
+
+    ## PRIVATE
        ADVANCED
 
        Executes a raw update query. If the query was inserting, updating or

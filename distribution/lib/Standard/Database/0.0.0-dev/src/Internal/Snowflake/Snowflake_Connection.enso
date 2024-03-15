@@ -56,6 +56,12 @@ type Snowflake_Connection
     close self = self.connection.close
 
     ## ICON metadata
+       Returns the list of warehouses for the connection.
+    warehouses : Vector Text
+    warehouses self =
+        self.connection.read_single_column "show warehouses" "name"
+
+    ## ICON metadata
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
     databases self = self.connection.databases
@@ -79,7 +85,8 @@ type Snowflake_Connection
     ## ICON metadata
        Returns the list of schemas for the connection within the current database (or catalog).
     schemas : Vector Text
-    schemas self = self.connection.schemas
+    schemas self =
+        self.connection.read_single_column "show schemas in database" "name"
 
     ## ICON metadata
        Returns the name of the current schema.

@@ -20,7 +20,6 @@ import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
-from project.Internal.Result_Set import read_column
 from project.Internal.Upload_Table import first_column_name_in_structure
 
 type Postgres_Connection
@@ -59,9 +58,7 @@ type Postgres_Connection
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
     databases self =
-        self.connection.jdbc_connection.with_connection connection->
-            result_set = connection.createStatement.executeQuery "select datname from pg_database where datname not in ('template0', 'template1')"
-            read_column result_set "datname"
+        self.connection.read_single_column "select datname from pg_database where datname not in ('template0', 'template1')" "datname"
 
     ## ICON metadata
        Returns the name of the current database (or catalog).
