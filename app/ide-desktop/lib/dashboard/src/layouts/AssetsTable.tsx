@@ -346,9 +346,10 @@ export interface AssetRowState {
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
   readonly hidden: boolean
+  readonly hideRows: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setCanDownloadFiles: (canDownloadFiles: boolean) => void
+  readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
   readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
@@ -375,7 +376,7 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, setCanDownloadFiles, category, allLabels } = props
+  const { hidden, hideRows, query, setQuery, setCanDownload, category, allLabels } = props
   const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
@@ -422,6 +423,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       : query.query !== ''
         ? QUERY_PLACEHOLDER
         : PLACEHOLDER
+  /** Events sent when the asset list was still loading. */
+  const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
@@ -606,22 +609,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities]
   )
-
-  React.useEffect(() => {
-    if (category === Category.trash) {
-      setCanDownloadFiles(false)
-    } else if (!isCloud) {
-      setCanDownloadFiles(selectedKeysRef.current.size !== 0)
-    } else {
-      setCanDownloadFiles(
-        selectedKeysRef.current.size !== 0 &&
-          Array.from(selectedKeysRef.current).every(key => {
-            const node = nodeMapRef.current.get(key)
-            return node?.item.type === backendModule.AssetType.file
-          })
-      )
-    }
-  }, [category, isCloud, /* should never change */ setCanDownloadFiles])
 
   React.useEffect(() => {
     const nodeToSuggestion = (
@@ -825,18 +812,24 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [pasteData])
 
   React.useEffect(() => {
-    return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      cancelCut: () => {
-        if (pasteDataRef.current == null) {
-          return false
-        } else {
-          dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
-          setPasteData(null)
-          return
-        }
-      },
-    })
-  }, [/* should never change */ inputBindings, /* should never change */ dispatchAssetEvent])
+    if (!hidden) {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        cancelCut: () => {
+          if (pasteDataRef.current == null) {
+            return false
+          } else {
+            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
+            setPasteData(null)
+            return
+          }
+        },
+      })
+    }
+  }, [
+    hidden,
+    /* should never change */ inputBindings,
+    /* should never change */ dispatchAssetEvent,
+  ])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -873,18 +866,22 @@ export default function AssetsTable(props: AssetsTableProps) {
       selectedKeysRef.current = newSelectedKeys
       setSelectedKeysRaw(newSelectedKeys)
       if (!isCloud) {
-        setCanDownloadFiles(newSelectedKeys.size !== 0)
+        setCanDownload(newSelectedKeys.size !== 0)
       } else {
-        setCanDownloadFiles(
+        setCanDownload(
           newSelectedKeys.size !== 0 &&
             Array.from(newSelectedKeys).every(key => {
               const node = nodeMapRef.current.get(key)
-              return node?.item.type === backendModule.AssetType.file
+              return (
+                node?.item.type === backendModule.AssetType.project ||
+                node?.item.type === backendModule.AssetType.file ||
+                node?.item.type === backendModule.AssetType.dataLink
+              )
             })
         )
       }
     },
-    [isCloud, /* should never change */ setCanDownloadFiles]
+    [isCloud, /* should never change */ setCanDownload]
   )
 
   const clearSelectedKeys = React.useCallback(() => {
@@ -966,6 +963,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   asyncEffectHooks.useAsyncEffect(
     null,
     async signal => {
+      setSelectedKeys(new Set())
       switch (backend.type) {
         case backendModule.BackendType.local: {
           const newAssets = await backend.listDirectory(
@@ -1064,7 +1062,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [category, accessToken, user, backend]
+    [category, accessToken, user, backend, setSelectedKeys]
   )
 
   React.useEffect(() => {
@@ -1464,7 +1462,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     [rootDirectoryId]
   )
 
-  eventHooks.useEventHandler(assetListEvents, event => {
+  // This is not a React component, even though it contains JSX.
+  // eslint-disable-next-line no-restricted-syntax
+  const onAssetListEvent = (event: assetListEvent.AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
         const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
@@ -1756,6 +1756,15 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
     }
+  }
+  const onAssetListEventRef = React.useRef(onAssetListEvent)
+  onAssetListEventRef.current = onAssetListEvent
+  eventHooks.useEventHandler(assetListEvents, event => {
+    if (!isLoading) {
+      onAssetListEvent(event)
+    } else {
+      queuedAssetListEventsRef.current.push(event)
+    }
   })
 
   const doOpenManually = React.useCallback(
@@ -1999,6 +2008,13 @@ export default function AssetsTable(props: AssetsTableProps) {
         setSpinnerState(spinner.SpinnerState.loadingFast)
       })
     } else {
+      const queuedAssetEvents = queuedAssetListEventsRef.current
+      if (queuedAssetEvents.length !== 0) {
+        queuedAssetListEventsRef.current = []
+        for (const event of queuedAssetEvents) {
+          onAssetListEventRef.current(event)
+        }
+      }
       setSpinnerState(spinner.SpinnerState.initial)
     }
   }, [isLoading])
@@ -2203,7 +2219,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           columns={columns}
           item={item}
           state={state}
-          hidden={visibilities.get(item.key) === Visibility.hidden}
+          hidden={hideRows || visibilities.get(item.key) === Visibility.hidden}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
@@ -2442,6 +2458,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div ref={scrollContainerRef} className="flex-1 overflow-auto container-size">
+      {!hidden && hiddenContextMenu}
       {!hidden && (
         <SelectionBrush
           onDrag={onSelectionDrag}
@@ -2449,7 +2466,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="flex min-h-full w-min min-w-full flex-col">
+      <div className="w-max">
         {isCloud && (
           <div className="sticky top flex h flex-col">
             <div className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y">
@@ -2480,8 +2497,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             </div>
           </div>
         )}
-        {hiddenContextMenu}
-        {table}
+        <div className="flex h-full w-min min-w-full flex-col">{table}</div>
       </div>
     </div>
   )
