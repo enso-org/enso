@@ -30,7 +30,7 @@ export interface WidgetEditInteraction extends Interaction {
  * and filters entries by edited temporary value.
  *
  * Widget's edit state should be manipulated by `start`, `end` and `cancel` methods; they will set
- * proper interaction in the global {@link InteractionHandler} and calls the additional callbacks in
+ * proper interaction in the global {@link InteractionHandler} and call the additional callbacks in
  * {@link WidgetEditInteraction} passed during construction.
  *
  * The parent widget may pass its edit handler to one or more children's {@link WidgetInput} to
