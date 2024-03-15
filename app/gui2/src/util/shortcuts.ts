@@ -299,7 +299,8 @@ export const DefaultHandler = Symbol('default handler')
  * @param bindings is an object defining actions and their key bindings. Each property name is an
  * action name, and value is list of default key bindings. See "Keybinds should be parsed
  * correctly" test for examples of valid strings.
- * @returns an object with defined `handler` function and `bindings`, containing information about assigned bindings.
+ * @returns an object with defined `handler` function and `bindings`,
+ * containing information about assigned bindings.
  *
  * Example:
  *

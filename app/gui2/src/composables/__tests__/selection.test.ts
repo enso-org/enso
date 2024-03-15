@@ -25,8 +25,6 @@ const bindingRemove = selectionMouseBindings.bindings.remove
 const bindingToggle = selectionMouseBindings.bindings.toggle
 const bindingInvert = selectionMouseBindings.bindings.invert
 
-// TODO[ao]: Skipping test, as they often fail in CI
-// (for example https://github.com/enso-org/enso/actions/runs/8102076908/job/22163122663)
 test.each`
   click | binding           | expected
   ${1}  | ${bindingReplace} | ${[1]}
@@ -56,8 +54,6 @@ const areas: Record<string, Rect> = {
   all: Rect.FromBounds(0, 0, 30, 30),
 }
 
-// TODO[ao]: Skipping test, as they often fail in CI
-// (for example https://github.com/enso-org/enso/actions/runs/8102076908/job/22163122663)
 test.each`
   areaId      | binding           | expected
   ${'left'}   | ${bindingReplace} | ${[1, 3]}
