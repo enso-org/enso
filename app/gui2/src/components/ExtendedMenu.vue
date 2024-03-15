@@ -75,7 +75,7 @@ const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadabl
   top: 40px;
   margin-top: 6px;
   padding: 4px;
-  right: 0px;
+  right: 8px;
   border-radius: 12px;
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
