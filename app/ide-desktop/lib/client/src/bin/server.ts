@@ -83,10 +83,13 @@ async function findPort(port: number): Promise<number> {
  * Initially it was based on `union`, but later we migrated to `create-servers`.
  * Read this topic to learn why: https://github.com/http-party/http-server/issues/483 */
 export class Server {
+    projectsRootDirectory: string
     devServer?: vite.ViteDevServer
 
     /** Create a simple HTTP server. */
-    constructor(public config: Config) {}
+    constructor(public config: Config) {
+        this.projectsRootDirectory = path.join(os.homedir(), 'enso/projects')
+    }
 
     /** Server constructor. */
     static async create(config: Config): Promise<Server> {
@@ -157,6 +160,7 @@ export class Server {
      * `/api/run-project-manager-command?cli-arguments=<urlencoded-json>`. */
     process(request: http.IncomingMessage, response: http.ServerResponse) {
         const requestUrl = request.url
+        const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
         if (requestUrl == null) {
             logger.error('Request URL is null.')
         } else if (requestUrl.startsWith('/api/project-manager/')) {
@@ -193,7 +197,6 @@ export class Server {
                 { end: true }
             )
         } else if (request.method === 'POST') {
-            const requestPath = requestUrl.split('?')[0]?.split('#')[0]
             switch (requestPath) {
                 // This endpoint should only be used when accessing the app from the browser.
                 // When accessing the app from Electron, the file input event will have the
@@ -233,11 +236,7 @@ export class Server {
                     } else {
                         const commandOutput =
                             this.config.externalFunctions.runProjectManagerCommand(
-                                cliArguments.map(argument =>
-                                    argument.startsWith('~/')
-                                        ? path.join(os.homedir(), argument.slice(2))
-                                        : argument
-                                ),
+                                cliArguments,
                                 request
                             )
                         response.writeHead(HTTP_STATUS_OK, [
@@ -253,6 +252,14 @@ export class Server {
                     break
                 }
             }
+        } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
+            response
+                .writeHead(HTTP_STATUS_OK, [
+                    ['Content-Length', `${this.projectsRootDirectory.length}`],
+                    ['Content-Type', 'text/plain'],
+                    ...common.COOP_COEP_CORP_HEADERS,
+                ])
+                .end(this.projectsRootDirectory)
         } else if (this.devServer) {
             this.devServer.middlewares(request, response)
         } else {

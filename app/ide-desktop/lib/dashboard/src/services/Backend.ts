@@ -997,10 +997,10 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   const bModified = Number(new Date(b.modifiedAt))
   const modifiedDelta = aModified - bModified
   if (modifiedDelta !== 0) {
-    return modifiedDelta
-  } else {
-    return a.title > b.title ? 1 : a.title < b.title ? -1 : 0
+    // Sort by date descending, rather than ascending.
+    return -modifiedDelta
   }
+  return a.title > b.title ? 1 : a.title < b.title ? -1 : 0
 }
 
 // ==================

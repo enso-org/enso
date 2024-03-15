@@ -5,6 +5,8 @@
  * the API. */
 import * as detect from 'enso-common/src/detect'
 
+import * as appUtils from '#/appUtils'
+
 import Backend, * as backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
@@ -113,7 +115,7 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export default class LocalBackend extends Backend {
   static projects = new Map<projectManager.UUID, ProjectState>()
-  readonly defaultRootDirectory = projectManager.Path('~/enso/projects')
+  private static readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
   readonly type = backend.BackendType.local
   private readonly projectManager: ProjectManager
 
@@ -130,7 +132,7 @@ export default class LocalBackend extends Backend {
 
   /** Return the ID of the root directory. */
   override rootDirectoryId(): backend.DirectoryId {
-    return newDirectoryId(this.defaultRootDirectory)
+    return newDirectoryId(ProjectManager.rootDirectory)
   }
 
   /** Return a list of assets in a directory.
@@ -139,7 +141,7 @@ export default class LocalBackend extends Backend {
     query: backend.ListDirectoryRequestParams
   ): Promise<backend.AnyAsset[]> {
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
-    const parentId = query.parentId ?? newDirectoryId(this.defaultRootDirectory)
+    const parentId = query.parentId ?? newDirectoryId(ProjectManager.rootDirectory)
     const entries = await this.projectManager.listDirectory(parentIdRaw)
     return entries
       .map(entry => {
@@ -332,8 +334,8 @@ export default class LocalBackend extends Backend {
     title: string | null
   ): Promise<void> {
     const { id } = extractTypeAndId(projectId)
-    LocalBackend.projects.set(id, { state: backend.ProjectState.openInProgress })
     if (!LocalBackend.projects.has(id)) {
+      LocalBackend.projects.set(id, { state: backend.ProjectState.openInProgress })
       try {
         const data = await this.projectManager.openProject({
           projectId: id,
@@ -532,7 +534,7 @@ export default class LocalBackend extends Backend {
     body: backend.CreateDirectoryRequestBody
   ): Promise<backend.CreatedDirectory> {
     const parentDirectoryPath =
-      body.parentId == null ? this.defaultRootDirectory : extractTypeAndId(body.parentId).id
+      body.parentId == null ? ProjectManager.rootDirectory : extractTypeAndId(body.parentId).id
     const path = projectManager.joinPath(parentDirectoryPath, body.title)
     await this.projectManager.createDirectory(path)
     return {
@@ -567,7 +569,7 @@ export default class LocalBackend extends Backend {
   ): Promise<backend.FileInfo> {
     const parentPath =
       params.parentDirectoryId == null
-        ? this.defaultRootDirectory
+        ? ProjectManager.rootDirectory
         : extractTypeAndId(params.parentDirectoryId).id
     const path = projectManager.joinPath(parentPath, params.fileName)
     await this.projectManager.createFile(path, file)

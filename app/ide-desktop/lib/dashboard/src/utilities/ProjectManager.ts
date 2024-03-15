@@ -245,12 +245,13 @@ export enum ProjectManagerEvents {
  * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
 export default class ProjectManager {
   private static instance: ProjectManager
+  private static internalRootDirectory: Path | null
+  private static readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
   protected id = 0
   protected resolvers = new Map<number, (value: never) => void>()
   protected rejecters = new Map<number, (reason?: JSONRPCError) => void>()
   protected socketPromise: Promise<WebSocket>
   private readonly defaultRootDirectory = Path('~/enso/projects')
-  private readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
 
   /** Create a {@link ProjectManager} */
   private constructor(protected readonly connectionUrl: string) {
@@ -305,6 +306,24 @@ export default class ProjectManager {
       })
     }
     this.socketPromise = createSocket()
+  }
+
+  /** Return the root directory of the Project Manager. */
+  static get rootDirectory() {
+    if (this.internalRootDirectory == null) {
+      throw new Error(
+        'Please run `ProjectManager.loadRootDirectory()` before constructing a `ProjectManager`.'
+      )
+    } else {
+      return this.internalRootDirectory
+    }
+  }
+
+  /** Resolve the root directory. MUST be called before constructing a `LocalBackend`. */
+  static async loadRootDirectory() {
+    const response = await fetch(`${this.baseUrl}/api/root-directory`)
+    const text = await response.text()
+    this.internalRootDirectory = Path(text)
   }
 
   /** Lazy initialization for the singleton instance. */
@@ -429,7 +448,7 @@ export default class ProjectManager {
       'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
     }).toString()
     const response = await fetch(
-      `${this.baseUrl}/api/run-project-manager-command?${searchParams}`,
+      `${ProjectManager.baseUrl}/api/run-project-manager-command?${searchParams}`,
       {
         method: 'POST',
         body,
