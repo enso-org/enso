@@ -2994,8 +2994,8 @@ lazy val `std-snowflake` = project
     Compile / packageBin / artifactPath :=
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.snowflake"        % "snowflake-jdbc"          % "3.15.0"
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "net.snowflake"    % "snowflake-jdbc"          % "3.15.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
