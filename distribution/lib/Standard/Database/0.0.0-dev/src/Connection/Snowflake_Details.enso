@@ -14,7 +14,10 @@ type Snowflake_Details
        Arguments:
        - account: The account to connect to.
        - credentials: The credentials to use for the connection.
-    Snowflake account:Text credentials:Credentials database:Text="SNOWFLAKE" schema:Text="PUBLIC"
+       - database: The database to connect to.
+       - schema: The schema to connect to.
+       - warehouse: The warehouse to use.
+    Snowflake account:Text credentials:Credentials database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
 
     ## PRIVATE
        Build the Connection resource.
@@ -26,8 +29,8 @@ type Snowflake_Details
         properties = options.merge self.jdbc_properties
 
         ## Cannot use default argument values as gets in an infinite loop if you do.
-        make_new database schema =
-            Snowflake_Details.Snowflake self.account self.credentials (database.if_nothing self.database) (schema.if_nothing self.schema) . connect options
+        make_new database schema warehouse =
+            Snowflake_Details.Snowflake self.account self.credentials (database.if_nothing self.database) (schema.if_nothing self.schema) (warehouse.if_nothing self.warehouse) . connect options
 
         Snowflake_Connection.create self.jdbc_url properties make_new
 
@@ -45,4 +48,5 @@ type Snowflake_Details
         credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
         database = [Pair.new 'db' self.database]
         schema = [Pair.new 'schema' self.schema]
-        account + credentials + database + schema
+        warehouse = if self.warehouse=="" then [] else [Pair.new 'warehouse' self.warehouse]
+        account + credentials + database + schema + warehouse

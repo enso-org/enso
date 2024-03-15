@@ -68,6 +68,17 @@ type Snowflake_Connection
         vector = self.connection.read_single_column "SELECT current_warehouse() as name" "name"
         vector.first
 
+    ## ICON data_input
+       Returns a new Connection with the specified database set as default.
+
+       Arguments:
+        - database: The name of the database to connect to.
+    @warehouse (self-> Single_Choice display=Display.Always values=(self.warehouses . map d-> Option d d.pretty))
+    set_warehouse : Text -> Connection ! SQL_Error
+    set_warehouse self warehouse =
+        if warehouse == self.warehouse then self else
+            self.make_new Nothing Nothing warehouse
+
     ## ICON metadata
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
@@ -87,7 +98,7 @@ type Snowflake_Connection
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database == self.database then self else
-            self.make_new database Nothing
+            self.make_new database Nothing Nothing
 
     ## ICON metadata
        Returns the list of schemas for the connection within the current database (or catalog).
@@ -109,7 +120,7 @@ type Snowflake_Connection
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
         if schema == self.schema then self else
-            self.make_new Nothing schema
+            self.make_new Nothing schema Nothing
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
