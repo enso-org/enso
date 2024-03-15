@@ -1,6 +1,8 @@
-import { expect, test, type Page } from '@playwright/test'
+import { test, type Page } from '@playwright/test'
 import * as actions from './actions'
-import { edgesToNodeWithBinding, graphNodeByBinding } from './locate'
+import { expect } from './customExpect'
+import * as locate from './locate'
+import { edgesToNodeWithBinding, graphNodeByBinding, outputPortCoordinates } from './locate'
 
 /**
  * Prepare the graph for the tests. We drag the `ten` node to the right of the `sum` node for better access
@@ -52,4 +54,40 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
   await targetPort.click({ force: true, noWaitAfter: true })
 
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
+})
+
+test('Conditional ports', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  // Check that the `enabled` CSS class is appropriately set on `WidgetPort`s.
+  const node = graphNodeByBinding(page, 'filtered')
+  await expect(node.locator('.WidgetSelfIcon')).toBeVisible()
+  const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
+  await expect(conditionalPort).not.toHaveClass(/enabled/)
+  await page.keyboard.down('Meta')
+  await page.keyboard.down('Control')
+  await expect(conditionalPort).toHaveClass(/enabled/)
+  await page.keyboard.up('Meta')
+  await page.keyboard.up('Control')
+
+  // When a port is disabled, it doesn't react to hovering with a disconnected edge,
+  // and any attempt to connect to it should open the CB.
+  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'final'))
+  await page.mouse.click(outputPort.x, outputPort.y)
+  await conditionalPort.hover()
+  await expect(conditionalPort).not.toHaveClass(/isTarget/)
+  await conditionalPort.click()
+  await expect(locate.componentBrowser(page)).toExist()
+  await page.keyboard.press('Escape')
+
+  // Enable it and connect.
+  await page.mouse.click(outputPort.x, outputPort.y)
+  await conditionalPort.hover()
+  await page.keyboard.down('Meta')
+  await page.keyboard.down('Control')
+  await expect(conditionalPort).toHaveClass(/isTarget/)
+  await conditionalPort.click()
+  await page.keyboard.up('Meta')
+  await page.keyboard.up('Control')
+  await expect(node.locator('.WidgetToken')).toHaveText(['final'])
 })

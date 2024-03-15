@@ -109,28 +109,28 @@ const enabled = computed(() => {
   return !isConditional || keyboard.mod
 })
 
-function updateRect() {
-  let domNode = rootNode.value
+const computedRect = computed(() => {
+  const domNode = rootNode.value
   const rootDomNode = domNode?.closest('.GraphNode')
   if (domNode == null || rootDomNode == null) return
+  if (!enabled.value) return
+  let _nodeSizeEffect = nodeSize.value
+  const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
+  const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
+  const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
+  const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
+  return exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
+})
 
-  let newRect
-  if (enabled.value) {
-    let _nodeSizeEffect = nodeSize.value
-    const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
-    const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
-    const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
-    const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
-    newRect = exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
-    if (portRect.value != null && newRect.equals(portRect.value)) return
-  } else {
-    newRect = undefined
-  }
+function updateRect() {
+  const newRect = computedRect.value
+  if (portRect.value != null && newRect?.equals(portRect.value)) return
+  if (portRect.value == null && newRect == null) return
   portRect.value = newRect
   selection?.emitTargetablePortsChanged()
 }
 
-watchEffect(updateRect)
+watch(computedRect, updateRect)
 onUpdated(() => nextTick(updateRect))
 useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 </script>

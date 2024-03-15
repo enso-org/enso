@@ -23,7 +23,9 @@ export class Rect {
     return new Rect(center.addScaled(size, -0.5), size)
   }
 
-  static FromDomRect(domRect: DOMRect): Rect {
+  static FromDomRect(
+    domRect: Readonly<{ x: number; y: number; width: number; height: number }>,
+  ): Rect {
     return new Rect(Vec2.FromXY(domRect), Vec2.FromSize(domRect))
   }
 
