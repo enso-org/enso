@@ -13,9 +13,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
-import org.enso.compiler.pass.analyse.AliasAnalysis;
-import org.enso.compiler.pass.analyse.BindingAnalysis$;
-import org.enso.compiler.pass.analyse.JavaInteropHelpers;
+import org.enso.compiler.pass.analyse.*;
 import org.enso.compiler.pass.resolve.*;
 import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
@@ -513,7 +511,7 @@ public final class TypeInference implements IRPass {
     }
 
     @Override
-    protected Option<LinkInfo> findLocalLink(AliasAnalysis.Info.Occurrence occurrenceMetadata) {
+    protected Option<LinkInfo> findLocalLink(AliasAnalysisInfo.Occurrence occurrenceMetadata) {
       return occurrenceMetadata.graph()
           .defLinkFor(occurrenceMetadata.id())
           .map((link) -> new LinkInfo(occurrenceMetadata.graph(), link));
@@ -556,7 +554,7 @@ public final class TypeInference implements IRPass {
       return InferredType.create(new TypeRepresentation.UnresolvedSymbol(symbolName));
     }
 
-    private record LinkInfo(AliasAnalysis.Graph graph, AliasAnalysis.Graph.Link link) {
+    private record LinkInfo(AliasAnalysisGraph graph, AliasAnalysisGraph.Link link) {
     }
   }
 }
