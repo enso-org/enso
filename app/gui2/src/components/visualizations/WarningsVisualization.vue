@@ -1,5 +1,8 @@
 <script lang="ts">
 import { Pattern } from '@/util/ast/match'
+import { initializeFFI } from 'shared/ast/ffi'
+
+await initializeFFI()
 
 export const name = 'Warnings'
 export const icon = 'exclamation'
