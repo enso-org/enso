@@ -152,7 +152,7 @@ type Connection
          commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
     @types make_table_types_selector
-    @schema make_schema_selector
+    @schema (make_schema_selector include_any=True)
     tables : Text -> Text -> Text -> Vector Text | Text | Nothing -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.get_tables_advanced name_like=name_like database=database schema=schema types=types all_fields=all_fields include_hidden=False
@@ -452,10 +452,11 @@ make_table_types_selector connection =
     Single_Choice values=(connection.table_types.map t-> Option t t.pretty)
 
 ## PRIVATE
-make_schema_selector : Connection -> Widget
-make_schema_selector connection =
+make_schema_selector : Connection -> Boolean -> Widget
+make_schema_selector connection include_any:Boolean=False =
     schemas_without_nothing = connection.schemas.filter Filter_Condition.Not_Nothing
-    Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+[Option "any schema" "Nothing"]
+    any_entry = if include_any then [Option "any schema" "Nothing"] else []
+    Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+any_entry
 
 ## PRIVATE
 make_table_name_selector : Connection -> Widget

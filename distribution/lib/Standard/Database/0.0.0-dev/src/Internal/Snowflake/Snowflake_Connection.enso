@@ -62,6 +62,13 @@ type Snowflake_Connection
         self.connection.read_single_column "show warehouses" "name"
 
     ## ICON metadata
+       Returns the name of the current warehouse.
+    warehouse : Text
+    warehouse self =
+        vector = self.connection.read_single_column "SELECT current_warehouse() as name" "name"
+        vector.first
+
+    ## ICON metadata
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
     databases self = self.connection.databases
@@ -98,7 +105,7 @@ type Snowflake_Connection
 
        Arguments:
         - schema: The name of the schema to connect to.
-    @schema make_schema_selector
+    @schema (make_schema_selector include_any=True)
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
         if schema == self.schema then self else

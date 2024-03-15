@@ -123,7 +123,7 @@ type Postgres_Connection
          commonly used table types, ignoring internal system tables or indices.
        - all_fields: Return all the fields in the metadata table.
     @types make_table_types_selector
-    @schema make_schema_selector
+    @schema (make_schema_selector include_any=True)
     tables : Text -> Text -> Text -> Vector -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
         self.connection.tables name_like database schema types all_fields
