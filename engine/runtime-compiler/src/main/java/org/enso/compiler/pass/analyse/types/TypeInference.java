@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse.types;
 
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
-import org.enso.compiler.core.ConstantsNames;
+import org.enso.compiler.context.NameResolution;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.*;
@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
+import org.enso.compiler.pass.analyse.AliasAnalysis;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.analyse.JavaInteropHelpers;
 import org.enso.compiler.pass.resolve.*;
@@ -27,13 +28,17 @@ import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
 import scala.util.Right;
 
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
 import static org.enso.compiler.MetadataInteropHelpers.getOptionalMetadata;
 
 public final class TypeInference implements IRPass {
   public static final TypeInference INSTANCE = new TypeInference();
+  private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
   private UUID uuid;
 
   @Override
@@ -77,24 +82,24 @@ public final class TypeInference implements IRPass {
 
     BindingsMap bindingsMap = getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
     var mappedBindings = ir.bindings().map((def) -> switch (def) {
-        case Method.Explicit b -> {
-          var mapped = def.mapExpressions(
-              (expression) -> analyzeExpression(expression, ctx, LocalBindingsTyping.create(), bindingsMap)
-          );
+      case Method.Explicit b -> {
+        var mapped = def.mapExpressions(
+            (expression) -> analyzeExpression(expression, ctx, LocalBindingsTyping.create(), bindingsMap)
+        );
 
-          var inferredType = getInferredType(b.body());
-          if (inferredType != null) {
-            setInferredType(b, inferredType);
-          }
+        var inferredType = getInferredType(b.body());
+        if (inferredType != null) {
+          setInferredType(b, inferredType);
+        }
 
-          yield mapped;
-        }
-        case Definition.Type typ -> typ;
-        default -> {
-          logger.trace("UNEXPECTED definition {}", def.getClass().getCanonicalName());
-          yield def;
-        }
-      });
+        yield mapped;
+      }
+      case Definition.Type typ -> typ;
+      default -> {
+        logger.trace("UNEXPECTED definition {}", def.getClass().getCanonicalName());
+        yield def;
+      }
+    });
 
     return ir.copy(ir.imports(), ir.exports(), mappedBindings, ir.location(), ir.passData(), ir.diagnostics(), ir.id());
   }
@@ -254,49 +259,10 @@ public final class TypeInference implements IRPass {
   }
 
   private void processName(Name.Literal literalName, LocalBindingsTyping localBindingsTyping) {
-    // This should reproduce IrToTruffle::processName logic
-    var occurrenceMetadata = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(literalName);
-    Optional<BindingsMap.Resolution> global =
-        getOptionalMetadata(literalName, GlobalNames$.MODULE$, BindingsMap.Resolution.class);
-    var localLink = occurrenceMetadata.graph().defLinkFor(occurrenceMetadata.id());
-    if (localLink.isDefined() && global.isPresent()) {
-      logger.debug("processName: {} - BOTH DEFINED AND GLOBAL - WHAT TO DO HERE? {}", literalName.showCode(), occurrenceMetadata);
-    }
-
-    boolean isLocalReference = localLink.isDefined();
-    if (isLocalReference) {
-      int target = localLink.get().target();
-      TypeRepresentation type = localBindingsTyping.getBindingType(occurrenceMetadata.graph(), target);
-      if (type != null) {
-        setInferredType(literalName, new InferredType(type));
-      }
-    } else if (global.isPresent()) {
-      BindingsMap.ResolvedName resolution = global.get().target();
-      processGlobalName(literalName, resolution);
-    } else if (literalName.name().equals(ConstantsNames.FROM_MEMBER)) {
-      // TODO support from conversions
-    } else {
-      var type = new TypeRepresentation.UnresolvedSymbol(literalName.name());
-      setInferredType(literalName, new InferredType(type));
-    }
-  }
-
-  private void processGlobalName(Name.Literal literalName, BindingsMap.ResolvedName resolution) {
-    switch (resolution) {
-      case BindingsMap.ResolvedConstructor ctor -> {
-        // TODO check when do these appear?? I did not yet see them in the wild
-        var constructorFunctionType = buildAtomConstructorType(resolvedTypeAsTypeObject(ctor.tpe()), ctor.cons());
-        if (constructorFunctionType != null) {
-          setInferredType(literalName, new InferredType(constructorFunctionType));
-        }
-      }
-
-      case BindingsMap.ResolvedType tpe -> {
-        var type = resolvedTypeAsTypeObject(tpe);
-        setInferredType(literalName, new InferredType(type));
-      }
-      default ->
-          logger.trace("processGlobalName: {} - global scope reference to {} - currently global inference is unsupported", literalName.showCode(), resolution);
+    var resolver = new CompilerNameResolution(localBindingsTyping);
+    InferredType inferredType = resolver.resolveName(literalName);
+    if (inferredType != null) {
+      setInferredType(literalName, inferredType);
     }
   }
 
@@ -368,14 +334,15 @@ public final class TypeInference implements IRPass {
 
   private BindingsMap.Type findResolvedType(BindingsMap bindingsMap, QualifiedName typeName) {
     var resolved = switch (bindingsMap.resolveQualifiedName(typeName.fullPath())) {
-      case Right<BindingsMap.ResolutionError, BindingsMap.ResolvedName> right ->
-          right.value();
-      default -> throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type cannot be found in the bindings map.");
+      case Right<BindingsMap.ResolutionError, BindingsMap.ResolvedName> right -> right.value();
+      default ->
+          throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type cannot be found in the bindings map.");
     };
 
     return switch (resolved) {
       case BindingsMap.ResolvedType resolvedType -> resolvedType.tp();
-      default -> throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type is not a type, but " + resolved + ".");
+      default ->
+          throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type is not a type, but " + resolved + ".");
     };
   }
 
@@ -538,5 +505,58 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
+  private class CompilerNameResolution extends NameResolution<InferredType, CompilerNameResolution.LinkInfo> {
+    private final LocalBindingsTyping localBindingsTyping;
+
+    private CompilerNameResolution(LocalBindingsTyping localBindingsTyping) {
+      this.localBindingsTyping = localBindingsTyping;
+    }
+
+    @Override
+    protected Option<LinkInfo> findLocalLink(AliasAnalysis.Info.Occurrence occurrenceMetadata) {
+      return occurrenceMetadata.graph()
+          .defLinkFor(occurrenceMetadata.id())
+          .map((link) -> new LinkInfo(occurrenceMetadata.graph(), link));
+    }
+
+    @Override
+    protected InferredType resolveLocalName(LinkInfo localLink) {
+      TypeRepresentation type = localBindingsTyping.getBindingType(localLink.graph, localLink.link.target());
+      return InferredType.create(type);
+    }
+
+    @Override
+    protected InferredType resolveGlobalName(BindingsMap.ResolvedName resolvedName) {
+      return switch (resolvedName) {
+        case BindingsMap.ResolvedConstructor ctor -> {
+          // TODO check when do these appear?? I did not yet see them in the wild
+          TypeRepresentation constructorFunctionType = buildAtomConstructorType(resolvedTypeAsTypeObject(ctor.tpe()), ctor.cons());
+          yield InferredType.create(constructorFunctionType);
+        }
+
+        case BindingsMap.ResolvedType tpe ->
+            InferredType.create(resolvedTypeAsTypeObject(tpe));
+
+        default -> {
+          logger.trace("processGlobalName: global scope reference to {} - currently global inference is unsupported", resolvedName);
+          yield null;
+        }
+      };
+    }
+
+    @Override
+    protected InferredType resolveFromConversion() {
+      // TODO currently from conversions are not supported
+      //  we will probably create a sibling type to UnresolvedSymbol for that purpose
+      return null;
+    }
+
+    @Override
+    protected InferredType resolveUnresolvedSymbol(String symbolName) {
+      return InferredType.create(new TypeRepresentation.UnresolvedSymbol(symbolName));
+    }
+
+    private record LinkInfo(AliasAnalysis.Graph graph, AliasAnalysis.Graph.Link link) {
+    }
+  }
 }

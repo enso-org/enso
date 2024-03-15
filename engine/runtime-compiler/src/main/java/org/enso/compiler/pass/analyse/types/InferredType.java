@@ -31,4 +31,12 @@ public record InferredType(TypeRepresentation type) implements ProcessingPass.Me
   public Option<ProcessingPass.Metadata> duplicate() {
     return null;
   }
+
+  public static InferredType create(TypeRepresentation type) {
+    if (type == null) {
+      return null;
+    }
+
+    return new InferredType(type);
+  }
 }
