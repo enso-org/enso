@@ -71,7 +71,9 @@ class Tag {
   }
 
   isFilteredIn(): boolean {
-    if (editedTextLiteralValuePattern.value) {
+    // Here is important distinction between empty string meaning the pattern is an empty string
+    // literal "", and undefined meaning that there it's not a string literal.
+    if (editedTextLiteralValuePattern.value != null) {
       return (
         this.expressionAst instanceof Ast.TextLiteral &&
         this.expressionAst.rawTextContent.startsWith(editedTextLiteralValuePattern.value)
@@ -135,6 +137,8 @@ const tags = computed(() => {
   return [...customTags.value, ...standardTags]
 })
 const filteredTags = computed(() => {
+  console.log(editedValuePattern.value)
+  console.log(editedTextLiteralValuePattern.value)
   return Array.from(tags.value, (tag, index) => ({
     tag,
     index,

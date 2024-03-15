@@ -145,6 +145,9 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
   await page.keyboard.insertText('File 1')
   await dropDown.expectVisibleWithOptions(page, ['File 1'])
+  // Clearing input should show all text literal options
+  await pathArgInput.clear()
+  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
 
   // Esc should cancel editing and close drop down
   await page.keyboard.press('Escape')
