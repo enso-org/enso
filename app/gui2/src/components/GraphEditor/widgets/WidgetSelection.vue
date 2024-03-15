@@ -33,14 +33,6 @@ const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 const editedValue = ref<Ast.Ast | string | undefined>()
 const isHovered = ref(false)
 
-// interface Tag {
-//   /** If not set, the label is same as expression */
-//   label?: string
-//   expression: string
-//   requiredImports?: RequiredImport[]
-//   parameters?: ArgumentWidgetConfiguration[]
-// }
-
 class Tag {
   private cachedExpressionAst: Ast.Ast | undefined
 

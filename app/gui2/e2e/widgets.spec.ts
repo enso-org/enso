@@ -120,6 +120,16 @@ test('Selection widgets in Data.read node', async ({ page }) => {
 })
 
 test('Selection widget with text widget as input', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockMethodCallInfo(page, 'data', {
+    methodPointer: {
+      module: 'Standard.Base.Data',
+      definedOnType: 'Standard.Base.Data',
+      name: 'read',
+    },
+    notAppliedArguments: [0, 1, 2],
+  })
+
   const dropDown = new DropDownLocator(page)
   const node = locate.graphNodeByBinding(page, 'data')
   const argumentNames = node.locator('.WidgetArgumentName')
@@ -132,7 +142,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
 
   // Editing text input shows and filters drop down
   await pathArgInput.click()
-  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
   await page.keyboard.insertText('File 1')
   await dropDown.expectVisibleWithOptions(page, ['File 1'])
 
@@ -144,7 +154,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
 
   // Choosing entry should finish editing
   await pathArgInput.click()
-  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
   await page.keyboard.insertText('File')
   await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
   await dropDown.clickOption(page, 'File 1')
@@ -154,7 +164,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
 
   // Clicking-off and pressing enter should accept text as-is
   await pathArgInput.click()
-  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
   await page.keyboard.insertText('File')
   await page.keyboard.press('Enter')
   await expect(pathArgInput).not.toBeFocused()
@@ -162,7 +172,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await expect(dropDown.dropDown).not.toBeVisible()
 
   await pathArgInput.click()
-  await dropDown.expectVisibleWithOptions(page, ['File 1', 'File 2'])
+  await dropDown.expectVisibleWithOptions(page, ['Choose file…', 'File 1', 'File 2'])
   await page.keyboard.insertText('Foo')
   await expect(pathArgInput).toHaveValue('Foo')
   await page.mouse.click(200, 200)
