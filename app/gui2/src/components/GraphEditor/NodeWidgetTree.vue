@@ -15,6 +15,7 @@ const props = defineProps<{
   icon: Icon
   connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
+  /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
   extended: boolean
 }>()
