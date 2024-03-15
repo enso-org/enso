@@ -185,7 +185,7 @@ const innerWidgetInput = computed<WidgetInput>(() => {
   const dynamicConfig =
     props.input.dynamicConfig?.kind === 'Single_Choice' ?
       singleChoiceConfiguration(props.input.dynamicConfig)
-    : undefined
+    : props.input.dynamicConfig
   return {
     ...props.input,
     editHandler: dropDownInteraction,

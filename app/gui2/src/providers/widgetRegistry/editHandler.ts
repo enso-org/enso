@@ -10,7 +10,7 @@ import type { Ast } from '@/util/ast'
 
 /** An extend {@link Interaction} used in {@link WidgetEditHandler} */
 export interface WidgetEditInteraction extends Interaction {
-  /** Click handler from {@link Interaction}, but received child click handler. See
+  /** Click handler from {@link Interaction}, but receives child's click handler. See
    * {@link WidgetEditHandler} for details */
   click?(
     event: PointerEvent,
@@ -54,7 +54,7 @@ export interface WidgetEditInteraction extends Interaction {
 export class WidgetEditHandler {
   private interaction: WidgetEditInteraction
   /** This, or one's child interaction which is currently active */
-  private currentInteraction: WidgetEditInteraction | undefined
+  private activeInteraction: WidgetEditInteraction | undefined
 
   constructor(
     private portId: PortId,
@@ -64,7 +64,7 @@ export class WidgetEditHandler {
   ) {
     this.interaction = {
       cancel: () => {
-        this.currentInteraction = undefined
+        this.activeInteraction = undefined
         innerInteraction.cancel?.()
         parent?.interaction.cancel?.()
       },
@@ -87,7 +87,7 @@ export class WidgetEditHandler {
         parent?.interaction.edit?.(portId, value)
       },
       end: (portId) => {
-        this.currentInteraction = undefined
+        this.activeInteraction = undefined
         innerInteraction.end?.(portId)
         parent?.interaction.end?.(portId)
       },
@@ -99,8 +99,8 @@ export class WidgetEditHandler {
   }
 
   cancel() {
-    if (this.currentInteraction) {
-      this.interactionHandler.cancel(this.currentInteraction)
+    if (this.activeInteraction) {
+      this.interactionHandler.cancel(this.activeInteraction)
     }
   }
 
@@ -111,7 +111,7 @@ export class WidgetEditHandler {
       handler != null;
       handler = handler.parent
     ) {
-      handler.currentInteraction = this.interaction
+      handler.activeInteraction = this.interaction
     }
     this.interaction.start?.(this.portId)
   }
@@ -121,15 +121,13 @@ export class WidgetEditHandler {
   }
 
   end() {
-    if (this.currentInteraction) {
-      this.interactionHandler.end(this.currentInteraction)
-      this.currentInteraction.end?.(this.portId)
+    if (this.activeInteraction) {
+      this.interactionHandler.end(this.activeInteraction)
+      this.activeInteraction.end?.(this.portId)
     }
   }
 
   isActive() {
-    return this.currentInteraction ?
-        this.interactionHandler.isActive(this.currentInteraction)
-      : false
+    return this.activeInteraction ? this.interactionHandler.isActive(this.activeInteraction) : false
   }
 }
