@@ -25,10 +25,12 @@ import scala.collection.immutable.Seq;
 import scala.collection.immutable.Seq$;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.CollectionConverters$;
-import scala.util.Either;
 import scala.util.Right;
 
 import java.util.*;
+
+import static org.enso.compiler.MetadataInteropHelpers.getMetadata;
+import static org.enso.compiler.MetadataInteropHelpers.getOptionalMetadata;
 
 public final class TypeInference implements IRPass {
   public static final TypeInference INSTANCE = new TypeInference();
@@ -534,29 +536,6 @@ public final class TypeInference implements IRPass {
     if (compatibility == TypeCompatibility.NEVER_COMPATIBLE) {
       relatedIr.diagnostics().add(new Warning.TypeMismatch(relatedIr.location(), expected.toString(), provided.toString()));
     }
-  }
-
-  private <T> Optional<T> getOptionalMetadata(IR ir, IRPass pass, Class<T> expectedType) {
-    Option<ProcessingPass.Metadata> option = ir.passData().get(pass);
-    if (option.isDefined()) {
-      try {
-        return Optional.of(expectedType.cast(option.get()));
-      } catch (ClassCastException exception) {
-        throw new IllegalStateException("Unexpected metadata type " + option.get().getClass().getCanonicalName() + " " +
-            "for " + pass, exception);
-      }
-    } else {
-      return Optional.empty();
-    }
-  }
-
-  private <T> T getMetadata(IR ir, IRPass pass, Class<T> expectedType) {
-    Optional<T> optional = getOptionalMetadata(ir, pass, expectedType);
-    if (optional.isEmpty()) {
-      throw new IllegalStateException("Missing expected " + pass + " metadata for " + ir + ".");
-    }
-
-    return optional.get();
   }
 
   private static final Logger logger = LoggerFactory.getLogger(TypeInference.class);
