@@ -5,6 +5,7 @@ import { initializeFFI } from 'shared/ast/ffi'
 import { unwrap } from 'shared/util/data/result'
 import { describe, expect, test } from 'vitest'
 import { MutableModule, substituteQualifiedName, type Identifier } from '../abstract'
+import { primaryApplicationSubject } from '../node'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
@@ -897,4 +898,34 @@ test('Adding comments', () => {
   expr.module.replaceRoot(expr)
   expr.update((expr) => Ast.Documented.new('Calculate five', expr))
   expect(expr.module.root()?.code()).toBe('## Calculate five\n2 + 2')
+})
+
+test.each([
+  { code: 'operator1', expected: { subject: 'operator1', accesses: [] } },
+  { code: 'operator1 foo bar', expected: { subject: 'operator1 foo bar', accesses: [] } },
+  { code: 'operator1.parse_json', expected: { subject: 'operator1', accesses: ['parse_json'] } },
+  {
+    code: 'operator1.parse_json operator2.to_json',
+    expected: { subject: 'operator1.parse_json operator2.to_json', accesses: [] },
+  },
+  {
+    code: 'operator1.parse_json foo bar',
+    expected: { subject: 'operator1.parse_json foo bar', accesses: [] },
+  },
+  {
+    code: 'operator1.parse_json.length',
+    expected: { subject: 'operator1', accesses: ['parse_json', 'length'] },
+  },
+  {
+    code: 'operator1.parse_json.length foo bar',
+    expected: { subject: 'operator1.parse_json.length foo bar', accesses: [] },
+  },
+  { code: 'operator1 + operator2', expected: { subject: 'operator1 + operator2', accesses: [] } },
+])('Access chain in $code', ({ code, expected }) => {
+  const ast = Ast.parse(code)
+  const { subject, accessChain } = Ast.accessChain(ast)
+  expect({
+    subject: subject.code(),
+    accesses: accessChain.map((ast) => ast.rhs.code()),
+  }).toEqual(expected)
 })

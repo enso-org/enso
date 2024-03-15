@@ -56,7 +56,6 @@ const editingEdge: Interaction = {
       }
       graph.clearUnconnected()
     })
-    event.stopPropagation()
     return true
   },
 }

@@ -34,6 +34,10 @@ test.each([
   { code: 'operator1 foo bar', expected: undefined },
   { code: 'operator1.parse_json', expected: { subject: 'operator1', accesses: ['parse_json'] } },
   {
+    code: 'operator1.parse_json operator2.to_json',
+    expected: { subject: 'operator1', accesses: ['parse_json'] },
+  },
+  {
     code: 'operator1.parse_json foo bar',
     expected: { subject: 'operator1', accesses: ['parse_json'] },
   },

@@ -500,6 +500,7 @@ export interface NodeDataFromAst {
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
   documentation: string | undefined
+  /** Ports that are not targetable by default; they can be targeted while holding the modifier key. */
   conditionalPorts: Set<Ast.AstId>
 }
 

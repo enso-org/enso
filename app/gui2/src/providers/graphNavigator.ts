@@ -5,8 +5,4 @@ import type { Ref } from 'vue'
 
 export type GraphNavigator = ReturnType<typeof injectFn>
 export { injectFn as injectGraphNavigator, provideFn as provideGraphNavigator }
-const { provideFn, injectFn } = createContextStore(
-  'graph navigator',
-  (viewportNode: Ref<Element | undefined>, keyboard: KeyboardComposable) =>
-    useNavigator(viewportNode, keyboard),
-)
+const { provideFn, injectFn } = createContextStore('graph navigator', useNavigator)
