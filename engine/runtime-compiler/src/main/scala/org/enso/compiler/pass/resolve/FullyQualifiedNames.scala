@@ -1,7 +1,12 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.PackageRepository
-import org.enso.compiler.context.{CompilerContext, FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{
+  CompilerContext,
+  FreshNameSupply,
+  InlineContext,
+  ModuleContext
+}
 import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
@@ -10,12 +15,21 @@ import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{ExportedModule, ModuleReference, Resolution, ResolvedType}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ModuleReference,
+  Resolution,
+  ResolvedType
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, AliasAnalysisInfo, BindingAnalysis}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  AliasAnalysisInfo,
+  BindingAnalysis
+}
 import org.enso.compiler.pass.desugar.Imports
 import org.enso.editions.LibraryName
 

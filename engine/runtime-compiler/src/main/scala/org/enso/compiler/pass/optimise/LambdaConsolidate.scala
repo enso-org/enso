@@ -3,11 +3,27 @@ package org.enso.compiler.pass.optimise
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{CompilerError, IR, Identifier}
-import org.enso.compiler.core.ir.{DefinitionArgument, Empty, Expression, Function, IdentifiedLocation, Location, Module, Name}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Empty,
+  Expression,
+  Function,
+  IdentifiedLocation,
+  Location,
+  Module,
+  Name
+}
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, AliasAnalysisGraph, AliasAnalysisInfo, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  AliasAnalysisGraph,
+  AliasAnalysisInfo,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
 

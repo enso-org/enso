@@ -9,24 +9,72 @@ import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.ir.{CallArgument, DefinitionArgument, Empty, Expression, Function, IdentifiedLocation, Literal, Module, Name, Pattern, `type`, Type => Tpe}
+import org.enso.compiler.core.ir.{
+  CallArgument,
+  DefinitionArgument,
+  Empty,
+  Expression,
+  Function,
+  IdentifiedLocation,
+  Literal,
+  Module,
+  Name,
+  Pattern,
+  `type`,
+  Type => Tpe
+}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.core.ir.module.scope.imports
 import org.enso.compiler.core.ir.Name.Special
-import org.enso.compiler.core.ir.expression.{Application, Case, Comment, Error, Foreign, Operator, Section, errors}
-import org.enso.compiler.data.BindingsMap.{ExportedModule, ResolvedConstructor, ResolvedModule}
+import org.enso.compiler.core.ir.expression.{
+  errors,
+  Application,
+  Case,
+  Comment,
+  Error,
+  Foreign,
+  Operator,
+  Section
+}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ResolvedConstructor,
+  ResolvedModule
+}
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.AliasAnalysisGraph.{Scope => AliasScope}
-import org.enso.compiler.pass.analyse.{AliasAnalysis, AliasAnalysisGraph, AliasAnalysisInfo, BindingAnalysis, DataflowAnalysis, TailCall}
-import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GenericAnnotations, GlobalNames, MethodDefinitions, Patterns, TypeNames, TypeSignatures}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  AliasAnalysisGraph,
+  AliasAnalysisInfo,
+  BindingAnalysis,
+  DataflowAnalysis,
+  TailCall
+}
+import org.enso.compiler.pass.resolve.{
+  ExpressionAnnotations,
+  GenericAnnotations,
+  GlobalNames,
+  MethodDefinitions,
+  Patterns,
+  TypeNames,
+  TypeSignatures
+}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode
-import org.enso.interpreter.node.callable.function.{BlockNode, CreateFunctionNode}
+import org.enso.interpreter.node.callable.function.{
+  BlockNode,
+  CreateFunctionNode
+}
 import org.enso.interpreter.node.callable.thunk.{CreateThunkNode, ForceNode}
-import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode, SequenceLiteralNode}
+import org.enso.interpreter.node.callable.{
+  ApplicationNode,
+  InvokeCallableNode,
+  SequenceLiteralNode
+}
 import org.enso.interpreter.node.controlflow.caseexpr._
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
@@ -34,13 +82,27 @@ import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
-import org.enso.interpreter.node.{BaseNode, ClosureRootNode, ConstantNode, MethodRootNode, ExpressionNode => RuntimeExpression}
+import org.enso.interpreter.node.{
+  BaseNode,
+  ClosureRootNode,
+  ConstantNode,
+  MethodRootNode,
+  ExpressionNode => RuntimeExpression
+}
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.callable
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
 import org.enso.interpreter.runtime.data.atom.{Atom, AtomConstructor}
-import org.enso.interpreter.runtime.callable.function.{FunctionSchema, Function => RuntimeFunction}
-import org.enso.interpreter.runtime.callable.{UnresolvedConstructor, UnresolvedConversion, UnresolvedSymbol, Annotation => RuntimeAnnotation}
+import org.enso.interpreter.runtime.callable.function.{
+  FunctionSchema,
+  Function => RuntimeFunction
+}
+import org.enso.interpreter.runtime.callable.{
+  UnresolvedConstructor,
+  UnresolvedConversion,
+  UnresolvedSymbol,
+  Annotation => RuntimeAnnotation
+}
 import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.scope.ModuleScope

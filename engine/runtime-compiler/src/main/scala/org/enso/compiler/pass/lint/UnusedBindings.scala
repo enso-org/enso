@@ -2,8 +2,17 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
-import org.enso.compiler.core.ir.{DefinitionArgument, Expression, Function, Literal, Module, Name, Pattern, Warning}
-import org.enso.compiler.core.ir.expression.{Case, Foreign, errors, warnings}
+import org.enso.compiler.core.ir.{
+  DefinitionArgument,
+  Expression,
+  Function,
+  Literal,
+  Module,
+  Name,
+  Pattern,
+  Warning
+}
+import org.enso.compiler.core.ir.expression.{errors, warnings, Case, Foreign}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, AliasAnalysisInfo}
