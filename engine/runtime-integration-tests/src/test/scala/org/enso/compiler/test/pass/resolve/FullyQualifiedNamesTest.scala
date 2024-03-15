@@ -1,6 +1,8 @@
 package org.enso.compiler.test.pass.resolve
 
+import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Module
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.resolve.FullyQualifiedNames
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.EnsoContext
@@ -9,6 +11,8 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, MethodNames}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+
+import scala.collection.mutable.ListBuffer
 
 class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
   private val ctx = new InterpreterContext()
@@ -45,6 +49,28 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
           case None => None
         }
       })
+  }
+
+  /**
+   * Collect all the BindingsMap Resolutions from the whole IR, no matter from which
+   * IR metadata pass they originate.
+   * @return
+   */
+  private def collectResolutions(
+    ir: Module
+  ): List[(IR, BindingsMap.Resolution)] = {
+    val buffer = ListBuffer[(IR, BindingsMap.Resolution)]()
+    ir.preorder()
+      .foreach(exp => {
+        exp.passData.map ( (_, value) => {
+          value match {
+            case resolution: BindingsMap.Resolution =>
+              buffer.addOne((exp, resolution))
+            case _ => ()
+          }
+        })
+      })
+    buffer.toList
   }
 
   "Fully qualified names" should {
@@ -88,6 +114,13 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
           |    Test.Fully_Qualified_Names.A_Type
           |""".stripMargin.preprocessModule
       val metadata = collectMetadata(ir)
+      val resolutions = collectResolutions(ir)
+      val resolutionNames = resolutions.map(_._2.target.qualifiedName)
+      resolutionNames.size shouldBe 2
+      resolutionNames should contain theSameElementsAs Seq(
+        QualifiedName(List("Test", "Fully_Qualified_Names"), "Main"),
+        QualifiedName(List("Test", "Fully_Qualified_Names", "Synthetic_Mod", "A_Mod"), "A_Type")
+      )
       metadata.size shouldBe 1
       metadata.head.target
         .asInstanceOf[FullyQualifiedNames.ResolvedModule]
@@ -119,13 +152,21 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
           |main =
           |    Test.Fully_Qualified_Names.Synthetic_Mod.A_Mod.A_Type
           |""".stripMargin.preprocessModule
-      val metadata = collectMetadata(ir)
-      metadata.size shouldBe 1
-      metadata.head.target
+      val fqnMetadata = collectMetadata(ir)
+      fqnMetadata.size shouldBe 1
+      fqnMetadata.head.target
         .asInstanceOf[FullyQualifiedNames.ResolvedModule]
         .moduleRef
         .getName shouldBe (
         QualifiedName(List("Test", "Fully_Qualified_Names"), "Main")
+      )
+
+      val resolutions = collectResolutions(ir)
+      val resolutionNames = resolutions.map(_._2.target.qualifiedName)
+      resolutionNames.size shouldBe 2
+      resolutionNames should contain theSameElementsAs Seq(
+        QualifiedName(List("Test", "Fully_Qualified_Names"), "Main"),
+        QualifiedName(List("Test", "Fully_Qualified_Names", "Synthetic_Mod", "A_Mod"), "A_Type")
       )
     }
 
