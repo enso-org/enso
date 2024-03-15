@@ -65,6 +65,24 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   return true
 }
 
+/**
+ * We have two goals for our DOM/CSS that are somewhat in conflict:
+ * - We position widget dialogs drawn outside the widget, like dropdowns, relative to their parents. If we teleported
+ *   them, we'd have to maintain their positions through JS; the focus hierarchy would also be affected.
+ * - We animate showing/hiding conditionally-visible placeholder arguments; the implementation of this animation
+ *   requires the use of `overflow-x: clip` for the placeholder argument. There doesn't seem to be any good alternative
+ *   to clipping in order to achieve a suitable style of animation with CSS.
+ * Because clipping is absolute (there is no way for an element to draw outside its clipped ancestor), it is hard to
+ * reconcile with dropdowns.
+ *
+ * However, we can have our cake and eat it to--as long as we don't need both at once. The solution implemented here is
+ * for the widget tree to provide an interface for a widget to signal that it is in a state requiring drawing outside
+ * the node, and for widgets implementing clipping-based animations to mark them with a CSS class.
+ *
+ * This is not a perfect solution; it's possible for the user to cause a dropdown to be displayed before the
+ * showing-placeholders animation finishes. In that case the animation will run without clipping, which looks a little
+ * off. However, it allows us to use the DOM/CSS both for positioning the dropdown and animating the placeholders.
+ */
 const deepDisableClipping = ref(false)
 
 const layoutTransitions = useTransitioning(observedLayoutTransitions)
