@@ -132,7 +132,7 @@ public final class UnresolvedSymbol implements EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind("$node") Node node, @Cached("1") int ignore) {
     var ctx = EnsoContext.get(node);
     return ctx.getBuiltins().function();
   }
