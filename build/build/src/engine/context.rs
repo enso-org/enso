@@ -420,52 +420,28 @@ impl RunContext {
 
         // === Run benchmarks ===
         debug!("Running benchmarks.");
-        if crate::ci::big_memory_machine() {
-            let mut tasks = vec![];
-            // This just compiles benchmarks, not run them. At least we'll know that they can be
-            // run. Actually running them, as part of this routine, would be too heavy.
-            // TODO [mwu] It should be possible to run them through context config option.
-            if self.config.build_benchmarks {
-                tasks.extend([
-                    "runtime-benchmarks/compile",
-                    "language-server/Benchmark/compile",
-                    "searcher/Benchmark/compile",
-                    "std-benchmarks/Benchmark/compile",
-                ]);
-            }
-
-            let build_command = (!tasks.is_empty()).then_some(Sbt::concurrent_tasks(tasks));
-
-            // We want benchmarks to run only after the other build tasks are done, as they are
-            // really CPU-heavy.
-            let benchmark_tasks = self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
-            let command_sequence = build_command.as_deref().into_iter().chain(benchmark_tasks);
-            let final_command = Sbt::sequential_tasks(command_sequence);
-            if !final_command.is_empty() {
-                sbt.call_arg(final_command).await?;
+        let build_benchmark_task = if self.config.build_benchmarks {
+            let build_benchmark_task_names = [
+                "runtime-benchmarks/compile",
+                "language-server/Benchmark/compile",
+                "searcher/Benchmark/compile",
+                "std-benchmarks/Benchmark/compile",
+            ];
+            if crate::ci::big_memory_machine() {
+                Some(Sbt::concurrent_tasks(build_benchmark_task_names))
             } else {
-                debug!("No SBT tasks to run.");
+                Some(Sbt::sequential_tasks(build_benchmark_task_names))
             }
         } else {
-            if self.config.build_benchmarks {
-                // Check Runtime Benchmark Compilation
-                sbt.call_arg("runtime-benchmarks/compile").await?;
-
-                // Check Language Server Benchmark Compilation
-                sbt.call_arg("language-server/Benchmark/compile").await?;
-
-                // Check Searcher Benchmark Compilation
-                sbt.call_arg("searcher/Benchmark/compile").await?;
-
-                // Check Enso JMH benchmark compilation
-                sbt.call_arg("std-benchmarks/Benchmark/compile").await?;
-            }
-
-            for benchmark in &self.config.execute_benchmarks {
-                if let Some(task) = benchmark.sbt_task() {
-                    sbt.call_arg(task).await?;
-                }
-            }
+            None
+        };
+        let execute_benchmark_tasks = self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
+        let build_and_execute_benchmark_task = build_benchmark_task.as_deref().into_iter().chain(execute_benchmark_tasks);
+        let benchmark_command = Sbt::sequential_tasks(build_and_execute_benchmark_task);
+        if !benchmark_command.is_empty() {
+            sbt.call_arg(benchmark_command).await?;
+        } else {
+            debug!("No SBT tasks to run.");
         }
 
         if self.config.execute_benchmarks.contains(&Benchmarks::Enso) {
@@ -474,10 +450,10 @@ impl RunContext {
             enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
         }
 
-        // If we were running any benchmarks, they are complete by now. Upload the report.
         if is_in_env() {
             self.upload_native_image_arg_files().await?;
 
+            // If we were running any benchmarks, they are complete by now. Upload the report.
             for bench in &self.config.execute_benchmarks {
                 match bench {
                     Benchmarks::Runtime => {
