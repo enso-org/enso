@@ -41,6 +41,8 @@
     "esbuild": "^0.19.3",
     "fast-glob": "^3.2.12",
     "portfinder": "^1.0.32",
+    "sharp": "^0.31.2",
+    "to-ico": "^1.1.5",
     "tsx": "^4.7.1"
   },
   "optionalDependencies": {
