@@ -205,12 +205,9 @@ case object MethodDefinitions extends IRPass {
             typePointer.updateMetadata(
               new MetadataPair(this, BindingsMap.Resolution(value))
             )
-          case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
-            errors.Resolution(
-              typePointer,
-              errors.Resolution.UnexpectedPolyglot(
-                "a method definition target"
-              )
+          case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
+            typePointer.updateMetadata(
+              new MetadataPair(this, BindingsMap.Resolution(value))
             )
           case Right(_: BindingsMap.ResolvedPolyglotField) =>
             errors.Resolution(

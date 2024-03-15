@@ -1,0 +1,6 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base_test_helpers.IntHolder
+
+IntHolder.negative n:Integer = IntHolder.new -n
+IntHolder.value_minus self v:Integer = self.value-v

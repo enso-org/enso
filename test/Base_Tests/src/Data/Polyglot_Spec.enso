@@ -1,7 +1,8 @@
 from Standard.Base import all
-
+import Standard.Base.Errors.Common.Type_Error
 from Standard.Test import all
 
+from project.Data.Polyglot_Extensions import all
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Integer as Java_Integer
@@ -42,6 +43,34 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
         hold.value . should_equal 42
         hold.boxed . should_equal 42
 
+    group_builder.specify "extension method on IntHolder" <|
+        hold = IntHolder.new (6 * 7)
+        v = hold.value_plus 3
+        v . should_equal 45
+
+    group_builder.specify "extension method on IntHolder (static syntax)" <|
+        hold = IntHolder.new (6 * 7)
+        v = IntHolder.value_plus hold 3
+        v . should_equal 45
+
+    group_builder.specify "extension method (static syntax) checks self type" <|
+        Test.expect_panic Type_Error (IntHolder.value_plus 10 12)
+
+    group_builder.specify "static extension method on IntHolder" <|
+        hold = IntHolder.create (6 * 7)
+        hold.value . should_equal 42
+        hold.boxed . should_equal 42
+
+    group_builder.specify "imported static extension method on IntHolder" <|
+        hold = IntHolder.negative (6 * -7)
+        hold.value . should_equal 42
+        hold.boxed . should_equal 42
+
+    group_builder.specify "imported extension method on IntHolder" <|
+        hold = IntHolder.new (6 * 7)
+        v = hold.value_minus 3
+        v . should_equal 39
+
     group_builder.specify "should be able to execute a polyglot function object along with corresponding arguments" <|
         fun = Java_Function.identity
         Polyglot.execute fun ["42"] . should_equal "42"
@@ -49,6 +78,12 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
 
 foreign js js_meaning = """
     return { meaning : 6 * 7 };
+
+IntHolder.value_plus self add =
+    v1=self.value
+    v1+add
+
+IntHolder.create n:Integer = IntHolder.new n
 
 main filter=Nothing =
     suite = Test.build suite_builder->

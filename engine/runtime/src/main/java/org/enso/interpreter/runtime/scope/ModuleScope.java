@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -200,6 +202,60 @@ public final class ModuleScope implements EnsoObject {
     polyglotSymbols.put(name, sym);
   }
 
+  private final Map<String, Map<String, Supplier<Function>>> polyMethods = new HashMap<>();
+
+  public void registerPolyglotMethod(
+      Object metaObject, String name, boolean instance, Supplier<Function> fn) {
+    String meta = metaKey(metaObject);
+    var m = polyMethods.get(meta);
+    if (m == null) {
+      m = new HashMap<>();
+      polyMethods.put(meta, m);
+    }
+    m.put(name, new CachingSupplier<>(fn));
+  }
+
+  private static String metaKey(Object metaObject) {
+    try {
+      return InteropLibrary.getUncached()
+          .asString(InteropLibrary.getUncached(metaObject).getMetaQualifiedName(metaObject));
+    } catch (UnsupportedMessageException ex) {
+      return null;
+    }
+  }
+
+  public Function getMethodForPolyglot(Object obj, String name, boolean useStatic) {
+    return getMethodForPolyglot(obj, name, useStatic, true);
+  }
+
+  private Function getMethodForPolyglot(
+      Object obj, String name, boolean useStatic, boolean checkImports) {
+    try {
+      Map<String, Supplier<Function>> m;
+      if (useStatic) {
+        m = polyMethods.get(metaKey(obj));
+      } else {
+        var metaObject = InteropLibrary.getUncached(obj).getMetaObject(obj);
+        m = polyMethods.get(metaKey(metaObject));
+      }
+      var f = m == null ? null : m.get(name);
+      if (f != null) {
+        return f.get();
+      }
+    } catch (UnsupportedMessageException ex) {
+    }
+
+    if (checkImports) {
+      for (var scope : imports) {
+        var f = scope.getMethodForPolyglot(obj, name, useStatic, false);
+        if (f != null) {
+          return f;
+        }
+      }
+    }
+    return null;
+  }
+
   /**
    * Looks up the definition for a given type and method name.
    *
@@ -308,7 +364,8 @@ public final class ModuleScope implements EnsoObject {
   }
 
   /**
-   * @return a method for the given type
+   * @ret
+   * @param tpeurn a method for the given type
    */
   public Function getMethodForType(Type tpe, String name) {
     Type tpeKey = tpe == null ? noTypeKey : tpe;

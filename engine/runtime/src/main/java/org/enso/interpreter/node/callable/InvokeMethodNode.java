@@ -836,6 +836,62 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!warnings.hasWarnings(self)",
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == EXTENSION_METHOD"
+      })
+  Object doExtensionMethod(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode resolverNode) {
+    var ctx = EnsoContext.get(this);
+    if (symbol.getScope().getMethodForPolyglot(self, symbol.getName(), false)
+        instanceof Function function) {
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } else {
+      if (symbol.getScope().getMethodForPolyglot(self, symbol.getName(), true)
+          instanceof Function function) {
+        if (function.getSchema().getArgumentsCount() == arguments.length - 1
+            && "self".equals(function.getSchema().getArgumentInfos()[0].getName())) {
+          var ok = false;
+          try {
+            if (interop.isMetaInstance(arguments[0], arguments[1])) {
+              ok = true;
+            }
+          } catch (UnsupportedMessageException ex) {
+          }
+          if (!ok) {
+            var err = ctx.getBuiltins().error().makeTypeError(arguments[0], arguments[1], "self");
+            throw new PanicException(err, this);
+          }
+          var lessArgs = Arrays.copyOfRange(arguments, 1, arguments.length);
+          var lessSchema =
+              Arrays.copyOfRange(
+                  invokeFunctionNode.getSchema(), 1, invokeFunctionNode.getSchema().length);
+          var node =
+              InvokeFunctionNode.build(
+                  lessSchema,
+                  invokeFunctionNode.getDefaultsExecutionMode(),
+                  invokeFunctionNode.getArgumentsExecutionMode());
+          return node.execute(function, frame, state, lessArgs);
+        } else {
+          return invokeFunctionNode.execute(function, frame, state, arguments);
+        }
+      } else {
+        throw ctx.raiseAssertionPanic(this, "Error", null);
+      }
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!warnings.hasWarnings(self)",
+        "!methods.hasType(self)",
+        "!methods.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
       })
   Object doFallback(
