@@ -96,16 +96,14 @@ test.each`
   },
 )
 
-// ${'Propagating'}                    | ${['A', 'A1']}        | ${'A1'}  | ${['A', 'A1']}      | ${[]}                  | ${['A', 'A1']}
-// ${'Parent edited'}                  | ${['A', 'A1']}        | ${'A'}   | ${['A', 'A1']}      | ${[]}                  | ${['A']}
-// ${'Not propagating'}                | ${['A', 'A1']}        | ${'A1'}  | ${['A1']}           | ${['A']}               | ${['A']}
-
-// ${'Skipping handler without click'} | ${['A', 'A1', 'A12']} | ${'A12'} | ${['A', 'A12']}     | ${[]}                  | ${['A', 'A12']}
-//   ${'Stopping propagation'}           | ${['A', 'A1', 'A12']} | ${'A12'} | ${['A', 'A12']}     | ${['A1']}              | ${['A', 'A1']}
-
 test.each`
-  name            | widgets        | edited  | propagatingHandlers | nonPropagatingHandlers | expectedHandlerCalls
-  ${'Child only'} | ${['A', 'A1']} | ${'A1'} | ${['A1']}           | ${[]}                  | ${['A1']}
+  name                                | widgets               | edited   | propagatingHandlers | nonPropagatingHandlers | expectedHandlerCalls
+  ${'Propagating'}                    | ${['A', 'A1']}        | ${'A1'}  | ${['A', 'A1']}      | ${[]}                  | ${['A', 'A1']}
+  ${'Parent edited'}                  | ${['A', 'A1']}        | ${'A'}   | ${['A', 'A1']}      | ${[]}                  | ${['A']}
+  ${'Not propagating'}                | ${['A', 'A1']}        | ${'A1'}  | ${['A1']}           | ${['A']}               | ${['A']}
+  ${'Child only'}                     | ${['A', 'A1']}        | ${'A1'}  | ${['A1']}           | ${[]}                  | ${['A1']}
+  ${'Skipping handler without click'} | ${['A', 'A1', 'A12']} | ${'A12'} | ${['A', 'A12']}     | ${[]}                  | ${['A', 'A12']}
+  ${'Stopping propagation'}           | ${['A', 'A1', 'A12']} | ${'A12'} | ${['A', 'A12']}     | ${['A1']}              | ${['A', 'A1']}
 `(
   'Handling clicks in WidgetEditHandlers case $name',
   ({ widgets, edited, propagatingHandlers, nonPropagatingHandlers, expectedHandlerCalls }) => {

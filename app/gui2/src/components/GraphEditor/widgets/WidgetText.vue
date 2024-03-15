@@ -38,7 +38,7 @@ function accepted() {
   } else {
     props.onUpdate({
       portUpdate: {
-        value: makeNewLiteral(editedContents.value).code(),
+        value: makeNewLiteral(editedContents.value),
         origin: props.input.portId,
       },
     })
@@ -56,14 +56,13 @@ function makeNewLiteral(value: string) {
   return Ast.TextLiteral.new(value, MutableModule.Transient())
 }
 
-function makeLiteralFromValue(value: string) {
+function makeLiteralFromUserInput(value: string): Ast.Owned<Ast.MutableTextLiteral> {
   if (props.input.value instanceof Ast.TextLiteral) {
-    const edit = graph.startEdit()
-    const literal = edit.getVersion(props.input.value)
+    const literal = MutableModule.Transient().copy(props.input.value)
     literal.setRawTextContent(value)
-    return literal.code()
+    return literal
   } else {
-    return makeNewLiteral(value).code()
+    return makeNewLiteral(value)
   }
 }
 
@@ -101,7 +100,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
       @click.stop
       @keydown.enter.stop="accepted"
       @focusin="editing.start()"
-      @input="editing.edit(makeLiteralFromValue($event ?? ''))"
+      @input="editing.edit(makeLiteralFromUserInput($event ?? ''))"
     />
     <NodeWidget v-if="closeToken" :input="WidgetInput.FromAst(closeToken)" />
   </label>

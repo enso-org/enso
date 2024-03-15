@@ -33,80 +33,122 @@ const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 const editedValue = ref<Ast.Ast | string | undefined>()
 const isHovered = ref(false)
 
-interface Tag {
-  /** If not set, the label is same as expression */
-  label?: string
-  expression: string
-  requiredImports?: RequiredImport[]
-  parameters?: ArgumentWidgetConfiguration[]
-}
+// interface Tag {
+//   /** If not set, the label is same as expression */
+//   label?: string
+//   expression: string
+//   requiredImports?: RequiredImport[]
+//   parameters?: ArgumentWidgetConfiguration[]
+// }
 
-type CustomTag = Tag & { onClick: () => void }
+class Tag {
+  private cachedExpressionAst: Ast.Ast | undefined
 
-function tagFromExpression(expression: string, label?: Opt<string>): Tag {
-  const qn = tryQualifiedName(expression)
-  if (!qn.ok) return { expression, ...(label ? { label } : {}) }
-  const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
-  if (entry) {
-    const tag = tagFromEntry(entry)
-    return label ? { ...tag, label: label } : tag
+  constructor(
+    readonly expression: string,
+    private explicitLabel?: Opt<string>,
+    readonly requiredImports?: RequiredImport[],
+    public parameters?: ArgumentWidgetConfiguration[],
+  ) {}
+
+  static FromExpression(expression: string, label?: Opt<string>): Tag {
+    const qn = tryQualifiedName(expression)
+    if (!qn.ok) return new Tag(expression, label)
+    const entry = suggestions.entries.getEntryByQualifiedName(qn.value)
+    if (entry) return Tag.FromEntry(entry, label)
+    return new Tag(qn.value, label ?? qnLastSegment(qn.value))
   }
-  return {
-    label: label ?? qnLastSegment(qn.value),
-    expression: qn.value,
-  }
-}
 
-function tagFromEntry(entry: SuggestionEntry): Tag {
-  return {
-    label: entry.name,
-    expression:
+  static FromEntry(entry: SuggestionEntry, label?: Opt<string>): Tag {
+    const expression =
       entry.selfType != null ? `_.${entry.name}`
       : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
-      : entry.name,
-    requiredImports: requiredImports(suggestions.entries, entry),
+      : entry.name
+    return new Tag(expression, label ?? entry.name, requiredImports(suggestions.entries, entry))
+  }
+
+  get label() {
+    return this.explicitLabel ?? this.expression
+  }
+
+  get expressionAst() {
+    if (this.cachedExpressionAst == null) {
+      this.cachedExpressionAst = Ast.parse(this.expression)
+    }
+    return this.cachedExpressionAst
+  }
+
+  isFilteredIn(): boolean {
+    if (editedTextLiteralValuePattern.value) {
+      return (
+        this.expressionAst instanceof Ast.TextLiteral &&
+        this.expressionAst.rawTextContent.startsWith(editedTextLiteralValuePattern.value)
+      )
+    } else if (editedValuePattern.value) {
+      return this.expression.startsWith(editedValuePattern.value)
+    } else {
+      return true
+    }
   }
 }
 
-function isFilteredIn(tag: Tag): boolean {
-  const pattern =
-    editedValue.value instanceof Ast.Ast ? editedValue.value.code() : editedValue.value
-  if (!pattern) return true
-  const textLiteralPattern = /^(['"])(.*)\1$/.exec(pattern)
-  if (textLiteralPattern) {
-    const [, sep, pattern] = textLiteralPattern
-    return tag.expression.startsWith(`${sep}${pattern}`) && tag.expression.endsWith(sep!)
-  } else {
-    return tag.expression.startsWith(pattern)
+class CustomTag {
+  constructor(
+    readonly label: string,
+    readonly onClick: () => void,
+  ) {}
+
+  static FromItem(item: CustomDropdownItem): CustomTag {
+    return new CustomTag(item.label, item.onClick)
+  }
+
+  isFilteredIn(): boolean {
+    // User writing something in inner inputs wants to create an expression, so custom
+    // tags are hidden in that case.
+    return !(editedTextLiteralValuePattern.value || editedValuePattern.value)
   }
 }
 
-function tagFromCustomItem(item: CustomDropdownItem): CustomTag {
-  const expression = item.label
-  return { expression, onClick: item.onClick }
-}
+const editedValuePattern = computed(() =>
+  editedValue.value instanceof Ast.Ast ? editedValue.value.code() : editedValue.value,
+)
+const editedTextLiteralValuePattern = computed(() => {
+  const editedAst =
+    typeof editedValue.value === 'string' ? Ast.parse(editedValue.value) : editedValue.value
+  return editedAst instanceof Ast.TextLiteral ? editedAst.rawTextContent : undefined
+})
 
 const staticTags = computed<Tag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
   if (tags == null) return []
-  return tags.map((t) => tagFromExpression(t))
+  return tags.map((t) => Tag.FromExpression(t))
 })
 
 const dynamicTags = computed<Tag[]>(() => {
   const config = props.input.dynamicConfig
   if (config?.kind !== 'Single_Choice') return []
-  return config.values.map((value) => ({
-    ...tagFromExpression(value.value, value.label),
-    parameters: value.parameters,
-  }))
+
+  return config.values.map((value) => {
+    const tag = Tag.FromExpression(value.value, value.label)
+    tag.parameters = value.parameters
+    return tag
+  })
 })
 
-const customTags = computed(() => props.input[CustomDropdownItemsKey]?.map(tagFromCustomItem) ?? [])
+const customTags = computed(
+  () => props.input[CustomDropdownItemsKey]?.map(CustomTag.FromItem) ?? [],
+)
 const tags = computed(() => {
   const standardTags = dynamicTags.value.length > 0 ? dynamicTags.value : staticTags.value
-  return [...customTags.value, ...standardTags].filter(isFilteredIn)
+  return [...customTags.value, ...standardTags]
 })
-const tagLabels = computed(() => tags.value.map((tag) => tag.label ?? tag.expression))
+const filteredTags = computed(() => {
+  return Array.from(tags.value, (tag, index) => ({
+    tag,
+    index,
+  })).filter(({ tag }) => tag.isFilteredIn())
+})
+const filteredTagLabels = computed(() => filteredTags.value.map(({ tag }) => tag.label))
 
 const removeSurroundingParens = (expr?: string) => expr?.trim().replaceAll(/(^[(])|([)]$)/g, '')
 
@@ -125,7 +167,11 @@ const selectedTag = computed(() => {
     // We need to find the tag that matches the (beginning of) current expression.
     // To prevent partial prefix matches, we arrange tags in reverse lexicographical order.
     const sortedTags = tags.value
-      .map((tag, index) => [removeSurroundingParens(tag.expression), index] as [string, number])
+      .filter((tag) => tag instanceof Tag)
+      .map(
+        (tag, index) =>
+          [removeSurroundingParens((tag as Tag).expression), index] as [string, number],
+      )
       .sort(([a], [b]) =>
         a < b ? 1
         : a > b ? -1
@@ -139,16 +185,16 @@ const selectedTag = computed(() => {
 const selectedLabel = computed(() => {
   return selectedTag.value?.label
 })
-const innerWidgetInput = computed(() => {
-  const newInput: WidgetInput = {
+const innerWidgetInput = computed<WidgetInput>(() => {
+  const dynamicConfig =
+    props.input.dynamicConfig?.kind === 'Single_Choice' ?
+      singleChoiceConfiguration(props.input.dynamicConfig)
+    : undefined
+  return {
     ...props.input,
     editHandler: dropDownInteraction,
+    dynamicConfig,
   }
-  if (props.input.dynamicConfig == null) return newInput
-  const config = props.input.dynamicConfig
-  if (config.kind !== 'Single_Choice') return newInput
-  newInput.dynamicConfig = singleChoiceConfiguration(config)
-  return newInput
 })
 const dropdownVisible = ref(false)
 const dropDownInteraction = WidgetEditHandler.New(props.input, {
@@ -179,16 +225,14 @@ function toggleDropdownWidget() {
   else dropDownInteraction.cancel()
 }
 
-function onClick(index: number, keepOpen: boolean) {
-  if (index < customTags.value.length) {
-    customTags.value[index]!.onClick()
-  } else {
-    selectedIndex.value = index
-  }
+function onClick(indexOfFiltered: number, keepOpen: boolean) {
+  const clicked = filteredTags.value[indexOfFiltered]
+  if (clicked?.tag instanceof CustomTag) clicked.tag.onClick()
+  else selectedIndex.value = clicked?.index
   if (!keepOpen) {
     // We cancel interaction instead of ending it to restore the old value in the inner widget;
-    // if we clicked already selected entry, there would be no AST change which would update inner
-    // widget's content.
+    // if we clicked already selected entry, there would be no AST change, thus the inner
+    // widget's content woud not be updated.
     dropDownInteraction.cancel()
   }
 }
@@ -196,6 +240,10 @@ function onClick(index: number, keepOpen: boolean) {
 // When the selected index changes, we update the expression content.
 watch(selectedIndex, (_index) => {
   let edit: Ast.MutableModule | undefined
+  if (selectedTag.value instanceof CustomTag) {
+    console.warn('Selecting custom drop down item does nothing!')
+    return
+  }
   // Unless import conflict resolution is needed, we use the selected expression as is.
   let value = selectedTag.value?.expression
   if (selectedTag.value?.requiredImports) {
@@ -268,7 +316,7 @@ declare module '@/providers/widgetRegistry' {
       ref="dropdownElement"
       class="dropdownContainer"
       :color="'var(--node-color-primary)'"
-      :values="tagLabels"
+      :values="filteredTagLabels"
       :selectedValue="selectedLabel"
       @click="onClick"
     />
