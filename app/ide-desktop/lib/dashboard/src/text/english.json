@@ -329,8 +329,11 @@
   "confirmationCodePlaceholder": "Enter the confirmation code",
 
   "changePassword": "Change Password",
+  "currentPasswordLabel": "Current password",
   "currentPasswordPlaceholder": "Enter your current password",
+  "newPasswordLabel": "New password",
   "newPasswordPlaceholder": "Enter your new password",
+  "confirmNewPasswordLabel": "Confirm new password",
   "confirmNewPasswordPlaceholder": "Confirm your new password",
 
   "welcomeMessage": "Welcome to Enso Community",
