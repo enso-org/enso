@@ -5,7 +5,6 @@ import { initializeFFI } from 'shared/ast/ffi'
 import { unwrap } from 'shared/util/data/result'
 import { describe, expect, test } from 'vitest'
 import { MutableModule, substituteQualifiedName, type Identifier } from '../abstract'
-import { primaryApplicationSubject } from '../node'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()

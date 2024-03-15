@@ -3,7 +3,6 @@ import { useSelection } from '@/composables/selection'
 import { createContextStore } from '@/providers'
 import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
-import type { Ref } from 'vue'
 
 const SELECTION_BRUSH_MARGIN_PX = 6
 
@@ -14,18 +13,11 @@ const { provideFn, injectFn } = createContextStore(
   (
     navigator: NavigatorComposable,
     nodeRects: Map<NodeId, Rect>,
-    targetablePortChanges: Ref<unknown>,
     callbacks: {
       onSelected?: (id: NodeId) => void
       onDeselected?: (id: NodeId) => void
     } = {},
   ) => {
-    return useSelection(
-      navigator,
-      nodeRects,
-      SELECTION_BRUSH_MARGIN_PX,
-      targetablePortChanges,
-      callbacks,
-    )
+    return useSelection(navigator, nodeRects, SELECTION_BRUSH_MARGIN_PX, callbacks)
   },
 )

@@ -6,8 +6,6 @@ export const codeEditorBindings = defineKeybinds('code-editor', {
 
 export const interactionBindings = defineKeybinds('current-interaction', {
   cancel: ['Escape'],
-  click: ['PointerMain'],
-  modClick: ['Mod+PointerMain'],
 })
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {

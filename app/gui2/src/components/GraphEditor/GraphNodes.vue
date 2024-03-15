@@ -22,7 +22,6 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
   addNode: [source: NodeId, pos: Vec2 | undefined]
-  targetablePortsChanged: []
 }>()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
@@ -55,7 +54,6 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @draggingCommited="dragging.finishDrag()"
     @outputPortClick="graphStore.createEdgeFromOutput($event)"
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
-    @targetablePortsChanged="emit('targetablePortsChanged')"
     @doubleClick="emit('nodeDoubleClick', id)"
     @addNode="emit('addNode', id, $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"

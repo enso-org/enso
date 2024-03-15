@@ -20,7 +20,6 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   openFullMenu: []
-  targetablePortsChanged: []
 }>()
 const graph = useGraphStore()
 const rootPort = computed(() => {
@@ -75,7 +74,6 @@ provideWidgetTree(
   toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
   toRef(props, 'conditionalPorts'),
-  () => emit('targetablePortsChanged'),
   toRef(props, 'extended'),
   layoutTransitions.active,
   () => {

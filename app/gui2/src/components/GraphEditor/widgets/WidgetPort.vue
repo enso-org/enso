@@ -89,10 +89,6 @@ const innerWidget = computed(() => {
 
 providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
-watch(nodeSize, updateRect)
-onUpdated(() => nextTick(updateRect))
-useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
-
 const randSlice = randomUuid.slice(0, 4)
 
 watchEffect(
@@ -105,20 +101,6 @@ watchEffect(
   { flush: 'post' },
 )
 
-function updateRect() {
-  let domNode = rootNode.value
-  const rootDomNode = domNode?.closest('.GraphNode')
-  if (domNode == null || rootDomNode == null) return
-
-  const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
-  const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
-  const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
-  const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
-  const localRect = exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
-  if (portRect.value != null && localRect.equals(portRect.value)) return
-  portRect.value = localRect
-}
-
 const keyboard = injectKeyboard()
 
 const enabled = computed(() => {
@@ -126,7 +108,31 @@ const enabled = computed(() => {
   const isConditional = input instanceof Ast.Ast && tree.conditionalPorts.has(input.id)
   return !isConditional || keyboard.mod
 })
-watch(enabled, () => tree.emitTargetablePortsChanged())
+
+function updateRect() {
+  let domNode = rootNode.value
+  const rootDomNode = domNode?.closest('.GraphNode')
+  if (domNode == null || rootDomNode == null) return
+
+  let newRect
+  if (enabled.value) {
+    let _nodeSizeEffect = nodeSize.value
+    const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
+    const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
+    const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
+    const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
+    newRect = exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
+    if (portRect.value != null && newRect.equals(portRect.value)) return
+  } else {
+    newRect = undefined
+  }
+  portRect.value = newRect
+  selection?.emitTargetablePortsChanged()
+}
+
+watchEffect(updateRect)
+onUpdated(() => nextTick(updateRect))
+useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 </script>
 
 <script lang="ts">

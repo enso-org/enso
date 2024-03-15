@@ -84,24 +84,14 @@ projectStore.executionContext.on('executionFailed', (e) =>
 
 // === nodes ===
 
-const targetablePortChanges = ref(0)
-const nodeSelection = provideGraphSelection(
-  graphNavigator,
-  graphStore.nodeRects,
-  targetablePortChanges,
-  {
-    onSelected(id) {
-      graphStore.db.moveNodeToTop(id)
-    },
+const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
+  onSelected(id) {
+    graphStore.db.moveNodeToTop(id)
   },
-)
+})
 
 const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
-  click: (e) =>
-    e instanceof PointerEvent ? interaction.handleClick(e, graphNavigator, false) : false,
-  modClick: (e) =>
-    e instanceof PointerEvent ? interaction.handleClick(e, graphNavigator, true) : false,
 })
 
 // Return the environment for the placement of a new node. The passed nodes should be the nodes that are
@@ -157,7 +147,9 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
-useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
+useEvent(window, 'pointerdown', (e) => interaction.handleClick(e, graphNavigator), {
+  capture: true,
+})
 
 onMounted(() => viewportNode.value?.focus())
 
@@ -578,7 +570,6 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
         @addNode="addNodeAt"
-        @targetablePortsChanged="targetablePortChanges += 1"
       />
     </div>
     <div

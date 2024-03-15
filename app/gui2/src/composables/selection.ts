@@ -13,7 +13,6 @@ export function useSelection<T>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
   margin: number,
-  targetablePortChanges: Ref<unknown>,
   callbacks: {
     onSelected?: (element: T) => void
     onDeselected?: (element: T) => void
@@ -24,6 +23,7 @@ export function useSelection<T>(
   const selected = shallowReactive(new Set<T>())
   const hoveredNode = ref<NodeId>()
   const hoveredElement = ref<Element>()
+  const targetablePortChanges = ref(0)
 
   useEvent(document, 'pointerover', (event) => {
     hoveredElement.value = event.target instanceof Element ? event.target : undefined
@@ -165,5 +165,8 @@ export function useSelection<T>(
     hoveredPort,
     mouseHandler: selectionEventHandler,
     events: pointer.events,
+    emitTargetablePortsChanged: () => {
+      targetablePortChanges.value += 1
+    },
   })
 }
