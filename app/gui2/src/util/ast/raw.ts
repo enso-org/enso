@@ -1,13 +1,27 @@
+import { assert, assertDefined } from '@/util/assert'
 import * as map from 'lib0/map'
 import * as RawAst from 'shared/ast/generated/ast'
 import { parseEnso } from 'shared/ast/parse'
 import { LazyObject, LazySequence } from 'shared/ast/parserSupport'
+import { tryGetSoleValue } from 'shared/util/data/iterable'
 import { isResult, mapOk } from 'shared/util/data/result'
 import type { SourceRange } from 'shared/yjsModel'
 
 export { RawAst, parseEnso }
 
 export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
+
+/** Read a single line of code
+ *
+ * Is meant to be a helper for tests. If the code is multiline, an exception is raised.
+ */
+export function parseEnsoLine(code: string): RawAst.Tree {
+  const block = parseEnso(code)
+  assert(block.type === RawAst.Tree.Type.BodyBlock)
+  const soleExpression = tryGetSoleValue(block.statements)?.expression
+  assertDefined(soleExpression)
+  return soleExpression
+}
 
 /**
  * Read span of code represented by given AST node, not including left whitespace offset.
@@ -17,6 +31,16 @@ export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
  */
 export function readAstOrTokenSpan(node: RawAst.Tree | RawAst.Token, code: string): string {
   const range = parsedTreeOrTokenRange(node)
+  return code.substring(range[0], range[1])
+}
+
+/**
+ * Read span of code represented by given RawAst.Tree.
+ *
+ * The Tree is assumed to be a part of AST generated from `code`.
+ */
+export function readAstSpan(node: RawAst.Tree, code: string): string {
+  const range = parsedTreeRange(node)
   return code.substring(range[0], range[1])
 }
 
@@ -79,6 +103,17 @@ function treePath(obj: LazyObject, pred: (node: RawAst.Tree) => boolean): RawAst
   }
   obj.visitChildren(visitor)
   return path
+}
+
+export function findAstWithRange(
+  root: RawAst.Tree | RawAst.Token,
+  range: SourceRange,
+): RawAst.Tree | RawAst.Token | undefined {
+  for (const child of childrenAstNodes(root)) {
+    const [begin, end] = parsedTreeOrTokenRange(child)
+    if (begin === range[0] && end === range[1]) return child
+    if (begin <= range[0] && end >= range[1]) return findAstWithRange(child, range)
+  }
 }
 
 export function* walkRecursive(
