@@ -11,15 +11,10 @@ import * as load from '#/utilities/load'
 // === Constants ===
 // =================
 
-/** The `id` attribute of the loading spinner element created by the wasm entrypoint. */
-const LOADER_ELEMENT_ID = 'loader'
-
 /** The horizontal offset of the editor's top bar from the left edge of the window. */
 const TOP_BAR_X_OFFSET_PX = 96
 /** The `id` attribute of the element into which the IDE will be rendered. */
-const IDE_ELEMENT_ID = 'root'
-/** The `id` attribute of the element into which the new IDE will be rendered. */
-const IDE2_ELEMENT_ID = 'app'
+const IDE_ELEMENT_ID = 'app'
 const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
 const JS_EXTENSION: Readonly<Record<backendModule.BackendType, string>> = {
   [backendModule.BackendType.remote]: '.js.gz',
@@ -47,46 +42,9 @@ export default function Editor(props: EditorProps) {
   React.useEffect(() => {
     const ideElement = document.getElementById(IDE_ELEMENT_ID)
     if (ideElement != null) {
-      if (hidden) {
-        ideElement.style.top = '-100vh'
-        ideElement.style.position = 'fixed'
-        ideElement.style.visibility = 'hidden'
-      } else {
-        ideElement.style.top = ''
-        ideElement.style.position = 'absolute'
-        ideElement.style.visibility = ''
-      }
-    }
-    const ide2Element = document.getElementById(IDE2_ELEMENT_ID)
-    if (ide2Element != null) {
-      ide2Element.style.display = hidden ? 'none' : ''
+      ideElement.style.display = hidden ? 'none' : ''
     }
   }, [hidden])
-
-  React.useEffect(() => {
-    if (projectStartupInfo != null && hidden) {
-      // A workaround to hide the spinner, when the previous project is being loaded in
-      // the background. This `MutationObserver` is disconnected when the loader is
-      // removed from the DOM.
-      const observer = new MutationObserver(mutations => {
-        for (const mutation of mutations) {
-          for (const node of Array.from(mutation.addedNodes)) {
-            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-              document.body.style.cursor = 'auto'
-              node.style.display = 'none'
-            }
-          }
-          for (const node of Array.from(mutation.removedNodes)) {
-            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-              document.body.style.cursor = 'auto'
-              observer.disconnect()
-            }
-          }
-        }
-      })
-      observer.observe(document.body, { childList: true })
-    }
-  }, [projectStartupInfo, hidden])
 
   let hasEffectRun = false
 

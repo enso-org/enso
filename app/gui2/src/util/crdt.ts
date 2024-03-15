@@ -1,4 +1,5 @@
 import type { Opt } from '@/util/data/opt'
+import { ObservableV2 } from 'lib0/observable'
 import { watchEffect, type Ref } from 'vue'
 import type { Awareness } from 'y-protocols/awareness'
 import { WebsocketProvider } from 'y-websocket'
@@ -53,7 +54,8 @@ export function attachProvider(
   doc: Y.Doc,
   awareness: Awareness,
 ) {
-  const provider = new WebsocketProvider(url, room, doc, { awareness, params })
+  const ProviderClass = params.ls.startsWith('mock://') ? MockYdocProvider : WebsocketProvider
+  const provider = new ProviderClass(url, room, doc, { awareness, params })
   const onSync = () => doc.emit('sync', [true])
   const onDrop = () => doc.emit('sync', [false])
 
@@ -88,4 +90,49 @@ export function attachProvider(
     })
   }
   return { provider, dispose: dispose }
+}
+
+interface MockYdocProviderMessages {
+  'sync'(): void
+  'connection-close'(): void
+  'connection-error'(): void
+  'client-disconnected'(): void
+}
+
+export interface MockYdocProviderImpl {
+  (
+    msg: ObservableV2<MockYdocProviderMessages>,
+    room: string,
+    doc: Y.Doc,
+    options: {
+      awareness: object
+      params: ProviderParams
+    },
+  ): void
+}
+
+export class MockYdocProvider extends ObservableV2<MockYdocProviderMessages> {
+  static mocks: Map<string, MockYdocProviderImpl> = new Map()
+
+  static addMock(name: string, mock: MockYdocProviderImpl) {
+    MockYdocProvider.mocks.set(name, mock)
+  }
+
+  constructor(
+    _url: string,
+    room: string,
+    doc: Y.Doc,
+    options: {
+      awareness: object
+      params: ProviderParams
+    },
+  ) {
+    super()
+    const name = options.params.ls.slice('mock://'.length)
+    MockYdocProvider.mocks.get(name)?.(this, room, doc, options)
+  }
+
+  disconnect() {
+    this.emit('client-disconnected', [])
+  }
 }

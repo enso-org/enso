@@ -1920,6 +1920,7 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
+    @join_kind Widget_Helpers.make_join_kind_selector
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right:Table (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
@@ -2352,6 +2353,7 @@ type Table
 
     ## ALIAS count
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of rows in this table.
 
        > Example
@@ -2684,7 +2686,7 @@ type Table
     @format Widget_Helpers.write_table_selector
     write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
-        case format of
+        File_Format.handle_format_missing_arguments format <| case format of
             _ : Auto_Detect ->
                 base_format = format.get_writing_format path
                 if base_format == Nothing then Error.throw (File_Error.Unsupported_Output_Type path.file Table) else
@@ -2869,6 +2871,49 @@ type Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## PRIVATE
+       ALIAS cumulative
+       GROUP Standard.Base.Values
+       ICON dataframe_map_column
+       Adds a new column to the table with a running calculation.
+
+       Arguments:
+       - statistic: The running statistic to calculate.
+       - of: The existing column to run the statistic over.
+       - as: The name of the new column.
+       - group_by: Specifies the columns to group by. The running statistic is
+         calculated separately for each group. By default, all rows are treated as
+         a single group.
+       - order_by: Specifies the columns to order by. Defaults to the order of
+         the rows in the table. The running statistic is calculated according to the
+         specified ordering.
+
+       ? Ordering of rows
+
+         Note that the ordering of rows from the original table is preserved in
+         all cases. The grouping and ordering settings affect how the running statistic is
+         calculated for each row, but the order of the rows itself is
+         not changed by this operation.
+
+       ! Error Conditions
+
+         - If the columns specified in `group_by` or `order_by` are not present
+           in the table, a `Missing_Input_Columns` error is raised.
+         - If the column with the same name as provided by `as` already exists,
+           a `Duplicate_Output_Column_Names` problem is reported and the
+           existing column is renamed to avoid the clash.
+         - If grouping on floating point numbers, a `Floating_Point_Equality`
+           problem is reported.
+    @group_by Widget_Helpers.make_column_name_vector_selector
+    @order_by Widget_Helpers.make_order_by_selector
+    @of Widget_Helpers.make_column_name_selector
+    running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+    running self (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
+        if statistic != Statistic.Count then Error.throw (Illegal_Argument.Error ("Currently only Statistic.Count is supported in Table.running.")) else
+          of_col = self.at of
+          new_name = if as == '' then 'Running ' + statistic.to_text + ' of ' + of_col.name else as
+          Add_Row_Number.add_row_number self new_name 1 1 group_by order_by on_problems
+
+    ## PRIVATE
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self = Column_Naming_Helper.in_memory
 
@@ -2978,7 +3023,7 @@ Table.from (that:Column) = that.to_table
    - format: The format of the text.
    - on_problems: What to do if there are problems reading the text.
 Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    case format of
+    File_Format.handle_format_missing_arguments format <| case format of
         _ : Delimited_Format -> Delimited_Reader.read_text that format on_problems
         _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
 
@@ -2990,9 +3035,8 @@ Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '
    Arguments:
    - that: The table to convert.
    - format: The format of the text.
-Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') = case format of
-    _ : Delimited_Format -> Delimited_Writer.write_text that format
-    _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
+Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
+    Delimited_Writer.write_text that format
 
 ## PRIVATE
    Conversion method to a Table from a Vector.

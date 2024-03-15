@@ -36,10 +36,10 @@ test.test('copy (keyboard)', async ({ page }) => {
   // Assets: [0: Folder 1]
   await actions.locateNewFolderIcon(page).click()
   // Assets: [0: Folder 2, 1: Folder 1]
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await actions.press(page, 'Mod+C')
   // Assets: [0: Folder 2 <copied>, 1: Folder 1]
-  await assetRows.nth(1).click()
+  await actions.clickAssetRow(assetRows.nth(1))
   await actions.press(page, 'Mod+V')
   // Assets: [0: Folder 2, 1: Folder 1, 2: Folder 2 (copy) <child { depth=1 }>]
   await test.expect(assetRows).toHaveCount(3)
@@ -97,8 +97,8 @@ test.test('move to trash', async ({ page }) => {
   await actions.locateNewFolderIcon(page).click()
   await actions.locateNewFolderIcon(page).click()
   await page.keyboard.down(await actions.modModifier(page))
-  await assetRows.nth(0).click()
-  await assetRows.nth(1).click()
+  await actions.clickAssetRow(assetRows.nth(0))
+  await actions.clickAssetRow(assetRows.nth(1))
   await assetRows.nth(0).dragTo(actions.locateTrashCategory(page))
   await page.keyboard.up(await actions.modModifier(page))
   await actions.expectPlaceholderRow(page)
@@ -117,10 +117,10 @@ test.test('move (keyboard)', async ({ page }) => {
   // Assets: [0: Folder 1]
   await actions.locateNewFolderIcon(page).click()
   // Assets: [0: Folder 2, 1: Folder 1]
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await actions.press(page, 'Mod+X')
   // Assets: [0: Folder 2 <cut>, 1: Folder 1]
-  await assetRows.nth(1).click()
+  await actions.clickAssetRow(assetRows.nth(1))
   await actions.press(page, 'Mod+V')
   // Assets: [0: Folder 1, 1: Folder 2 <child { depth=1 }>]
   await test.expect(assetRows).toHaveCount(2)
@@ -135,7 +135,7 @@ test.test('cut (keyboard)', async ({ page }) => {
   const assetRows = actions.locateAssetRows(page)
 
   await actions.locateNewFolderIcon(page).click()
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await actions.press(page, 'Mod+X')
   // This action is not a builtin `expect` action, so it needs to be manually retried.
   await test
@@ -167,7 +167,7 @@ test.test('duplicate (keyboard)', async ({ page }) => {
 
   await actions.locateNewFolderIcon(page).click()
   // Assets: [0: Folder 1]
-  await assetRows.nth(0).click()
+  await actions.clickAssetRow(assetRows.nth(0))
   await actions.press(page, 'Mod+D')
   // Assets: [0: Folder 1 (copy), 1: Folder 1]
   await test.expect(assetRows).toHaveCount(2)

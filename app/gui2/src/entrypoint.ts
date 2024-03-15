@@ -1,17 +1,14 @@
-import { initializePrefixes } from '@/util/ast/node'
 import { baseConfig, configValue, mergeConfig } from '@/util/config'
 import { urlParams } from '@/util/urlParams'
 import { isOnLinux } from 'enso-common/src/detect'
 import * as dashboard from 'enso-dashboard'
-import 'enso-dashboard/src/tailwind.css'
-import { initializeFFI } from 'shared/ast/ffi'
 import { isDevMode } from 'shared/util/detect'
+import { appRunner } from './appRunner'
+
+import 'enso-dashboard/src/tailwind.css'
 
 const INITIAL_URL_KEY = `Enso-initial-url`
 const SCAM_WARNING_TIMEOUT = 1000
-
-let unmount: null | (() => void) = null
-let running = false
 
 function printScamWarning() {
   if (isDevMode) return
@@ -46,44 +43,6 @@ window.addEventListener('resize', () => {
   window.clearTimeout(scamWarningHandle)
   scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
 })
-
-export interface StringConfig {
-  [key: string]: StringConfig | string
-}
-
-async function runApp(config: StringConfig | null, accessToken: string | null, metadata?: object) {
-  await initializeFFI()
-  initializePrefixes()
-  running = true
-  const { mountProjectApp } = await import('./createApp')
-  if (!running) return
-  unmount?.()
-  const unrecognizedOptions: string[] = []
-  // function onUnrecognizedOption(path: string[]) {
-  //   unrecognizedOptions.push(path.join('.'))
-  // }
-  // FIXME: https://github.com/enso-org/enso/issues/8610
-  // Currently, options are provided that are not relevant to GUI2. These options cannot be removed
-  // until GUI1 is removed, as GUI1 still needs them.
-  const intermediateConfig = mergeConfig(baseConfig, urlParams())
-  const appConfig = mergeConfig(intermediateConfig, config ?? {})
-  if (!running) return
-  const app = mountProjectApp({
-    config: appConfig,
-    accessToken,
-    metadata,
-    unrecognizedOptions,
-  })
-  unmount = () => app.unmount()
-}
-
-function stopApp() {
-  running = false
-  unmount?.()
-  unmount = null
-}
-
-const appRunner = { runApp, stopApp }
 
 /** The entrypoint into the IDE. */
 function main() {

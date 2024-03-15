@@ -801,6 +801,9 @@ add_specs suite_builder =
             table_3 = xlsx_sheet.read . read "Sheet1"
             check_table table_3
 
+            table_4 = xlsx_sheet.read . sheet "Sheet1"
+            check_table table_4
+
         group_builder.specify "should let you read XLS by sheet index" <|
             table = xls_sheet.read (Excel_Format.Sheet 1)
             check_table table
@@ -808,6 +811,9 @@ add_specs suite_builder =
             table_2 = xls_sheet.read (Excel_Format.Sheet 1 skip_rows=(table.row_count - col_a.length))
             table_2.row_count . should_equal col_a.length
             check_table table_2
+
+            table_4 = xlsx_sheet.read . sheet 1
+            check_table table_4
 
         group_builder.specify "should let you read XLS by sheet name" <|
             table = xls_sheet.read (Excel_Format.Sheet "Sheet1")
@@ -854,6 +860,11 @@ add_specs suite_builder =
             table_4.row_count . should_equal 6
 
     suite_builder.group "Problems" group_builder->
+        group_builder.specify "should report a user-friendly error message when format is missing a required argument" <|
+            r = xlsx_sheet.read (Excel_Format.Range)
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "Perhaps the format is missing some required arguments?"
+
         group_builder.specify "should handle non-existing file gracefully" <|
             bad_file = enso_project.data / "DoesNotExists.xlsx"
             result = bad_file.read (Excel_Format.Range "Sheet1!A:C")

@@ -9,7 +9,6 @@ const props = defineProps<{
   zoomLevel: number
 }>()
 const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: []; toggleCodeEditor: [] }>()
-
 const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadable
 </script>
 
