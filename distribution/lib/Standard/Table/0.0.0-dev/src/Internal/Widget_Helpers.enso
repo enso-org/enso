@@ -8,6 +8,7 @@ from Standard.Base.Widget_Helpers import make_format_chooser
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Join_Condition.Join_Condition
+import project.Data.Join_Kind.Join_Kind
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Auto
@@ -142,7 +143,7 @@ make_filter_condition_selector table display=Display.Always =
    Make a join kind selector - Needed to override display.
 make_join_kind_selector : Display -> Widget
 make_join_kind_selector display=Display.Always =
-    meta = Meta.meta Value_Type
+    meta = Meta.meta Join_Kind
     options = meta.constructors.map c-> Option c.name meta.qualified_name+"."+c.name
     Single_Choice display=display values=options
 
