@@ -212,7 +212,7 @@ public abstract class TypeOfNode extends Node {
       META_OBJECT;
 
       static Interop resolve(Object value, InteropLibrary interop) {
-        assert !(value instanceof EnsoObject)
+        assert !(value instanceof EnsoObject) || AtomWithAHoleNode.isHole(value)
             : "Don't use interop for EnsoObject: " + value.getClass().getName();
         if (interop.isString(value)) {
           return STRING;
