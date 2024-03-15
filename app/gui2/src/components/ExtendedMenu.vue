@@ -34,12 +34,16 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
       <div class="row">
         <div class="label">Zoom</div>
         <div class="zoomControl">
-          <div class="zoomButton minus" title="Decrease zoom" @click="emit('zoomOut')" />
+          <div class="zoomButtonHighlight">
+            <SvgIcon :scale="12 / 16" name="minus" title="Decrease zoom" @click="emit('zoomOut')" />
+          </div>
           <span
             class="zoomScaleLabel"
             v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
           ></span>
-          <div class="zoomButton plus" title="increase zoom" @click="emit('zoomIn')" />
+          <div class="zoomButtonHighlight">
+            <SvgIcon :scale="12 / 16" name="add" title="increase zoom" @click="emit('zoomIn')" />
+          </div>
           <div class="divider"></div>
           <div class="showAllIconHighlight">
             <SvgIcon name="show_all" class="showAllIcon" @click="emit('fitToAllClicked')" />
@@ -146,52 +150,21 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
   left: 8px;
 }
 
-.zoomButton {
+.zoomButtonHighlight {
   width: 16px;
   height: 16px;
   border-radius: var(--radius-full);
   position: relative;
   margin: 0px;
+  padding: 2px;
   display: inline-block;
   vertical-align: middle;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
-.zoomButton:hover {
+.zoomButtonHighlight:hover {
   background-color: var(--color-menu-entry-hover-bg);
-}
-
-.zoomButton.plus:before,
-.zoomButton.plus:after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--color-text);
-}
-
-.zoomButton.plus:before {
-  width: 2px;
-  height: 12px;
-}
-
-.zoomButton.plus:after {
-  height: 2px;
-  width: 12px;
-}
-
-.zoomButton.minus:before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--color-text);
-  margin: auto 2px;
-  height: 2px;
 }
 
 .dropdown-enter-active,
