@@ -4,7 +4,6 @@ import { parseEnso } from '@/util/ast/abstract'
 import { AstExtended as RawAstExtended } from '@/util/ast/extended'
 import { isResult, mapOk } from '@/util/data/result'
 import * as map from 'lib0/map'
-import { initializeFFI } from 'shared/ast/ffi'
 import * as RawAst from 'shared/ast/generated/ast'
 import { LazyObject, LazySequence } from 'shared/ast/parserSupport'
 import { tryGetSoleValue } from 'shared/util/data/iterable'
@@ -13,8 +12,6 @@ import type { SourceRange } from 'shared/yjsModel'
 export { Ast, RawAst, RawAstExtended, parseEnso }
 
 export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
-
-await initializeFFI()
 
 /** Read a single line of code
  *
