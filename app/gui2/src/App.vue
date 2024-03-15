@@ -2,18 +2,17 @@
 import HelpScreen from '@/components/HelpScreen.vue'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig } from '@/providers/guiConfig'
+import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { registerAutoBlurHandler } from '@/util/autoBlur'
 import { configValue, type ApplicationConfig, type ApplicationConfigValue } from '@/util/config'
 import ProjectView from '@/views/ProjectView.vue'
 import { isDevMode } from 'shared/util/detect'
 import { computed, onMounted, onUnmounted, toRaw } from 'vue'
-import { useProjectStore } from './stores/project'
-import { registerAutoBlurHandler } from './util/autoBlur'
 
 const props = defineProps<{
   config: ApplicationConfig
   accessToken: string | null
-  metadata: object
   unrecognizedOptions: string[]
 }>()
 
