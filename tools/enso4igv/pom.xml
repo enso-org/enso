@@ -232,6 +232,13 @@
             <type>jar</type>
         </dependency>
         <dependency>
+            <groupId>org.netbeans.modules</groupId>
+            <artifactId>org-netbeans-modules-lexer-nbbridge</artifactId>
+            <version>${netbeans.version}</version>
+            <scope>test</scope>
+            <type>jar</type>
+        </dependency>
+        <dependency>
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-modules-extexecution-base</artifactId>
             <version>${netbeans.version}</version>
