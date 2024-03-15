@@ -1,6 +1,7 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -146,6 +147,12 @@ public abstract class TestBase {
   protected static Value getMethodFromModule(Context ctx, String moduleSrc, String methodName) {
     Value module = ctx.eval(Source.create("enso", moduleSrc));
     return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
+  }
+
+  protected static void assertContains(String expected, String actual) {
+    if (!actual.contains(expected)) {
+      fail("Expecting `" + actual + "` to contain `" + expected +"`.");
+    }
   }
 
   /**
