@@ -252,7 +252,6 @@ export default class ProjectManager {
   protected resolvers = new Map<number, (value: never) => void>()
   protected rejecters = new Map<number, (reason?: JSONRPCError) => void>()
   protected socketPromise: Promise<WebSocket>
-  private readonly defaultRootDirectory = Path('~/enso/projects')
 
   /** Create a {@link ProjectManager} */
   private constructor(protected readonly connectionUrl: string) {
@@ -389,7 +388,7 @@ export default class ProjectManager {
     const response = await this.runStandaloneCommand<ResponseBody>(
       null,
       'filesystem-list',
-      parentId ?? this.defaultRootDirectory
+      parentId ?? ProjectManager.rootDirectory
     )
     return response.entries
   }
