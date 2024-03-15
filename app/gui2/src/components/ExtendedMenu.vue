@@ -21,7 +21,7 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
     @pointerup.stop
     @click.stop="isDropdownOpen = !isDropdownOpen"
   >
-    <SvgIcon name="folder_opened" class="moreIcon" />
+    <SvgIcon name="3_dot_menu" class="moreIcon" />
   </div>
   <Transition name="dropdown">
     <div
