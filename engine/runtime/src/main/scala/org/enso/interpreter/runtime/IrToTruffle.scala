@@ -2,9 +2,7 @@ package org.enso.interpreter.runtime
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import com.oracle.truffle.api.interop.InteropLibrary
-import org.enso.compiler.context.CompilerContext
-import org.enso.compiler.context.FramePointer
-import org.enso.compiler.context.LocalScope
+import org.enso.compiler.context.{CompilerContext, FramePointer, LocalScope, NameResolution}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -1662,28 +1660,9 @@ class IrToTruffle(
       */
     def processName(name: Name): RuntimeExpression = {
       val nameExpr = name match {
-        case Name.Literal(nameStr, _, _, _, _, _) =>
-          val useInfo = name
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "No occurrence on variable usage."
-            )
-            .unsafeAs[AliasInfo.Occurrence]
-
-          val framePointer = scope.getFramePointer(useInfo.id)
-          val global       = name.getMetadata(GlobalNames)
-          if (framePointer.isDefined) {
-            ReadLocalVariableNode.build(framePointer.get)
-          } else if (global.isDefined) {
-            val resolution = global.get.target
-            nodeForResolution(resolution)
-          } else if (nameStr == ConstantsNames.FROM_MEMBER) {
-            ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
-          } else {
-            DynamicSymbolNode.build(
-              UnresolvedSymbol.build(nameStr, moduleScope)
-            )
-          }
+        case literalName : Name.Literal =>
+          val resolver = new RuntimeNameResolution()
+          resolver.resolveName(literalName)
         case Name.MethodReference(
               None,
               Name.Literal(nameStr, _, _, _, _, _),
@@ -1738,6 +1717,23 @@ class IrToTruffle(
       }
 
       setLocation(nameExpr, name.location)
+    }
+
+    private class RuntimeNameResolution extends NameResolution[RuntimeExpression, FramePointer] {
+      override protected def findLocalLink(occurrenceMetadata: AliasAnalysisInfo.Occurrence): Option[FramePointer] =
+        scope.getFramePointer(occurrenceMetadata.id)
+
+      override protected def resolveLocalName(localLink: FramePointer): RuntimeExpression =
+        ReadLocalVariableNode.build(localLink)
+
+      override protected def resolveGlobalName(resolvedName: BindingsMap.ResolvedName): RuntimeExpression =
+        nodeForResolution(resolvedName)
+
+      override protected def resolveFromConversion(): RuntimeExpression =
+        ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
+
+      override protected def resolveUnresolvedSymbol(symbolName: String): RuntimeExpression =
+        DynamicSymbolNode.build(UnresolvedSymbol.build(symbolName, moduleScope))
     }
 
     private def nodeForResolution(

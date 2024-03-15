@@ -26,7 +26,7 @@ import java.util.Optional;
  *                            Depending on the context this may be a Graph.Link (in the compiler) or a FramePointer (in the runtime).
  */
 public abstract class NameResolution<ResultType, LocalNameLinkType> {
-  public ResultType run(Name.Literal name) {
+  public final ResultType resolveName(Name.Literal name) {
     AliasAnalysis.Info.Occurrence occurrenceMetadata = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(name);
     var maybeLocalLink = findLocalLink(occurrenceMetadata);
     if (maybeLocalLink.isDefined()) {
