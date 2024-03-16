@@ -36,7 +36,8 @@ import { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
 import * as set from 'lib0/set'
 import { computed, onMounted, ref, watch } from 'vue'
-import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
+// FIXME: Refactor this out to a shared dependency.
+import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/services/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
 
 // Assumed size of a newly created node. This is used to place the component browser.
