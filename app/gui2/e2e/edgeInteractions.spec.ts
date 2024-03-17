@@ -81,6 +81,7 @@ test('Conditional ports', async ({ page }) => {
   await page.keyboard.press('Escape')
 
   // Enable it and connect.
+  await page.waitForTimeout(300)
   await page.mouse.click(outputPort.x, outputPort.y)
   await conditionalPort.hover()
   await page.keyboard.down('Meta')
