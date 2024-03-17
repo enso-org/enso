@@ -43,6 +43,15 @@ export class Rect {
     return this.FromBounds(left, top, right, bottom)
   }
 
+  static Equal(a: Rect, b: Rect): boolean
+  static Equal(a: Rect | null, b: Rect | null): boolean
+  static Equal(a: Rect | undefined, b: Rect | undefined): boolean
+  static Equal(a: Rect | null | undefined, b: Rect | null | undefined): boolean {
+    if (!a && !b) return true
+    if (!a || !b) return false
+    return a.equals(b)
+  }
+
   offsetBy(offset: Vec2): Rect {
     return new Rect(this.pos.add(offset), this.size)
   }

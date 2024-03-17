@@ -472,6 +472,10 @@ export const useGraphStore = defineStore('graph', () => {
     return getPortPrimaryInstance(id)?.rect.value
   }
 
+  function isPortEnabled(id: PortId): boolean {
+    return getPortRelativeRect(id) != null
+  }
+
   function getPortNodeId(id: PortId): NodeId | undefined {
     return db.getExpressionNodeId(id as string as Ast.AstId) ?? getPortPrimaryInstance(id)?.nodeId
   }
@@ -673,6 +677,7 @@ export const useGraphStore = defineStore('graph', () => {
     removePortInstance,
     getPortRelativeRect,
     getPortNodeId,
+    isPortEnabled,
     updatePortValue,
     setEditedNode,
     updateState,

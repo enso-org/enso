@@ -85,11 +85,16 @@ projectStore.executionContext.on('executionFailed', (e) =>
 
 // === nodes ===
 
-const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
-  onSelected(id) {
-    graphStore.db.moveNodeToTop(id)
+const nodeSelection = provideGraphSelection(
+  graphNavigator,
+  graphStore.nodeRects,
+  graphStore.isPortEnabled,
+  {
+    onSelected(id) {
+      graphStore.db.moveNodeToTop(id)
+    },
   },
-})
+)
 
 const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),

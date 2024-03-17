@@ -38,7 +38,6 @@ export const graphSelection: GraphSelection = {
   mouseHandler: () => false,
   selectAll: () => {},
   selected: new Set(),
-  emitTargetablePortsChanged: () => {},
 }
 
 export function graphSelectionWith(modifications?: Partial<GraphSelection>): GraphSelection {

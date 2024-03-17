@@ -124,10 +124,9 @@ const computedRect = computed(() => {
 
 function updateRect() {
   const newRect = computedRect.value
-  if (portRect.value != null && newRect?.equals(portRect.value)) return
-  if (portRect.value == null && newRect == null) return
-  portRect.value = newRect
-  selection?.emitTargetablePortsChanged()
+  if (!Rect.Equal(portRect.value, newRect)) {
+    portRect.value = newRect
+  }
 }
 
 watch(computedRect, updateRect)
