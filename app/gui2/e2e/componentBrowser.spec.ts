@@ -282,15 +282,19 @@ test('Component browser handling of overridden record-mode', async ({ page }) =>
   await actions.goToGraph(page)
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'
+  const recordModeToggle = node.getByTestId('overrideRecordingButton')
+  const recordModeIndicator = node.getByTestId('recordingOverriddenButton')
+  const MENU_UNHOVER_CLOSE_DELAY = 300
 
   // Enable record mode for the node.
   await locate.graphNodeIcon(node).hover()
-  await expect(node.getByTestId('overrideRecordingButton')).not.toHaveClass(/recording-overridden/)
-  await page.getByAltText('Enable recording').click()
+  await expect(recordModeToggle).not.toHaveClass(/recording-overridden/)
+  await recordModeToggle.click()
   await page.mouse.move(100, 80)
-  await expect(node.getByTestId('recordingOverriddenButton')).toBeVisible()
+  await page.waitForTimeout(MENU_UNHOVER_CLOSE_DELAY)
+  await expect(recordModeIndicator).toBeVisible()
   await locate.graphNodeIcon(node).hover()
-  await expect(node.getByTestId('overrideRecordingButton')).toHaveClass(/recording-overridden/)
+  await expect(recordModeToggle).toHaveClass(/recording-overridden/)
   // Ensure editing in the component browser doesn't display the override expression.
   await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
   await expect(locate.componentBrowser(page)).toBeVisible()
@@ -302,7 +306,7 @@ test('Component browser handling of overridden record-mode', async ({ page }) =>
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).not.toBeVisible()
   await page.mouse.move(100, 80)
-  await expect(node.getByTestId('recordingOverriddenButton')).toBeVisible()
+  await expect(recordModeIndicator).toBeVisible()
   // Ensure after editing the node, editing still doesn't display the override expression.
   await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
   await expect(locate.componentBrowser(page)).toBeVisible()
