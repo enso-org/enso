@@ -1,8 +1,6 @@
 <script lang="ts">
 import { Pattern } from '@/util/ast/match'
-import { initializeFFI } from 'shared/ast/ffi'
-
-await initializeFFI()
+import { computed } from 'vue'
 
 export const name = 'Warnings'
 export const icon = 'exclamation'
@@ -12,7 +10,7 @@ export const defaultPreprocessor = [
   'process_to_json_text',
 ] as const
 
-const removeWarnings = Pattern.parse('__.remove_warnings')
+const removeWarnings = computed(() => Pattern.parse('__.remove_warnings'))
 </script>
 
 <script setup lang="ts">
