@@ -12,6 +12,7 @@ import {
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
@@ -347,9 +348,18 @@ function addNodeAuto() {
   showComponentBrowser(targetPos)
 }
 
-function addNodeAt(sourceNode: NodeId, pos: Vec2 | undefined) {
+function createNodeFromSource(sourceNode: NodeId, options: NodeCreationOptions) {
+  const position = options.position ?? positionForNodeFromSource(sourceNode)
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
-  showComponentBrowser(pos, { type: 'newNode', sourcePort })
+  if (options.commit) {
+    const content = options.content
+      .instantiateCopied([graphStore.viewModule.get(sourcePort)])
+      .code()
+    const createdNode = graphStore.createNode(position, content, undefined, [])
+    if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
+  } else {
+    showComponentBrowser(position, { type: 'newNode', sourcePort })
+  }
 }
 
 function hideComponentBrowser() {
@@ -538,12 +548,16 @@ function handleNodeOutputPortDoubleClick(id: AstId) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
     return
   }
-  const placementEnvironment = environmentForNodes([srcNode].values())
-  const position = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment, {
+  const position = positionForNodeFromSource(srcNode)
+  showComponentBrowser(position, { type: 'newNode', sourcePort: id })
+}
+
+function positionForNodeFromSource(sourceNode: NodeId) {
+  const placementEnvironment = environmentForNodes([sourceNode].values())
+  return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment, {
     horizontalGap: gapBetweenNodes,
     verticalGap: gapBetweenNodes,
   }).position
-  showComponentBrowser(position, { type: 'newNode', sourcePort: id })
 }
 
 const stackNavigator = useStackNavigator()
@@ -569,7 +583,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
-        @addNode="addNodeAt"
+        @createNode="createNodeFromSource"
       />
     </div>
     <div
