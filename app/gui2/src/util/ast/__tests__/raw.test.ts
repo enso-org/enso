@@ -8,14 +8,11 @@ import {
   readAstSpan,
   readTokenSpan,
   walkRecursive,
-} from '@/util/ast'
-import { fc, test } from '@fast-check/vitest'
+} from '@/util/ast/raw'
 import { initializeFFI } from 'shared/ast/ffi'
 import { Token, Tree } from 'shared/ast/generated/ast'
 import type { LazyObject } from 'shared/ast/parserSupport'
-import { escapeTextLiteral, unescapeTextLiteral } from 'shared/ast/text'
-import { assert, expect } from 'vitest'
-import { TextLiteral } from '../abstract'
+import { assert, expect, test } from 'vitest'
 
 await initializeFFI()
 
@@ -226,47 +223,4 @@ test.each([
     expect(ast.type).toBe(expected?.type)
     expect(readAstSpan(ast, code)).toBe(expected?.repr)
   }
-})
-
-test.each([
-  ['', ''],
-  ['\\x20', ' ', ' '],
-  ['\\b', '\b'],
-  ['abcdef_123', 'abcdef_123'],
-  ['\\t\\r\\n\\v\\"\\\'\\`', '\t\r\n\v"\'`'],
-  ['\\u00B6\\u{20}\\U\\u{D8\\xBFF}', '\xB6 \0\xD8\xBFF}', '\xB6 \\0\xD8\xBFF}'],
-  ['\\`foo\\` \\`bar\\` \\`baz\\`', '`foo` `bar` `baz`'],
-])(
-  'Applying and escaping text literal interpolation',
-  (escapedText: string, rawText: string, roundtrip?: string) => {
-    const actualApplied = unescapeTextLiteral(escapedText)
-    const actualEscaped = escapeTextLiteral(rawText)
-
-    expect(actualEscaped).toBe(roundtrip ?? escapedText)
-    expect(actualApplied).toBe(rawText)
-  },
-)
-
-const sometimesUnicodeString = fc.oneof(fc.string(), fc.unicodeString())
-
-test.prop({ rawText: sometimesUnicodeString })('Text interpolation roundtrip', ({ rawText }) => {
-  expect(unescapeTextLiteral(escapeTextLiteral(rawText))).toBe(rawText)
-})
-
-test.prop({ rawText: sometimesUnicodeString })('AST text literal new', ({ rawText }) => {
-  const literal = TextLiteral.new(rawText)
-  expect(literal.rawTextContent).toBe(rawText)
-})
-
-test.prop({
-  boundary: fc.constantFrom('"', "'"),
-  rawText: sometimesUnicodeString,
-})('AST text literal rawTextContent', ({ boundary, rawText }) => {
-  const literal = TextLiteral.new('')
-  literal.setBoundaries(boundary)
-  literal.setRawTextContent(rawText)
-  expect(literal.rawTextContent).toBe(rawText)
-  const expectInterpolated = rawText.includes('"') || boundary === "'"
-  const expectedCode = expectInterpolated ? `'${escapeTextLiteral(rawText)}'` : `"${rawText}"`
-  expect(literal.code()).toBe(expectedCode)
 })

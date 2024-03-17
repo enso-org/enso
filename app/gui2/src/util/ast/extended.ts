@@ -7,7 +7,7 @@ import {
   visitGenerator,
   visitRecursive,
   walkRecursive,
-} from '@/util/ast'
+} from '@/util/ast/raw'
 import type { Opt } from '@/util/data/opt'
 import * as encoding from 'lib0/encoding'
 import * as sha256 from 'lib0/hash/sha256'
@@ -18,6 +18,8 @@ import { tryGetSoleValue } from 'shared/util/data/iterable'
 import type { ExternalId, IdMap, SourceRange } from 'shared/yjsModel'
 import { markRaw } from 'vue'
 
+export { AstExtended as RawAstExtended }
+
 type ExtractType<V, T> =
   T extends ReadonlyArray<infer Ts> ? Extract<V, { type: Ts }> : Extract<V, { type: T }>
 
@@ -27,7 +29,7 @@ type OneOrArray<T> = T | readonly T[]
  * AST with additional metadata containing AST IDs and original code reference. Can only be
  * constructed by parsing any enso source code string.
  */
-export class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends boolean = true> {
+class AstExtended<T extends Tree | Token = Tree | Token, HasIdMap extends boolean = true> {
   inner: T
   private ctx: AstExtendedCtx<HasIdMap>
 

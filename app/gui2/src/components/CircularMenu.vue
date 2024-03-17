@@ -57,6 +57,7 @@ const emit = defineEmits<{
       <ToggleIcon
         icon="record"
         class="icon-container button slot7"
+        data-testid="overrideRecordingButton"
         :class="{ 'recording-overridden': props.isRecordingOverridden }"
         :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
         :modelValue="props.isRecordingOverridden"

@@ -1,10 +1,18 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import {
+  MutableModule,
+  TextLiteral,
+  escapeTextLiteral,
+  substituteQualifiedName,
+  unescapeTextLiteral,
+  type Identifier,
+} from '@/util/ast/abstract'
 import { tryQualifiedName } from '@/util/qualifiedName'
+import { fc, test } from '@fast-check/vitest'
 import { initializeFFI } from 'shared/ast/ffi'
 import { unwrap } from 'shared/util/data/result'
-import { describe, expect, test } from 'vitest'
-import { MutableModule, substituteQualifiedName, type Identifier } from '../abstract'
+import { describe, expect } from 'vitest'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
@@ -852,6 +860,49 @@ test.each([
     unwrap(tryQualifiedName(substitution)),
   )
   expect(edit.root()?.code()).toEqual(expected)
+})
+
+test.each([
+  ['', ''],
+  ['\\x20', ' ', ' '],
+  ['\\b', '\b'],
+  ['abcdef_123', 'abcdef_123'],
+  ['\\t\\r\\n\\v\\"\\\'\\`', '\t\r\n\v"\'`'],
+  ['\\u00B6\\u{20}\\U\\u{D8\\xBFF}', '\xB6 \0\xD8\xBFF}', '\xB6 \\0\xD8\xBFF}'],
+  ['\\`foo\\` \\`bar\\` \\`baz\\`', '`foo` `bar` `baz`'],
+])(
+  'Applying and escaping text literal interpolation',
+  (escapedText: string, rawText: string, roundtrip?: string) => {
+    const actualApplied = unescapeTextLiteral(escapedText)
+    const actualEscaped = escapeTextLiteral(rawText)
+
+    expect(actualEscaped).toBe(roundtrip ?? escapedText)
+    expect(actualApplied).toBe(rawText)
+  },
+)
+
+const sometimesUnicodeString = fc.oneof(fc.string(), fc.unicodeString())
+
+test.prop({ rawText: sometimesUnicodeString })('Text interpolation roundtrip', ({ rawText }) => {
+  expect(unescapeTextLiteral(escapeTextLiteral(rawText))).toBe(rawText)
+})
+
+test.prop({ rawText: sometimesUnicodeString })('AST text literal new', ({ rawText }) => {
+  const literal = TextLiteral.new(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
+})
+
+test.prop({
+  boundary: fc.constantFrom('"', "'"),
+  rawText: sometimesUnicodeString,
+})('AST text literal rawTextContent', ({ boundary, rawText }) => {
+  const literal = TextLiteral.new('')
+  literal.setBoundaries(boundary)
+  literal.setRawTextContent(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
+  const expectInterpolated = rawText.includes('"') || boundary === "'"
+  const expectedCode = expectInterpolated ? `'${escapeTextLiteral(rawText)}'` : `"${rawText}"`
+  expect(literal.code()).toBe(expectedCode)
 })
 
 const docEditCases = [
