@@ -1130,7 +1130,11 @@ export default abstract class Backend {
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
   /** Return project details. */
-  abstract getProjectDetails(projectId: ProjectId, title: string | null): Promise<Project>
+  abstract getProjectDetails(
+    projectId: ProjectId,
+    directoryId: DirectoryId | null,
+    title: string | null
+  ): Promise<Project>
   /** Set a project to an open state. */
   abstract openProject(
     projectId: ProjectId,

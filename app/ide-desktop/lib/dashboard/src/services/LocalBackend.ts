@@ -263,14 +263,20 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails. */
   override async getProjectDetails(
     projectId: backend.ProjectId,
+    directory: backend.DirectoryId | null,
     title: string | null
   ): Promise<backend.Project> {
     const { id } = extractTypeAndId(projectId)
     const state = LocalBackend.projects.get(id)
     const cachedProject = state?.state === backend.ProjectState.opened ? state.data : null
     if (cachedProject == null) {
-      const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === id)
+      const directoryId = directory == null ? null : extractTypeAndId(directory).id
+      const entries = await this.projectManager.listDirectory(directoryId)
+      const project = entries
+        .flatMap(entry =>
+          entry.type === projectManager.FileSystemEntryType.ProjectEntry ? [entry.metadata] : []
+        )
+        .find(metadata => metadata.id === id)
       if (project == null) {
         throw new Error(
           `Could not get details of project ${

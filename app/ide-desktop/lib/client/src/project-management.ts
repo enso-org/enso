@@ -34,17 +34,20 @@ const logger = config.logger
  * location.
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  * @throws {Error} if the path does not belong to a valid project. */
-export function importProjectFromPath(openedPath: string): string {
+export function importProjectFromPath(
+    openedPath: string,
+    directory = getProjectsDirectory()
+): string {
     if (pathModule.extname(openedPath).endsWith(fileAssociations.BUNDLED_PROJECT_SUFFIX)) {
         logger.log(`Path '${openedPath}' denotes a bundled project.`)
         // The second part of condition is for the case when someone names a directory
         // like `my-project.enso-project` and stores the project there.
         // Not the most fortunate move, but...
         if (isProjectRoot(openedPath)) {
-            return importDirectory(openedPath)
+            return importDirectory(openedPath, directory)
         } else {
             // Project bundle was provided, so we need to extract it first.
-            return importBundle(openedPath)
+            return importBundle(openedPath, directory)
         }
     } else {
         logger.log(`Opening non-bundled file: '${openedPath}'.`)
@@ -56,14 +59,14 @@ export function importProjectFromPath(openedPath: string): string {
             const message = `File '${openedPath}' does not belong to the ${productName} project.`
             throw new Error(message)
         } else {
-            return importDirectory(rootPath)
+            return importDirectory(rootPath, directory)
         }
     }
 }
 
 /** Import the project from a bundle.
  * @returns Project ID (from Project Manager's metadata) identifying the imported project. */
-export function importBundle(bundlePath: string): string {
+export function importBundle(bundlePath: string, directory = getProjectsDirectory()): string {
     logger.log(`Importing project '${bundlePath}' from bundle.`)
     // The bundle is a tarball, so we just need to extract it to the right location.
     const bundlePrefix = prefixInBundle(bundlePath)
@@ -79,7 +82,7 @@ export function importBundle(bundlePath: string): string {
             ? normalizedBundlePrefix
             : bundlePath
     logger.log(`Bundle normalized prefix: '${String(normalizedBundlePrefix)}'.`)
-    const targetPath = generateDirectoryName(dirNameBase)
+    const targetPath = generateDirectoryName(dirNameBase, directory)
     logger.log(`Importing project as '${targetPath}'.`)
     fs.mkdirSync(targetPath, { recursive: true })
     // To be more resilient against different ways that user might attempt to create a bundle,
@@ -115,9 +118,12 @@ export function importBundle(bundlePath: string): string {
 }
 
 /** Upload the project from a bundle. */
-export async function uploadBundle(bundle: stream.Readable): Promise<string> {
+export async function uploadBundle(
+    bundle: stream.Readable,
+    directory = getProjectsDirectory()
+): Promise<string> {
     logger.log(`Uploading project from bundle.`)
-    const targetPath = generateDirectoryName('Project')
+    const targetPath = generateDirectoryName('Project', directory)
     fs.mkdirSync(targetPath, { recursive: true })
     await new Promise<void>(resolve => {
         bundle.pipe(tar.extract({ cwd: targetPath })).on('finish', resolve)
@@ -139,11 +145,10 @@ export async function uploadBundle(bundle: stream.Readable): Promise<string> {
 }
 
 /** Import the project so it becomes visible to the Project Manager.
- * @param rootPath - The path to the project root.
  * @returns The project ID (from the Project Manager's metadata) identifying the imported project.
  * @throws {Error} if a race condition occurs when generating a unique project directory name. */
-export function importDirectory(rootPath: string): string {
-    if (isProjectInstalled(rootPath)) {
+export function importDirectory(rootPath: string, directory = getProjectsDirectory()): string {
+    if (isProjectInstalled(rootPath, directory)) {
         // Project is already visible to Project Manager, so we can just return its ID.
         logger.log(`Project already installed at '${rootPath}'.`)
         const id = getProjectId(rootPath)
@@ -154,7 +159,7 @@ export function importDirectory(rootPath: string): string {
         }
     } else {
         logger.log(`Importing a project copy from '${rootPath}'.`)
-        const targetPath = generateDirectoryName(rootPath)
+        const targetPath = generateDirectoryName(rootPath, directory)
         if (fs.existsSync(targetPath)) {
             throw new Error(`Project directory '${targetPath}' already exists.`)
         } else {
@@ -289,7 +294,7 @@ export function prefixInBundle(bundlePath: string): string | null {
  * If given a name like `Name_1` it will become `Name_2` if there is already a directory named
  * `Name_1`. If a path containing multiple components is given, only the last component is used
  * for the name. */
-export function generateDirectoryName(name: string): string {
+export function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
     // Use only the last path component.
     name = pathModule.parse(name).name
 
@@ -304,12 +309,11 @@ export function generateDirectoryName(name: string): string {
         suffix = parseInt(matchedSuffix)
     }
 
-    const projectsDirectory = getProjectsDirectory()
     let finalPath: string
     while (true) {
         suffix++
         const newName = `${name}${suffix === 0 ? '' : `_${suffix}`}`
-        const candidatePath = pathModule.join(projectsDirectory, newName)
+        const candidatePath = pathModule.join(directory, newName)
         if (!fs.existsSync(candidatePath)) {
             finalPath = candidatePath
             break
@@ -339,13 +343,13 @@ export function getProjectsDirectory(): string {
 }
 
 /** Check if the given project is installed, i.e. can be opened with the Project Manager. */
-export function isProjectInstalled(projectRoot: string): boolean {
-    // Project can be opened by project manager only if its root directory is directly under
-    // the projects directory.
-    const projectsDirectory = getProjectsDirectory()
+export function isProjectInstalled(
+    projectRoot: string,
+    directory = getProjectsDirectory()
+): boolean {
     const projectRootParent = pathModule.dirname(projectRoot)
     // Should resolve symlinks and relative paths. Normalize before comparison.
-    return pathModule.resolve(projectRootParent) === pathModule.resolve(projectsDirectory)
+    return pathModule.resolve(projectRootParent) === pathModule.resolve(directory)
 }
 
 // ==================

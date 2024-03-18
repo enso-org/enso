@@ -30,7 +30,10 @@ interface Enso {
  * Electron context. It contains non-authentication-related functionality. */
 interface BackendApi {
     /** Return the ID of the new project. */
-    readonly importProjectFromPath: (openedPath: string) => Promise<string>
+    readonly importProjectFromPath: (
+        openedPath: string,
+        directory: string | null
+    ) => Promise<string>
 }
 
 // ==========================

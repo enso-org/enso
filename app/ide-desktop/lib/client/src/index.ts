@@ -377,10 +377,14 @@ class App {
         electron.ipcMain.on(ipc.Channel.quit, () => {
             electron.app.quit()
         })
-        electron.ipcMain.on(ipc.Channel.importProjectFromPath, (event, path: string) => {
-            const info = projectManagement.importProjectFromPath(path)
-            event.reply(ipc.Channel.importProjectFromPath, path, info)
-        })
+        electron.ipcMain.on(
+            ipc.Channel.importProjectFromPath,
+            (event, path: string, directory: string | null) => {
+                const directoryParams = directory == null ? [] : [directory]
+                const info = projectManagement.importProjectFromPath(path, ...directoryParams)
+                event.reply(ipc.Channel.importProjectFromPath, path, info)
+            }
+        )
         electron.ipcMain.handle(
             ipc.Channel.openFileBrowser,
             async (_event, kind: 'any' | 'directory' | 'file') => {

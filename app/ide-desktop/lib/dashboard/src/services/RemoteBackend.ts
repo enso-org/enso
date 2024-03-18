@@ -63,7 +63,7 @@ export async function waitUntilProjectIsReady(
   item: backendModule.ProjectAsset,
   abortController: AbortController = new AbortController()
 ) {
-  let project = await backend.getProjectDetails(item.id, item.title)
+  let project = await backend.getProjectDetails(item.id, null, item.title)
   if (!backendModule.IS_OPENING_OR_OPENED[project.state.type]) {
     await backend.openProject(item.id, null, item.title)
   }
@@ -77,7 +77,7 @@ export async function waitUntilProjectIsReady(
       setTimeout(resolve, Math.max(0, delayMs))
     })
     nextCheckTimestamp = Number(new Date()) + CHECK_STATUS_INTERVAL_MS
-    project = await backend.getProjectDetails(item.id, item.title)
+    project = await backend.getProjectDetails(item.id, null, item.title)
   }
 }
 
@@ -557,6 +557,7 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async getProjectDetails(
     projectId: backendModule.ProjectId,
+    _directory: backendModule.DirectoryId | null,
     title: string | null
   ): Promise<backendModule.Project> {
     const path = remoteBackendPaths.getProjectDetailsPath(projectId)

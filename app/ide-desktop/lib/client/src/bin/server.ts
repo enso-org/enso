@@ -36,7 +36,7 @@ const HTTP_STATUS_NOT_FOUND = 404
 
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
-    readonly uploadProjectBundle: (project: stream.Readable) => Promise<string>
+    readonly uploadProjectBundle: (project: stream.Readable, directory?: string) => Promise<string>
     readonly runProjectManagerCommand: (
         cliArguments: string[],
         body?: NodeJS.ReadableStream
@@ -202,22 +202,31 @@ export class Server {
                 // When accessing the app from Electron, the file input event will have the
                 // full system path.
                 case '/api/upload-project': {
-                    void this.config.externalFunctions.uploadProjectBundle(request).then(
-                        id => {
-                            response
-                                .writeHead(HTTP_STATUS_OK, [
-                                    ['Content-Length', `${id.length}`],
-                                    ['Content-Type', 'text/plain'],
-                                    ...common.COOP_COEP_CORP_HEADERS,
-                                ])
-                                .end(id)
-                        },
-                        () => {
-                            response
-                                .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
-                                .end()
-                        }
+                    const directory = new URL(`https://example.com/${requestUrl}`).searchParams.get(
+                        'directory'
                     )
+                    const directoryParams = directory == null ? [] : [directory]
+                    void this.config.externalFunctions
+                        .uploadProjectBundle(request, ...directoryParams)
+                        .then(
+                            id => {
+                                response
+                                    .writeHead(HTTP_STATUS_OK, [
+                                        ['Content-Length', `${id.length}`],
+                                        ['Content-Type', 'text/plain'],
+                                        ...common.COOP_COEP_CORP_HEADERS,
+                                    ])
+                                    .end(id)
+                            },
+                            () => {
+                                response
+                                    .writeHead(
+                                        HTTP_STATUS_BAD_REQUEST,
+                                        common.COOP_COEP_CORP_HEADERS
+                                    )
+                                    .end()
+                            }
+                        )
                     break
                 }
                 case '/api/run-project-manager-command': {

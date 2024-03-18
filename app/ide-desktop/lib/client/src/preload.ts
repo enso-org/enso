@@ -28,8 +28,8 @@ const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<string, (projectId: string) => void>()
 
 const BACKEND_API = {
-    importProjectFromPath: (projectPath: string) => {
-        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath)
+    importProjectFromPath: (projectPath: string, directory: string | null = null) => {
+        electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory)
         return new Promise<string>(resolve => {
             IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
         })

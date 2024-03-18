@@ -167,6 +167,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           setAsset(object.merge(asset, { title }))
           try {
             if (backend.type === backendModule.BackendType.local) {
+              const directory = localBackend.extractTypeAndId(item.directoryId).id
               let id: string
               if (
                 'backendApi' in window &&
@@ -174,15 +175,17 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 'path' in file &&
                 typeof file.path === 'string'
               ) {
-                id = await window.backendApi.importProjectFromPath(file.path)
+                id = await window.backendApi.importProjectFromPath(file.path, directory)
               } else {
+                const searchParams = new URLSearchParams({ directory }).toString()
                 // Ideally this would use `file.stream()`, to minimize RAM
                 // requirements. for uploading large projects. Unfortunately,
                 // this requires HTTP/2, which is HTTPS-only, so it will not
                 // work on `http://localhost`.
                 const body =
                   window.location.protocol === 'https:' ? file.stream() : await file.arrayBuffer()
-                const response = await fetch('./api/upload-project', { method: 'POST', body })
+                const path = `./api/upload-project?${searchParams}`
+                const response = await fetch(path, { method: 'POST', body })
                 id = await response.text()
               }
               const listedProject = await backend.getProjectDetails(
