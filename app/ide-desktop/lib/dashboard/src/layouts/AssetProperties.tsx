@@ -97,12 +97,13 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       const oldDescription = item.item.description
       setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
       try {
+        const projectPath = item.item.projectState?.path
         await backend.updateAsset(
           item.item.id,
           {
             parentDirectoryId: null,
             description,
-            projectPath: item.item.projectState?.path ?? null,
+            ...(projectPath == null ? {} : { projectPath }),
           },
           item.item.title
         )

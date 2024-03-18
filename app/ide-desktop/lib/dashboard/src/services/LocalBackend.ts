@@ -222,14 +222,18 @@ export default class LocalBackend extends Backend {
   override async createProject(
     body: backend.CreateProjectRequestBody
   ): Promise<backend.CreatedProject> {
+    const projectsDirectory =
+      body.parentDirectoryId == null ? null : extractTypeAndId(body.parentDirectoryId).id
     const project = await this.projectManager.createProject({
       name: projectManager.ProjectName(body.projectName),
       ...(body.projectTemplateName != null ? { projectTemplate: body.projectTemplateName } : {}),
       missingComponentAction: projectManager.MissingComponentAction.install,
-      ...(body.parentDirectoryId == null
-        ? {}
-        : { projectsDirectory: extractTypeAndId(body.parentDirectoryId).id }),
+      ...(projectsDirectory == null ? {} : { projectsDirectory }),
     })
+    const path = projectManager.joinPath(
+      projectsDirectory ?? ProjectManager.rootDirectory,
+      body.projectName
+    )
     return {
       name: body.projectName,
       organizationId: '',
@@ -239,6 +243,7 @@ export default class LocalBackend extends Backend {
         type: backend.ProjectState.closed,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         volume_id: '',
+        path,
       },
     }
   }
@@ -557,13 +562,15 @@ export default class LocalBackend extends Backend {
   ): Promise<void> {
     if (body.parentDirectoryId != null) {
       const typeAndId = extractTypeAndId(assetId)
-      const from =
-        typeAndId.type === backend.AssetType.project
-          ? body.projectPath ?? projectManager.Path('')
-          : typeAndId.id
-      const fileName = fileInfo.fileName(from)
-      const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
-      await this.projectManager.moveFile(from, to)
+      const from = typeAndId.type === backend.AssetType.project ? body.projectPath : typeAndId.id
+      if (from == null) {
+        throw new Error('Could not move project: project has no `projectPath`.')
+      } else {
+        const fileName = fileInfo.fileName(from)
+        const to = projectManager.joinPath(extractTypeAndId(body.parentDirectoryId).id, fileName)
+        await this.projectManager.moveFile(from, to)
+        return
+      }
     }
   }
 
