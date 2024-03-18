@@ -24,7 +24,9 @@ type Type_Error
         if tpe.is_error then self.actual.to_display_text else tpe.to_display_text
 
     to_display_text self =
-        got = if self.type_of_actual.is_a Text then self.type_of_actual else "<ERR>"
+        got = case self.type_of_actual of
+            text : Text -> text
+            _           -> "<ERR>"
         exp = self.expected.to_display_text
         msg = self.comment
             . replace "{exp}" exp
