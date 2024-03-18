@@ -56,15 +56,16 @@ type Postgres_Dialect
     ## PRIVATE
 
        The dialect of PostgreSQL databases.
-    Value internal_generator_dialect
+    Value internal_generator_dialect dialect_name:Text="PostgreSQL" dialect_to_text:Text="Postgres_Dialect" type_mapping=Postgres_Type_Mapping
 
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name self = "PostgreSQL"
+    name self = self.dialect_name
 
     ## PRIVATE
-    to_text self = "Postgres_Dialect"
+    to_text : Text
+    to_text self = self.dialect_to_text
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
@@ -134,7 +135,7 @@ type Postgres_Dialect
        Returns the mapping between SQL types of this dialect and Enso
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = Postgres_Type_Mapping
+    get_type_mapping self = self.type_mapping
 
     ## PRIVATE
        Creates a `Column_Fetcher` used to fetch data from a result set and build
@@ -249,18 +250,14 @@ type Postgres_Dialect
        if the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
-        case period of
-            Time_Period.Nanosecond ->
-                Error.throw (Unsupported_Database_Operation.Error "Postgres backend does not support nanosecond precision in date/time operations.")
-            _ ->
-                Date_Period_Metadata.Value period operation_input_type
+        if period == Time_Period.Nanosecond && self.name == "PostgreSQL" then Error.throw (Unsupported_Database_Operation.Error "Postgres backend does not support nanosecond precision in date/time operations.") else
+            Date_Period_Metadata.Value period operation_input_type
 
     ## PRIVATE
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported "PostgreSQL"
-
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported self.name
 
     ## PRIVATE
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type

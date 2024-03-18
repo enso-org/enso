@@ -1,16 +1,13 @@
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 
 import Standard.Table.Data.Table.Table
-import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Table.DB_Table
-import Standard.Database.Dialect
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import Standard.Database.SQL_Query.SQL_Query
@@ -18,6 +15,8 @@ import Standard.Database.SQL_Statement.SQL_Statement
 from Standard.Database.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload_Table import first_column_name_in_structure
+
+import project.Internal.Snowflake_Dialect
 
 type Snowflake_Connection
     ## PRIVATE
@@ -32,7 +31,7 @@ type Snowflake_Connection
     create url properties make_new =
         jdbc_connection = JDBC_Connection.create url properties
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=False
-        Snowflake_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties) make_new
+        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake entity_naming_properties) make_new
 
     ## PRIVATE
 
@@ -146,7 +145,7 @@ type Snowflake_Connection
     @types make_table_types_selector
     @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector -> Boolean -> Table
-    tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
+    tables self name_like=Nothing database=self.database schema=Nothing types=["TABLE", "VIEW"] all_fields=False =
         self.connection.tables name_like database schema types all_fields
 
     ## GROUP Standard.Base.Input
