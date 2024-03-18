@@ -647,22 +647,6 @@ export async function expectNoBackground(locator: test.Locator) {
   })
 }
 
-/** A test assertion to confirm that the element has a background color equal to
- * "frame-selected". */
-export async function expectBackgroundFrameSelected(locator: test.Locator) {
-  await test.test.step('Expect `bg-frame-selected`', async () => {
-    await test.expect(locator).toHaveClass(/(?:^| )bg-frame-selected(?: |$)/)
-  })
-}
-
-/** A test assertion to confirm that the element has a background color equal to
- * "frame". */
-export async function expectBackgroundFrame(locator: test.Locator) {
-  await test.test.step('Expect `bg-frame`', async () => {
-    await test.expect(locator).toHaveClass(/(?:^| )bg-frame(?: |$)/)
-  })
-}
-
 /** A test assertion to confirm that the element has the class `selected`. */
 export async function expectClassSelected(locator: test.Locator) {
   await test.test.step('Expect `selected`', async () => {
@@ -670,7 +654,21 @@ export async function expectClassSelected(locator: test.Locator) {
   })
 }
 
-/** A test assertion to confirm that the element has the class `selected`. */
+/** A test assertion to confirm that the element has the class `active`. */
+export async function expectClassActive(locator: test.Locator) {
+  await test.test.step('Expect `active`', async () => {
+    await test.expect(locator).toHaveClass(/(?:^| )active(?: |$)/)
+  })
+}
+
+/** A test assertion to confirm that the element does not have the class `active`. */
+export async function expectNotClassActive(locator: test.Locator) {
+  await test.test.step('Expect `active`', async () => {
+    await test.expect(locator).not.toHaveClass(/(?:^| )active(?: |$)/)
+  })
+}
+
+/** A test assertion to confirm that the element has `opacity > 0`. */
 export async function expectNotTransparent(locator: test.Locator) {
   await test.test.step('expect.not.transparent', async () => {
     await test.expect
@@ -679,7 +677,7 @@ export async function expectNotTransparent(locator: test.Locator) {
   })
 }
 
-/** A test assertion to confirm that the element has the class `selected`. */
+/** A test assertion to confirm that the element has `opacity === 0`. */
 export async function expectTransparent(locator: test.Locator) {
   await test.test.step('expect.transparent', async () => {
     await test.expect
