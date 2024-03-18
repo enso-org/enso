@@ -27,8 +27,10 @@ import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
-  AliasAnalysisInfo,
   BindingAnalysis
+}
+import org.enso.compiler.pass.analyse.alias.{
+  Info => AliasInfo
 }
 import org.enso.compiler.pass.desugar.Imports
 import org.enso.editions.LibraryName
@@ -411,7 +413,7 @@ case object FullyQualifiedNames extends IRPass {
         AliasAnalysis,
         "no alias analysis info on a name"
       )
-      .unsafeAs[AliasAnalysisInfo.Occurrence]
+      .unsafeAs[AliasInfo.Occurrence]
     val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
     defLink.isDefined
   }

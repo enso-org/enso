@@ -1,27 +1,27 @@
-package org.enso.compiler.pass.analyse
+package org.enso.compiler.pass.analyse.alias
 
 import org.enso.compiler.core.{CompilerError, ExternalID, Identifier}
 import org.enso.syntax.text.Debug
-import org.enso.compiler.pass.analyse.AliasAnalysisGraph.{Occurrence, Scope}
+import org.enso.compiler.pass.analyse.alias.Graph.{Occurrence, Scope}
 
 import java.util.UUID
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
 /** A graph containing aliasing information for a given root scope in Enso. */
-sealed class AliasAnalysisGraph extends Serializable {
-  var rootScope: AliasAnalysisGraph.Scope = new AliasAnalysisGraph.Scope()
-  var links: Set[AliasAnalysisGraph.Link] = Set()
+sealed class Graph extends Serializable {
+  var rootScope: Graph.Scope = new Graph.Scope()
+  var links: Set[Graph.Link] = Set()
   var nextIdCounter                       = 0
 
-  private var globalSymbols: Map[AliasAnalysisGraph.Symbol, Occurrence.Global] =
+  private var globalSymbols: Map[Graph.Symbol, Occurrence.Global] =
     Map()
 
   /** @return a deep structural copy of `this` */
   def deepCopy(
     scope_mapping: mutable.Map[Scope, Scope] = mutable.Map()
-  ): AliasAnalysisGraph = {
-    val copy = new AliasAnalysisGraph
+  ): Graph = {
+    val copy = new Graph
     copy.rootScope     = this.rootScope.deepCopy(scope_mapping)
     copy.links         = this.links
     copy.globalSymbols = this.globalSymbols
@@ -43,8 +43,8 @@ sealed class AliasAnalysisGraph extends Serializable {
     *
     * @return a copy of the graph structure
     */
-  def copy: AliasAnalysisGraph = {
-    val graph = new AliasAnalysisGraph
+  def copy: Graph = {
+    val graph = new Graph
     graph.links         = links
     graph.rootScope     = rootScope.deepCopy(mutable.Map())
     graph.nextIdCounter = nextIdCounter
@@ -59,7 +59,7 @@ sealed class AliasAnalysisGraph extends Serializable {
     */
   override def equals(obj: Any): Boolean =
     obj match {
-      case that: AliasAnalysisGraph =>
+      case that: Graph =>
         (this.links == that.links) && (this.rootScope == that.rootScope)
       case _ => false
     }
@@ -68,7 +68,7 @@ sealed class AliasAnalysisGraph extends Serializable {
     *
     * @return a unique identifier for this graph
     */
-  def nextId(): AliasAnalysisGraph.Id = {
+  def nextId(): Graph.Id = {
     val nextId = nextIdCounter
     nextIdCounter += 1
     nextId
@@ -81,8 +81,8 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @return the link, if it exists
     */
   def resolveLocalUsage(
-    occurrence: AliasAnalysisGraph.Occurrence.Use
-  ): Option[AliasAnalysisGraph.Link] = {
+    occurrence: Graph.Occurrence.Use
+  ): Option[Graph.Link] = {
     scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
       links += link
       link
@@ -96,14 +96,14 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @return the link, if it exists
     */
   def resolveGlobalUsage(
-    occurrence: AliasAnalysisGraph.Occurrence.Use
-  ): Option[AliasAnalysisGraph.Link] = {
+    occurrence: Graph.Occurrence.Use
+  ): Option[Graph.Link] = {
     scopeFor(occurrence.id) match {
       case Some(scope) =>
         globalSymbols
           .get(occurrence.symbol)
           .map(g =>
-            AliasAnalysisGraph.Link(occurrence.id, scope.scopesToRoot + 1, g.id)
+            Graph.Link(occurrence.id, scope.scopesToRoot + 1, g.id)
           )
       case None => None
     }
@@ -130,7 +130,7 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @param id the identifier for the symbol
     * @return a list of links in which `id` occurs
     */
-  def linksFor(id: AliasAnalysisGraph.Id): Set[AliasAnalysisGraph.Link] = {
+  def linksFor(id: Graph.Id): Set[Graph.Link] = {
     links.filter(l => l.source == id || l.target == id)
   }
 
@@ -142,8 +142,8 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @return a set of all links in which `symbol` occurs with role `T`
     */
   def linksFor[T <: Occurrence: ClassTag](
-    symbol: AliasAnalysisGraph.Symbol
-  ): Set[AliasAnalysisGraph.Link] = {
+    symbol: Graph.Symbol
+  ): Set[Graph.Link] = {
     val idsForSym = rootScope.symbolToIds[T](symbol)
 
     links.filter(l =>
@@ -157,7 +157,7 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @param id the occurrence identifier
     * @return the occurrence for `id`, if it exists
     */
-  def getOccurrence(id: AliasAnalysisGraph.Id): Option[Occurrence] =
+  def getOccurrence(id: Graph.Id): Option[Occurrence] =
     scopeFor(id).flatMap(_.getOccurrence(id))
 
   /** Gets the link from an id to the definition of the symbol it represents.
@@ -165,7 +165,7 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @param id the identifier to find the definition link for
     * @return the definition link for `id` if it exists
     */
-  def defLinkFor(id: AliasAnalysisGraph.Id): Option[AliasAnalysisGraph.Link] = {
+  def defLinkFor(id: Graph.Id): Option[Graph.Link] = {
     linksFor(id).find { edge =>
       val occ = getOccurrence(edge.target)
       occ match {
@@ -180,7 +180,7 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @param id the id to find the scope for
     * @return the scope where `id` occurs
     */
-  def scopeFor(id: AliasAnalysisGraph.Id): Option[AliasAnalysisGraph.Scope] = {
+  def scopeFor(id: Graph.Id): Option[Graph.Scope] = {
     rootScope.scopeFor(id)
   }
 
@@ -190,9 +190,9 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @tparam T the role in which `symbol` occurs
     * @return all the scopes where `symbol` occurs with role `T`
     */
-  def scopesFor[T <: AliasAnalysisGraph.Occurrence: ClassTag](
-    symbol: AliasAnalysisGraph.Symbol
-  ): List[AliasAnalysisGraph.Scope] = {
+  def scopesFor[T <: Graph.Occurrence: ClassTag](
+    symbol: Graph.Symbol
+  ): List[Graph.Scope] = {
     rootScope.scopesForSymbol[T](symbol)
   }
 
@@ -218,7 +218,7 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @param id the occurrence identifier
     * @return `true` if `id` shadows other bindings, otherwise `false`
     */
-  def canShadow(id: AliasAnalysisGraph.Id): Boolean = {
+  def canShadow(id: Graph.Id): Boolean = {
     scopeFor(id)
       .flatMap(
         _.getOccurrence(id).flatMap {
@@ -241,10 +241,10 @@ sealed class AliasAnalysisGraph extends Serializable {
     */
   def knownShadowedDefinitions(
     definition: Occurrence
-  ): Set[AliasAnalysisGraph.Occurrence] = {
+  ): Set[Graph.Occurrence] = {
     def getShadowedIds(
-      scope: AliasAnalysisGraph.Scope
-    ): Set[AliasAnalysisGraph.Occurrence] = {
+      scope: Graph.Scope
+    ): Set[Graph.Occurrence] = {
       scope.occurrences.collect {
         case d: Occurrence.Def if d.symbol == definition.symbol    => d
         case g: Occurrence.Global if g.symbol == definition.symbol => g
@@ -269,7 +269,7 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @return `true` if the definition of the symbol for `id` shadows another
     *        binding for the same symbol, `false`, otherwise
     */
-  def linkedToShadowingBinding(id: AliasAnalysisGraph.Id): Boolean = {
+  def linkedToShadowingBinding(id: Graph.Id): Boolean = {
     defLinkFor(id).isDefined
   }
 
@@ -277,7 +277,7 @@ sealed class AliasAnalysisGraph extends Serializable {
     *
     * @return the set of symbols defined in this graph
     */
-  def symbols: Set[AliasAnalysisGraph.Symbol] = {
+  def symbols: Set[Graph.Symbol] = {
     rootScope.symbols
   }
 
@@ -289,8 +289,8 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @return a list of identifiers for that symbol
     */
   def symbolToIds[T <: Occurrence: ClassTag](
-    symbol: AliasAnalysisGraph.Symbol
-  ): List[AliasAnalysisGraph.Id] = {
+    symbol: Graph.Symbol
+  ): List[Graph.Id] = {
     rootScope.symbolToIds[T](symbol)
   }
 
@@ -300,12 +300,12 @@ sealed class AliasAnalysisGraph extends Serializable {
     * @return the symbol associated with `id`, if it exists
     */
   def idToSymbol(
-    id: AliasAnalysisGraph.Id
-  ): Option[AliasAnalysisGraph.Symbol] = {
+    id: Graph.Id
+  ): Option[Graph.Symbol] = {
     rootScope.idToSymbol(id)
   }
 }
-object AliasAnalysisGraph {
+object Graph {
 
   /** The type of symbols on the graph. */
   type Symbol = String
@@ -428,7 +428,7 @@ object AliasAnalysisGraph {
       * @param id the occurrence identifier
       * @return the occurrence for `id`, if it exists
       */
-    def getOccurrence(id: AliasAnalysisGraph.Id): Option[Occurrence] = {
+    def getOccurrence(id: Graph.Id): Option[Occurrence] = {
       occurrences.find(o => o.id == id)
     }
 
@@ -440,7 +440,7 @@ object AliasAnalysisGraph {
       * @return the occurrences for `name`, if they exist
       */
     def getOccurrences[T <: Occurrence: ClassTag](
-      symbol: AliasAnalysisGraph.Symbol
+      symbol: Graph.Symbol
     ): Set[Occurrence] = {
       occurrences.collect {
         case o: T if o.symbol == symbol => o
@@ -455,7 +455,7 @@ object AliasAnalysisGraph {
       * @param id the occurrence identifier
       * @return the occurrence for `id`
       */
-    def unsafeGetOccurrence(id: AliasAnalysisGraph.Id): Occurrence = {
+    def unsafeGetOccurrence(id: Graph.Id): Occurrence = {
       getOccurrence(id).get
     }
 
@@ -467,7 +467,7 @@ object AliasAnalysisGraph {
       *         otherwise
       */
     def hasSymbolOccurrenceAs[T <: Occurrence: ClassTag](
-      symbol: AliasAnalysisGraph.Symbol
+      symbol: Graph.Symbol
     ): Boolean = {
       occurrences.collect { case x: T if x.symbol == symbol => x }.nonEmpty
     }
@@ -481,11 +481,11 @@ object AliasAnalysisGraph {
       *         exists
       */
     def resolveUsage(
-      occurrence: AliasAnalysisGraph.Occurrence.Use,
-      parentCounter: Int = 0
-    ): Option[AliasAnalysisGraph.Link] = {
+                      occurrence: Graph.Occurrence.Use,
+                      parentCounter: Int = 0
+    ): Option[Graph.Link] = {
       val definition = occurrences.find {
-        case AliasAnalysisGraph.Occurrence.Def(_, name, _, _, _) =>
+        case Graph.Occurrence.Def(_, name, _, _, _) =>
           name == occurrence.symbol
         case _ => false
       }
@@ -494,7 +494,7 @@ object AliasAnalysisGraph {
         case None =>
           parent.flatMap(_.resolveUsage(occurrence, parentCounter + 1))
         case Some(target) =>
-          Some(AliasAnalysisGraph.Link(occurrence.id, parentCounter, target.id))
+          Some(Graph.Link(occurrence.id, parentCounter, target.id))
       }
     }
 
@@ -527,7 +527,7 @@ object AliasAnalysisGraph {
       * @param id the id to find the scope for
       * @return the scope where `id` occurs
       */
-    def scopeFor(id: AliasAnalysisGraph.Id): Option[Scope] = {
+    def scopeFor(id: Graph.Id): Option[Scope] = {
       val possibleCandidates = occurrences.filter(o => o.id == id)
 
       if (possibleCandidates.isEmpty) {
@@ -583,7 +583,7 @@ object AliasAnalysisGraph {
       * @return all the scopes where `name` occurs with role `T`
       */
     def scopesForSymbol[T <: Occurrence: ClassTag](
-      symbol: AliasAnalysisGraph.Symbol
+      symbol: Graph.Symbol
     ): List[Scope] = {
       val occursInThisScope = hasSymbolOccurrenceAs[T](symbol)
 
@@ -601,7 +601,7 @@ object AliasAnalysisGraph {
       *
       * @return the set of symbols
       */
-    def symbols: Set[AliasAnalysisGraph.Symbol] = {
+    def symbols: Set[Graph.Symbol] = {
       val symbolsInThis        = occurrences.map(_.symbol)
       val symbolsInChildScopes = childScopes.flatMap(_.symbols)
 
@@ -616,8 +616,8 @@ object AliasAnalysisGraph {
       * @return a list of identifiers for that symbol
       */
     def symbolToIds[T <: Occurrence: ClassTag](
-      symbol: AliasAnalysisGraph.Symbol
-    ): List[AliasAnalysisGraph.Id] = {
+      symbol: Graph.Symbol
+    ): List[Graph.Id] = {
       val scopes =
         scopesForSymbol[T](symbol).flatMap(_.getOccurrences[T](symbol))
       scopes.map(_.id)
@@ -629,8 +629,8 @@ object AliasAnalysisGraph {
       * @return the symbol associated with `id`, if it exists
       */
     def idToSymbol(
-      id: AliasAnalysisGraph.Id
-    ): Option[AliasAnalysisGraph.Symbol] = {
+      id: Graph.Id
+    ): Option[Graph.Symbol] = {
       scopeFor(id).flatMap(_.getOccurrence(id)).map(_.symbol)
     }
 
@@ -650,7 +650,7 @@ object AliasAnalysisGraph {
     }
   }
 
-  /** A link in the [[AliasAnalysisGraph]].
+  /** A link in the [[Graph]].
     *
     * The source of the link should always be an [[Occurrence.Use]] while the
     * target of the link should always be an [[Occurrence.Def]].
@@ -665,7 +665,7 @@ object AliasAnalysisGraph {
   /** An occurrence of a given symbol in the aliasing graph. */
   sealed trait Occurrence extends Serializable {
     val id: Id
-    val symbol: AliasAnalysisGraph.Symbol
+    val symbol: Graph.Symbol
   }
   object Occurrence {
 
@@ -679,11 +679,11 @@ object AliasAnalysisGraph {
       * @param isLazy whether or not the symbol is defined as lazy
       */
     sealed case class Def(
-      override val id: Id,
-      override val symbol: AliasAnalysisGraph.Symbol,
-      identifier: UUID @Identifier,
-      externalId: Option[UUID @ExternalID],
-      isLazy: Boolean = false
+                           override val id: Id,
+                           override val symbol: Graph.Symbol,
+                           identifier: UUID @Identifier,
+                           externalId: Option[UUID @ExternalID],
+                           isLazy: Boolean = false
     ) extends Occurrence
 
     /** A usage of a symbol in the aliasing graph
@@ -699,10 +699,10 @@ object AliasAnalysisGraph {
       *                   the symbol
       */
     sealed case class Use(
-      override val id: Id,
-      override val symbol: AliasAnalysisGraph.Symbol,
-      identifier: UUID @Identifier,
-      externalId: Option[UUID @ExternalID]
+                           override val id: Id,
+                           override val symbol: Graph.Symbol,
+                           identifier: UUID @Identifier,
+                           externalId: Option[UUID @ExternalID]
     ) extends Occurrence
 
     // TODO [AA] At some point the analysis should make use of these.
@@ -713,7 +713,7 @@ object AliasAnalysisGraph {
       */
     sealed case class Global(
       override val id: Id,
-      override val symbol: AliasAnalysisGraph.Symbol
+      override val symbol: Graph.Symbol
     ) extends Occurrence
   }
 }

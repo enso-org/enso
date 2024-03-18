@@ -1,6 +1,9 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
+
+import org.enso.compiler.pass.analyse.alias.Graph;
+import org.enso.compiler.pass.analyse.alias.Info;
 import org.enso.compiler.pass.resolve.DocumentationComments;
 import org.enso.compiler.pass.resolve.DocumentationComments$;
 import org.enso.compiler.pass.resolve.ExpressionAnnotations$;
@@ -53,12 +56,12 @@ import scala.Option;
 @Persistable(clazz = GenericAnnotations$.class, id = 1216)
 @Persistable(clazz = ExpressionAnnotations$.class, id = 1217)
 @Persistable(clazz = FullyQualifiedNames$.class, id = 1218)
-@Persistable(clazz = AliasAnalysisInfo.Occurrence.class, id = 1261, allowInlining = false)
-@Persistable(clazz = AliasAnalysisInfo$Scope$Root.class, id = 1262, allowInlining = false)
-@Persistable(clazz = AliasAnalysisInfo$Scope$Child.class, id = 1263, allowInlining = false)
-@Persistable(clazz = AliasAnalysisGraph$Occurrence$Use.class, id = 1264, allowInlining = false)
-@Persistable(clazz = AliasAnalysisGraph$Occurrence$Def.class, id = 1265, allowInlining = false)
-@Persistable(clazz = AliasAnalysisGraph.Link.class, id = 1266, allowInlining = false)
+@Persistable(clazz = Info.Occurrence.class, id = 1261, allowInlining = false)
+@Persistable(clazz = Info$Scope$Root.class, id = 1262, allowInlining = false)
+@Persistable(clazz = Info$Scope$Child.class, id = 1263, allowInlining = false)
+@Persistable(clazz = Graph$Occurrence$Use.class, id = 1264, allowInlining = false)
+@Persistable(clazz = Graph$Occurrence$Def.class, id = 1265, allowInlining = false)
+@Persistable(clazz = Graph.Link.class, id = 1266, allowInlining = false)
 public final class PassPersistance {
   private PassPersistance() {}
 
@@ -106,25 +109,24 @@ public final class PassPersistance {
 
   @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
   public static final class PersistAliasAnalysisGraphScope
-      extends Persistance<org.enso.compiler.pass.analyse.AliasAnalysisGraph.Scope> {
+      extends Persistance<Graph.Scope> {
     public PersistAliasAnalysisGraphScope() {
-      super(org.enso.compiler.pass.analyse.AliasAnalysisGraph.Scope.class, false, 1267);
+      super(Graph.Scope.class, false, 1267);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    protected org.enso.compiler.pass.analyse.AliasAnalysisGraph.Scope readObject(Input in)
+    protected Graph.Scope readObject(Input in)
         throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
       var occurrences = (scala.collection.immutable.Set) in.readObject();
       var allDefinitions = in.readInline(scala.collection.immutable.List.class);
       var parent =
-          new org.enso.compiler.pass.analyse.AliasAnalysisGraph.Scope(
-              childScopes, occurrences, allDefinitions);
+          new Graph.Scope(childScopes, occurrences, allDefinitions);
       var optionParent = Option.apply(parent);
       childScopes.forall(
           (object) -> {
-            var ch = (org.enso.compiler.pass.analyse.AliasAnalysisGraph.Scope) object;
+            var ch = (Graph.Scope) object;
             ch.parent_$eq(optionParent);
             return null;
           });
@@ -134,7 +136,7 @@ public final class PassPersistance {
     @Override
     @SuppressWarnings("unchecked")
     protected void writeObject(
-        org.enso.compiler.pass.analyse.AliasAnalysisGraph.Scope obj, Output out)
+        Graph.Scope obj, Output out)
         throws IOException {
       out.writeInline(scala.collection.immutable.List.class, obj.childScopes());
       out.writeObject(obj.occurrences());
@@ -143,16 +145,16 @@ public final class PassPersistance {
   }
 
   @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
-  public static final class PersistAliasAnalysisGraph extends Persistance<AliasAnalysisGraph> {
+  public static final class PersistAliasAnalysisGraph extends Persistance<Graph> {
     public PersistAliasAnalysisGraph() {
-      super(AliasAnalysisGraph.class, false, 1268);
+      super(Graph.class, false, 1268);
     }
 
     @SuppressWarnings("unchecked")
-    protected AliasAnalysisGraph readObject(Input in) throws IOException {
-      var g = new AliasAnalysisGraph();
+    protected Graph readObject(Input in) throws IOException {
+      var g = new Graph();
 
-      var rootScope = (AliasAnalysisGraph.Scope) in.readObject();
+      var rootScope = (Graph.Scope) in.readObject();
       assignParents(rootScope);
       g.rootScope_$eq(rootScope);
 
@@ -168,13 +170,13 @@ public final class PassPersistance {
 
     @SuppressWarnings("unchecked")
     @Override
-    protected void writeObject(AliasAnalysisGraph obj, Output out) throws IOException {
+    protected void writeObject(Graph obj, Output out) throws IOException {
       out.writeObject(obj.rootScope());
       out.writeInline(scala.collection.immutable.Set.class, obj.links());
       out.writeInt(obj.nextIdCounter());
     }
 
-    private static void assignParents(AliasAnalysisGraph.Scope scope) {
+    private static void assignParents(Graph.Scope scope) {
       var option = Option.apply(scope);
       scope
           .childScopes()
