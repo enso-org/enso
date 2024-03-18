@@ -703,15 +703,22 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
   }
 }
 
+/** Any object with a `type` field matching the given `AssetType`. */
+interface HasType<Type extends AssetType> {
+  readonly type: Type
+}
+
 /** A union of all possible {@link Asset} variants. */
-export type AnyAsset =
+export type AnyAsset<Type extends AssetType = AssetType> = Extract<
   | DataLinkAsset
   | DirectoryAsset
   | FileAsset
   | ProjectAsset
   | SecretAsset
   | SpecialEmptyAsset
-  | SpecialLoadingAsset
+  | SpecialLoadingAsset,
+  HasType<Type>
+>
 
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {

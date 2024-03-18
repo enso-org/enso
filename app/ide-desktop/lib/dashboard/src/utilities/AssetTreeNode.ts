@@ -13,14 +13,14 @@ export interface AssetTreeNodeData
   > {}
 
 /** A node in the drive's item tree. */
-export default class AssetTreeNode {
+export default class AssetTreeNode<Item extends backendModule.AnyAsset = backendModule.AnyAsset> {
   /** Create a {@link AssetTreeNode}. */
   constructor(
     /** The id of the asset (or the placeholder id for new assets). This must never change. */
-    public readonly key: backendModule.AssetId,
+    public readonly key: Item['id'],
     /** The actual asset. This MAY change if this is initially a placeholder item, but rows MAY
      * keep updated values within the row itself as well. */
-    public item: backendModule.AnyAsset,
+    public item: Item,
     /** The id of the asset's parent directory (or the placeholder id for new assets).
      * This must never change. */
     public readonly directoryKey: backendModule.AssetId,
@@ -55,6 +55,13 @@ export default class AssetTreeNode {
   ): AssetTreeNode {
     getKey ??= oldAsset => oldAsset.id
     return new AssetTreeNode(getKey(asset), asset, directoryKey, directoryId, null, depth)
+  }
+
+  /** Whether this node contains a specific type of asset. */
+  isType<Type extends backendModule.AssetType>(
+    type: Type
+  ): this is AssetTreeNode<backendModule.AnyAsset<Type>> {
+    return backendModule.assetIsType(type)(this.item)
   }
 
   /** Create a new {@link AssetTreeNode} with the specified properties updated. */
