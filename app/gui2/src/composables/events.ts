@@ -134,7 +134,7 @@ const hasWindow = typeof window !== 'undefined'
 const platform = hasWindow ? window.navigator?.platform ?? '' : ''
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
 
-export function modKey(e: KeyboardEvent): boolean {
+export function modKey(e: KeyboardEvent | MouseEvent): boolean {
   return isMacLike ? e.metaKey : e.ctrlKey
 }
 

@@ -631,6 +631,10 @@
 - [Implemented Excel Data Link][9346]
 - [Added Table.running][9346]
 - [Added Google_Analytics.Read][9239]
+- [Added `Table.from_union` to allow expanding a vector of tables in one
+  step][9343]
+- [Implemented constructors, comparisons, and arithmetic for a `Decimal`
+  type.][9272]
 - [Allow `Table.replace` to take mutiple target columns.][9406]
 
 [debug-shortcuts]:
@@ -913,11 +917,13 @@
 [9239]: https://github.com/enso-org/enso/pull/9239
 [9249]: https://github.com/enso-org/enso/pull/9249
 [9269]: https://github.com/enso-org/enso/pull/9269
+[9272]: https://github.com/enso-org/enso/pull/9272
 [9299]: https://github.com/enso-org/enso/pull/9299
 [9330]: https://github.com/enso-org/enso/pull/9330
 [9334]: https://github.com/enso-org/enso/pull/9334
 [9346]: https://github.com/enso-org/enso/pull/9346
 [9382]: https://github.com/enso-org/enso/pull/9382
+[9343]: https://github.com/enso-org/enso/pull/9343
 [9406]: https://github.com/enso-org/enso/pull/9406
 
 #### Enso Compiler

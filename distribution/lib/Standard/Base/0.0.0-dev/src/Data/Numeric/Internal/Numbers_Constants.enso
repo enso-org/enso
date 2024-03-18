@@ -1,0 +1,13 @@
+private
+
+from project.Data.Numbers import Float
+
+polyglot java import java.lang.Double
+
+## PRIVATE
+   Maximum representable positive value, from the underlying Java double type.
+Float.max_value = Double.MAX_VALUE
+
+## PRIVATE
+   Minimum representable positive value, from the underlying Java double type.
+Float.min_value = Double.MIN_VALUE

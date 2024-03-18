@@ -1,0 +1,20 @@
+polyglot java import java.math.RoundingMode
+
+## A wrapper around the Java
+   [`RoundingMode`](https://docs.oracle.com/javase/8/docs/api/java/math/RoundingMode.html)
+    class.
+
+   `Rounding_Mode` is used to specify the method to use for rounding a value in
+   operations on `Decimal`s.` See `Decimal` for more details.
+type Rounding_Mode
+    Value (rounding_mode : RoundingMode)
+
+    # Round towards positive infinity for positive numbers, and negative
+    # infinity for negative numbers. (This is the default.)
+    half_up : Rounding_Mode
+    half_up = Rounding_Mode.Value RoundingMode.HALF_UP
+
+    ## Rownd towards the nearest neighbor, with ties broken by rounding towards
+       the nearest even neighbor.
+    bankers : Rounding_Mode
+    bankers = Rounding_Mode.Value RoundingMode.HALF_EVEN

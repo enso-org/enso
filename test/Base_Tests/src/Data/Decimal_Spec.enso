@@ -1,0 +1,498 @@
+from Standard.Base import all
+import Standard.Base.Data.Numeric.Internal.Numbers_Constants
+import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Base.Data.Numbers import Number_Parse_Error
+from Standard.Base.Errors.Common import Loss_Of_Numeric_Precision
+
+from Standard.Test import all
+
+polyglot java import org.enso.base.numeric.Decimal_Utils
+
+Decimal.should_have_rep self rep = self.internal_representation . should_equal rep
+
+add_specs suite_builder =
+    suite_builder.group "construction" group_builder->
+        group_builder.specify "should be able to construct a Decimal from a string" <|
+            Decimal.new "123.45" . should_have_rep [12345, 5, 2]
+            Decimal.parse "123.45" . should_have_rep [12345, 5, 2]
+
+        group_builder.specify "should throw Number_Parse_Error on a badly-formatted string" <|
+            Decimal.new "ee" . should_fail_with Number_Parse_Error
+            Decimal.new "--123.3.3" . should_fail_with Number_Parse_Error
+
+        group_builder.specify "should be able to construct a Decimal from a string, with an explicit precision, using the default rounding" <|
+            mc = Math_Context.new 4
+            Decimal.new "123.45" mc . should_have_rep [1235, 4, 1]
+            Decimal.new "123.45" mc . should_equal (Decimal.new "123.5")
+
+        group_builder.specify "should be able to construct a Decimal from a string, with an explicit precision, using a non-default rounding" <|
+            mc = Math_Context.new 4 Rounding_Mode.bankers
+            Decimal.new "123.45" mc . should_have_rep [1234, 4, 1]
+            Decimal.new "123.45" mc . should_equal (Decimal.new "123.4")
+
+        group_builder.specify "should be able to construct a Decimal from a long string" <|
+            Decimal.new "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+            Decimal.parse "495782984723948723947239938732974241.2345" . should_have_rep [4957829847239487239472399387329742412345, 40, 4]
+
+        group_builder.specify "should be able to construct a Decimal from a small integer" <|
+            Decimal.new 1234500 . should_have_rep [1234500, 7, 0]
+
+        group_builder.specify "should be able to construct a Decimal from a small integer, with an explicit precision, using the default rounding" <|
+            mc = Math_Context.new 4
+            Decimal.new 1234500 mc . should_have_rep [1235, 4, -3]
+            Decimal.new 1234500 mc . should_equal (Decimal.new 1235000)
+
+        group_builder.specify "should be able to construct a Decimal from a small integer, with an explicit precision, using the non-default rounding" <|
+            mc = Math_Context.new 4 Rounding_Mode.bankers
+            Decimal.new 1234500 mc . should_have_rep [1234, 4, -3]
+            Decimal.new 1234500 mc . should_equal (Decimal.new 1234000)
+
+        group_builder.specify "should be able to construct a Decimal from a large integer" <|
+            Decimal.new 495782984723948723947239938732974241234500 . should_have_rep [495782984723948723947239938732974241234500 , 42, 0]
+
+        group_builder.specify "should be able to construct a Decimal from a large integer, with an explicit precision, using the default rounding" <|
+            mc = Math_Context.new 39
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_have_rep [495782984723948723947239938732974241235 , 39, -3]
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_equal (Decimal.new 495782984723948723947239938732974241235000 )
+
+        group_builder.specify "should be able to construct a Decimal from a large integer, with an explicit precision, using the non-default rounding" <|
+            mc = Math_Context.new 39 Rounding_Mode.bankers
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_have_rep [495782984723948723947239938732974241234 , 39, -3]
+            Decimal.new 495782984723948723947239938732974241234500 mc . should_equal (Decimal.new 495782984723948723947239938732974241234000 )
+
+        group_builder.specify "should be able to construct a Decimal from a float" <|
+            d = Decimal.from_float 123.45
+            d.should_have_rep [12345, 5, 2]
+
+        group_builder.specify "should be able to construct a Decimal from a float, with an explicit precision, using the default rounding" <|
+            mc = Math_Context.new 5
+            d = Decimal.from_float 123.125 mc
+            d.should_have_rep [12313, 5, 2]
+            d.should_equal (Decimal.new "123.13")
+
+        group_builder.specify "should be able to construct a Decimal from a float, with an explicit precision, using a non-default rounding" <|
+            mc = Math_Context.new 5 Rounding_Mode.bankers
+            d = Decimal.from_float 123.125 mc
+            d.should_have_rep [12312, 5, 2]
+            d.should_equal (Decimal.new "123.12")
+
+        group_builder.specify "should be able to explicity and implicitly specify infinite precision" <|
+            Decimal.new "123.125" (Math_Context.new 5) . should_equal 123.13
+            Decimal.new "123.125" (Math_Context.new Unlimited) . should_equal 123.125
+            Decimal.new "123.125" (Math_Context.new 0) . should_equal 123.125
+
+            d1 = Decimal.new "1"
+            d3 = Decimal.new "3"
+            d4 = Decimal.new "4"
+
+            d1.divide d4 (Math_Context.new Unlimited) . should_equal 0.25
+            d1.divide d3 (Math_Context.new 12) . internal_representation . should_equal [333333333333, 12, 12]
+            d1.divide d3 . should_fail_with Arithmetic_Error
+            d1.divide d3 (Math_Context.new Unlimited) . should_fail_with Arithmetic_Error
+
+        group_builder.specify "should report precision loss accurately" <|
+            mc4 = Math_Context.new 4
+            mc5 = Math_Context.new 5
+
+            Problems.not_expect_warning (Decimal.new "123.25")
+            Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc4)
+            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new "123.25" mc5)
+
+            Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25)
+            Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc4)
+            Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 123.25 mc5)
+
+            Problems.not_expect_warning (Decimal.new 12325)
+            Problems.expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc4)
+            Problems.not_expect_warning Loss_Of_Numeric_Precision (Decimal.new 12325 mc5)
+
+        group_builder.specify "should throw Illegal_Argument for NaN/Inf" <|
+            Decimal.new Number.nan . should_fail_with Illegal_Argument
+            Decimal.new Number.positive_infinity . should_fail_with Illegal_Argument
+            Decimal.new Number.negative_infinity . should_fail_with Illegal_Argument
+
+        group_builder.specify "should be convertible via .from" <|
+            Decimal.from "123.45" . should_equal (Decimal.new "123.45")
+            Decimal.from "123.45" . should_equal (Decimal.parse "123.45")
+            Decimal.from 123.45 . should_equal (Decimal.new 123.45)
+            Decimal.from 123.45 . should_equal (Decimal.from_float 123.45)
+            Decimal.from 12345 . should_equal (Decimal.new 12345)
+            Decimal.from 12345 . should_equal (Decimal.from_integer 12345)
+
+        group_builder.specify "constructor should respect Math_Context " <|
+            Decimal.new 12000 (Math_Context.new 0) . should_equal 12000
+            Decimal.new 12000 (Math_Context.new 1) . should_equal 10000
+            Decimal.new 12000 (Math_Context.new 2) . should_equal 12000
+            Decimal.new 12000 (Math_Context.new 3) . should_equal 12000
+
+    suite_builder.group "comparison" group_builder->
+        group_builder.specify "should compare correctly" <|
+            nums = [["-45.23", "124.872"], [-45.23, 124.872], [-45, 124]]
+            nums.map pr->
+                a = Decimal.new (pr.at 0)
+                b = Decimal.new (pr.at 1)
+
+                (a == a) . should_be_true
+                (b == b) . should_be_true
+                (a == b) . should_be_false
+                (b == a) . should_be_false
+
+                (a != a) . should_be_false
+                (b != b) . should_be_false
+                (a != b) . should_be_true
+                (b != a) . should_be_true
+
+                (a <= a) . should_be_true
+                (b <= b) . should_be_true
+                (a <= b) . should_be_true
+                (b <= a) . should_be_false
+
+                (a >= a) . should_be_true
+                (b >= b) . should_be_true
+                (a >= b) . should_be_false
+                (b >= a) . should_be_true
+
+                (a < b) . should_be_true
+                (b > a) . should_be_true
+                (a > b) . should_be_false
+                (b < a) . should_be_false
+
+                (a <= b) . should_be_true
+                (b >= a) . should_be_true
+                (a >= b) . should_be_false
+                (b <= a) . should_be_false
+
+                (a < a) . should_be_false
+                (b < b) . should_be_false
+                (a > a) . should_be_false
+                (b > b) . should_be_false
+
+                a . should_equal a
+                b . should_equal b
+                a . should_not_equal b
+                b . should_not_equal a
+
+        group_builder.specify "should compare correctly, even with different internal representations" <|
+            a = Decimal.new "12000"
+            b = Decimal.new "12000" (Math_Context.new 2)
+            c = Decimal.new "12000" (Math_Context.new 3)
+            [[a, b], [a, c], [b, c]].map pr->
+                x0 = pr.at 0
+                x1 = pr.at 1
+                ir0 = x0.internal_representation
+                ir1 = x1.internal_representation
+
+                ir0 . should_not_equal ir1
+
+                (x0 == x1) . should_be_true
+                (x1 == x0) . should_be_true
+                (x0 != x1) . should_be_false
+                (x1 != x0) . should_be_false
+
+        group_builder.specify "should compare correctly to Integer and Float" <|
+            ok_values = []
+                + [[0.1, 0.1]]
+                + [["0.1", 0.1]]
+                + [["0", 0]]
+                + [["1", 1]]
+                + [["-1", -1]]
+                + [["2", 2]]
+                + [["-2", -2]]
+                + [["0", 0.0]]
+                + [["1", 1.0]]
+                + [["-1", -1.0]]
+                + [["2", 2.0]]
+                + [["-2", -2.0]]
+                + [[0, 0]]
+                + [[1, 1]]
+                + [[-1, -1]]
+                + [[2, 2]]
+                + [[-2, -2]]
+                + [[0, 0.0]]
+                + [[1, 1.0]]
+                + [[-1, -1.0]]
+                + [[2, 2.0]]
+                + [[-2, -2.0]]
+                + [["12.34", 12.34]]
+                + [["-34.56", -34.56]]
+                + [["72775434512.34", 72775434512.34]]
+                + [["-347757349.56784374", -347757349.56784374]]
+                + [[12.34, 12.34]]
+                + [[-34.56, -34.56]]
+                + [[72775434512.34, 72775434512.34]]
+                + [[-347757349.56784374, -347757349.56784374]]
+                + [["2.0", 2.0]]
+                + [["2.00", 2.0]]
+                + [["2.000", 2.0]]
+                + [[9223372036854770000.0, 9223372036854770000.0]]
+                + [[9223372036854770000000.0, 9223372036854770000000.0]]
+                + [[92233720368547700000000000000000000000.0, 92233720368547700000000000000000000000.0]]
+                + [[9223372036854775805, 9223372036854775805]]
+                + [[9223372036854775806, 9223372036854775806]]
+                + [[9223372036854775807, 9223372036854775807]]
+                + [[9223372036854775808, 9223372036854775808]]
+                + [[9223372036854775809, 9223372036854775809]]
+                + [[9223372036854775999, 9223372036854775999]]
+                + [[9223372036854776000, 9223372036854776000]]
+                + [[9223372036854776001, 9223372036854776001]]
+                + [[9223372036854777000, 9223372036854777000]]
+                + [[-9223372036854775810, -9223372036854775810]]
+                + [[-9223372036854775809, -9223372036854775809]]
+                + [[-9223372036854775808, -9223372036854775808]]
+                + [[-9223372036854775807, -9223372036854775807]]
+                + [[-9223372036854775807, -9223372036854775807]]
+                + [[-9223372036854775806, -9223372036854775806]]
+                + [[3946372036854775806000, 3946372036854775806000]]
+                + [[3946372036854775807000, 3946372036854775807000]]
+                + [[3946372036854775808000, 3946372036854775808000]]
+                + [[-3946372036854775809000, -3946372036854775809000]]
+                + [[-3946372036854775808000, -3946372036854775808000]]
+                + [[-3946372036854775807000, -3946372036854775807000]]
+                + [[39463720368547758060000000, 39463720368547758060000000]]
+                + [[39463720368547758070000000, 39463720368547758070000000]]
+                + [[39463720368547758080000000, 39463720368547758080000000]]
+                + [[-39463720368547758090000000, -39463720368547758090000000]]
+                + [[-39463720368547758080000000, -39463720368547758080000000]]
+                + [[-39463720368547758070000000, -39463720368547758070000000]]
+                + [["9223372036854775805", 9223372036854775805]]
+                + [["9223372036854775806", 9223372036854775806]]
+                + [["9223372036854775807", 9223372036854775807]]
+                + [["9223372036854775808", 9223372036854775808]]
+                + [["9223372036854775809", 9223372036854775809]]
+                + [["9223372036854775999", 9223372036854775999]]
+                + [["9223372036854776000", 9223372036854776000]]
+                + [["9223372036854776001", 9223372036854776001]]
+                + [["9223372036854777000", 9223372036854777000]]
+                + [["-9223372036854775810", -9223372036854775810]]
+                + [["-9223372036854775809", -9223372036854775809]]
+                + [["-9223372036854775808", -9223372036854775808]]
+                + [["-9223372036854775807", -9223372036854775807]]
+                + [["-9223372036854775807", -9223372036854775807]]
+                + [["-9223372036854775806", -9223372036854775806]]
+                + [["3946372036854775806000", 3946372036854775806000]]
+                + [["3946372036854775807000", 3946372036854775807000]]
+                + [["3946372036854775808000", 3946372036854775808000]]
+                + [["-3946372036854775809000", -3946372036854775809000]]
+                + [["-3946372036854775808000", -3946372036854775808000]]
+                + [["-3946372036854775807000", -3946372036854775807000]]
+                + [["39463720368547758060000000", 39463720368547758060000000]]
+                + [["39463720368547758070000000", 39463720368547758070000000]]
+                + [["39463720368547758080000000", 39463720368547758080000000]]
+                + [["-39463720368547758090000000", -39463720368547758090000000]]
+                + [["-39463720368547758080000000", -39463720368547758080000000]]
+                + [["-39463720368547758070000000", -39463720368547758070000000]]
+                + [[Float.max_value, Float.max_value]]
+                + [[-Float.max_value, -Float.max_value]]
+                + [[Float.min_value, Float.min_value]]
+                + [[-Float.min_value, -Float.min_value]]
+                + [[Float.max_value-1.0, Float.max_value-1.0]]
+                + [[-Float.max_value+1.0, -Float.max_value+1.0]]
+
+            problematic_values = []
+                + [[9223372036854776000.0, 9223372036854776000.0]]
+                + [[-9223372036854776000.0, -9223372036854776000.0]]
+                + [["9223372036854776000.0", 9223372036854776000.0]]
+                + [["-9223372036854776000.0", -9223372036854776000.0]]
+
+            # TODO: Include problematic values pending https://github.com/enso-org/enso/issues/9296.
+            values = ok_values # + problematic_values
+            _ = [problematic_values]
+
+            values.map pr->
+                v = pr.at 0
+                d = Decimal.new v
+                expected = pr.at 1
+
+                d . should_equal expected
+                expected . should_equal d
+                (d == expected) . should_be_true
+                (expected == d) . should_be_true
+                (d != expected) . should_be_false
+                (expected != d) . should_be_false
+
+                if v.is_a Text . not then
+                    lesser = if v > 10000 then v/2 else if v < -10000 then v*2 else v-1
+                    greater = if v > 10000 then v*2 else if v < -10000 then v/2 else v+1
+                    (v > lesser) . should_be_true
+                    (v < greater) . should_be_true
+
+                    (d <= v) . should_be_true
+                    (d >= v) . should_be_true
+                    (v <= d) . should_be_true
+                    (v >= d) . should_be_true
+
+                    (d < d) . should_be_false
+                    (d > d) . should_be_false
+                    (d <= d) . should_be_true
+                    (d >= d) . should_be_true
+
+                    if greater.is_infinite.not then
+                        (d < greater) . should_be_true
+                        (d <= greater) . should_be_true
+                        (greater > d) . should_be_true
+                        (greater >= d) . should_be_true
+                        (d > greater) . should_be_false
+                        (d >= greater) . should_be_false
+                        (greater < d) . should_be_false
+                        (greater <= d) . should_be_false
+
+                    if lesser.is_infinite.not then
+                        (d > lesser) . should_be_true
+                        (d >= lesser) . should_be_true
+                        (lesser < d) . should_be_true
+                        (lesser <= d) . should_be_true
+                        (d < lesser) . should_be_false
+                        (d <= lesser) . should_be_false
+                        (lesser > d) . should_be_false
+                        (lesser >= d) . should_be_false
+
+    suite_builder.group "edge cases" group_builder->
+        group_builder.specify "can support values outside the double range" <|
+            d = Decimal.new Float.max_value
+            (d == Float.max_value) . should_be_true
+            ((d * d) == Float.max_value) . should_be_false
+            ((-(d * d)) == -Float.max_value) . should_be_false
+            Comparable.hash_builtin (d * d) . should_equal -1851772048
+            Comparable.hash_builtin -(d * d) . should_equal 1851772048
+            Comparable.hash_builtin ((d * d) + 0.1) . should_equal -1176480326
+            Comparable.hash_builtin ((-(d * d)) + 0.1) . should_equal -534461530
+
+    suite_builder.group "arithmetic" group_builder->
+        group_builder.specify "should allow arithmetic with Decimals, without Math_Context" <|
+            (Decimal.new 1 + Decimal.new 2) . should_equal (Decimal.new 3)
+            (Decimal.new 1.1 + Decimal.new 2.2) . should_equal (Decimal.new 3.3)
+
+            (Decimal.new 10 - Decimal.new 6) . should_equal (Decimal.new 4)
+            (Decimal.new 10.1 - Decimal.new 6.6) . should_equal (Decimal.new 3.5)
+
+            (Decimal.new 3 * Decimal.new 7) . should_equal (Decimal.new 21)
+            (Decimal.new 3.12 * Decimal.new 7.97) . should_equal (Decimal.new 24.8664)
+
+            (Decimal.new 50 / Decimal.new 2) . should_equal (Decimal.new 25)
+            (Decimal.new 50.75 / Decimal.new 2.5) . should_equal (Decimal.new 20.3)
+
+            (Decimal.new 1 + Decimal.new -2) . should_equal (Decimal.new -1)
+            (Decimal.new 1.1 + Decimal.new -2.2) . should_equal (Decimal.new -1.1)
+
+            (Decimal.new -10 - Decimal.new 6) . should_equal (Decimal.new -16)
+            (Decimal.new 10.1 - Decimal.new -6.6) . should_equal (Decimal.new 16.7)
+
+            (Decimal.new 3 * Decimal.new -7) . should_equal (Decimal.new -21)
+            (Decimal.new -3.12 * Decimal.new 7.97) . should_equal (Decimal.new -24.8664)
+
+            (Decimal.new -50 / Decimal.new -2) . should_equal (Decimal.new 25)
+            (Decimal.new -50.75 / Decimal.new -2.5) . should_equal (Decimal.new 20.3)
+
+            (Decimal.new 213427523957 + Decimal.new 93849398884384) . should_equal (Decimal.new 94062826408341)
+            (Decimal.new "723579374753.3535345" + Decimal.new "35263659267.23434535") . should_equal (Decimal.new "758843034020.58787985")
+
+            (Decimal.new -29388920982834 - Decimal.new 842820) . should_equal (Decimal.new -29388921825654)
+            (Decimal.new "-8273762787.3535345" - Decimal.new "76287273.23434535") . should_equal (Decimal.new "-8350050060.58787985")
+
+            (Decimal.new 7297927982888383 * Decimal.new 828737) . should_equal (Decimal.new 6048062942754969862271)
+            (Decimal.new "893872388.3535345" * Decimal.new "72374727737.23434535") . should_equal (Decimal.new "64693770738918463976.840471466139575")
+
+            (Decimal.new "909678645268840" / Decimal.new "28029830") . should_equal (Decimal.new "32453948")
+            (Decimal.new "384456406.7860325392609633764" / Decimal.new "24556.125563546") . should_equal (Decimal.new "15656.2323234234")
+
+            (Decimal.new 3948539458034580838458034803485 + Decimal.new 237957498573948579387495837459837) . should_equal (Decimal.new 241906038031983160225953872263322)
+            (Decimal.new "927349527347587934.34573495739475938745" + Decimal.new "37593874597239487593745.3457973847574") . should_equal (Decimal.new "37594801946766835181679.69153234215215938745")
+
+            (Decimal.new -239485787538745937495873495759598 - Decimal.new 273958739485793475934793745) . should_equal (Decimal.new -239486061497485423289349430553343)
+            (Decimal.new "-79237492374927979579239292.293749287928373" - Decimal.new "239729379279872947923947.234273947927397239") . should_equal (Decimal.new "-79477221754207852527163239.528023235855770239")
+
+            (Decimal.new 3745937948729837923798237 * Decimal.new 273948729872398729387) . should_equal (Decimal.new 1026194943235357770434981633846801087750690719)
+            (Decimal.new "38450830483049850394093.48579374987938934" * Decimal.new "297349287397297.2394279379287398729879234") . should_equal (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556")
+
+            (Decimal.new 1026194943235357770434981633846801087750690719 / Decimal.new 273948729872398729387) . should_equal (Decimal.new 3745937948729837923798237)
+            (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" / Decimal.new "297349287397297.2394279379287398729879234") . should_equal (Decimal.new "38450830483049850394093.48579374987938934")
+
+        group_builder.specify "should allow arithmetic with Decimals, with precision setting (examples)" <|
+             (Decimal.new "10.22") . add (Decimal.new "20.33") (Math_Context.new 3) . should_equal (Decimal.new 30.6)
+             (Decimal.new "20.33") . subtract (Decimal.new "10.22") (Math_Context.new 3) . should_equal (Decimal.new 10.1)
+             (Decimal.new "10.22") . multiply (Decimal.new "20.33") (Math_Context.new 4) . should_equal (Decimal.new 207.8)
+             (Decimal.new "1065.9378") . divide (Decimal.new "23.34") (Math_Context.new 3) . should_equal (Decimal.new 45.7)
+
+        group_builder.specify "should allow arithmetic with Decimals, with precision setting" <|
+            (Decimal.new 213427523957 . add (Decimal.new 93849398884384) (Math_Context.new 8)) . should_equal (Decimal.new 94062826000000)
+            (Decimal.new "723579374753.3535345" . add (Decimal.new "35263659267.23434535") (Math_Context.new 12)) . should_equal (Decimal.new "758843034021")
+
+            (Decimal.new -29388920982834 . subtract (Decimal.new 842820) (Math_Context.new 7)) . should_equal (Decimal.new -29388920000000)
+            (Decimal.new "-8273762787.3535345" . subtract (Decimal.new "76287273.23434535") (Math_Context.new 10)) . should_equal (Decimal.new "-8350050061")
+
+            (Decimal.new 7297927982888383 . multiply  (Decimal.new 828737) (Math_Context.new 6)) . should_equal (Decimal.new 6048060000000000000000 )
+            (Decimal.new "893872388.3535345" . multiply  (Decimal.new "72374727737.23434535") (Math_Context.new 14)) . should_equal (Decimal.new "64693770738918000000")
+
+            (Decimal.new "909678645268840" . divide (Decimal.new "28029830") (Math_Context.new 6)) . should_equal (Decimal.new "32453900 ")
+            (Decimal.new "384456406.7860325392609633764" . divide (Decimal.new "24556.125563546") (Math_Context.new 7)) . should_equal (Decimal.new "15656.23")
+
+            (Decimal.new 3948539458034580838458034803485 . add (Decimal.new 237957498573948579387495837459837) (Math_Context.new 20)) . should_equal (Decimal.new 241906038031983160230000000000000)
+            (Decimal.new "927349527347587934.34573495739475938745" . add (Decimal.new "37593874597239487593745.3457973847574") (Math_Context.new 24)) . should_equal (Decimal.new "37594801946766835181679.7")
+
+            (Decimal.new -239485787538745937495873495759598 . subtract (Decimal.new 273958739485793475934793745) (Math_Context.new 12)) . should_equal (Decimal.new -239486061497000000000000000000000)
+            (Decimal.new "-79237492374927979579239292.293749287928373" . subtract (Decimal.new "239729379279872947923947.234273947927397239") (Math_Context.new 16)) . should_equal (Decimal.new "-79477221754207850000000000")
+
+            (Decimal.new 3745937948729837923798237 . multiply  (Decimal.new 273948729872398729387) (Math_Context.new 21)) . should_equal (Decimal.new 1026194943235357770430000000000000000000000000)
+            (Decimal.new "38450830483049850394093.48579374987938934" . multiply  (Decimal.new "297349287397297.2394279379287398729879234") (Math_Context.new 35)) . should_equal (Decimal.new "11433327043969147404767677628296882000")
+
+            (Decimal.new 1026194943235357770434981633846801087750690719 . divide (Decimal.new 273948729872398729387) (Math_Context.new 10)) . should_equal (Decimal.new 3745937949000000000000000)
+            (Decimal.new "11433327043969147404767677628296882442.487387236451853113753778864149360386696556" . divide (Decimal.new "297349287397297.2394279379287398729879234") (Math_Context.new 9)) . should_equal (Decimal.new "38450830500000000000000")
+
+        group_builder.specify "should allow arithmetic with Decimals, with precision setting and rounding mode" <|
+            (Decimal.new 3.4 . add (Decimal.new 20.05) (Math_Context.new 3)) . should_equal (Decimal.new 23.5)
+            (Decimal.new 3.4 . add (Decimal.new 20.05) (Math_Context.new 3 Rounding_Mode.bankers)) . should_equal (Decimal.new 23.4)
+            (Decimal.new -3.4 . add (Decimal.new -20.05) (Math_Context.new 3)) . should_equal (Decimal.new -23.5)
+            (Decimal.new -3.4 . add (Decimal.new -20.05) (Math_Context.new 3 Rounding_Mode.bankers)) . should_equal (Decimal.new -23.4)
+            (Decimal.new -867.625 . subtract (Decimal.new -33.05) (Math_Context.new 5)) . should_equal (Decimal.new -834.58)
+            (Decimal.new -867.625 . subtract (Decimal.new -33.05) (Math_Context.new 5 Rounding_Mode.bankers)) . should_equal (Decimal.new -834.58)
+            (Decimal.new 49.31 . multiply (Decimal.new 5) (Math_Context.new 4)) . should_equal (Decimal.new 246.6)
+            (Decimal.new 49.31 . multiply (Decimal.new 5) (Math_Context.new 4 Rounding_Mode.bankers)) . should_equal (Decimal.new 246.6)
+            (Decimal.new 49.29 . multiply (Decimal.new 5) (Math_Context.new 4)) . should_equal (Decimal.new 246.5)
+            (Decimal.new 49.29 . multiply (Decimal.new 5) (Math_Context.new 4 Rounding_Mode.bankers)) . should_equal (Decimal.new 246.4)
+            (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3)) . should_equal (Decimal.new -49.6)
+            (Decimal.new 247.75 . divide (Decimal.new -5) (Math_Context.new 3 Rounding_Mode.bankers)) . should_equal (Decimal.new -49.6)
+
+        group_builder.specify "should allow mixed arithmetic" <|
+            (Decimal.new 1 + 2) . should_equal 3
+            (Decimal.new 1 - 2) . should_equal -1
+            (Decimal.new 3 * 4) . should_equal 12
+            (Decimal.new 3 / 4) . should_equal 0.75
+
+            (1 + Decimal.new 2) . should_equal 3
+            (1 - Decimal.new 2) . should_equal -1
+            (3 * Decimal.new 4) . should_equal 12
+            (3 / Decimal.new 4) . should_equal 0.75
+
+            (Decimal.new 1 + 2.0) . should_equal 3
+            (Decimal.new 1 - 2.0) . should_equal -1
+            (Decimal.new 3 * 4.0) . should_equal 12
+            (Decimal.new 3 / 4.0) . should_equal 0.75
+
+            (1 + Decimal.new 2.0) . should_equal 3
+            (1 - Decimal.new 2.0) . should_equal -1
+            (3 * Decimal.new 4.0) . should_equal 12
+            (3 / Decimal.new 4.0) . should_equal 0.75
+
+        group_builder.specify "should get an aritmetic error when a result is a nonterminating decimal expansion" <|
+            (Decimal.new 1 / Decimal.new 3) . should_fail_with Arithmetic_Error
+
+        group_builder.specify "should negate values correctly" <|
+            Decimal.new 5 . negate . should_equal -5
+            Decimal.new -5 . negate . should_equal 5
+            Decimal.new 5.3 . negate . should_equal -5.3
+            Decimal.new -5.3 . negate . should_equal 5.3
+            Decimal.new 0 . negate . should_equal 0
+            Decimal.new -0 . negate . should_equal 0
+            d = Decimal.new 5
+            nd = -d
+            nd . should_equal -5
+            d2 = Decimal.new -5
+            nd2 = -d2
+            nd2 . should_equal 5
+
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter
