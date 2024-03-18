@@ -47,6 +47,9 @@ interface PlaceholderOverrides {
   readonly xUsersSelected: [string]
   readonly upgradeTo: [string]
   readonly enterTheNewKeyboardShortcutFor: [string]
+  readonly downloadProjectError: [string]
+  readonly downloadFileError: [string]
+  readonly downloadDataLinkError: [string]
 
   readonly inviteUserBackendError: [string]
   readonly listFolderBackendError: [string]

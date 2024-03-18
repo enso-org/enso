@@ -241,8 +241,6 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use self-closing tags (`<tag />`) for tags without children',
     },
     {
-        // TODO [sb]: https://github.com/enso-org/cloud-v2/issues/946
-        // `z-3` should be eliminated, but is currently still required.
         selector: `:matches(\
             TemplateElement[value.raw=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px|\\[)/],\
             Literal[value=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px|\\[)/]\

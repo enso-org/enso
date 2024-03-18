@@ -78,6 +78,7 @@ enum DriveStatus {
 export interface DriveProps {
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
+  readonly hideRows: boolean
   readonly initialProjectName: string | null
   /** These events will be dispatched the next time the assets list is refreshed, rather than
    * immediately. */
@@ -105,7 +106,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, initialProjectName, queuedAssetEvents } = props
+  const { supportsLocalBackend, hidden, hideRows, initialProjectName, queuedAssetEvents } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
@@ -117,7 +118,7 @@ export default function Drive(props: DriveProps) {
   const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
-  const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
+  const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [category, setCategory] = React.useState(
     () => localStorage.get('driveCategory') ?? Category.home
@@ -368,7 +369,7 @@ export default function Drive(props: DriveProps) {
             </h1>
             <DriveBar
               category={category}
-              canDownloadFiles={canDownloadFiles}
+              canDownload={canDownload}
               doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
@@ -399,9 +400,10 @@ export default function Drive(props: DriveProps) {
             )}
             <AssetsTable
               hidden={hidden}
+              hideRows={hideRows}
               query={query}
               setQuery={setQuery}
-              setCanDownloadFiles={setCanDownloadFiles}
+              setCanDownload={setCanDownload}
               category={category}
               allLabels={allLabels}
               setSuggestions={setSuggestions}

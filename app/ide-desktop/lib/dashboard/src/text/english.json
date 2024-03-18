@@ -29,8 +29,10 @@
   "editDescriptionError": "Could not edit description",
   "canOnlyDownloadFilesError": "You currently can only download files.",
   "noProjectSelectedError": "First select a project to download.",
-  "downloadNonFileError": "Cannot download assets that are not files",
-  "downloadFileError": "Could not download file",
+  "downloadInvalidTypeError": "You can only download files, projects, and Data Links",
+  "downloadProjectError": "Could not download project '$0'",
+  "downloadFileError": "Could not download file '$0'",
+  "downloadDataLinkError": "Could not download Data Link '$0'",
   "downloadSelectedFilesError": "Could not download selected files",
   "openEditorError": "Could not open editor",
   "setPermissionsError": "Could not set permissions for '$0'",
@@ -39,6 +41,9 @@
   "needsOwnerError": "This $0 must have at least one owner.",
   "asyncHookError": "Error while fetching data",
   "uploadProjectToCloudSuccess": "Successfully uploaded local project to the cloud!",
+
+  "projectHasNoSourceFilesPhrase": "project has no source files",
+  "fileNotFoundPhrase": "file not found",
 
   "noNewProfilePictureError": "Could not upload a new profile picture because no image was found",
 
