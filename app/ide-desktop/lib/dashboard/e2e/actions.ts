@@ -56,12 +56,12 @@ export function locateUsernameInput(page: test.Locator | test.Page) {
 }
 
 /** Find a "name" input for a "new label" modal (if any) on the current page. */
-export function locateNewLabelModalNameInput(page: test.Locator | test.Page) {
+export function locateNewLabelModalNameInput(page: test.Page) {
   return locateNewLabelModal(page).getByLabel('Name')
 }
 
 /** Find all color radio button inputs for a "new label" modal (if any) on the current page. */
-export function locateNewLabelModalColorButtons(page: test.Locator | test.Page) {
+export function locateNewLabelModalColorButtons(page: test.Page) {
   return (
     locateNewLabelModal(page)
       .filter({ has: page.getByText('Color') })
@@ -71,17 +71,17 @@ export function locateNewLabelModalColorButtons(page: test.Locator | test.Page) 
 }
 
 /** Find a "name" input for an "upsert secret" modal (if any) on the current page. */
-export function locateSecretNameInput(page: test.Locator | test.Page) {
+export function locateSecretNameInput(page: test.Page) {
   return locateUpsertSecretModal(page).getByPlaceholder('Enter the name of the secret')
 }
 
 /** Find a "value" input for an "upsert secret" modal (if any) on the current page. */
-export function locateSecretValueInput(page: test.Locator | test.Page) {
+export function locateSecretValueInput(page: test.Page) {
   return locateUpsertSecretModal(page).getByPlaceholder('Enter the value of the secret')
 }
 
 /** Find a search bar input (if any) on the current page. */
-export function locateSearchBarInput(page: test.Locator | test.Page) {
+export function locateSearchBarInput(page: test.Page) {
   return locateSearchBar(page).getByPlaceholder(
     'Type to search for projects, Data Links, users, and more.'
   )
@@ -157,7 +157,7 @@ export function locateStopProjectButton(page: test.Locator | test.Page) {
 }
 
 /** Find all labels in the labels panel (if any) on the current page. */
-export function locateLabelsPanelLabels(page: test.Locator | test.Page) {
+export function locateLabelsPanelLabels(page: test.Page) {
   return (
     locateLabelsPanel(page)
       .getByRole('button')
@@ -190,6 +190,21 @@ export function locateEditingCross(page: test.Locator | test.Page) {
 /** Find labels in the "Labels" column of the assets table (if any) on the current page. */
 export function locateAssetLabels(page: test.Locator | test.Page) {
   return page.getByTestId('asset-label')
+}
+
+/** Find a toggle for the "Name" column (if any) on the current page. */
+export function locateNameColumnToggle(page: test.Locator | test.Page) {
+  return page.getByAltText(/^(?:Show|Hide) Name$/)
+}
+
+/** Find a toggle for the "Modified" column (if any) on the current page. */
+export function locateModifiedColumnToggle(page: test.Locator | test.Page) {
+  return page.getByAltText(/^(?:Show|Hide) Modified date$/)
+}
+
+/** Find a toggle for the "Shared with" column (if any) on the current page. */
+export function locateSharedWithColumnToggle(page: test.Locator | test.Page) {
+  return page.getByAltText(/^(?:Show|Hide) Shared with$/)
 }
 
 /** Find a toggle for the "Labels" column (if any) on the current page. */
@@ -375,17 +390,17 @@ export function locateAssetPanelIcon(page: test.Locator | test.Page) {
 }
 
 /** Find a list of tags in the search bar (if any) on the current page. */
-export function locateSearchBarTags(page: test.Locator | test.Page) {
+export function locateSearchBarTags(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-tag-names').getByRole('button')
 }
 
 /** Find a list of labels in the search bar (if any) on the current page. */
-export function locateSearchBarLabels(page: test.Locator | test.Page) {
+export function locateSearchBarLabels(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-labels').getByRole('button')
 }
 
 /** Find a list of labels in the search bar (if any) on the current page. */
-export function locateSearchBarSuggestions(page: test.Locator | test.Page) {
+export function locateSearchBarSuggestions(page: test.Page) {
   return locateSearchBar(page).getByTestId('asset-search-suggestion')
 }
 
@@ -495,75 +510,89 @@ export function locateCollapsibleDirectories(page: test.Page) {
 }
 
 /** Find a "confirm delete" modal (if any) on the current page. */
-export function locateConfirmDeleteModal(page: test.Locator | test.Page) {
+export function locateConfirmDeleteModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('confirm-delete-modal')
 }
 
 /** Find a "new label" modal (if any) on the current page. */
-export function locateNewLabelModal(page: test.Locator | test.Page) {
+export function locateNewLabelModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('new-label-modal')
 }
 
 /** Find an "upsert secret" modal (if any) on the current page. */
-export function locateUpsertSecretModal(page: test.Locator | test.Page) {
+export function locateUpsertSecretModal(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('upsert-secret-modal')
 }
 
 /** Find a user menu (if any) on the current page. */
-export function locateUserMenu(page: test.Locator | test.Page) {
+export function locateUserMenu(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('user-menu')
 }
 
 /** Find a "set username" panel (if any) on the current page. */
-export function locateSetUsernamePanel(page: test.Locator | test.Page) {
+export function locateSetUsernamePanel(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('set-username-panel')
 }
 
 /** Find a set of context menus (if any) on the current page. */
-export function locateContextMenus(page: test.Locator | test.Page) {
+export function locateContextMenus(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('context-menus')
 }
 
 /** Find a labels panel (if any) on the current page. */
-export function locateLabelsPanel(page: test.Locator | test.Page) {
+export function locateLabelsPanel(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('labels')
 }
 
 /** Find a list of labels (if any) on the current page. */
-export function locateLabelsList(page: test.Locator | test.Page) {
+export function locateLabelsList(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('labels-list')
 }
 
 /** Find an asset panel (if any) on the current page. */
-export function locateAssetPanel(page: test.Locator | test.Page) {
+export function locateAssetPanel(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('asset-panel')
 }
 
 /** Find a search bar (if any) on the current page. */
-export function locateSearchBar(page: test.Locator | test.Page) {
+export function locateSearchBar(page: test.Page) {
   // This has no identifying features.
   return page.getByTestId('asset-search-bar')
+}
+
+/** Find an extra columns button panel (if any) on the current page. */
+export function locateExtraColumns(page: test.Page) {
+  // This has no identifying features.
+  return page.getByTestId('extra-columns')
+}
+
+/** Find a root directory dropzone (if any) on the current page.
+ * This is the empty space below the assets table, if it doesn't take up the whole screen
+ * vertically. */
+export function locateRootDirectoryDropzone(page: test.Page) {
+  // This has no identifying features.
+  return page.getByTestId('root-directory-dropzone')
 }
 
 // === Content locators ===
 
 /** Find an asset description in an asset panel (if any) on the current page. */
-export function locateAssetPanelDescription(page: test.Locator | test.Page) {
+export function locateAssetPanelDescription(page: test.Page) {
   // This has no identifying features.
   return locateAssetPanel(page).getByTestId('asset-panel-description')
 }
 
 /** Find asset permissions in an asset panel (if any) on the current page. */
-export function locateAssetPanelPermissions(page: test.Locator | test.Page) {
+export function locateAssetPanelPermissions(page: test.Page) {
   // This has no identifying features.
   return locateAssetPanel(page).getByTestId('asset-panel-permissions').getByRole('button')
 }
