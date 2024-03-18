@@ -1,7 +1,6 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
 
-import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
@@ -743,35 +742,27 @@ export default function AssetsTable(props: AssetsTableProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rootDirectory, category])
 
-  asyncEffectHooks.useAsyncEffect(
-    null,
-    async signal => {
-      setSelectedKeys(new Set())
-      if (!isCloud) {
-        const filterBy = CATEGORY_TO_FILTER_BY[category]
-        const newAssets = await rootDirectory.list({ filterBy, labels: null })
+  React.useEffect(() => {
+    const controller = new AbortController()
+    const signal = controller.signal
+    setSelectedKeys(new Set())
+    const filterBy = CATEGORY_TO_FILTER_BY[category]
+    void rootDirectory
+      .list({ filterBy, labels: null })
+      .then(newAssets => {
+        setIsLoading(false)
+        overwriteNodes(newAssets)
+      })
+      .catch(error => {
         if (!signal.aborted) {
           setIsLoading(false)
-          overwriteNodes(newAssets)
+          toastAndLog(null, error)
         }
-      } else {
-        try {
-          const filterBy = CATEGORY_TO_FILTER_BY[category]
-          const newAssets = await rootDirectory.list({ filterBy, labels: null })
-          if (!signal.aborted) {
-            setIsLoading(false)
-            overwriteNodes(newAssets)
-          }
-        } catch (error) {
-          if (!signal.aborted) {
-            setIsLoading(false)
-            toastAndLog(null, error)
-          }
-        }
-      }
-    },
-    [category, accessToken, user, setSelectedKeys]
-  )
+      })
+    return () => {
+      controller.abort()
+    }
+  }, [category, accessToken, user, rootDirectory, overwriteNodes, setSelectedKeys, toastAndLog])
 
   React.useEffect(() => {
     const savedEnabledColumns = localStorage.get('enabledColumns')
