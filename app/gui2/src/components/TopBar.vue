@@ -22,6 +22,7 @@ const emit = defineEmits<{
   fitToAllClicked: []
   zoomIn: []
   zoomOut: []
+  toggleCodeEditor: []
 }>()
 
 const LEFT_PADDING_PX = 11
@@ -56,6 +57,7 @@ const barStyle = computed(() => {
       @fitToAllClicked="emit('fitToAllClicked')"
       @zoomIn="emit('zoomIn')"
       @zoomOut="emit('zoomOut')"
+      @toggleCodeEditor="emit('toggleCodeEditor')"
     />
   </div>
 </template>

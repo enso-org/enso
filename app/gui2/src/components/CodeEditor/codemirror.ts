@@ -18,7 +18,8 @@ export { EditorView, tooltips, type TooltipView } from '@codemirror/view'
 export { type Highlighter } from '@lezer/highlight'
 export { minimalSetup } from 'codemirror'
 export { yCollab } from 'y-codemirror.next'
-import { RawAst, RawAstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast/extended'
+import { RawAst } from '@/util/ast/raw'
 import {
   Language,
   LanguageSupport,

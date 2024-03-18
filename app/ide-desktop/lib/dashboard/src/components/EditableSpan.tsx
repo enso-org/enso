@@ -106,13 +106,13 @@ export default function EditableSpan(props: EditableSpanProps) {
               })}
         />
         {isSubmittable && (
-          <button type="submit" className="mx-0.5">
+          <button type="submit" className="mx-tick-cross-button">
             <img src={TickIcon} alt="Confirm Edit" />
           </button>
         )}
         <button
           type="button"
-          className="mx-0.5"
+          className="mx-tick-cross-button"
           onMouseDown={() => {
             cancelled.current = true
           }}

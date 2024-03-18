@@ -20,20 +20,20 @@ export default function MemberRolesSettingsTab() {
   const isLoading = userGroups == null
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2.5">
-        <h3 className="font-bold text-xl h-9.5 py-0.5">Member Roles</h3>
-        <table className="rounded-rows self-start table-fixed">
+    <div className="flex flex-col gap-settings-subsection">
+      <div className="flex flex-col gap-settings-section-header">
+        <h3 className="settings-subheading">Member Roles</h3>
+        <table className="table-fixed self-start rounded-rows">
           <thead>
-            <tr className="h-8">
-              <th className="text-left bg-clip-padding border-transparent border-l-2 border-r-2 text-sm font-semibold w-32">
+            <tr className="h-row">
+              <th className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
                 Role
               </th>
             </tr>
           </thead>
           <tbody className="select-text">
             {isLoading ? (
-              <tr className="h-8">
+              <tr className="h-row">
                 <td colSpan={3} className="bg-transparent">
                   <div className="flex justify-center">
                     <StatelessSpinner
@@ -46,8 +46,10 @@ export default function MemberRolesSettingsTab() {
             ) : (
               userGroups.map(userGroup => {
                 return (
-                  <tr key={userGroup.groupName} className="h-8">
-                    <td className="rounded-l-full">{userGroup.groupName}</td>
+                  <tr key={userGroup.groupName} className="h-row">
+                    <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                      {userGroup.groupName}
+                    </td>
                   </tr>
                 )
               })

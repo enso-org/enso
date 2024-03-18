@@ -58,7 +58,7 @@ import * as set from '#/utilities/set'
 import SortDirection from '#/utilities/SortDirection'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // ============================
 // === Global configuration ===
@@ -67,14 +67,14 @@ import Visibility from '#/utilities/visibility'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly extraColumns: columnUtils.ExtraColumn[]
+    readonly enabledColumns: columnUtils.Column[]
   }
 }
 
-LocalStorage.registerKey('extraColumns', {
+LocalStorage.registerKey('enabledColumns', {
   tryParse: value => {
     const possibleColumns = Array.isArray(value) ? value : []
-    const values = possibleColumns.filter(array.includesPredicate(columnUtils.EXTRA_COLUMNS))
+    const values = possibleColumns.filter(array.includesPredicate(columnUtils.CLOUD_COLUMNS))
     return values.length === 0 ? null : values
   },
 })
@@ -92,25 +92,30 @@ const AUTOSCROLL_SPEED = 100
 /** The autoscroll speed is `AUTOSCROLL_SPEED / (distance + AUTOSCROLL_DAMPENING)`. */
 const AUTOSCROLL_DAMPENING = 10
 /** The height of the header row. */
-const HEADER_HEIGHT_PX = 34
+const HEADER_HEIGHT_PX = 33
 /** The height of each row in the table body. MUST be identical to the value as set by the
  * Tailwind styling. */
 const ROW_HEIGHT_PX = 32
 /** The size of the loading spinner. */
 const LOADING_SPINNER_SIZE_PX = 36
-/** The number of pixels the header bar should shrink when the extra column selector is visible. */
-const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 116
+/** The number of pixels the header bar should shrink when the column selector is visible,
+ * assuming 0 icons are visible in the column selector. */
+const COLUMNS_SELECTOR_BASE_WIDTH_PX = 4
+/** The number of pixels the header bar should shrink per collapsed column. */
+const COLUMNS_SELECTOR_ICON_WIDTH_PX = 28
 /** The default placeholder row. */
 const PLACEHOLDER = (
-  <span className="opacity-75">
+  <span className="px-cell-x placeholder">
     You have no files. Go ahead and create one using the buttons above, or open a template from the
     home screen.
   </span>
 )
 /** A placeholder row for when a query (text or labels) is active. */
-const QUERY_PLACEHOLDER = <span className="opacity-75">No files match the current filters.</span>
+const QUERY_PLACEHOLDER = (
+  <span className="px-cell-x placeholder">No files match the current filters.</span>
+)
 /** The placeholder row for the Trash category. */
-const TRASH_PLACEHOLDER = <span className="opacity-75 px-1.5">Your trash is empty.</span>
+const TRASH_PLACEHOLDER = <span className="px-cell-x placeholder">Your trash is empty.</span>
 
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {
@@ -306,6 +311,7 @@ export interface AssetsTableState {
   readonly nodeMap: Readonly<
     React.MutableRefObject<ReadonlyMap<backendModule.AssetId, AssetTreeNode>>
   >
+  readonly hideColumn: (column: columnUtils.Column) => void
   readonly doToggleDirectoryExpansion: (
     directoryId: backendModule.DirectoryId,
     key: backendModule.AssetId,
@@ -340,9 +346,10 @@ export interface AssetRowState {
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
   readonly hidden: boolean
+  readonly hideRows: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly setCanDownloadFiles: (canDownloadFiles: boolean) => void
+  readonly setCanDownload: (canDownload: boolean) => void
   readonly category: Category
   readonly allLabels: Map<backendModule.LabelName, backendModule.Label>
   readonly setSuggestions: (suggestions: assetSearchBar.Suggestion[]) => void
@@ -369,7 +376,7 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, setCanDownloadFiles, category, allLabels } = props
+  const { hidden, hideRows, query, setQuery, setCanDownload, category, allLabels } = props
   const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
@@ -384,7 +391,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
-  const [extraColumns, setExtraColumns] = React.useState(() => new Set<columnUtils.ExtraColumn>())
+  const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
   const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
   const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
   const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
@@ -416,6 +423,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       : query.query !== ''
         ? QUERY_PLACEHOLDER
         : PLACEHOLDER
+  /** Events sent when the asset list was still loading. */
+  const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
@@ -600,22 +609,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities]
   )
-
-  React.useEffect(() => {
-    if (category === Category.trash) {
-      setCanDownloadFiles(false)
-    } else if (!isCloud) {
-      setCanDownloadFiles(selectedKeysRef.current.size !== 0)
-    } else {
-      setCanDownloadFiles(
-        selectedKeysRef.current.size !== 0 &&
-          Array.from(selectedKeysRef.current).every(key => {
-            const node = nodeMapRef.current.get(key)
-            return node?.item.type === backendModule.AssetType.file
-          })
-      )
-    }
-  }, [category, isCloud, /* should never change */ setCanDownloadFiles])
 
   React.useEffect(() => {
     const nodeToSuggestion = (
@@ -819,18 +812,24 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [pasteData])
 
   React.useEffect(() => {
-    return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      cancelCut: () => {
-        if (pasteDataRef.current == null) {
-          return false
-        } else {
-          dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
-          setPasteData(null)
-          return
-        }
-      },
-    })
-  }, [/* should never change */ inputBindings, /* should never change */ dispatchAssetEvent])
+    if (!hidden) {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        cancelCut: () => {
+          if (pasteDataRef.current == null) {
+            return false
+          } else {
+            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
+            setPasteData(null)
+            return
+          }
+        },
+      })
+    }
+  }, [
+    hidden,
+    /* should never change */ inputBindings,
+    /* should never change */ dispatchAssetEvent,
+  ])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -867,18 +866,22 @@ export default function AssetsTable(props: AssetsTableProps) {
       selectedKeysRef.current = newSelectedKeys
       setSelectedKeysRaw(newSelectedKeys)
       if (!isCloud) {
-        setCanDownloadFiles(newSelectedKeys.size !== 0)
+        setCanDownload(newSelectedKeys.size !== 0)
       } else {
-        setCanDownloadFiles(
+        setCanDownload(
           newSelectedKeys.size !== 0 &&
             Array.from(newSelectedKeys).every(key => {
               const node = nodeMapRef.current.get(key)
-              return node?.item.type === backendModule.AssetType.file
+              return (
+                node?.item.type === backendModule.AssetType.project ||
+                node?.item.type === backendModule.AssetType.file ||
+                node?.item.type === backendModule.AssetType.dataLink
+              )
             })
         )
       }
     },
-    [isCloud, /* should never change */ setCanDownloadFiles]
+    [isCloud, /* should never change */ setCanDownload]
   )
 
   const clearSelectedKeys = React.useCallback(() => {
@@ -960,6 +963,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   asyncEffectHooks.useAsyncEffect(
     null,
     async signal => {
+      setSelectedKeys(new Set())
       switch (backend.type) {
         case backendModule.BackendType.local: {
           const newAssets = await backend.listDirectory(
@@ -1058,13 +1062,13 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     },
-    [category, accessToken, user, backend]
+    [category, accessToken, user, backend, setSelectedKeys]
   )
 
   React.useEffect(() => {
-    const savedExtraColumns = localStorage.get('extraColumns')
-    if (savedExtraColumns != null) {
-      setExtraColumns(new Set(savedExtraColumns))
+    const savedEnabledColumns = localStorage.get('enabledColumns')
+    if (savedEnabledColumns != null) {
+      setEnabledColumns(new Set(savedEnabledColumns))
     }
   }, [/* should never change */ localStorage])
 
@@ -1080,10 +1084,12 @@ export default function AssetsTable(props: AssetsTableProps) {
       let isClipPathUpdateQueued = false
       const updateClipPath = () => {
         isClipPathUpdateQueued = false
-        const rightOffset = `${
-          scrollContainer.clientWidth + scrollContainer.scrollLeft - TABLE_HEADER_WIDTH_SHRINKAGE_PX
-        }px`
-        headerRow.style.clipPath = `polygon(0 0, ${rightOffset} 0, ${rightOffset} 100%, 0 100%)`
+        const hiddenColumnsCount = columnUtils.CLOUD_COLUMNS.length - enabledColumns.size
+        const shrinkBy =
+          COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumnsCount
+        const rightOffset = scrollContainer.clientWidth + scrollContainer.scrollLeft - shrinkBy
+
+        headerRow.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
       }
       const onScroll = () => {
         if (!isClipPathUpdateQueued) {
@@ -1102,13 +1108,13 @@ export default function AssetsTable(props: AssetsTableProps) {
     } else {
       return
     }
-  }, [backend.type])
+  }, [enabledColumns.size, backend.type])
 
   React.useEffect(() => {
     if (initialized) {
-      localStorage.set('extraColumns', Array.from(extraColumns))
+      localStorage.set('enabledColumns', [...enabledColumns])
     }
-  }, [extraColumns, initialized, /* should never change */ localStorage])
+  }, [enabledColumns, initialized, /* should never change */ localStorage])
 
   React.useEffect(() => {
     if (selectedKeysRef.current.size !== 1) {
@@ -1456,7 +1462,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     [rootDirectoryId]
   )
 
-  eventHooks.useEventHandler(assetListEvents, event => {
+  // This is not a React component, even though it contains JSX.
+  // eslint-disable-next-line no-restricted-syntax
+  const onAssetListEvent = (event: assetListEvent.AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
         const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
@@ -1748,6 +1756,15 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
     }
+  }
+  const onAssetListEventRef = React.useRef(onAssetListEvent)
+  onAssetListEventRef.current = onAssetListEvent
+  eventHooks.useEventHandler(assetListEvents, event => {
+    if (!isLoading) {
+      onAssetListEvent(event)
+    } else {
+      queuedAssetListEventsRef.current.push(event)
+    }
   })
 
   const doOpenManually = React.useCallback(
@@ -1830,6 +1847,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     ]
   )
 
+  const hideColumn = React.useCallback((column: columnUtils.Column) => {
+    setEnabledColumns(columns => set.withPresence(columns, column, false))
+  }, [])
+
   const hiddenContextMenu = React.useMemo(
     () => (
       <AssetsTableContextMenu
@@ -1891,6 +1912,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       setAssetPanelProps,
       setIsAssetPanelTemporarilyVisible,
       nodeMap: nodeMapRef,
+      hideColumn,
       doToggleDirectoryExpansion,
       doOpenManually,
       doOpenEditor: doOpenEditor,
@@ -1918,6 +1940,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       doCopy,
       doCut,
       doPaste,
+      /* should never change */ hideColumn,
       /* should never change */ setAssetPanelProps,
       /* should never change */ setIsAssetPanelTemporarilyVisible,
       /* should never change */ setQuery,
@@ -1985,6 +2008,13 @@ export default function AssetsTable(props: AssetsTableProps) {
         setSpinnerState(spinner.SpinnerState.loadingFast)
       })
     } else {
+      const queuedAssetEvents = queuedAssetListEventsRef.current
+      if (queuedAssetEvents.length !== 0) {
+        queuedAssetListEventsRef.current = []
+        for (const event of queuedAssetEvents) {
+          onAssetListEventRef.current(event)
+        }
+      }
       setSpinnerState(spinner.SpinnerState.initial)
     }
   }, [isLoading])
@@ -2153,10 +2183,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     ]
   )
 
-  const columns = columnUtils.getColumnList(backend.type, extraColumns)
+  const columns = columnUtils.getColumnList(backend.type, enabledColumns)
 
   const headerRow = (
-    <tr ref={headerRowRef} className="sticky top-0 text-sm font-semibold">
+    <tr ref={headerRowRef} className="sticky top text-sm font-semibold">
       {columns.map(column => {
         // This is a React component, even though it does not contain JSX.
         // eslint-disable-next-line no-restricted-syntax
@@ -2171,9 +2201,9 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const itemRows = isLoading ? (
-    <tr className="h-8">
+    <tr className="h-row">
       <td colSpan={columns.length} className="bg-transparent">
-        <div className="grid justify-around w-container">
+        <div className="grid w-container justify-around">
           <Spinner size={LOADING_SPINNER_SIZE_PX} state={spinnerState} />
         </div>
       </td>
@@ -2189,7 +2219,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           columns={columns}
           item={item}
           state={state}
-          hidden={visibilities.get(item.key) === Visibility.hidden}
+          hidden={hideRows || visibilities.get(item.key) === Visibility.hidden}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
@@ -2229,7 +2259,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             setModal(
               <DragModal
                 event={event}
-                className="flex flex-col rounded-2xl bg-frame-selected backdrop-blur-3xl"
+                className="flex flex-col rounded-default bg-selected-frame backdrop-blur-default"
                 doCleanup={() => {
                   drag.ASSET_ROWS.unbind(payload)
                 }}
@@ -2345,7 +2375,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   const table = (
     <div
-      className="grow flex flex-col"
+      className="flex grow flex-col"
       onContextMenu={event => {
         event.preventDefault()
         event.stopPropagation()
@@ -2380,18 +2410,17 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }}
     >
-      <table className="rounded-rows table-fixed border-collapse">
+      <table className="table-fixed border-collapse rounded-rows">
         <thead>{headerRow}</thead>
         <tbody ref={bodyRef}>
           {itemRows}
-          <tr className="h-8 hidden first:table-row">
+          <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
               {placeholder}
             </td>
           </tr>
         </tbody>
       </table>
-
       <div
         className="grow"
         onClick={() => {
@@ -2428,7 +2457,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <div ref={scrollContainerRef} className="container-size flex-1 overflow-auto">
+    <div ref={scrollContainerRef} className="flex-1 overflow-auto container-size">
+      {!hidden && hiddenContextMenu}
       {!hidden && (
         <SelectionBrush
           onDrag={onSelectionDrag}
@@ -2436,37 +2466,38 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="flex flex-col w-min min-w-full h-full">
+      <div className="w-max">
         {isCloud && (
-          <div className="sticky top-0 h-0 flex flex-col">
-            <div className="block sticky right-0 self-end w-29 px-2 pt-2.25 pb-1.75 z-1">
-              <div className="inline-flex gap-3">
-                {columnUtils.EXTRA_COLUMNS.map(column => (
-                  <Button
-                    key={column}
-                    active={extraColumns.has(column)}
-                    image={columnUtils.EXTRA_COLUMN_IMAGES[column]}
-                    alt={`${extraColumns.has(column) ? 'Show' : 'Hide'} ${
-                      columnUtils.COLUMN_NAME[column]
-                    }`}
-                    onClick={event => {
-                      event.stopPropagation()
-                      const newExtraColumns = new Set(extraColumns)
-                      if (extraColumns.has(column)) {
-                        newExtraColumns.delete(column)
-                      } else {
-                        newExtraColumns.add(column)
-                      }
-                      setExtraColumns(newExtraColumns)
-                    }}
-                  />
-                ))}
+          <div className="sticky top flex h flex-col">
+            <div className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y">
+              <div className="inline-flex gap-icons">
+                {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
+                  column => (
+                    <Button
+                      key={column}
+                      active
+                      image={columnUtils.COLUMN_ICONS[column]}
+                      alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
+                        columnUtils.COLUMN_NAME[column]
+                      }`}
+                      onClick={event => {
+                        event.stopPropagation()
+                        const newExtraColumns = new Set(enabledColumns)
+                        if (enabledColumns.has(column)) {
+                          newExtraColumns.delete(column)
+                        } else {
+                          newExtraColumns.add(column)
+                        }
+                        setEnabledColumns(newExtraColumns)
+                      }}
+                    />
+                  )
+                )}
               </div>
             </div>
           </div>
         )}
-        {hiddenContextMenu}
-        {table}
+        <div className="flex h-full w-min min-w-full flex-col">{table}</div>
       </div>
     </div>
   )

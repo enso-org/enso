@@ -608,7 +608,9 @@ export class App extends Ast {
     const spacedEquals = useParens && !!nameSpecification?.equals.whitespace
     if (useParens) yield ensureSpaced(parens.open, verbatim)
     if (nameSpecification) {
-      yield ensureSpacedIf(nameSpecification.name, !useParens, verbatim)
+      yield useParens ?
+        preferUnspaced(nameSpecification.name)
+      : ensureSpaced(nameSpecification.name, verbatim)
       yield ensureSpacedOnlyIf(nameSpecification.equals, spacedEquals, verbatim)
     }
     yield ensureSpacedOnlyIf(argument, !nameSpecification || spacedEquals, verbatim)
@@ -626,36 +628,39 @@ export class App extends Ast {
     return super.printSubtree(info, offset, parentIndent, verbatim_)
   }
 }
-function ensureSpacedIf<T>(
-  child: NodeChild<T>,
-  condition: boolean,
-  verbatim: boolean | undefined,
-): NodeChild<T> {
-  return condition ? ensureSpaced(child, verbatim) : child
-}
 function ensureSpacedOnlyIf<T>(
   child: NodeChild<T>,
   condition: boolean,
   verbatim: boolean | undefined,
-): NodeChild<T> {
+): ConcreteChild<T> {
   return condition ? ensureSpaced(child, verbatim) : ensureUnspaced(child, verbatim)
 }
-function ensureSpaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
-  if (verbatim && child.whitespace != null) return child
-  return child.whitespace ? child : { ...child, whitespace: ' ' }
+
+type ConcreteChild<T> = { whitespace: string; node: T }
+function isConcrete<T>(child: NodeChild<T>): child is ConcreteChild<T> {
+  return child.whitespace !== undefined
 }
-function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): NodeChild<T> {
-  if (verbatim && child.whitespace != null) return child
-  return child.whitespace === '' ? child : { ...child, whitespace: '' }
+function tryAsConcrete<T>(child: NodeChild<T>): ConcreteChild<T> | undefined {
+  return isConcrete(child) ? child : undefined
 }
-function preferSpacedIf<T>(child: NodeChild<T>, condition: boolean): NodeChild<T> {
+function ensureSpaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): ConcreteChild<T> {
+  const concreteInput = tryAsConcrete(child)
+  if (verbatim && concreteInput) return concreteInput
+  return concreteInput?.whitespace ? concreteInput : { ...child, whitespace: ' ' }
+}
+function ensureUnspaced<T>(child: NodeChild<T>, verbatim: boolean | undefined): ConcreteChild<T> {
+  const concreteInput = tryAsConcrete(child)
+  if (verbatim && concreteInput) return concreteInput
+  return concreteInput?.whitespace === '' ? concreteInput : { ...child, whitespace: '' }
+}
+function preferSpacedIf<T>(child: NodeChild<T>, condition: boolean): ConcreteChild<T> {
   return condition ? preferSpaced(child) : preferUnspaced(child)
 }
-function preferUnspaced<T>(child: NodeChild<T>): NodeChild<T> {
-  return child.whitespace === undefined ? { ...child, whitespace: '' } : child
+function preferUnspaced<T>(child: NodeChild<T>): ConcreteChild<T> {
+  return tryAsConcrete(child) ?? { ...child, whitespace: '' }
 }
-function preferSpaced<T>(child: NodeChild<T>): NodeChild<T> {
-  return child.whitespace === undefined ? { ...child, whitespace: ' ' } : child
+function preferSpaced<T>(child: NodeChild<T>): ConcreteChild<T> {
+  return tryAsConcrete(child) ?? { ...child, whitespace: ' ' }
 }
 export class MutableApp extends App implements MutableAst {
   declare readonly module: MutableModule
@@ -987,6 +992,18 @@ export interface MutablePropertyAccess extends PropertyAccess, MutableAst {
   get lhs(): MutableAst | undefined
 }
 applyMixins(MutablePropertyAccess, [MutableAst])
+
+/** Unroll the provided chain of `PropertyAccess` nodes, returning the first non-access as `subject` and the accesses
+ *  from left-to-right. */
+export function accessChain(ast: Ast): { subject: Ast; accessChain: PropertyAccess[] } {
+  const accessChain = new Array<PropertyAccess>()
+  while (ast instanceof PropertyAccess && ast.lhs) {
+    accessChain.push(ast)
+    ast = ast.lhs
+  }
+  accessChain.reverse()
+  return { subject: ast, accessChain }
+}
 
 interface GenericFields {
   children: RawNodeChild[]
@@ -1775,7 +1792,7 @@ export class Function extends Ast {
     }
   }
 
-  *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
+  *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { name, argumentDefinitions, equals, body } = getAll(this.fields)
     yield name
     for (const def of argumentDefinitions) yield* def
@@ -1865,9 +1882,9 @@ export class Assignment extends Ast {
 
   *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { pattern, equals, expression } = getAll(this.fields)
-    yield pattern
+    yield ensureUnspaced(pattern, verbatim)
     yield ensureSpacedOnlyIf(equals, expression.whitespace !== '', verbatim)
-    yield expression
+    yield preferSpaced(expression)
   }
 }
 export class MutableAssignment extends Assignment implements MutableAst {
@@ -1926,7 +1943,7 @@ export class BodyBlock extends Ast {
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
     for (const line of this.fields.get('lines')) {
-      yield line.newline ?? { node: Token.new('\n', RawAst.Token.Type.Newline) }
+      yield preferUnspaced(line.newline)
       if (line.expression) yield line.expression
     }
   }
@@ -2223,15 +2240,15 @@ export class Vector extends Ast {
     return Vector.tryBuild(inputs, elementBuilder, edit)
   }
 
-  *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
+  *concreteChildren(verbatim?: boolean): IterableIterator<RawNodeChild> {
     const { open, elements, close } = getAll(this.fields)
-    yield unspaced(open.node)
+    yield ensureUnspaced(open, verbatim)
     let isFirst = true
     for (const { delimiter, value } of elements) {
       if (isFirst && value) {
         yield preferUnspaced(value)
       } else {
-        yield delimiter
+        yield preferUnspaced(delimiter)
         if (value) yield preferSpaced(value)
       }
       isFirst = false

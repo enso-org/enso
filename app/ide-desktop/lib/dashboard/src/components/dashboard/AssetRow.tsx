@@ -34,7 +34,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as set from '#/utilities/set'
-import Visibility, * as visibilityModule from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // =================
 // === Constants ===
@@ -46,7 +46,9 @@ const HEADER_HEIGHT_PX = 34
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
 /** Placeholder row for directories that are empty. */
-const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
+const EMPTY_DIRECTORY_PLACEHOLDER = (
+  <span className="px-name-column-x placeholder">This folder is empty.</span>
+)
 
 // ================
 // === AssetRow ===
@@ -356,41 +358,59 @@ export default function AssetRow(props: AssetRowProps) {
         }
         break
       }
-      case AssetEventType.download: {
-        if (event.ids.has(item.key)) {
-          if (isCloud) {
-            if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog('Cannot download assets that are not files')
-            } else {
-              try {
-                const details = await backend.getFileDetails(asset.id, asset.title)
-                const file = details.file
-                download.download(download.s3URLToHTTPURL(file.path), asset.title)
-              } catch (error) {
-                toastAndLog('Could not download file', error)
-              }
-            }
-          } else {
-            download.download(
-              `./api/project-manager/projects/${asset.id}/enso-project`,
-              `${asset.title}.enso-project`
-            )
-          }
-        }
-        break
-      }
+      case AssetEventType.download:
       case AssetEventType.downloadSelected: {
-        if (selected) {
+        if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
           if (isCloud) {
-            if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog('Cannot download assets that are not files')
-            } else {
-              try {
-                const details = await backend.getFileDetails(asset.id, asset.title)
-                const file = details.file
-                download.download(details.url ?? download.s3URLToHTTPURL(file.path), asset.title)
-              } catch (error) {
-                toastAndLog('Could not download selected files', error)
+            switch (asset.type) {
+              case backendModule.AssetType.project: {
+                try {
+                  const details = await backend.getProjectDetails(asset.id, asset.title)
+                  if (details.url != null) {
+                    download.download(details.url, asset.title)
+                  } else {
+                    toastAndLog(
+                      `Could not download project '${asset.title}': project has no source files`
+                    )
+                  }
+                } catch (error) {
+                  toastAndLog(`Could not download project '${asset.title}'`, error)
+                }
+                break
+              }
+              case backendModule.AssetType.file: {
+                try {
+                  const details = await backend.getFileDetails(asset.id, asset.title)
+                  if (details.url != null) {
+                    download.download(details.url, asset.title)
+                  } else {
+                    toastAndLog(`Could not download file '${asset.title}': file not found`)
+                  }
+                } catch (error) {
+                  toastAndLog(`Could not download file '${asset.title}'`, error)
+                }
+                break
+              }
+              case backendModule.AssetType.dataLink: {
+                try {
+                  const value = await backend.getConnector(asset.id, asset.title)
+                  const fileName = `${asset.title}.datalink`
+                  download.download(
+                    URL.createObjectURL(
+                      new File([JSON.stringify(value)], fileName, {
+                        type: 'application/json+x-enso-data-link',
+                      })
+                    ),
+                    fileName
+                  )
+                } catch (error) {
+                  toastAndLog(`Could not download Data Link '${asset.title}'`, error)
+                }
+                break
+              }
+              default: {
+                toastAndLog('You can only download files and Data Links')
+                break
               }
             }
           } else {
@@ -572,11 +592,9 @@ export default function AssetRow(props: AssetRowProps) {
                   }
                 }
               }}
-              className={`h-8 transition duration-300 ease-in-out rounded-full outline-2 -outline-offset-2 outline-prmary ${
-                visibilityModule.CLASS_NAME[visibility]
-              } ${isKeyboardSelected ? 'outline' : ''} ${
-                isDraggedOver || selected ? 'selected' : ''
-              }`}
+              className={`h-row rounded-full outline-2 -outline-offset-2 outline-primary ease-in-out ${visibility} ${
+                isKeyboardSelected ? 'outline' : ''
+              } ${isDraggedOver || selected ? 'selected' : ''}`}
               onClick={event => {
                 unsetModal()
                 onClick(innerProps, event)
@@ -716,7 +734,7 @@ export default function AssetRow(props: AssetRowProps) {
               })}
             </tr>
           )}
-          {selected && allowContextMenu && insertionVisibility !== Visibility.hidden && (
+          {selected && allowContextMenu && !hidden && (
             // This is a copy of the context menu, since the context menu registers keyboard
             // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
             // the entire context menu (once for the keyboard actions, once for the JSX).
@@ -744,9 +762,9 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialLoading: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
+          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex justify-center rounded-full h-8 py-1 w-container ${indent.indentClass(
+              className={`flex h-row w-container justify-center rounded-full ${indent.indentClass(
                 item.depth
               )}`}
             >
@@ -759,11 +777,9 @@ export default function AssetRow(props: AssetRowProps) {
     case backendModule.AssetType.specialEmpty: {
       return hidden ? null : (
         <tr>
-          <td colSpan={columns.length} className="rounded-rows-skip-level border-r p-0">
+          <td colSpan={columns.length} className="border-r p rounded-rows-skip-level">
             <div
-              className={`flex items-center rounded-full h-8 py-2 ${indent.indentClass(
-                item.depth
-              )}`}
+              className={`flex h-row items-center rounded-full ${indent.indentClass(item.depth)}`}
             >
               <img src={BlankIcon} />
               {EMPTY_DIRECTORY_PLACEHOLDER}

@@ -5,7 +5,11 @@ import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeError from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphNodeSelection from '@/components/GraphEditor/GraphNodeSelection.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
-import NodeWidgetTree from '@/components/GraphEditor/NodeWidgetTree.vue'
+import NodeWidgetTree, {
+  GRAB_HANDLE_X_MARGIN,
+  ICON_WIDTH,
+} from '@/components/GraphEditor/NodeWidgetTree.vue'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -28,6 +32,11 @@ import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 const MAXIMUM_CLICK_LENGTH_MS = 300
 const MAXIMUM_CLICK_DISTANCE_SQ = 50
+const CONTENT_PADDING = 4
+const CONTENT_PADDING_RIGHT = 8
+const CONTENT_PADDING_PX = `${CONTENT_PADDING}px`
+const CONTENT_PADDING_RIGHT_PX = `${CONTENT_PADDING_RIGHT}px`
+const MENU_CLOSE_TIMEOUT_MS = 300
 
 const props = defineProps<{
   node: Node
@@ -42,7 +51,7 @@ const emit = defineEmits<{
   outputPortClick: [portId: AstId]
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
-  addNode: [pos: Vec2 | undefined]
+  createNode: [options: NodeCreationOptions]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -102,13 +111,56 @@ const warning = computed(() => {
   return 'Warning: ' + warning!
 })
 
-const isSelected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+const nodeHovered = ref(false)
+
+const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
+const selectionVisible = ref(false)
+
 const isOnlyOneSelected = computed(
-  () => isSelected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
+  () => selected.value && nodeSelection?.selected.size === 1 && !nodeSelection.isChanging,
 )
 
-const menuVisible = isOnlyOneSelected
+const menuVisible = computed(() => menuEnabledByHover.value || isOnlyOneSelected.value)
 const menuFull = ref(false)
+const menuHovered = ref(false)
+
+function eventScenePos(event: MouseEvent) {
+  const clientPos = event && new Vec2(event.clientX, event.clientY)
+  return clientPos && navigator?.clientToScenePos(clientPos)
+}
+
+const nodeHoverPos = ref<Vec2>()
+const selectionHoverPos = ref<Vec2>()
+function updateNodeHover(event: PointerEvent | undefined) {
+  nodeHoverPos.value = event && eventScenePos(event)
+}
+function updateSelectionHover(event: PointerEvent | undefined) {
+  selectionHoverPos.value = event && eventScenePos(event)
+}
+
+let menuCloseTimeout = ref<ReturnType<typeof setTimeout>>()
+const menuEnabledByHover = ref(false)
+watchEffect(() => {
+  if (menuCloseTimeout.value != null) {
+    clearTimeout(menuCloseTimeout.value)
+    menuCloseTimeout.value = undefined
+  }
+  const inZone = (pos: Vec2 | undefined) =>
+    pos != null &&
+    pos.sub(props.node.position).x < CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN * 2
+  const hovered =
+    menuHovered.value ||
+    inZone(nodeHoverPos.value) ||
+    (menuEnabledByHover.value && inZone(selectionHoverPos.value))
+  if (hovered) {
+    menuEnabledByHover.value = true
+  } else if (!hovered && menuEnabledByHover.value) {
+    menuCloseTimeout.value = setTimeout(() => {
+      menuEnabledByHover.value =
+        menuHovered.value || inZone(nodeHoverPos.value) || inZone(selectionHoverPos.value)
+    }, MENU_CLOSE_TIMEOUT_MS)
+  }
+})
 
 watch(menuVisible, (visible) => {
   if (!visible) menuFull.value = false
@@ -310,8 +362,6 @@ watchEffect(() => {
   }
 })
 
-const nodeHovered = ref(false)
-
 function portGroupStyle(port: PortData) {
   const [start, end] = port.clipRange
   return {
@@ -340,9 +390,6 @@ const documentation = computed<string | undefined>({
     })
   },
 })
-
-const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
-const selectionVisible = ref(false)
 </script>
 
 <template>
@@ -362,8 +409,9 @@ const selectionVisible = ref(false)
       ['executionState-' + executionState]: true,
     }"
     :data-node-id="nodeId"
-    @pointerenter="nodeHovered = true"
-    @pointerleave="nodeHovered = false"
+    @pointerenter="(nodeHovered = true), updateNodeHover($event)"
+    @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
+    @pointermove="updateNodeHover"
   >
     <Teleport to="#graphNodeSelections">
       <GraphNodeSelection
@@ -374,6 +422,9 @@ const selectionVisible = ref(false)
         :nodeId
         :color
         @visible="selectionVisible = $event"
+        @pointerenter="updateSelectionHover"
+        @pointermove="updateSelectionHover"
+        @pointerleave="updateSelectionHover(undefined)"
         v-on="dragPointer.events"
       />
     </Teleport>
@@ -381,6 +432,7 @@ const selectionVisible = ref(false)
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
+      data-testid="recordingOverriddenButton"
       @click="isRecordingOverridden = false"
     >
       <SvgIcon name="record" />
@@ -397,7 +449,9 @@ const selectionVisible = ref(false)
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
-      @addNode="emit('addNode', $event)"
+      @createNode="emit('createNode', $event)"
+      @pointerenter="menuHovered = true"
+      @pointerleave="menuHovered = false"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
@@ -416,7 +470,7 @@ const selectionVisible = ref(false)
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
-      @addNode="emit('addNode', $event)"
+      @createNode="emit('createNode', $event)"
     />
     <Suspense>
       <GraphNodeComment
@@ -440,6 +494,7 @@ const selectionVisible = ref(false)
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
+        :conditionalPorts="props.node.conditionalPorts"
         :extended="isOnlyOneSelected"
         @openFullMenu="openFullMenu"
       />
@@ -449,7 +504,7 @@ const selectionVisible = ref(false)
     </div>
     <GraphNodeError v-if="error" class="afterNode" :message="error" type="error" />
     <GraphNodeError
-      v-if="warning && (nodeHovered || isSelected)"
+      v-if="warning && (nodeHovered || selected)"
       class="afterNode warning"
       :class="{ messageWithMenu: menuVisible }"
       :message="warning"
@@ -596,8 +651,8 @@ const selectionVisible = ref(false)
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  padding: 4px;
-  padding-right: 8px;
+  padding: v-bind('CONTENT_PADDING_PX');
+  padding-right: v-bind('CONTENT_PADDING_RIGHT_PX');
   z-index: 2;
   transition: outline 0.2s ease;
   outline: 0px solid transparent;
