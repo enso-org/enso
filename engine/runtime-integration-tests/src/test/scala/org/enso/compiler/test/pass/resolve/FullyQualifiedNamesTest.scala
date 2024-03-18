@@ -9,6 +9,7 @@ import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, MethodNames}
+import org.graalvm.polyglot.Value
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -73,14 +74,31 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
     buffer.toList
   }
 
+  private def collectResolutionNames(
+    ir: Module
+  ): List[QualifiedName] = {
+    collectResolutions(ir).map(_._2.target.qualifiedName)
+  }
+
+  private def execMain(
+    src: String
+  ): Value = {
+    val mod        = ctx.executionContext.evalModule(src, moduleName.toString)
+    val assocType  = mod.getAssociatedType
+    val mainMethod = mod.getMethod(assocType, "main").get
+    val res        = mainMethod.execute()
+    res
+  }
+
   "Fully qualified names" should {
-    "be able to reference types in exported modules (IR)" in {
-      val ir =
+    "be able to reference types in exported modules" in {
+      val src =
         """
           |import Standard.Base
           |main =
           |    Standard.Base.Data.Vector
-          |""".stripMargin.preprocessModule
+          |""".stripMargin
+      val ir = src.preprocessModule
       val metadata = collectMetadata(ir)
       metadata.size shouldBe 1
       metadata.head.target
@@ -89,33 +107,28 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
         .getName shouldBe (
         QualifiedName(List("Standard", "Base"), "Main")
       )
-    }
 
-    "be able to reference types in exported modules (Execution)" in {
-      val src =
-        """
-          |import Standard.Base
-          |main =
-          |    Standard.Base.Data.Vector
-          |""".stripMargin
-      val mod        = ctx.executionContext.evalModule(src, moduleName.toString)
-      val assocType  = mod.getAssociatedType
-      val mainMethod = mod.getMethod(assocType, "main").get
-      val res        = mainMethod.execute()
+      val resolutionNames = collectResolutionNames(ir)
+      resolutionNames should contain theSameElementsAs Seq(
+        QualifiedName(List("Standard", "Base"), "Main"),
+        QualifiedName(List("Standard", "Base"), "Data")
+      )
+
+      val res = execMain(src)
       res.isMetaObject shouldBe true
       res.getMetaSimpleName shouldBe "Vector"
     }
 
-    "be able to reference types in synthetic modules via logical path (IR)" in {
-      val ir =
+    "be able to reference types in synthetic modules via logical path" in {
+      val src =
         """
           |import Test.Fully_Qualified_Names
           |main =
           |    Test.Fully_Qualified_Names.A_Type
-          |""".stripMargin.preprocessModule
+          |""".stripMargin
+      val ir = src.preprocessModule
       val metadata = collectMetadata(ir)
-      val resolutions = collectResolutions(ir)
-      val resolutionNames = resolutions.map(_._2.target.qualifiedName)
+      val resolutionNames = collectResolutionNames(ir)
       resolutionNames.size shouldBe 2
       resolutionNames should contain theSameElementsAs Seq(
         QualifiedName(List("Test", "Fully_Qualified_Names"), "Main"),
@@ -128,30 +141,20 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
         .getName shouldBe (
         QualifiedName(List("Test", "Fully_Qualified_Names"), "Main")
       )
-    }
 
-    "be able to reference types in synthetic modules via logical path (Execution)" in {
-      val src =
-        """
-          |import Test.Fully_Qualified_Names
-          |main =
-          |    Test.Fully_Qualified_Names.A_Type
-          |""".stripMargin
-      val mod        = ctx.executionContext.evalModule(src, moduleName.toString)
-      val assocType  = mod.getAssociatedType
-      val mainMethod = mod.getMethod(assocType, "main").get
-      val res        = mainMethod.execute()
+      val res = execMain(src)
       res.isMetaObject shouldBe true
       res.getMetaSimpleName shouldBe "A_Type"
     }
 
-    "be able to reference types in synthetic modules via physical path (IR)" in {
-      val ir =
+    "be able to reference types in synthetic modules via physical path" in {
+      val src =
         """
           |import Test.Fully_Qualified_Names
           |main =
           |    Test.Fully_Qualified_Names.Synthetic_Mod.A_Mod.A_Type
-          |""".stripMargin.preprocessModule
+          |""".stripMargin
+      val ir = src.preprocessModule
       val fqnMetadata = collectMetadata(ir)
       fqnMetadata.size shouldBe 1
       fqnMetadata.head.target
@@ -161,26 +164,14 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
         QualifiedName(List("Test", "Fully_Qualified_Names"), "Main")
       )
 
-      val resolutions = collectResolutions(ir)
-      val resolutionNames = resolutions.map(_._2.target.qualifiedName)
+      val resolutionNames = collectResolutionNames(ir)
       resolutionNames.size shouldBe 2
       resolutionNames should contain theSameElementsAs Seq(
         QualifiedName(List("Test", "Fully_Qualified_Names"), "Main"),
         QualifiedName(List("Test", "Fully_Qualified_Names", "Synthetic_Mod", "A_Mod"), "A_Type")
       )
-    }
 
-    "be able to reference types in synthetic modules via physical path (Execution)" in {
-      val src =
-        """
-          |import Test.Fully_Qualified_Names
-          |main =
-          |    Test.Fully_Qualified_Names.Synthetic_Mod.A_Mod.A_Type
-          |""".stripMargin
-      val mod        = ctx.executionContext.evalModule(src, moduleName.toString)
-      val assocType  = mod.getAssociatedType
-      val mainMethod = mod.getMethod(assocType, "main").get
-      val res        = mainMethod.execute()
+      val res = execMain(src)
       res.isMetaObject shouldBe true
       res.getMetaSimpleName shouldBe "A_Type"
     }
