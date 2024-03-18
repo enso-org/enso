@@ -211,7 +211,7 @@ function resetView() {
 function commitPendingChanges() {
   if (!pendingChanges || !currentModule) return
   try {
-    currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges), graphStore.viewModule())
+    currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges), graphStore.viewModule)
     graphStore.commitEdit(currentModule, undefined, 'local:CodeEditor')
   } catch (error) {
     console.error(`Code Editor failed to modify module`, error)

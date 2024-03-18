@@ -9,6 +9,7 @@ import {
   type ArgumentWidgetConfiguration,
 } from '@/providers/widgetRegistry/configuration'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { injectWidgetTree } from '@/providers/widgetTree.ts'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports.ts'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -27,6 +28,9 @@ import { computed, ref, watch, type ComponentInstance } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
+
+const tree = injectWidgetTree()
+
 const widgetRoot = ref<HTMLElement>()
 const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 
@@ -251,6 +255,17 @@ watch(selectedIndex, (_index) => {
     }
   }
   props.onUpdate({ edit, portUpdate: { value, origin: props.input.portId } })
+})
+
+let endClippingInhibition: (() => void) | undefined
+watch(dropdownVisible, (visible) => {
+  if (visible) {
+    const { unregister } = tree.inhibitClipping()
+    endClippingInhibition = unregister
+  } else {
+    endClippingInhibition?.()
+    endClippingInhibition = undefined
+  }
 })
 </script>
 

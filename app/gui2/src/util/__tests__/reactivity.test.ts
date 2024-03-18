@@ -1,5 +1,6 @@
-import { LazySyncEffectSet } from '@/util/reactivity'
-import { expect, test, vi } from 'vitest'
+import { LazySyncEffectSet, syncSet } from '@/util/reactivity'
+import { fc, test } from '@fast-check/vitest'
+import { expect, vi } from 'vitest'
 import { nextTick, reactive, ref } from 'vue'
 
 test('LazySyncEffectSet', async () => {
@@ -142,4 +143,14 @@ test('LazySyncEffectSet', async () => {
       [-2, 'noticed c9!'],
     ]),
   )
+})
+
+test.prop({
+  oldValues: fc.array(fc.integer()),
+  newValues: fc.array(fc.integer()),
+})('syncSet', ({ oldValues, newValues }) => {
+  const newState = new Set<number>(newValues)
+  const target = new Set<number>(oldValues)
+  syncSet(target, newState)
+  expect([...target].sort()).toEqual([...newState].sort())
 })

@@ -2186,7 +2186,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const columns = columnUtils.getColumnList(backend.type, enabledColumns)
 
   const headerRow = (
-    <tr ref={headerRowRef} className="sticky top text-sm font-semibold">
+    <tr ref={headerRowRef} className="sticky top-[1px] text-sm font-semibold">
       {columns.map(column => {
         // This is a React component, even though it does not contain JSX.
         // eslint-disable-next-line no-restricted-syntax
@@ -2422,6 +2422,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         </tbody>
       </table>
       <div
+        data-testid="root-directory-dropzone"
         className="grow"
         onClick={() => {
           setSelectedKeys(new Set())
@@ -2466,10 +2467,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="w-max">
+      <div className="flex h-max min-h-full w-max min-w-full flex-col">
         {isCloud && (
-          <div className="sticky top flex h flex-col">
-            <div className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y">
+          <div className="flex-0 sticky top flex h flex-col">
+            <div
+              data-testid="extra-columns"
+              className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
+            >
               <div className="inline-flex gap-icons">
                 {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
                   column => (
@@ -2497,7 +2501,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             </div>
           </div>
         )}
-        <div className="flex h-full w-min min-w-full flex-col">{table}</div>
+        <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
       </div>
     </div>
   )
