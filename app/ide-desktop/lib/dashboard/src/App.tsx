@@ -35,6 +35,7 @@
  * {@link authProvider.FullUserSession}). */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
@@ -62,6 +63,8 @@ import ResetPassword from '#/pages/authentication/ResetPassword'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import Subscribe from '#/pages/subscribe/Subscribe'
+
+import { Root } from '#/components/Root'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
@@ -141,26 +144,30 @@ export default function App(props: AppProps) {
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
   const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
+  const queryClient = React.useMemo(() => new reactQuery.QueryClient(), [])
+  const rootRef = React.useRef<HTMLDivElement>(null)
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
-    <>
-      <toastify.ToastContainer
-        position="top-center"
-        theme="light"
-        closeOnClick={false}
-        draggable={false}
-        toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
-        transition={toastify.Zoom}
-        limit={3}
-      />
-      <Router basename={getMainPageUrl().pathname}>
-        <LocalStorageProvider>
-          <AppRouter {...props} />
-        </LocalStorageProvider>
-      </Router>
-    </>
+    <div ref={rootRef} className="contents">
+      <reactQuery.QueryClientProvider client={queryClient}>
+        <toastify.ToastContainer
+          position="top-center"
+          theme="light"
+          closeOnClick={false}
+          draggable={false}
+          toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
+          transition={toastify.Zoom}
+          limit={3}
+        />
+        <Router basename={getMainPageUrl().pathname}>
+          <LocalStorageProvider>
+            <AppRouter {...props} rootRef={rootRef} />
+          </LocalStorageProvider>
+        </Router>
+      </reactQuery.QueryClientProvider>
+    </div>
   )
 }
 
@@ -173,7 +180,7 @@ export default function App(props: AppProps) {
  * The only reason the {@link AppRouter} component is separate from the {@link App} component is
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
-function AppRouter(props: AppProps) {
+function AppRouter(props: AppProps & { readonly rootRef: React.RefObject<HTMLDivElement> }) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
@@ -359,5 +366,10 @@ function AppRouter(props: AppProps) {
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  result = (
+    <Root rootRef={props.rootRef} navigate={navigate}>
+      {result}
+    </Root>
+  )
   return result
 }

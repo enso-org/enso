@@ -1,0 +1,192 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Enso",
+  "patterns": [{
+    "include": "#keywords"
+  },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#entity"
+    },
+    {
+      "include": "#constant"
+    },
+    {
+      "include":"#comments"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [{
+        "name": "keyword.other",
+        "match": "\\b(self|type)\\b"
+      }, {
+        "name": "keyword.control",
+        "match": "\\b(case|of|if|then|else)\\b"
+      }, {
+        "name": "keyword.control.import",
+        "match": "\\b(import as|export as|from all hiding|polyglot java)\\b"
+      },
+        {
+          "name": "keyword.control.import",
+          "match": "^import\\s+.+(\\s+as.+)?$"
+        },
+        {
+          "name": "keyword.control.import",
+          "match": "^from\\s+.+(\\s+as.+)?\\s+import.+$"
+        },
+        {
+          "name": "keyword.control.import",
+          "match": "^export\\s+.+(\\s+as.+)?$"
+        },
+        {
+          "name": "keyword.control.import.enso",
+          "match": "^from\\s+.+(\\s+as.+)?\\s+export.+$"
+        },
+        {
+          "name": "keyword.control.import",
+          "match": "^polyglot\\s+java\\s+import\\s+.+(\\s+as.+)?$"
+        },
+        {
+          "name": "keyword.operator",
+          "match": "[-!$%&\\*\\+\/<=>\\?^|~:.]+|\\b_\\b"
+        },
+        {
+          "name": "keyword.operator",
+          "match": "="
+        }
+      ]
+    },
+    "entity": {
+      "patterns": [{
+        "name": "entity.name.function",
+        "match": "\\b[a-z][a-z|_]*\\b"
+      },
+        {
+          "name": "entity.name.type",
+          "match": "\\b[A-Z][a-z|0-9]*(_|[A-Z|0-9]|[a-z|0-9]*)*\\b"
+        },
+        {
+          "name": "entity.name",
+          "match": "\\b[a-z|A-Z]\\w*\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double",
+      "patterns": [{
+        "name": "string.quoted.double",
+        "begin": "\"",
+        "end": "\"",
+        "patterns": [{
+          "name": "constant.character.escape",
+          "matches": "\\\""
+        }]
+      },
+        {
+          "name": "entity.name.function",
+          "contentName": "foreign.js",
+          "begin": "^(\\s*)(foreign)\\s+js\\s*([^\\s]+).*=(.*$)",
+          "end": "^(?!\\1\\s+)(?!\\s*$)",
+          "beginCaptures": {
+            "2" : { "name": "keyword.other" },
+            "3" : { "name": "entity.name.function"},
+            "4" : { "name": "header"}
+          },
+          "patterns": [ { "include": "source.js" }]
+        },
+        {
+          "name": "entity.name.function",
+          "contentName": "foreign.python",
+          "begin": "^(\\s*)(foreign)\\s+python\\s*([^\\s]+).*=(.*$)",
+          "end": "^(?!\\1\\s+)(?!\\s*$)",
+          "beginCaptures": {
+            "2" : { "name": "keyword.other" },
+            "3" : { "name": "entity.name.function"},
+            "4" : { "name": "header"}
+          },
+          "patterns": [ { "include": "source.python" }]
+        },
+        {
+          "contentName": "string.quoted.triple.begin",
+          "begin": "^(\\s*)(\"\"\"|''')",
+          "end": "^(?!\\1\\s+)(?!\\s*$)",
+          "beginCaptures": {
+            "2": {
+              "name": "string.quoted.triple.begin"
+            }
+          }
+        },
+        {
+          "contentName": "string.quoted.triple.middle",
+          "begin": "^(\\s*)[^\\s].*(\"\"\"|''')",
+          "end": "^(?!\\1\\s+)(?!\\s*$)",
+          "beginCaptures": {
+            "2": {
+              "name": "string.quoted.triple.begin"
+            }
+          }
+        },
+        {
+          "name": "string.quoted.single",
+          "begin": "\\'",
+          "end": "\\'",
+          "patterns": [{
+            "name": "constant.character.escape",
+            "matches": "\\\\'"
+          }]
+        }
+      ]
+    },
+    "constant": {
+      "patterns": [{
+        "name": "constant.character",
+        "match": "\\\\u\\{[A-F|0-9]{1,8}\\}"
+      },
+        {
+          "name": "constant.character",
+          "match": "\\\\u\\{[A-F|0-9]{4}\\}"
+        },
+        {
+          "name": "constant.character",
+          "match": "\\\\U\\{[A-F|0-9]{8}\\}"
+        },
+        {
+          "name": "constant.character.escape",
+          "match": "\\\\"
+        },
+        {
+          "name": "constant.character.escape",
+          "match": "\\\""
+        },
+        {
+          "name": "constant.character.escape",
+          "match": "\\'"
+        },
+        {
+          "name": "constant.character.escape",
+          "match": "\\[abfnrtve]"
+        },
+        {
+          "name": "constant.character.numeric",
+          "match": "\\b[0-9]+(\\.[0-9]+)?"
+        }
+      ]
+    },
+    "comments":{
+      "patterns": [{
+        "name": "comment.block.documentation",
+        "begin": "^(\\s*)##",
+        "end": "^(?!\\1\\s+)(?!\\s*$)"
+      },
+        {
+          "name":"comment.line.number-sign",
+          "begin": "#",
+          "end": "$"
+        }]
+    }
+  },
+  "scopeName": "source.enso"
+}

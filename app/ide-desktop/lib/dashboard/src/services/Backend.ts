@@ -836,6 +836,10 @@ export interface S3ObjectVersion {
   versionId: string
   lastModified: dateTime.Rfc3339DateTime
   isLatest: boolean
+  /**
+   * The field points to an archive containing the all the project files object in the S3 bucket,
+   */
+  key: string
 }
 
 /** A list of asset versions. */
