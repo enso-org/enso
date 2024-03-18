@@ -188,15 +188,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 const response = await fetch(path, { method: 'POST', body })
                 id = await response.text()
               }
-              const listedProject = await backend.getProjectDetails(
-                localBackend.newProjectId(projectManager.UUID(id)),
-                null
-              )
+              const projectId = localBackend.newProjectId(projectManager.UUID(id))
+              const listedProject = await backend.getProjectDetails(projectId, asset.parentId, null)
               rowState.setVisibility(Visibility.visible)
               setAsset(
                 object.merge(asset, {
                   title: listedProject.packageName,
-                  id: backendModule.ProjectId(id),
+                  id: projectId,
                 })
               )
             } else {

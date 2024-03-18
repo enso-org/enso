@@ -279,9 +279,7 @@ export default class LocalBackend extends Backend {
         .find(metadata => metadata.id === id)
       if (project == null) {
         throw new Error(
-          `Could not get details of project ${
-            title != null ? `'${title}'` : `with ID '${projectId}'`
-          }.`
+          `Could not get details of project ${title != null ? `'${title}'` : `with ID '${id}'`}.`
         )
       } else {
         const version =

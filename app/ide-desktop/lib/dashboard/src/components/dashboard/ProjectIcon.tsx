@@ -175,7 +175,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }
         }
       } catch (error) {
-        const project = await backend.getProjectDetails(item.id, item.title)
+        const project = await backend.getProjectDetails(item.id, item.parentId, item.title)
         setItem(object.merger({ projectState: project.state }))
         toastAndLog(`Could not open project '${item.title}'`, error)
         setState(backendModule.ProjectState.closed)

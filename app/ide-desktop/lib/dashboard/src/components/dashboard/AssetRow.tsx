@@ -429,7 +429,11 @@ export default function AssetRow(props: AssetRowProps) {
             switch (asset.type) {
               case backendModule.AssetType.project: {
                 try {
-                  const details = await backend.getProjectDetails(asset.id, asset.title)
+                  const details = await backend.getProjectDetails(
+                    asset.id,
+                    asset.parentId,
+                    asset.title
+                  )
                   if (details.url != null) {
                     download.download(details.url, asset.title)
                   } else {
