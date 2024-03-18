@@ -41,7 +41,7 @@ import * as listen from './listen.mock'
 // This file exports a subset of the values from the original file.
 // @ts-expect-error This is a mock file that needs to reference its original file.
 // eslint-disable-next-line no-restricted-syntax
-export { UserSession, CognitoErrorType, isAmplifyError } from './cognito.ts'
+export { type UserSession, CognitoErrorType, isAmplifyError } from './cognito.ts'
 
 // There are unused function parameters in this file.
 /* eslint-disable @typescript-eslint/no-unused-vars */
