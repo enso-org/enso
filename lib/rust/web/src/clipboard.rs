@@ -21,7 +21,6 @@ use crate::prelude::*;
 
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::prelude::Closure;
 
 
 

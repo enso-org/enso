@@ -27,6 +27,8 @@
 use crate::prelude::*;
 
 use std::cell::Cell;
+
+#[allow(hidden_glob_reexports)] // Glob import from prelude is intentionally shadowed.
 use wasm_bindgen::prelude::wasm_bindgen;
 
 
@@ -1022,7 +1024,7 @@ fn report_panic(info: &std::panic::PanicInfo) {
     if let Some(api) = enso_debug_api::console() {
         api.error(&msg);
     }
-    web_sys::console::error_1(&msg.into());
+    console::error_1(&msg.into());
 }
 
 

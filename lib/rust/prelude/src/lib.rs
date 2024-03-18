@@ -24,7 +24,6 @@ mod data;
 mod macros;
 mod not_same;
 mod option;
-mod result;
 mod serde;
 mod smallvec;
 mod std_reexports;
