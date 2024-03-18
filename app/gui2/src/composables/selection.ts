@@ -30,11 +30,12 @@ export function useSelection<T>(
   })
 
   const hoveredPort = computed<PortId | undefined>(() => {
-    if (!hoveredElement.value) return
+    if (!hoveredElement.value) return undefined
     for (const element of elementHierarchy(hoveredElement.value, '.WidgetPort')) {
       const portId = elementPortId(element)
       if (portId && isPortEnabled(portId)) return portId
     }
+    return undefined
   })
 
   function* elementHierarchy(element: Element, selectors: string) {
