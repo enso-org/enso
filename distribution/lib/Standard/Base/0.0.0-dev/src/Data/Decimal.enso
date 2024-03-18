@@ -4,6 +4,7 @@ import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Error.Error
+import project.IO
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
@@ -525,6 +526,29 @@ type Decimal
     negate : Decimal
     negate self = Decimal.Value self.big_decimal.negate
 
+    ## GROUP CONVERSIONS
+       Convert this to an `Integer`.
+
+       > Example
+         Convert `Decimal` 23.45 to an `Integer`.
+             d = Decimal.new "2345"
+             d.to_integer
+             # => 2345
+    to_integer : Integer
+    to_integer self = self.big_decimal.toBigInteger
+
+    ## GROUP CONVERSIONS
+       Convert this to a `Float`.
+
+       > Example
+         Convert `Decimal` 23.45 to a `Float`.
+
+             d = Decimal.new "23.45"
+             d.to_float
+             # => 23.45
+    to_float : Integer
+    to_float self = self.big_decimal.doubleValue
+
     ## PRIVATE
     precision : Integer
     precision self = self.big_decimal.precision
@@ -582,3 +606,12 @@ Decimal.from (that : Text) = Decimal.parse that
 
 ## PRIVATE
 Decimal.from (that : Number) = Decimal.new that
+
+## PRIVATE
+Decimal.from (that : Integer) = Decimal.new that
+
+## PRIVATE
+Integer.from (that : Decimal) = that.to_integer
+
+## PRIVATE
+Float.from (that : Decimal) = that.to_float
