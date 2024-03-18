@@ -15,7 +15,7 @@ import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
-import type * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -41,7 +41,9 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const self = asset.permissions?.find(permission => permission.user.user_email === user?.email)
+  const self = asset.permissions?.find(
+    backendModule.isUserPermissionAnd(permission => permission.user.user_email === user?.email)
+  )
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
@@ -59,22 +61,22 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   )
   return (
     <div className="group flex items-center gap-column-items">
-      {(asset.permissions ?? []).map(otherUser => (
+      {(asset.permissions ?? []).map(permission => (
         <PermissionDisplay
-          key={otherUser.user.pk}
-          action={otherUser.permission}
+          key={backendModule.getAssetPermissionName(permission)}
+          action={permission.permission}
           onClick={event => {
             setQuery(oldQuery =>
               oldQuery.withToggled(
                 'owners',
                 'negativeOwners',
-                otherUser.user.user_name,
+                backendModule.getAssetPermissionName(permission),
                 event.shiftKey
               )
             )
           }}
         >
-          {otherUser.user.user_name}
+          {backendModule.getAssetPermissionName(permission)}
         </PermissionDisplay>
       ))}
       {managesThisAsset && (

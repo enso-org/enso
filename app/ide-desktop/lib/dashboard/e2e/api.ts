@@ -53,9 +53,9 @@ export async function mockApi({ page }: MockParams) {
     email: defaultEmail,
     name: defaultUsername,
     id: defaultOrganizationId,
-    profilePicture: null,
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
+    userGroups: null,
   }
   let currentUser: backend.User | null = defaultUser
   let currentOrganization: backend.OrganizationInfo | null = null
@@ -567,9 +567,9 @@ export async function mockApi({ page }: MockParams) {
             email: body.userEmail,
             name: body.userName,
             id: body.organizationId ?? defaultUser.id,
-            profilePicture: null,
             isEnabled: false,
             rootDirectoryId,
+            userGroups: null,
           }
           await route.fulfill({ json: currentUser })
         } else if (request.method() === 'GET') {
@@ -633,7 +633,7 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
+                  pk: backend.UserId(''),
                   /* eslint-disable @typescript-eslint/naming-convention */
                   user_name: defaultUsername,
                   user_email: defaultEmail,
@@ -671,7 +671,7 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
+                  pk: backend.UserId(''),
                   /* eslint-disable @typescript-eslint/naming-convention */
                   user_name: defaultUsername,
                   user_email: defaultEmail,

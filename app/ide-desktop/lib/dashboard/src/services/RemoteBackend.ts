@@ -254,6 +254,21 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Set the list of groups a user is in. */
+  override async changeUserGroup(
+    userId: backendModule.UserId,
+    userGroups: backendModule.UserGroupId[],
+    name: string
+  ): Promise<backendModule.User> {
+    const path = remoteBackendPaths.changeUserGroupPath(userId)
+    const response = await this.put<backendModule.User>(path, userGroups)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not change user groups for user '${name}'.`, response)
+    } else {
+      return await response.json()
+    }
+  }
+
   /** Return details for the current organization.
    * @returns `null` if a non-successful status code (not 200-299) was received. */
   override async getOrganization(): Promise<backendModule.OrganizationInfo | null> {
@@ -368,7 +383,7 @@ export default class RemoteBackend extends Backend {
         )
         .map(asset =>
           object.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backendModule.compareUserPermissions),
+            permissions: [...(asset.permissions ?? [])].sort(backendModule.compareAssetPermissions),
           })
         )
     }
@@ -850,6 +865,45 @@ export default class RemoteBackend extends Backend {
       return this.throw(`Could not delete label '${value}'`, response)
     } else {
       return
+    }
+  }
+
+  /** Create a user group. */
+  override async createUserGroup(
+    body: backendModule.CreateUserGroupRequestBody
+  ): Promise<backendModule.UserGroupInfo> {
+    const path = remoteBackendPaths.CREATE_USER_GROUP_PATH
+    const response = await this.post<backendModule.UserGroupInfo>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not create user group with name '${body.name}'.`, response)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /** Delete a user group. */
+  override async deleteUserGroup(
+    userGroupId: backendModule.UserGroupId,
+    name: string
+  ): Promise<void> {
+    const path = remoteBackendPaths.deleteUserGroupPath(userGroupId)
+    const response = await this.delete(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not delete user group '${name}'.`, response)
+    } else {
+      return
+    }
+  }
+
+  /** List all roles in the organization.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async listUserGroups(): Promise<backendModule.UserGroupInfo[]> {
+    const path = remoteBackendPaths.LIST_USER_GROUPS_PATH
+    const response = await this.get<backendModule.UserGroupInfo[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw(`Could not list user groups.`, response)
+    } else {
+      return await response.json()
     }
   }
 

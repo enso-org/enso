@@ -1,4 +1,4 @@
-/** @file Settings tab for viewing and editing account information. */
+/** @file Settings tab for viewing and editing all users in the organization. */
 import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
@@ -62,10 +62,10 @@ export default function MembersSettingsTab() {
             ) : (
               members.map(member => (
                 <tr key={member.id} className="h-row">
-                  <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 ">
+                  <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                     {member.name}
                   </td>
-                  <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 ">
+                  <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                     {member.email}
                   </td>
                 </tr>

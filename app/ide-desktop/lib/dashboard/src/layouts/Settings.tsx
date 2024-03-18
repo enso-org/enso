@@ -6,6 +6,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
 import KeyboardShortcutsSettingsTab from '#/layouts/Settings/KeyboardShortcutsSettingsTab'
+import MemberRolesSettingsTab from '#/layouts/Settings/MemberRolesSettingsTab'
 import MembersSettingsTab from '#/layouts/Settings/MembersSettingsTab'
 import OrganizationSettingsTab from '#/layouts/Settings/OrganizationSettingsTab'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
@@ -62,6 +63,10 @@ export default function Settings() {
       content = <MembersSettingsTab />
       break
     }
+    case SettingsTab.memberRoles: {
+      content = <MemberRolesSettingsTab />
+      break
+    }
     case SettingsTab.keyboardShortcuts: {
       content = <KeyboardShortcutsSettingsTab />
       break
@@ -80,7 +85,9 @@ export default function Settings() {
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
         <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
-          {settingsTab !== SettingsTab.organization
+          {settingsTab !== SettingsTab.organization &&
+          settingsTab !== SettingsTab.members &&
+          settingsTab !== SettingsTab.memberRoles
             ? user?.name ?? 'your account'
             : organization.organization_name ?? 'your organization'}
         </div>
