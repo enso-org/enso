@@ -541,7 +541,7 @@ class IrToTruffle(
                     true
                   )
 
-                val operators = ".!$%&*+-/<>?^~\\"
+                val operators = ".!$%&*+-/<>?^~\\="
                 def isOperator(n: Name): Boolean = {
                   n.name
                     .chars()
@@ -1916,6 +1916,7 @@ class IrToTruffle(
           case Foreign.Definition(lang, code, _, _, _) =>
             buildForeignBody(
               lang,
+              body.location,
               code,
               arguments.map(_.name.name),
               argSlotIdxs
@@ -1977,12 +1978,18 @@ class IrToTruffle(
 
     private def buildForeignBody(
       language: String,
+      location: Option[IdentifiedLocation],
       code: String,
       argumentNames: List[String],
       argumentSlotIdxs: List[Int]
     ): RuntimeExpression = {
-      val src =
-        Source.newBuilder("epb", language + "#" + code, scopeName).build()
+      val line = location
+        .map(l => source.createSection(l.start, l.length).getStartLine())
+        .getOrElse(0)
+      val name = scopeName.replace('.', '_') + "." + language
+      val b    = Source.newBuilder("epb", language + ":" + line + "#" + code, name)
+      b.uri(source.getURI())
+      val src       = b.build()
       val foreignCt = context.parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>

@@ -32,7 +32,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 export interface DriveBarProps {
   readonly category: Category
   readonly isCloud: boolean
-  readonly canDownloadFiles: boolean
+  readonly canDownload: boolean
   readonly doEmptyTrash: () => void
   readonly doCreateProject: () => void
   readonly doCreateDirectory: () => void
@@ -45,8 +45,7 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { category, isCloud, canDownloadFiles } = props
-  const { doEmptyTrash, doCreateProject, doCreateDirectory } = props
+  const { category, isCloud, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
@@ -177,8 +176,8 @@ export default function DriveBar(props: DriveBarProps) {
                 }}
               />
               <Button
-                active={canDownloadFiles}
-                disabled={!canDownloadFiles}
+                active={canDownload}
+                disabled={!canDownload}
                 image={DataDownloadIcon}
                 alt="Download Files"
                 error={

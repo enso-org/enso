@@ -429,6 +429,7 @@ export default function Dashboard(props: DashboardProps) {
           <Drive
             supportsLocalBackend={supportsLocalBackend}
             hidden={page !== pageSwitcher.Page.drive}
+            hideRows={page !== pageSwitcher.Page.drive && page !== pageSwitcher.Page.home}
             backend={backend}
             rootDirectory={rootDirectory}
             initialProjectName={initialProjectName}
@@ -458,7 +459,6 @@ export default function Dashboard(props: DashboardProps) {
           {/* `accessToken` MUST be present in order for the `Chat` component to work. */}
           {accessToken != null && process.env.ENSO_CLOUD_CHAT_URL != null ? (
             <Chat
-              page={page}
               isOpen={isHelpChatOpen}
               doClose={() => {
                 setIsHelpChatOpen(false)
@@ -467,7 +467,6 @@ export default function Dashboard(props: DashboardProps) {
             />
           ) : (
             <ChatPlaceholder
-              page={page}
               isOpen={isHelpChatOpen}
               doClose={() => {
                 setIsHelpChatOpen(false)

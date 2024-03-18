@@ -80,6 +80,7 @@ enum DriveStatus {
 export interface DriveProps {
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
+  readonly hideRows: boolean
   readonly backend: Backend
   readonly rootDirectory: backendModule.SmartDirectory | null
   readonly initialProjectName: string | null
@@ -106,17 +107,17 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, backend, rootDirectory, hidden, initialProjectName } = props
+  const { supportsLocalBackend, backend, hidden, hideRows, initialProjectName } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
-  const { setIsAssetPanelTemporarilyVisible } = props
+  const { rootDirectory, setIsAssetPanelTemporarilyVisible } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
+  const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [category, setCategory] = React.useState(
     () => localStorage.get('driveCategory') ?? Category.home
@@ -368,7 +369,7 @@ export default function Drive(props: DriveProps) {
             <DriveBar
               category={category}
               isCloud={isCloud}
-              canDownloadFiles={canDownloadFiles}
+              canDownload={canDownload}
               doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
@@ -402,9 +403,10 @@ export default function Drive(props: DriveProps) {
                 isCloud={isCloud}
                 rootDirectory={rootDirectory}
                 hidden={hidden}
+                hideRows={hideRows}
                 query={query}
                 setQuery={setQuery}
-                setCanDownloadFiles={setCanDownloadFiles}
+                setCanDownload={setCanDownload}
                 category={category}
                 allLabels={allLabels}
                 setSuggestions={setSuggestions}

@@ -5,13 +5,11 @@ import * as reactDom from 'react-dom'
 import * as toastify from 'react-toastify'
 
 import * as chat from 'enso-chat/chat'
-import * as detect from 'enso-common/src/detect'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 
 import ChatHeader from '#/layouts/ChatHeader'
-import * as pageSwitcher from '#/layouts/PageSwitcher'
 
 import type * as chatMessage from '#/components/dashboard/ChatMessage'
 import ChatMessage from '#/components/dashboard/ChatMessage'
@@ -67,7 +65,6 @@ function makeNewThreadTitle(threads: chat.ThreadData[]) {
 
 /** Props for a {@link Chat}. */
 export interface ChatProps {
-  readonly page: pageSwitcher.Page
   /** This should only be false when the panel is closing. */
   readonly isOpen: boolean
   readonly doClose: () => void
@@ -76,7 +73,7 @@ export interface ChatProps {
 
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
-  const { page, isOpen, doClose, endpoint } = props
+  const { isOpen, doClose, endpoint } = props
   const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
   const logger = loggerProvider.useLogger()
 
@@ -362,9 +359,7 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`fixed right top z-3 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${
-          detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
-        } ${isOpen ? '' : 'translate-x-full'}`}
+        className={`fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${isOpen ? '' : 'translate-x-full'}`}
       >
         <ChatHeader
           threads={threads}

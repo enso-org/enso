@@ -55,14 +55,9 @@ export default function UserBar(props: UserBarProps) {
     self != null
   const shouldShowInviteButton =
     sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
-  const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
-    <div
-      className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default ${
-        shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''
-      }`}
-    >
+    <div className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default">
       <Button
         active={isHelpChatOpen}
         image={ChatIcon}

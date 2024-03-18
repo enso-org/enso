@@ -1,4 +1,5 @@
 import { useEvent } from '@/composables/events'
+import type { Opt } from 'shared/util/data/opt'
 import { watchEffect, type Ref } from 'vue'
 
 /** Automatically `blur` the currently active element on any mouse click outside of `root`.
@@ -41,9 +42,6 @@ export function registerAutoBlurHandler() {
 }
 
 /** Returns true if the target of the event is in the DOM subtree of the given `area` element. */
-export function targetIsOutside(
-  e: Event,
-  area: Ref<HTMLElement | SVGElement | MathMLElement | undefined>,
-): boolean {
-  return !!area.value && e.target instanceof Element && !area.value.contains(e.target)
+export function targetIsOutside(e: Event, area: Opt<Element>): boolean {
+  return !!area && e.target instanceof Element && !area.contains(e.target)
 }

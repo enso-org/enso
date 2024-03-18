@@ -328,7 +328,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         <ContextMenuEntry
           hidden={hidden}
-          disabled={isCloud && asset.type !== backendModule.AssetType.file}
+          disabled={
+            isCloud &&
+            asset.type !== backendModule.AssetType.file &&
+            asset.type !== backendModule.AssetType.dataLink &&
+            asset.type !== backendModule.AssetType.project
+          }
           action="download"
           doAction={() => {
             unsetModal()
