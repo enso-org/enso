@@ -12,6 +12,21 @@ import java.time.ZonedDateTime;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 public class JDBCUtils {
+  /**
+   * Gets a LocalDate from a ResultSet.
+   */
+  public static LocalDate getLocalDate(ResultSet rs, int columnIndex) throws SQLException {
+    var sqlDate = rs.getDate(columnIndex);
+    return sqlDate == null ? null : sqlDate.toLocalDate();
+  }
+
+  /**
+   * Gets a LocalTime from a ResultSet.
+   */
+  public static LocalTime getLocalTime(ResultSet rs, int columnIndex) throws SQLException {
+    var sqlTime = rs.getObject(columnIndex, LocalTime.class);
+    return sqlTime == null ? null : sqlTime;
+  }
 
   /**
    * Gets a ZonedDateTime from a ResultSet.
