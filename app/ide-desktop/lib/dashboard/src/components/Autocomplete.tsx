@@ -220,7 +220,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
         <div
           className={`relative top-2 z-1 h-max w-full rounded-default shadow-soft before:absolute before:top before:h-full before:w-full before:rounded-default before:bg-frame before:backdrop-blur-default ${
             isDropdownVisible && matchingItems.length !== 0
-              ? 'before:border before:border-black/10'
+              ? 'before:border before:border-primary/10'
               : ''
           }`}
         >

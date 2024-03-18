@@ -176,7 +176,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         className={`absolute left-0 h-full w-full min-w-max ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
       >
         <div
-          className={`relative before:absolute before:top before:w-full before:rounded-input before:border before:border-black/10 before:backdrop-blur-default before:transition-colors ${
+          className={`relative before:absolute before:top before:w-full before:rounded-input before:border before:border-primary/10 before:backdrop-blur-default before:transition-colors ${
             isDropdownVisible
               ? 'before:h-full before:shadow-soft'
               : 'before:h-text group-hover:before:bg-frame'

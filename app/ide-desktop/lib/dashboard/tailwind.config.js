@@ -75,6 +75,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'menu-entry': 'var(--menu-entry-corner-radius)',
         'selection-brush': 'var(--selection-brush-corner-radius)',
         'chat-input': 'var(--chat-input-corner-radius)',
+        'small-rectangle-button': 'var(--small-rectangle-button-corer-radius)',
       },
       spacing: {
         DEFAULT: '0',
@@ -89,6 +90,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'chat-profile-picture': 'var(--chat-profile-picture-size)',
         'selection-brush-border': 'var(--selection-brush-border-width)',
         'row-h': 'var(--row-height)',
+        'text-h': 'var(--text-height)',
         'top-bar-margin': 'var(--top-bar-margin)',
         'indent-1': 'var(--indent-1-size)',
         'indent-2': 'var(--indent-2-size)',
@@ -129,6 +131,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'permission-type': 'var(--permission-type-width)',
         'auth-icon-container': 'var(--auth-icon-container-width)',
         'side-panel-label': 'var(--side-panel-label-width)',
+        'date-picker': 'var(--date-picker-width)',
+        'date-cell': 'var(--date-cell-width)',
 
         'manage-labels-modal': 'var(--manage-labels-modal-width)',
         'confirm-delete-modal': 'var(--confirm-delete-modal-width)',
@@ -304,6 +308,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'asset-panel-l': 'var(--asset-panel-padding-left)',
         'auth-icon-container-w': 'var(--auth-icon-container-width)',
         'side-panel-description-y': 'var(--side-panel-description-padding-y)',
+        'date-input': 'var(--date-input-padding)',
         'chat-thread-button': 'var(--chat-thread-button-padding)',
         'chat-form': 'var(--chat-form-padding)',
         'chat-input': 'var(--chat-input-padding)',
@@ -321,6 +326,8 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'search-suggestion': 'var(--search-suggestion-margin)',
         'multiline-input-p': 'var(--multiline-input-padding)',
         'close-icon': 'var(--close-icon-margin)',
+        'date-input-gap': 'var(--date-input-gap)',
+        'date-input-calendar-gap': 'var(--date-input-calendar-gap)',
         'chat-header-x': 'var(--chat-header-margin-x)',
         'chat-header-t': 'var(--chat-header-margin-top)',
         'chat-form-x': 'var(--chat-form-margin-x)',
@@ -518,6 +525,9 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
 
           '.text': {
             '@apply leading-cozy h-text py-px': '',
+          },
+          '.text-tight': {
+            '@apply leading-snug h-5 py-px': '',
           },
           '.text-header': {
             '@apply leading-snug h-text py-0.5': '',

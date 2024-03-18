@@ -91,7 +91,7 @@ export default function DateInput(props: DateInputProps) {
       }}
     >
       <button
-        className={`border border-primary/10 rounded-full px-2 h-6 w-30 transition-colors hover:bg-primary/10 ${date == null ? 'opacity-75' : ''}`}
+        className={`w-date-picker px-date-input h-text rounded-full border border-primary/10 transition-colors hover:bg-primary/10 ${date == null ? 'placeholder' : ''}`}
         onClick={() => {
           setIsPickerVisible(!isPickerVisible)
         }}
@@ -99,13 +99,13 @@ export default function DateInput(props: DateInputProps) {
         {date != null ? dateTime.formatDate(date) : 'No date selected'}
       </button>
       {isPickerVisible && (
-        <div className="absolute top-6 mt-2 left-1/2">
-          <div className="relative rounded-2xl -translate-x-1/2 p-2 shadow-soft border border-primary/10 before:absolute before:inset-0 before:rounded-2xl before:backdrop-blur-3xl">
+        <div className="mt-date-input-gap top-text-h absolute left-1/2">
+          <div className="p-date-input relative -translate-x-1/2 rounded-2xl border border-primary/10 shadow-soft before:absolute before:inset-0 before:rounded-2xl before:backdrop-blur-3xl">
             <table className="relative w-full">
-              <caption className="caption-top mb-2">
+              <caption className="mb-date-input-gap caption-top">
                 <div className="flex items-center">
                   <button
-                    className="inline-flex rounded-md hover:bg-black/10"
+                    className="rounded-small-rectangle-button inline-flex hover:bg-hover-bg"
                     onClick={() => {
                       setSelectedYear(selectedYear - 1)
                     }}
@@ -113,7 +113,7 @@ export default function DateInput(props: DateInputProps) {
                     <SvgMask src={FolderArrowDoubleIcon} className="rotate-180" />
                   </button>
                   <button
-                    className="inline-flex rounded-md hover:bg-black/10"
+                    className="rounded-small-rectangle-button inline-flex hover:bg-black/10"
                     onClick={() => {
                       if (selectedMonthIndex === 0) {
                         setSelectedYear(selectedYear - 1)
@@ -129,7 +129,7 @@ export default function DateInput(props: DateInputProps) {
                     {dateTime.MONTH_NAMES[selectedMonthIndex]} {selectedYear}
                   </span>
                   <button
-                    className="inline-flex rounded-md hover:bg-black/10"
+                    className="rounded-small-rectangle-button inline-flex hover:bg-black/10"
                     onClick={() => {
                       if (selectedMonthIndex === LAST_MONTH_INDEX) {
                         setSelectedYear(selectedYear + 1)
@@ -142,7 +142,7 @@ export default function DateInput(props: DateInputProps) {
                     <SvgMask src={FolderArrowIcon} />
                   </button>
                   <button
-                    className="inline-flex rounded-md hover:bg-black/10"
+                    className="rounded-small-rectangle-button inline-flex hover:bg-black/10"
                     onClick={() => {
                       setSelectedYear(selectedYear + 1)
                     }}
@@ -153,13 +153,13 @@ export default function DateInput(props: DateInputProps) {
               </caption>
               <thead>
                 <tr>
-                  <th className="p-0 min-w-6 h-5 leading-144.5 py-px">M</th>
-                  <th className="p-0 min-w-6 h-5 leading-144.5 py-px">Tu</th>
-                  <th className="p-0 min-w-6 h-5 leading-144.5 py-px">W</th>
-                  <th className="p-0 min-w-6 h-5 leading-144.5 py-px">Th</th>
-                  <th className="p-0 min-w-6 h-5 leading-144.5 py-px">F</th>
-                  <th className="p-0 min-w-6 h-5 leading-144.5 py-px">Sa</th>
-                  <th className="p-0 min-w-6 h-5 leading-144.5 py-px">Su</th>
+                  <th className="text-tight min-w-date-cell p">M</th>
+                  <th className="text-tight min-w-date-cell p">Tu</th>
+                  <th className="text-tight min-w-date-cell p">W</th>
+                  <th className="text-tight min-w-date-cell p">Th</th>
+                  <th className="text-tight min-w-date-cell p">F</th>
+                  <th className="text-tight min-w-date-cell p">Sa</th>
+                  <th className="text-tight min-w-date-cell p">Su</th>
                 </tr>
               </thead>
               <tbody>
@@ -179,7 +179,7 @@ export default function DateInput(props: DateInputProps) {
                       return (
                         <td
                           key={j}
-                          className="p-0 h-5 leading-144.5 py-px"
+                          className="text-tight p"
                           onClick={() => {
                             setIsPickerVisible(false)
                             onInput(currentDate)
@@ -187,7 +187,7 @@ export default function DateInput(props: DateInputProps) {
                         >
                           <button
                             disabled={isSelectedDate}
-                            className={`w-full text-center rounded-md hover:bg-black/10 disabled:font-bold disabled:bg-frame ${day.monthOffset === 0 ? '' : 'opacity-50'}`}
+                            className={`rounded-small-rectangle-button w-full text-center hover:bg-primary/10 disabled:bg-frame disabled:font-bold ${day.monthOffset === 0 ? '' : 'opacity-unimportant'}`}
                           >
                             {day.date}
                           </button>
