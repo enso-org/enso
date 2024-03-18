@@ -244,7 +244,7 @@ export default function AssetRow(props: AssetRowProps) {
           {
             parentDirectoryId: newParentId ?? rootDirectoryId,
             description: null,
-            projectPath: asset.projectState?.path ?? null,
+            ...(asset.projectState?.path == null ? {} : { projectPath: asset.projectState.path }),
           },
           asset.title
         )
