@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { codeEditorBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { isMacLike } from '@/composables/events'
 import { ref } from 'vue'
 
 const isDropdownOpen = ref(false)
@@ -9,9 +9,7 @@ const props = defineProps<{
   zoomLevel: number
 }>()
 const emit = defineEmits<{ zoomIn: []; zoomOut: []; fitToAllClicked: []; toggleCodeEditor: [] }>()
-
-// TODO: replace with codeEditorBindigs.toggle: https://github.com/enso-org/enso/issues/9411.
-const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
+const toggleCodeEditorShortcut = codeEditorBindings.bindings.toggle.humanReadable
 </script>
 
 <template>
@@ -21,7 +19,7 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
     @pointerup.stop
     @click.stop="isDropdownOpen = !isDropdownOpen"
   >
-    <SvgIcon name="folder_opened" class="moreIcon" />
+    <SvgIcon name="3_dot_menu" class="moreIcon" />
   </div>
   <Transition name="dropdown">
     <div
@@ -34,12 +32,16 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
       <div class="row">
         <div class="label">Zoom</div>
         <div class="zoomControl">
-          <div class="zoomButton minus" title="Decrease zoom" @click="emit('zoomOut')" />
+          <div class="zoomButtonHighlight">
+            <SvgIcon :scale="12 / 16" name="minus" title="Decrease zoom" @click="emit('zoomOut')" />
+          </div>
           <span
             class="zoomScaleLabel"
             v-text="props.zoomLevel ? props.zoomLevel.toFixed(0) + '%' : '?'"
           ></span>
-          <div class="zoomButton plus" title="increase zoom" @click="emit('zoomIn')" />
+          <div class="zoomButtonHighlight">
+            <SvgIcon :scale="12 / 16" name="add" title="increase zoom" @click="emit('zoomIn')" />
+          </div>
           <div class="divider"></div>
           <div class="showAllIconHighlight">
             <SvgIcon name="show_all" class="showAllIcon" @click="emit('fitToAllClicked')" />
@@ -77,7 +79,7 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
   top: 40px;
   margin-top: 6px;
   padding: 4px;
-  right: 0px;
+  right: 8px;
   border-radius: 12px;
   background: var(--color-frame-bg);
   backdrop-filter: var(--blur-app-bg);
@@ -146,52 +148,21 @@ const toggleCodeEditorShortcut = isMacLike ? 'Cmd + `' : 'Ctrl + `'
   left: 8px;
 }
 
-.zoomButton {
+.zoomButtonHighlight {
   width: 16px;
   height: 16px;
   border-radius: var(--radius-full);
   position: relative;
   margin: 0px;
+  padding: 2px;
   display: inline-block;
   vertical-align: middle;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
-.zoomButton:hover {
+.zoomButtonHighlight:hover {
   background-color: var(--color-menu-entry-hover-bg);
-}
-
-.zoomButton.plus:before,
-.zoomButton.plus:after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--color-text);
-}
-
-.zoomButton.plus:before {
-  width: 2px;
-  height: 12px;
-}
-
-.zoomButton.plus:after {
-  height: 2px;
-  width: 12px;
-}
-
-.zoomButton.minus:before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--color-text);
-  margin: auto 2px;
-  height: 2px;
 }
 
 .dropdown-enter-active,

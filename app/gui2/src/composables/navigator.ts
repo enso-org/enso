@@ -2,6 +2,7 @@
 
 import { useApproach } from '@/composables/animation'
 import { PointerButtonMask, useEvent, usePointer, useResizeObserver } from '@/composables/events'
+import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, proxyRefs, shallowRef, type Ref } from 'vue'
@@ -19,7 +20,7 @@ function elemRect(target: Element | undefined): Rect {
 }
 
 export type NavigatorComposable = ReturnType<typeof useNavigator>
-export function useNavigator(viewportNode: Ref<Element | undefined>) {
+export function useNavigator(viewportNode: Ref<Element | undefined>, keyboard: KeyboardComposable) {
   const size = useResizeObserver(viewportNode)
   const targetCenter = shallowRef<Vec2>(Vec2.Zero)
   const targetX = computed(() => targetCenter.value.x)
@@ -211,26 +212,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     { capture: true },
   )
 
-  let ctrlPressed = false
-  useEvent(
-    window,
-    'keydown',
-    (event) => {
-      if (event.key === 'Control') ctrlPressed = true
-      return false
-    },
-    { capture: true },
-  )
-  useEvent(
-    window,
-    'keyup',
-    (event) => {
-      if (event.key === 'Control') ctrlPressed = false
-      return false
-    },
-    { capture: true },
-  )
-
   /** Clamp the value to the given bounds, except if it is already outside the bounds allow the new value to be less
    *  outside the bounds. */
   function directedClamp(oldValue: number, newValue: number, [min, max]: ScaleRange): number {
@@ -257,11 +238,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
     )
   }
 
-  /** Update `ctrlPressed` from the event; this helps catch if we missed the `keyup` while focus was elsewhere. */
-  function updateCtrlState(e: KeyboardEvent | MouseEvent | PointerEvent) {
-    ctrlPressed = e.ctrlKey
-  }
-
   return proxyRefs({
     events: {
       dragover(e: DragEvent) {
@@ -270,14 +246,10 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
       dragleave() {
         eventMousePos.value = null
       },
-      pointerenter(e: PointerEvent) {
-        updateCtrlState(e)
-      },
       pointermove(e: PointerEvent) {
         eventMousePos.value = eventScreenPos(e)
         panPointer.events.pointermove(e)
         zoomPointer.events.pointermove(e)
-        updateCtrlState(e)
       },
       pointerleave() {
         eventMousePos.value = null
@@ -297,7 +269,7 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
         if (e.ctrlKey) {
           // A pinch gesture is represented by setting `e.ctrlKey`. It can be distinguished from an actual Ctrl+wheel
           // combination because the real Ctrl key emits keyup/keydown events.
-          const isGesture = !ctrlPressed
+          const isGesture = !keyboard.ctrl
           if (isGesture) {
             // OS X trackpad events provide usable rate-of-change information.
             updateScale(
@@ -309,7 +281,6 @@ export function useNavigator(viewportNode: Ref<Element | undefined>) {
             stepZoom(-Math.sign(e.deltaY), WHEEL_SCALE_RANGE)
           }
         } else {
-          updateCtrlState(e)
           const delta = new Vec2(e.deltaX, e.deltaY)
           center.value = center.value.addScaled(delta, 1 / scale.value)
         }

@@ -153,19 +153,19 @@ public abstract class TestBase {
    * node inside a context, all the other nodes, and insert them via {@link
    * #insertChildren(Node...)}.
    */
-  static class TestRootNode extends RootNode {
+  protected static final class TestRootNode extends RootNode {
     private final Function<VirtualFrame, Object> callback;
 
-    TestRootNode() {
+    public TestRootNode() {
       this(null);
     }
 
-    TestRootNode(Function<VirtualFrame, Object> callback) {
+    public TestRootNode(Function<VirtualFrame, Object> callback) {
       super(EnsoLanguage.get(null));
       this.callback = callback;
     }
 
-    void insertChildren(Node... children) {
+    public void insertChildren(Node... children) {
       for (Node child : children) {
         insert(child);
       }
