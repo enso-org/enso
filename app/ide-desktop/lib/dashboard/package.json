@@ -25,9 +25,6 @@
     "test:e2e": "cross-env NODE_ENV=production playwright test",
     "test:e2e:debug": "cross-env NODE_ENV=production playwright test --ui"
   },
-  "//": [
-    "@fortawesome/fontawesome-svg-core is required as a peer dependency for @fortawesome/react-fontawesome"
-  ],
   "dependencies": {
     "@aws-amplify/auth": "5.6.5",
     "@aws-amplify/core": "5.8.5",
