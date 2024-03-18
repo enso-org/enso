@@ -57,7 +57,7 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
 })
 
 test('Conditional ports: Disabled', async ({ page }) => {
-  await initGraph(page)
+  await actions.goToGraph(page)
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
@@ -67,7 +67,7 @@ test('Conditional ports: Disabled', async ({ page }) => {
 
   // When a port is disabled, it doesn't react to hovering with a disconnected edge,
   // and any attempt to connect to it should open the CB.
-  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'sum'))
+  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await conditionalPort.hover()
   await expect(conditionalPort).not.toHaveClass(/isTarget/)
@@ -77,7 +77,7 @@ test('Conditional ports: Disabled', async ({ page }) => {
 })
 
 test('Conditional ports: Enabled', async ({ page }) => {
-  await initGraph(page)
+  await actions.goToGraph(page)
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
@@ -85,12 +85,12 @@ test('Conditional ports: Enabled', async ({ page }) => {
   await page.keyboard.down('Control')
 
   await expect(conditionalPort).toHaveClass(/enabled/)
-  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'sum'))
+  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await conditionalPort.hover()
   await expect(conditionalPort).toHaveClass(/isTarget/)
   await conditionalPort.click()
-  await expect(node.locator('.WidgetToken')).toHaveText(['sum'])
+  await expect(node.locator('.WidgetToken')).toHaveText(['final'])
 
   await page.keyboard.up('Meta')
   await page.keyboard.up('Control')
