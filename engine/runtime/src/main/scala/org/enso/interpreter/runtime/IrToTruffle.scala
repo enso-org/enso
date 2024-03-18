@@ -1720,7 +1720,7 @@ class IrToTruffle(
     }
 
     private class RuntimeNameResolution extends NameResolution[RuntimeExpression, FramePointer] {
-      override protected def findLocalLink(occurrenceMetadata: AliasAnalysisInfo.Occurrence): Option[FramePointer] =
+      override protected def findLocalLink(occurrenceMetadata: org.enso.compiler.pass.analyse.alias.Info.Occurrence): Option[FramePointer] =
         scope.getFramePointer(occurrenceMetadata.id)
 
       override protected def resolveLocalName(localLink: FramePointer): RuntimeExpression =

@@ -14,6 +14,8 @@ import org.enso.compiler.core.ir.type.Set;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.*;
+import org.enso.compiler.pass.analyse.alias.Graph;
+import org.enso.compiler.pass.analyse.alias.Info;
 import org.enso.compiler.pass.resolve.*;
 import org.enso.persist.Persistance;
 import org.enso.pkg.QualifiedName;
@@ -229,7 +231,7 @@ public final class TypeInference implements IRPass {
   }
 
   private void registerBinding(IR binding, TypeRepresentation type, LocalBindingsTyping localBindingsTyping) {
-    var metadata = JavaInteropHelpers.getAliasAnalysisOccurrenceMetadata(binding);
+    var metadata = getMetadata(binding, AliasAnalysis$.MODULE$, Info.Occurrence.class);
     var occurrence = metadata.graph().getOccurrence(metadata.id());
     if (occurrence.isEmpty()) {
       logger.debug("registerBinding {}: missing occurrence in graph for {}", binding.showCode(), metadata);
@@ -511,7 +513,7 @@ public final class TypeInference implements IRPass {
     }
 
     @Override
-    protected Option<LinkInfo> findLocalLink(AliasAnalysisInfo.Occurrence occurrenceMetadata) {
+    protected Option<LinkInfo> findLocalLink(Info.Occurrence occurrenceMetadata) {
       return occurrenceMetadata.graph()
           .defLinkFor(occurrenceMetadata.id())
           .map((link) -> new LinkInfo(occurrenceMetadata.graph(), link));
@@ -554,7 +556,7 @@ public final class TypeInference implements IRPass {
       return InferredType.create(new TypeRepresentation.UnresolvedSymbol(symbolName));
     }
 
-    private record LinkInfo(AliasAnalysisGraph graph, AliasAnalysisGraph.Link link) {
+    private record LinkInfo(Graph graph, Graph.Link link) {
     }
   }
 }
