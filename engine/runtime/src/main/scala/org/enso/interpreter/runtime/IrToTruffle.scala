@@ -542,7 +542,7 @@ class IrToTruffle(
                     true
                   )
 
-                val operators = ".!$%&*+-/<>?^~\\"
+                val operators = ".!$%&*+-/<>?^~\\="
                 def isOperator(n: Name): Boolean = {
                   n.name
                     .chars()

@@ -15,6 +15,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -59,11 +60,6 @@ public abstract class TypeOfNode extends Node {
   @Specialization
   Object doBigInteger(EnsoBigInteger value) {
     return EnsoContext.get(this).getBuiltins().number().getInteger();
-  }
-
-  @Specialization
-  Object doString(String value) {
-    return EnsoContext.get(this).getBuiltins().text();
   }
 
   @Specialization
@@ -216,6 +212,8 @@ public abstract class TypeOfNode extends Node {
       META_OBJECT;
 
       static Interop resolve(Object value, InteropLibrary interop) {
+        assert !(value instanceof EnsoObject) || AtomWithAHoleNode.isHole(value)
+            : "Don't use interop for EnsoObject: " + value.getClass().getName();
         if (interop.isString(value)) {
           return STRING;
         }

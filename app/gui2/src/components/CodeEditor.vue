@@ -211,7 +211,7 @@ function resetView() {
 function commitPendingChanges() {
   if (!pendingChanges || !currentModule) return
   try {
-    currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges), graphStore.viewModule())
+    currentModule.applyTextEdits(changeSetToTextEdits(pendingChanges), graphStore.viewModule)
     graphStore.commitEdit(currentModule, undefined, 'local:CodeEditor')
   } catch (error) {
     console.error(`Code Editor failed to modify module`, error)
@@ -350,7 +350,7 @@ const editorStyle = computed(() => {
         <circle cx="14" cy="14" r="1.5" />
       </svg>
     </div>
-    <SvgIcon name="enso_logo" class="closeButton button" @click="emit('close')" />
+    <SvgIcon name="close" class="closeButton button" @click="emit('close')" />
   </div>
 </template>
 

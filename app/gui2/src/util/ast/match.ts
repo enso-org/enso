@@ -44,6 +44,14 @@ export class Pattern {
     }
     return template
   }
+
+  instantiateCopied(subtrees: Ast.Ast[], edit?: MutableModule): Ast.Owned {
+    const module = edit ?? MutableModule.Transient()
+    return this.instantiate(
+      module,
+      subtrees.map((ast) => module.copy(ast)),
+    )
+  }
 }
 
 function findPlaceholders(ast: Ast.Ast, placeholder: string): Ast.AstId[] {

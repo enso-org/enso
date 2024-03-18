@@ -6,6 +6,7 @@ import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { MutableModule } from '@/util/ast/abstract.ts'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
+import type { WidgetEditHandler } from './widgetRegistry/editHandler'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
@@ -104,6 +105,7 @@ export interface WidgetInput {
   dynamicConfig?: WidgetConfiguration | undefined
   /** Force the widget to be a connectible port. */
   forcePort?: boolean
+  editHandler?: WidgetEditHandler
 }
 
 /**
