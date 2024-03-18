@@ -12,6 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Equivalence;
@@ -219,6 +220,16 @@ public final class WithWarnings implements EnsoObject {
   @ExportMessage
   public boolean isLimitReached() {
     return limitReached;
+  }
+
+  @ExportMessage
+  boolean hasType(@Shared("typesLib") @CachedLibrary(limit = "3") TypesLibrary types) {
+    return types.hasType(value);
+  }
+
+  @ExportMessage
+  Type getType(@Shared("typesLib") @CachedLibrary(limit = "3") TypesLibrary types) {
+    return types.getType(value);
   }
 
   @ExportMessage

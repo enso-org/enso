@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * Mock project store, used in some histoire stories.
+ */
+
 import { useProjectStore } from '@/stores/project'
 import { Ast } from '@/util/ast'
 import { SourceDocument } from 'shared/ast/sourceDocument'
@@ -38,9 +42,9 @@ watch(
 
 function applyEdits(syncModule: Ast.MutableModule, newText: string) {
   if (newText !== syncedCode) {
-    syncModule.ydoc.transact(() => {
+    syncModule.transact(() => {
       syncModule.syncRoot(Ast.parseBlock(newText, syncModule))
-    }, 'local')
+    })
   }
 }
 </script>

@@ -13,11 +13,12 @@ const { provideFn, injectFn } = createContextStore(
   (
     navigator: NavigatorComposable,
     nodeRects: Map<NodeId, Rect>,
+    isPortEnabled,
     callbacks: {
       onSelected?: (id: NodeId) => void
       onDeselected?: (id: NodeId) => void
     } = {},
   ) => {
-    return useSelection(navigator, nodeRects, SELECTION_BRUSH_MARGIN_PX, callbacks)
+    return useSelection(navigator, nodeRects, isPortEnabled, SELECTION_BRUSH_MARGIN_PX, callbacks)
   },
 )

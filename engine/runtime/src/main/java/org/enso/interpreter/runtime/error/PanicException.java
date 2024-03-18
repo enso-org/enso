@@ -20,6 +20,7 @@ import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextN
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -28,7 +29,7 @@ import org.enso.interpreter.runtime.state.State;
 /** An exception type for user thrown panic exceptions. */
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "payload")
 @ExportLibrary(TypesLibrary.class)
-public final class PanicException extends AbstractTruffleException {
+public final class PanicException extends AbstractTruffleException implements EnsoObject {
   final Object payload;
   private String cacheMessage;
 
