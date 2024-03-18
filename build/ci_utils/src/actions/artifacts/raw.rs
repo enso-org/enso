@@ -106,7 +106,7 @@ pub mod endpoints {
         serde_json::from_value(body).anyhow_err()
     }
 
-    #[context("Failed to finalize upload of the artifact `{}`.", artifact_name.as_ref())]
+    // #[context("Failed to finalize upload of the artifact `{}`.", artifact_name.as_ref())]
     pub async fn patch_artifact_size(
         json_client: &reqwest::Client,
         artifact_url: &Url,
@@ -115,7 +115,7 @@ pub mod endpoints {
     ) -> Result<PatchArtifactSizeResponse> {
         debug!("Patching the artifact `{}` size.", artifact_name.as_ref());
         let artifact_name = artifact_name.as_ref();
-        retry(async move || {
+        retry(move || async move {
             let patch_request = json_client
                 .patch(artifact_url.clone())
                 .query(&[("artifactName", artifact_name)]) // OsStr can be passed here, fails runtime
@@ -241,7 +241,7 @@ pub fn stream_file_in_chunks(
     file: tokio::fs::File,
     chunk_size: usize,
 ) -> impl Stream<Item = Result<Bytes>> + Send {
-    futures::stream::try_unfold(file, async move |mut file| {
+    futures::stream::try_unfold(file, move |mut file: tokio::fs::File| async move {
         let mut buffer = BytesMut::with_capacity(chunk_size);
         while file.read_buf(&mut buffer).await? > 0 && buffer.len() < chunk_size {}
         if buffer.is_empty() {

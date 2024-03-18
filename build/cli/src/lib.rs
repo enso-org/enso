@@ -116,7 +116,7 @@ pub fn run_and_upload_dir(
 }
 
 define_env_var! {
-    ENSO_BUILD_KIND, enso_build::version::Kind;
+    ENSO_BUILD_KIND, version::Kind;
 }
 
 /// The basic, common information available in this application.
@@ -380,7 +380,7 @@ impl Processor {
         match backend.command {
             arg::backend::Command::Build { source } => self.get(source).void_ok().boxed(),
             arg::backend::Command::Upload { input } => {
-                let input = enso_build::project::Backend::resolve(self, input);
+                let input = Backend::resolve(self, input);
                 let repo = self.remote_repo.clone();
                 let context = self.context();
                 async move {
@@ -487,7 +487,7 @@ impl Processor {
         let octocrab = self.octocrab.clone();
         async move {
             let paths = paths?;
-            let inner = crate::project::Context {
+            let inner = project::Context {
                 repo_root: paths.repo_root.clone(),
                 // upload_artifacts: true,
                 octocrab,
@@ -500,7 +500,7 @@ impl Processor {
 
     /// Get a handle to the release by its identifier.
     pub fn release(&self, id: ReleaseId) -> release::Handle {
-        ide_ci::github::release::Handle::new(&self.octocrab, self.remote_repo.clone(), id)
+        release::Handle::new(&self.octocrab, self.remote_repo.clone(), id)
     }
 
     /// Upload IDE assets from the build job to the given release.
@@ -722,7 +722,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
         Target::Backend(backend) => ctx.handle_backend(backend).await?,
         Target::Ide(ide) => ctx.handle_ide(ide).await?,
         Target::GitClean(options) => {
-            let crate::arg::git_clean::Options { dry_run, cache, build_script } = options;
+            let arg::git_clean::Options { dry_run, cache, build_script } = options;
             let mut exclusions = vec![".idea"];
             if !build_script {
                 exclusions.push("target/rust/buildscript");
@@ -802,7 +802,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 enso_build::release::publish_release(&ctx).await?;
             }
             Action::Promote(args) => {
-                let crate::arg::release::Promote { designation } = args;
+                let arg::release::Promote { designation } = args;
                 enso_build::release::promote_release(&ctx, designation).await?;
             }
         },

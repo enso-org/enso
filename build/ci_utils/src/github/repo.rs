@@ -423,7 +423,7 @@ impl<R: IsRepo> Handle<R> {
     }
 
     /// Get a handle for dealing with a release with a given id.
-    pub fn release_handle(&self, id: ReleaseId) -> crate::github::release::Handle {
+    pub fn release_handle(&self, id: ReleaseId) -> github::release::Handle {
         let repo = Repo::new(self.owner(), self.name());
         github::release::Handle::new(&self.octocrab, repo, id)
     }

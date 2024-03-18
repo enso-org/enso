@@ -12,6 +12,7 @@
 #![feature(duration_constants)]
 #![feature(slice_take)]
 #![feature(future_join)]
+#![feature(trait_upcasting)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
