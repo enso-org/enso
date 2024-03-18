@@ -11,6 +11,7 @@ import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 import ProjectManager from '#/services/ProjectManager'
 
+import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
 import * as fileInfo from '#/utilities/fileInfo'
@@ -576,7 +577,15 @@ export default class LocalBackend extends Backend {
         ? ProjectManager.rootDirectory
         : extractTypeAndId(params.parentDirectoryId).id
     const path = projectManager.joinPath(parentPath, params.fileName)
-    await this.projectManager.createFile(path, file)
+    // await this.projectManager.createFile(path, file)
+    const searchParams = new URLSearchParams([
+      ['file_name', params.fileName],
+      ...(params.parentDirectoryId == null ? [] : [['directory', parentPath]]),
+    ]).toString()
+    await fetch(`${appBaseUrl.APP_BASE_URL}/api/upload-file?${searchParams}`, {
+      method: 'POST',
+      body: file,
+    })
     // `project` MUST BE `null` as uploading projects uses a separate endpoint.
     return { path, id: newFileId(path), project: null }
   }

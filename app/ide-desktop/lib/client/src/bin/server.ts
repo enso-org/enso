@@ -1,6 +1,7 @@
 /** @file A simple HTTP server which serves application data to the Electron web-view. */
 
-import * as fs from 'node:fs'
+import * as fs from 'node:fs/promises'
+import * as fsSync from 'node:fs'
 import * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
@@ -119,7 +120,9 @@ export class Server {
                         // working both in browser and in ydocs server. Doing it properly
                         // is tracked in https://github.com/enso-org/enso/issues/8931
                         const assets = path.join(paths.ASSETS_PATH, 'assets')
-                        const bundledFiles = fs.existsSync(assets) ? fs.readdirSync(assets) : []
+                        const bundledFiles = fsSync.existsSync(assets)
+                            ? await fs.readdir(assets)
+                            : []
                         const rustFFIWasm = bundledFiles.find(name =>
                             /rust_ffi_bg-.*\.wasm/.test(name)
                         )
@@ -198,35 +201,63 @@ export class Server {
             )
         } else if (request.method === 'POST') {
             switch (requestPath) {
-                // This endpoint should only be used when accessing the app from the browser.
-                // When accessing the app from Electron, the file input event will have the
-                // full system path.
-                case '/api/upload-project': {
-                    const directory = new URL(`https://example.com/${requestUrl}`).searchParams.get(
-                        'directory'
-                    )
-                    const directoryParams = directory == null ? [] : [directory]
-                    void this.config.externalFunctions
-                        .uploadProjectBundle(request, ...directoryParams)
-                        .then(
-                            id => {
+                case '/api/upload-file': {
+                    const url = new URL(`https://example.com/${requestUrl}`)
+                    const fileName = url.searchParams.get('file_name')
+                    const directory =
+                        url.searchParams.get('directory') ?? this.projectsRootDirectory
+                    if (fileName == null) {
+                        response
+                            .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+                            .end('Request is missing search parameter `file_name`.')
+                    } else {
+                        const filePath = path.join(directory, fileName)
+                        void fs
+                            .writeFile(filePath, request)
+                            .then(() => {
                                 response
                                     .writeHead(HTTP_STATUS_OK, [
-                                        ['Content-Length', `${id.length}`],
+                                        ['Content-Length', String(filePath.length)],
                                         ['Content-Type', 'text/plain'],
                                         ...common.COOP_COEP_CORP_HEADERS,
                                     ])
-                                    .end(id)
-                            },
-                            () => {
+                                    .end(filePath)
+                            })
+                            .catch(e => {
+                                console.error(e)
                                 response
                                     .writeHead(
                                         HTTP_STATUS_BAD_REQUEST,
                                         common.COOP_COEP_CORP_HEADERS
                                     )
                                     .end()
-                            }
-                        )
+                            })
+                    }
+                    break
+                }
+                // This endpoint should only be used when accessing the app from the browser.
+                // When accessing the app from Electron, the file input event will have the
+                // full system path.
+                case '/api/upload-project': {
+                    const url = new URL(`https://example.com/${requestUrl}`)
+                    const directory = url.searchParams.get('directory')
+                    const directoryParams = directory == null ? [] : [directory]
+                    void this.config.externalFunctions
+                        .uploadProjectBundle(request, ...directoryParams)
+                        .then(id => {
+                            response
+                                .writeHead(HTTP_STATUS_OK, [
+                                    ['Content-Length', String(id.length)],
+                                    ['Content-Type', 'text/plain'],
+                                    ...common.COOP_COEP_CORP_HEADERS,
+                                ])
+                                .end(id)
+                        })
+                        .catch(() => {
+                            response
+                                .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
+                                .end()
+                        })
                     break
                 }
                 case '/api/run-project-manager-command': {
@@ -264,7 +295,7 @@ export class Server {
         } else if (request.method === 'GET' && requestPath === '/api/root-directory') {
             response
                 .writeHead(HTTP_STATUS_OK, [
-                    ['Content-Length', `${this.projectsRootDirectory.length}`],
+                    ['Content-Length', String(this.projectsRootDirectory.length)],
                     ['Content-Type', 'text/plain'],
                     ...common.COOP_COEP_CORP_HEADERS,
                 ])
@@ -279,17 +310,13 @@ export class Server {
             // this server.
             const resourceFile =
                 resource === '/preload.cjs.map'
-                    ? `${paths.APP_PATH}${resource}`
-                    : `${this.config.dir}${resource}`
+                    ? paths.APP_PATH + resource
+                    : this.config.dir + resource
             for (const [header, value] of common.COOP_COEP_CORP_HEADERS) {
                 response.setHeader(header, value)
             }
-            fs.readFile(resourceFile, (err, data) => {
-                if (err) {
-                    logger.error(`Resource '${resource}' not found.`)
-                    response.writeHead(HTTP_STATUS_NOT_FOUND)
-                    response.end()
-                } else {
+            fs.readFile(resourceFile)
+                .then(data => {
                     const contentType = mime.contentType(path.extname(resourceFile))
                     const contentLength = data.length
                     if (contentType !== false) {
@@ -298,8 +325,12 @@ export class Server {
                     response.setHeader('Content-Length', contentLength)
                     response.writeHead(HTTP_STATUS_OK)
                     response.end(data)
-                }
-            })
+                })
+                .catch(() => {
+                    logger.error(`Resource '${resource}' not found.`)
+                    response.writeHead(HTTP_STATUS_NOT_FOUND)
+                    response.end()
+                })
         }
     }
 }

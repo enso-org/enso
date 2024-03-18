@@ -1,9 +1,7 @@
 /** @file This module defines the Project Manager endpoint.
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
-
-import * as appUtils from '#/appUtils'
-
+import * as appBaseUrl from '#/utilities/appBaseUrl'
 import type * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 
@@ -247,7 +245,6 @@ export enum ProjectManagerEvents {
 export default class ProjectManager {
   private static instance: ProjectManager
   private static internalRootDirectory: Path | null
-  private static readonly baseUrl = location.pathname.replace(appUtils.ALL_PATHS_REGEX, '')
   protected id = 0
   protected resolvers = new Map<number, (value: never) => void>()
   protected rejecters = new Map<number, (reason?: JSONRPCError) => void>()
@@ -321,7 +318,7 @@ export default class ProjectManager {
 
   /** Resolve the root directory. MUST be called before constructing a `LocalBackend`. */
   static async loadRootDirectory() {
-    const response = await fetch(`${this.baseUrl}/api/root-directory`)
+    const response = await fetch(`${appBaseUrl.APP_BASE_URL}/api/root-directory`)
     const text = await response.text()
     this.internalRootDirectory = Path(text)
   }
@@ -448,7 +445,7 @@ export default class ProjectManager {
       'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
     }).toString()
     const response = await fetch(
-      `${ProjectManager.baseUrl}/api/run-project-manager-command?${searchParams}`,
+      `${appBaseUrl.APP_BASE_URL}/api/run-project-manager-command?${searchParams}`,
       {
         method: 'POST',
         body,
