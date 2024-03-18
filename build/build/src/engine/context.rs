@@ -436,8 +436,10 @@ impl RunContext {
         } else {
             None
         };
-        let execute_benchmark_tasks = self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
-        let build_and_execute_benchmark_task = build_benchmark_task.as_deref().into_iter().chain(execute_benchmark_tasks);
+        let execute_benchmark_tasks =
+            self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
+        let build_and_execute_benchmark_task =
+            build_benchmark_task.as_deref().into_iter().chain(execute_benchmark_tasks);
         let benchmark_command = Sbt::sequential_tasks(build_and_execute_benchmark_task);
         if !benchmark_command.is_empty() {
             sbt.call_arg(benchmark_command).await?;
