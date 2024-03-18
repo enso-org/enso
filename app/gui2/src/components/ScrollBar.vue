@@ -19,6 +19,7 @@ const emit = defineEmits<{
 
 const BAR_END_MARGIN = 2
 const BAR_WIDTH = 6
+const TRACK_WIDTH = BAR_WIDTH + 2
 
 const viewportSize = useResizeObserver(element)
 
@@ -39,7 +40,7 @@ watchEffect(() => {
   const viewportFraction = Vec2.ElementwiseProduct(viewportSize.value, range.value.reciprocal())
   const barStartFraction = Vec2.ElementwiseProduct(props.position, range.value.reciprocal())
   const trackLength = viewportSize.value.sub(
-    new Vec2(BAR_END_MARGIN * 2 + BAR_WIDTH, BAR_END_MARGIN * 2 + BAR_WIDTH),
+    new Vec2(BAR_END_MARGIN * 2 + TRACK_WIDTH, BAR_END_MARGIN * 2 + TRACK_WIDTH),
   )
   const barStart = Vec2.ElementwiseProduct(trackLength, barStartFraction).max(Vec2.Zero)
   const barLength = Vec2.ElementwiseProduct(trackLength, viewportFraction)
@@ -78,11 +79,27 @@ function dragEventsHandler(axis: 'x' | 'y') {
         break
       }
     }
+    return true
   })
 }
 
-const xDrag = dragEventsHandler('x')
-const yDrag = dragEventsHandler('y')
+function handleTrackClick(axis: 'x' | 'y', event: MouseEvent) {
+  if (!element.value) return
+  const bounds = element.value.getBoundingClientRect()
+  const proportionalPos =
+    Vec2.FromXY(event).sub(Vec2.FromXY(bounds)).getAxis(axis) / Vec2.FromSize(bounds).getAxis(axis)
+  const position = proportionalPos * props.size.getAxis(axis)
+  emit('scroll', { type: 'jump', axis, position })
+}
+
+const dragSlider = {
+  x: dragEventsHandler('x').events,
+  y: dragEventsHandler('y').events,
+}
+const clickTrack = {
+  x: (event: MouseEvent) => handleTrackClick('x', event),
+  y: (event: MouseEvent) => handleTrackClick('y', event),
+}
 </script>
 <script lang="ts">
 export type ScrollbarEvent =
@@ -96,12 +113,21 @@ export type ScrollbarEvent =
   | {
       type: 'stop'
     }
+  | {
+      type: 'jump'
+      axis: 'x' | 'y'
+      position: number
+    }
 </script>
 
 <template>
   <div ref="element" class="ScrollBar" @click.stop @pointerdown.stop @pointerup.stop>
-    <div class="bar vertical" v-on="yDrag.events" />
-    <div class="bar horizontal" v-on="xDrag.events" />
+    <div class="track vertical" @pointerdown="clickTrack.y">
+      <div class="bar vertical" v-on.stop="dragSlider.y" />
+    </div>
+    <div class="track horizontal" @pointerdown="clickTrack.x">
+      <div class="bar horizontal" v-on.stop="dragSlider.x" />
+    </div>
   </div>
 </template>
 
@@ -115,26 +141,34 @@ export type ScrollbarEvent =
 
 .vertical {
   position: absolute;
+  width: v-bind('`${TRACK_WIDTH}px`');
+  height: 100%;
+  right: 1px;
+  margin-top: v-bind('`${BAR_END_MARGIN}px`');
+  margin-bottom: v-bind('`${TRACK_WIDTH + BAR_END_MARGIN}px`');
+}
+.bar.vertical {
+  left: 1px;
   top: v-bind('yStart');
   height: v-bind('yLength');
-  width: v-bind('`${BAR_WIDTH}px`');
-  right: 2px;
-  margin-top: v-bind('`${BAR_END_MARGIN}px`');
-  margin-bottom: v-bind('`${BAR_WIDTH + BAR_END_MARGIN}px`');
 }
 
 .horizontal {
   position: absolute;
+  height: v-bind('`${TRACK_WIDTH}px`');
+  width: 100%;
+  bottom: 1px;
+  margin-left: v-bind('`${BAR_END_MARGIN}px`');
+  margin-right: v-bind('`${TRACK_WIDTH + BAR_END_MARGIN}px`');
+}
+.bar.horizontal {
+  top: 1px;
   left: v-bind('xStart');
   width: v-bind('xLength');
-  height: v-bind('`${BAR_WIDTH}px`');
-  bottom: 2px;
-  margin-left: v-bind('`${BAR_END_MARGIN}px`');
-  margin-right: v-bind('`${BAR_WIDTH + BAR_END_MARGIN}px`');
 }
 
 .bar {
-  border-radius: v-bind('`${BAR_WIDTH / 2}px`');
+  border-radius: 100px;
   pointer-events: all;
   background-color: rgba(170 170 170 / 50%);
   transition: background-color 0.2s ease-in;
@@ -148,8 +182,13 @@ export type ScrollbarEvent =
   }
 }
 
-/* Hide until hovered */
-.bar {
+.track {
+  pointer-events: all;
+  &::before {
+    content: '';
+    height: 100%;
+  }
+  background-color: rgba(150 150 150 / 15%);
   transition: opacity 0.2s ease-in;
   opacity: 0;
   &:hover {
