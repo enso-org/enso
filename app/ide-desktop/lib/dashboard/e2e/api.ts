@@ -5,7 +5,6 @@ import * as backend from '#/services/Backend'
 import type * as remoteBackend from '#/services/RemoteBackend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-import * as config from '#/utilities/config'
 import * as dateTime from '#/utilities/dateTime'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
@@ -30,7 +29,7 @@ const GLOB_PROJECT_ID = backend.ProjectId('*')
 /** A tag ID that is a path glob. */
 const GLOB_TAG_ID = backend.TagId('*')
 /* eslint-enable no-restricted-syntax */
-const BASE_URL = config.ACTIVE_CONFIG.apiUrl + '/'
+const BASE_URL = 'https://mock/'
 
 // ===============
 // === mockApi ===
@@ -204,6 +203,10 @@ export async function mockApi({ page }: MockParams) {
   }
 
   await test.test.step('Mock API', async () => {
+    await page.route('https://cdn.enso.org/**', async route => {
+      await route.fulfill()
+    })
+
     await page.route('https://www.google-analytics.com/**', async route => {
       await route.fulfill()
     })

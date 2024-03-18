@@ -259,7 +259,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         Wildcard {
             pub lift_level: u32
         },
-        AutoScope,
+        SuspendedDefaultArguments,
         Ident {
             pub is_free:               bool,
             pub lift_level:            u32,
@@ -340,6 +340,7 @@ pub struct OperatorProperties {
     is_arrow:                  bool,
     is_sequence:               bool,
     is_suspension:             bool,
+    is_autoscope:              bool,
     is_annotation:             bool,
     is_dot:                    bool,
     is_special:                bool,
@@ -427,6 +428,11 @@ impl OperatorProperties {
         Self { is_suspension: true, ..self }
     }
 
+    /// Return a copy of this operator, modified to be flagged as the autoscope operator.
+    pub fn as_autoscope(self) -> Self {
+        Self { is_autoscope: true, ..self }
+    }
+
     /// Return a copy of this operator, modified to be flagged as the dot operator.
     pub fn as_dot(self) -> Self {
         Self { is_dot: true, ..self }
@@ -490,6 +496,11 @@ impl OperatorProperties {
     /// Return whether this operator is the execution-suspension operator.
     pub fn is_suspension(&self) -> bool {
         self.is_suspension
+    }
+
+    /// Return whether this operator is the autoscope operator.
+    pub fn is_autoscope(&self) -> bool {
+        self.is_autoscope
     }
 
     /// Return whether this operator is the annotation operator.

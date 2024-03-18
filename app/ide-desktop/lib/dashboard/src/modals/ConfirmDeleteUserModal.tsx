@@ -13,13 +13,12 @@ import Modal from '#/components/Modal'
 
 /** Props for a {@link ConfirmDeleteUserModal}. */
 export interface ConfirmDeleteUserModalProps {
-  readonly description: string
   readonly doDelete: () => Promise<void>
 }
 
 /** A modal for confirming the deletion of a user. */
 export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
-  const { description, doDelete } = props
+  const { doDelete } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
 
@@ -40,7 +39,7 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           element?.focus()
         }}
         tabIndex={-1}
-        className="relative flex flex-col items-center gap-2 rounded-2xl w-96 px-4 p-2 pointer-events-auto before:absolute before:inset-0 before:rounded-2xl before:bg-frame-selected before:backdrop-blur-3xl before:w-full before:h-full"
+        className="pointer-events-auto relative flex w-confirm-delete-user-modal flex-col items-center gap-modal rounded-default p-modal-wide pt-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
         onKeyDown={event => {
           if (event.key !== 'Escape') {
             event.stopPropagation()
@@ -54,15 +53,11 @@ export default function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProp
           void onSubmit()
         }}
       >
-        <h3 className="relative font-bold text-xl h-9.5 py-0.5">Are you sure?</h3>
-        <div className="relative flex flex-col gap-2">
-          Once deleted, this {description} will be gone forever.
-          <button type="submit" className="rounded-full bg-danger text-inversed px-2 py-1">
-            <span className="leading-5 h-6 py-px">
-              I confirm that I want to delete this {description}.
-            </span>
-          </button>
-        </div>
+        <h3 className="py-heading relative h-heading text-xl font-bold">Are you sure?</h3>
+        <span className="relative">Once deleted, this user account will be gone forever.</span>
+        <button type="submit" className="button relative bg-danger text-inversed active">
+          <span className="text">I confirm that I want to delete this user account.</span>
+        </button>
       </form>
     </Modal>
   )

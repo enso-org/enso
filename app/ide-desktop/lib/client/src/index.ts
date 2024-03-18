@@ -15,6 +15,7 @@ import * as electron from 'electron'
 import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
+import * as buildUtils from 'enso-common/src/buildUtils'
 import * as contentConfig from 'enso-content-config'
 
 import * as authentication from 'authentication'
@@ -32,9 +33,8 @@ import * as projectManager from 'bin/project-manager'
 import * as security from 'security'
 import * as server from 'bin/server'
 import * as urlAssociations from 'url-associations'
-import * as utils from '../../../utils'
 
-import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
+import GLOBAL_CONFIG from '../../../../gui2/config.yaml' assert { type: 'yaml' }
 
 const logger = contentConfig.logger
 
@@ -378,6 +378,25 @@ class App {
             const info = projectManagement.importProjectFromPath(path)
             event.reply(ipc.Channel.importProjectFromPath, path, info)
         })
+        electron.ipcMain.handle(
+            ipc.Channel.openFileBrowser,
+            async (_event, kind: 'any' | 'directory' | 'file') => {
+                /** Helper for `showOpenDialog`, which has weird types by default. */
+                type Properties = ('openDirectory' | 'openFile')[]
+                const properties: Properties =
+                    kind === 'file'
+                        ? ['openFile']
+                        : kind === 'directory'
+                          ? ['openDirectory']
+                          : ['openFile', 'openDirectory']
+                const { canceled, filePaths } = await electron.dialog.showOpenDialog({ properties })
+                if (!canceled) {
+                    return filePaths
+                } else {
+                    return null
+                }
+            }
+        )
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration
@@ -406,7 +425,7 @@ class App {
 
     /** Print the version of the frontend and the backend. */
     async printVersion(): Promise<void> {
-        const indent = ' '.repeat(utils.INDENT_SIZE)
+        const indent = ' '.repeat(buildUtils.INDENT_SIZE)
         let maxNameLen = 0
         for (const name in debug.VERSION_INFO) {
             maxNameLen = Math.max(maxNameLen, name.length)

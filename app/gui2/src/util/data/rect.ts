@@ -23,8 +23,33 @@ export class Rect {
     return new Rect(center.addScaled(size, -0.5), size)
   }
 
-  static FromDomRect(domRect: DOMRect): Rect {
-    return new Rect(new Vec2(domRect.x, domRect.y), new Vec2(domRect.width, domRect.height))
+  static FromDomRect(
+    domRect: Readonly<{ x: number; y: number; width: number; height: number }>,
+  ): Rect {
+    return new Rect(Vec2.FromXY(domRect), Vec2.FromSize(domRect))
+  }
+
+  static Bounding(...rects: Rect[]): Rect {
+    let left = NaN
+    let top = NaN
+    let right = NaN
+    let bottom = NaN
+    for (const rect of rects) {
+      if (!(rect.left >= left)) left = rect.left
+      if (!(rect.top >= top)) top = rect.top
+      if (!(rect.right <= right)) right = rect.right
+      if (!(rect.bottom <= bottom)) bottom = rect.bottom
+    }
+    return this.FromBounds(left, top, right, bottom)
+  }
+
+  static Equal(a: Rect, b: Rect): boolean
+  static Equal(a: Rect | null, b: Rect | null): boolean
+  static Equal(a: Rect | undefined, b: Rect | undefined): boolean
+  static Equal(a: Rect | null | undefined, b: Rect | null | undefined): boolean {
+    if (!a && !b) return true
+    if (!a || !b) return false
+    return a.equals(b)
   }
 
   offsetBy(offset: Vec2): Rect {

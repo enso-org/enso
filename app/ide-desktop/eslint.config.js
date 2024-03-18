@@ -231,7 +231,22 @@ const RESTRICTED_SYNTAXES = [
     {
         selector:
             'JSXElement[closingElement!=null]:not(:has(.children:matches(JSXText[raw=/\\S/], :not(JSXText))))',
-        message: 'Use self-closing tags (`<tag />`) for tags without children.',
+        message: 'Use self-closing tags (`<tag />`) for tags without children',
+    },
+    {
+        selector: `:matches(\
+            TemplateElement[value.raw=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px|\\[)/],\
+            Literal[value=/\\b(?:size|w|h|p[xylrbt]?|m[xylrbt]?)-(?:\\d|px|\\[)/]\
+        )`,
+        message: 'Fixed values for Tailwind `size-`, `w-`, `h-`, `p-`, `m-` are not allowed',
+    },
+    {
+        selector: `:matches(\
+            TemplateElement[value.raw=/\\b(?:opacity|gap|rounded(?:-[lrbtxy])?|leading|duration|grid-cols-fill)-(?:xs|sm|md|lg|xl|\\d|\\[)/],\
+            Literal[value=/\\b(?:opacity|gap|rounded(?:-[lrbtxy])?|leading|duration|grid-cols-fill)-(?:xs|sm|md|lg|xl|\\d|\\[)/]\
+        )`,
+        message:
+            'Fixed values for Tailwind `opacity-`, `rounded-`, `leading-`, `duration-` and `grid-cols-fill` are not allowed',
     },
 ]
 
@@ -298,14 +313,6 @@ export default [
                 },
             ],
             'no-constant-condition': ['error', { checkLoops: false }],
-            'no-restricted-properties': [
-                'error',
-                {
-                    object: 'router',
-                    property: 'useNavigate',
-                    message: 'Use `hooks.useNavigate` instead.',
-                },
-            ],
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
@@ -489,6 +496,11 @@ export default [
         rules: {
             'no-restricted-properties': [
                 'error',
+                {
+                    object: 'router',
+                    property: 'useNavigate',
+                    message: 'Use `hooks.useNavigate` instead.',
+                },
                 {
                     object: 'console',
                     message: 'Avoid leaving debugging statements when committing code',

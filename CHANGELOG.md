@@ -626,6 +626,15 @@
 - [Implement Data Links to Postgres (accessing a DB connection or a table
   directly)][9269]
 - [Added `Xml_Document.write`][9299]
+- [Added `select_by_type` and `remove_by_type` to `Table` and `DB_Table`][9334]
+- [Make File./ only accept Text][9330]
+- [Implemented Excel Data Link][9346]
+- [Added Table.running][9346]
+- [Added Google_Analytics.Read][9239]
+- [Added `Table.from_union` to allow expanding a vector of tables in one
+  step][9343]
+- [Implemented constructors, comparisons, and arithmetic for a `Decimal`
+  type.][9272]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -904,9 +913,16 @@
 [9215]: https://github.com/enso-org/enso/pull/9215
 [9225]: https://github.com/enso-org/enso/pull/9225
 [9233]: https://github.com/enso-org/enso/pull/9233
+[9239]: https://github.com/enso-org/enso/pull/9239
 [9249]: https://github.com/enso-org/enso/pull/9249
 [9269]: https://github.com/enso-org/enso/pull/9269
+[9272]: https://github.com/enso-org/enso/pull/9272
 [9299]: https://github.com/enso-org/enso/pull/9299
+[9330]: https://github.com/enso-org/enso/pull/9330
+[9334]: https://github.com/enso-org/enso/pull/9334
+[9346]: https://github.com/enso-org/enso/pull/9346
+[9382]: https://github.com/enso-org/enso/pull/9382
+[9343]: https://github.com/enso-org/enso/pull/9343
 
 #### Enso Compiler
 
@@ -1067,6 +1083,7 @@
 - [Execute and debug individual Enso files in VSCode extension][8923]
 - [Check type of `self` when calling a method using the static syntax][8867]
 - [Autoscoped constructors][9190]
+- [Allow Oracle GraalVM JDK][9322]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1226,6 +1243,7 @@
 [8923]: https://github.com/enso-org/enso/pull/8923
 [8867]: https://github.com/enso-org/enso/pull/8867
 [9190]: https://github.com/enso-org/enso/pull/9190
+[9322]: https://github.com/enso-org/enso/pull/9322
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

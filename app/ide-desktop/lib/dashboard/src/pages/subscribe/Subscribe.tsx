@@ -17,7 +17,6 @@ import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
 
-import * as config from '#/utilities/config'
 import * as load from '#/utilities/load'
 import * as string from '#/utilities/string'
 
@@ -47,7 +46,6 @@ const REDIRECT_DELAY_MS = 1_500
  * sessionStatus.status = { status: 'complete',
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`). */
 export default function Subscribe() {
-  const stripeKey = config.ACTIVE_CONFIG.stripeKey
   const navigate = navigateHooks.useNavigate()
   // Plan that the user has currently selected, if any (e.g., 'solo', 'team', etc.).
   const [plan, setPlan] = React.useState(() => {
@@ -70,7 +68,8 @@ export default function Subscribe() {
   const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
-  if (stripePromise == null) {
+  if (stripePromise == null && process.env.ENSO_CLOUD_STRIPE_KEY != null) {
+    const stripeKey = process.env.ENSO_CLOUD_STRIPE_KEY
     stripePromise = load.loadScript('https://js.stripe.com/v3/').then(async script => {
       const innerStripe = await stripe.loadStripe(stripeKey)
       script.remove()
@@ -114,16 +113,16 @@ export default function Subscribe() {
   }, [sessionId])
 
   return (
-    <Modal centered className="bg-black/10 text-primary text-xs">
+    <Modal centered className="bg-hover-bg text-xs text-primary">
       <div
         data-testid="subscribe-modal"
-        className="flex flex-col gap-2 bg-frame-selected backdrop-blur-3xl rounded-2xl p-8 w-full max-w-md max-h-[100vh]"
+        className="flex max-h-screen w-full max-w-md flex-col gap-modal rounded-default bg-selected-frame p-auth backdrop-blur-default"
         onClick={event => {
           event.stopPropagation()
         }}
       >
         <div className="self-center text-xl">Upgrade to {string.capitalizeFirst(plan)}</div>
-        <div className="flex items-stretch rounded-full bg-gray-500/30 text-base h-8">
+        <div className="flex h-row items-stretch rounded-full bg-gray-500/30 text-base">
           {backendModule.PLANS.map(newPlan => (
             <button
               key={newPlan}
@@ -156,7 +155,7 @@ export default function Subscribe() {
             </stripeReact.EmbeddedCheckoutProvider>
           </div>
         ) : (
-          <div className="h-155 transition-all" />
+          <div className="h-payment-form transition-all" />
         )}
       </div>
     </Modal>

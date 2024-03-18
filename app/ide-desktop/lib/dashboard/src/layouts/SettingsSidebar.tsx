@@ -113,39 +113,42 @@ export interface SettingsSidebarProps {
 export default function SettingsSidebar(props: SettingsSidebarProps) {
   const { settingsTab, setSettingsTab } = props
   return (
-    <div className="flex flex-col gap-4 w-51.5 overflow-y-auto shrink-0">
+    <div className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto">
       {SECTIONS.flatMap(section => {
         const tabs = section.tabs.filter(tab => tab.visible)
         return tabs.length === 0
           ? []
           : [
-              <div key={section.name} className="flex flex-col items-start">
-                <h2 className="text-sm font-bold h-7.5 leading-5 pl-2 pt-0.5 pb-2">
+              <div
+                key={section.name}
+                className="flex flex-col items-start gap-sidebar-section-heading"
+              >
+                <h2 className="h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy">
                   {section.name}
                 </h2>
-                {tabs.map(tab => (
-                  <div
-                    key={tab.settingsTab}
-                    className={`flex items-center gap-2 h-8 px-2 rounded-full hover:text-primary hover:bg-frame-selected transition-colors ${
-                      tab.settingsTab === settingsTab
-                        ? 'text-primary bg-frame-selected'
-                        : 'cursor-pointer text-not-selected'
-                    }`}
-                    onClick={() => {
-                      setSettingsTab(tab.settingsTab)
-                    }}
-                  >
-                    <SvgMask
-                      src={tab.icon}
-                      className={
-                        tab.settingsTab === settingsTab
-                          ? 'text-icon-selected'
-                          : 'text-icon-not-selected'
-                      }
-                    />
-                    <span className="h-6 leading-5 py-px">{tab.name}</span>
-                  </div>
-                ))}
+                <ul className="flex flex-col items-start">
+                  {tabs.map(tab => (
+                    <li key={tab.settingsTab}>
+                      <button
+                        disabled={tab.settingsTab === settingsTab}
+                        className="button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame disabled:bg-selected-frame disabled:active"
+                        onClick={() => {
+                          setSettingsTab(tab.settingsTab)
+                        }}
+                      >
+                        <SvgMask
+                          src={tab.icon}
+                          className={
+                            tab.settingsTab === settingsTab
+                              ? 'text-icon-selected'
+                              : 'text-icon-not-selected'
+                          }
+                        />
+                        <span className="text">{tab.name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>,
             ]
       })}

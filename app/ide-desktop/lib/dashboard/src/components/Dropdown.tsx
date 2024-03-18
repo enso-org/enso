@@ -149,7 +149,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     <div
       ref={rootRef}
       tabIndex={0}
-      className={`group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-xl leading-5 ${
+      className={`group relative flex w-max cursor-pointer flex-col items-center whitespace-nowrap rounded-input leading-cozy ${
         className ?? ''
       }`}
       onFocus={event => {
@@ -176,15 +176,15 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         className={`absolute left-0 h-full w-full min-w-max ${isDropdownVisible ? 'z-1' : 'overflow-hidden'}`}
       >
         <div
-          className={`relative before:absolute before:top-0 before:w-full before:rounded-xl before:border before:border-primary/10 before:backdrop-blur-3xl before:transition-all ${
+          className={`relative before:absolute before:top before:w-full before:rounded-input before:border before:border-black/10 before:backdrop-blur-default before:transition-colors ${
             isDropdownVisible
               ? 'before:h-full before:shadow-soft'
-              : 'before:h-6 group-hover:before:bg-primary/10'
+              : 'before:h-text group-hover:before:bg-frame'
           }`}
         >
           {/* Spacing. */}
           <div
-            className="padding relative h-6"
+            className="padding relative h-text"
             onClick={event => {
               event.stopPropagation()
               if (!justFocusedRef.current && !readOnly) {
@@ -194,7 +194,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
             }}
           />
           <div
-            className={`max-h-10lh relative grid w-full rounded-xl transition-grid-template-rows ${
+            className={`relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows ${
               isDropdownVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
             }`}
           >
@@ -202,7 +202,9 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
               {items.map((item, i) => (
                 <div
                   tabIndex={-1}
-                  className={`flex h-6 items-center gap-1 rounded-xl px-2 transition-colors ${multiple ? 'hover:font-semibold' : ''} ${
+                  className={`flex h-text gap-dropdown-arrow rounded-input px-input-x transition-colors ${
+                    multiple ? 'hover:font-semibold' : ''
+                  } ${
                     i === visuallySelectedIndex
                       ? `cursor-default bg-frame font-bold`
                       : 'hover:bg-primary/10'
@@ -258,8 +260,8 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
         </div>
       </div>
       <div
-        className={`relative flex h-6 items-center gap-1 px-2 ${isDropdownVisible ? 'z-1' : ''} ${
-          readOnly ? 'cursor-not-allowed opacity-75' : ''
+        className={`relative flex h-text items-center gap-dropdown-arrow px-input-x ${isDropdownVisible ? 'z-1' : ''} ${
+          readOnly ? 'read-only' : ''
         }`}
         onClick={event => {
           event.stopPropagation()
@@ -280,11 +282,11 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
       </div>
       {/* Hidden, but required to exist for the width of the parent element to be correct.
        * Classes that do not affect width have been removed. */}
-      <div className="flex h-0 flex-col overflow-hidden">
+      <div className="flex h flex-col overflow-hidden">
         {items.map((item, i) => (
           <div
             key={i}
-            className={`flex gap-1 px-2 ${i === visuallySelectedIndex ? 'font-bold' : ''}`}
+            className={`flex gap-dropdown-arrow px-input-x ${i === visuallySelectedIndex ? 'font-bold' : ''}`}
           >
             <SvgMask src={CheckMarkIcon} />
             <Child item={item} />

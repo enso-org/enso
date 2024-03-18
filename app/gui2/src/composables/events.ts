@@ -49,7 +49,13 @@ export function useEvent<K extends keyof ElementEventMap>(
 export function useEvent(
   target: EventTarget,
   event: string,
-  handler: (event: unknown) => void,
+  handler: EventListenerOrEventListenerObject,
+  options?: boolean | AddEventListenerOptions,
+): void
+export function useEvent(
+  target: EventTarget,
+  event: string,
+  handler: EventListenerOrEventListenerObject,
   options?: boolean | AddEventListenerOptions,
 ): void {
   target.addEventListener(event, handler, options)
@@ -128,7 +134,7 @@ const hasWindow = typeof window !== 'undefined'
 const platform = hasWindow ? window.navigator?.platform ?? '' : ''
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
 
-export function modKey(e: KeyboardEvent): boolean {
+export function modKey(e: KeyboardEvent | MouseEvent): boolean {
   return isMacLike ? e.metaKey : e.ctrlKey
 }
 

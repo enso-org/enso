@@ -12,9 +12,11 @@ import {
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { Uploader, uploadedExpression } from '@/components/GraphEditor/upload'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
+import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
@@ -22,6 +24,7 @@ import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
+import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -32,9 +35,9 @@ import type { AstId, NodeMetadataFields } from '@/util/ast/abstract'
 import { colorFromString } from '@/util/colors'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { useToast } from '@/util/toast'
 import * as set from 'lib0/set'
-import { toast } from 'react-toastify'
-import { computed, onMounted, onScopeDispose, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ProjectManagerEvents } from '../../../ide-desktop/lib/dashboard/src/utilities/ProjectManager'
 import { type Usage } from './ComponentBrowser/input'
 
@@ -42,8 +45,9 @@ import { type Usage } from './ComponentBrowser/input'
 const DEFAULT_NODE_SIZE = new Vec2(0, 24)
 const gapBetweenNodes = 48.0
 
+const keyboard = provideKeyboard()
 const viewportNode = ref<HTMLElement>()
-const graphNavigator = provideGraphNavigator(viewportNode)
+const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
 const graphStore = useGraphStore()
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 widgetRegistry.loadBuiltins()
@@ -54,81 +58,46 @@ const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 const suggestionDb = useSuggestionDbStore()
 const interaction = provideInteractionHandler()
 
-/// === UI Messages and Errors ===
-function toastOnce(id: string, ...[content, options]: Parameters<typeof toast>) {
-  if (toast.isActive(id)) toast.update(id, { ...options, render: content })
-  else toast(content, { ...options, toastId: id })
-}
+// === toasts ===
 
-enum ToastId {
-  startup = 'startup',
-  connectionLost = 'connectionLost',
-  connectionError = 'connectionError',
-  lspError = 'lspError',
-  executionFailed = 'executionFailed',
-}
+const toastStartup = useToast.info({ autoClose: false })
+const toastConnectionLost = useToast.error({ autoClose: false })
+const toastLspError = useToast.error()
+const toastConnectionError = useToast.error()
+const toastExecutionFailed = useToast.error()
 
-function initStartupToast() {
-  toastOnce(ToastId.startup, 'Initializing the project. This can take up to one minute.', {
-    type: 'info',
-    autoClose: false,
-  })
+toastStartup.show('Initializing the project. This can take up to one minute.')
+projectStore.firstExecution.then(toastStartup.dismiss)
 
-  const removeToast = () => toast.dismiss(ToastId.startup)
-  projectStore.firstExecution.then(removeToast)
-  onScopeDispose(removeToast)
-}
-
-function initConnectionLostToast() {
-  document.addEventListener(
-    ProjectManagerEvents.loadingFailed,
-    () => {
-      toastOnce(ToastId.connectionLost, 'Lost connection to Language Server.', {
-        type: 'error',
-        autoClose: false,
-      })
-    },
-    { once: true },
-  )
-  onUnmounted(() => {
-    toast.dismiss(ToastId.connectionLost)
-  })
-}
+useEvent(document, ProjectManagerEvents.loadingFailed, () =>
+  toastConnectionLost.show('Lost connection to Language Server.'),
+)
 
 projectStore.lsRpcConnection.then(
-  (ls) => {
-    ls.client.onError((err) => {
-      toastOnce(ToastId.lspError, `Language server error: ${err}`, { type: 'error' })
-    })
-  },
-  (err) => {
-    toastOnce(
-      ToastId.connectionError,
-      `Connection to language server failed: ${JSON.stringify(err)}`,
-      { type: 'error' },
-    )
+  (ls) => ls.client.onError((e) => toastLspError.show(`Language server error: ${e}`)),
+  (e) => toastConnectionError.show(`Connection to language server failed: ${JSON.stringify(e)}`),
+)
+
+projectStore.executionContext.on('executionComplete', () => toastExecutionFailed.dismiss())
+projectStore.executionContext.on('executionFailed', (e) =>
+  toastExecutionFailed.show(`Execution Failed: ${JSON.stringify(e)}`),
+)
+
+// === nodes ===
+
+const nodeSelection = provideGraphSelection(
+  graphNavigator,
+  graphStore.nodeRects,
+  graphStore.isPortEnabled,
+  {
+    onSelected(id) {
+      graphStore.db.moveNodeToTop(id)
+    },
   },
 )
 
-projectStore.executionContext.on('executionComplete', () => toast.dismiss(ToastId.executionFailed))
-projectStore.executionContext.on('executionFailed', (err) => {
-  toastOnce(ToastId.executionFailed, `Execution Failed: ${JSON.stringify(err)}`, { type: 'error' })
-})
-
-onMounted(() => {
-  initStartupToast()
-  initConnectionLostToast()
-})
-
-const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
-  onSelected(id) {
-    graphStore.db.moveNodeToTop(id)
-  },
-})
-
 const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
-  click: (e) => (e instanceof PointerEvent ? interaction.handleClick(e, graphNavigator) : false),
 })
 
 // Return the environment for the placement of a new node. The passed nodes should be the nodes that are
@@ -184,31 +153,22 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
-useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
+useEvent(window, 'pointerdown', (e) => interaction.handleClick(e, graphNavigator), {
+  capture: true,
+})
 
 onMounted(() => viewportNode.value?.focus())
 
 function zoomToSelected() {
   if (!viewportNode.value) return
-  let left = Infinity
-  let top = Infinity
-  let right = -Infinity
-  let bottom = -Infinity
   const nodesToCenter =
     nodeSelection.selected.size === 0 ? graphStore.db.nodeIdToNode.keys() : nodeSelection.selected
+  let bounds = Rect.Bounding()
   for (const id of nodesToCenter) {
     const rect = graphStore.vizRects.get(id) ?? graphStore.nodeRects.get(id)
-    if (!rect) continue
-    left = Math.min(left, rect.left)
-    right = Math.max(right, rect.right)
-    top = Math.min(top, rect.top)
-    bottom = Math.max(bottom, rect.bottom)
+    if (rect) bounds = Rect.Bounding(bounds, rect)
   }
-  graphNavigator.panAndZoomTo(
-    Rect.FromBounds(left, top, right, bottom),
-    0.1,
-    Math.max(1, graphNavigator.scale),
-  )
+  graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.scale))
 }
 
 const graphBindingsHandler = graphBindings.handler({
@@ -228,12 +188,6 @@ const graphBindingsHandler = graphBindings.handler({
     if (keyboardBusy()) return false
     if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
       showComponentBrowser()
-    }
-  },
-  newNode() {
-    if (keyboardBusy()) return false
-    if (graphNavigator.sceneMousePos != null) {
-      graphStore.createNode(graphNavigator.sceneMousePos, 'hello "world"! 123 + x')
     }
   },
   deleteSelected() {
@@ -265,14 +219,6 @@ const graphBindingsHandler = graphBindings.handler({
       for (const nodeId of nodeSelection.selected) {
         graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
       }
-    })
-  },
-  toggleVisualizationFullscreen() {
-    if (nodeSelection.selected.size !== 1) return
-    graphStore.transact(() => {
-      const selected = set.first(nodeSelection.selected)
-      const isFullscreen = graphStore.db.nodeIdToNode.get(selected)?.vis?.fullscreen
-      graphStore.setNodeVisualization(selected, { visible: true, fullscreen: !isFullscreen })
     })
   },
   copyNode() {
@@ -355,9 +301,12 @@ const { handleClick } = useDoubleClick(
 )
 const codeEditorArea = ref<HTMLElement>()
 const showCodeEditor = ref(false)
+const toggleCodeEditor = () => {
+  showCodeEditor.value = !showCodeEditor.value
+}
 const codeEditorHandler = codeEditorBindings.handler({
   toggle() {
-    showCodeEditor.value = !showCodeEditor.value
+    toggleCodeEditor()
   },
 })
 
@@ -388,17 +337,34 @@ const groupColors = computed(() => {
   return styles
 })
 
-function showComponentBrowser(nodePosition?: Vec2, usage?: Usage) {
+function showComponentBrowser(nodePosition?: Vec2 | undefined, usage?: Usage) {
   componentBrowserUsage.value = usage ?? { type: 'newNode', sourcePort: sourcePortForSelection() }
   componentBrowserNodePosition.value = nodePosition ?? targetComponentBrowserNodePosition()
   componentBrowserVisible.value = true
 }
 
-function startCreatingNodeFromButton() {
+/** Start creating a node, basing its inputs and position on the current selection, if any;
+ *  or the current viewport, otherwise.
+ */
+function addNodeAuto() {
   const targetPos =
     placementPositionForSelection() ??
     nonDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment.value).position
   showComponentBrowser(targetPos)
+}
+
+function createNodeFromSource(sourceNode: NodeId, options: NodeCreationOptions) {
+  const position = options.position ?? positionForNodeFromSource(sourceNode)
+  const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
+  if (options.commit) {
+    const content = options.content
+      .instantiateCopied([graphStore.viewModule.get(sourcePort)])
+      .code()
+    const createdNode = graphStore.createNode(position, content, undefined, [])
+    if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
+  } else {
+    showComponentBrowser(position, { type: 'newNode', sourcePort })
+  }
 }
 
 function hideComponentBrowser() {
@@ -495,8 +461,8 @@ function copyNodeContent() {
   const id = nodeSelection.selected.values().next().value
   const node = graphStore.db.nodeIdToNode.get(id)
   if (!node) return
-  const content = node.rootSpan.code()
-  const nodeMetadata = node.rootSpan.nodeMetadata
+  const content = node.innerExpr.code()
+  const nodeMetadata = node.rootExpr.nodeMetadata
   const metadata = {
     position: nodeMetadata.get('position'),
     visualization: nodeMetadata.get('visualization'),
@@ -587,12 +553,16 @@ function handleNodeOutputPortDoubleClick(id: AstId) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
     return
   }
-  const placementEnvironment = environmentForNodes([srcNode].values())
-  const position = previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment, {
+  const position = positionForNodeFromSource(srcNode)
+  showComponentBrowser(position, { type: 'newNode', sourcePort: id })
+}
+
+function positionForNodeFromSource(sourceNode: NodeId) {
+  const placementEnvironment = environmentForNodes([sourceNode].values())
+  return previousNodeDictatedPlacement(DEFAULT_NODE_SIZE, placementEnvironment, {
     horizontalGap: gapBetweenNodes,
     verticalGap: gapBetweenNodes,
   }).position
-  showComponentBrowser(position, { type: 'newNode', sourcePort: id })
 }
 
 const stackNavigator = useStackNavigator()
@@ -614,12 +584,18 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <div :style="{ transform: graphNavigator.transform }" class="htmlLayer">
+    <div class="layer" :style="{ transform: graphNavigator.transform }">
       <GraphNodes
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
+        @createNode="createNodeFromSource"
       />
     </div>
+    <div
+      id="graphNodeSelections"
+      class="layer"
+      :style="{ transform: graphNavigator.transform, 'z-index': -1 }"
+    />
     <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
 
     <ComponentBrowser
@@ -642,15 +618,20 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
       @forward="stackNavigator.enterNextNodeFromHistory"
       @recordOnce="onRecordOnceButtonPress()"
       @fitToAllClicked="zoomToSelected"
-      @zoomIn="graphNavigator.scale *= 1.1"
-      @zoomOut="graphNavigator.scale *= 0.9"
+      @zoomIn="graphNavigator.stepZoom(+1)"
+      @zoomOut="graphNavigator.stepZoom(-1)"
+      @toggleCodeEditor="toggleCodeEditor"
     />
-    <PlusButton @pointerdown.stop @click.stop="startCreatingNodeFromButton()" @pointerup.stop />
+    <PlusButton @pointerdown.stop @click.stop="addNodeAuto()" @pointerup.stop />
     <Transition>
       <Suspense ref="codeEditorArea">
-        <CodeEditor v-if="showCodeEditor" />
+        <CodeEditor v-if="showCodeEditor" @close="showCodeEditor = false" />
       </Suspense>
     </Transition>
+    <SceneScroller
+      :navigator="graphNavigator"
+      :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
+    />
     <GraphMouse />
   </div>
 </template>
@@ -665,7 +646,7 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   --node-color-no-type: #596b81;
 }
 
-.htmlLayer {
+.layer {
   position: absolute;
   top: 0;
   left: 0;

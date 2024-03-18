@@ -44,8 +44,6 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
-import * as navigateHooks from '#/hooks/navigateHooks'
-
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
 import BackendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -69,6 +67,7 @@ import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
 import LocalStorage from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
 
@@ -79,9 +78,7 @@ import * as authServiceModule from '#/authentication/service'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly inputBindings: Partial<
-      Readonly<Record<inputBindingsModule.DashboardBindingKey, string[]>>
-    >
+    readonly inputBindings: Readonly<Record<string, readonly string[]>>
   }
 }
 
@@ -90,9 +87,7 @@ LocalStorage.registerKey('inputBindings', {
     typeof value !== 'object' || value == null
       ? null
       : Object.fromEntries(
-          // This is SAFE, as it is a readonly upcast.
-          // eslint-disable-next-line no-restricted-syntax
-          Object.entries(value as Readonly<Record<string, unknown>>).flatMap(kv => {
+          Object.entries<unknown>({ ...value }).flatMap(kv => {
             const [k, v] = kv
             return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
               ? [[k, v]]
@@ -155,7 +150,7 @@ export default function App(props: AppProps) {
         theme="light"
         closeOnClick={false}
         draggable={false}
-        toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
+        toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
         transition={toastify.Zoom}
         limit={3}
       />
@@ -180,8 +175,11 @@ export default function App(props: AppProps) {
 function AppRouter(props: AppProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl } = props
+  // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
+  // yet been initialized at this point.
+  // eslint-disable-next-line no-restricted-properties
+  const navigate = router.useNavigate()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const navigate = navigateHooks.useNavigate()
   if (detect.IS_DEV_MODE) {
     // @ts-expect-error This is used exclusively for debugging.
     window.navigate = navigate
@@ -189,16 +187,18 @@ function AppRouter(props: AppProps) {
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
-    for (const k in savedInputBindings) {
-      // This is UNSAFE, hence the `?? []` below.
-      // eslint-disable-next-line no-restricted-syntax
-      const bindingKey = k as inputBindingsModule.DashboardBindingKey
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings ?? []) {
-        inputBindingsRaw.delete(bindingKey, oldBinding)
-      }
-      for (const newBinding of savedInputBindings[bindingKey] ?? []) {
-        inputBindingsRaw.add(bindingKey, newBinding)
+    if (savedInputBindings != null) {
+      const filteredInputBindings = object.mapEntries(
+        inputBindingsRaw.metadata,
+        k => savedInputBindings[k]
+      )
+      for (const [bindingKey, newBindings] of object.unsafeEntries(filteredInputBindings)) {
+        for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings) {
+          inputBindingsRaw.delete(bindingKey, oldBinding)
+        }
+        for (const newBinding of newBindings ?? []) {
+          inputBindingsRaw.add(bindingKey, newBinding)
+        }
       }
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
@@ -217,11 +217,11 @@ function AppRouter(props: AppProps) {
     return {
       /** Transparently pass through `handler()`. */
       get handler() {
-        return inputBindingsRaw.handler
+        return inputBindingsRaw.handler.bind(inputBindingsRaw)
       },
       /** Transparently pass through `attach()`. */
       get attach() {
-        return inputBindingsRaw.attach
+        return inputBindingsRaw.attach.bind(inputBindingsRaw)
       },
       reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
         inputBindingsRaw.reset(bindingKey)
@@ -239,6 +239,14 @@ function AppRouter(props: AppProps) {
       get metadata() {
         return inputBindingsRaw.metadata
       },
+      /** Transparently pass through `register()`. */
+      get register() {
+        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
+      },
+      /** Transparently pass through `unregister()`. */
+      get unregister() {
+        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
+      },
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
   const mainPageUrl = getMainPageUrl()
@@ -246,8 +254,8 @@ function AppRouter(props: AppProps) {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
   }, [props, /* should never change */ navigate])
-  const userSession = authService.cognito.userSession.bind(authService.cognito)
-  const registerAuthEventListener = authService.registerAuthEventListener
+  const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
+  const registerAuthEventListener = authService?.registerAuthEventListener ?? null
   const initialBackend: Backend = isAuthenticationDisabled
     ? new LocalBackend(projectManagerUrl)
     : // This is safe, because the backend is always set by the authentication flow.

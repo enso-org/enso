@@ -9,6 +9,12 @@ import org.enso.projectmanager.boot.Globals.{
   FailureExitCode,
   SuccessExitCode
 }
+import org.enso.projectmanager.boot.command.filesystem.{
+  FileSystemCreateDirectoryCommand,
+  FileSystemDeleteCommand,
+  FileSystemListCommand,
+  FileSystemMoveDirectoryCommand
+}
 import org.enso.projectmanager.boot.command.{CommandHandler, ProjectListCommand}
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
@@ -209,6 +215,36 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
+    } else if (options.hasOption(Cli.FILESYSTEM_LIST)) {
+      val directory = Paths.get(options.getOptionValue(Cli.FILESYSTEM_LIST))
+      val fileSystemListCommand =
+        FileSystemListCommand[ZIO[ZAny, +*, +*]](config, directory.toFile)
+      commandHandler.printJson(fileSystemListCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_CREATE_DIRECTORY)) {
+      val directory =
+        Paths.get(options.getOptionValue(Cli.FILESYSTEM_CREATE_DIRECTORY))
+      val fileSystemCreateDirectoryCommand =
+        FileSystemCreateDirectoryCommand[ZIO[ZAny, +*, +*]](
+          config,
+          directory.toFile
+        )
+      commandHandler.printJson(fileSystemCreateDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_DELETE)) {
+      val directory =
+        Paths.get(options.getOptionValue(Cli.FILESYSTEM_DELETE))
+      val fileSystemDeleteDirectoryCommand =
+        FileSystemDeleteCommand[ZIO[ZAny, +*, +*]](config, directory.toFile)
+      commandHandler.printJson(fileSystemDeleteDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_MOVE_FROM)) {
+      val from = Paths.get(options.getOptionValue(Cli.FILESYSTEM_MOVE_FROM))
+      val to   = Paths.get(options.getOptionValue(Cli.FILESYSTEM_MOVE_TO))
+      val fileSystemMoveDirectoryCommand =
+        FileSystemMoveDirectoryCommand[ZIO[ZAny, +*, +*]](
+          config,
+          from.toFile,
+          to.toFile
+        )
+      commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
     } else if (options.hasOption(Cli.PROJECT_LIST)) {
       val projectsPathOpt =
         Option(options.getOptionValue(Cli.PROJECTS_DIRECTORY))

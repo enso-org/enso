@@ -10,10 +10,11 @@ import {
   type SuggestionId,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import { RawAst, RawAstExtended, astContainingChar } from '@/util/ast'
 import { isOperator, type AstId } from '@/util/ast/abstract.ts'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
+import { RawAstExtended } from '@/util/ast/extended'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
+import { RawAst, astContainingChar } from '@/util/ast/raw'
 import { MappedSet } from '@/util/containers'
 import {
   qnFromSegments,
@@ -456,7 +457,7 @@ export function useComponentBrowserInput(
         }
         break
       case 'editNode':
-        code.value = graphDb.nodeIdToNode.get(usage.node)?.rootSpan.code() ?? ''
+        code.value = graphDb.nodeIdToNode.get(usage.node)?.innerExpr.code() ?? ''
         selection.value = { start: usage.cursorPos, end: usage.cursorPos }
         break
     }

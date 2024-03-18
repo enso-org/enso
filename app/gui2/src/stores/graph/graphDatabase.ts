@@ -12,6 +12,7 @@ import { MappedKeyMap, MappedSet } from '@/util/containers'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
+import { syncSet } from '@/util/reactivity'
 import * as random from 'lib0/random'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
@@ -140,7 +141,7 @@ export class GraphDb {
 
   private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
-    entry.rootSpan.visitRecursiveAst((ast) => void exprs.push(ast.id))
+    entry.innerExpr.visitRecursiveAst((ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
@@ -187,8 +188,8 @@ export class GraphDb {
     return Array.from(ports, (port) => [id, port])
   })
 
-  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, _entry) => {
-    const expressionInfo = this.getExpressionInfo(id)
+  nodeMainSuggestion = new ReactiveMapping(this.nodeIdToNode, (id, entry) => {
+    const expressionInfo = this.getExpressionInfo(entry.innerExpr.id)
     const method = expressionInfo?.methodCall?.methodPointer
     if (method == null) return
     const suggestionId = this.suggestionDb.findByMethodPointer(method)
@@ -340,7 +341,7 @@ export class GraphDb {
     for (const nodeAst of functionAst_.bodyExpressions()) {
       const newNode = nodeFromAst(nodeAst)
       if (!newNode) continue
-      const nodeId = asNodeId(newNode.rootSpan.id)
+      const nodeId = asNodeId(newNode.rootExpr.id)
       const node = this.nodeIdToNode.get(nodeId)
       currentNodeIds.add(nodeId)
       if (node == null) {
@@ -351,7 +352,7 @@ export class GraphDb {
         // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
         // when we switch to a different function.
         if (functionChanged) {
-          const nodeMeta = newNode.rootSpan.nodeMetadata
+          const nodeMeta = newNode.rootExpr.nodeMetadata
           const pos = nodeMeta.get('position') ?? { x: 0, y: 0 }
           metadataFields = {
             position: new Vec2(pos.x, pos.y),
@@ -360,21 +361,41 @@ export class GraphDb {
         }
         this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields })
       } else {
-        const { outerExprId, pattern, rootSpan, primarySubject, documentation } = newNode
+        const {
+          outerExprId,
+          pattern,
+          rootExpr,
+          innerExpr,
+          primarySubject,
+          prefixes,
+          documentation,
+          conditionalPorts,
+        } = newNode
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
-        if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
-        if (differentOrDirty(node.rootSpan, rootSpan)) node.rootSpan = rootSpan
         if (node.outerExprId !== outerExprId) node.outerExprId = outerExprId
+        if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
+        if (differentOrDirty(node.rootExpr, rootExpr)) node.rootExpr = rootExpr
+        if (differentOrDirty(node.innerExpr, innerExpr)) node.innerExpr = innerExpr
         if (node.primarySubject !== primarySubject) node.primarySubject = primarySubject
         if (node.documentation !== documentation) node.documentation = documentation
+        if (
+          Object.entries(node.prefixes).some(
+            ([k, v]) => prefixes[k as keyof typeof node.prefixes] !== v,
+          )
+        )
+          node.prefixes = prefixes
+        syncSet(node.conditionalPorts, conditionalPorts)
         // Ensure new fields can't be added to `NodeAstData` without this code being updated.
         const _allFieldsHandled = {
           outerExprId,
           pattern,
-          rootSpan,
+          rootExpr,
+          innerExpr,
           primarySubject,
+          prefixes,
           documentation,
+          conditionalPorts,
         } satisfies NodeDataFromAst
       }
     }
@@ -394,7 +415,7 @@ export class GraphDb {
       idToExternalNew.set(ast.id, ast.externalId)
       idFromExternalNew.set(ast.externalId, ast.id)
     })
-    const updateMap = (map: Map<any, any>, newMap: Map<any, any>) => {
+    const updateMap = <K, V>(map: Map<K, V>, newMap: Map<K, V>) => {
       for (const key of map.keys()) if (!newMap.has(key)) map.delete(key)
       for (const [key, value] of newMap) map.set(key, value)
     }
@@ -446,7 +467,8 @@ export class GraphDb {
       ...baseMockNode,
       outerExprId: id,
       pattern,
-      rootSpan: Ast.parse(code ?? '0'),
+      rootExpr: Ast.parse(code ?? '0'),
+      innerExpr: Ast.parse(code ?? '0'),
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(asNodeId(id), node)
@@ -462,12 +484,24 @@ export function asNodeId(id: Ast.AstId): NodeId {
 }
 
 export interface NodeDataFromAst {
+  /** The ID of the outer expression. Usually this is an assignment expression (`a = b`). */
   outerExprId: Ast.AstId
+  /** The left side of the assignment experssion, if `outerExpr` is an assignment expression. */
   pattern: Ast.Ast | undefined
-  rootSpan: Ast.Ast
+  /** The value of the node. The right side of the assignment, if `outerExpr` is an assignment
+   * expression, else the entire `outerExpr`. */
+  rootExpr: Ast.Ast
+  /** The expression displayed by the node. This is `rootExpr`, minus the prefixes, which are in
+   * `prefixes`. */
+  innerExpr: Ast.Ast
+  /** Prefixes that are present in `rootExpr` but omitted in `innerExpr` to ensure a clean output.
+   */
+  prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
   /** A child AST in a syntactic position to be a self-argument input to the node. */
   primarySubject: Ast.AstId | undefined
   documentation: string | undefined
+  /** Ports that are not targetable by default; they can be targeted while holding the modifier key. */
+  conditionalPorts: Set<Ast.AstId>
 }
 
 export interface NodeDataFromMetadata {
@@ -480,9 +514,11 @@ export interface Node extends NodeDataFromAst, NodeDataFromMetadata {}
 const baseMockNode = {
   position: Vec2.Zero,
   vis: undefined,
+  prefixes: { enableRecording: undefined },
   primarySubject: undefined,
   documentation: undefined,
-}
+  conditionalPorts: new Set(),
+} satisfies Partial<Node>
 
 /** This should only be used for supplying as initial props when testing.
  * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
@@ -491,7 +527,8 @@ export function mockNode(exprId?: Ast.AstId): Node {
     ...baseMockNode,
     outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
     pattern: undefined,
-    rootSpan: Ast.parse('0'),
+    rootExpr: Ast.parse('0'),
+    innerExpr: Ast.parse('0'),
   }
 }
 

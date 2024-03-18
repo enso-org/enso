@@ -31,23 +31,40 @@ final class ForeignEvalNode extends RootNode {
 
   private String truffleId(Source langAndCode) {
     var seq = langAndCode.getCharacters();
-    return seq.subSequence(0, splitAt(seq)).toString().toLowerCase();
+    var langAndLine = seq.subSequence(0, splitAt(seq, '#'));
+    var lang = langAndLine.subSequence(0, splitAt(langAndLine, ':'));
+    return lang.toString().toLowerCase();
   }
 
-  private int splitAt(CharSequence seq) {
-    var at = 0;
-    while (at < seq.length()) {
-      if (seq.charAt(at) == '#') {
-        return at;
-      }
-      at++;
-    }
-    throw new ForeignParsingException("No # found", this);
+  private int startLine(Source langAndCode) {
+    var seq = langAndCode.getCharacters();
+    var langAndLine = seq.subSequence(0, splitAt(seq, '#')).toString();
+    var at = splitAt(langAndLine, ':') + 1;
+    var line = langAndLine.substring(at);
+    return Integer.parseInt(line);
   }
 
   private String foreignSource(Source langAndCode) {
     var seq = langAndCode.getCharacters();
-    return seq.toString().substring(splitAt(seq) + 1);
+    var code = new StringBuilder();
+    var line = startLine(langAndCode);
+    while (line-- > 0) {
+      code.append("\n");
+    }
+    var realCode = seq.toString().substring(splitAt(seq, '#') + 1);
+    code.append(realCode);
+    return code.toString();
+  }
+
+  private int splitAt(CharSequence seq, char ch) {
+    var at = 0;
+    while (at < seq.length()) {
+      if (seq.charAt(at) == ch) {
+        return at;
+      }
+      at++;
+    }
+    throw new ForeignParsingException("No " + ch + " found", this);
   }
 
   @Override
@@ -91,8 +108,8 @@ final class ForeignEvalNode extends RootNode {
     var inner = context.getInnerContext();
     var code = foreignSource(langAndCode);
     var args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
-    var wrappedSrc = "var poly_enso_eval=function(" + args + "){\n" + code + "\n};poly_enso_eval";
-    Source source = Source.newBuilder("js", wrappedSrc, "").build();
+    var wrappedSrc = "var poly_enso_eval=function(" + args + "){" + code + "\n};poly_enso_eval";
+    Source source = newSource("js", wrappedSrc);
     var fn = inner.evalPublic(this, source);
     return JsForeignNode.build(fn);
   }
@@ -100,9 +117,14 @@ final class ForeignEvalNode extends RootNode {
   private ForeignFunctionCallNode parseGeneric(
       String language, Function<CallTarget, ForeignFunctionCallNode> nodeFactory) {
     var ctx = EpbContext.get(this);
-    Source source =
-        Source.newBuilder(language, foreignSource(langAndCode), langAndCode.getName()).build();
+    Source source = newSource(language, foreignSource(langAndCode));
     CallTarget ct = ctx.getEnv().parsePublic(source, argNames);
     return nodeFactory.apply(ct);
+  }
+
+  private Source newSource(String language, String code) {
+    return Source.newBuilder(language, code, langAndCode.getName())
+        .uri(langAndCode.getURI())
+        .build();
   }
 }

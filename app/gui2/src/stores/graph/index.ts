@@ -14,7 +14,7 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
-import { Ast, RawAst, visitRecursive } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import type {
   AstId,
   Module,
@@ -22,7 +22,8 @@ import type {
   NodeMetadata,
   NodeMetadataFields,
 } from '@/util/ast/abstract'
-import { MutableModule, isIdentifier, substituteQualifiedName } from '@/util/ast/abstract'
+import { MutableModule, isIdentifier } from '@/util/ast/abstract'
+import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -251,8 +252,9 @@ export const useGraphStore = defineStore('graph', () => {
       const rhs = Ast.parse(expression, edit)
       rhs.setNodeMetadata(metadata)
       const assignment = Ast.Assignment.new(edit, ident, rhs)
-      for (const conflict of conflicts) {
-        substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
+      for (const _conflict of conflicts) {
+        // TODO: Sort out issues with FQN with the engine.
+        // substituteQualifiedName(edit, assignment, conflict.pattern, conflict.fullyQualified)
       }
       edit.getVersion(method).bodyAsBlock().push(assignment)
       return asNodeId(rhs.id)
@@ -326,17 +328,19 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
-      edit.getVersion(node.rootSpan).syncToCode(content)
+      const editExpr = edit.getVersion(node.innerExpr)
+      editExpr.syncToCode(content)
       if (withImports) {
         const conflicts = addMissingImports(edit, withImports)
         if (conflicts == null) return
-        const wholeAssignment = edit.getVersion(node.rootSpan)?.mutableParent()
+        const wholeAssignment = editExpr.mutableParent()
         if (wholeAssignment == null) {
           console.error('Cannot find parent of the node expression. Conflict resolution failed.')
           return
         }
-        for (const conflict of conflicts) {
-          substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
+        for (const _conflict of conflicts) {
+          // TODO: Sort out issues with FQN with the engine.
+          // substituteQualifiedName(edit, wholeAssignment, conflict.pattern, conflict.fullyQualified)
         }
       }
     })
@@ -468,6 +472,10 @@ export const useGraphStore = defineStore('graph', () => {
     return getPortPrimaryInstance(id)?.rect.value
   }
 
+  function isPortEnabled(id: PortId): boolean {
+    return getPortRelativeRect(id) != null
+  }
+
   function getPortNodeId(id: PortId): NodeId | undefined {
     return db.getExpressionNodeId(id as string as Ast.AstId) ?? getPortPrimaryInstance(id)?.nodeId
   }
@@ -543,9 +551,7 @@ export const useGraphStore = defineStore('graph', () => {
     edit((edit) => f(edit.getVersion(ast).mutableNodeMetadata()), true, true)
   }
 
-  function viewModule(): Module {
-    return syncModule.value!
-  }
+  const viewModule = computed(() => syncModule.value!)
 
   function mockExpressionUpdate(
     locator: string | { binding: string; expr: string },
@@ -558,7 +564,7 @@ export const useGraphStore = defineStore('graph', () => {
     let exprId: AstId | undefined
     if (expr) {
       const node = db.nodeIdToNode.get(nodeId)
-      node?.rootSpan.visitRecursive((ast) => {
+      node?.innerExpr.visitRecursive((ast) => {
         if (ast instanceof Ast.Ast && ast.code() == expr) {
           exprId = ast.id
         }
@@ -671,6 +677,7 @@ export const useGraphStore = defineStore('graph', () => {
     removePortInstance,
     getPortRelativeRect,
     getPortNodeId,
+    isPortEnabled,
     updatePortValue,
     setEditedNode,
     updateState,
