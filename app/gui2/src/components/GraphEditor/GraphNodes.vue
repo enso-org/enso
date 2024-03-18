@@ -2,12 +2,13 @@
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import { useDragging } from '@/components/GraphEditor/dragging'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
-import type { AstId } from '@/util/ast/abstract.ts'
+import type { AstId } from '@/util/ast/abstract'
 import type { Vec2 } from '@/util/data/vec2'
 import { stackItemsEqual } from 'shared/languageServerTypes'
 import { computed, toRaw } from 'vue'
@@ -21,7 +22,7 @@ const navigator = injectGraphNavigator(true)
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
-  addNode: [pos: Vec2 | undefined]
+  createNode: [source: NodeId, options: NodeCreationOptions]
 }>()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
@@ -55,7 +56,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @outputPortClick="graphStore.createEdgeFromOutput($event)"
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
     @doubleClick="emit('nodeDoubleClick', id)"
-    @addNode="emit('addNode', $event)"
+    @createNode="emit('createNode', id, $event)"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
     @update:visualizationId="

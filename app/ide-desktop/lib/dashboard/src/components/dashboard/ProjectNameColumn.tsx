@@ -27,7 +27,7 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as validation from '#/utilities/validation'
-import Visibility from '#/utilities/visibility'
+import Visibility from '#/utilities/Visibility'
 
 // ===================
 // === ProjectName ===
@@ -263,7 +263,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   return (
     <div
-      className={`group flex text-left items-center whitespace-nowrap rounded-l-full gap-1 px-1.5 py-1 min-w-max ${indent.indentClass(
+      className={`group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -287,7 +287,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       }}
     >
       {!canExecute ? (
-        <SvgMask src={NetworkIcon} className="m-1" />
+        <SvgMask src={NetworkIcon} className="m-name-column-icon size-icon" />
       ) : (
         <ProjectIcon
           keyProp={item.key}
@@ -310,7 +310,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={`bg-transparent grow leading-170 h-6 py-px ${
+        className={`text grow bg-transparent ${
           rowState.isEditingName
             ? 'cursor-text'
             : canExecute && !isOtherUserUsingProject

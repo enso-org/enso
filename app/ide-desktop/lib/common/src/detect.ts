@@ -7,20 +7,6 @@
 /** Return whether the current build is in development mode */
 export const IS_DEV_MODE = process.env.NODE_ENV === 'development'
 
-// ====================
-// === Distribution ===
-// ====================
-
-/** Whether the current IDE being used is GUI1. */
-export function isGUI1() {
-    return document.getElementById('root') != null
-}
-
-/** Whether the current IDE being used is GUI2. */
-export function isGUI2() {
-    return document.getElementById('app') != null
-}
-
 // ================
 // === Platform ===
 // ================

@@ -37,8 +37,6 @@ import * as object from '#/utilities/object'
 
 /** The size of the icon, in pixels. */
 const ICON_SIZE_PX = 24
-/** The styles of the icons. */
-const ICON_CLASSES = 'w-6 h-6'
 const LOADING_MESSAGE =
   'Your environment is being created. It will take some time, please be patient.'
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -347,7 +345,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const triangleButton = item.children != null && (
     <SvgMask
       src={TriangleDownIcon}
-      className={`hidden group-hover:inline-block cursor-pointer h-4 w-4 m-1 transition-transform duration-300 ${
+      className={`m-icon-in-project-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
         item.isProjectExpanded ? '' : '-rotate-90'
       }`}
       onClick={event => {
@@ -367,14 +365,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
         <>
           {triangleButton}
           <button
-            className="group-hover:hidden w-6 h-6 disabled:opacity-50"
+            className="size-project-icon"
             onClick={clickEvent => {
               clickEvent.stopPropagation()
               unsetModal()
               doOpenManually(asset.id)
             }}
           >
-            <SvgMask alt="Open in editor" className={ICON_CLASSES} src={PlayIcon} />
+            <SvgMask alt="Open in editor" src={PlayIcon} className="size-project-icon" />
           </button>
         </>
       )
@@ -384,28 +382,25 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.cloning:
     case backendModule.ProjectState.placeholder:
       return (
-        <>
-          {triangleButton}
-          <button
-            disabled={isOtherUserUsingProject}
-            {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
-            className="group-hover:hidden w-6 h-6 disabled:opacity-50"
-            onClick={async clickEvent => {
-              clickEvent.stopPropagation()
-              unsetModal()
-              await closeProject(!isRunningInBackground)
-            }}
-          >
-            <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
-              <Spinner size={ICON_SIZE_PX} state={spinnerState} />
-            </div>
-            <SvgMask
-              alt="Stop execution"
-              src={StopIcon}
-              className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
-            />
-          </button>
-        </>
+        <button
+          disabled={isOtherUserUsingProject}
+          {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
+          className="size-project-icon selectable enabled:active"
+          onClick={async clickEvent => {
+            clickEvent.stopPropagation()
+            unsetModal()
+            await closeProject(!isRunningInBackground)
+          }}
+        >
+          <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+            <Spinner size={ICON_SIZE_PX} state={spinnerState} />
+          </div>
+          <SvgMask
+            alt="Stop execution"
+            src={StopIcon}
+            className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
+          />
+        </button>
       )
     case backendModule.ProjectState.opened:
       return (
@@ -414,38 +409,38 @@ export default function ProjectIcon(props: ProjectIconProps) {
           <div>
             <button
               disabled={isOtherUserUsingProject}
-              {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-              className="group-hover:hidden w-6 h-6 disabled:opacity-50"
+              {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
+              className="size-project-icon selectable enabled:active"
               onClick={async clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()
                 await closeProject(!isRunningInBackground)
               }}
             >
-              <div className={`relative h-0 ${isRunningInBackground ? 'text-green' : ''}`}>
-                <Spinner size={24} state={spinnerState} />
+              <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+                <Spinner className="size-project-icon" state={spinnerState} />
               </div>
               <SvgMask
                 alt="Stop execution"
                 src={StopIcon}
-                className={`${ICON_CLASSES} ${isRunningInBackground ? 'text-green' : ''}`}
+                className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
               />
             </button>
             {!isOtherUserUsingProject && !isRunningInBackground && (
               <button
-                className="w-6 h-6"
+                className="size-project-icon"
                 onClick={clickEvent => {
                   clickEvent.stopPropagation()
                   unsetModal()
                   doOpenEditor(true)
                 }}
               >
-                <SvgMask alt="Open in editor" src={ArrowUpIcon} className={ICON_CLASSES} />
+                <SvgMask alt="Open in editor" src={ArrowUpIcon} className="size-project-icon" />
               </button>
             )}
             {isRunningInBackground && (
               <button
-                className="w-6 h-6"
+                className="size-project-icon"
                 onClick={async clickEvent => {
                   clickEvent.stopPropagation()
                   unsetModal()
@@ -453,7 +448,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                   setModal(<LogsModal logs={logs} />)
                 }}
               >
-                <SvgMask alt="Show logs" src={LogsIcon} className={ICON_CLASSES} />
+                <SvgMask alt="Show logs" src={LogsIcon} className="size-project-icon" />
               </button>
             )}
           </div>

@@ -1,17 +1,26 @@
+import { initializePrefixes } from '@/util/ast/node'
+import { initializeFFI } from 'shared/ast/ffi'
+
 import App from '@/App.vue'
-import '@/assets/main.css'
 import type { ApplicationConfig } from '@/util/config'
-import { createPinia } from 'pinia'
+import { createPinia, type Pinia } from 'pinia'
 import { createApp } from 'vue'
 
-export function mountProjectApp(rootProps: {
-  config: ApplicationConfig
-  accessToken: string | null
-  metadata?: object | undefined
-  unrecognizedOptions: string[]
-}) {
+import '@/assets/main.css'
+
+export async function mountProjectApp(
+  rootProps: {
+    config: ApplicationConfig
+    accessToken: string | null
+    unrecognizedOptions: string[]
+  },
+  pinia?: Pinia | undefined,
+) {
+  await initializeFFI()
+  initializePrefixes()
+
   const app = createApp(App, rootProps)
-  app.use(createPinia())
+  app.use(pinia ?? createPinia())
   app.mount('#app')
   return app
 }
