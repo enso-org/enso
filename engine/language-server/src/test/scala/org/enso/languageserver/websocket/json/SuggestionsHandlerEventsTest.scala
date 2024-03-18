@@ -65,7 +65,8 @@ class SuggestionsHandlerEventsTest
                       "tagValues" : null
                     }
                   ],
-                  "parentType" : "Any"
+                  "parentType" : "Any",
+                  "reexports" : []
                }
              }
            ],
@@ -117,7 +118,8 @@ class SuggestionsHandlerEventsTest
                   ],
                   "returnType" : "MyAtom",
                   "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
-                  "annotations" : ["a"]
+                  "annotations" : ["a"],
+                  "reexports" : []
                }
              }
            ],
@@ -188,7 +190,8 @@ class SuggestionsHandlerEventsTest
                   "returnType" : "Number",
                   "isStatic" : false,
                   "documentation" : "Lovely",
-                  "annotations" : ["foo"]
+                  "annotations" : ["foo"],
+                  "reexports" : []
                 }
               }
             ],
@@ -534,7 +537,7 @@ class SuggestionsHandlerEventsTest
                   }
                 }
               ],
-              "currentVersion" : 8
+              "currentVersion" : 7
             }
           }
         """)
@@ -577,7 +580,7 @@ class SuggestionsHandlerEventsTest
                 "id" : 5
               }
             ],
-            "currentVersion" : 8
+            "currentVersion" : 7
           }
         }
         """)
