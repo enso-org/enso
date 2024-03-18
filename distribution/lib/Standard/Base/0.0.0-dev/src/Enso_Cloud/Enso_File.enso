@@ -31,7 +31,7 @@ import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-from project.Enso_Cloud.Data_Link import read_datalink
+from project.Enso_Cloud.Data_Link import data_link_content_type, read_datalink
 from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 from project.System.File.Generic.File_Write_Strategy import generic_copy
@@ -377,7 +377,7 @@ File_Format_Metadata.from (that:Enso_File) =
     path = Nothing
     case that.asset_type of
         Enso_Asset_Type.Data_Link ->
-            File_Format_Metadata.Value path=path name=that.name content_type=Data_Link.data_link_content_type
+            File_Format_Metadata.Value path=path name=that.name content_type=data_link_content_type
         Enso_Asset_Type.Directory ->
             File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
         Enso_Asset_Type.File ->
