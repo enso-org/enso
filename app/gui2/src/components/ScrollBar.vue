@@ -100,8 +100,8 @@ export type ScrollbarEvent =
 
 <template>
   <div ref="element" class="ScrollBar" @click.stop @pointerdown.stop @pointerup.stop>
-    <div class="bar vertical" :class="{ full: yFull }" v-on="yDrag.events" />
-    <div class="bar horizontal" :class="{ full: xFull }" v-on="xDrag.events" />
+    <div class="bar vertical" v-on="yDrag.events" />
+    <div class="bar horizontal" v-on="xDrag.events" />
   </div>
 </template>
 
@@ -148,7 +148,8 @@ export type ScrollbarEvent =
   }
 }
 
-.full {
+/* Hide until hovered */
+.bar {
   transition: opacity 0.2s ease-in;
   opacity: 0;
   &:hover {
