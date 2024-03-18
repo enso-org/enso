@@ -33,6 +33,8 @@ object SearchProtocol {
     val Documentation = "documentation"
 
     val Reexport = "reexport"
+
+    val Reexports = "reexports"
   }
 
   private object CodecType {
@@ -64,7 +66,12 @@ object SearchProtocol {
       case module: Suggestion.Module =>
         Encoder[Suggestion.Module]
           .apply(module)
-          .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Module.asJson))
+          .deepMerge(
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Module.asJson,
+              CodecField.Reexport -> module.reexports.headOption.asJson
+            )
+          )
 
       case tpe: Suggestion.Type =>
         Encoder[Suggestion.Type]
@@ -72,7 +79,8 @@ object SearchProtocol {
           .deepMerge(
             Json.obj(
               CodecField.Type       -> SuggestionType.Type.asJson,
-              CodecField.ReturnType -> Json.Null
+              CodecField.ReturnType -> Json.Null,
+              CodecField.Reexport   -> tpe.reexports.headOption.asJson
             )
           )
           .dropNullValues
@@ -81,7 +89,10 @@ object SearchProtocol {
         Encoder[Suggestion.Constructor]
           .apply(constructor)
           .deepMerge(
-            Json.obj(CodecField.Type -> SuggestionType.Constructor.asJson)
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Constructor.asJson,
+              CodecField.Reexport -> constructor.reexports.headOption.asJson
+            )
           )
           .dropNullValues
 
@@ -89,7 +100,10 @@ object SearchProtocol {
         Encoder[Suggestion.DefinedMethod]
           .apply(conversionToMethod(conversion))
           .deepMerge(
-            Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Method.asJson,
+              CodecField.Reexport -> conversion.reexports.headOption.asJson
+            )
           )
           .dropNullValues
 
@@ -97,7 +111,10 @@ object SearchProtocol {
         Encoder[Suggestion.DefinedMethod]
           .apply(getterToMethod(getter))
           .deepMerge(
-            Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Method.asJson,
+              CodecField.Reexport -> getter.reexports.headOption.asJson
+            )
           )
           .dropNullValues
 
@@ -105,7 +122,10 @@ object SearchProtocol {
         Encoder[Suggestion.DefinedMethod]
           .apply(method)
           .deepMerge(
-            Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
+            Json.obj(
+              CodecField.Type     -> SuggestionType.Method.asJson,
+              CodecField.Reexport -> method.reexports.headOption.asJson
+            )
           )
           .dropNullValues
 
@@ -171,7 +191,7 @@ object SearchProtocol {
         documentation <- cursor
           .downField(CodecField.Documentation)
           .as[Option[String]]
-        reexport <- cursor.downField(CodecField.Reexport).as[Set[String]]
+        reexports <- cursor.downField(CodecField.Reexports).as[Set[String]]
       } yield {
         val returnType =
           QualifiedName.fromString(module).createChild(name).toString
@@ -183,7 +203,7 @@ object SearchProtocol {
           returnType,
           parentType,
           documentation,
-          reexport
+          reexports
         )
       }
     }
