@@ -18,7 +18,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
