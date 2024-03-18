@@ -607,9 +607,6 @@ Decimal.from (that : Text) = Decimal.parse that
 Decimal.from (that : Number) = Decimal.new that
 
 ## PRIVATE
-Decimal.from (that : Integer) = Decimal.new that
-
-## PRIVATE
 Integer.from (that : Decimal) = that.to_integer
 
 ## PRIVATE
