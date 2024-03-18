@@ -185,7 +185,7 @@ public final class Error {
   @CompilerDirectives.TruffleBoundary
   public Atom makeTypeError(Object expected, Object actual, String name) {
     return typeError.newInstance(
-        expected, actual, Text.create("Expected `" + name + "` to be {exp}, but got {got}."));
+        expected, actual, Text.create("Expected `" + name + "` to be {exp}, but got {got}"));
   }
 
   /**
