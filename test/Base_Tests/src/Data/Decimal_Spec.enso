@@ -556,6 +556,13 @@ add_specs suite_builder =
             f.should_be_a Float
             f.should_equal 56.34
 
+        group_builder.specify "Decimal.to_float should compare correctly with the original Decimal" <|
+            huge_a = Decimal.new "3.4E300"
+            huge_a_float = Float.from huge_a
+
+            (huge_a_float == huge_a) . should_be_true # succeeds
+            (huge_a == huge_a_float) . should_be_true # fails
+
         group_builder.specify "Decimal.to_integer should compare correctly with the original Decimal" pending="Decimal.to_integer comparison" <|
             huge_a = Decimal.new "3.4E320"
             huge_a_int = Integer.from huge_a
