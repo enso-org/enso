@@ -12,6 +12,7 @@ export type SelectionComposable<T> = ReturnType<typeof useSelection<T>>
 export function useSelection<T>(
   navigator: { sceneMousePos: Vec2 | null; scale: number },
   elementRects: Map<T, Rect>,
+  isPortEnabled: (port: PortId) => boolean,
   margin: number,
   callbacks: {
     onSelected?: (element: T) => void
@@ -22,21 +23,40 @@ export function useSelection<T>(
   const initiallySelected = new Set<T>()
   const selected = shallowReactive(new Set<T>())
   const hoveredNode = ref<NodeId>()
-  const hoveredPort = ref<PortId>()
+  const hoveredElement = ref<Element>()
 
   useEvent(document, 'pointerover', (event) => {
-    if (event.target instanceof Element) {
-      const widgetPort = event.target.closest('.WidgetPort')
-      hoveredPort.value =
-        (
-          widgetPort instanceof HTMLElement &&
-          'port' in widgetPort.dataset &&
-          typeof widgetPort.dataset.port === 'string'
-        ) ?
-          (widgetPort.dataset.port as PortId)
-        : undefined
-    }
+    hoveredElement.value = event.target instanceof Element ? event.target : undefined
   })
+
+  const hoveredPort = computed<PortId | undefined>(() => {
+    if (!hoveredElement.value) return undefined
+    for (const element of elementHierarchy(hoveredElement.value, '.WidgetPort')) {
+      const portId = elementPortId(element)
+      if (portId && isPortEnabled(portId)) return portId
+    }
+    return undefined
+  })
+
+  function* elementHierarchy(element: Element, selectors: string) {
+    for (;;) {
+      const match = element.closest(selectors)
+      if (!match) return
+      yield match
+      if (!match.parentElement) return
+      element = match.parentElement
+    }
+  }
+
+  function elementPortId(element: Element): PortId | undefined {
+    return (
+        element instanceof HTMLElement &&
+          'port' in element.dataset &&
+          typeof element.dataset.port === 'string'
+      ) ?
+        (element.dataset.port as PortId)
+      : undefined
+  }
 
   function readInitiallySelected() {
     initiallySelected.clear()

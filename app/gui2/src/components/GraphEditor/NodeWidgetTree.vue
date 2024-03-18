@@ -15,6 +15,8 @@ const props = defineProps<{
   icon: Icon
   connectedSelfArgumentId: Ast.AstId | undefined
   potentialSelfArgumentId: Ast.AstId | undefined
+  /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
+  conditionalPorts: Set<Ast.AstId>
   extended: boolean
 }>()
 const emit = defineEmits<{
@@ -92,6 +94,7 @@ provideWidgetTree(
   toRef(props, 'icon'),
   toRef(props, 'connectedSelfArgumentId'),
   toRef(props, 'potentialSelfArgumentId'),
+  toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
   layoutTransitions.active,
   () => {

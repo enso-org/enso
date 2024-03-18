@@ -150,3 +150,9 @@ export function debouncedGetter<T>(
   })
   return valueRef
 }
+
+/** Update `target` to have the same entries as `newState`. */
+export function syncSet<T>(target: Set<T>, newState: Set<T>) {
+  for (const oldKey of target) if (!newState.has(oldKey)) target.delete(oldKey)
+  for (const newKey of newState) if (!target.has(newKey)) target.add(newKey)
+}

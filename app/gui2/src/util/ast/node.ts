@@ -25,27 +25,31 @@ export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
   const pattern = nodeCode instanceof Ast.Assignment ? nodeCode.pattern : undefined
   const rootExpr = nodeCode instanceof Ast.Assignment ? nodeCode.expression : nodeCode
   const { innerExpr, matches } = prefixes.extractMatches(rootExpr)
+  const primaryApplication = primaryApplicationSubject(innerExpr)
   return {
     outerExprId: ast.id,
     pattern,
     rootExpr,
     innerExpr,
     prefixes: matches,
-    primarySubject: primaryApplicationSubject(innerExpr),
+    primarySubject: primaryApplication?.subject,
     documentation,
+    conditionalPorts: new Set(primaryApplication?.accessChain ?? []),
   }
 }
 
 /** Given a node root, find a child AST that is the root of the access chain that is the subject of the primary
  *  application.
  */
-export function primaryApplicationSubject(ast: Ast.Ast): Ast.AstId | undefined {
+export function primaryApplicationSubject(
+  ast: Ast.Ast,
+): { subject: Ast.AstId; accessChain: Ast.AstId[] } | undefined {
   // Descend into LHS of any sequence of applications.
   while (ast instanceof Ast.App) ast = ast.function
-  // Require a sequence of at least one property access; descend into LHS.
-  if (!(ast instanceof Ast.PropertyAccess)) return
-  while (ast instanceof Ast.PropertyAccess && ast.lhs) ast = ast.lhs
+  const { subject, accessChain } = Ast.accessChain(ast)
+  // Require at least one property access.
+  if (accessChain.length === 0) return
   // The leftmost element must be an identifier.
-  if (!(ast instanceof Ast.Ident)) return
-  return ast.id
+  if (!(subject instanceof Ast.Ident)) return
+  return { subject: subject.id, accessChain: accessChain.map((ast) => ast.id) }
 }

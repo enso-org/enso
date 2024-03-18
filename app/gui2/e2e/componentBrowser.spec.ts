@@ -1,5 +1,4 @@
 import { test, type Page } from '@playwright/test'
-import assert from 'assert'
 import os from 'os'
 import * as actions from './actions'
 import { expect } from './customExpect'
@@ -47,23 +46,16 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await locate.graphEditor(page).press('Enter')
   await expectAndCancelBrowser(page, 'final.')
   // Dragging out an edge
-  // `click` method of locator could be simpler, but `position` option doesn't work.
-  const outputPortArea = await locate
-    .graphNodeByBinding(page, 'final')
-    .locator('.outputPortHoverArea')
-    .boundingBox()
-  assert(outputPortArea)
-  const outputPortX = outputPortArea.x + outputPortArea.width / 2.0
-  const outputPortY = outputPortArea.y + outputPortArea.height - 2.0
-  await page.mouse.click(outputPortX, outputPortY)
+  const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
+  await page.mouse.click(outputPort.x, outputPort.y)
   await page.mouse.click(100, 500)
   await expectAndCancelBrowser(page, 'final.')
   // Double-clicking port
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
   // event. Probably we need a better way to simulate double clicks.
   await page.waitForTimeout(600)
-  await page.mouse.click(outputPortX, outputPortY)
-  await page.mouse.click(outputPortX, outputPortY)
+  await page.mouse.click(outputPort.x, outputPort.y)
+  await page.mouse.click(outputPort.x, outputPort.y)
   await expectAndCancelBrowser(page, 'final.')
 })
 
@@ -108,14 +100,8 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await page.mouse.move(100, 80)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
-  const outputPortArea = await locate
-    .graphNodeByBinding(page, 'final')
-    .locator('.outputPortHoverArea')
-    .boundingBox()
-  assert(outputPortArea)
-  const outputPortX = outputPortArea.x + outputPortArea.width / 2.0
-  const outputPortY = outputPortArea.y + outputPortArea.height - 2.0
-  await page.mouse.click(outputPortX, outputPortY)
+  const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
+  await page.mouse.click(outputPort.x, outputPort.y)
   await page.mouse.click(100, 1550)
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
   await expectAndCancelBrowser(page, 'final.')

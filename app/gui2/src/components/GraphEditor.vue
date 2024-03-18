@@ -24,6 +24,7 @@ import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
+import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
@@ -44,8 +45,9 @@ import { type Usage } from './ComponentBrowser/input'
 const DEFAULT_NODE_SIZE = new Vec2(0, 24)
 const gapBetweenNodes = 48.0
 
+const keyboard = provideKeyboard()
 const viewportNode = ref<HTMLElement>()
-const graphNavigator = provideGraphNavigator(viewportNode)
+const graphNavigator = provideGraphNavigator(viewportNode, keyboard)
 const graphStore = useGraphStore()
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 widgetRegistry.loadBuiltins()
@@ -83,15 +85,19 @@ projectStore.executionContext.on('executionFailed', (e) =>
 
 // === nodes ===
 
-const nodeSelection = provideGraphSelection(graphNavigator, graphStore.nodeRects, {
-  onSelected(id) {
-    graphStore.db.moveNodeToTop(id)
+const nodeSelection = provideGraphSelection(
+  graphNavigator,
+  graphStore.nodeRects,
+  graphStore.isPortEnabled,
+  {
+    onSelected(id) {
+      graphStore.db.moveNodeToTop(id)
+    },
   },
-})
+)
 
 const interactionBindingsHandler = interactionBindings.handler({
   cancel: () => interaction.handleCancel(),
-  click: (e) => (e instanceof PointerEvent ? interaction.handleClick(e, graphNavigator) : false),
 })
 
 // Return the environment for the placement of a new node. The passed nodes should be the nodes that are
@@ -147,7 +153,9 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
-useEvent(window, 'pointerdown', interactionBindingsHandler, { capture: true })
+useEvent(window, 'pointerdown', (e) => interaction.handleClick(e, graphNavigator), {
+  capture: true,
+})
 
 onMounted(() => viewportNode.value?.focus())
 
