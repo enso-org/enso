@@ -23,8 +23,8 @@ import org.enso.compiler.pass.analyse.{
   TailCall
 }
 import org.enso.compiler.pass.analyse.alias.{
-Graph => AliasGraph,
-Info => AliasInfo
+  Graph => AliasGraph,
+  Info => AliasInfo
 }
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings

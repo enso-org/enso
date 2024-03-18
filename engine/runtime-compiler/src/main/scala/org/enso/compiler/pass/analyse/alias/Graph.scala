@@ -12,7 +12,7 @@ import scala.reflect.ClassTag
 sealed class Graph extends Serializable {
   var rootScope: Graph.Scope = new Graph.Scope()
   var links: Set[Graph.Link] = Set()
-  var nextIdCounter                       = 0
+  var nextIdCounter          = 0
 
   private var globalSymbols: Map[Graph.Symbol, Occurrence.Global] =
     Map()
@@ -102,9 +102,7 @@ sealed class Graph extends Serializable {
       case Some(scope) =>
         globalSymbols
           .get(occurrence.symbol)
-          .map(g =>
-            Graph.Link(occurrence.id, scope.scopesToRoot + 1, g.id)
-          )
+          .map(g => Graph.Link(occurrence.id, scope.scopesToRoot + 1, g.id))
       case None => None
     }
   }
@@ -481,8 +479,8 @@ object Graph {
       *         exists
       */
     def resolveUsage(
-                      occurrence: Graph.Occurrence.Use,
-                      parentCounter: Int = 0
+      occurrence: Graph.Occurrence.Use,
+      parentCounter: Int = 0
     ): Option[Graph.Link] = {
       val definition = occurrences.find {
         case Graph.Occurrence.Def(_, name, _, _, _) =>
@@ -679,11 +677,11 @@ object Graph {
       * @param isLazy whether or not the symbol is defined as lazy
       */
     sealed case class Def(
-                           override val id: Id,
-                           override val symbol: Graph.Symbol,
-                           identifier: UUID @Identifier,
-                           externalId: Option[UUID @ExternalID],
-                           isLazy: Boolean = false
+      override val id: Id,
+      override val symbol: Graph.Symbol,
+      identifier: UUID @Identifier,
+      externalId: Option[UUID @ExternalID],
+      isLazy: Boolean = false
     ) extends Occurrence
 
     /** A usage of a symbol in the aliasing graph
@@ -699,10 +697,10 @@ object Graph {
       *                   the symbol
       */
     sealed case class Use(
-                           override val id: Id,
-                           override val symbol: Graph.Symbol,
-                           identifier: UUID @Identifier,
-                           externalId: Option[UUID @ExternalID]
+      override val id: Id,
+      override val symbol: Graph.Symbol,
+      identifier: UUID @Identifier,
+      externalId: Option[UUID @ExternalID]
     ) extends Occurrence
 
     // TODO [AA] At some point the analysis should make use of these.
