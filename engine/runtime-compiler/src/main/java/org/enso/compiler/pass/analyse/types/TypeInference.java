@@ -3,6 +3,7 @@ package org.enso.compiler.pass.analyse.types;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.context.NameResolution;
+import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.*;
@@ -238,8 +239,11 @@ public final class TypeInference implements IRPass {
       return;
     }
 
-    var def = JavaInteropHelpers.occurrenceAsDef(occurrence.get());
-    localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
+    if (occurrence.get() instanceof org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Def def) {
+      localBindingsTyping.registerBindingType(metadata.graph(), def.id(), type);
+    } else {
+      throw new CompilerError("Alias analysis occurrence has unexpected type: " + occurrence.get().getClass().getCanonicalName());
+    }
   }
 
   private void registerPattern(Pattern pattern, LocalBindingsTyping localBindingsTyping) {
