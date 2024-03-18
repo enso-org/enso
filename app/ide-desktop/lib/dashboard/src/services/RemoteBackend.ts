@@ -443,9 +443,10 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async deleteAsset(
     assetId: backendModule.AssetId,
-    body: backendModule.DeleteAssetRequestBody,
+    bodyRaw: backendModule.DeleteAssetRequestBody,
     title: string | null
   ) {
+    const body = object.omit(bodyRaw, 'parentId')
     const paramsString = new URLSearchParams([['force', String(body.force)]]).toString()
     const path = remoteBackendPaths.deleteAssetPath(assetId) + '?' + paramsString
     const response = await this.delete(path)
@@ -589,9 +590,10 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async openProject(
     projectId: backendModule.ProjectId,
-    body: backendModule.OpenProjectRequestBody,
+    bodyRaw: backendModule.OpenProjectRequestBody,
     title: string | null
   ): Promise<void> {
+    const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.openProjectPath(projectId)
     const response = await this.post(path, body)
     if (!responseIsSuccessful(response)) {
@@ -608,9 +610,10 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateProject(
     projectId: backendModule.ProjectId,
-    body: backendModule.UpdateProjectRequestBody,
+    bodyRaw: backendModule.UpdateProjectRequestBody,
     title: string | null
   ): Promise<backendModule.UpdatedProject> {
+    const body = object.omit(bodyRaw, 'parentId')
     const path = remoteBackendPaths.projectUpdatePath(projectId)
     const response = await this.put<backendModule.UpdatedProject>(path, body)
     if (!responseIsSuccessful(response)) {
