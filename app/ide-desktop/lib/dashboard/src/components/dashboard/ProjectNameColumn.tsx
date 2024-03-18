@@ -21,11 +21,11 @@ import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 
+import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import * as string from '#/utilities/string'
 import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/Visibility'
 
@@ -70,23 +70,21 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     projectState.opened_by != null &&
     projectState.opened_by !== user?.email
 
-  const doRename = async (newTitle: string) => {
-    setRowState(object.merger({ isEditingName: false }))
-    if (string.isWhitespaceOnly(newTitle)) {
-      // Do nothing.
-    } else if (newTitle !== asset.title) {
-      const oldTitle = asset.title
-      setAsset(object.merger({ title: newTitle }))
-      try {
-        await backend.updateProject(
-          asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle },
-          asset.title
-        )
-      } catch (error) {
-        toastAndLog('Could not rename project', error)
-        setAsset(object.merger({ title: oldTitle }))
-      }
+  const doRename = async (newName: string) => {
+    try {
+      await backend.updateProject(
+        asset.id,
+        {
+          ami: null,
+          ideVersion: null,
+          projectName: newName,
+        },
+        asset.title
+      )
+      return
+    } catch (error) {
+      toastAndLog(errorModule.tryGetMessage(error) ?? 'Could not rename project.')
+      throw error
     }
   }
 
@@ -265,7 +263,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   return (
     <div
-      className={`flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
+      className={`group flex h-full min-w-max items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y ${indent.indentClass(
         item.depth
       )}`}
       onKeyDown={event => {
@@ -295,8 +293,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           keyProp={item.key}
           // This is a workaround for a temporary bad state in the backend causing the
           // `projectState` key to be absent.
-          item={object.merge(asset, { projectState })}
-          setItem={setAsset}
+          item={item}
+          setItem={setItem}
+          asset={object.merge(asset, { projectState })}
+          setAsset={setAsset}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
           doOpenEditor={switchPage => {

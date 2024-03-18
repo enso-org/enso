@@ -9,7 +9,7 @@ import * as backendModule from '#/services/Backend'
 export interface AssetTreeNodeData
   extends Pick<
     AssetTreeNode,
-    'children' | 'depth' | 'directoryId' | 'directoryKey' | 'item' | 'key'
+    'children' | 'depth' | 'directoryId' | 'directoryKey' | 'isProjectExpanded' | 'item' | 'key'
   > {}
 
 /** A node in the drive's item tree. */
@@ -17,19 +17,21 @@ export default class AssetTreeNode {
   /** Create a {@link AssetTreeNode}. */
   constructor(
     /** The id of the asset (or the placeholder id for new assets). This must never change. */
-    public readonly key: backendModule.AssetId,
+    readonly key: backendModule.AssetId,
     /** The actual asset. This MAY change if this is initially a placeholder item, but rows MAY
      * keep updated values within the row itself as well. */
-    public item: backendModule.AnyAsset,
+    readonly item: backendModule.AnyAsset,
     /** The id of the asset's parent directory (or the placeholder id for new assets).
      * This must never change. */
-    public readonly directoryKey: backendModule.AssetId,
+    readonly directoryKey: backendModule.AssetId,
     /** The actual id of the asset's parent directory (or the placeholder id for new assets). */
-    public readonly directoryId: backendModule.DirectoryId,
-    /** This is `null` if the asset is not a directory asset, OR if it is a collapsed directory
-     * asset. */
-    public readonly children: AssetTreeNode[] | null,
-    public readonly depth: number
+    readonly directoryId: backendModule.DirectoryId,
+    /** This is `null` if the asset has no children, OR if its children have not yet been fetched. */
+    readonly children: AssetTreeNode[] | null,
+    readonly depth: number,
+    /** This stores expanded state for projects, since their children must always be loaded.
+     * For all other assets this should be `false`. */
+    readonly isProjectExpanded: boolean
   ) {}
 
   /** Get an {@link AssetTreeNode.key} from an {@link AssetTreeNode}. Useful for React,
@@ -54,7 +56,7 @@ export default class AssetTreeNode {
     getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
   ): AssetTreeNode {
     getKey ??= oldAsset => oldAsset.id
-    return new AssetTreeNode(getKey(asset), asset, directoryKey, directoryId, null, depth)
+    return new AssetTreeNode(getKey(asset), asset, directoryKey, directoryId, null, depth, false)
   }
 
   /** Create a new {@link AssetTreeNode} with the specified properties updated. */
@@ -67,7 +69,8 @@ export default class AssetTreeNode {
       // `null` MUST be special-cases in the following line.
       // eslint-disable-next-line eqeqeq
       update.children === null ? update.children : update.children ?? this.children,
-      update.depth ?? this.depth
+      update.depth ?? this.depth,
+      update.isProjectExpanded ?? this.isProjectExpanded
     )
   }
 
@@ -130,9 +133,9 @@ export default class AssetTreeNode {
 
   /** Returns all items in the tree, flattened into an array using pre-order traversal. */
   preorderTraversal(
-    preprocess: ((tree: AssetTreeNode[]) => AssetTreeNode[]) | null = null
+    preprocess: ((tree: AssetTreeNode[], parent: AssetTreeNode) => AssetTreeNode[]) | null = null
   ): AssetTreeNode[] {
-    return (preprocess?.(this.children ?? []) ?? this.children ?? []).flatMap(node =>
+    return (preprocess?.(this.children ?? [], this) ?? this.children ?? []).flatMap(node =>
       node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess)]
     )
   }

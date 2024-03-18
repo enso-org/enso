@@ -127,6 +127,7 @@ export enum ProjectState {
   scheduled = 'Scheduled',
   openInProgress = 'OpenInProgress',
   provisioned = 'Provisioned',
+  cloning = 'Cloning',
   opened = 'Opened',
   closed = 'Closed',
   /** A frontend-specific state, representing a project that should be displayed as
@@ -150,6 +151,8 @@ export interface ProjectStateType {
   readonly ec2_public_ip_address?: string
   readonly current_session_id?: string
   readonly opened_by?: EmailAddress
+  // TODO: Check whether this is really `camelCase`
+  readonly parentProjectId?: ProjectId
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -159,6 +162,7 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.scheduled]: true,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
+  [ProjectState.cloning]: true,
   [ProjectState.opened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
@@ -171,6 +175,7 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.scheduled]: true,
   [ProjectState.openInProgress]: true,
   [ProjectState.provisioned]: true,
+  [ProjectState.cloning]: true,
   [ProjectState.opened]: true,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
@@ -250,8 +255,6 @@ export interface FileLocator {
 
 /** Metadata uniquely identifying an uploaded file. */
 export interface FileInfo {
-  /* TODO: Should potentially be S3FilePath,
-   * but it's just string on the backend. */
   readonly path: string
   readonly id: FileId
   readonly project: CreatedProject | null
@@ -1113,6 +1116,8 @@ export default abstract class Backend {
   ): Promise<UpdatedProject>
   /** Return project memory, processor and storage usage. */
   abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
+  /** Return logs sent by a project. */
+  abstract getLogs(projectId: ProjectId, title: string | null): Promise<string>
   /** Return a list of files accessible by the current user. */
   abstract listFiles(): Promise<FileLocator[]>
   /** Upload a file. */

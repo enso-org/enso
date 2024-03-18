@@ -332,6 +332,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'chat-reaction-bar-py': 'var(--chat-reaction-bar-padding-y)',
         'chat-reaction-bar': 'var(--chat-reaction-bar-margin)',
         'chat-reaction': 'var(--chat-reaction-margin)',
+        'icon-in-project-icon': 'calc(var(--project-icon-size) / 2 - var(--icon-size) / 2)',
       },
       lineHeight: {
         snug: 'var(--snug-line-height)',

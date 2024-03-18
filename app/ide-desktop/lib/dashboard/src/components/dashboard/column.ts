@@ -17,7 +17,7 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 // === AssetColumn ===
 // ===================
 
-/** Props for an arbitrary variant of {@link backendModule.Asset}. */
+/** Props for an arbitrary variant of {@link backendModule.AnyAsset}. */
 export interface AssetColumnProps {
   readonly keyProp: backendModule.AssetId
   readonly item: AssetTreeNode

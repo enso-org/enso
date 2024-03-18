@@ -31,8 +31,11 @@ export function readonly<T extends object>(object: T): Readonly<T> {
 // === unsafeMutable ===
 // =====================
 
+/** Removes the `readonly` modifier from all of an object's properties. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] }
+
 /** Removes the readonly modifier from all properties on the object. UNSAFE. */
-export function unsafeMutable<T extends object>(object: T): { -readonly [K in keyof T]: T[K] } {
+export function unsafeMutable<T extends object>(object: T): Mutable<T> {
   return object
 }
 

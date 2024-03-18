@@ -410,6 +410,11 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
+  /** Invalid operation. */
+  override getLogs() {
+    return this.invalidOperation()
+  }
+
   /** Return an empty array. This function should never need to be called. */
   override listFiles() {
     return Promise.resolve([])

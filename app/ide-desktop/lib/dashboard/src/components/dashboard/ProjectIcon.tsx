@@ -4,8 +4,10 @@ import * as React from 'react'
 import * as toast from 'react-toastify'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
+import LogsIcon from 'enso-assets/logs.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
+import TriangleDownIcon from 'enso-assets/triangle_down.svg'
 
 import * as eventHooks from '#/hooks/eventHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -17,12 +19,15 @@ import * as modalProvider from '#/providers/ModalProvider'
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
 
+import LogsModal from '#/layouts/LogsModal'
+
 import Spinner, * as spinner from '#/components/Spinner'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
 import * as remoteBackend from '#/services/RemoteBackend'
 
+import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as errorModule from '#/utilities/error'
 import * as object from '#/utilities/object'
 
@@ -45,6 +50,7 @@ const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingSlow,
+  [backendModule.ProjectState.cloning]: spinner.SpinnerState.loadingSlow,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 /** The corresponding {@link spinner.SpinnerState} for each {@link backendModule.ProjectState},
@@ -58,6 +64,7 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
   [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.provisioned]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.scheduled]: spinner.SpinnerState.loadingMedium,
+  [backendModule.ProjectState.cloning]: spinner.SpinnerState.loadingMedium,
   [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
 
@@ -68,8 +75,10 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, spinner.S
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
   readonly keyProp: string
-  readonly item: backendModule.ProjectAsset
-  readonly setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
+  readonly item: AssetTreeNode
+  readonly setItem: React.Dispatch<React.SetStateAction<AssetTreeNode>>
+  readonly asset: backendModule.ProjectAsset
+  readonly setAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
   readonly assetEvents: assetEvent.AssetEvent[]
   /** Called when the project is opened via the {@link ProjectIcon}. */
   readonly doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -79,16 +88,16 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { keyProp: key, item, setItem, assetEvents, doOpenManually } = props
+  const { keyProp: key, item, setItem, asset, setAsset, assetEvents, doOpenManually } = props
   const { doCloseEditor, doOpenEditor } = props
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
-  const { unsetModal } = modalProvider.useSetModal()
+  const { setModal, unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const state = item.projectState.type
+  const state = asset.projectState.type
   const setState = React.useCallback(
     (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
-      setItem(oldItem => {
+      setAsset(oldItem => {
         let newState: backendModule.ProjectState
         if (typeof stateOrUpdater === 'function') {
           newState = stateOrUpdater(oldItem.projectState.type)
@@ -111,7 +120,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         return object.merge(oldItem, { projectState: newProjectState })
       })
     },
-    [user, /* should never change */ setItem]
+    [user, /* should never change */ setAsset]
   )
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
   const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -119,7 +128,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   >(null)
   const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
   const [isRunningInBackground, setIsRunningInBackground] = React.useState(
-    item.projectState.execute_async ?? false
+    asset.projectState.execute_async ?? false
   )
   const [shouldSwitchPage, setShouldSwitchPage] = React.useState(false)
   const [toastId, setToastId] = React.useState<toast.Id | null>(null)
@@ -128,7 +137,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const [closeProjectAbortController, setCloseProjectAbortController] =
     React.useState<AbortController | null>(null)
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local && item.projectState.opened_by !== user?.email
+    backend.type !== backendModule.BackendType.local && asset.projectState.opened_by !== user?.email
 
   const openProject = React.useCallback(
     async (shouldRunInBackground: boolean) => {
@@ -143,14 +152,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 setToastId(toast.toast.loading(LOADING_MESSAGE))
               }
               await backend.openProject(
-                item.id,
+                asset.id,
                 { executeAsync: shouldRunInBackground },
-                item.title
+                asset.title
               )
             }
             const abortController = new AbortController()
             setOpenProjectAbortController(abortController)
-            await remoteBackend.waitUntilProjectIsReady(backend, item, abortController)
+            await remoteBackend.waitUntilProjectIsReady(backend, asset, abortController)
             setToastId(null)
             if (!abortController.signal.aborted) {
               setState(oldState =>
@@ -162,7 +171,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
             break
           }
           case backendModule.BackendType.local: {
-            await backend.openProject(item.id, { executeAsync: shouldRunInBackground }, item.title)
+            await backend.openProject(
+              asset.id,
+              { executeAsync: shouldRunInBackground },
+              asset.title
+            )
             setState(oldState =>
               oldState === backendModule.ProjectState.openInProgress
                 ? backendModule.ProjectState.opened
@@ -172,10 +185,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
           }
         }
       } catch (error) {
-        const project = await backend.getProjectDetails(item.id, item.title)
-        setItem(object.merger({ projectState: project.state }))
+        const project = await backend.getProjectDetails(asset.id, asset.title)
+        setAsset(object.merger({ projectState: project.state }))
         toastAndLog(
-          errorModule.tryGetMessage(error)?.slice(0, -1) ?? `Could not open project '${item.title}'`
+          errorModule.tryGetMessage(error)?.slice(0, -1) ??
+            `Could not open project '${asset.title}'`
         )
         setState(backendModule.ProjectState.closed)
       }
@@ -183,11 +197,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
     [
       state,
       backend,
-      item,
+      asset,
       closeProjectAbortController,
       /* should never change */ toastAndLog,
       /* should never change */ setState,
-      /* should never change */ setItem,
+      /* should never change */ setAsset,
     ]
   )
 
@@ -248,7 +262,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         break
       }
       case AssetEventType.openProject: {
-        if (event.id !== item.id) {
+        if (event.id !== asset.id) {
           if (!event.runInBackground && !isRunningInBackground) {
             setShouldOpenWhenReady(false)
             if (!isOtherUserUsingProject && backendModule.IS_OPENING_OR_OPENED[state]) {
@@ -264,7 +278,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         break
       }
       case AssetEventType.closeProject: {
-        if (event.id === item.id) {
+        if (event.id === asset.id) {
           setShouldOpenWhenReady(false)
           void closeProject(false)
         }
@@ -313,10 +327,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
         ) {
           // Projects that are not opened cannot be closed.
           // This is the only way to wait until the project is open.
-          await backend.openProject(item.id, null, item.title)
+          await backend.openProject(asset.id, null, asset.title)
         }
         try {
-          await backend.closeProject(item.id, item.title)
+          await backend.closeProject(asset.id, asset.title)
         } catch {
           // Ignored. The project is already closed.
         }
@@ -328,6 +342,19 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
   }
 
+  const triangleButton = item.children != null && (
+    <SvgMask
+      src={TriangleDownIcon}
+      className={`m-icon-in-project-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
+        item.isProjectExpanded ? '' : '-rotate-90'
+      }`}
+      onClick={event => {
+        event.stopPropagation()
+        setItem(oldItem => oldItem.with({ isProjectExpanded: !oldItem.isProjectExpanded }))
+      }}
+    />
+  )
+
   switch (state) {
     case null:
     case backendModule.ProjectState.created:
@@ -335,20 +362,24 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.closing:
     case backendModule.ProjectState.closed:
       return (
-        <button
-          className="size-project-icon"
-          onClick={clickEvent => {
-            clickEvent.stopPropagation()
-            unsetModal()
-            doOpenManually(item.id)
-          }}
-        >
-          <SvgMask alt="Open in editor" src={PlayIcon} className="size-project-icon" />
-        </button>
+        <>
+          {triangleButton}
+          <button
+            className="size-project-icon"
+            onClick={clickEvent => {
+              clickEvent.stopPropagation()
+              unsetModal()
+              doOpenManually(asset.id)
+            }}
+          >
+            <SvgMask alt="Open in editor" src={PlayIcon} className="size-project-icon" />
+          </button>
+        </>
       )
     case backendModule.ProjectState.openInProgress:
     case backendModule.ProjectState.scheduled:
     case backendModule.ProjectState.provisioned:
+    case backendModule.ProjectState.cloning:
     case backendModule.ProjectState.placeholder:
       return (
         <button
@@ -373,39 +404,55 @@ export default function ProjectIcon(props: ProjectIconProps) {
       )
     case backendModule.ProjectState.opened:
       return (
-        <div>
-          <button
-            disabled={isOtherUserUsingProject}
-            {...(isOtherUserUsingProject ? { title: 'Someone else has this project open.' } : {})}
-            className="size-project-icon selectable enabled:active"
-            onClick={async clickEvent => {
-              clickEvent.stopPropagation()
-              unsetModal()
-              await closeProject(!isRunningInBackground)
-            }}
-          >
-            <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
-              <Spinner className="size-project-icon" state={spinnerState} />
-            </div>
-            <SvgMask
-              alt="Stop execution"
-              src={StopIcon}
-              className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
-            />
-          </button>
-          {!isOtherUserUsingProject && !isRunningInBackground && (
+        <>
+          {triangleButton}
+          <div>
             <button
-              className="size-project-icon"
-              onClick={clickEvent => {
+              disabled={isOtherUserUsingProject}
+              {...(isOtherUserUsingProject ? { title: 'Someone else is using this project.' } : {})}
+              className="size-project-icon selectable enabled:active"
+              onClick={async clickEvent => {
                 clickEvent.stopPropagation()
                 unsetModal()
-                doOpenEditor(true)
+                await closeProject(!isRunningInBackground)
               }}
             >
-              <SvgMask alt="Open in editor" src={ArrowUpIcon} className="size-project-icon" />
+              <div className={`relative h ${isRunningInBackground ? 'text-green' : ''}`}>
+                <Spinner className="size-project-icon" state={spinnerState} />
+              </div>
+              <SvgMask
+                alt="Stop execution"
+                src={StopIcon}
+                className={`size-project-icon ${isRunningInBackground ? 'text-green' : ''}`}
+              />
             </button>
-          )}
-        </div>
+            {!isOtherUserUsingProject && !isRunningInBackground && (
+              <button
+                className="size-project-icon"
+                onClick={clickEvent => {
+                  clickEvent.stopPropagation()
+                  unsetModal()
+                  doOpenEditor(true)
+                }}
+              >
+                <SvgMask alt="Open in editor" src={ArrowUpIcon} className="size-project-icon" />
+              </button>
+            )}
+            {isRunningInBackground && (
+              <button
+                className="size-project-icon"
+                onClick={async clickEvent => {
+                  clickEvent.stopPropagation()
+                  unsetModal()
+                  const logs = await backend.getLogs(asset.id, asset.title)
+                  setModal(<LogsModal logs={logs} />)
+                }}
+              >
+                <SvgMask alt="Show logs" src={LogsIcon} className="size-project-icon" />
+              </button>
+            )}
+          </div>
+        </>
       )
   }
 }

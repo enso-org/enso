@@ -87,7 +87,7 @@ export interface AssetRowProps
 export default function AssetRow(props: AssetRowProps) {
   const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, doRefresh } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef } = state
 
@@ -103,6 +103,7 @@ export default function AssetRow(props: AssetRowProps) {
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
   )
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const key = AssetTreeNode.getKey(item)
   const isCloud = backend.type === backendModule.BackendType.remote
   const outerVisibility = visibilities.get(key)
@@ -117,10 +118,17 @@ export default function AssetRow(props: AssetRowProps) {
   }, [rawItem])
   React.useEffect(() => {
     // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
-    // re-rendering the parent.
-    rawItem.item = asset
-  }, [asset, rawItem])
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+    // re - rendering the parent.
+    object.unsafeMutable(rawItem).item = asset
+    doRefresh()
+  }, [asset, rawItem, /* should never change */ doRefresh])
+
+  React.useEffect(() => {
+    // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid re-rendering the
+    // parent.
+    object.unsafeMutable(rawItem).isProjectExpanded = item.isProjectExpanded
+    doRefresh()
+  }, [item.isProjectExpanded, rawItem, /* should never change */ doRefresh])
 
   React.useEffect(() => {
     if (selected && insertionVisibility !== Visibility.visible) {

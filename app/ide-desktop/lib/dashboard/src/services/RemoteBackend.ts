@@ -636,6 +636,23 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Return logs for a project.
+   * @throws An error if a non-successful status code (not 200-299) was received. */
+  override async getLogs(
+    projectId: backendModule.ProjectId,
+    title: string | null
+  ): Promise<string> {
+    const response = await this.get<string>(remoteBackendPaths.getLogsPath(projectId))
+    if (!responseIsSuccessful(response)) {
+      return this.throw(
+        `Could not get logs for project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`,
+        response
+      )
+    } else {
+      return await response.text()
+    }
+  }
+
   /** Return a list of files accessible by the current user.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async listFiles(): Promise<backendModule.FileLocator[]> {
