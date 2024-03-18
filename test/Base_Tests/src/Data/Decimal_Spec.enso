@@ -12,7 +12,6 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
 
 Decimal.should_have_rep self rep = self.internal_representation . should_equal rep
 
-
 add_specs suite_builder =
     suite_builder.group "construction" group_builder->
         group_builder.specify "should be able to construct a Decimal from a string" <|
@@ -186,7 +185,6 @@ add_specs suite_builder =
             combinations = [[a, b], [a, c], [b, c], [huge_a, huge_b], [huge_a, huge_c], [huge_b, huge_c]]
                 + [[-a, -b], [-a, -c], [-b, -c], [-huge_a, -huge_b], [-huge_a, -huge_c], [-huge_b, -huge_c]]
             combinations.map pr->
-                IO.println 'AAA '+pr.to_text
                 x0 = pr.at 0
                 x1 = pr.at 1
 

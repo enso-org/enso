@@ -4,7 +4,6 @@ import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Error.Error
-import project.IO
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
@@ -530,7 +529,7 @@ type Decimal
        Convert this to an `Integer`.
 
        > Example
-         Convert `Decimal` 23.45 to an `Integer`.
+         Convert `Decimal` 2345 to an `Integer`.
              d = Decimal.new "2345"
              d.to_integer
              # => 2345
