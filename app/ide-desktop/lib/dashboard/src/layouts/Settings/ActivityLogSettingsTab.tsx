@@ -69,19 +69,19 @@ export default function ActivityLogSettingsTab() {
   const isLoading = filteredLogs == null
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2.5">
-        <h3 className="h-9.5 py-0.5 text-xl font-bold">Activity Log</h3>
-        <div className="flex gap-3">
-          <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-settings-subsection">
+      <div className="flex flex-col gap-settings-section-header">
+        <h3 className="settings-subheading">Activity Log</h3>
+        <div className="gap-activity-log-filters flex">
+          <div className="gap-activity-log-filter flex items-center">
             Start Date
             <DateInput date={startDate} onInput={setStartDate} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="gap-activity-log-filter flex items-center">
             End Date
             <DateInput date={endDate} onInput={setEndDate} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="gap-activity-log-filter flex items-center">
             Types
             <Dropdown
               multiple
@@ -100,7 +100,7 @@ export default function ActivityLogSettingsTab() {
               }}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="gap-activity-log-filter flex items-center">
             Users
             <Dropdown
               multiple
@@ -122,22 +122,22 @@ export default function ActivityLogSettingsTab() {
         </div>
         <table className="table-fixed self-start rounded-rows">
           <thead>
-            <tr className="h-8">
-              <th className="w-8 border-x-2 border-transparent bg-clip-padding pl-2 pr-1.5 text-left text-sm font-semibold last:border-r-0" />
-              <th className="w-32 border-x-2 border-transparent bg-clip-padding px-2 text-left text-sm font-semibold last:border-r-0">
+            <tr className="h-row">
+              <th className="pr-icon-column-r w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pl-cell-x text-left text-sm font-semibold last:border-r-0" />
+              <th className="w-activity-log-type-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
                 Type
               </th>
-              <th className="w-48 border-x-2 border-transparent bg-clip-padding px-2 text-left text-sm font-semibold last:border-r-0">
+              <th className="w-activity-log-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
                 Email
               </th>
-              <th className="w-36 border-x-2 border-transparent bg-clip-padding px-2 text-left text-sm font-semibold last:border-r-0">
+              <th className="w-activity-log-timestamp-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
                 Timestamp
               </th>
             </tr>
           </thead>
           <tbody className="select-text">
             {isLoading ? (
-              <tr className="h-8">
+              <tr className="h-row">
                 <td colSpan={4} className="rounded-full">
                   <div className="flex justify-center">
                     <StatelessSpinner
@@ -149,19 +149,19 @@ export default function ActivityLogSettingsTab() {
               </tr>
             ) : (
               filteredLogs.map((log, i) => (
-                <tr key={i} className="h-8">
-                  <td className="border-x-2 border-transparent bg-clip-padding pl-2 pr-1.5 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                <tr key={i} className="h-row">
+                  <td className="pr-icon-column-r border-x-2 border-transparent bg-clip-padding pl-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                     <div className="flex items-center">
                       <SvgMask src={EVENT_TYPE_ICON[log.metadata.type]} />
                     </div>
                   </td>
-                  <td className="border-x-2 border-transparent bg-clip-padding px-2 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                     {EVENT_TYPE_NAME[log.metadata.type]}
                   </td>
-                  <td className="border-x-2 border-transparent bg-clip-padding px-2 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                     {log.userEmail}
                   </td>
-                  <td className="border-x-2 border-transparent bg-clip-padding px-2 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
                     {log.timestamp ? dateTime.formatDateTime(new Date(log.timestamp)) : ''}
                   </td>
                 </tr>

@@ -114,7 +114,7 @@ export default function KeyboardShortcutsSettingsTab() {
                 const [action, info] = kv
                 return (
                   <tr key={action}>
-                    <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-keyboard-shortcuts-icon-column-r">
+                    <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-icon-column-r">
                       <SvgMask
                         src={info.icon ?? BlankIcon}
                         color={info.color}
