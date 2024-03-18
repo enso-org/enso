@@ -1,6 +1,7 @@
 /** @file An input that outputs a {@link Date}. */
 import * as React from 'react'
 
+import CrossIcon from 'enso-assets/cross.svg'
 import FolderArrowDoubleIcon from 'enso-assets/folder_arrow_double.svg'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 
@@ -90,14 +91,27 @@ export default function DateInput(props: DateInputProps) {
         event.stopPropagation()
       }}
     >
-      <button
-        className={`w-date-picker px-date-input h-text rounded-full border border-primary/10 transition-colors hover:bg-primary/10 ${date == null ? 'placeholder' : ''}`}
+      <div
+        role="button"
+        className={`w-date-picker px-date-input flex h-text items-center rounded-full border border-primary/10 transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`}
         onClick={() => {
           setIsPickerVisible(!isPickerVisible)
         }}
       >
-        {date != null ? dateTime.formatDate(date) : 'No date selected'}
-      </button>
+        <div className="flex grow flex-col items-center">
+          {date != null ? dateTime.formatDate(date) : 'No date selected'}
+        </div>
+        {date != null && (
+          <button
+            className="flex rounded-full transition-colors hover:bg-hover-bg"
+            onClick={() => {
+              onInput(null)
+            }}
+          >
+            <SvgMask src={CrossIcon} className="size-icon" />
+          </button>
+        )}
+      </div>
       {isPickerVisible && (
         <div className="mt-date-input-gap top-text-h absolute left-1/2">
           <div className="p-date-input relative -translate-x-1/2 rounded-2xl border border-primary/10 shadow-soft before:absolute before:inset-0 before:rounded-2xl before:backdrop-blur-3xl">

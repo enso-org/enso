@@ -75,7 +75,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'menu-entry': 'var(--menu-entry-corner-radius)',
         'selection-brush': 'var(--selection-brush-corner-radius)',
         'chat-input': 'var(--chat-input-corner-radius)',
-        'small-rectangle-button': 'var(--small-rectangle-button-corer-radius)',
+        'small-rectangle-button': 'var(--small-rectangle-button-corner-radius)',
       },
       spacing: {
         DEFAULT: '0',
