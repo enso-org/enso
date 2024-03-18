@@ -57,10 +57,10 @@ import scala.Option;
 @Persistable(clazz = ExpressionAnnotations$.class, id = 1217)
 @Persistable(clazz = FullyQualifiedNames$.class, id = 1218)
 @Persistable(clazz = Info.Occurrence.class, id = 1261, allowInlining = false)
-@Persistable(clazz = Info$Scope$Root.class, id = 1262, allowInlining = false)
-@Persistable(clazz = Info$Scope$Child.class, id = 1263, allowInlining = false)
-@Persistable(clazz = Graph$Occurrence$Use.class, id = 1264, allowInlining = false)
-@Persistable(clazz = Graph$Occurrence$Def.class, id = 1265, allowInlining = false)
+@Persistable(clazz = org.enso.compiler.pass.analyse.alias.Info$Scope$Root.class, id = 1262, allowInlining = false)
+@Persistable(clazz = org.enso.compiler.pass.analyse.alias.Info$Scope$Child.class, id = 1263, allowInlining = false)
+@Persistable(clazz = org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Use.class, id = 1264, allowInlining = false)
+@Persistable(clazz = org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Def.class, id = 1265, allowInlining = false)
 @Persistable(clazz = Graph.Link.class, id = 1266, allowInlining = false)
 public final class PassPersistance {
   private PassPersistance() {}
