@@ -103,7 +103,7 @@ type Text
     @locale Locale.default_widget
     compare_to_ignore_case : Text -> Locale -> Ordering
     compare_to_ignore_case self that locale=Locale.default =
-        if that.is_nothing then Panic.throw (Type_Error.Error Text that "Expected `that` to be a Text, but got {got}.") else
+        if that.is_nothing then Panic.throw (Type_Error.Error Text that "Expected `that` to be a Text, but got {got}") else
             comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
             Ordering.from_sign comparison_result
 
