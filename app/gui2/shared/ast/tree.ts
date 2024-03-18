@@ -2143,9 +2143,9 @@ export class Wildcard extends Ast {
     return asOwned(new MutableWildcard(module, fields))
   }
 
-  static new(module: MutableModule) {
+  static new(module?: MutableModule) {
     const token = Token.new('_', RawAst.Token.Type.Wildcard)
-    return this.concrete(module, unspaced(token))
+    return this.concrete(module ?? MutableModule.Transient(), unspaced(token))
   }
 
   *concreteChildren(_verbatim?: boolean): IterableIterator<RawNodeChild> {
@@ -2180,6 +2180,11 @@ export class Vector extends Ast {
   declare fields: FixedMapView<AstFields & VectorFields>
   constructor(module: Module, fields: FixedMapView<AstFields & VectorFields>) {
     super(module, fields)
+  }
+
+  static tryParse(source: string, module?: MutableModule): Owned<MutableVector> | undefined {
+    const parsed = parse(source, module)
+    if (parsed instanceof MutableVector) return parsed
   }
 
   static concrete(
@@ -2264,6 +2269,23 @@ export class Vector extends Ast {
 export class MutableVector extends Vector implements MutableAst {
   declare readonly module: MutableModule
   declare readonly fields: FixedMap<AstFields & VectorFields>
+
+  push(value: Owned) {
+    const elements = this.fields.get('elements')
+    const element = mapRefs(
+      delimitVectorElement({ value: autospaced(value) }),
+      ownedToRaw(this.module, this.id),
+    )
+    this.fields.set('elements', [...elements, element])
+  }
+
+  keep(predicate: (ast: Ast) => boolean) {
+    const elements = this.fields.get('elements')
+    const filtered = elements.filter(
+      (element) => element.value && predicate(this.module.get(element.value.node)),
+    )
+    this.fields.set('elements', filtered)
+  }
 }
 export interface MutableVector extends Vector, MutableAst {
   values(): IterableIterator<MutableAst>

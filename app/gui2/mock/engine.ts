@@ -68,6 +68,7 @@ main =
     data = Data.read
     filtered = data.filter
     aggregated = data.aggregate
+    selected = data.select_columns
 `
 
 export function getMainFile() {
@@ -185,6 +186,34 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
                   constructor: 'Option',
                   value: '"File 2"',
                   label: 'File 2',
+                  parameters: [],
+                },
+              ],
+              display: { type: 'Display', constructor: 'Always' },
+            },
+          ],
+        ])
+      case '.select_columns':
+        return encodeJSON([
+          [
+            'columns',
+            {
+              type: 'Widget',
+              constructor: 'Multiple_Choice',
+              label: null,
+              values: [
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: "'Column A'",
+                  label: 'Column A',
+                  parameters: [],
+                },
+                {
+                  type: 'Choice',
+                  constructor: 'Option',
+                  value: "'Column B'",
+                  label: 'Column B',
                   parameters: [],
                 },
               ],

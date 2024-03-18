@@ -4,24 +4,26 @@ import ListWidget from '@/components/widgets/ListWidget.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
-import { MutableModule } from '@/util/ast/abstract.ts'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const itemConfig = computed(() =>
+const dynamicConfig = computed(() =>
   props.input.dynamicConfig?.kind === 'Vector_Editor' ?
-    props.input.dynamicConfig.item_editor
+    {
+      item: props.input.dynamicConfig.item_editor,
+      default: Ast.parse(props.input.dynamicConfig.item_default),
+    }
   : undefined,
 )
 
-const defaultItem = computed(() => {
-  if (props.input.dynamicConfig?.kind === 'Vector_Editor') {
-    return Ast.parse(props.input.dynamicConfig.item_default)
-  } else {
-    return Ast.Wildcard.new(MutableModule.Transient())
-  }
-})
+const itemConfig = computed(() => dynamicConfig.value?.item)
+const defaultItem = computed(() => dynamicConfig.value?.default ?? DEFAULT_ITEM.value)
+
+function newItem() {
+  if (props.input.editHandler?.addItem()) return
+  return defaultItem.value
+}
 
 const value = computed({
   get() {
@@ -31,11 +33,7 @@ const value = computed({
     // This doesn't preserve AST identities, because the values are not `Ast.Owned`.
     // Getting/setting an Array is incompatible with ideal synchronization anyway;
     // `ListWidget` needs to operate on the `Ast.Vector` for edits to be merged as `Y.Array` operations.
-    const tempModule = MutableModule.Transient()
-    const newAst = Ast.Vector.new(
-      tempModule,
-      value.map((element) => tempModule.copy(element)),
-    )
+    const newAst = Ast.Vector.build(value, (element, tempModule) => tempModule.copy(element))
     props.onUpdate({
       portUpdate: { value: newAst, origin: props.input.portId },
     })
@@ -50,16 +48,19 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
   priority: 500,
   score: (props) =>
     props.input.dynamicConfig?.kind === 'Vector_Editor' ? Score.Perfect
-    : props.input.value instanceof Ast.Vector ? Score.Perfect
+    : props.input.dynamicConfig?.kind === 'SomeOfFunctionCalls' ? Score.Perfect
+    : props.input.value instanceof Ast.Vector ? Score.Good
     : props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector') ? Score.Good
     : Score.Mismatch,
 })
+
+const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
 </script>
 
 <template>
   <ListWidget
     v-model="value"
-    :default="() => defaultItem"
+    :newItem="newItem"
     :getKey="(ast: Ast.Ast) => ast.id"
     dragMimeType="application/x-enso-ast-node"
     :toPlainText="(ast: Ast.Ast) => ast.code()"
