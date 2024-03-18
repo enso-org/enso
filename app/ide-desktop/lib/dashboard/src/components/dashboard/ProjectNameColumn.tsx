@@ -187,7 +187,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 id = await response.text()
               }
               const projectId = backendModule.ProjectId(id)
-              const listedProject = await backend.getProjectDetails(projectId, '(unknown)')
+              const listedProject = await backend.getProjectDetails(projectId, file.name)
               rowState.setVisibility(Visibility.visible)
               setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
             } else {

@@ -31,7 +31,21 @@ const ERRORS = {
   [Page.settings]: null,
 } as const satisfies Record<Page, text.TextId | null>
 
-/** Data describing how to display a button for a pageg. */
+const PAGE_TO_ALT_TEXT_ID: Readonly<Record<Page, text.TextId>> = {
+  home: 'homePageAltText',
+  drive: 'drivePageAltText',
+  editor: 'editorPageAltText',
+  settings: 'settingsPageAltText',
+} satisfies { [P in Page]: `${P}PageAltText` }
+
+const PAGE_TO_TOOLTIP_ID: Readonly<Record<Page, text.TextId>> = {
+  home: 'homePageTooltip',
+  drive: 'drivePageTooltip',
+  editor: 'editorPageTooltip',
+  settings: 'settingsPageTooltip',
+} satisfies { [P in Page]: `${P}PageTooltip` }
+
+/** Data describing how to display a button for a page. */
 interface PageUIData {
   readonly page: Page
   readonly icon: string
@@ -69,8 +83,8 @@ export default function PageSwitcher(props: PageSwitcherProps) {
             key={pageData.page}
             image={pageData.icon}
             active={page === pageData.page}
-            alt={getText(`${pageData.page}PageAltText`)}
-            title={getText(`${pageData.page}PageTooltip`)}
+            alt={getText(PAGE_TO_ALT_TEXT_ID[pageData.page])}
+            title={getText(PAGE_TO_TOOLTIP_ID[pageData.page])}
             disabled={isDisabled}
             error={errorId == null ? null : getText(errorId)}
             onClick={() => {

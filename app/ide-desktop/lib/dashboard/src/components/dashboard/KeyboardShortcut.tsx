@@ -8,6 +8,8 @@ import ShiftKeyIcon from 'enso-assets/shift_key.svg'
 import WindowsKeyIcon from 'enso-assets/windows_key.svg'
 import * as detect from 'enso-common/src/detect'
 
+import type * as text from '#/text'
+
 import type * as dashboardInputBindings from '#/configurations/inputBindings'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
@@ -80,6 +82,16 @@ const KEY_CHARACTER: Readonly<Record<string, string>> = {
   /* eslint-enable @typescript-eslint/naming-convention */
 } satisfies Partial<Record<inputBindingsModule.Key, string>>
 
+const MODIFIER_TO_TEXT_ID: Readonly<Record<inputBindingsModule.ModifierKey, text.TextId>> = {
+  // The names come from a third-party API and cannot be changed.
+  /* eslint-disable @typescript-eslint/naming-convention */
+  Ctrl: 'ctrlModifier',
+  Alt: 'altModifier',
+  Meta: 'metaModifier',
+  Shift: 'shiftModifier',
+  /* eslint-enable @typescript-eslint/naming-convention */
+} satisfies { [K in inputBindingsModule.ModifierKey]: `${Lowercase<K>}Modifier` }
+
 /** Props for a {@link KeyboardShortcut}, specifying the keyboard action. */
 export interface KeyboardShortcutActionProps {
   readonly action: dashboardInputBindings.DashboardBindingKey
@@ -116,11 +128,7 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
           modifier =>
             MODIFIER_JSX[detect.platform()][modifier]?.({ getText }) ?? (
               <span key={modifier} className="text">
-                {
-                  // This is SAFE, as `Lowercase` behaves identically to `toLowerCase`.
-                  // eslint-disable-next-line no-restricted-syntax
-                  getText(`${modifier.toLowerCase() as Lowercase<typeof modifier>}Modifier`)
-                }
+                {getText(MODIFIER_TO_TEXT_ID[modifier])}
               </span>
             )
         )}

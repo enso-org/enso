@@ -2468,11 +2468,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                       key={column}
                       active
                       image={columnUtils.COLUMN_ICONS[column]}
-                      alt={
-                        enabledColumns.has(column)
-                          ? getText(`${column}Show`)
-                          : getText(`${column}Hide`)
-                      }
+                      alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
                       onClick={event => {
                         event.stopPropagation()
                         const newExtraColumns = new Set(enabledColumns)

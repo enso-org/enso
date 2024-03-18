@@ -141,7 +141,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={doShowPermissionTypeSelector}
           >
-            {getText(`${permission.type}PermissionType`)}
+            {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
           </button>
           <button
             type="button"
@@ -198,7 +198,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           } h-text w-permission-display rounded-full`}
           onClick={doShowPermissionTypeSelector}
         >
-          {getText(`${permission.type}PermissionType`)}
+          {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
         </button>
       )
       break

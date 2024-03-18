@@ -5,6 +5,8 @@ import Home2Icon from 'enso-assets/home2.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
+import type * as text from '#/text'
+
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -29,6 +31,12 @@ const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
   [Category.home]: Home2Icon,
   [Category.trash]: Trash2Icon,
 }
+
+const CATEGORY_TO_TEXT_ID: Readonly<Record<Category, text.TextId>> = {
+  [Category.recent]: 'recentCategory',
+  [Category.home]: 'homeCategory',
+  [Category.trash]: 'trashCategory',
+} satisfies { [C in Category]: `${C}Category` }
 
 // ============================
 // === CategorySwitcherItem ===
@@ -72,7 +80,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           category === Category.recent ? '-ml-0.5' : ''
         }`}
       />
-      <span>{getText(`${category}Category`)}</span>
+      <span>{getText(CATEGORY_TO_TEXT_ID[category])}</span>
     </button>
   )
 }

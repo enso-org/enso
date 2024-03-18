@@ -20,7 +20,7 @@ export default function AccessedDataColumnHeading(props: column.AssetColumnHeadi
       <SvgMask
         src={AccessedDataIcon}
         className="size-icon"
-        title={getText('hideThisColumn')}
+        title={getText('accessedDataColumnHide')}
         onClick={event => {
           event.stopPropagation()
           hideColumn(columnUtils.Column.accessedData)
