@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Errors.Missing_Data_Link_Library
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
@@ -31,7 +32,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             datalink.asset_type.should_equal Enso_Asset_Type.Data_Link
 
             r = datalink.read
-            r.should_fail_with Illegal_State
+            r.should_fail_with Missing_Data_Link_Library
             r.catch.to_display_text . should_contain "The data link for S3 is provided by the library Standard.AWS which is not loaded."
 
 main filter=Nothing =
