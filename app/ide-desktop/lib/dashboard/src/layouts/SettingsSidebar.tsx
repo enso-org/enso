@@ -142,8 +142,13 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
     selectedChildIndexRef.current = ALL_TABS.indexOf(settingsTab)
   }, [settingsTab])
 
+  React.useEffect(() => {
+    rootRef.current?.focus()
+  }, [])
+
   return (
     <div
+      tabIndex={-1}
       ref={rootRef}
       className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
     >
