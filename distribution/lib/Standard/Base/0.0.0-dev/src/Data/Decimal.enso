@@ -539,6 +539,14 @@ type Decimal
     ## GROUP CONVERSIONS
        Convert this to a `Float`.
 
+       ? Precision Loss
+
+         While any `Float` can be precisely represented by a `Decimal`, not
+         every `Decimal` can be accurange represented by a `Float`, so this
+         conversion can lose precision. For this reason, converting a
+         `Decimal` to a `Float` always attaches a `Loss_Of_Numeric_Precision`
+         warning to the result.
+
        ? Representable Values
 
          If the `Decimal` is outside the representable range of `Float` (which
@@ -550,6 +558,8 @@ type Decimal
          - If the `Decimal` is outside the representable range of `Float` (which
            is `(-Double.MAX_VALUE, Double.MAX_VALUE)`, inclusive), `+/-Inf` is
            returned, and an `Out_Of_Range` warning is attached.
+         - If the conversion results in a loss of precision, a
+           `Loss_Of_Numeric_Precision` warning is attached.
 
        > Example
          Convert `Decimal` 23.45 to a `Float`.
@@ -560,8 +570,8 @@ type Decimal
     to_float : Integer
     to_float self =
         f = self.big_decimal.doubleValue
-        if f.is_finite then f else
-            Warning.attach (Out_Of_Range.Error self) f
+        if f.is_infinite then Warning.attach (Out_Of_Range.Error self) f else
+            attach_loss_of_numeric_precision self f
 
     ## PRIVATE
     precision : Integer
@@ -602,8 +612,8 @@ handle_precision_loss original_value conversion_result:ConversionResult -> Any =
 
 ## PRIVATE
 attach_loss_of_numeric_precision : Float -> Any -> Any
-attach_loss_of_numeric_precision f value =
-    Warning.attach (Loss_Of_Numeric_Precision.Warning f f) value
+attach_loss_of_numeric_precision x value =
+    Warning.attach (Loss_Of_Numeric_Precision.Warning x value) value
 
 handle_java_exception ~action =
     Panic.catch ArithmeticException action caught_panic->
