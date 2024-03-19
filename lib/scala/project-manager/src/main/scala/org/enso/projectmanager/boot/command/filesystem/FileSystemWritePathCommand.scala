@@ -9,8 +9,12 @@ import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
 import org.enso.projectmanager.infrastructure.repository.ProjectFileRepositoryFactory
 import org.enso.projectmanager.infrastructure.time.RealClock
-import org.enso.projectmanager.protocol.FileSystemManagementApi.FileSystemMoveDirectory
-import org.enso.projectmanager.service.filesystem.{FileSystemService, FileSystemServiceApi, FileSystemServiceFailure}
+import org.enso.projectmanager.protocol.FileSystemManagementApi.FileSystemWritePath
+import org.enso.projectmanager.service.filesystem.{
+  FileSystemService,
+  FileSystemServiceApi,
+  FileSystemServiceFailure
+}
 
 import java.io.File
 
@@ -20,15 +24,15 @@ final class FileSystemWritePathCommand[F[+_, +_]: CovariantFlatMap](
   data: Array[Byte]
 ) {
 
-  def run: F[FileSystemServiceFailure, FileSystemMoveDirectory.Result] =
-    service.write(path, data).map(_ => FileSystemMoveDirectory.Result)
+  def run: F[FileSystemServiceFailure, FileSystemWritePath.Result] =
+    service.write(path, data).map(_ => FileSystemWritePath.Result)
 }
 
 object FileSystemWritePathCommand {
 
   def apply[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel: Sync](
     config: ProjectManagerConfig,
-    path: File,
+    path: File
   ): FileSystemWritePathCommand[F] = {
     val clock      = new RealClock[F]
     val fileSystem = new BlockingFileSystem[F](config.timeout.ioTimeout)
