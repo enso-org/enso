@@ -1,4 +1,5 @@
 /** @file Configuration for Tailwind. */
+import reactAriaComponents from 'tailwindcss-react-aria-components'
 import plugin from 'tailwindcss/plugin.js'
 
 // The names come from a third-party API and cannot be changed.
@@ -409,7 +410,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
     },
   },
   plugins: [
-    require('tailwindcss-react-aria-components'),
+    reactAriaComponents,
     plugin(({ addUtilities, matchUtilities, addComponents, theme }) => {
       addUtilities(
         {

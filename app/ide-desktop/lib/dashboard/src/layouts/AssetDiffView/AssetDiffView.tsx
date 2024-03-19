@@ -39,14 +39,16 @@ export function AssetDiffView(props: AssetDiffViewProps) {
     backend,
   })
 
+  const loader = (
+    <div className="flex h-full w-full items-center justify-center">
+      <Spinner size={32} state={spinnerModule.SpinnerState.loadingMedium} />
+    </div>
+  )
+
   if (versionContent.isError || headContent.isError) {
     return <div className="p-indent-8 text-center">Failed to load content</div>
   } else if (versionContent.isPending || headContent.isPending) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <Spinner size={32} state={spinnerModule.SpinnerState.loadingMedium} />
-      </div>
-    )
+    return loader
   } else
     return (
       <react.DiffEditor
@@ -54,6 +56,7 @@ export function AssetDiffView(props: AssetDiffViewProps) {
         modified={headContent.data}
         language="enso"
         options={{ readOnly: true }}
+        loading={loader}
       />
     )
 }
