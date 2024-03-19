@@ -2,6 +2,7 @@
  * shortcuts. */
 import * as detect from 'enso-common/src/detect'
 
+import * as eventModule from '#/utilities/event'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
@@ -552,7 +553,10 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
                 : buttonToPointerButtonFlags(event.button)
             ]?.[eventModifierFlags]
       let handle = handlers[DEFAULT_HANDLER]
-      if (matchingBindings != null) {
+      const isTextInputFocused = eventModule.isElementTextInput(document.activeElement)
+      const isTextInputEvent = 'key' in event && eventModule.isTextInputEvent(event)
+      const shouldIgnoreEvent = isTextInputFocused && isTextInputEvent
+      if (matchingBindings != null && !shouldIgnoreEvent) {
         for (const bindingNameRaw in handlers) {
           // This is SAFE, because `handlers` is an object with identical keys to `T`,
           // which `BindingName` is also derived from.
