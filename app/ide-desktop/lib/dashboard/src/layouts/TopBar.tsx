@@ -8,7 +8,7 @@ import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserBar from '#/layouts/UserBar'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
-import { Portal } from '#/components/Portal'
+import Portal from '#/components/Portal'
 
 import type * as backendModule from '#/services/Backend'
 

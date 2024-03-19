@@ -1,16 +1,18 @@
-import {
-  Tooltip as AriaTooltip,
-  type TooltipProps as AriaTooltipProps,
-} from 'react-aria-components'
-import { twJoin, twMerge } from 'tailwind-merge'
+/**
+ * @file
+ *
+ * A tooltip displays a description of an element on hover or focus.
+ */
+import * as reactAriaComponents from 'react-aria-components'
+import * as tailwindMerge from 'tailwind-merge'
 
-import { useStrictPortalContext } from '#/components/Portal'
+import * as portal from '#/components/Portal'
 
 /**
  *
  */
 export interface TooltipProps
-  extends Omit<AriaTooltipProps, 'offset' | 'UNSTABLE_portalContainer'> {}
+  extends Omit<reactAriaComponents.TooltipProps, 'offset' | 'UNSTABLE_portalContainer'> {}
 
 const DEFAULT_CLASSES = 'z-1 flex bg-neutral-800 text-white p-2 rounded-md shadow-lg text-xs'
 
@@ -23,17 +25,20 @@ const DEFAULT_OFFSET = 4
 export function Tooltip(props: TooltipProps) {
   const { className, containerPadding = DEFAULT_CONTAINER_PADDING, ...ariaTooltipProps } = props
 
-  const root = useStrictPortalContext()
+  const root = portal.useStrictPortalContext()
 
-  const classes = twJoin(DEFAULT_CLASSES)
+  const classes = tailwindMerge.twJoin(DEFAULT_CLASSES)
 
   return (
-    <AriaTooltip
+    <reactAriaComponents.Tooltip
       offset={DEFAULT_OFFSET}
       containerPadding={containerPadding}
       UNSTABLE_portalContainer={root.current}
       className={values =>
-        twMerge(classes, typeof className === 'function' ? className(values) : className)
+        tailwindMerge.twMerge(
+          classes,
+          typeof className === 'function' ? className(values) : className
+        )
       }
       {...ariaTooltipProps}
     />

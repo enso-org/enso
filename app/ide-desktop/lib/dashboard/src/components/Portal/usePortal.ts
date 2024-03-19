@@ -1,22 +1,27 @@
-import { useEffect, useRef, useState } from 'react'
+/**
+ * @file
+ * The hook contains the logic for mounting the children into the portal.
+ */
+import * as React from 'react'
 
 import invariant from 'tiny-invariant'
 
-import { usePortalContext } from './PortalProvider'
-import type { PortalProps } from './types'
+import * as portalProvider from './PortalProvider'
+import type * as types from './types'
 
 /**
+ * The hook contains the logic for mounting the children into the portal.
  * @internal
  */
-export function usePortal(props: PortalProps) {
+export function usePortal(props: types.PortalProps) {
   const { children, isDisabled = false, root = null, onMount } = props
 
-  const onMountRef = useRef(onMount)
-  const portalContext = usePortalContext()
-  const [mountRoot, setMountRoot] = useState<Element | null>(null)
+  const onMountRef = React.useRef(onMount)
+  const portalContext = portalProvider.usePortalContext()
+  const [mountRoot, setMountRoot] = React.useState<Element | null>(null)
   onMountRef.current = onMount
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isDisabled) {
       const contextRoot = portalContext.root
       const currentRoot = root?.current ?? null
@@ -31,7 +36,7 @@ export function usePortal(props: PortalProps) {
     }
   }, [root, portalContext.root, isDisabled])
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isDisabled || mountRoot) {
       onMountRef.current?.()
     }

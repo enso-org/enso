@@ -33,7 +33,7 @@ import Settings from '#/layouts/Settings'
 import TopBar from '#/layouts/TopBar'
 
 import TheModal from '#/components/dashboard/TheModal'
-import { Portal } from '#/components/Portal'
+import Portal from '#/components/Portal'
 import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'

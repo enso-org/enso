@@ -1,12 +1,17 @@
-import { Dialog as AriaDialog, Modal as AriaModal, Header } from 'react-aria-components'
-import { twMerge } from 'tailwind-merge'
+/**
+ * @file
+ * A dialog is an overlay shown above other content in an application.
+ * Can be used to display alerts, confirmations, or other content.
+ */
+import * as reactAriaComponents from 'react-aria-components'
+import * as tailwindMerge from 'tailwind-merge'
 
 import Dismiss from 'enso-assets/dismiss.svg'
 
-import { Button } from '#/components/AriaComponents'
-import { useStrictPortalContext } from '#/components/Portal'
+import * as ariaComponents from '#/components/AriaComponents'
+import * as portal from '#/components/Portal'
 
-import type { DialogProps, DialogType } from './types'
+import type * as types from './types'
 
 const MODAL_CLASSES =
   'fixed z-1 top-0 left-0 right-0 bottom-0 isolate bg-black/[15%] flex items-center justify-center text-center'
@@ -17,19 +22,19 @@ const MODAL_CLASSES_BY_TYPE = {
   modal: 'p-4',
   popover: '',
   fullscreen: 'p-4',
-} satisfies Record<DialogType, string>
+} satisfies Record<types.DialogType, string>
 
 const DIALOG_CLASSES_BY_TYPE = {
   modal: 'w-full max-w-md min-h-[200px] h-[90vh] max-h-[90vh]',
   popover: 'rounded-lg',
   fullscreen: 'w-full h-full max-w-full max-h-full bg-clip-border',
-} satisfies Record<DialogType, string>
+} satisfies Record<types.DialogType, string>
 
 /**
  * A dialog is an overlay shown above other content in an application.
  * Can be used to display alerts, confirmations, or other content.
  */
-export function Dialog(props: DialogProps) {
+export function Dialog(props: types.DialogProps) {
   const {
     children,
     title,
@@ -42,34 +47,34 @@ export function Dialog(props: DialogProps) {
     ...ariaDialogProps
   } = props
 
-  const root = useStrictPortalContext()
+  const root = portal.useStrictPortalContext()
 
   return (
-    <AriaModal
-      className={twMerge(MODAL_CLASSES, [MODAL_CLASSES_BY_TYPE[type]])}
+    <reactAriaComponents.Modal
+      className={tailwindMerge.twMerge(MODAL_CLASSES, [MODAL_CLASSES_BY_TYPE[type]])}
       isDismissable={isDismissible}
       onOpenChange={onOpenChange}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root.current}
       {...props}
     >
-      <AriaDialog
-        className={twMerge(DIALOG_CLASSES, [DIALOG_CLASSES_BY_TYPE[type]], className)}
+      <reactAriaComponents.Dialog
+        className={tailwindMerge.twMerge(DIALOG_CLASSES, [DIALOG_CLASSES_BY_TYPE[type]], className)}
         {...ariaDialogProps}
       >
         {opts => (
           <>
             {typeof title === 'string' && (
-              <Header className="px-4 py-3 border-b shadow sticky text-primary flex center flex-none">
-                <h2 className="font-semibold leading-6 my-0 text-xl">{title}</h2>
+              <reactAriaComponents.Header className="center sticky flex flex-none border-b px-4 py-3 text-primary shadow">
+                <h2 className="my-0 text-xl font-semibold leading-6">{title}</h2>
 
-                <Button
+                <ariaComponents.Button
                   variant="icon"
-                  className="ml-auto my-auto"
+                  className="my-auto ml-auto"
                   onPress={opts.close}
                   icon={Dismiss}
                 />
-              </Header>
+              </reactAriaComponents.Header>
             )}
 
             <div className="flex-1 shrink-0">
@@ -77,9 +82,10 @@ export function Dialog(props: DialogProps) {
             </div>
           </>
         )}
-      </AriaDialog>
-    </AriaModal>
+      </reactAriaComponents.Dialog>
+    </reactAriaComponents.Modal>
   )
 }
 
+// eslint-disable-next-line no-restricted-syntax
 export { DialogTrigger, type DialogTriggerProps } from 'react-aria-components'

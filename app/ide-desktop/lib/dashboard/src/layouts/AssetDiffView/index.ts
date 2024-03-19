@@ -1,2 +1,5 @@
-export { AssetDiffView } from './AssetDiffView'
-export type { AssetDiffViewProps } from './AssetDiffView'
+/**
+ * @file
+ * Re-exports the AssetDiffView component.
+ */
+export * from './AssetDiffView'

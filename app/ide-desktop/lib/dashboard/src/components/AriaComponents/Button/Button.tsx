@@ -4,15 +4,15 @@
  * Button component
  */
 import clsx from 'clsx'
-import { Button as AriaButton, type ButtonProps as AriaButtonProps } from 'react-aria-components'
-import { twMerge } from 'tailwind-merge'
+import * as reactAriaComponents from 'react-aria-components'
+import * as tailwindMerge from 'tailwind-merge'
 
 import SvgMask from '#/components/SvgMask'
 
 /**
  * Props for the Button component
  */
-export interface ButtonProps extends AriaButtonProps {
+export interface ButtonProps extends reactAriaComponents.ButtonProps {
   readonly variant: 'icon' | 'primary'
   readonly icon?: string
   /**
@@ -58,13 +58,16 @@ export function Button(props: ButtonProps) {
   }
 
   return (
-    <AriaButton
+    <reactAriaComponents.Button
       className={values =>
-        twMerge(classes, typeof className === 'function' ? className(values) : className)
+        tailwindMerge.twMerge(
+          classes,
+          typeof className === 'function' ? className(values) : className
+        )
       }
       {...ariaButtonProps}
     >
       {childrenFactory()}
-    </AriaButton>
+    </reactAriaComponents.Button>
   )
 }

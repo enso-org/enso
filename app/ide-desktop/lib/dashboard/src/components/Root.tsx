@@ -1,16 +1,20 @@
+/**
+ * @file
+ * The root component with required providers
+ */
 import * as React from 'react'
 
-import { I18nProvider, RouterProvider } from 'react-aria-components'
+import * as reactAriaComponents from 'react-aria-components'
 
-import { PortalProvider } from '#/components/Portal'
+import * as portal from '#/components/Portal'
 
 /**
- *
+ * Props for the root component
  */
 export interface RootProps extends React.PropsWithChildren {
-  rootRef: React.RefObject<HTMLElement>
-  navigate: (path: string) => void
-  locale?: string
+  readonly rootRef: React.RefObject<HTMLElement>
+  readonly navigate: (path: string) => void
+  readonly locale?: string
 }
 
 /**
@@ -20,10 +24,12 @@ export function Root(props: RootProps) {
   const { children, rootRef, navigate, locale = 'en-US' } = props
 
   return (
-    <PortalProvider value={rootRef}>
-      <RouterProvider navigate={navigate}>
-        <I18nProvider locale={locale}>{children}</I18nProvider>
-      </RouterProvider>
-    </PortalProvider>
+    <portal.PortalProvider value={rootRef}>
+      <reactAriaComponents.RouterProvider navigate={navigate}>
+        <reactAriaComponents.I18nProvider locale={locale}>
+          {children}
+        </reactAriaComponents.I18nProvider>
+      </reactAriaComponents.RouterProvider>
+    </portal.PortalProvider>
   )
 }

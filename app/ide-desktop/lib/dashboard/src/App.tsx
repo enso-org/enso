@@ -64,7 +64,7 @@ import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import Subscribe from '#/pages/subscribe/Subscribe'
 
-import { Root } from '#/components/Root'
+import * as rootComponent from '#/components/Root'
 
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
@@ -367,9 +367,9 @@ function AppRouter(props: AppProps) {
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
   result = (
-    <Root rootRef={root} navigate={navigate}>
+    <rootComponent.Root rootRef={root} navigate={navigate}>
       {result}
-    </Root>
+    </rootComponent.Root>
   )
   return result
 }

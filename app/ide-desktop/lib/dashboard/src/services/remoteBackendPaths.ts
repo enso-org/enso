@@ -70,7 +70,7 @@ export function listAssetVersionsPath(assetId: backend.AssetId) {
  * Relative HTTP path to the "get Main.enso file" endpoint of the Cloud backend API.
  */
 export function getProjectContentPath(projectId: backend.ProjectId, version: string) {
-  return `projects/${projectId}/files?version=${version}`
+  return `projects/${projectId}/files?versionId=${version}`
 }
 
 /** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
