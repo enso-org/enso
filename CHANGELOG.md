@@ -635,6 +635,7 @@
   step][9343]
 - [Implemented constructors, comparisons, and arithmetic for a `Decimal`
   type.][9272]
+- [Allow `Table.replace` to take mutiple target columns.][9406]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -923,6 +924,7 @@
 [9346]: https://github.com/enso-org/enso/pull/9346
 [9382]: https://github.com/enso-org/enso/pull/9382
 [9343]: https://github.com/enso-org/enso/pull/9343
+[9406]: https://github.com/enso-org/enso/pull/9406
 
 #### Enso Compiler
 
