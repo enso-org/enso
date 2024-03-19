@@ -56,4 +56,4 @@ type Missing_Data_Link_Library
     ## PRIVATE
     to_display_text : Text
     to_display_text self =
-        "The data link for "+self.typ+" is provided by the library "+self.library_name+" which is not loaded. Please import the library, and if necessary, restart the project."
+        "The data link for "+self.data_link_type+" is provided by the library "+self.library_name+" which is not loaded. Please import the library, and if necessary, restart the project."
