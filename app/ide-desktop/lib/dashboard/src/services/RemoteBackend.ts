@@ -589,7 +589,19 @@ export default class RemoteBackend extends Backend {
         null
       )
     } else {
-      const response = await this.post(path, body)
+      const credentials = body.cognitoCredentials
+      const exactCredentials: backendModule.CognitoCredentials = {
+        accessToken: credentials.accessToken,
+        clientId: credentials.clientId,
+        expireAt: credentials.expireAt,
+        refreshToken: credentials.refreshToken,
+        refreshUrl: credentials.refreshUrl,
+      }
+      const filteredBody: backendModule.OpenProjectRequestBody = {
+        ...body,
+        cognitoCredentials: exactCredentials,
+      }
+      const response = await this.post(path, filteredBody)
       if (!responseIsSuccessful(response)) {
         return this.throw(
           `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}`,
