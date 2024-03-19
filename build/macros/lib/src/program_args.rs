@@ -190,7 +190,7 @@ mod tests {
         pub assignments: syn::punctuated::Punctuated<syn::ExprAssign, syn::Token![,]>,
     }
 
-    impl Parse for Assignments {
+    impl syn::parse::Parse for Assignments {
         fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
             let content;
             let paren_token = syn::parenthesized!(content in input);

@@ -22,6 +22,10 @@ use crate::prelude::*;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::wasm_bindgen;
 
+// We want to always use WASM, even on non-WASM targets where prelude re-exports our mocks.
+#[cfg(not(target_arch = "wasm32"))]
+use wasm_bindgen::prelude::Closure;
+
 
 
 // =============

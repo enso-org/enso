@@ -183,7 +183,6 @@ impl Cache {
 mod tests {
     use super::*;
     use crate::cache::download::DownloadFile;
-    use crate::log::setup_logging;
 
     #[tokio::test]
     #[ignore]

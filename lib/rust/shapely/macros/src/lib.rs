@@ -27,7 +27,6 @@ extern crate proc_macro;
 mod before_main;
 mod derive_clone_ref;
 mod derive_for_each_variant;
-mod derive_iterator;
 mod derive_no_clone;
 mod overlappable;
 mod root_call_path;
@@ -40,46 +39,6 @@ mod prelude {
     pub use quote::quote;
 }
 
-use crate::derive_iterator::IsMut;
-
-/// For `struct Foo<T>` or `enum Foo<T>` provides:
-/// * `IntoIterator` implementations for `&'t Foo<T>`, `iter` and `into_iter`
-/// methods.
-///
-/// The iterators will:
-/// * for structs: go over each field that declared type is same as the struct's last type
-///   parameter.
-/// * enums: delegate to current constructor's nested value's iterator.
-///
-/// Enums are required to use only a single element tuple-like variant. This
-/// limitation should be lifted in the future.
-///
-/// Any dependent type stored in struct, tuple or wrapped in enum should have
-/// dependency only in its last type parameter. All dependent types that are not
-/// tuples nor directly the yielded type, are required to provide `iter` method
-/// that returns a compatible iterator (possible also derived).
-///
-/// Caller must have the following features enabled:
-/// ```
-/// #![feature(generators)]
-/// #![feature(type_alias_impl_trait)]
-/// ```
-///
-/// When used on type that takes no type parameters, like `struct Foo`, does
-/// nothing but yields no errors.
-#[proc_macro_derive(Iterator)]
-pub fn derive_iterator(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_iterator::derive(input, IsMut::Immutable)
-}
-
-/// Same as `derive(Iterator)` but generates mutable iterator.
-///
-/// It is separate, as some types allow deriving immutable iterator but ont the
-/// mutable one.
-#[proc_macro_derive(IteratorMut)]
-pub fn derive_iterator_mut(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_iterator::derive(input, IsMut::Mutable)
-}
 
 /// Derives `CloneRef` implementation for given type. It performs `clone_ref` on every member
 /// field. The input type must implement `Clone` and its every field must implement `CloneRef`.

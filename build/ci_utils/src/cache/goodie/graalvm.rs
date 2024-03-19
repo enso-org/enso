@@ -211,7 +211,6 @@ pub fn locate_graal() -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::programs::Java;
     use semver::BuildMetadata;
     use semver::Prerelease;
 

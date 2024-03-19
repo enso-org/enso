@@ -1,6 +1,3 @@
-// === Features ===
-#![feature(default_free_fn)]
-
 use enso_build::prelude::*;
 
 use ide_ci::actions::artifacts;

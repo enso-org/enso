@@ -14,7 +14,6 @@ use enso_build_cli::prelude::*;
 
 use enso_build::paths::parent_cargo_toml;
 use enso_build::repo::deduce_repository_path;
-use ide_ci::log::setup_logging;
 
 
 

@@ -262,7 +262,6 @@ pub fn new_where_clause(predicates: impl IntoIterator<Item = WherePredicate>) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use proc_macro2::TokenStream;
 
     fn parse<T: syn::parse::Parse>(code: &str) -> T {
         syn::parse_str(code).unwrap()

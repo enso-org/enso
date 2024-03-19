@@ -56,7 +56,6 @@ pub async fn add_msvc_redist_dependencies(binary: &Path) -> Result {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::programs::vs;
 
     #[tokio::test]
     #[ignore]

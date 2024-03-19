@@ -8,7 +8,6 @@
 use enso_build::prelude::*;
 
 use ide_ci::actions::workflow::MessageLevel;
-use ide_ci::log::setup_logging;
 
 
 

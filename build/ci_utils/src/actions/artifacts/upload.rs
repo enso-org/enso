@@ -281,7 +281,6 @@ mod tests {
     use super::*;
     use crate::actions::artifacts;
     use crate::actions::artifacts::models::CreateArtifactResponse;
-    use crate::log::setup_logging;
 
     #[tokio::test]
     #[ignore]
