@@ -35,8 +35,7 @@ type Data_Link_Format
     ## PRIVATE
        Reads the raw configuration data of a data-link.
     read_config (file : File_Like) -> JS_Object =
-        bytes = Data_Link_Format.read_raw_config file
-        text = Text.from_bytes bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
+        text = Data_Link_Format.read_raw_config file
         text.parse_json
 
     ## PRIVATE
@@ -55,20 +54,20 @@ type Data_Link_Format
     write_config (file : Writable_File) (config : JS_Object) (replace_existing : Boolean = False) (skip_validation : Boolean = False) =
         checked = if skip_validation.not then Data_Link_Format.validate_config config
         checked.if_not_error <|
-            bytes = config.to_json.bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
-            Data_Link_Format.write_raw_config file bytes replace_existing
+            Data_Link_Format.write_raw_config file config.to_json replace_existing
 
     ## PRIVATE
-         Reads the raw configuration data of a data-link, as a vector of bytes.
+         Reads the raw configuration data of a data-link, as plain text.
 
          This is should mostly be used for testing, `read_config` is preferred for normal use.
 
          Arguments:
          - file: The file to read the configuration from.
-    read_raw_config (file : File_Like) -> Vector =
+    read_raw_config (file : File_Like) -> Text =
         options = [File_Access.Read, Data_Link_Access.No_Follow]
-        file.underlying.with_input_stream options input_stream->
+        bytes = file.underlying.with_input_stream options input_stream->
             input_stream.read_all_bytes
+        Text.from_bytes bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
 
     ## PRIVATE
        Writes raw data as the data-link configuration.
@@ -77,16 +76,17 @@ type Data_Link_Format
 
        Arguments:
        - file: The file to write the configuration to.
-       - raw_bytes: The raw data to write to the file.
+       - raw_content: The raw data to write to the file.
        - replace_existing: A flag specifying if the operation should replace an
          existing file. By default, the operation will fail if the file already
          exists.
-    write_raw_config (file : Writable_File) (raw_bytes : Text) (replace_existing : Boolean = False) =
+    write_raw_config (file : Writable_File) (raw_content : Text) (replace_existing : Boolean = False) =
         exist_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
         options = exist_options + [File_Access.Write, Data_Link_Access.No_Follow]
 
-        r = raw_bytes.if_not_error <| file.with_output_stream options output_stream->
-            output_stream.write_bytes raw_bytes
+        bytes = raw_content.bytes data_link_encoding on_problems=Problem_Behavior.Report_Error
+        r = bytes.if_not_error <| file.with_output_stream options output_stream->
+            output_stream.write_bytes bytes
         r.if_not_error file.file
 
     ## PRIVATE
