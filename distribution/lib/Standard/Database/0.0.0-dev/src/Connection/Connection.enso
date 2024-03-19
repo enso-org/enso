@@ -170,7 +170,7 @@ type Connection
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
         result = self.jdbc_connection.with_metadata metadata->
             table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
-                result_set_to_table result_set self.dialect.make_column_fetcher_for_type
+                result_set_to_table result_set self.dialect.get_type_mapping.make_column_fetcher
             renamed = table.rename_columns name_map
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
@@ -332,7 +332,7 @@ type Connection
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
             rs = stmt.executeQuery
             SQL_Warning_Helper.process_warnings stmt <|
-                result_set_to_table rs self.dialect.make_column_fetcher_for_type type_overrides last_row_only
+                result_set_to_table rs self.dialect.get_type_mapping.make_column_fetcher type_overrides last_row_only
 
     ## PRIVATE
        Given a prepared statement, gets the column names and types for the

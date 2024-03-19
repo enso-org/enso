@@ -16,8 +16,6 @@ import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Dialect
 import project.Internal.Base_Generator
-import project.Internal.Column_Fetcher as Column_Fetcher_Module
-import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Error_Mapper.Error_Mapper
@@ -136,15 +134,6 @@ type Postgres_Dialect
        `Value_Type`.
     get_type_mapping : SQL_Type_Mapping
     get_type_mapping self = self.type_mapping
-
-    ## PRIVATE
-       Creates a `Column_Fetcher` used to fetch data from a result set and build
-       an in-memory column from it, based on the given column type.
-    make_column_fetcher_for_type : SQL_Type -> Column_Fetcher
-    make_column_fetcher_for_type self sql_type =
-        type_mapping = self.get_type_mapping
-        value_type = type_mapping.sql_type_to_value_type sql_type
-        Column_Fetcher_Module.default_fetcher_for_value_type value_type
 
     ## PRIVATE
     get_statement_setter : Statement_Setter

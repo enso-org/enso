@@ -52,4 +52,7 @@ type Snowflake_Details
         database = [Pair.new 'db' self.database]
         schema = [Pair.new 'schema' self.schema]
         warehouse = if self.warehouse=="" then [] else [Pair.new 'warehouse' self.warehouse]
-        no_arrow + account + credentials + database + schema + warehouse
+
+        ## Control the format of TIMESTAMP and TIME fields
+        formats = [Pair.new "TIME_OUTPUT_FORMAT" "HH24:MI:SS.FF9", Pair.new "TIMESTAMP_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9 TZHTZM", Pair.new "TIMESTAMP_NTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9", Pair.new "TIMESTAMP_LTZ_OUTPUT_FORMAT" "YYYY-MM-DD HH24:MI:SS.FF9"]
+        no_arrow + account + credentials + database + schema + warehouse + formats

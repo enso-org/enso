@@ -331,4 +331,3 @@ get_pragma_value jdbc_connection sql =
     if table.columns.length != 1 then
         Panic.throw (Illegal_State.Error "Unexpected amount of columns to internal query: "+sql+"; expected 1 but got "+table.columns.length.to_text+" columns.")
     table.at 0 . at 0
-

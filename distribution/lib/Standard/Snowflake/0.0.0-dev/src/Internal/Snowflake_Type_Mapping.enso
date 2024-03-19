@@ -3,8 +3,11 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Bits
 import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Internal.Java_Exports
 from Standard.Table.Errors import Inexact_Type_Coercion
 
+import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
+import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
 import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -100,6 +103,17 @@ type Snowflake_Type_Mapping
         Nothing -> Nothing
         _ : Vector -> column_type_suggestions.map .to_type_override
 
+    ## PRIVATE
+       Creates a `Column_Fetcher` used to fetch data from a result set and build
+       an in-memory column from it, based on the given column type.
+    make_column_fetcher : SQL_Type -> Column_Fetcher
+    make_column_fetcher self sql_type =
+        value_type = self.sql_type_to_value_type sql_type
+        case value_type of
+            Value_Type.Time -> time_fetcher
+            Value_Type.Date_Time _ -> date_time_fetcher
+            _ -> Column_Fetcher_Module.default_fetcher_for_value_type value_type
+
 ## PRIVATE
 simple_types_map = Map.from_vector <|
     ints = [[Types.TINYINT, Value_Type.Byte], [Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
@@ -123,7 +137,11 @@ complex_types_map = Map.from_vector <|
             # We currently do not support bit types.
             on_unknown_type sql_type
     handle_timestamp sql_type = case sql_type.name of
+        "TIMESTAMPTZ" -> Value_Type.Date_Time with_timezone=True
         "TIMESTAMP_TZ" -> Value_Type.Date_Time with_timezone=True
+        "TIMESTAMPLTZ" -> Value_Type.Date_Time with_timezone=False
+        "TIMESTAMP_LTZ" -> Value_Type.Date_Time with_timezone=False
+        "TIMESTAMPNTZ"   -> Value_Type.Date_Time with_timezone=False
         "TIMESTAMP_NTZ"   -> Value_Type.Date_Time with_timezone=False
         _             -> on_unknown_type sql_type
 
@@ -141,3 +159,25 @@ on_unknown_type sql_type =
    This is the maximum size that JDBC driver reports for 'unbounded' types in
    Snowflake.
 max_length = 16777216
+
+## PRIVATE
+time_fetcher =
+    fetch_value rs i =
+        ## Read the time as a string to get the nanosecond precision.
+        sf_string = rs.getString i
+        if sf_string == Nothing then Nothing else Time_Of_Day.parse sf_string
+    make_builder initial_size _ =
+        java_builder = Java_Exports.make_time_of_day_builder initial_size
+        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
+
+## PRIVATE
+date_time_fetcher =
+    fetch_value rs i =
+        ## Read the time as a string to get the nanosecond precision.
+        sf_string = rs.getString i
+        if sf_string == Nothing then Nothing else Date_Time.parse sf_string
+    make_builder initial_size _ =
+        java_builder = Java_Exports.make_date_time_builder initial_size
+        Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
+    Column_Fetcher.Value fetch_value make_builder
