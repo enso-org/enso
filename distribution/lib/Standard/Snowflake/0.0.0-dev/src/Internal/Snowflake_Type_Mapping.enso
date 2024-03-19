@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
@@ -24,13 +26,10 @@ type Snowflake_Type_Mapping
         result = case value_type of
             Value_Type.Boolean -> SQL_Type.Value Types.BOOLEAN "boolean"
             # All integer types in Snowflake become NUMERIC(38,0).
-            Value_Type.Byte -> SQL_Type.Value Types.TINYINT "tinyint"
-            Value_Type.Integer Bits.Bits_16 -> SQL_Type.Value Types.SMALLINT "smallint"
-            Value_Type.Integer Bits.Bits_32 -> SQL_Type.Value Types.INTEGER "int"
-            Value_Type.Integer Bits.Bits_64 -> SQL_Type.Value Types.BIGINT "bigint"
+            Value_Type.Byte -> SQL_Type.Value Types.BIGINT "bigint"
+            Value_Type.Integer _ -> SQL_Type.Value Types.BIGINT "bigint"
             # All float types in Snowflake become double
-            Value_Type.Float Bits.Bits_32 -> SQL_Type.Value Types.REAL "float4"
-            Value_Type.Float Bits.Bits_64 -> SQL_Type.Value Types.DOUBLE "float8"
+            Value_Type.Float _ -> SQL_Type.Value Types.DOUBLE "float8"
             Value_Type.Decimal precision scale -> case precision of
                 # If precision is not set, scale is also lost because SQL is unable to express a scale without a precision.
                 Nothing -> SQL_Type.Value Types.DECIMAL "decimal" Nothing Nothing
@@ -87,7 +86,7 @@ type Snowflake_Type_Mapping
             False -> SQL_Type_Mapping.default_sql_type_to_text sql_type
 
     ## PRIVATE
-       The Postgres type mapping always relies on the return type determined by
+       The Snowflake_Type_Mapping always relies on the return type determined by
        the database backend.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =

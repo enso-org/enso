@@ -514,6 +514,7 @@ val netbeansApiVersion      = "RELEASE180"
 val fansiVersion            = "0.4.0"
 val httpComponentsVersion   = "4.4.1"
 val apacheArrowVersion      = "14.0.1"
+val snowflakeJDBCVersion    = "3.15.0"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -2995,7 +2996,7 @@ lazy val `std-snowflake` = project
       `std-snowflake-polyglot-root` / "std-snowflake.jar",
     libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "net.snowflake"    % "snowflake-jdbc"          % "3.15.0"
+      "net.snowflake"    % "snowflake-jdbc"          % snowflakeJDBCVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

@@ -28,6 +28,9 @@ from project.Database.Postgres_Spec import Basic_Test_Data, Postgres_Tables_Data
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
+## Still a WIP cannot be completed until the dialect is implemented properly
+   for Snowflake.
+   It is not currently being run as part of the test suite.
 
 type Snowflake_Info_Data
     Value ~data
