@@ -506,9 +506,9 @@ export function useComponentBrowserInput(
       console.error('Cannot apply AI prompt without source node')
       return
     }
-    ai.query(ctx.type, node).then((result) => {
+    ai.query(ctx.prompt, node).then((result) => {
       if (result.ok) {
-        code.value = result.value
+        code.value = `${ctx.selfIdent}.${result.value}`
       } else {
         result.error.log('Applying AI prompt failed')
       }
