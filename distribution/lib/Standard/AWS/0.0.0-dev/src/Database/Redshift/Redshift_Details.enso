@@ -8,7 +8,7 @@ import Standard.Database.Connection.SSL_Mode.SSL_Mode
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Internal.Postgres.Pgpass
-from Standard.Database.Internal.Postgres.Postgres_Connection import parse_postgres_encoding
+from Standard.Database.Internal.Postgres.Postgres_Connection import get_encoding_name, parse_postgres_encoding
 
 import project.AWS_Credential.AWS_Credential
 import project.Database.Redshift.Internal.Redshift_Dialect
@@ -46,7 +46,7 @@ type Redshift_Details
         jdbc_connection = JDBC_Connection.create self.jdbc_url properties
 
         # TODO [RW] can we inherit these from postgres?
-        encoding = parse_postgres_encoding jdbc_connection
+        encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
 
         Connection.new jdbc_connection Redshift_Dialect.redshift entity_naming_properties
