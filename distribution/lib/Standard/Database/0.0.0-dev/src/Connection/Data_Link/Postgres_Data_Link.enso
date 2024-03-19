@@ -38,11 +38,16 @@ type Postgres_Data_Link
                 Postgres_Data_Link.Table table_name details
 
     ## PRIVATE
-    read self (on_problems : Problem_Behavior) =
+    read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
         _ = on_problems
-        default_options = Connection_Options.Value
-        connection = self.details.connect default_options
-        case self of
-            Postgres_Data_Link.Connection _ -> connection
-            Postgres_Data_Link.Table table_name _ ->
-                connection.query table_name
+        if format != Auto_Detect then Error.throw (Illegal_Argument.Error "Only the default Auto_Detect format should be used with a Postgres Data Link, because it does not point to a file resource, but a database entity, so setting a file format for it is meaningless.") else
+            default_options = Connection_Options.Value
+            connection = self.details.connect default_options
+            case self of
+                Postgres_Data_Link.Connection _ -> connection
+                Postgres_Data_Link.Table table_name _ ->
+                    connection.query table_name
+
+    ## PRIVATE
+    with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
+        Error.throw (Illegal_Argument.Error "A Postgres Data Link cannot be opened as a stream, because it points to a database entity, not a file resource.")
