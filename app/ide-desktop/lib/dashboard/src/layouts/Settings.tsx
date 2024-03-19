@@ -16,6 +16,8 @@ import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as backendModule from '#/services/Backend'
 
+import * as array from '#/utilities/array'
+
 // ================
 // === Settings ===
 // ================
@@ -24,7 +26,8 @@ import * as backendModule from '#/services/Backend'
 export default function Settings() {
   const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
     'SettingsTab',
-    SettingsTab.account
+    SettingsTab.account,
+    (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
   )
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()

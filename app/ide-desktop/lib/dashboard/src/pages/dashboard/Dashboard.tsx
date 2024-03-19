@@ -129,7 +129,9 @@ export default function Dashboard(props: DashboardProps) {
   // These pages MUST be ROUTER PAGES.
   const [page, setPage] = searchParamsState.useSearchParamsState(
     'page',
-    () => localStorage.get('page') ?? pageSwitcher.Page.drive
+    () => localStorage.get('page') ?? pageSwitcher.Page.drive,
+    (value: unknown): value is pageSwitcher.Page =>
+      array.includes(Object.values(pageSwitcher.Page), value)
   )
   const [queuedAssetEvents, setQueuedAssetEvents] = React.useState<assetEvent.AssetEvent[]>([])
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))

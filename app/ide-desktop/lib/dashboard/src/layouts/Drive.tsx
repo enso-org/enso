@@ -124,7 +124,8 @@ export default function Drive(props: DriveProps) {
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
   const [category, setCategory] = searchParamsState.useSearchParamsState(
     'driveCategory',
-    () => localStorage.get('driveCategory') ?? Category.home
+    () => localStorage.get('driveCategory') ?? Category.home,
+    (value): value is Category => array.includes(Object.values(Category), value)
   )
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
   const [deletedLabelNames, setDeletedLabelNames] = React.useState(
