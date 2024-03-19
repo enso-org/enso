@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.System.File_Format.Auto_Detect
 from Standard.Base.Enso_Cloud.Data_Link import parse_format
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
@@ -9,7 +10,7 @@ from project.Internal.Data_Link_Helpers import decode_aws_credential
 ## PRIVATE
 type S3_Data_Link
     ## PRIVATE
-    Value (uri : Text) format (credentials : AWS_Credential)
+    Value (uri : Text) default_format (credentials : AWS_Credential)
 
     ## PRIVATE
     parse json -> S3_Data_Link =
@@ -22,5 +23,10 @@ type S3_Data_Link
     as_file self -> S3_File = S3_File.new self.uri self.credentials
 
     ## PRIVATE
-    read self (on_problems : Problem_Behavior) =
-        self.as_file.read self.format on_problems
+    read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
+        effective_format = if format != Auto_Detect then format else self.default_format
+        self.as_file.read effective_format on_problems
+
+    ## PRIVATE
+    with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
+        self.as_file.with_input_stream open_options action

@@ -102,11 +102,11 @@ type Data_Link_Format
    An interface for a data link description.
 type Data_Link
     ## PRIVATE
-    read (format = Auto_Detect) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) -> Any =
+    read self (format = Auto_Detect) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) -> Any =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-    with_input_stream (open_options : Vector) (action : Input_Stream -> Any) -> Any =
+    with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
         Unimplemented.throw "This is an interface only."
 
 

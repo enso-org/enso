@@ -126,9 +126,7 @@ type S3_File
     with_input_stream self (open_options : Vector) action = if self.is_directory then Error.throw (Illegal_Argument.Error "S3 folders cannot be opened as a stream." self.uri) else
         open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
         if open_as_data_link then Data_Link.read_datalink_as_stream self open_options action else
-            allowed_options = [File_Access.Read, Data_Link_Access.No_Follow]
-            disallowed_options = open_options.filter o-> allowed_options.contains o . not
-            if disallowed_options.not_empty then Error.throw (S3_Error.Error "Invalid open options for reading: "+disallowed_options.to_text+".") else
+            File_Access.ensure_options_allowed [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
                 response_body = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
                 response_body.with_stream action
 
