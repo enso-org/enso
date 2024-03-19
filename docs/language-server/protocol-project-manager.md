@@ -32,6 +32,7 @@ transport formats, please look [here](./protocol-architecture.md).
   - [Create Directory](#create-directory)
   - [Delete Directory](#delete-directory)
   - [Move File Or Directory](#move-file-or-directory)
+  - [Write to File](#write-to-file)
 - [Project Management Operations](#project-management-operations)
   - [`project/open`](#projectopen)
   - [`project/close`](#projectclose)
@@ -325,6 +326,27 @@ Moves file or directory from target path to the destination path.
 
 ```typescript
 project-manager --filesystem-move-from {path} --filesystem-move-to {path}
+```
+
+### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+
+### Write to File
+
+Writes bytes from stdin to the provided path.
+
+#### Parameters
+
+```typescript
+echo 'Hello World!' | project-manager --filesystem-write-path {path}
 ```
 
 ### Result
