@@ -79,11 +79,12 @@ public final class UnresolvedConstructor implements EnsoObject {
   /**
    * Creates an instance of this node.
    *
+   * @param where location of the created constructor
    * @param name the name (of the constructor) we are searching for
    * @return a object representing unresolved (constructor)
    */
-  public static UnresolvedConstructor build(String name) {
-    return new UnresolvedConstructor(name, null, NONE, NONE);
+  public static UnresolvedConstructor build(Node where, String name) {
+    return new UnresolvedConstructor(name, where, NONE, NONE);
   }
 
   /**
@@ -151,9 +152,11 @@ public final class UnresolvedConstructor implements EnsoObject {
       var node =
           InvokeFunctionNode.build(
               prototype.descs, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
-      var where = NodeUtil.findParent(prototype.where, ExpressionNode.class);
-      if (where != null) {
-        node.setId(where.getId());
+      if (prototype.where != null) {
+        var where = NodeUtil.findParent(prototype.where, ExpressionNode.class);
+        if (where != null) {
+          node.setId(where.getId());
+        }
       }
       return node;
     }
