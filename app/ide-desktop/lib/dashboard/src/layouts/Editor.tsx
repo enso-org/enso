@@ -104,12 +104,7 @@ export default function Editor(props: EditorProps) {
                     wasmUrl: `${assetsRoot}pkg-opt.wasm`,
                     jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
                   },
-                  engine: {
-                    ...engineConfig,
-                    ...(project.engineVersion != null
-                      ? { preferredVersion: project.engineVersion.value }
-                      : {}),
-                  },
+                  engine: engineConfig,
                   startup: {
                     project: project.packageName,
                     displayedProjectName: project.name,
