@@ -265,7 +265,7 @@ export default function ManagePermissionsModal<
                 void doSubmit()
               }}
             >
-              <div className="flex grow items-center gap-user-permission rounded-full border border-black/10 px-manage-permissions-modal-input">
+              <div className="flex grow items-center gap-user-permission rounded-full border border-primary/10 px-manage-permissions-modal-input">
                 <PermissionSelector
                   input
                   disabled={willInviteNewUser}
