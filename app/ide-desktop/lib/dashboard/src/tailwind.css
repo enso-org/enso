@@ -335,7 +335,7 @@
   /** The horizontal gap between a filter and its input in the activity log. */
   --activity-log-filter-gap: 0.5rem;
   --activity-log-icon-column-width: 2rem;
-  --activity-log-type-column-width: 4rem;
+  --activity-log-type-column-width: 8rem;
   --activity-log-email-column-width: 12rem;
   --activity-log-timestamp-column-width: 9rem;
 
