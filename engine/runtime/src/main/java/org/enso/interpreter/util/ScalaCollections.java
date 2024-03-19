@@ -18,6 +18,4 @@ public final class ScalaCollections {
     Arrays.stream(elems).forEach(s::add);
     return s.toSet();
   }
-
-
 }

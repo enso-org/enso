@@ -30,11 +30,13 @@ public final class ExportsMap {
   }
 
   public void add(ExportedSymbol symbol, QualifiedName moduleName) {
-    exportsMap.compute(symbol, (k, v) -> {
-      var set = v == null ? new TreeSet<>(EXPORTS_COMPARATOR) : v;
-      set.add(moduleName);
-      return set;
-    });
+    exportsMap.compute(
+        symbol,
+        (k, v) -> {
+          var set = v == null ? new TreeSet<>(EXPORTS_COMPARATOR) : v;
+          set.add(moduleName);
+          return set;
+        });
   }
 
   public void addAll(QualifiedName moduleName, ModuleExports moduleExports) {

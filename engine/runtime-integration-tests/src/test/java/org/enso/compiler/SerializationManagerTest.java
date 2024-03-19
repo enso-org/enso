@@ -114,7 +114,8 @@ public class SerializationManagerTest {
             .findFirst()
             .get();
     Assert.assertEquals(
-        ScalaCollections.set("Standard.Base.Main"), booleanTrueSuggestion.reexports());
+        ScalaCollections.set("Standard.Base.Main", "Standard.Base.Data.Boolean").toList(),
+        booleanTrueSuggestion.reexports().toList());
 
     Suggestion.Constructor runtimeContextInputSuggestion =
         cachedConstructorSuggestions
@@ -122,7 +123,8 @@ public class SerializationManagerTest {
             .filter(constructor -> constructor.name().equals("Input"))
             .findFirst()
             .get();
-    Assert.assertEquals(ScalaCollections.set(), runtimeContextInputSuggestion.reexports());
+    Assert.assertEquals(
+        ScalaCollections.set().toList(), runtimeContextInputSuggestion.reexports().toList());
 
     clearLibraryCache(standardBaseLibrary);
   }
