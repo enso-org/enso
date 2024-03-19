@@ -48,7 +48,7 @@ final class JobExecutionEngine(
 
   val highPriorityJobExecutor: ExecutorService =
     context.newCachedThreadPool(
-      "prioritised-job-pool",
+      "prioritized-job-pool",
       2,
       Integer.MAX_VALUE,
       false
