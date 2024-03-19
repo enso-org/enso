@@ -63,6 +63,6 @@ type File_Access
 
     ## PRIVATE
     ensure_options_allowed (allowed_options : Vector) (got_options : Vector) ~action =
-        disallowed_options = open_options.filter o-> allowed_options.contains o . not
+        disallowed_options = got_options.filter o-> allowed_options.contains o . not
         if disallowed_options.is_empty then action else
             Error.throw (Illegal_Argument.Error "Invalid open options: "+disallowed_options.to_text+".")

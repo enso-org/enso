@@ -103,10 +103,12 @@ type Data_Link_Format
 type Data_Link
     ## PRIVATE
     read self (format = Auto_Detect) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) -> Any =
+        _ = [format, on_problems]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
+        _ = [open_options, action]
         Unimplemented.throw "This is an interface only."
 
 
@@ -156,10 +158,12 @@ read_datalink_as_stream (file : File_Like) (open_options : Vector) (f : Input_St
 
 ## PRIVATE
 write_datalink (file : File_Like) format (on_problems : Problem_Behavior) =
+    _ = [file, format, on_problems]
     Unimplemented.throw "Writing data links is not yet supported."
 
 ## PRIVATE
 write_datalink_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
+    _ = [file, open_options, f]
     Unimplemented.throw "Writing data links is not yet supported."
 
 ## PRIVATE

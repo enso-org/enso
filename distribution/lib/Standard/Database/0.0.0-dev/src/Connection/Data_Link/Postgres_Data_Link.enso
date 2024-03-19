@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Enso_Cloud.Data_Link import parse_secure_value
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
@@ -50,4 +52,5 @@ type Postgres_Data_Link
 
     ## PRIVATE
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
+        _ = [open_options, action]
         Error.throw (Illegal_Argument.Error "A Postgres Data Link cannot be opened as a stream, because it points to a database entity, not a file resource.")

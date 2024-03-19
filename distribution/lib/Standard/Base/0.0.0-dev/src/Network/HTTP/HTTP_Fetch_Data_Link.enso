@@ -1,11 +1,15 @@
+import project.Any.Any
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request.Request
 import project.Nothing.Nothing
+import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File.File_Access.File_Access
 import project.System.File_Format.Auto_Detect
+import project.System.Input_Stream.Input_Stream
 from project.Enso_Cloud.Data_Link import parse_format, parse_secure_value
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 

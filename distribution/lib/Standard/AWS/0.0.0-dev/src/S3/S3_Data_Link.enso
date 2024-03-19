@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.System.File_Format.Auto_Detect
+import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Enso_Cloud.Data_Link import parse_format
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 

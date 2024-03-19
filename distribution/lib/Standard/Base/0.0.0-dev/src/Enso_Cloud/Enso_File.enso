@@ -24,7 +24,9 @@ import project.Errors.Unimplemented.Unimplemented
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Nothing.Nothing
+import project.Runtime
 import project.Runtime.Context
+import project.System.File.Data_Link_Access.Data_Link_Access
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
@@ -189,10 +191,10 @@ type Enso_File
         open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
         if open_as_data_link then Data_Link.read_datalink_as_stream self open_options action else
             File_Access.ensure_options_allowed [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
-                uri = case self of
-                    Enso_File.File _ _ _ _ ->
+                uri = case self.asset_type of
+                    Enso_Asset_Type.File ->
                         get_download_url_for_file self
-                    Enso_File.Data_Link _ _ _ _ ->
+                    Enso_Asset_Type.Data_Link ->
                         Runtime.assert (open_options.contains Data_Link_Access.No_Follow)
                         self.internal_uri
                     _ ->
