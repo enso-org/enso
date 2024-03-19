@@ -158,7 +158,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               checked={typeof value === 'boolean' && value}
               onChange={event => {
-                setValue(event.currentTarget.checked)
+                const newValue: boolean = event.currentTarget.checked
+                setValue(newValue)
               }}
             />
           )
@@ -240,7 +241,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                               // This is SAFE; but there is no way to tell TypeScript that an object
                               // has an index signature.
                               // eslint-disable-next-line no-restricted-syntax
-                              (oldValue as Record<string, unknown>)[key] === newValue
+                              (oldValue as Readonly<Record<string, unknown>>)[key] === newValue
                                 ? oldValue
                                 : { ...oldValue, [key]: newValue }
                             )
@@ -300,7 +301,6 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             setSelectedChildIndex(index)
             const newConstantValue = jsonSchema.constantValue(defs, childSchema, true)
             setValue(newConstantValue[0] ?? null)
-            setSelectedChildIndex(index)
           }}
         />
       )
