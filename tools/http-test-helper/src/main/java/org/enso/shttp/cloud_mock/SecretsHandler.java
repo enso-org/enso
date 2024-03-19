@@ -19,6 +19,7 @@ public class SecretsHandler implements CloudHandler {
   private final String DIRECTORIES = "directories";
 
   private final ObjectMapper jsonMapper = new ObjectMapper();
+
   // <root> -> <secret_id> -> <secret_value>
   private HashMap<String, HashMap<String, Secret>> mapping = new HashMap<>();
 
