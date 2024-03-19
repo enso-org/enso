@@ -10,9 +10,9 @@ export const interactionBindings = defineKeybinds('current-interaction', {
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
   applySuggestion: ['Tab'],
-  acceptSuggestion: ['Shift+Enter'],
+  acceptSuggestion: ['Enter'],
   acceptInput: ['Mod+Enter'],
-  acceptAIPrompt: ['Enter'],
+  acceptAIPrompt: ['Tab', 'Enter'],
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],
 })

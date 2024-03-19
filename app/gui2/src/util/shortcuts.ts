@@ -396,22 +396,21 @@ export function defineKeybinds<
         event instanceof KeyboardEvent ?
           keyboardShortcuts[event.key.toLowerCase() as Key_]?.[eventModifierFlags]
         : mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
-      let handle = handlers[DefaultHandler]
+
+      let handled = false
       if (keybinds != null) {
         for (const bindingName in handlers) {
-          if (keybinds?.has(bindingName as BindingName)) {
-            handle = handlers[bindingName as BindingName]
-            break
+          if (keybinds.has(bindingName as BindingName)) {
+            const handle = handlers[bindingName as BindingName]
+            handled = handle && handle(event) !== false
+            if (handled) break
           }
         }
       }
-      if (handle == null) {
-        return false
+      if (!handled && handlers[DefaultHandler] != null) {
+        handled = handlers[DefaultHandler](event) !== false
       }
-      if (handle(event) === false) {
-        return false
-      }
-      if (stopAndPrevent) {
+      if (handled && stopAndPrevent) {
         event.stopImmediatePropagation()
         event.preventDefault()
       }

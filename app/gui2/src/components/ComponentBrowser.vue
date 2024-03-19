@@ -144,6 +144,8 @@ const inputField = ref<HTMLInputElement>()
 const input = useComponentBrowserInput()
 const filterFlags = ref({ showUnstable: false, showLocal: false })
 
+const isAIPromptMode = computed(() => input.context.value.type === 'aiPrompt')
+
 const currentFiltering = computed(() => {
   const currentModule = projectStore.modulePath
   return new Filtering(
@@ -324,6 +326,7 @@ const previewedSuggestionReturnType = computed(() => {
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
+  if (isAIPromptMode.value) return
   if (!previewed.value.expression.trim()) return
   if (!graphStore.methodAst) return
   const body = graphStore.methodAst.body
@@ -472,7 +475,7 @@ const handler = componentBrowserBindings.handler({
             <ToggleIcon v-model="docsVisible" icon="right_side_panel" class="first-on-right" />
           </div>
         </div>
-        <div class="components-content">
+        <div v-if="!isAIPromptMode" class="components-content">
           <div
             ref="scroller"
             class="list"
