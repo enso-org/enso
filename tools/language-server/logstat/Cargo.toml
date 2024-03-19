@@ -5,7 +5,7 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
-clap = { version = "3", features = ["derive"] }
+clap = { workspace = true }
 lazy_static = { workspace = true }
 enso-prelude = { path = "../../../lib/rust/prelude" }
 regex = { workspace = true }

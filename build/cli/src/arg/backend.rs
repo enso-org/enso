@@ -39,12 +39,12 @@ pub enum Command {
         /// the benchmarks can execute without issues.
         #[clap(long, enso_env())]
         minimal_run: bool,
-        #[clap(arg_enum)]
+        #[clap(value_enum)]
         which:       Vec<enso_build::engine::Benchmarks>,
     },
     /// Run the tests.
     Test {
-        #[clap(arg_enum, required = true)]
+        #[clap(value_enum, required = true)]
         which: Vec<enso_build::engine::Tests>,
     },
     /// Run an SBT command.
