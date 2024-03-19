@@ -66,6 +66,7 @@ import Subscribe from '#/pages/subscribe/Subscribe'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
+import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
@@ -267,12 +268,7 @@ function AppRouter(props: AppProps) {
       isClick = true
     }
     const onMouseUp = (event: MouseEvent) => {
-      if (
-        isClick &&
-        !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLTextAreaElement) &&
-        !(event.target instanceof HTMLElement && event.target.isContentEditable)
-      ) {
+      if (isClick && !eventModule.isElementTextInput(event.target)) {
         const selection = document.getSelection()
         const app = document.getElementById('app')
         const appContainsSelection =
