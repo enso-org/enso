@@ -72,16 +72,16 @@ export default function ActivityLogSettingsTab() {
     <div className="flex flex-col gap-settings-subsection">
       <div className="flex flex-col gap-settings-section-header">
         <h3 className="settings-subheading">Activity Log</h3>
-        <div className="gap-activity-log-filters flex">
-          <div className="gap-activity-log-filter flex items-center">
+        <div className="flex gap-activity-log-filters">
+          <div className="flex items-center gap-activity-log-filter">
             Start Date
             <DateInput date={startDate} onInput={setStartDate} />
           </div>
-          <div className="gap-activity-log-filter flex items-center">
+          <div className="flex items-center gap-activity-log-filter">
             End Date
             <DateInput date={endDate} onInput={setEndDate} />
           </div>
-          <div className="gap-activity-log-filter flex items-center">
+          <div className="flex items-center gap-activity-log-filter">
             Types
             <Dropdown
               multiple
@@ -100,7 +100,7 @@ export default function ActivityLogSettingsTab() {
               }}
             />
           </div>
-          <div className="gap-activity-log-filter flex items-center">
+          <div className="flex items-center gap-activity-log-filter">
             Users
             <Dropdown
               multiple
@@ -123,7 +123,7 @@ export default function ActivityLogSettingsTab() {
         <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-row">
-              <th className="pr-icon-column-r w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pl-cell-x text-left text-sm font-semibold last:border-r-0" />
+              <th className="w-activity-log-icon-column border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r text-left text-sm font-semibold last:border-r-0" />
               <th className="w-activity-log-type-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
                 Type
               </th>
@@ -150,7 +150,7 @@ export default function ActivityLogSettingsTab() {
             ) : (
               filteredLogs.map((log, i) => (
                 <tr key={i} className="h-row">
-                  <td className="pr-icon-column-r border-x-2 border-transparent bg-clip-padding pl-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <td className="border-x-2 border-transparent bg-clip-padding pl-cell-x pr-icon-column-r first:rounded-l-full last:rounded-r-full last:border-r-0">
                     <div className="flex items-center">
                       <SvgMask src={EVENT_TYPE_ICON[log.metadata.type]} />
                     </div>

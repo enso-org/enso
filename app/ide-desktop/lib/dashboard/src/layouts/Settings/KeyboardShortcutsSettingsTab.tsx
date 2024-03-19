@@ -98,7 +98,7 @@ export default function KeyboardShortcutsSettingsTab() {
         <table className="table-fixed border-collapse rounded-rows">
           <thead className="sticky top-0">
             <tr className="h-row text-left text-sm font-semibold">
-              <th className="min-w-keyboard-shortcuts-icon-column pl-cell-x pr-keyboard-shortcuts-icon-column-r">
+              <th className="pr-keyboard-shortcuts-icon-column-r min-w-keyboard-shortcuts-icon-column pl-cell-x">
                 {/* Icon */}
               </th>
               <th className="min-w-keyboard-shortcuts-name-column px-cell-x">Name</th>

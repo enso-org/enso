@@ -93,7 +93,7 @@ export default function DateInput(props: DateInputProps) {
     >
       <div
         role="button"
-        className={`w-date-picker px-date-input flex h-text items-center rounded-full border border-primary/10 transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`}
+        className={`flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`}
         onClick={() => {
           setIsPickerVisible(!isPickerVisible)
         }}
@@ -113,13 +113,13 @@ export default function DateInput(props: DateInputProps) {
         )}
       </div>
       {isPickerVisible && (
-        <div className="mt-date-input-gap top-text-h absolute left-1/2">
-          <div className="p-date-input relative -translate-x-1/2 rounded-2xl border border-primary/10 shadow-soft before:absolute before:inset-0 before:rounded-2xl before:backdrop-blur-3xl">
+        <div className="absolute left-1/2 top-text-h mt-date-input-gap">
+          <div className="relative -translate-x-1/2 rounded-2xl border border-primary/10 p-date-input shadow-soft before:absolute before:inset-0 before:rounded-2xl before:backdrop-blur-3xl">
             <table className="relative w-full">
               <caption className="mb-date-input-gap caption-top">
                 <div className="flex items-center">
                   <button
-                    className="rounded-small-rectangle-button inline-flex hover:bg-hover-bg"
+                    className="inline-flex rounded-small-rectangle-button hover:bg-hover-bg"
                     onClick={() => {
                       setSelectedYear(selectedYear - 1)
                     }}
@@ -127,7 +127,7 @@ export default function DateInput(props: DateInputProps) {
                     <SvgMask src={FolderArrowDoubleIcon} className="rotate-180" />
                   </button>
                   <button
-                    className="rounded-small-rectangle-button inline-flex hover:bg-black/10"
+                    className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
                     onClick={() => {
                       if (selectedMonthIndex === 0) {
                         setSelectedYear(selectedYear - 1)
@@ -143,7 +143,7 @@ export default function DateInput(props: DateInputProps) {
                     {dateTime.MONTH_NAMES[selectedMonthIndex]} {selectedYear}
                   </span>
                   <button
-                    className="rounded-small-rectangle-button inline-flex hover:bg-black/10"
+                    className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
                     onClick={() => {
                       if (selectedMonthIndex === LAST_MONTH_INDEX) {
                         setSelectedYear(selectedYear + 1)
@@ -156,7 +156,7 @@ export default function DateInput(props: DateInputProps) {
                     <SvgMask src={FolderArrowIcon} />
                   </button>
                   <button
-                    className="rounded-small-rectangle-button inline-flex hover:bg-black/10"
+                    className="inline-flex rounded-small-rectangle-button hover:bg-black/10"
                     onClick={() => {
                       setSelectedYear(selectedYear + 1)
                     }}
@@ -201,7 +201,7 @@ export default function DateInput(props: DateInputProps) {
                         >
                           <button
                             disabled={isSelectedDate}
-                            className={`rounded-small-rectangle-button w-full text-center hover:bg-primary/10 disabled:bg-frame disabled:font-bold ${day.monthOffset === 0 ? '' : 'opacity-unimportant'}`}
+                            className={`w-full rounded-small-rectangle-button text-center hover:bg-primary/10 disabled:bg-frame disabled:font-bold ${day.monthOffset === 0 ? '' : 'opacity-unimportant'}`}
                           >
                             {day.date}
                           </button>
