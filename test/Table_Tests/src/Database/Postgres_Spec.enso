@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
@@ -866,15 +867,15 @@ add_datalink_specs suite_builder =
 
     # This transforms the datalink file, replacing prepared constants with actual values.
     transform_file base_file =
-        contents = base_file.read Plain_Text
-        new_contents = contents
+        content = Data_Link_Format.read_raw_config base_file
+        new_content = content
             . replace "HOSTNAME" connection_details.host
             . replace "12345" connection_details.port.to_text
             . replace "DBNAME" connection_details.database
             . replace "USERNAME" connection_details.credentials.username
             . replace "PASSWORD" connection_details.credentials.password
-        tmp_file = File.create_temporary_file base_file.name base_file.extension
-        new_contents.write tmp_file . if_not_error tmp_file
+        temp_file = File.create_temporary_file base_file.name base_file.extension
+        Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
     suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
         group_builder.specify "should be able to open a datalink setting up a connection to the database" <|
