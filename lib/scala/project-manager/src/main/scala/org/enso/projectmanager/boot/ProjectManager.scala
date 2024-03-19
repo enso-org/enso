@@ -251,7 +251,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       val fileSystemMoveDirectoryCommand =
         FileSystemWritePathCommand[ZIO[ZAny, +*, +*]](
           config,
-          path.toFile,
+          path.toFile
         )
       commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
     } else if (options.hasOption(Cli.PROJECT_LIST)) {

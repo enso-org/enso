@@ -1,6 +1,10 @@
 package org.enso.projectmanager.service.filesystem
 
-import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap, Traverse}
+import org.enso.projectmanager.control.core.{
+  Applicative,
+  CovariantFlatMap,
+  Traverse
+}
 import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.infrastructure.file.FileSystem
 import org.enso.projectmanager.control.core.syntax._
