@@ -55,7 +55,7 @@ import PasteType from '#/utilities/PasteType'
 import * as permissions from '#/utilities/permissions'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as set from '#/utilities/set'
-import SortDirection from '#/utilities/SortDirection'
+import * as sorting from '#/utilities/sorting'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
@@ -297,10 +297,8 @@ export interface AssetsTableState {
   readonly deletedLabelNames: Set<backendModule.LabelName>
   readonly hasPasteData: boolean
   readonly setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
-  readonly sortColumn: columnUtils.SortableColumn | null
-  readonly setSortColumn: (column: columnUtils.SortableColumn | null) => void
-  readonly sortDirection: SortDirection | null
-  readonly setSortDirection: (sortDirection: SortDirection | null) => void
+  readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
+  readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
@@ -392,8 +390,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
-  const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
-  const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
+  const [sortInfo, setSortInfo] =
+    React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
     () => new Set()
   )
@@ -546,15 +544,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [query])
   const displayItems = React.useMemo(() => {
-    if (sortColumn == null || sortDirection == null) {
+    if (sortInfo == null) {
       return assetTree.preorderTraversal()
     } else {
-      const multiplier = {
-        [SortDirection.ascending]: 1,
-        [SortDirection.descending]: -1,
-      }[sortDirection]
+      const multiplier = sortInfo.direction === sorting.SortDirection.ascending ? 1 : -1
       let compare: (a: AssetTreeNode, b: AssetTreeNode) => number
-      switch (sortColumn) {
+      switch (sortInfo.field) {
         case columnUtils.Column.name: {
           compare = (a, b) => {
             const aTitle = a.item.title.toLowerCase()
@@ -580,7 +575,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       return assetTree.preorderTraversal(tree => [...tree].sort(compare))
     }
-  }, [assetTree, sortColumn, sortDirection])
+  }, [assetTree, sortInfo])
   const visibilities = React.useMemo(() => {
     const map = new Map<backendModule.AssetId, Visibility>()
     const processNode = (node: AssetTreeNode) => {
@@ -1900,10 +1895,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       deletedLabelNames,
       hasPasteData: pasteData != null,
       setPasteData,
-      sortColumn,
-      setSortColumn,
-      sortDirection,
-      setSortDirection,
+      sortInfo,
+      setSortInfo,
       query,
       setQuery,
       assetEvents,
@@ -1928,8 +1921,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       allLabels,
       deletedLabelNames,
       pasteData,
-      sortColumn,
-      sortDirection,
+      sortInfo,
       assetEvents,
       query,
       doToggleDirectoryExpansion,
