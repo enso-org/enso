@@ -176,6 +176,9 @@ impl BuildConfigurationResolved {
         if config.test_standard_library
             || config.execute_benchmarks.contains(&Benchmarks::Enso)
             || config.check_enso_benchmarks
+            // Building benchmarks is actually running Enso code:
+            // https://discord.com/channels/401396655599124480/1212404386932981810/1219612273174122657
+            || config.build_benchmarks
         {
             config.build_engine_package = true;
         }
