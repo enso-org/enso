@@ -453,7 +453,7 @@ make_table_types_selector connection =
 make_database_selector : Connection -> Boolean -> Widget
 make_database_selector connection include_any:Boolean=False =
     databases_without_nothing = connection.databases.filter Filter_Condition.Not_Nothing
-    any_entry = if include_any then [Option "any schema" "'*'"] else []
+    any_entry = if include_any then [Option "any database" "'*'"] else []
     Single_Choice values=(databases_without_nothing.map t-> Option t t.pretty)+any_entry
 
 ## PRIVATE
