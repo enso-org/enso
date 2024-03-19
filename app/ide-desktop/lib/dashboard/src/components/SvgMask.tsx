@@ -35,20 +35,24 @@ export default function SvgMask(props: SvgMaskProps) {
         ...(style ?? {}),
         backgroundColor: color ?? 'currentcolor',
         mask: urlSrc,
+        maskPosition: 'center',
+        maskRepeat: 'no-repeat',
+        maskSize: 'contain',
         // The names come from a third-party API and cannot be changed.
-        // eslint-disable-next-line @typescript-eslint/naming-convention
+        // eslint-disable @typescript-eslint/naming-convention
         WebkitMask: urlSrc,
+        WebkitMaskPosition: 'center',
+        WebkitMaskRepeat: 'no-repeat',
+        WebkitMaskSize: 'contain',
+        // eslint-enable @typescript-eslint/naming-convention
       }}
       className={`inline-block ${onClick != null ? 'cursor-pointer' : ''} ${
         className ?? 'h-max w-max'
       }`}
       onClick={onClick}
-      onDragStart={event => {
-        event.preventDefault()
-      }}
     >
       {/* This is required for this component to have the right size. */}
-      <img alt={alt} src={src} className="transparent" />
+      <img alt={alt} src={src} className="transparent" draggable={false} />
     </div>
   )
 }
