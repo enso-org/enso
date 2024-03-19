@@ -7,4 +7,7 @@ type Data_Link_Access
        but instead read the raw data-link configuration directly.
 
        This can be used when working with data-links programmatically.
+
+       If the option is provided for a file that is not a data-link, it is
+       ignored.
     No_Follow

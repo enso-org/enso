@@ -98,6 +98,16 @@ type Data_Link_Format
     validate_config (config : JS_Object) -> Nothing ! Missing_Data_Link_Library | Illegal_State =
         interpret_json_as_datalink config . if_not_error Nothing
 
+## PRIVATE
+type Data_Link
+    ## PRIVATE
+    read (format = Auto_Detect) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) -> Any =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+    with_input_stream (open_options : Vector) (action : Input_Stream -> Any) -> Any =
+        Unimplemented.throw "This is an interface only."
+
 
 ## PRIVATE
    All data-link config files should be saved with UTF-8 encoding.
@@ -132,9 +142,25 @@ interpret_json_as_datalink json =
             data_link_type.parse json
 
 ## PRIVATE
-read_datalink json on_problems =
+read_datalink (file : File_Like) format (on_problems : Problem_Behavior) =
+    json = Data_Link_Format.read_config file
     data_link_instance = interpret_json_as_datalink json
-    data_link_instance.read on_problems
+    data_link_instance.read format on_problems
+
+
+## PRIVATE
+read_datalink_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
+    json = Data_Link_Format.read_config file
+    data_link_instance = interpret_json_as_datalink json
+    data_link_instance.with_input_stream open_options f
+
+## PRIVATE
+write_datalink (file : File_Like) format (on_problems : Problem_Behavior) =
+    Unimplemented.throw "Writing data links is not yet supported."
+
+## PRIVATE
+write_datalink_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
+    Unimplemented.throw "Writing data links is not yet supported."
 
 ## PRIVATE
 parse_secure_value json -> Text | Enso_Secret =

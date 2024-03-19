@@ -89,21 +89,23 @@ type S3_File
     with_output_stream : Vector File_Access -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream self (open_options : Vector) action = if self.is_directory then Error.throw (S3_Error.Error "S3 directory cannot be opened as a stream." self.uri) else
         Context.Output.if_enabled disabled_message="Writing to an S3_File is forbidden as the Output context is disabled." panic=False <|
-            if open_options.contains File_Access.Append then Error.throw (S3_Error.Error "S3 does not support appending to a file. Instead you may read it, modify and then write the new contents." self.uri) else
-                # The exists check is not atomic, but it is the best we can do with S3
-                check_exists = open_options.contains File_Access.Create_New
-                valid_options = [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create]
-                invalid_options = open_options.filter (Filter_Condition.Is_In valid_options action=Filter_Action.Remove)
-                if invalid_options.not_empty then Error.throw (S3_Error.Error "Unsupported S3 stream options: "+invalid_options.to_display_text self.uri) else
-                    if check_exists && self.exists then Error.throw (File_Error.Already_Exists self) else
-                        # Given that the amount of data written may be large and AWS library does not seem to support streaming it directly, we use a temporary file to store the data.
-                        tmp_file = File.create_temporary_file "s3-tmp"
-                        Panic.with_finalizer tmp_file.delete <|
-                            result = tmp_file.with_output_stream [File_Access.Write] action
-                            # Only proceed if the write succeeded
-                            result.if_not_error <|
-                                (translate_file_errors self <| S3.upload_file tmp_file self.s3_path.bucket self.s3_path.key self.credentials) . if_not_error <|
-                                    result
+            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+            if open_as_data_link then Data_Link.write_datalink_as_stream self open_options action else
+                if open_options.contains File_Access.Append then Error.throw (S3_Error.Error "S3 does not support appending to a file. Instead you may read it, modify and then write the new contents." self.uri) else
+                    # The exists check is not atomic, but it is the best we can do with S3
+                    check_exists = open_options.contains File_Access.Create_New
+                    valid_options = [File_Access.Write, File_Access.Create_New, File_Access.Truncate_Existing, File_Access.Create]
+                    invalid_options = open_options.filter (Filter_Condition.Is_In valid_options action=Filter_Action.Remove)
+                    if invalid_options.not_empty then Error.throw (S3_Error.Error "Unsupported S3 stream options: "+invalid_options.to_display_text self.uri) else
+                        if check_exists && self.exists then Error.throw (File_Error.Already_Exists self) else
+                            # Given that the amount of data written may be large and AWS library does not seem to support streaming it directly, we use a temporary file to store the data.
+                            tmp_file = File.create_temporary_file "s3-tmp"
+                            Panic.with_finalizer tmp_file.delete <|
+                                result = tmp_file.with_output_stream [File_Access.Write] action
+                                # Only proceed if the write succeeded
+                                result.if_not_error <|
+                                    (translate_file_errors self <| S3.upload_file tmp_file self.s3_path.bucket self.s3_path.key self.credentials) . if_not_error <|
+                                        result
 
 
     ## PRIVATE
@@ -121,9 +123,13 @@ type S3_File
        if it returns exceptionally).
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! S3_Error | Illegal_Argument
     with_input_stream self (open_options : Vector) action = if self.is_directory then Error.throw (Illegal_Argument.Error "S3 folders cannot be opened as a stream." self.uri) else
-        if (open_options != [File_Access.Read]) then Error.throw (S3_Error.Error "S3 files can only be opened for reading." self.uri) else
-            response_body = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
-            response_body.with_stream action
+        open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+        if open_as_data_link then Data_Link.read_datalink_as_stream self open_options action else
+            allowed_options = [File_Access.Read, Data_Link_Access.No_Follow]
+            disallowed_options = open_options.filter o-> allowed_options.contains o . not
+            if disallowed_options.not_empty then Error.throw (S3_Error.Error "Invalid open options for reading: "+disallowed_options.to_text+".") else
+                response_body = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
+                response_body.with_stream action
 
     ## ALIAS load, open
        GROUP Standard.Base.Input
@@ -143,14 +149,14 @@ type S3_File
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! S3_Error
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
-        _ = on_problems
-        File_Format.handle_format_missing_arguments format <| case format of
-            Auto_Detect -> if self.is_directory then format.read self on_problems else
-                response = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
-                response.decode Auto_Detect
-            _ ->
-                metadata = File_Format_Metadata.Value path=self.path name=self.name
-                self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
+        if Data_Link.is_data_link self then Data_Link.read_datalink self format on_problems else
+            File_Format.handle_format_missing_arguments format <| case format of
+                Auto_Detect -> if self.is_directory then format.read self on_problems else
+                    response = translate_file_errors self <| S3.get_object self.s3_path.bucket self.s3_path.key self.credentials delimiter=S3_Path.delimiter
+                    response.decode Auto_Detect
+                _ ->
+                    metadata = File_Format_Metadata.Value path=self.path name=self.name
+                    self.with_input_stream [File_Access.Read] (stream-> format.read_stream stream metadata)
 
     ## ALIAS load bytes, open bytes
        ICON data_input

@@ -184,15 +184,17 @@ type File
 
             ## Re-wrap the File Not Found error to return the parent directory
                instead of the file itself, as that is the issue if not present.
-               Until #5792 fixes catching `File_Error.Not_Found` specifically,
-               so instead we catch all `File_Error`s and match the needed one.
             wrapped = stream.catch File_Error error-> case error of
                 File_Error.Not_Found file_path -> Error.throw (File_Error.Not_Found file_path.parent)
                 _ -> stream
             Output_Stream.new wrapped (File_Error.handle_java_exceptions self)
 
         Context.Output.if_enabled disabled_message="File writing is forbidden as the Output context is disabled." panic=False <|
-            Managed_Resource.bracket (new_output_stream self open_options) (_.close) action
+            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+            if open_as_data_link then Data_Link.write_datalink_as_stream self open_options action else
+                # We ignore the Data_Link_Access options at this stage:
+                just_file_options = open_options.filter opt-> opt.is_a File_Access
+                Managed_Resource.bracket (new_output_stream self just_file_options) (_.close) action
 
     ## PRIVATE
        Creates a new output stream for this file. Recommended to use
@@ -242,12 +244,14 @@ type File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream self (open_options : Vector) action =
         if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
-            new_input_stream : File -> Vector File_Access -> Output_Stream ! File_Error
-            new_input_stream file open_options =
-                opts = open_options . map (_.to_java)
-                stream = File_Error.handle_java_exceptions file (file.input_stream_builtin opts)
-                Input_Stream.new stream (File_Error.handle_java_exceptions self)
-            Managed_Resource.bracket (new_input_stream self open_options) (_.close) action
+            open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+            if open_as_data_link then Data_Link.read_datalink_as_stream self open_options action else
+                new_input_stream : File -> Vector File_Access -> Output_Stream ! File_Error
+                new_input_stream file open_options =
+                    opts = open_options . map (_.to_java)
+                    stream = File_Error.handle_java_exceptions file (file.input_stream_builtin opts)
+                    Input_Stream.new stream (File_Error.handle_java_exceptions self)
+                Managed_Resource.bracket (new_input_stream self open_options) (_.close) action
 
     ## ALIAS load, open
        GROUP Input
@@ -284,8 +288,9 @@ type File
     read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
-            File_Format.handle_format_missing_arguments format <|
-                format.read self on_problems
+            if Data_Link.is_data_link self then Data_Link.read_datalink self format on_problems else
+                File_Format.handle_format_missing_arguments format <|
+                    format.read self on_problems
 
     ## ALIAS load bytes, open bytes
        ICON data_input

@@ -185,10 +185,22 @@ type Enso_File
        The created stream is automatically closed when `action` returns (even
        if it returns exceptionally).
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
-    with_input_stream self (open_options : Vector) action = if self.asset_type != Enso_Asset_Type.File then Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.") else
-        if (open_options !=  [File_Access.Read]) then Error.throw (Illegal_Argument.Error "Files can only be opened for reading.") else
-            response = HTTP.fetch (get_download_url_for_file self) HTTP_Method.Get []
-            response.if_not_error <| response.body.with_stream action
+    with_input_stream self (open_options : Vector) action =
+        open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
+        if open_as_data_link then Data_Link.read_datalink_as_stream self open_options action else
+            allowed_options = [File_Access.Read, Data_Link_Access.No_Follow]
+            disallowed_options = open_options.filter o-> allowed_options.contains o . not
+            if disallowed_options.not_empty then Error.throw (Illegal_Argument.Error "Invalid open options for reading: "+disallowed_options.to_text+".") else
+                uri = case self of
+                    Enso_File.File _ _ _ _ ->
+                        get_download_url_for_file self
+                    Enso_File.Data_Link _ _ _ _ ->
+                        Runtime.assert (open_options.contains Data_Link_Access.No_Follow)
+                        self.internal_uri
+                    _ ->
+                        Error.throw (Illegal_Argument.Error "Only files can be opened as a stream.")
+                response = HTTP.fetch uri HTTP_Method.Get []
+                response.if_not_error <| response.body.with_stream action
 
     ## ALIAS load, open
        GROUP Input
@@ -211,6 +223,7 @@ type Enso_File
         Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
         Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
         Enso_Asset_Type.Data_Link ->
+            # TODO
             json = Utils.http_request_as_json HTTP_Method.Get self.internal_uri
             read_datalink json on_problems
         Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
