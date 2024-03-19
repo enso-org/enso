@@ -51,7 +51,7 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
   return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
 }
 
-/** Whether the element accepts keyboard events. */
+/** Whether the element accepts text input. */
 export function isElementTextInput(element: EventTarget | null) {
   return (
     element != null &&
