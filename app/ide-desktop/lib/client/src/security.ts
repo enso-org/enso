@@ -15,6 +15,7 @@ const TRUSTED_HOSTS = [
     'production-enso-domain.auth.eu-west-1.amazoncognito.com',
     'production-enso-organizations-files.s3.amazonaws.com',
     'pb-enso-domain.auth.eu-west-1.amazoncognito.com',
+    's3.eu-west-1.amazonaws.com',
     // This (`localhost`) is required to access Project Manager HTTP endpoints.
     // This should be changed appropriately if the Project Manager's port number becomes dynamic.
     '127.0.0.1:30535',

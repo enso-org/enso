@@ -10,7 +10,8 @@ import { graphNodeByBinding } from './locate'
 /** Perform a successful login. */
 export async function goToGraph(page: Page) {
   await page.goto('/')
-  await expect(page.locator('.App')).toBeVisible()
+  // Initial load through vite can take a while. Make sure that the first locator has enough time.
+  await expect(page.locator('.GraphEditor')).toBeVisible({ timeout: 100000 })
   // Wait until nodes are loaded.
   await expect(locate.graphNode(page)).toExist()
   // Wait for position initialization
@@ -18,6 +19,10 @@ export async function goToGraph(page: Page) {
 }
 
 export async function expectNodePositionsInitialized(page: Page, yPos: number) {
+  // Wait until edges are initialized and displayed correctly.
+  await expect(page.getByTestId('broken-edge')).toHaveCount(0)
+  // Wait until node sizes are initialized.
+  await expect(locate.graphNode(page).first().locator('.bgFill')).toBeVisible()
   // TODO: The yPos should not need to be a variable. Instead, first automatically positioned nodes
   // should always have constant known position. This is a bug caused by incorrect layout after
   // entering a function. To be fixed with #9255

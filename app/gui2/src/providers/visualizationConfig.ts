@@ -1,3 +1,4 @@
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { createContextStore } from '@/providers'
 import type { URLString } from '@/util/data/urlString'
 import { Vec2 } from '@/util/data/vec2'
@@ -21,7 +22,7 @@ export interface VisualizationConfig {
   fullscreen: boolean
   hide: () => void
   updateType: (type: VisualizationIdentifier) => void
-  addNode: (pos: Vec2 | undefined) => void
+  createNode: (options: NodeCreationOptions) => void
 }
 
 export { provideFn as provideVisualizationConfig }

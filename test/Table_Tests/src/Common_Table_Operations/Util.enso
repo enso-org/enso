@@ -7,8 +7,10 @@ import project.Common_Table_Operations.Main.Test_Setup
 import project.Common_Table_Operations.Main.Test_Selection
 import project.Common_Table_Operations.Aggregate_Spec
 
-expect_column_names names table =
-    table.columns . map .name . should_equal names frames_to_skip=2
+expect_column_names names table ignore_order=False =
+    case ignore_order of
+        False -> table.columns . map .name . should_equal names frames_to_skip=2
+        True -> table.columns . map .name . sort . should_equal names.sort frames_to_skip=2
 
 type Dummy_Connection
     Value

@@ -1,6 +1,7 @@
 import { assert } from '@/util/assert'
-import { RawAst, RawAstExtended } from '@/util/ast'
+import { RawAstExtended } from '@/util/ast/extended'
 import { GeneralOprApp, operandsOfLeftAssocOprChain, type OperatorChain } from '@/util/ast/opr'
+import { RawAst } from '@/util/ast/raw'
 import { initializeFFI } from 'shared/ast/ffi'
 import { expect, test } from 'vitest'
 

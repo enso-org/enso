@@ -170,9 +170,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       }
       // Allow `alt` key to be pressed in case it is being used to enter special characters.
       if (
-        !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLTextAreaElement) &&
-        (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
+        !eventModule.isElementTextInput(event.target) &&
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
         eventModule.isTextInputEvent(event) &&
         event.key !== ' ' &&

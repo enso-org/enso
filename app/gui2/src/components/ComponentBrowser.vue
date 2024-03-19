@@ -67,7 +67,7 @@ const cbOpen: Interaction = {
     emit('canceled')
   },
   click: (e: PointerEvent) => {
-    if (targetIsOutside(e, cbRoot)) {
+    if (targetIsOutside(e, cbRoot.value)) {
       if (input.anyChange.value) {
         acceptInput()
       } else {
