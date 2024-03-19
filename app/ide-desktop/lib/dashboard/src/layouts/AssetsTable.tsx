@@ -614,10 +614,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     if (scrollContainer == null) {
       return
     } else {
-      navigator2D.register(scrollContainer)
-      return () => {
-        navigator2D.unregister(scrollContainer)
-      }
+      return navigator2D.register(scrollContainer)
     }
   }, [navigator2D])
 

@@ -41,10 +41,9 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
     if (invisible || root == null) {
       return
     } else {
-      navigator2D.register(root, { focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0) })
-      return () => {
-        navigator2D.unregister(root)
-      }
+      return navigator2D.register(root, {
+        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
+      })
     }
   }, [invisible, navigator2D, setKeyboardSelectedIndex])
 

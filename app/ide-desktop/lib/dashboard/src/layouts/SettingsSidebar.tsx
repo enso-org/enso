@@ -123,7 +123,7 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
     if (root == null) {
       return
     } else {
-      navigator2D.register(root, {
+      return navigator2D.register(root, {
         focusPrimaryChild: () => {
           setKeyboardSelectedIndex(selectedChildIndexRef.current)
         },
@@ -132,9 +132,6 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
           up: setKeyboardSelectedIndex.bind(null, ALL_TABS.length - 1),
         },
       })
-      return () => {
-        navigator2D.unregister(root)
-      }
     }
   }, [navigator2D, setKeyboardSelectedIndex])
 

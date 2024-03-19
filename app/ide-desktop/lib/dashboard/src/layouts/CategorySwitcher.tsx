@@ -119,7 +119,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
     if (root == null) {
       return
     } else {
-      navigator2D.register(root, {
+      return navigator2D.register(root, {
         focusPrimaryChild: () => {
           setKeyboardSelectedIndex(selectedChildIndexRef.current)
         },
@@ -128,9 +128,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           down: setKeyboardSelectedIndex.bind(null, 0),
         },
       })
-      return () => {
-        navigator2D.unregister(root)
-      }
     }
   }, [navigator2D, setKeyboardSelectedIndex])
 

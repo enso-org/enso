@@ -66,15 +66,12 @@ export default function Labels(props: LabelsProps) {
     if (root == null) {
       return
     } else {
-      navigator2D.register(root, {
+      return navigator2D.register(root, {
         focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
         focusWhenPressed: {
           up: setKeyboardSelectedIndex.bind(null, displayLabels.length - 1),
         },
       })
-      return () => {
-        navigator2D.unregister(root)
-      }
     }
   }, [displayLabels.length, setKeyboardSelectedIndex, navigator2D])
 

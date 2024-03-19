@@ -76,7 +76,7 @@ export default function PageSwitcher(props: PageSwitcherProps) {
     if (root == null) {
       return
     } else {
-      navigator2D.register(root, {
+      return navigator2D.register(root, {
         focusPrimaryChild: () => {
           setKeyboardSelectedIndex(selectedChildIndexRef.current)
         },
@@ -87,9 +87,6 @@ export default function PageSwitcher(props: PageSwitcherProps) {
           },
         },
       })
-      return () => {
-        navigator2D.unregister(root)
-      }
     }
   }, [navigator2D, setKeyboardSelectedIndex])
 

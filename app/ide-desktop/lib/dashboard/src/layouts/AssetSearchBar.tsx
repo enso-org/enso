@@ -83,10 +83,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
     if (root == null) {
       return
     } else {
-      navigator2D.register(root, { focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0) })
-      return () => {
-        navigator2D.unregister(root)
-      }
+      return navigator2D.register(root, {
+        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
+      })
     }
   }, [navigator2D, setKeyboardSelectedIndex])
 

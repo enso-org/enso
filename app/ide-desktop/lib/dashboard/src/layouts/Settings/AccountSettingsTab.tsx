@@ -5,11 +5,13 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
 import EyeIcon from 'enso-assets/eye.svg'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -23,7 +25,7 @@ import * as validation from '#/utilities/validation'
 // === Input ===
 // =============
 
-/** Props for an {@link Input}. */
+/** Props for an {@link InputRaw}. */
 interface InternalInputProps {
   readonly originalValue: string
   readonly type?: string
@@ -33,7 +35,7 @@ interface InternalInputProps {
 }
 
 /** A styled input. */
-function Input(props: InternalInputProps) {
+function InputRaw(props: InternalInputProps, ref: React.ForwardedRef<HTMLInputElement>) {
   const { originalValue, type, placeholder, onChange, onSubmit } = props
   const [isShowingPassword, setIsShowingPassword] = React.useState(false)
   const cancelled = React.useRef(false)
@@ -67,6 +69,7 @@ function Input(props: InternalInputProps) {
 
   const input = (
     <input
+      ref={ref}
       className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
       type={isShowingPassword ? 'text' : type}
       size={1}
@@ -100,6 +103,10 @@ function Input(props: InternalInputProps) {
   )
 }
 
+// This is a React component, even though it does not contain JSX.
+// eslint-disable-next-line no-restricted-syntax
+const Input = React.forwardRef(InputRaw)
+
 // ==========================
 // === AccountSettingsTab ===
 // ==========================
@@ -111,10 +118,44 @@ export default function AccountSettingsTab() {
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const { user, accessToken } = authProvider.useNonPartialUserSession()
+  const navigator2D = navigator2DProvider.useNavigator2D()
   const [passwordFormKey, setPasswordFormKey] = React.useState('')
   const [currentPassword, setCurrentPassword] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
   const [confirmNewPassword, setConfirmNewPassword] = React.useState('')
+  const userAccountSectionRef = React.useRef<HTMLDivElement | null>(null)
+  const changePasswordSectionRef = React.useRef<HTMLDivElement | null>(null)
+
+  const [userAccountKeyboardSelectedIndex, setUserAccountKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(userAccountSectionRef, { length: 1 })
+
+  const [changePasswordKeyboardSelectedIndex, setChangePasswordKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(changePasswordSectionRef, { length: 0 })
+
+  React.useEffect(() => {
+    const root = userAccountSectionRef.current
+    if (root == null) {
+      return
+    } else {
+      return navigator2D.register(root, {
+        focusPrimaryChild: setUserAccountKeyboardSelectedIndex.bind(null, 0),
+      })
+    }
+  }, [navigator2D, setUserAccountKeyboardSelectedIndex])
+
+  React.useEffect(() => {
+    const root = changePasswordSectionRef.current
+    if (root == null) {
+      return
+    } else {
+      return navigator2D.register(root, {
+        focusPrimaryChild: setChangePasswordKeyboardSelectedIndex.bind(null, 0),
+        focusWhenPressed: {
+          up: setChangePasswordKeyboardSelectedIndex.bind(null, 2),
+        },
+      })
+    }
+  }, [navigator2D, setChangePasswordKeyboardSelectedIndex])
 
   // The shape of the JWT payload is statically known.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -158,7 +199,7 @@ export default function AccountSettingsTab() {
   return (
     <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
       <div className="flex w-settings-main-section flex-col gap-settings-subsection">
-        <div className="flex flex-col gap-settings-section-header">
+        <div ref={userAccountSectionRef} className="flex flex-col gap-settings-section-header">
           <h3 className="settings-subheading">User Account</h3>
           <div className="flex flex-col">
             <div className="flex h-row gap-settings-entry">
@@ -174,7 +215,7 @@ export default function AccountSettingsTab() {
           </div>
         </div>
         {canChangePassword && (
-          <div key={passwordFormKey}>
+          <div key={passwordFormKey} ref={changePasswordSectionRef}>
             <h3 className="settings-subheading">Change Password</h3>
             <div className="flex h-row gap-settings-entry">
               <span className="text my-auto w-change-password-settings-label">
@@ -182,6 +223,11 @@ export default function AccountSettingsTab() {
               </span>
               <span className="text my-auto grow font-bold">
                 <Input
+                  ref={element => {
+                    if (userAccountKeyboardSelectedIndex === 0) {
+                      element.focus()
+                    }
+                  }}
                   type="password"
                   originalValue=""
                   placeholder="Enter your current password"

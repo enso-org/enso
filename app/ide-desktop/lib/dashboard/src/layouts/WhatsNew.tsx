@@ -21,10 +21,7 @@ export default function WhatsNew() {
     if (root == null) {
       return
     } else {
-      navigator2D.register(root)
-      return () => {
-        navigator2D.unregister(root)
-      }
+      return navigator2D.register(root)
     }
   }, [navigator2D])
 

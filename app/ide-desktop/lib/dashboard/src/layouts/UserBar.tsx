@@ -90,7 +90,7 @@ export default function UserBar(props: UserBarProps) {
     if (invisible || root == null) {
       return
     } else {
-      navigator2D.register(root, {
+      return navigator2D.register(root, {
         focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
         focusWhenPressed: {
           left: () => {
@@ -99,9 +99,6 @@ export default function UserBar(props: UserBarProps) {
           right: setKeyboardSelectedIndex.bind(null, 0),
         },
       })
-      return () => {
-        navigator2D.unregister(root)
-      }
     }
   }, [invisible, navigator2D, setKeyboardSelectedIndex])
 

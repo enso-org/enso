@@ -258,6 +258,9 @@ export default class Navigator2D {
       ),
       dispose,
     })
+    return () => {
+      this.unregister(element)
+    }
   }
 
   /** Stop watching for layout changes on an element. */
