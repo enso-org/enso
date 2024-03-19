@@ -13,7 +13,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Integer, Float, Number, Number_Parse_Error
 from project.Data.Numeric.Internal.Decimal_Internal import Decimal_Comparator
 from project.Data.Ordering import Comparable, Ordering
-from project.Errors.Common import Loss_Of_Numeric_Precision
+from project.Errors.Common import Loss_Of_Numeric_Precision, Out_Of_Range
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.NumberFormatException
@@ -529,8 +529,8 @@ type Decimal
        Convert this to an `Integer`.
 
        > Example
-         Convert `Decimal` 2345 to an `Integer`.
-             d = Decimal.new "2345"
+         Convert `Decimal` 2345.6 to an `Integer`.
+             d = Decimal.new "2345.6"
              d.to_integer
              # => 2345
     to_integer : Integer
@@ -539,6 +539,18 @@ type Decimal
     ## GROUP CONVERSIONS
        Convert this to a `Float`.
 
+       ? Representable Values
+
+         If the `Decimal` is outside the representable range of `Float` (which
+         is `(-Double.MAX_VALUE, Double.MAX_VALUE)`, inclusive), `+/-Inf` is
+         returned, and an `Out_Of_Range` warning is attached.
+
+       ! Error Conditions
+
+         - If the `Decimal` is outside the representable range of `Float` (which
+           is `(-Double.MAX_VALUE, Double.MAX_VALUE)`, inclusive), `+/-Inf` is
+           returned, and an `Out_Of_Range` warning is attached.
+
        > Example
          Convert `Decimal` 23.45 to a `Float`.
 
@@ -546,7 +558,10 @@ type Decimal
              d.to_float
              # => 23.45
     to_float : Integer
-    to_float self = self.big_decimal.doubleValue
+    to_float self =
+        f = self.big_decimal.doubleValue
+        if f.is_finite then f else
+            Warning.attach (Out_Of_Range.Error self) f
 
     ## PRIVATE
     precision : Integer
