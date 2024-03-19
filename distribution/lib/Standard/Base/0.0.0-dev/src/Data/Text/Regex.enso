@@ -6,7 +6,6 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
-import project.Data.Text.Helpers
 import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator_Value
@@ -87,10 +86,9 @@ type Regex
        Arguments:
        - input: The text to check for matching.
     matches : Text -> Boolean | Type_Error
-    matches self input =
-        Helpers.expect_text input <|
-            m = self.internal_regex_object.exec input 0
-            m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
+    matches self (input : Text) =
+        m = self.internal_regex_object.exec input 0
+        m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
     ## GROUP Text
        ICON find
@@ -102,12 +100,11 @@ type Regex
        Arguments:
        - input: The text to match the pattern described by `self` against.
     match : Text -> Match | Nothing ! Type_Error
-    match self input =
-        Helpers.expect_text input <|
-            it = Match_Iterator.new self input
-            case it.next of
-                Match_Iterator_Value.Next _ match _ -> match
-                Match_Iterator_Value.Last _ -> Nothing
+    match self (input : Text) =
+        it = Match_Iterator.new self input
+        case it.next of
+            Match_Iterator_Value.Next _ match _ -> match
+            Match_Iterator_Value.Last _ -> Nothing
 
     ## GROUP Text
        ICON find
@@ -119,19 +116,18 @@ type Regex
        Arguments:
        - input: The text to match the pattern described by `self` against.
     match_all : Text -> Vector Match ! Type_Error | Illegal_Argument
-    match_all self input =
-        Helpers.expect_text input <|
-            pattern_is_empty = self.pattern == ''
-            if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
-                builder = Vector.new_builder
-                it = Match_Iterator.new self input
-                go it = case it.next of
-                    Match_Iterator_Value.Next _ match next_it ->
-                        builder.append match
-                        @Tail_Call go next_it
-                    Match_Iterator_Value.Last _ -> Nothing
-                go it
-                builder.to_vector
+    match_all self (input : Text) =
+        pattern_is_empty = self.pattern == ''
+        if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
+            builder = Vector.new_builder
+            it = Match_Iterator.new self input
+            go it = case it.next of
+                Match_Iterator_Value.Next _ match next_it ->
+                    builder.append match
+                    @Tail_Call go next_it
+                Match_Iterator_Value.Last _ -> Nothing
+            go it
+            builder.to_vector
 
     ## GROUP Selections
        Tries to match the provided `input` against the pattern `self`.
@@ -142,9 +138,8 @@ type Regex
        Arguments:
        - input: The text to match the pattern described by `self` against.
     find : Text -> Text | Nothing | Type_Error
-    find self input =
-        Helpers.expect_text input <|
-           match_to_group_maybe <| self.match input
+    find self (input : Text) =
+       match_to_group_maybe <| self.match input
 
     ## GROUP Selections
        Tries to match the provided `input` against the pattern `self`.
@@ -155,9 +150,8 @@ type Regex
        Arguments:
        - input: The text to match the pattern described by `self` against.
     find_all : Text -> Vector Text ! Type_Error
-    find_all self input =
-        Helpers.expect_text input <|
-           self.match_all input . map match_to_group_maybe
+    find_all self (input : Text) =
+       self.match_all input . map match_to_group_maybe
 
     ## GROUP Conversions
        Splits the `input` text based on the pattern described by `self`.
@@ -190,19 +184,18 @@ type Regex
              texts = pattern.split input
              texts . should_equal ["abcdefghij"]
     split : Text -> Boolean -> Vector Text | Type_Error
-    split self input only_first=False =
-        Helpers.expect_text input <|
-            builder = Vector.new_builder
-            it = Match_Iterator.new self input
-            go next = case next of
-                Match_Iterator_Value.Next filler _ next_it ->
-                    builder.append filler.text
-                    next = if only_first then next_it.early_exit else next_it.next
-                    @Tail_Call go next
-                Match_Iterator_Value.Last filler ->
-                    builder.append filler.text
-            go it.next
-            builder.to_vector
+    split self (input : Text) (only_first : Boolean = False) =
+        builder = Vector.new_builder
+        it = Match_Iterator.new self input
+        go next = case next of
+            Match_Iterator_Value.Next filler _ next_it ->
+                builder.append filler.text
+                next = if only_first then next_it.early_exit else next_it.next
+                @Tail_Call go next
+            Match_Iterator_Value.Last filler ->
+                builder.append filler.text
+        go it.next
+        builder.to_vector
 
     ## GROUP Conversions
        Takes an input string and returns all the matches as a `Vector Text`.
@@ -290,23 +283,22 @@ type Regex
              pattern = Regex.compile "([a-z]+)"
              pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
     replace : Text -> Text -> Boolean -> Text | Type_Error
-    replace self input replacement only_first=False =
-        Helpers.expect_text input <|
-            it = Match_Iterator.new self input
-            case it of
-                Match_Iterator_Value.Last filler -> filler.text
-                _ ->
-                    replacer = Replacer.new replacement self
+    replace self (input : Text) (replacement : Text) (only_first : Boolean = False) =
+        it = Match_Iterator.new self input
+        case it of
+            Match_Iterator_Value.Last filler -> filler.text
+            _ ->
+                replacer = Replacer.new replacement self
 
-                    replacer.if_not_error <|
-                        go next current = case next of
-                            Match_Iterator_Value.Next filler match next_it ->
-                                new_value = current + filler.text + (replacer.replace match)
-                                next = if only_first then next_it.early_exit else next_it.next
-                                @Tail_Call go next new_value
-                            Match_Iterator_Value.Last filler ->
-                                current + filler.text
-                        go it.next ""
+                replacer.if_not_error <|
+                    go next current = case next of
+                        Match_Iterator_Value.Next filler match next_it ->
+                            new_value = current + filler.text + (replacer.replace match)
+                            next = if only_first then next_it.early_exit else next_it.next
+                            @Tail_Call go next new_value
+                        Match_Iterator_Value.Last filler ->
+                            current + filler.text
+                    go it.next ""
 
     ## PRIVATE
 
@@ -499,4 +491,3 @@ type Regex_Syntax_Error
      compile. Must be non-empty.
 regex : Text -> Regex ! Regex_Syntax_Error | Illegal_Argument
 regex expression:Text = Regex.compile expression
-
