@@ -377,7 +377,7 @@ const documentation = computed<string | undefined>({
   get: () => props.node.documentation ?? (editingComment.value ? '' : undefined),
   set: (text) => {
     graph.edit((edit) => {
-      const outerExpr = edit.get(props.node.outerExprId)
+      const outerExpr = edit.get(props.node.outerExpr)
       if (text) {
         if (outerExpr instanceof Ast.MutableDocumented) {
           outerExpr.setDocumentationText(text)

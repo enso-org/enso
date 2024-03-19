@@ -314,7 +314,7 @@ export const useGraphStore = defineStore('graph', () => {
         for (const id of ids) {
           const node = db.nodeIdToNode.get(id)
           if (!node) continue
-          const outerExpr = edit.tryGet(node.outerExprId)
+          const outerExpr = edit.tryGet(node.outerExpr)
           if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
           nodeRects.delete(id)
         }
@@ -594,8 +594,8 @@ export const useGraphStore = defineStore('graph', () => {
    * are also moved after it, keeping their relative order.
    */
   function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: NodeId, targetNodeId: NodeId) {
-    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExprId
-    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExprId
+    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExpr
+    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExpr
     const body = edit.getVersion(methodAstInModule(edit)!).bodyAsBlock()
     assert(sourceExpr != null)
     assert(targetExpr != null)
@@ -610,7 +610,7 @@ export const useGraphStore = defineStore('graph', () => {
       // Find all transitive dependencies of the moved target node.
       const deps = db.dependantNodes(targetNodeId)
 
-      const dependantLines = new Set(Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExprId))
+      const dependantLines = new Set(Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExpr))
       // Include the new target itself in the set of lines that must be placed after source node.
       dependantLines.add(targetExpr)
 

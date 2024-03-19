@@ -26,6 +26,7 @@ import {
 import { equalFlat } from 'lib0/array'
 import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 import { computed, nextTick, ref, type ComputedRef } from 'vue'
+import { useAI } from './ai'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
@@ -57,6 +58,12 @@ export type EditingContext =
   | {
       type: 'changeLiteral'
       literal: RawAstExtended<RawAst.Tree.TextLiteral | RawAst.Tree.Number, false>
+    }
+  // In process of writing AI prompt: no suggestion should be displayed.
+  | {
+      type: 'aiPrompt'
+      selfIdent: string
+      prompt: string
     }
 
 /** An atomic change to the user input. */
@@ -111,6 +118,15 @@ export function useComponentBrowserInput(
   const context: ComputedRef<EditingContext> = computed(() => {
     const cursorPosition = selection.value.start
     if (cursorPosition === 0) return { type: 'insert', position: 0 }
+    // TODO[ao]: refactor a bit before merging:
+    const aiPromptMatch = /^((?:[a-zA-Z_][0-9]*)+)\.AI:(.*)$/.exec(code.value)
+    if (aiPromptMatch) {
+      return {
+        type: 'aiPrompt',
+        selfIdent: aiPromptMatch[1] ?? '',
+        prompt: aiPromptMatch[2] ?? '',
+      }
+    }
     const editedPart = cursorPosition - 1
     const inputAst = ast.value
     const editedAst = inputAst
@@ -157,7 +173,7 @@ export function useComponentBrowserInput(
   // Filter deduced from the access (`.` operator) chain written by user.
   const accessChainFilter: ComputedRef<Filter> = computed(() => {
     const ctx = context.value
-    if (ctx.type === 'changeLiteral') return {}
+    if (ctx.type === 'changeLiteral' || ctx.type === 'aiPrompt') return {}
     if (ctx.oprApp == null || ctx.oprApp.lhs == null) return {}
     const opr = ctx.oprApp.lastOpr()
     if (opr == null || opr.repr() !== '.') return {}
@@ -358,6 +374,10 @@ export function useComponentBrowserInput(
         mainChange = { range: ctx.literal.span(), str }
         break
       }
+      case 'aiPrompt': {
+        mainChange = { range: [0, code.value.length], str }
+        break
+      }
     }
     const qnChange = qnChanges(entry)
     return { changes: [mainChange!, ...qnChange.changes], requiredImport: qnChange.requiredImport }
@@ -365,7 +385,7 @@ export function useComponentBrowserInput(
 
   function codeToBeInserted(entry: SuggestionEntry): string {
     const ctx = context.value
-    const opr = ctx.type !== 'changeLiteral' && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
+    const opr = 'oprApp' in ctx && ctx.oprApp != null ? ctx.oprApp.lastOpr() : null
     const oprAppSpacing =
       ctx.type === 'insert' && opr != null && opr.inner.whitespaceLengthInCodeBuffer > 0 ?
         ' '.repeat(opr.inner.whitespaceLengthInCodeBuffer)
@@ -395,7 +415,7 @@ export function useComponentBrowserInput(
     if (entry.selfType != null) return { changes: [], requiredImport: null }
     if (entry.kind === SuggestionKind.Local || entry.kind === SuggestionKind.Function)
       return { changes: [], requiredImport: null }
-    if (context.value.type !== 'changeLiteral' && context.value.oprApp != null) {
+    if ('oprApp' in context.value && context.value.oprApp != null) {
       // 1. Find the index of last identifier from the original qualified name that is already written by the user.
       const qn = entryQn(entry)
       const identifiers = qnIdentifiers(context.value.oprApp)
@@ -472,6 +492,29 @@ export function useComponentBrowserInput(
     selection.value = { start: code.value.length, end: code.value.length }
   }
 
+  const ai = useAI()
+  function applyAIPrompt() {
+    const ctx = context.value
+    console.log(ctx)
+    if (ctx.type !== 'aiPrompt') {
+      console.error('Cannot apply AI prompt in non-AI context')
+      return
+    }
+    const nodeId = graphDb.getIdentDefiningNode(ctx.selfIdent)
+    const node = nodeId ? graphDb.nodeIdToNode.get(nodeId) : undefined
+    if (!node) {
+      console.error('Cannot apply AI prompt without source node')
+      return
+    }
+    ai.query(ctx.type, node).then((result) => {
+      if (result.ok) {
+        code.value = result.value
+      } else {
+        result.error.log('Applying AI prompt failed')
+      }
+    })
+  }
+
   return {
     /** The current input's text (code). */
     code: codeModel,
@@ -489,6 +532,8 @@ export function useComponentBrowserInput(
     reset,
     /** Apply given suggested entry to the input. */
     applySuggestion,
+    // TODO[ao] reconsider or insert docs here
+    applyAIPrompt,
     /** Return input after applying given suggestion, without changing state. */
     inputAfterApplyingSuggestion,
     /** A list of imports to add when the suggestion is accepted */

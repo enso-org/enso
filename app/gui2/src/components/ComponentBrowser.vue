@@ -413,14 +413,21 @@ function acceptInput() {
 
 const handler = componentBrowserBindings.handler({
   applySuggestion() {
+    if (input.context.value.type === 'aiPrompt') return false
     applySuggestion()
   },
   acceptSuggestion() {
-    applySuggestion()
-    acceptInput()
+    if (input.context.value.type === 'aiPrompt') return false
+    acceptSuggestion()
   },
   acceptInput() {
+    if (input.context.value.type === 'aiPrompt') return false
     acceptInput()
+  },
+  acceptAIPrompt() {
+    console.log(input.context.value)
+    if (input.context.value.type !== 'aiPrompt') return false
+    input.applyAIPrompt()
   },
   moveUp() {
     if (selected.value != null && selected.value < components.value.length - 1) {

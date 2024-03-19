@@ -362,7 +362,7 @@ export class GraphDb {
         this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields })
       } else {
         const {
-          outerExprId,
+          outerExpr,
           pattern,
           rootExpr,
           innerExpr,
@@ -373,7 +373,7 @@ export class GraphDb {
         } = newNode
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
-        if (node.outerExprId !== outerExprId) node.outerExprId = outerExprId
+        if (differentOrDirty(node.outerExpr, outerExpr)) node.outerExpr = outerExpr
         if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
         if (differentOrDirty(node.rootExpr, rootExpr)) node.rootExpr = rootExpr
         if (differentOrDirty(node.innerExpr, innerExpr)) node.innerExpr = innerExpr
@@ -388,7 +388,7 @@ export class GraphDb {
         syncSet(node.conditionalPorts, conditionalPorts)
         // Ensure new fields can't be added to `NodeAstData` without this code being updated.
         const _allFieldsHandled = {
-          outerExprId,
+          outerExpr,
           pattern,
           rootExpr,
           innerExpr,
@@ -465,7 +465,7 @@ export class GraphDb {
     const pattern = Ast.parse(binding)
     const node: Node = {
       ...baseMockNode,
-      outerExprId: id,
+      outerExpr: id,
       pattern,
       rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
@@ -484,8 +484,8 @@ export function asNodeId(id: Ast.AstId): NodeId {
 }
 
 export interface NodeDataFromAst {
-  /** The ID of the outer expression. Usually this is an assignment expression (`a = b`). */
-  outerExprId: Ast.AstId
+  /** The outer expression, usually an assignment expression (`a = b`). */
+  outerExpr: Ast.Ast
   /** The left side of the assignment experssion, if `outerExpr` is an assignment expression. */
   pattern: Ast.Ast | undefined
   /** The value of the node. The right side of the assignment, if `outerExpr` is an assignment
@@ -525,7 +525,7 @@ const baseMockNode = {
 export function mockNode(exprId?: Ast.AstId): Node {
   return {
     ...baseMockNode,
-    outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
+    outerExpr: exprId ?? (random.uuidv4() as Ast.AstId),
     pattern: undefined,
     rootExpr: Ast.parse('0'),
     innerExpr: Ast.parse('0'),
