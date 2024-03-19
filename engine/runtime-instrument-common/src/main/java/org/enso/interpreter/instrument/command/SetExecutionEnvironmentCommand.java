@@ -38,6 +38,7 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
         ec);
   }
 
+  @SuppressWarnings("unchecked")
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     var logger = ctx.executionService().getLogger();

@@ -45,7 +45,8 @@ class UpsertVisualizationJob(
 ) extends Job[Option[Executable]](
       List(config.executionContextId),
       false,
-      false
+      false,
+      true
     )
     with UniqueJob[Option[Executable]] {
 

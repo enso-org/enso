@@ -46,6 +46,14 @@ final class JobExecutionEngine(
   val jobExecutor: ExecutorService =
     context.newFixedThreadPool(jobParallelism, "job-pool", false)
 
+  val highPriorityJobExecutor: ExecutorService =
+    context.newCachedThreadPool(
+      "prioritised-job-pool",
+      2,
+      Integer.MAX_VALUE,
+      false
+    )
+
   private val backgroundJobExecutor: ExecutorService =
     context.newFixedThreadPool(1, "background-job-pool", false)
 
@@ -84,7 +92,9 @@ final class JobExecutionEngine(
   /** @inheritdoc */
   override def run[A](job: Job[A]): Future[A] = {
     cancelDuplicateJobs(job, runningJobsRef)
-    runInternal(job, jobExecutor, runningJobsRef)
+    val executor =
+      if (job.highPriority) highPriorityJobExecutor else jobExecutor
+    runInternal(job, executor, runningJobsRef)
   }
 
   private def cancelDuplicateJobs[A](
@@ -165,11 +175,17 @@ final class JobExecutionEngine(
   }
 
   /** @inheritdoc */
-  override def abortJobs(contextId: UUID): Unit = {
+  override def abortJobs(
+    contextId: UUID,
+    toAbort: Class[_ <: Job[_]]*
+  ): Unit = {
     val allJobs     = runningJobsRef.get()
     val contextJobs = allJobs.filter(_.job.contextIds.contains(contextId))
     contextJobs.foreach { runningJob =>
-      if (runningJob.job.isCancellable) {
+      if (
+        runningJob.job.isCancellable && (toAbort.isEmpty || toAbort
+          .contains(runningJob.getClass))
+      ) {
         runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
       }
     }
