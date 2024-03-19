@@ -15,6 +15,14 @@ trait FileSystem[F[+_, +_]] {
     */
   def readFile(file: File): F[FileSystemFailure, String]
 
+  /** Writes binary content to a file.
+    *
+    * @param file path to the file
+    * @param contents a textual contents of the file
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def writeFile(file: File, contents: Array[Byte]): F[FileSystemFailure, Unit]
+
   /** Writes textual content to a file.
     *
     * @param file path to the file

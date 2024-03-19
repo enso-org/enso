@@ -29,4 +29,11 @@ trait FileSystemServiceApi[F[+_, +_]] {
     * @param to the destination path
     */
   def move(from: File, to: File): F[FileSystemServiceFailure, Unit]
+
+  /** Writes a file
+    *
+    * @param path the file path to write
+    * @param bytes the file contents
+    */
+  def write(path: File, bytes: Array[Byte]): F[FileSystemServiceFailure, Unit]
 }

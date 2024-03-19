@@ -33,6 +33,18 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
+  /** Writes binary content to a file.
+    *
+    * @param file path to the file
+    * @param contents a textual contents of the file
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def writeFile(file: File, contents: Array[Byte]): F[FileSystemFailure, Unit] =
+    Sync[F]
+      .blockingOp { FileUtils.writeByteArrayToFile(file, contents) }
+      .mapError(toFsFailure)
+      .timeoutFail(OperationTimeout)(ioTimeout)
+
   /** Writes textual content to a file.
     *
     * @param file path to the file
