@@ -4,7 +4,7 @@
 
 import * as React from 'react'
 
-import * as syncRef from '#/hooks/syncRef'
+import * as syncRef from '#/hooks/syncRefHooks'
 
 /**
  * useEvent shim.

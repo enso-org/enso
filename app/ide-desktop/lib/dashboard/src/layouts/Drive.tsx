@@ -5,9 +5,9 @@ import * as common from 'enso-common'
 
 import * as appUtils from '#/appUtils'
 
-import * as eventCallback from '#/hooks/eventCallback'
+import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as navigateHooks from '#/hooks/navigateHooks'
-import * as searchParamsState from '#/hooks/searchParamsState'
+import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'

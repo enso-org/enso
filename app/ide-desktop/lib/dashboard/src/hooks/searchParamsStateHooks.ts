@@ -7,8 +7,8 @@ import * as React from 'react'
 
 import * as reactRouterDom from 'react-router-dom'
 
-import * as eventCallback from '#/hooks/eventCallback'
-import * as lazyMemo from '#/hooks/useLazyMemo'
+import * as eventCallback from '#/hooks/eventCallbackHooks'
+import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 
 import * as safeJsonParse from '#/utilities/safeJsonParse'
 
@@ -32,7 +32,7 @@ export function useSearchParamsState<T = unknown>(
 ): SearchParamsStateReturnType<T> {
   const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
 
-  const lazyDefaultValueInitializer = lazyMemo.useLazyMemo(defaultValue, [])
+  const lazyDefaultValueInitializer = lazyMemo.useLazyMemoHooks(defaultValue, [])
   const predicateEventCallback = eventCallback.useEventCallback(predicate)
 
   const clear = eventCallback.useEventCallback((replace: boolean = false) => {

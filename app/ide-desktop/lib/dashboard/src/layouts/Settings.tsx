@@ -1,7 +1,7 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
-import * as searchParamsState from '#/hooks/searchParamsState'
+import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
