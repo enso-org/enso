@@ -29,9 +29,6 @@ const STATUS_SERVER_ERROR = 500
 /** The number of milliseconds in one day. */
 const ONE_DAY_MS = 86_400_000
 
-/** Default HTTP body for an "open project" request. */
-const DEFAULT_OPEN_PROJECT_BODY: backendModule.OpenProjectRequestBody = { executeAsync: false }
-
 // =============
 // === Types ===
 // =============
@@ -582,18 +579,25 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async openProject(
     projectId: backendModule.ProjectId,
-    body: backendModule.OpenProjectRequestBody | null,
+    body: backendModule.OpenProjectRequestBody,
     title: string | null
   ): Promise<void> {
     const path = remoteBackendPaths.openProjectPath(projectId)
-    const response = await this.post(path, body ?? DEFAULT_OPEN_PROJECT_BODY)
-    if (!responseIsSuccessful(response)) {
+    if (body.cognitoCredentials == null) {
       return this.throw(
-        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}`,
-        response
+        `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: Missing credentials`,
+        null
       )
     } else {
-      return
+      const response = await this.post(path, body)
+      if (!responseIsSuccessful(response)) {
+        return this.throw(
+          `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}`,
+          response
+        )
+      } else {
+        return
+      }
     }
   }
 
