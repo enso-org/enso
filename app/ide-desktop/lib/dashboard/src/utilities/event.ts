@@ -50,3 +50,13 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
   // Allow `alt` key to be pressed in case it is being used to enter special characters.
   return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
 }
+
+/** Whether the element accepts text input. */
+export function isElementTextInput(element: EventTarget | null) {
+  return (
+    element != null &&
+    (element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      (element instanceof HTMLElement && element.isContentEditable))
+  )
+}
