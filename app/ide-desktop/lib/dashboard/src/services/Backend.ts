@@ -442,6 +442,60 @@ export enum FilterBy {
   trashed = 'Trashed',
 }
 
+/** An event in an audit log. */
+export interface Event {
+  readonly organizationId: OrganizationId
+  readonly userEmail: EmailAddress
+  readonly timestamp: dateTime.Rfc3339DateTime | null
+  // Called `EventKind` in the backend.
+  readonly metadata: EventMetadata
+}
+
+/** Possible types of event in an audit log. */
+export enum EventType {
+  GetSecret = 'getSecret',
+  DeleteAssets = 'deleteAssets',
+  ListSecrets = 'listSecrets',
+  OpenProject = 'openProject',
+  UploadFile = 'uploadFile',
+}
+
+export const EVENT_TYPES = Object.freeze(Object.values(EventType))
+
+/** An event indicating that a secret was accessed. */
+interface GetSecretEventMetadata {
+  readonly type: EventType.GetSecret
+  readonly secretId: SecretId
+}
+
+/** An event indicating that one or more assets were deleted. */
+interface DeleteAssetsEventMetadata {
+  readonly type: EventType.DeleteAssets
+}
+
+/** An event indicating that all secrets were listed. */
+interface ListSecretsEventMetadata {
+  readonly type: EventType.ListSecrets
+}
+
+/** An event indicating that a project was opened. */
+interface OpenProjectEventMetadata {
+  readonly type: EventType.OpenProject
+}
+
+/** An event indicating that a file was uploaded. */
+interface UploadFileEventMetadata {
+  readonly type: EventType.UploadFile
+}
+
+/** All possible types of metadata for an event in the audit log. */
+export type EventMetadata =
+  | DeleteAssetsEventMetadata
+  | GetSecretEventMetadata
+  | ListSecretsEventMetadata
+  | OpenProjectEventMetadata
+  | UploadFileEventMetadata
+
 /** A color in the LCh colorspace. */
 export interface LChColor {
   readonly lightness: number
@@ -1151,4 +1205,6 @@ export default abstract class Backend {
   abstract createCheckoutSession(plan: Plan): Promise<CheckoutSession>
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
+  /** List events in the organization's audit log. */
+  abstract getLogEvents(): Promise<Event[]>
 }
