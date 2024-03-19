@@ -8,7 +8,7 @@ import { DiffEditor } from '@monaco-editor/react'
 
 import Spinner, { SpinnerState } from '#/components/Spinner'
 
-import type { AnyAsset } from '#/services/Backend'
+import type { ProjectId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import path from './enso.tmLanguage.json?url'
@@ -20,7 +20,7 @@ import { useFetchVersionContent } from './useFetchVersionContent'
 export interface AssetDiffViewProps {
   readonly versionId: string
   readonly latestVersionId: string
-  readonly projectId: AnyAsset['id']
+  readonly projectId: ProjectId
   readonly backend: RemoteBackend
 }
 

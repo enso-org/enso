@@ -12,7 +12,7 @@ import { useStrictPortalContext } from '#/components/Portal'
 export interface TooltipProps
   extends Omit<AriaTooltipProps, 'offset' | 'UNSTABLE_portalContainer'> {}
 
-const DEFAULT_CLASSES = 'flex bg-neutral-800 text-white p-2 rounded-md shadow-lg text-xs'
+const DEFAULT_CLASSES = 'z-1 flex bg-neutral-800 text-white p-2 rounded-md shadow-lg text-xs'
 
 const DEFAULT_CONTAINER_PADDING = 4
 const DEFAULT_OFFSET = 4

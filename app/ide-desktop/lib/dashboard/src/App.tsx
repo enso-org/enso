@@ -145,29 +145,26 @@ export default function App(props: AppProps) {
   // eslint-disable-next-line no-restricted-syntax
   const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
   const queryClient = React.useMemo(() => new reactQuery.QueryClient(), [])
-  const rootRef = React.useRef<HTMLDivElement>(null)
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
-    <div ref={rootRef} className="contents">
-      <reactQuery.QueryClientProvider client={queryClient}>
-        <toastify.ToastContainer
-          position="top-center"
-          theme="light"
-          closeOnClick={false}
-          draggable={false}
-          toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
-          transition={toastify.Zoom}
-          limit={3}
-        />
-        <Router basename={getMainPageUrl().pathname}>
-          <LocalStorageProvider>
-            <AppRouter {...props} rootRef={rootRef} />
-          </LocalStorageProvider>
-        </Router>
-      </reactQuery.QueryClientProvider>
-    </div>
+    <reactQuery.QueryClientProvider client={queryClient}>
+      <toastify.ToastContainer
+        position="top-center"
+        theme="light"
+        closeOnClick={false}
+        draggable={false}
+        toastClassName="text-sm leading-cozy bg-selected-frame rounded-default backdrop-blur-default"
+        transition={toastify.Zoom}
+        limit={3}
+      />
+      <Router basename={getMainPageUrl().pathname}>
+        <LocalStorageProvider>
+          <AppRouter {...props} />
+        </LocalStorageProvider>
+      </Router>
+    </reactQuery.QueryClientProvider>
   )
 }
 
@@ -180,7 +177,7 @@ export default function App(props: AppProps) {
  * The only reason the {@link AppRouter} component is separate from the {@link App} component is
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
-function AppRouter(props: AppProps & { readonly rootRef: React.RefObject<HTMLDivElement> }) {
+function AppRouter(props: AppProps) {
   const { logger, supportsLocalBackend, isAuthenticationDisabled, shouldShowDashboard } = props
   const { onAuthenticated, projectManagerUrl } = props
   // `navigateHooks.useNavigate` cannot be used here as it relies on `AuthProvider`, which has not
@@ -193,6 +190,9 @@ function AppRouter(props: AppProps & { readonly rootRef: React.RefObject<HTMLDiv
     window.navigate = navigate
   }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
+  const [root] = React.useState<React.RefObject<HTMLElement>>(() => ({
+    current: document.getElementById('enso-dashboard'),
+  }))
 
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
@@ -367,7 +367,7 @@ function AppRouter(props: AppProps & { readonly rootRef: React.RefObject<HTMLDiv
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
   result = (
-    <Root rootRef={props.rootRef} navigate={navigate}>
+    <Root rootRef={root} navigate={navigate}>
       {result}
     </Root>
   )

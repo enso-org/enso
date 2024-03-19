@@ -7,7 +7,7 @@ import { Button, Tooltip, TooltipTrigger } from '#/components/AriaComponents'
 import { Dialog, DialogTrigger } from '#/components/AriaComponents/Dialog/Dialog'
 
 import type * as backendService from '#/services/Backend'
-import type { AnyAsset } from '#/services/Backend'
+import { AssetType, type AnyAsset } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
 import * as dateTime from '#/utilities/dateTime'
@@ -20,7 +20,7 @@ import * as assetDiffView from './AssetDiffView'
 
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
-  readonly projectId: AnyAsset['id']
+  readonly item: AnyAsset
   readonly number: number
   readonly version: backendService.S3ObjectVersion
   readonly latestVersion: backendService.S3ObjectVersion
@@ -29,8 +29,9 @@ export interface AssetVersionProps {
 
 /** Displays information describing a specific version of an asset. */
 export default function AssetVersion(props: AssetVersionProps) {
-  const { number, version, projectId, backend, latestVersion } = props
+  const { number, version, item, backend, latestVersion } = props
 
+  const isProject = item.type === AssetType.project
   const versionName = `version ${number}`
 
   return (
@@ -44,27 +45,29 @@ export default function AssetVersion(props: AssetVersionProps) {
       </div>
 
       <div className="flex gap-1 items-center">
-        <DialogTrigger>
-          <TooltipTrigger>
-            <Button
-              variant="icon"
-              aria-label="Compare with HEAD"
-              icon={Duplicate}
-              isDisabled={version.isLatest}
-            />
+        {isProject && (
+          <DialogTrigger>
+            <TooltipTrigger>
+              <Button
+                variant="icon"
+                aria-label="Compare with HEAD"
+                icon={Duplicate}
+                isDisabled={version.isLatest}
+              />
 
-            <Tooltip>Compare with HEAD</Tooltip>
-          </TooltipTrigger>
+              <Tooltip>Compare with HEAD</Tooltip>
+            </TooltipTrigger>
 
-          <Dialog type="fullscreen" title={`Compare ${versionName} with HEAD`}>
-            <assetDiffView.AssetDiffView
-              latestVersionId={latestVersion.versionId}
-              versionId={version.versionId}
-              projectId={projectId}
-              backend={backend}
-            />
-          </Dialog>
-        </DialogTrigger>
+            <Dialog type="fullscreen" title={`Compare ${versionName} with HEAD`}>
+              <assetDiffView.AssetDiffView
+                latestVersionId={latestVersion.versionId}
+                versionId={version.versionId}
+                projectId={item.id}
+                backend={backend}
+              />
+            </Dialog>
+          </DialogTrigger>
+        )}
       </div>
     </div>
   )

@@ -9,7 +9,7 @@ import { useStrictPortalContext } from '#/components/Portal'
 import type { DialogProps, DialogType } from './types'
 
 const MODAL_CLASSES =
-  'fixed top-0 left-0 right-0 bottom-0 isolate bg-black/[15%] flex items-center justify-center text-center'
+  'fixed z-1 top-0 left-0 right-0 bottom-0 isolate bg-black/[15%] flex items-center justify-center text-center'
 const DIALOG_CLASSES =
   'flex flex-col overflow-hidden rounded-xl bg-white text-left align-middle text-slate-700 shadow-2xl bg-clip-padding border border-black/10'
 

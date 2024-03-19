@@ -68,7 +68,7 @@ export default function AssetVersions(props: AssetVersionsProps) {
               key={version.versionId}
               number={versions.length - i}
               version={version}
-              projectId={item.item.id}
+              item={item.item}
               backend={backend}
               latestVersion={latestVersion}
             />

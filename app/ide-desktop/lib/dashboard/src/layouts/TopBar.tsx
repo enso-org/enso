@@ -1,8 +1,6 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
-import * as reactDom from 'react-dom'
-
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
 import BackendSwitcher from '#/layouts/BackendSwitcher'
@@ -10,6 +8,7 @@ import PageSwitcher, * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserBar from '#/layouts/UserBar'
 
 import AssetInfoBar from '#/components/dashboard/AssetInfoBar'
+import { Portal } from '#/components/Portal'
 
 import type * as backendModule from '#/services/Backend'
 
@@ -50,7 +49,6 @@ export default function TopBar(props: TopBarProps) {
   const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
-  const [root] = React.useState(() => document.getElementById('enso-dashboard'))
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
@@ -98,33 +96,31 @@ export default function TopBar(props: TopBarProps) {
           )}
         </div>
       </div>
-      {root &&
-        reactDom.createPortal(
-          <div
-            className={`fixed right top z-1 m-top-bar text-xs text-primary ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''}`}
-          >
-            <div className="flex gap-top-bar-right">
-              {page === pageSwitcher.Page.drive && (
-                <AssetInfoBar
-                  isAssetPanelEnabled={isAssetPanelEnabled}
-                  setIsAssetPanelEnabled={setIsAssetPanelEnabled}
-                />
-              )}
-              <UserBar
-                supportsLocalBackend={supportsLocalBackend}
-                page={page}
-                setPage={setPage}
-                isHelpChatOpen={isHelpChatOpen}
-                setIsHelpChatOpen={setIsHelpChatOpen}
-                projectAsset={projectAsset}
-                setProjectAsset={setProjectAsset}
-                doRemoveSelf={doRemoveSelf}
-                onSignOut={onSignOut}
+      <Portal>
+        <div
+          className={`fixed right top z-1 m-top-bar text-xs text-primary ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''}`}
+        >
+          <div className="flex gap-top-bar-right">
+            {page === pageSwitcher.Page.drive && (
+              <AssetInfoBar
+                isAssetPanelEnabled={isAssetPanelEnabled}
+                setIsAssetPanelEnabled={setIsAssetPanelEnabled}
               />
-            </div>
-          </div>,
-          root
-        )}
+            )}
+            <UserBar
+              supportsLocalBackend={supportsLocalBackend}
+              page={page}
+              setPage={setPage}
+              isHelpChatOpen={isHelpChatOpen}
+              setIsHelpChatOpen={setIsHelpChatOpen}
+              projectAsset={projectAsset}
+              setProjectAsset={setProjectAsset}
+              doRemoveSelf={doRemoveSelf}
+              onSignOut={onSignOut}
+            />
+          </div>
+        </div>
+      </Portal>
     </div>
   )
 }
