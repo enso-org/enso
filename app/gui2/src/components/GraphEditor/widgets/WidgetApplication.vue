@@ -48,7 +48,10 @@ export const widgetDefinition = defineWidget(ArgumentApplicationKey, {
       <NodeWidget :input="WidgetInput.FromAst(application.infixOperator)" />
     </div>
     <Transition name="collapse-argument">
-      <div v-if="tree.extended || !application.argument.hideByDefault" class="argument">
+      <div
+        v-if="tree.extended || !application.argument.hideByDefault"
+        class="argument overridableClipState"
+      >
         <NodeWidget :input="application.argument.toWidgetInput()" nest />
       </div>
     </Transition>

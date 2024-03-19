@@ -126,6 +126,50 @@ class SuggestionsHandlerEventsTest
         }
         """)
 
+      // add getter
+      system.eventStream.publish(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          "Foo.Main",
+          Vector(),
+          Vector(),
+          Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestions.getter,
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+      client.expectJson(json"""
+        { "jsonrpc" : "2.0",
+          "method" : "search/suggestionsDatabaseUpdates",
+          "params" : {
+            "updates" : [
+              {
+                "type" : "Add",
+                "id" : 3,
+                "suggestion" : {
+                  "type" : "method",
+                  "module" : "local.Test.Main",
+                  "name" : "a",
+                  "arguments" : [ ],
+                  "selfType" : "MyType",
+                  "returnType" : "Any",
+                  "isStatic" : false,
+                  "annotations" : [ ]
+                }
+              }
+            ],
+            "currentVersion" : 3
+          }
+        }
+        """)
+
       // add method
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -160,7 +204,7 @@ class SuggestionsHandlerEventsTest
             "updates" : [
               {
                 "type" : "Add",
-                "id" : 3,
+                "id" : 4,
                 "suggestion" : {
                   "type" : "method",
                   "externalId" : "ea9d7734-26a7-4f65-9dd9-c648eaf57d63",
@@ -192,7 +236,7 @@ class SuggestionsHandlerEventsTest
                 }
               }
             ],
-            "currentVersion" : 3
+            "currentVersion" : 4
           }
         }
         """)
@@ -239,7 +283,7 @@ class SuggestionsHandlerEventsTest
             "updates" : [
               {
                 "type" : "Add",
-                "id" : 4,
+                "id" : 5,
                 "suggestion" : {
                   "type" : "function",
                   "externalId" : "78d452ce-ed48-48f1-b4f2-b7f45f8dff89",
@@ -286,7 +330,7 @@ class SuggestionsHandlerEventsTest
                 }
               }
             ],
-            "currentVersion" : 4
+            "currentVersion" : 5
           }
         }
       """)
@@ -341,7 +385,7 @@ class SuggestionsHandlerEventsTest
             "updates" : [
               {
                 "type" : "Add",
-                "id" : 5,
+                "id" : 6,
                 "suggestion" : {
                   "type" : "local",
                   "externalId" : "dc077227-d9b6-4620-9b51-792c2a69419d",
@@ -361,7 +405,7 @@ class SuggestionsHandlerEventsTest
                 }
               }
             ],
-            "currentVersion" : 5
+            "currentVersion" : 6
           }
         }
         """)
@@ -456,7 +500,7 @@ class SuggestionsHandlerEventsTest
               },
               {
                 "type" : "Modify",
-                "id" : 4,
+                "id" : 5,
                 "externalId" : {
                   "tag" : "Remove",
                   "value" : null
@@ -464,7 +508,7 @@ class SuggestionsHandlerEventsTest
               },
               {
                 "type" : "Modify",
-                "id" : 5,
+                "id" : 6,
                 "scope" : {
                   "tag" : "Set",
                   "value" : {
@@ -480,7 +524,7 @@ class SuggestionsHandlerEventsTest
                 }
               }
             ],
-            "currentVersion" : 7
+            "currentVersion" : 8
           }
         }
         """)
@@ -534,7 +578,7 @@ class SuggestionsHandlerEventsTest
                   }
                 }
               ],
-              "currentVersion" : 8
+              "currentVersion" : 9
             }
           }
         """)
@@ -575,9 +619,13 @@ class SuggestionsHandlerEventsTest
               {
                 "type" : "Remove",
                 "id" : 5
+              },
+              {
+                "type" : "Remove",
+                "id" : 6
               }
             ],
-            "currentVersion" : 8
+            "currentVersion" : 9
           }
         }
         """)

@@ -432,6 +432,7 @@ const documentation = computed<string | undefined>({
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
+      data-testid="recordingOverriddenButton"
       @click="isRecordingOverridden = false"
     >
       <SvgIcon name="record" />
@@ -493,6 +494,7 @@ const documentation = computed<string | undefined>({
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
+        :conditionalPorts="props.node.conditionalPorts"
         :extended="isOnlyOneSelected"
         @openFullMenu="openFullMenu"
       />

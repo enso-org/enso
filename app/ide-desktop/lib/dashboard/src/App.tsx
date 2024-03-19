@@ -66,7 +66,9 @@ import Subscribe from '#/pages/subscribe/Subscribe'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
+import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
+import * as object from '#/utilities/object'
 
 import * as authServiceModule from '#/authentication/service'
 
@@ -77,9 +79,7 @@ import * as authServiceModule from '#/authentication/service'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
-    readonly inputBindings: Partial<
-      Readonly<Record<inputBindingsModule.DashboardBindingKey, string[]>>
-    >
+    readonly inputBindings: Readonly<Record<string, readonly string[]>>
   }
 }
 
@@ -88,9 +88,7 @@ LocalStorage.registerKey('inputBindings', {
     typeof value !== 'object' || value == null
       ? null
       : Object.fromEntries(
-          // This is SAFE, as it is a readonly upcast.
-          // eslint-disable-next-line no-restricted-syntax
-          Object.entries(value as Readonly<Record<string, unknown>>).flatMap(kv => {
+          Object.entries<unknown>({ ...value }).flatMap(kv => {
             const [k, v] = kv
             return Array.isArray(v) && v.every((item): item is string => typeof item === 'string')
               ? [[k, v]]
@@ -190,16 +188,18 @@ function AppRouter(props: AppProps) {
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
-    for (const k in savedInputBindings) {
-      // This is UNSAFE, hence the `?? []` below.
-      // eslint-disable-next-line no-restricted-syntax
-      const bindingKey = k as inputBindingsModule.DashboardBindingKey
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings ?? []) {
-        inputBindingsRaw.delete(bindingKey, oldBinding)
-      }
-      for (const newBinding of savedInputBindings[bindingKey] ?? []) {
-        inputBindingsRaw.add(bindingKey, newBinding)
+    if (savedInputBindings != null) {
+      const filteredInputBindings = object.mapEntries(
+        inputBindingsRaw.metadata,
+        k => savedInputBindings[k]
+      )
+      for (const [bindingKey, newBindings] of object.unsafeEntries(filteredInputBindings)) {
+        for (const oldBinding of inputBindingsRaw.metadata[bindingKey].bindings) {
+          inputBindingsRaw.delete(bindingKey, oldBinding)
+        }
+        for (const newBinding of newBindings ?? []) {
+          inputBindingsRaw.add(bindingKey, newBinding)
+        }
       }
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
@@ -218,11 +218,11 @@ function AppRouter(props: AppProps) {
     return {
       /** Transparently pass through `handler()`. */
       get handler() {
-        return inputBindingsRaw.handler
+        return inputBindingsRaw.handler.bind(inputBindingsRaw)
       },
       /** Transparently pass through `attach()`. */
       get attach() {
-        return inputBindingsRaw.attach
+        return inputBindingsRaw.attach.bind(inputBindingsRaw)
       },
       reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
         inputBindingsRaw.reset(bindingKey)
@@ -239,6 +239,14 @@ function AppRouter(props: AppProps) {
       /** Transparently pass through `metadata`. */
       get metadata() {
         return inputBindingsRaw.metadata
+      },
+      /** Transparently pass through `register()`. */
+      get register() {
+        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
+      },
+      /** Transparently pass through `unregister()`. */
+      get unregister() {
+        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
       },
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
@@ -260,12 +268,7 @@ function AppRouter(props: AppProps) {
       isClick = true
     }
     const onMouseUp = (event: MouseEvent) => {
-      if (
-        isClick &&
-        !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLTextAreaElement) &&
-        !(event.target instanceof HTMLElement && event.target.isContentEditable)
-      ) {
+      if (isClick && !eventModule.isElementTextInput(event.target)) {
         const selection = document.getSelection()
         const app = document.getElementById('app')
         const appContainsSelection =

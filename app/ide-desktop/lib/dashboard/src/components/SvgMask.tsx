@@ -29,6 +29,7 @@ export default function SvgMask(props: SvgMaskProps) {
 
   return (
     <div
+      {...(onClick == null ? {} : { role: 'button' })}
       title={title}
       style={{
         ...(style ?? {}),
