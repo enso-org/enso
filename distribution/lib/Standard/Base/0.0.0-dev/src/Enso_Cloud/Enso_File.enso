@@ -9,6 +9,7 @@ import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Data_Link
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
 import project.Enso_Cloud.Internal.Utils
@@ -31,7 +32,6 @@ import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
-from project.Enso_Cloud.Data_Link import data_link_content_type, read_datalink
 from project.Enso_Cloud.Public_Utils import get_required_field
 from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Text_Format
 from project.System.File.Generic.File_Write_Strategy import generic_copy
@@ -223,9 +223,9 @@ type Enso_File
         Enso_Asset_Type.Project -> Error.throw (Illegal_Argument.Error "Projects cannot be read within Enso code. Open using the IDE.")
         Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
         Enso_Asset_Type.Data_Link ->
-            # TODO
             json = Utils.http_request_as_json HTTP_Method.Get self.internal_uri
-            read_datalink json on_problems
+            datalink = Data_Link.interpret_json_as_datalink json
+            datalink.read format on_problems
         Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
         Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <| case format of
             Auto_Detect ->
@@ -390,7 +390,7 @@ File_Format_Metadata.from (that:Enso_File) =
     path = Nothing
     case that.asset_type of
         Enso_Asset_Type.Data_Link ->
-            File_Format_Metadata.Value path=path name=that.name content_type=data_link_content_type
+            File_Format_Metadata.Value path=path name=that.name content_type=Data_Link.data_link_content_type
         Enso_Asset_Type.Directory ->
             File_Format_Metadata.Value path=path name=that.name extension=(that.extension.catch _->Nothing)
         Enso_Asset_Type.File ->

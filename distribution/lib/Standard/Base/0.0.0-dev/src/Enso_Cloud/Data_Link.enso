@@ -99,6 +99,7 @@ type Data_Link_Format
         interpret_json_as_datalink config . if_not_error Nothing
 
 ## PRIVATE
+   An interface for a data link description.
 type Data_Link
     ## PRIVATE
     read (format = Auto_Detect) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) -> Any =
@@ -146,7 +147,6 @@ read_datalink (file : File_Like) format (on_problems : Problem_Behavior) =
     json = Data_Link_Format.read_config file
     data_link_instance = interpret_json_as_datalink json
     data_link_instance.read format on_problems
-
 
 ## PRIVATE
 read_datalink_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
