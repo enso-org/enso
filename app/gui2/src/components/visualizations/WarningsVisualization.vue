@@ -1,5 +1,7 @@
 <script lang="ts">
+import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { computed } from 'vue'
 
 export const name = 'Warnings'
 export const icon = 'exclamation'
@@ -9,7 +11,9 @@ export const defaultPreprocessor = [
   'process_to_json_text',
 ] as const
 
-const removeWarnings = Pattern.parse('__.remove_warnings')
+const removeWarnings = computed(() =>
+  Pattern.new((ast) => Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('remove_warnings')!)),
+)
 </script>
 
 <script setup lang="ts">
