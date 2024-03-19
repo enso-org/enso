@@ -163,7 +163,8 @@ class SuggestionsHandlerEventsTest
                   "selfType" : "MyType",
                   "returnType" : "Any",
                   "isStatic" : false,
-                  "annotations" : [ ]
+                  "annotations" : [ ],
+                  "reexports" : [ ]
                 }
               }
             ],
@@ -581,7 +582,7 @@ class SuggestionsHandlerEventsTest
                   }
                 }
               ],
-              "currentVersion" : 10
+              "currentVersion" : 8
             }
           }
         """)
@@ -628,7 +629,7 @@ class SuggestionsHandlerEventsTest
                 "id" : 6
               }
             ],
-            "currentVersion" : 10
+            "currentVersion" : 8
           }
         }
         """)
