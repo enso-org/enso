@@ -1,10 +1,6 @@
 package org.enso.projectmanager.service.filesystem
 
-import org.enso.projectmanager.control.core.{
-  Applicative,
-  CovariantFlatMap,
-  Traverse
-}
+import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap, Traverse}
 import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.infrastructure.file.FileSystem
 import org.enso.projectmanager.control.core.syntax._
@@ -12,7 +8,7 @@ import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFactory
 import org.enso.projectmanager.service.ProjectService
 
-import java.io.File
+import java.io.{File, InputStream}
 import java.nio.file.Files
 import java.nio.file.attribute.BasicFileAttributes
 
@@ -59,10 +55,10 @@ class FileSystemService[F[+_, +_]: Applicative: CovariantFlatMap: ErrorChannel](
   /** @inheritdoc */
   override def write(
     path: File,
-    bytes: Array[Byte]
+    contents: InputStream
   ): F[FileSystemServiceFailure, Unit] =
     fileSystem
-      .writeFile(path, bytes)
+      .writeFile(path, contents)
       .mapError(_ =>
         FileSystemServiceFailure.FileSystem("Failed to write path")
       )

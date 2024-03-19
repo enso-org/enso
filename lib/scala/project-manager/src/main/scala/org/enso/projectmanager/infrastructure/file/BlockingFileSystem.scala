@@ -1,5 +1,5 @@
 package org.enso.projectmanager.infrastructure.file
-import java.io.{File, FileNotFoundException}
+import java.io.{File, FileNotFoundException, InputStream}
 import java.nio.file.{
   AccessDeniedException,
   NoSuchFileException,
@@ -39,9 +39,9 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
     * @param contents a textual contents of the file
     * @return either [[FileSystemFailure]] or Unit
     */
-  def writeFile(file: File, contents: Array[Byte]): F[FileSystemFailure, Unit] =
+  def writeFile(file: File, contents: InputStream): F[FileSystemFailure, Unit] =
     Sync[F]
-      .blockingOp { FileUtils.writeByteArrayToFile(file, contents) }
+      .blockingOp { FileUtils.copyInputStreamToFile(contents, file) }
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 

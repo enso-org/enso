@@ -1,6 +1,5 @@
 package org.enso.projectmanager.boot.command.filesystem
 
-import org.apache.commons.io.IOUtils
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
@@ -16,12 +15,12 @@ import org.enso.projectmanager.service.filesystem.{
   FileSystemServiceFailure
 }
 
-import java.io.File
+import java.io.{File, InputStream}
 
 final class FileSystemWritePathCommand[F[+_, +_]: CovariantFlatMap](
   service: FileSystemServiceApi[F],
   path: File,
-  data: Array[Byte]
+  data: InputStream
 ) {
 
   def run: F[FileSystemServiceFailure, FileSystemWritePath.Result] =
@@ -46,8 +45,6 @@ object FileSystemWritePathCommand {
 
     val service = new FileSystemService[F](fileSystem, projectRepositoryFactory)
 
-    val data = IOUtils.toByteArray(System.in)
-
-    new FileSystemWritePathCommand[F](service, path, data)
+    new FileSystemWritePathCommand[F](service, path, System.in)
   }
 }
