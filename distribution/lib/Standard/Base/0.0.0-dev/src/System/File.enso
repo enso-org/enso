@@ -245,15 +245,18 @@ type File
                  file.with_input_stream [File_Access.Create, File_Access.Read] action
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream self (open_options : Vector) action =
+        new_input_stream : File -> Vector File_Access -> Output_Stream ! File_Error
+        new_input_stream file open_options =
+            opts = open_options . map (_.to_java)
+            stream = File_Error.handle_java_exceptions file (file.input_stream_builtin opts)
+            Input_Stream.new stream (File_Error.handle_java_exceptions self)
+
         if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
             if open_as_data_link then Data_Link.read_datalink_as_stream self open_options action else
-                new_input_stream : File -> Vector File_Access -> Output_Stream ! File_Error
-                new_input_stream file open_options =
-                    opts = open_options . map (_.to_java)
-                    stream = File_Error.handle_java_exceptions file (file.input_stream_builtin opts)
-                    Input_Stream.new stream (File_Error.handle_java_exceptions self)
-                Managed_Resource.bracket (new_input_stream self open_options) (_.close) action
+                # We ignore the Data_Link_Access options at this stage:
+                just_file_options = open_options.filter opt-> opt.is_a File_Access
+                Managed_Resource.bracket (new_input_stream self just_file_options) (_.close) action
 
     ## ALIAS load, open
        GROUP Input
