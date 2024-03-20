@@ -408,7 +408,7 @@ export interface OrganizationInfo {
 export interface SimpleUser {
   readonly organizationId: OrganizationId
   readonly userId: UserId
-  readonly id: Subject
+  readonly userSubject: Subject
   readonly name: string
   readonly email: EmailAddress
 }
