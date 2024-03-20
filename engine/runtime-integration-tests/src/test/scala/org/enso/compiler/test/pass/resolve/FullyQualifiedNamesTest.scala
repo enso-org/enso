@@ -52,18 +52,17 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
       })
   }
 
-  /**
-   * Collect all the BindingsMap Resolutions from the whole IR, no matter from which
-   * IR metadata pass they originate.
-   * @return
-   */
+  /** Collect all the BindingsMap Resolutions from the whole IR, no matter from which
+    * IR metadata pass they originate.
+    * @return
+    */
   private def collectResolutions(
     ir: Module
   ): List[(IR, BindingsMap.Resolution)] = {
     val buffer = ListBuffer[(IR, BindingsMap.Resolution)]()
     ir.preorder()
       .foreach(exp => {
-        exp.passData.map ( (_, value) => {
+        exp.passData.map((_, value) => {
           value match {
             case resolution: BindingsMap.Resolution =>
               buffer.addOne((exp, resolution))
@@ -98,7 +97,7 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
           |main =
           |    Standard.Base.Data.Vector
           |""".stripMargin
-      val ir = src.preprocessModule
+      val ir       = src.preprocessModule
       val metadata = collectMetadata(ir)
       metadata.size shouldBe 1
       metadata.head.target
@@ -110,7 +109,7 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
 
       val resolutionNames = collectResolutionNames(ir)
       resolutionNames should contain
-        QualifiedName(List("Standard", "Base", "Data"), "Vector")
+      QualifiedName(List("Standard", "Base", "Data"), "Vector")
 
       val res = execMain(src)
       res.isMetaObject shouldBe true
@@ -124,10 +123,13 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
           |main =
           |    Test.Fully_Qualified_Names.A_Type
           |""".stripMargin
-      val ir = src.preprocessModule
+      val ir              = src.preprocessModule
       val resolutionNames = collectResolutionNames(ir)
       resolutionNames should contain
-        QualifiedName(List("Test", "Fully_Qualified_Names", "Synthetic_Mod", "A_Mod"), "A_Type")
+      QualifiedName(
+        List("Test", "Fully_Qualified_Names", "Synthetic_Mod", "A_Mod"),
+        "A_Type"
+      )
 
       val metadata = collectMetadata(ir)
       metadata.size shouldBe 1
@@ -150,19 +152,25 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
           |main =
           |    Test.Fully_Qualified_Names.Synthetic_Mod.A_Mod.A_Type
           |""".stripMargin
-      val ir = src.preprocessModule
+      val ir          = src.preprocessModule
       val fqnMetadata = collectMetadata(ir)
       fqnMetadata.size shouldBe 1
       fqnMetadata.head.target
         .asInstanceOf[FullyQualifiedNames.ResolvedModule]
         .moduleRef
         .getName shouldBe (
-        QualifiedName(List("Test", "Fully_Qualified_Names", "Synthetic_Mod"), "A_Mod")
+        QualifiedName(
+          List("Test", "Fully_Qualified_Names", "Synthetic_Mod"),
+          "A_Mod"
+        )
       )
 
       val resolutionNames = collectResolutionNames(ir)
       resolutionNames should contain
-        QualifiedName(List("Test", "Fully_Qualified_Names", "Synthetic_Mod", "A_Mod"), "A_Type")
+      QualifiedName(
+        List("Test", "Fully_Qualified_Names", "Synthetic_Mod", "A_Mod"),
+        "A_Type"
+      )
     }
 
     "be able to reference methods in synthetic modules via physical path (Execution)" in {

@@ -1,7 +1,12 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.PackageRepository
-import org.enso.compiler.context.{CompilerContext, FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{
+  CompilerContext,
+  FreshNameSupply,
+  InlineContext,
+  ModuleContext
+}
 import org.enso.compiler.core.ir.{Expression, Module, Name, Type}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.Export
@@ -10,7 +15,12 @@ import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{ExportedModule, ModuleReference, Resolution, ResolvedType}
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ModuleReference,
+  Resolution,
+  ResolvedType
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
 import org.enso.compiler.core.ir.expression.Application
@@ -321,24 +331,44 @@ case object FullyQualifiedNames extends IRPass {
         // that should be resolve. These will only be present if the currently processed
         // IR has attached metadata from previous processing.
         (thisArgMeta, processedFun) match {
-          case (Some(ResolvedLibraryNamespace(namespace)), name: Name.Literal) =>
+          case (
+                Some(ResolvedLibraryNamespace(namespace)),
+                name: Name.Literal
+              ) =>
             val libName = LibraryName(namespace, name.name)
             val modNameToResolve = QualifiedName(
               List(libName.namespace, libName.name),
               Imports.mainModuleName.name
             )
-            transformLiteral(name, libName, modNameToResolve, pkgRepo, freshNameSupply)
-          case (Some(ResolvedModule(moduleRef, Some(libName))), name: Name.Literal) =>
+            transformLiteral(
+              name,
+              libName,
+              modNameToResolve,
+              pkgRepo,
+              freshNameSupply
+            )
+          case (
+                Some(ResolvedModule(moduleRef, Some(libName))),
+                name: Name.Literal
+              ) =>
             // resolvedMod is a resolved module inside some library. Let's see whether
             // the current `name` literal points to a child module of the resolvedMod.
-            val isMainModule = moduleRef.getName.item == Imports.mainModuleName.name
+            val isMainModule =
+              moduleRef.getName.item == Imports.mainModuleName.name
             val modNameToResolve = if (isMainModule) {
               QualifiedName(moduleRef.getName.path, name.name)
             } else {
-              val newPath = moduleRef.getName.path ++ List(moduleRef.getName.item)
+              val newPath =
+                moduleRef.getName.path ++ List(moduleRef.getName.item)
               QualifiedName(newPath, name.name)
             }
-            transformLiteral(name, libName, modNameToResolve, pkgRepo, freshNameSupply)
+            transformLiteral(
+              name,
+              libName,
+              modNameToResolve,
+              pkgRepo,
+              freshNameSupply
+            )
           case _ =>
             None
         }
@@ -351,75 +381,74 @@ case object FullyQualifiedNames extends IRPass {
     )
   }
 
-  /**
-   * Tries to resolve a FQN of a module within a library.
-   * @param libName Library name of the library in which the module is to be resolved.
-   * @param modFQN Fully qualified name of the module to be resolved.
-   * @param literal Currently processed Literal
-   * @param optPkgRepo Optional package repository. Not present in inline compilation.
-   * @return
-   */
+  /** Tries to resolve a FQN of a module within a library.
+    * @param libName Library name of the library in which the module is to be resolved.
+    * @param modFQN Fully qualified name of the module to be resolved.
+    * @param literal Currently processed Literal
+    * @param optPkgRepo Optional package repository. Not present in inline compilation.
+    * @return
+    */
   private def resolveQualName(
     libName: LibraryName,
     modFQN: QualifiedName,
     literal: Name.Literal,
     optPkgRepo: Option[PackageRepository]
   ): Either[Expression, Option[FQNResolution]] = {
-    optPkgRepo.flatMap{ pkgRepo =>
-      if (pkgRepo.isPackageLoaded(libName)) {
-        pkgRepo
-          .getLoadedModule(modFQN.toString)
-          .map { loadedModule =>
-            if (loadedModule.getIr == null && !loadedModule.isSynthetic) {
-              // Limitation of Fully Qualified Names:
-              // If the library has not been imported explicitly, then we won't have
-              // IR for it. Triggering a full compilation at this stage may have
-              // undesired consequences and is therefore prohibited on purpose.
-              Left(
-                errors.Resolution(
-                  literal,
-                  errors.Resolution
-                    .MissingLibraryImportInFQNError(libName.namespace)
+    optPkgRepo
+      .flatMap { pkgRepo =>
+        if (pkgRepo.isPackageLoaded(libName)) {
+          pkgRepo
+            .getLoadedModule(modFQN.toString)
+            .map { loadedModule =>
+              if (loadedModule.getIr == null && !loadedModule.isSynthetic) {
+                // Limitation of Fully Qualified Names:
+                // If the library has not been imported explicitly, then we won't have
+                // IR for it. Triggering a full compilation at this stage may have
+                // undesired consequences and is therefore prohibited on purpose.
+                Left(
+                  errors.Resolution(
+                    literal,
+                    errors.Resolution
+                      .MissingLibraryImportInFQNError(libName.namespace)
+                  )
                 )
-              )
-            } else {
-              Right(
-                Some(
-                  FQNResolution(
-                    ResolvedModule(
-                      ModuleReference.Concrete(loadedModule),
-                      Some(libName)
+              } else {
+                Right(
+                  Some(
+                    FQNResolution(
+                      ResolvedModule(
+                        ModuleReference.Concrete(loadedModule),
+                        Some(libName)
+                      )
                     )
                   )
                 )
-              )
+              }
             }
-          }
-      } else {
-        Some(
-          Left(
-            errors.Resolution(
-              literal,
-              errors.Resolution
-                .MissingLibraryImportInFQNError(libName.namespace)
+        } else {
+          Some(
+            Left(
+              errors.Resolution(
+                literal,
+                errors.Resolution
+                  .MissingLibraryImportInFQNError(libName.namespace)
+              )
             )
           )
-        )
+        }
       }
-    }
-    .getOrElse(Right(None))
+      .getOrElse(Right(None))
   }
 
-  /**
-   * Optionally transforms the given literal to an IR error, or to a new literal
-   * with attached metadata.
-   * @param literal Literal to transform
-   * @param libName Library name of the library in which the module is to be resolved.
-   * @param modNameToResolve Fully qualified name of the module to be resolved.
-   * @param pkgRepo Optional package repository. Not present in inline compilation.
-   * @param freshNameSupply Fresh name supply for generating new names.
-   * @return Either an IR error or a new literal with attached metadata.
-   */
+  /** Optionally transforms the given literal to an IR error, or to a new literal
+    * with attached metadata.
+    * @param literal Literal to transform
+    * @param libName Library name of the library in which the module is to be resolved.
+    * @param modNameToResolve Fully qualified name of the module to be resolved.
+    * @param pkgRepo Optional package repository. Not present in inline compilation.
+    * @param freshNameSupply Fresh name supply for generating new names.
+    * @return Either an IR error or a new literal with attached metadata.
+    */
   private def transformLiteral(
     literal: Name.Literal,
     libName: LibraryName,
@@ -485,7 +514,8 @@ case object FullyQualifiedNames extends IRPass {
     ): Option[PartiallyResolvedFQN]
   }
 
-  case class ResolvedLibraryNamespace(namespace: String) extends PartiallyResolvedFQN {
+  case class ResolvedLibraryNamespace(namespace: String)
+      extends PartiallyResolvedFQN {
     override def prepareForSerialization(
       compiler: CompilerContext
     ): PartiallyResolvedFQN = this
@@ -495,10 +525,9 @@ case object FullyQualifiedNames extends IRPass {
     ): Option[PartiallyResolvedFQN] = Some(this)
   }
 
-  /**
-   * @param moduleRef Reference to the resolved module
-   * @param libName Optional name of the library that contains the module
-   */
+  /** @param moduleRef Reference to the resolved module
+    * @param libName Optional name of the library that contains the module
+    */
   case class ResolvedModule(
     moduleRef: ModuleReference,
     libName: Option[LibraryName]
