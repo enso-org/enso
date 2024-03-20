@@ -104,17 +104,18 @@ export function getDefines(serverPort = 8080) {
 const SERVER_PORT = 8080
 const DUMMY_DEFINES = {
     /* eslint-disable @typescript-eslint/naming-convention */
-    'process.env.NODE_ENV': JSON.stringify('production'),
-    'process.env.ENSO_CLOUD_REDIRECT': JSON.stringify(`http://localhost:${SERVER_PORT}`),
-    'process.env.ENSO_CLOUD_ENVIRONMENT': JSON.stringify('production'),
-    'process.env.ENSO_CLOUD_API_URL': JSON.stringify('https://mock'),
-    'process.env.ENSO_CLOUD_SENTRY_DSN': JSON.stringify(''),
-    'process.env.ENSO_CLOUD_STRIPE_KEY': JSON.stringify(''),
-    'process.env.ENSO_CLOUD_CHAT_URL': JSON.stringify(''),
-    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID': JSON.stringify(''),
-    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID': JSON.stringify(''),
-    'process.env.ENSO_CLOUD_COGNITO_DOMAIN': JSON.stringify(''),
-    'process.env.ENSO_CLOUD_COGNITO_REGION': JSON.stringify(''),
+    'process.env.NODE_ENV': 'production',
+    'process.env.ENSO_CLOUD_REDIRECT': `http://localhost:${SERVER_PORT}`,
+    'process.env.ENSO_CLOUD_ENVIRONMENT': 'production',
+    'process.env.ENSO_CLOUD_API_URL': 'https://mock',
+    'process.env.ENSO_CLOUD_SENTRY_DSN':
+        'https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@o0000000000000000.ingest.sentry.io/0000000000000000',
+    'process.env.ENSO_CLOUD_STRIPE_KEY': '',
+    'process.env.ENSO_CLOUD_CHAT_URL': '',
+    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID': '',
+    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID': '',
+    'process.env.ENSO_CLOUD_COGNITO_DOMAIN': '',
+    'process.env.ENSO_CLOUD_COGNITO_REGION': '',
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
