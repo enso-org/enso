@@ -1,6 +1,9 @@
+import { loadTestEnvironmentVariables } from 'enso-common/src/appConfig'
 import { fileURLToPath } from 'node:url'
 import { configDefaults, defineConfig, mergeConfig } from 'vitest/config'
 import viteConfig from './vite.config'
+
+loadTestEnvironmentVariables()
 
 export default mergeConfig(
   viteConfig,

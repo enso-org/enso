@@ -99,3 +99,27 @@ export function getDefines(serverPort = 8080) {
         /* eslint-enable @typescript-eslint/naming-convention */
     }
 }
+
+const SERVER_PORT = 8080
+const DUMMY_DEFINES = {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    'process.env.NODE_ENV': JSON.stringify('production'),
+    'process.env.ENSO_CLOUD_REDIRECT': JSON.stringify(`http://localhost:${SERVER_PORT}`),
+    'process.env.ENSO_CLOUD_ENVIRONMENT': JSON.stringify('production'),
+    'process.env.ENSO_CLOUD_API_URL': JSON.stringify('https://mock'),
+    'process.env.ENSO_CLOUD_SENTRY_DSN': JSON.stringify(''),
+    'process.env.ENSO_CLOUD_STRIPE_KEY': JSON.stringify(''),
+    'process.env.ENSO_CLOUD_CHAT_URL': JSON.stringify(''),
+    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID': JSON.stringify(''),
+    'process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID': JSON.stringify(''),
+    'process.env.ENSO_CLOUD_COGNITO_DOMAIN': JSON.stringify(''),
+    'process.env.ENSO_CLOUD_COGNITO_REGION': JSON.stringify(''),
+    /* eslint-enable @typescript-eslint/naming-convention */
+}
+
+/** Load test environment variables, useful for when the Cloud backend is mocked or unnecessary. */
+export function loadTestEnvironmentVariables() {
+    for (const [k, v] of Object.entries(DUMMY_DEFINES)) {
+        process.env[k.replace(/^process[.]env[.]/, '')] = v
+    }
+}
