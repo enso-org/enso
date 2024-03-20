@@ -23,6 +23,7 @@ import project.System.File_Format.File_Format
 import project.System.File_Format.Infer
 import project.System.File_Format_Metadata.File_Format_Metadata
 from project.Data.Text.Extensions import all
+from project.Metadata import Display, Widget
 from project.Network.HTTP.Response_Body import decode_format_selector
 
 type Response
@@ -182,6 +183,7 @@ type Response
 
              example_write =
                 Data.fetch Examples.geo_data_url . write Examples.scratch_file
+    @path (Widget.Text_Input display=Display.Always)
     write : Writable_File -> Existing_File_Behavior -> File
     write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
         self.body.write file on_existing_file
