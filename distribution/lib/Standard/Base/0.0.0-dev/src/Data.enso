@@ -350,9 +350,8 @@ fetch_impl (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (headers:Vector = []
 decode_http_response response format =
     # If Raw_Response is requested, we ignore data link handling.
     if format == Raw_Response then response.with_materialized_body else
-        body = response.body
-        case Data_Link.is_data_link body.metadata of
+        case Data_Link.is_data_link response.body.metadata of
             True ->
                 data_link = Data_Link.interpret_json_as_datalink response.decode_as_json
                 data_link.read format Problem_Behavior.Report_Error
-            False -> body.decode format=format if_unsupported=body.materialize
+            False -> response.decode format=format if_unsupported=response.with_materialized_body
