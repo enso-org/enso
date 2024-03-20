@@ -27,13 +27,8 @@ export function useKeyboardChildNavigation(
   const lengthRef = React.useRef(length)
   const defaultIndexRef = React.useRef(defaultIndex ?? 0)
   const keyboardSelectedIndexRef = React.useRef<number | null>(null)
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] = React.useReducer(
-    (_state: number | null, action: number | null) => {
-      keyboardSelectedIndexRef.current = action
-      return action
-    },
-    null
-  )
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] = React.useState<number | null>(null)
+  keyboardSelectedIndexRef.current = keyboardSelectedIndex
   catchAllArrowKeysRef.current = catchAllArrowKeys
   lengthRef.current = length
   defaultIndexRef.current = defaultIndex ?? 0
@@ -91,6 +86,14 @@ export function useKeyboardChildNavigation(
       }
     }
 
+    const root = rootRef.current
+    root?.addEventListener('keydown', onKeyDown)
+    return () => {
+      root?.removeEventListener('keydown', onKeyDown)
+    }
+  }, [rootRef, axis])
+
+  React.useEffect(() => {
     const onFocusOut = (event: FocusEvent) => {
       if (
         event.currentTarget instanceof HTMLElement &&
@@ -104,13 +107,11 @@ export function useKeyboardChildNavigation(
     }
 
     const root = rootRef.current
-    root?.addEventListener('keydown', onKeyDown)
     root?.addEventListener('focusout', onFocusOut)
     return () => {
-      root?.removeEventListener('keydown', onKeyDown)
       root?.removeEventListener('focusout', onFocusOut)
     }
-  }, [rootRef, axis])
+  }, [rootRef])
 
   React.useEffect(() => {
     const onClick = () => {
