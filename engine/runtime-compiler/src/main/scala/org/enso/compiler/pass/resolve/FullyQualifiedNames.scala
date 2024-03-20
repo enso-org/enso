@@ -241,7 +241,7 @@ case object FullyQualifiedNames extends IRPass {
                 lit.updateMetadata(
                   new MetadataPair(
                     this,
-                    FQNResolution(ResolvedLibrary(lit.name))
+                    FQNResolution(ResolvedLibraryNamespace(lit.name))
                   )
                 )
               } else {
@@ -326,7 +326,7 @@ case object FullyQualifiedNames extends IRPass {
     val processedApp = processedArgs match {
       case List(thisArg) =>
         (thisArg.value.getMetadata(this).map(_.target), processedFun) match {
-          case (Some(resolved @ ResolvedLibrary(_)), name: Name.Literal) =>
+          case (Some(resolved @ ResolvedLibraryNamespace(_)), name: Name.Literal) =>
             resolveQualName(resolved, name, pkgRepo).fold(
               err => Some(err),
               _.map(resolvedMod =>
@@ -349,7 +349,7 @@ case object FullyQualifiedNames extends IRPass {
   }
 
   private def resolveQualName(
-    thisResolution: ResolvedLibrary,
+    thisResolution: ResolvedLibraryNamespace,
     consName: Name.Literal,
     optPkgRepo: Option[PackageRepository]
   ): Either[Expression, Option[FQNResolution]] = {
@@ -443,7 +443,7 @@ case object FullyQualifiedNames extends IRPass {
     ): Option[PartiallyResolvedFQN]
   }
 
-  case class ResolvedLibrary(namespace: String) extends PartiallyResolvedFQN {
+  case class ResolvedLibraryNamespace(namespace: String) extends PartiallyResolvedFQN {
     override def prepareForSerialization(
       compiler: CompilerContext
     ): PartiallyResolvedFQN = this
