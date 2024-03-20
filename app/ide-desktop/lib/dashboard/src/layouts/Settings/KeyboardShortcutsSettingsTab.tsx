@@ -1,4 +1,4 @@
-/** @file Settings tab for editing keyboard shortcuts. */
+/** @file Settings tab for viewing and editing keyboard shortcuts. */
 import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
@@ -6,18 +6,17 @@ import CrossIcon from 'enso-assets/cross.svg'
 import Plus2Icon from 'enso-assets/plus2.svg'
 import ReloadInCircleIcon from 'enso-assets/reload_in_circle.svg'
 
-import type * as inputBindingsModule from '#/configurations/inputBindings'
-
 import * as refreshHooks from '#/hooks/refreshHooks'
 
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
+import KeyboardShortcutsSettingsTabBar from '#/layouts/Settings/KeyboardShortcutsSettingsTabBar'
+
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
 
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 
 import * as object from '#/utilities/object'
 
@@ -25,7 +24,7 @@ import * as object from '#/utilities/object'
 // === KeyboardShortcutsSettingsTab ===
 // ====================================
 
-/** Settings tab for viewing and editing account information. */
+/** Settings tab for viewing and editing keyboard shortcuts. */
 export default function KeyboardShortcutsSettingsTab() {
   const inputBindings = inputBindingsManager.useInputBindings()
   const { setModal } = modalProvider.useSetModal()
@@ -69,29 +68,7 @@ export default function KeyboardShortcutsSettingsTab() {
   return (
     <div className="flex w-full flex-1 flex-col gap-settings-section-header">
       <h3 className="settings-subheading">Keyboard shortcuts</h3>
-      <div className="flex gap-drive-bar">
-        <button
-          className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-          onClick={event => {
-            event.stopPropagation()
-            setModal(
-              <ConfirmDeleteModal
-                actionText="reset all keyboard shortcuts"
-                actionButtonLabel="Reset All"
-                doDelete={() => {
-                  for (const k in inputBindings.metadata) {
-                    // eslint-disable-next-line no-restricted-syntax
-                    inputBindings.reset(k as inputBindingsModule.DashboardBindingKey)
-                  }
-                  doRefresh()
-                }}
-              />
-            )
-          }}
-        >
-          <span className="text whitespace-nowrap font-semibold">Reset All</span>
-        </button>
-      </div>
+      <KeyboardShortcutsSettingsTabBar doRefresh={doRefresh} />
       {/* There is a horizontal scrollbar for some reason without `px-px`. */}
       {/* eslint-disable-next-line no-restricted-syntax */}
       <div ref={scrollContainerRef} className="overflow-auto px-px">
