@@ -8,14 +8,11 @@ import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import * as chat from 'enso-chat/chat'
-import * as detect from 'enso-common/src/detect'
 
 import * as gtagHooks from '#/hooks/gtagHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
-
-import * as pageSwitcher from '#/layouts/PageSwitcher'
 
 import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
@@ -369,7 +366,6 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
 /** Props for a {@link Chat}. */
 export interface ChatProps {
-  readonly page: pageSwitcher.Page
   /** This should only be false when the panel is closing. */
   readonly isOpen: boolean
   readonly doClose: () => void
@@ -378,7 +374,7 @@ export interface ChatProps {
 
 /** Chat sidebar. */
 export default function Chat(props: ChatProps) {
-  const { page, isOpen, doClose, endpoint } = props
+  const { isOpen, doClose, endpoint } = props
   const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
   const logger = loggerProvider.useLogger()
 
@@ -664,9 +660,7 @@ export default function Chat(props: ChatProps) {
 
     return reactDom.createPortal(
       <div
-        className={`fixed right top z-3 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${
-          detect.isGUI1() && page === pageSwitcher.Page.editor ? 'bg-ide-bg' : ''
-        } ${isOpen ? '' : 'translate-x-full'}`}
+        className={`fixed right top z-1 flex h-screen w-chat flex-col py-chat-y text-xs text-primary shadow-soft backdrop-blur-default transition-transform ${isOpen ? '' : 'translate-x-full'}`}
       >
         <ChatHeader
           threads={threads}

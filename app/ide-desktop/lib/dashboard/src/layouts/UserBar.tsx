@@ -62,7 +62,6 @@ export default function UserBar(props: UserBarProps) {
     self != null
   const shouldShowInviteButton =
     sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
-  const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
   const rootRef = React.useRef<HTMLDivElement>(null)
   const navigator2D = navigator2DProvider.useNavigator2D()
   const childrenLengthRef = React.useRef(0)
@@ -103,12 +102,7 @@ export default function UserBar(props: UserBarProps) {
   }, [invisible, navigator2D, setKeyboardSelectedIndex])
 
   return (
-    <div
-      ref={rootRef}
-      className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default ${
-        shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''
-      }`}
-    >
+    <div className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default">
       <Button
         ref={element => {
           if (keyboardSelectedChildId === 'chat') {

@@ -1920,6 +1920,7 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
+    @join_kind Widget_Helpers.make_join_kind_selector
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right:Table (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
@@ -2076,16 +2077,16 @@ type Table
     ## ALIAS find replace
        GROUP Standard.Base.Text
        ICON dataframe_map_column
-       Replaces values in `column` using `lookup_table` to specify a
-       mapping from old to new values.
+       Replaces values in the columns using `lookup_table` to specify a mapping
+       from old to new values.
 
        Arguments:
        - lookup_table: the table to use as a mapping from old to new values. A
          `Map` can also be used here (in which case passing `from_column` or
          `to_column` is disallowed and will throw an `Illegal_Argument` error.
-       - column: the column within `self` to perform the replace on.
-       - from_column: the column within `lookup_table` to match against `column`
-         in `self`.
+       - columns: the column or columns within `self` to perform the replace on.
+       - from_column: the column within `lookup_table` to match against
+         `columns` in `self`.
        - to_column: the column within `lookup_table` to get new values from.
        - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
          If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
@@ -2098,13 +2099,14 @@ type Table
 
          When operating in-memory, this operation preserves the order of rows
          from this table (unlike `join`).
+
          In the Database backend, there are no guarantees related to ordering of
          results.
 
        ! Error Conditions
 
          - If this table or the lookup table is lacking any of the columns
-           specified by `from_column`, `to_column`, or `column`, a
+           specified by `from_column`, `to_column`, or `columns`, a
            `Missing_Input_Columns` error is raised.
          - If a single row is matched by multiple entries in the lookup table,
            a `Non_Unique_Key` error is raised.
@@ -2119,7 +2121,7 @@ type Table
          - The following problems may be reported according to the `on_problems`
            setting:
            - If any of the `columns` is a floating-point type,
-             a `Floating_Point_Equality`.
+             a `Floating_Point_Equality` problem is reported.
 
        > Example
          Replace values in column 'x' using a lookup table.
@@ -2148,9 +2150,9 @@ type Table
              #    2 | 30 | c | g
              #    3 | 40 | d | h
     @column Widget_Helpers.make_column_name_selector
-    replace : Table | Map -> (Text | Integer) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        Replace_Helpers.replace self lookup_table column from_column to_column allow_unmatched_rows on_problems
+    replace : (Table | Map) -> (Text | Integer | Vector (Text | Integer)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(Table | Map) columns:(Text | Integer | Vector (Text | Integer)) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        Replace_Helpers.replace self lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -2312,26 +2314,7 @@ type Table
          `Mixed` type may not be supported by most Database backends.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
     union self tables:(Table | Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
-        all_tables = case tables of
-            v : Vector -> [self] + (v.map t-> Table.from t)
-            single_table -> [self, single_table]
-        all_tables.if_not_error <|
-            ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
-               we only want to add a cause coming from unification; matching reports problems that would not fit this error.
-            problem_builder_for_matching = Problem_Builder.new
-            problem_builder_for_unification = Problem_Builder.new
-            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder_for_matching
-            result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
-            merged_columns = matched_column_sets.map column_set->
-                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder_for_unification of
-                    Nothing -> Nothing
-                    result_type : Value_Type ->
-                        concat_columns column_set all_tables result_type result_row_count on_problems
-            good_columns = merged_columns.filter Filter_Condition.Not_Nothing
-            problem_builder_for_matching.attach_problems_before on_problems <|
-                problem_builder_for_unification.attach_problems_before on_problems <|
-                    if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
-                        Table.new good_columns
+        Table.from_union ([self] + Vector.unify_vector_or_element tables) match_columns keep_unmatched_columns allow_type_widening on_problems
 
     ## ALIAS drop_missing_rows, dropna
        GROUP Standard.Base.Selections
@@ -2352,6 +2335,7 @@ type Table
 
     ## ALIAS count
        GROUP Standard.Base.Metadata
+       ICON metadata
        Returns the number of rows in this table.
 
        > Example
@@ -2869,9 +2853,162 @@ type Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## PRIVATE
+       ALIAS cumulative
+       GROUP Standard.Base.Values
+       ICON dataframe_map_column
+       Adds a new column to the table with a running calculation.
+
+       Arguments:
+       - statistic: The running statistic to calculate.
+       - of: The existing column to run the statistic over.
+       - as: The name of the new column.
+       - group_by: Specifies the columns to group by. The running statistic is
+         calculated separately for each group. By default, all rows are treated as
+         a single group.
+       - order_by: Specifies the columns to order by. Defaults to the order of
+         the rows in the table. The running statistic is calculated according to the
+         specified ordering.
+
+       ? Ordering of rows
+
+         Note that the ordering of rows from the original table is preserved in
+         all cases. The grouping and ordering settings affect how the running statistic is
+         calculated for each row, but the order of the rows itself is
+         not changed by this operation.
+
+       ! Error Conditions
+
+         - If the columns specified in `group_by` or `order_by` are not present
+           in the table, a `Missing_Input_Columns` error is raised.
+         - If the column with the same name as provided by `as` already exists,
+           a `Duplicate_Output_Column_Names` problem is reported and the
+           existing column is renamed to avoid the clash.
+         - If grouping on floating point numbers, a `Floating_Point_Equality`
+           problem is reported.
+    @group_by Widget_Helpers.make_column_name_vector_selector
+    @order_by Widget_Helpers.make_order_by_selector
+    @of Widget_Helpers.make_column_name_selector
+    running : Statistic -> (Text | Integer) -> Text -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+    running self (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
+        if statistic != Statistic.Count then Error.throw (Illegal_Argument.Error ("Currently only Statistic.Count is supported in Table.running.")) else
+          of_col = self.at of
+          new_name = if as == '' then 'Running ' + statistic.to_text + ' of ' + of_col.name else as
+          Add_Row_Number.add_row_number self new_name 1 1 group_by order_by on_problems
+
+    ## PRIVATE
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self = Column_Naming_Helper.in_memory
 
+    ## ALIAS from
+       GROUP Standard.Base.Calculations
+       ICON dataframes_union
+       Appends records from the vector of tables into a single table.
+
+       Arguments:
+       - tables: A vector of tables to union  together. The
+         tables are concatenated in the order they are specified.
+       - match_columns: Specifies how to match the columns.
+         - If `Match_Columns.By_Name` - the columns are matched by name across
+           all provided tables.
+           If unmatched columns are to be dropped, the resulting table will keep
+           only the set of columns that appear in all provided tables, in the
+           relative order that they appeared in the `self` table.
+           If unmatched columns are kept, they are added in the order of
+           appearance - i.e. first all columns from `self` will be added in the
+           original order, then any columns from the second table that were not
+           matched will be added at the end (preserving their relative order),
+           and so on for all the remaining tables.
+         - If `Match_Columns.By_Position` - the columns are mapped by position.
+           If unmatched columns are to be dropped, the resulting table will have
+           as many columns as the table that had the least columns and the
+           column names of the first table (self) will be used.
+           If unmatched columns are kept, the resulting table will have as many
+           columns as the table with the most columns. Since the first table may
+           not have all the necessary columns to provide column names for the
+           result, the result will have column names taken from the first table
+           that has the biggest number of columns.
+       - keep_unmatched_columns: If set to `True`, unmatched columns are kept
+         and are padded with `Nothing` for tables that did not have them.
+         If set to `False`, only the common subset of columns is kept - any
+         column that is not present in all tables is dropped. Defaults to
+         `Report_Unmatched`, which behaves like `True` - unmatched columns are
+         kept and padded with `Nothing`, but a problem is reported.
+       - allow_type_widening: Specifies if the resulting column type should be
+         adjusted to fit columns from all arguments. If `True`, a common type
+         will be chosen for each column (see "Unifying Column Types" below).
+         If `False`, the resulting column type will be the same as in the first
+         table containing the column. In this case, all columns that are
+         concatenated must have the same type as the first one (unless this
+         had a `Mixed` type - in which case it will accept any other types).
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If `keep_unmatched_columns` is set to `Report_Unmatched` (the
+           default):
+           - If matching by name and there are columns that are not present in
+             all tables, `Unmatched_Columns` is reported.
+           - If matching by position and column counts of the merged tables
+             differ, then a `Column_Count_Mismatch` is reported. The error will
+             contain the greatest column count as its `expected` value and the
+             smallest one as its `actual` value.
+         - If `keep_unmatched_columns` is set to `False` and matching by name,
+           it is possible that there are no columns that are common to all
+           provided tables, in that case `No_Output_Columns` is thrown as a
+           dataflow error regardless of the `on_problems` setting, because there
+           are no columns to include in the resulting table.
+         - If type widening is disabled and one of corresponding columns has a
+           type that is incompatible with the type coming from the first table,
+           a `Column_Type_Mismatch` is reported. The problematic column will be
+           dropped from the resulting table. With type widening disabled, the
+           subsequent tables must have the same types as the first one, unless
+           the type of the first one was `Mixed` which will accept any other
+           type.
+         - If a common type coercion for a set of matched columns from
+           concatenated tables cannot be found, a `No_Common_Type` is reported.
+           In warning or ignore mode, the problematic column will be dropped
+           from the resulting table.
+
+       ? Unifying Column Types
+
+         If `allow_type_widening` is set to `True`, then the following rules are
+         used to find a common type that will fit values from all merged tables.
+
+         Numeric columns are unified by finding the most general type that can
+         fit all of the columns. The biggest integer type will be chosen and if
+         integers and decimals are mixed, the decimal type will be chosen.
+         If boolean columns are mixed with numeric columns, they will be coerced
+         to the numeric type (and converted to 0 and 1).
+
+         Text types will also be coerced according to the common rules - if
+         constant-length texts of different lengths are mixed, they will be
+         coerced to a varying-length type.
+
+         If one of the matched columns has `Mixed` type, that type will be used
+         regardless of types of other columns. Mixing any other types will
+         result in a `No_Common_Type` problem. If columns of incompatible types
+         are meant to be mixed, at least one of them should be explicitly
+         retyped to the `Mixed` type to indicate that intention. Note that the
+         `Mixed` type may not be supported by most Database backends.
+    from_union : (Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
+    from_union tables:(Vector) match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+        all_tables = (tables.map t-> Table.from t)
+        all_tables.if_not_error <|
+            ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
+               we only want to add a cause coming from unification; matching reports problems that would not fit this error.
+            problem_builder_for_matching = Problem_Builder.new
+            problem_builder_for_unification = Problem_Builder.new
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder_for_matching
+            result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
+            merged_columns = matched_column_sets.map column_set->
+                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder_for_unification of
+                    Nothing -> Nothing
+                    result_type : Value_Type ->
+                        concat_columns column_set all_tables result_type result_row_count on_problems
+            good_columns = merged_columns.filter Filter_Condition.Not_Nothing
+            problem_builder_for_matching.attach_problems_before on_problems <|
+                problem_builder_for_unification.attach_problems_before on_problems <|
+                    if good_columns.is_empty then problem_builder_for_unification.raise_no_output_columns_with_cause else
+                        Table.new good_columns
 ## PRIVATE
 
    Ensures that the `txt` has at least `len` characters by appending spaces at

@@ -163,6 +163,12 @@ export default function AccountSettingsTab() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
     accessToken != null ? JSON.parse(atob(accessToken.split('.')[1]!)).username : null
   const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
+  const canSubmitPassword =
+    currentPassword !== '' &&
+    newPassword !== '' &&
+    confirmNewPassword !== '' &&
+    newPassword === confirmNewPassword &&
+    validation.PASSWORD_REGEX.test(newPassword)
 
   const doUpdateName = async (newName: string) => {
     const oldName = user?.name ?? ''
@@ -277,14 +283,8 @@ export default function AccountSettingsTab() {
             </div>
             <div className="flex h-row items-center gap-buttons">
               <button
-                disabled={
-                  currentPassword === '' ||
-                  newPassword === '' ||
-                  confirmNewPassword === '' ||
-                  newPassword !== confirmNewPassword ||
-                  !validation.PASSWORD_REGEX.test(newPassword)
-                }
                 type="submit"
+                disabled={!canSubmitPassword}
                 className={`settings-value rounded-full bg-invite font-medium text-white selectable enabled:active`}
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
@@ -298,7 +298,8 @@ export default function AccountSettingsTab() {
               </button>
               <button
                 type="button"
-                className="settings-value rounded-full bg-selected-frame font-medium"
+                disabled={!canSubmitPassword}
+                className="settings-value rounded-full bg-selected-frame font-medium selectable enabled:active"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')

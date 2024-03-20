@@ -7,6 +7,7 @@ import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
+import project.Meta
 import project.Nothing.Nothing
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
@@ -59,10 +60,10 @@ type Data_Link_Format
 
 ## PRIVATE
 interpret_json_as_datalink json =
-    typ = get_required_field "type" json
+    typ = get_required_field "type" json expected_type=Text
     case DataLinkSPI.findDataLinkType typ of
         Nothing ->
-            library_name = get_required_field "libraryName" json
+            library_name = get_required_field "libraryName" json expected_type=Text
             Error.throw (Illegal_State.Error "The data link for "+typ+" is provided by the library "+library_name+" which is not loaded. Please import the library, and if necessary, restart the project.")
         data_link_type ->
             data_link_type.parse json
@@ -73,15 +74,16 @@ read_datalink json on_problems =
     data_link_instance.read on_problems
 
 ## PRIVATE
-parse_secure_value (json : Text | JS_Object) -> Text | Enso_Secret =
+parse_secure_value json -> Text | Enso_Secret =
     case json of
         raw_text : Text -> raw_text
         _ : JS_Object ->
-            case get_required_field "type" json of
+            case get_required_field "type" json expected_type=Text of
                 "secret" ->
-                    secret_path = get_required_field "secretPath" json
+                    secret_path = get_required_field "secretPath" json expected_type=Text
                     Enso_Secret.get secret_path
                 other -> Error.throw (Illegal_State.Error "Unexpected value inside of a data-link: "+other+".")
+        _ -> Error.throw (Illegal_State.Error "Parsing a secure value failed. Expected either a string or an object representing a secret, but got "+(Meta.type_of json . to_display_text)+".")
 
 ## PRIVATE
 parse_format json = case json of

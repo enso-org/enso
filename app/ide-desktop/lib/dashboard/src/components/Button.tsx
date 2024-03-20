@@ -45,7 +45,7 @@ function Button(props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) 
     button
   ) : (
     <div
-      className={`after:rounded-button-focus-ring after:inset-button-focus-ring-inset relative after:pointer-events-none after:absolute ${focusRing ? 'after:focus-ring' : ''}`}
+      className={`relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring ${focusRing ? 'after:focus-ring' : ''}`}
     >
       {button}
     </div>

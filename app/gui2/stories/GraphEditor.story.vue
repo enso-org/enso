@@ -6,7 +6,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { createReactWrapper } from 'vue-react-wrapper'
-import MockProjectStoreWrapper from './MockProjectStoreWrapper.vue'
+import MockProjectStoreWrapper from '../mock/MockProjectStoreWrapper.vue'
 import HstCode from './histoire/HstCode.vue'
 
 const text = ref(`\

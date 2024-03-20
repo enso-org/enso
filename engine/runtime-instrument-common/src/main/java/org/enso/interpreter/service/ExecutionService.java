@@ -775,7 +775,7 @@ public final class ExecutionService {
       if (preAppliedArguments == null) {
         preAppliedArguments = new Object[functionSchema.getArgumentsCount()];
       }
-      boolean isStatic = preAppliedArguments[0] instanceof Type;
+      boolean isStatic = preAppliedArguments.length == 0 || preAppliedArguments[0] instanceof Type;
       int selfArgumentPosition = isStatic ? -1 : 0;
       int[] notAppliedArguments = new int[functionSchema.getArgumentsCount()];
       int notAppliedArgumentsLength = 0;

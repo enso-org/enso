@@ -7,6 +7,7 @@ import * as animationHooks from '#/hooks/animationHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
 
+import * as eventModule from '#/utilities/event'
 import type * as geometry from '#/utilities/geometry'
 
 // ======================
@@ -63,9 +64,7 @@ export default function SelectionBrush(props: SelectionBrushProps) {
     const onMouseDown = (event: MouseEvent) => {
       if (
         modalRef.current == null &&
-        !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLTextAreaElement) &&
-        (!(event.target instanceof HTMLElement) || !event.target.isContentEditable) &&
+        !eventModule.isElementTextInput(event.target) &&
         !(event.target instanceof HTMLButtonElement) &&
         !(event.target instanceof HTMLAnchorElement)
       ) {

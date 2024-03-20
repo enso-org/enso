@@ -32,6 +32,13 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
   )
 
   React.useEffect(() => {
+    inputBindings.register()
+    return () => {
+      inputBindings.unregister()
+    }
+  }, [inputBindings])
+
+  React.useEffect(() => {
     setInputBindings(inputBindingsRaw ?? inputBindingsModule.createBindings())
   }, [inputBindingsRaw])
 
@@ -40,7 +47,8 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
   )
 }
 
-/** Exposes a property to get the input bindings namespace. */
+/** Exposes a property to get the input bindings namespace.
+ * @throws {Error} when used outside of its context. */
 export function useInputBindings() {
   return React.useContext(InputBindingsContext)
 }
