@@ -15,6 +15,14 @@ export async function readEnvironmentFromFile() {
     const isProduction = environment == null || environment === '' || environment === 'production'
     const fileName = isProduction ? '.env' : `.${environment}.env`
     const filePath = path.join(url.fileURLToPath(new URL('../../..', import.meta.url)), fileName)
+    const expectedKeys = Object.keys(DUMMY_DEFINES).map(key => key.replace(/^process[.]env[.]/, ''))
+    /** @type {string[]} */
+    const missingKeys = []
+    for (const key of expectedKeys) {
+        if (!(key in process.env)) {
+            missingKeys.push(key)
+        }
+    }
     try {
         const file = await fs.readFile(filePath, { encoding: 'utf-8' })
         // eslint-disable-next-line jsdoc/valid-types
@@ -27,25 +35,17 @@ export async function readEnvironmentFromFile() {
                 return [[key, value]]
             }
         })
-        if (environment == null) {
+        if (isProduction) {
             entries = entries.filter(kv => {
                 const [k] = kv
                 return process.env[k] == null
             })
         }
         const variables = Object.fromEntries(entries)
-        Object.assign(process.env, variables)
-    } catch (error) {
-        const expectedKeys = Object.keys(DUMMY_DEFINES).map(key =>
-            key.replace(/^process[.]env[.]/, '')
-        )
-        /** @type {string[]} */
-        const missingKeys = []
-        for (const key of expectedKeys) {
-            if (!(key in process.env)) {
-                missingKeys.push(key)
-            }
+        if (!isProduction || entries.length > 0) {
+            Object.assign(process.env, variables)
         }
+    } catch (error) {
         if (missingKeys.length !== 0) {
             console.warn('Could not load `.env` file; disabling cloud backend.')
             console.warn(`Missing keys: ${missingKeys.map(key => `'${key}'`).join(', ')}`)
