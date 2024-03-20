@@ -425,7 +425,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         : PLACEHOLDER
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
   const pasteDataRef = React.useRef<pasteDataModule.PasteData<
@@ -606,15 +606,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     () => displayItems.filter(item => visibilities.get(item.key) !== Visibility.hidden),
     [displayItems, visibilities]
   )
-
-  React.useEffect(() => {
-    const scrollContainer = scrollContainerRef.current
-    if (scrollContainer == null) {
-      return
-    } else {
-      return navigator2D.register(scrollContainer)
-    }
-  }, [navigator2D])
 
   React.useEffect(() => {
     const nodeToSuggestion = (
@@ -1081,19 +1072,15 @@ export default function AssetsTable(props: AssetsTableProps) {
   // Clip the header bar so that the background behind the extra colums selector is visible.
   React.useEffect(() => {
     const headerRow = headerRowRef.current
-    const scrollContainer = scrollContainerRef.current
-    if (
-      backend.type === backendModule.BackendType.remote &&
-      headerRow != null &&
-      scrollContainer != null
-    ) {
+    const root = rootRef.current
+    if (backend.type === backendModule.BackendType.remote && root != null && headerRow != null) {
       let isClipPathUpdateQueued = false
       const updateClipPath = () => {
         isClipPathUpdateQueued = false
         const hiddenColumnsCount = columnUtils.CLOUD_COLUMNS.length - enabledColumns.size
         const shrinkBy =
           COLUMNS_SELECTOR_BASE_WIDTH_PX + COLUMNS_SELECTOR_ICON_WIDTH_PX * hiddenColumnsCount
-        const rightOffset = scrollContainer.clientWidth + scrollContainer.scrollLeft - shrinkBy
+        const rightOffset = root.clientWidth + root.scrollLeft - shrinkBy
 
         headerRow.style.clipPath = `polygon(0 0, ${rightOffset}px 0, ${rightOffset}px 100%, 0 100%)`
       }
@@ -1105,11 +1092,11 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       updateClipPath()
       const observer = new ResizeObserver(onScroll)
-      observer.observe(scrollContainer)
-      scrollContainer.addEventListener('scroll', onScroll)
+      observer.observe(root)
+      root.addEventListener('scroll', onScroll)
       return () => {
-        observer.unobserve(scrollContainer)
-        scrollContainer.removeEventListener('scroll', onScroll)
+        observer.unobserve(root)
+        root.removeEventListener('scroll', onScroll)
       }
     } else {
       return
@@ -1239,7 +1226,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
-  const [keyboardSelectedIndex, setKeyboardSelectedIndexRaw] = React.useState<number | null>(null)
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] = React.useState<number | null>(null)
   const mostRecentlySelectedIndexRef = React.useRef<number | null>(null)
   const selectionStartIndexRef = React.useRef<number | null>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
@@ -1247,10 +1234,24 @@ export default function AssetsTable(props: AssetsTableProps) {
   const setMostRecentlySelectedIndex = React.useCallback(
     (index: number | null, isKeyboard = false) => {
       mostRecentlySelectedIndexRef.current = index
-      setKeyboardSelectedIndexRaw(isKeyboard ? index : null)
+      setKeyboardSelectedIndex(isKeyboard ? index : null)
     },
     []
   )
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (root == null) {
+      return
+    } else {
+      return navigator2D.register(root, {
+        focusPrimaryChild: () => {
+          rootRef.current?.focus()
+          setMostRecentlySelectedIndex(0, true)
+        },
+      })
+    }
+  }, [navigator2D, setMostRecentlySelectedIndex])
 
   React.useEffect(() => {
     // This is not a React component, even though it contains JSX.
@@ -1393,7 +1394,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-    const scrollContainer = scrollContainerRef.current
+    const scrollContainer = rootRef.current
     scrollContainer?.addEventListener('keydown', onKeyDown)
     return () => {
       scrollContainer?.removeEventListener('keydown', onKeyDown)
@@ -1409,6 +1410,35 @@ export default function AssetsTable(props: AssetsTableProps) {
     /* should never change */ setIsAssetPanelTemporarilyVisible,
     /* should never change */ dispatchAssetEvent,
   ])
+
+  React.useEffect(() => {
+    const onFocusOut = (event: FocusEvent) => {
+      if (
+        event.currentTarget instanceof HTMLElement &&
+        event.relatedTarget instanceof HTMLElement &&
+        !event.currentTarget.contains(event.relatedTarget)
+      ) {
+        setKeyboardSelectedIndex(null)
+      }
+    }
+
+    const root = rootRef.current
+    root?.addEventListener('focusout', onFocusOut)
+    return () => {
+      root?.removeEventListener('focusout', onFocusOut)
+    }
+  }, [rootRef, setMostRecentlySelectedIndex])
+
+  React.useEffect(() => {
+    const onClick = () => {
+      setKeyboardSelectedIndex(null)
+    }
+
+    document.addEventListener('click', onClick, { capture: true })
+    return () => {
+      document.removeEventListener('click', onClick, { capture: true })
+    }
+  }, [setMostRecentlySelectedIndex])
 
   const getNewProjectName = React.useCallback(
     (templateName: string | null, parentKey: backendModule.DirectoryId | null) => {
@@ -1910,7 +1940,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     (): AssetsTableState => ({
       visibilities,
       selectedKeys: selectedKeysRef,
-      scrollContainerRef,
+      scrollContainerRef: rootRef,
       category,
       labels: allLabels,
       deletedLabelNames,
@@ -1966,7 +1996,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   // the table header is transparent.
   React.useEffect(() => {
     const body = bodyRef.current
-    const scrollContainer = scrollContainerRef.current
+    const scrollContainer = rootRef.current
     if (body != null && scrollContainer != null) {
       let isClipPathUpdateQueued = false
       const updateClipPath = () => {
@@ -1987,7 +2017,7 @@ export default function AssetsTable(props: AssetsTableProps) {
     } else {
       return
     }
-  }, [/* should never change */ scrollContainerRef])
+  }, [/* should never change */ rootRef])
 
   React.useEffect(
     () =>
@@ -2079,10 +2109,10 @@ export default function AssetsTable(props: AssetsTableProps) {
   const onSelectionDrag = React.useCallback(
     (rectangle: geometry.DetailedRectangle, event: MouseEvent) => {
       if (mostRecentlySelectedIndexRef.current != null) {
-        setKeyboardSelectedIndexRaw(null)
+        setKeyboardSelectedIndex(null)
       }
       cancelAnimationFrame(dragSelectionChangeLoopHandle.current)
-      const scrollContainer = scrollContainerRef.current
+      const scrollContainer = rootRef.current
       if (scrollContainer != null) {
         const rect = scrollContainer.getBoundingClientRect()
         if (rectangle.signedHeight <= 0 && scrollContainer.scrollTop > 0) {
@@ -2471,7 +2501,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <div ref={scrollContainerRef} className="flex-1 overflow-auto container-size">
+    <div ref={rootRef} className="flex-1 overflow-auto container-size">
       {!hidden && hiddenContextMenu}
       {!hidden && (
         <SelectionBrush

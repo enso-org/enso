@@ -74,6 +74,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const rootRef = React.useRef<HTMLLabelElement>(null)
   const searchRef = React.useRef<HTMLInputElement | null>(null)
   const navigator2D = navigator2DProvider.useNavigator2D()
+  areSuggestionsVisibleRef.current = areSuggestionsVisible
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
     keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: 1 })
@@ -88,10 +89,6 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       })
     }
   }, [navigator2D, setKeyboardSelectedIndex])
-
-  React.useEffect(() => {
-    areSuggestionsVisibleRef.current = areSuggestionsVisible
-  }, [areSuggestionsVisible])
 
   React.useEffect(() => {
     if (querySource.current !== QuerySource.tabbing && !isShiftPressed) {
@@ -238,7 +235,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       data-testid="asset-search-bar"
       tabIndex={-1}
       onFocus={() => {
-        setAreSuggestionsVisible(true)
+        if (keyboardSelectedIndex == null) {
+          setAreSuggestionsVisible(true)
+        }
       }}
       onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
@@ -368,7 +367,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
         )}
       </div>
       <div
-        className={`before:inset-x-button-focus-ring-inset relative grow before:text before:absolute before:my-auto before:rounded-full before:transition-all ${keyboardSelectedIndex === 0 ? 'before:focus-ring' : ''}`}
+        className={`relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all ${keyboardSelectedIndex === 0 ? 'before:focus-ring' : ''}`}
       >
         <input
           ref={element => {

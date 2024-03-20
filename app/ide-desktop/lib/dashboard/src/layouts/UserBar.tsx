@@ -102,7 +102,10 @@ export default function UserBar(props: UserBarProps) {
   }, [invisible, navigator2D, setKeyboardSelectedIndex])
 
   return (
-    <div className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default">
+    <div
+      ref={rootRef}
+      className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
+    >
       <Button
         ref={element => {
           if (keyboardSelectedChildId === 'chat') {

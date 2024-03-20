@@ -134,7 +134,7 @@ export default class Navigator2D {
       let belowNeighborDistance = Infinity
       for (const otherData of datas) {
         const distanceFromTop = data.data.boundingBox.top - otherData.data.boundingBox.bottom
-        const distanceFromBottom = otherData.data.boundingBox.bottom - data.data.boundingBox.top
+        const distanceFromBottom = otherData.data.boundingBox.top - data.data.boundingBox.bottom
         const verticalDistance = Math.max(distanceFromTop, distanceFromBottom)
         // The vertical spans MUST NOT overlap.
         if (data.element !== otherData.element && verticalDistance >= 0) {
@@ -193,6 +193,7 @@ export default class Navigator2D {
           ? null
           : this.elements.get(targetNeighbor)?.focusWhenPressed[direction] ?? focusTargetNeighbor
       if (focus != null) {
+        event.preventDefault()
         event.stopImmediatePropagation()
         focus()
       }
