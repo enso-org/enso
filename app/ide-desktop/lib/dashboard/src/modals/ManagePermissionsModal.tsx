@@ -156,7 +156,7 @@ export default function ManagePermissionsModal<
             /* eslint-disable @typescript-eslint/naming-convention */
             pk: newUser.organizationId,
             sk: newUser.userId,
-            user_subject: newUser.id,
+            user_subject: newUser.userSubject,
             user_email: newUser.email,
             user_name: newUser.name,
             /* eslint-enable @typescript-eslint/naming-convention */
@@ -295,7 +295,7 @@ export default function ManagePermissionsModal<
                     values={users}
                     setValues={setUsers}
                     items={allUsers}
-                    itemToKey={otherUser => otherUser.id}
+                    itemToKey={otherUser => otherUser.userSubject}
                     itemToString={otherUser => `${otherUser.name} (${otherUser.email})`}
                     matches={(otherUser, text) =>
                       otherUser.email.toLowerCase().includes(text.toLowerCase()) ||
