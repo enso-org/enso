@@ -870,6 +870,10 @@ class RuntimeServerTest
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
+    metadata.assertInCode(idA, code, "..A")
+    metadata.assertInCode(idB, code, "..B 42")
+    metadata.assertInCode(idC, code, "..C a b")
+
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
