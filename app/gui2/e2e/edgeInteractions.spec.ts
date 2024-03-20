@@ -58,7 +58,7 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
 })
 
-test.only('Conditional ports: Disabled', async ({ page }) => {
+test('Conditional ports: Disabled', async ({ page }) => {
   await actions.goToGraph(page)
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })

@@ -50,7 +50,6 @@ export class InteractionHandler {
   }
 
   handleClick(event: PointerEvent, graphNavigator: GraphNavigator): boolean {
-    console.log('Interaction: handle click')
     if (!this.currentInteraction?.click) return false
     const handled = this.currentInteraction.click(event, graphNavigator) !== false
     if (handled) {

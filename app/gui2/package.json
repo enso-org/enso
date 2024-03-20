@@ -12,7 +12,7 @@
     "build": "npm --workspace enso-dashboard run compile && run-p typecheck build-only",
     "build:cloud": "cross-env CLOUD_BUILD=true npm run build",
     "preview": "vite preview",
-    "test": "vitest run && playwright test componentBrowser",
+    "test": "vitest run && playwright test",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
     "story:dev": "histoire dev",
