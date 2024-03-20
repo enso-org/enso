@@ -36,12 +36,19 @@ export async function readEnvironmentFromFile() {
         const variables = Object.fromEntries(entries)
         Object.assign(process.env, variables)
     } catch (error) {
-        if (isProduction) {
+        const expectedKeys = Object.keys(getDefines()).map(key =>
+            key.replace(/^proccess[.]env[.]/, '')
+        )
+        let isKeyMissing = false
+        for (const key of expectedKeys) {
+            if (!(key in process.env)) {
+                isKeyMissing = true
+                break
+            }
+        }
+        if (isKeyMissing) {
             console.warn('Could not load `.env` file; disabling cloud backend.')
             console.error(error)
-            return
-        } else {
-            throw error
         }
     }
 }
