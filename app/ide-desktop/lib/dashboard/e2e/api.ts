@@ -635,8 +635,8 @@ export async function mockApi({ page }: MockParams) {
                 user: {
                   pk: defaultOrganizationId,
                   sk: backend.UserId(''),
-                  user_subject: backend.Subject(''),
                   /* eslint-disable @typescript-eslint/naming-convention */
+                  user_subject: backend.Subject(''),
                   user_name: defaultUsername,
                   user_email: defaultEmail,
                   /* eslint-enable @typescript-eslint/naming-convention */
@@ -674,8 +674,8 @@ export async function mockApi({ page }: MockParams) {
                 user: {
                   pk: defaultOrganizationId,
                   sk: backend.UserId(''),
-                  user_subject: backend.Subject(''),
                   /* eslint-disable @typescript-eslint/naming-convention */
+                  user_subject: backend.Subject(''),
                   user_name: defaultUsername,
                   user_email: defaultEmail,
                   /* eslint-enable @typescript-eslint/naming-convention */
