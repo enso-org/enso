@@ -181,14 +181,14 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
                 <span className="text">
                   {nonConflictingFileCount === 1
                     ? getText('fileWithoutConflicts')
-                    : getText('filesWithoutConflicts', String(nonConflictingFileCount))}
+                    : getText('filesWithoutConflicts', nonConflictingFileCount)}
                 </span>
               )}
               {nonConflictingProjectCount > 0 && (
                 <span className="text">
                   {nonConflictingProjectCount === 1
                     ? getText('projectWithoutConflicts')
-                    : getText('projectsWithoutConflicts', String(nonConflictingFileCount))}
+                    : getText('projectsWithoutConflicts', nonConflictingFileCount)}
                 </span>
               )}
               <button
@@ -269,14 +269,14 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
           <span className="relative">
             {otherFilesCount === 1
               ? getText('andOtherFile')
-              : getText('andOtherFiles', String(otherFilesCount))}
+              : getText('andOtherFiles', otherFilesCount)}
           </span>
         )}
         {otherProjectsCount > 0 && (
           <span className="relative">
             {otherProjectsCount === 1
               ? getText('andOtherProject')
-              : getText('andOtherProjects', String(otherProjectsCount))}
+              : getText('andOtherProjects', otherProjectsCount)}
           </span>
         )}
         <div className="relative flex gap-icons">

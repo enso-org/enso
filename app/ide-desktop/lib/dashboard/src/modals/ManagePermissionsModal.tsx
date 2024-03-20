@@ -291,7 +291,7 @@ export default function ManagePermissionsModal<
                     itemsToString={items =>
                       items.length === 1 && items[0] != null
                         ? items[0].email
-                        : getText('xUsersSelected', String(items.length))
+                        : getText('xUsersSelected', items.length)
                     }
                     values={users}
                     setValues={setUsers}
