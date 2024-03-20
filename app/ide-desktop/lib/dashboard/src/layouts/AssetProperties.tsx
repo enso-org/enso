@@ -70,7 +70,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [/* should never change */ setItemRaw]
   )
-  const self = item.item.permissions?.find(permission => permission.user.user_email === user?.email)
+  const self = item.item.permissions?.find(permission => permission.user.userId === user?.userId)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||

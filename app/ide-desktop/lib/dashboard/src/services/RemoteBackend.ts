@@ -93,7 +93,7 @@ export async function waitUntilProjectIsReady(
 
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
-  readonly users: backendModule.SimpleUser[]
+  readonly users: backendModule.UserInfo[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
@@ -194,7 +194,7 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Return a list of all users in the same organization. */
-  override async listUsers(): Promise<backendModule.SimpleUser[]> {
+  override async listUsers(): Promise<backendModule.UserInfo[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<ListUsersResponseBody>(path)
     if (!responseIsSuccessful(response)) {
@@ -324,7 +324,7 @@ export default class RemoteBackend extends Backend {
   /** Adds a permission for a specific user on a specific asset. */
   override async createPermission(body: backendModule.CreatePermissionRequestBody): Promise<void> {
     const path = remoteBackendPaths.CREATE_PERMISSION_PATH
-    const response = await this.post<backendModule.User>(path, body)
+    const response = await this.post(path, body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createPermissionBackendError')
     } else {

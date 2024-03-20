@@ -87,7 +87,7 @@ export default function AssetRow(props: AssetRowProps) {
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef } = state
 
-  const { user, userInfo } = authProvider.useNonPartialUserSession()
+  const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
@@ -132,7 +132,7 @@ export default function AssetRow(props: AssetRowProps) {
           object.merge(oldAsset, {
             title: oldAsset.title + ' (copy)',
             labels: [],
-            permissions: permissions.tryGetSingletonOwnerPermission(user, userInfo),
+            permissions: permissions.tryGetSingletonOwnerPermission(user),
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
@@ -158,7 +158,6 @@ export default function AssetRow(props: AssetRowProps) {
     [
       backend,
       user,
-      userInfo,
       asset,
       item.key,
       toastAndLog,
@@ -414,13 +413,13 @@ export default function AssetRow(props: AssetRowProps) {
       }
       case AssetEventType.removeSelf: {
         // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-        if (event.id === asset.id && userInfo != null) {
+        if (event.id === asset.id && user != null && user.isEnabled) {
           setInsertionVisibility(Visibility.hidden)
           try {
             await backend.createPermission({
               action: null,
               resourceId: asset.id,
-              actorsIds: [userInfo.userId],
+              actorsIds: [user.userId],
             })
             dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {

@@ -56,7 +56,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   }
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
-    asset.permissions?.find(permission => permission.user.user_email === user?.email) ?? null
+    asset.permissions?.find(permission => permission.user.userId === user?.userId) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
