@@ -1,4 +1,8 @@
-import type { DialogProps as AriaDialogProps } from 'react-aria-components'
+/**
+ * @file
+ * Contains the types for the Dialog component.
+ */
+import type * as reactAriaComponents from 'react-aria-components'
 
 /**
  *
@@ -8,7 +12,7 @@ export type DialogType = 'fullscreen' | 'modal' | 'popover'
 /**
  *
  */
-export interface DialogProps extends AriaDialogProps {
+export interface DialogProps extends reactAriaComponents.DialogProps {
   /**
    * The type of dialog to render.
    * @default 'modal'

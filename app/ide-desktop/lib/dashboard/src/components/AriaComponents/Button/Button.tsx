@@ -35,11 +35,9 @@ const DISABLED_CLASSES = 'disabled:opacity-50 disabled:cursor-not-allowed'
  * A button allows a user to perform an action, with mouse, touch, and keyboard interactions.
  */
 export function Button(props: ButtonProps) {
-  const { variant, className, children, icon, ...ariaButtonProps } = props
+  const { className, children, icon, ...ariaButtonProps } = props
 
-  const classes = clsx(DEFAULT_CLASSES, DISABLED_CLASSES, FOCUS_CLASSES, {
-    [ICON_CLASSES]: variant === 'icon',
-  })
+  const classes = clsx(DEFAULT_CLASSES, DISABLED_CLASSES, FOCUS_CLASSES, ICON_CLASSES)
 
   const childrenFactory = () => {
     return icon != null ? (

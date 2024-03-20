@@ -36,5 +36,9 @@ export default function Portal(props: types.PortalProps): React.JSX.Element | nu
 
   if (isDisabled) {
     return <>{children}</>
-  } else return mountRoot ? reactDom.createPortal(children, mountRoot) : null
+  } else if (mountRoot) {
+    return reactDom.createPortal(children, mountRoot)
+  } else {
+    return null
+  }
 }

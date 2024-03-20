@@ -49,7 +49,7 @@ export function AssetDiffView(props: AssetDiffViewProps) {
     return <div className="p-indent-8 text-center">Failed to load content</div>
   } else if (versionContent.isPending || headContent.isPending) {
     return loader
-  } else
+  } else {
     return (
       <react.DiffEditor
         original={versionContent.data}
@@ -59,4 +59,5 @@ export function AssetDiffView(props: AssetDiffViewProps) {
         loading={loader}
       />
     )
+  }
 }

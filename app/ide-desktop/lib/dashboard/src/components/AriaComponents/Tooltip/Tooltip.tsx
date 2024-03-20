@@ -45,4 +45,6 @@ export function Tooltip(props: TooltipProps) {
   )
 }
 
+// Re-export the TooltipTrigger component from react-aria-components
+// eslint-disable-next-line no-restricted-syntax
 export { TooltipTrigger } from 'react-aria-components'

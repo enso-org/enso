@@ -19,6 +19,10 @@ export interface FetchVersionContentProps {
   readonly omitMetadataFromContent?: boolean
 }
 
+const MS_IN_SECOND = 1000
+const HUNDRED = 100
+const HUNDRED_SECONDS = HUNDRED * MS_IN_SECOND
+
 /**
  * Fetches the content of a version.
  */
@@ -29,6 +33,7 @@ export function useFetchVersionContent(params: FetchVersionContentProps) {
     queryKey: ['versionContent', versionId],
     queryFn: () => backend.getFileContent(projectId, versionId),
     select: data => (omitMetadataFromContent ? omitMetadata(data) : data),
+    staleTime: HUNDRED_SECONDS,
   })
 }
 
