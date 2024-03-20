@@ -111,6 +111,7 @@
   "listVersionsBackendError": "Could not list $0 versions.",
   "createCheckoutSessionBackendError": "Could not create checkout session for plan '$0'.",
   "getCheckoutSessionBackendError": "Could not get checkout session for session ID '$0'.",
+  "getLogEventsBackendError": "Could not get audit log events",
   "getDefaultVersionBackendError": "No default $0 version found.",
 
   "directoryAssetType": "folder",

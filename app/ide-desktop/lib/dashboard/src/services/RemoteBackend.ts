@@ -879,7 +879,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.GET_LOG_EVENTS_PATH
     const response = await this.get<ResponseBody>(path)
     if (!responseIsSuccessful(response)) {
-      return this.throw('Could not get audit log events', response)
+      return this.throw(response, 'getLogEventsBackendError')
     } else {
       const json = await response.json()
       return json.events
