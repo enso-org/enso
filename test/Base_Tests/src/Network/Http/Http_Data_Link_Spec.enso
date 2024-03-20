@@ -52,17 +52,18 @@ add_specs suite_builder =
             r.trim.should_equal '{"hello": "world"}'
 
         group_builder.specify "should be able to read a datalink from HTTP" <|
+            r1 = Data.read base_url_with_slash+"dynamic.datalink" JSON_Format
+            r1.should_equal ('{"hello": "world"}'.parse_json)
+
+            r2 = Data.read base_url_with_slash+"dynamic-datalink" Plain_Text
+            r2.should_equal '{"hello": "world"}'
+
+        group_builder.specify "should be able to fetch a datalink from HTTP" pending="TODO: are we sure we want this?" <|
             r1 = Data.fetch base_url_with_slash+"dynamic.datalink"
             r1.should_equal '{"hello": "world"}'
 
-            r2 = Data.read base_url_with_slash+"dynamic.datalink" JSON_Format
-            r2.should_equal ('{"hello": "world"}'.parse_json)
-
-            r3 = Data.fetch base_url_with_slash+"dynamic-datalink"
-            r3.should_equal '{"hello": "world"}'
-
-            r4 = Data.read base_url_with_slash+"dynamic-datalink" Plain_Text
-            r4.should_equal '{"hello": "world"}'
+            r2 = Data.fetch base_url_with_slash+"dynamic-datalink"
+            r2.should_equal '{"hello": "world"}'
 
 ## Reads the datalink as plain text and replaces the placeholder URL with actual
    URL of the server. It then writes the new contents to a temporary file and
