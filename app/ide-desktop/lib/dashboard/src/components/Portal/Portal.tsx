@@ -18,7 +18,7 @@ import * as usePortal from './usePortal'
  *
  * By default, Portal's children render under the `<Root />` component.
  *
- * ***Important***: Since React doesn't support portals on SSR, `<Portal />` children renders in the next tick.
+ * ***Important***: Since React doesn't support portals on SSR, `<Portal />` children render in the next tick.
  * If you need to make some computations, use the `onMount` callback
  * @see https://reactjs.org/docs/portals.html
  * @example ```jsx
