@@ -50,7 +50,7 @@ export default function MembersSettingsTab() {
           <tbody className="select-text">
             {isLoading ? (
               <tr className="h-row">
-                <td colSpan={2} className="rounded-full">
+                <td colSpan={2} className="rounded-full bg-transparent">
                   <div className="flex justify-center">
                     <StatelessSpinner
                       size={32}
