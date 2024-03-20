@@ -144,11 +144,11 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   React.useEffect(() => {
     const onSearchKeyDown = (event: KeyboardEvent) => {
       if (areSuggestionsVisibleRef.current) {
-        if (event.key === 'Tab' || event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        if (event.key === 'Tab') {
           event.preventDefault()
           event.stopImmediatePropagation()
           querySource.current = QuerySource.tabbing
-          const reverse = (event.key === 'Tab' && event.shiftKey) || event.key === 'ArrowUp'
+          const reverse = event.shiftKey
           setSelectedIndex(oldIndex => {
             const length = Math.max(1, suggestionsRef.current.length)
             if (reverse) {
@@ -235,9 +235,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
       data-testid="asset-search-bar"
       tabIndex={-1}
       onFocus={() => {
-        if (keyboardSelectedIndex == null) {
-          setAreSuggestionsVisible(true)
-        }
+        setAreSuggestionsVisible(true)
       }}
       onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget)) {

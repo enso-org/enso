@@ -175,14 +175,17 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
                 </h2>
                 <ul className="flex flex-col items-start">
                   {tabs.map(tab => (
-                    <li key={tab.settingsTab}>
+                    <li
+                      key={tab.settingsTab}
+                      className={`rounded-full ${tab.settingsTab === keyboardSelectedTab ? 'focus-ring' : ''}`}
+                    >
                       <button
                         ref={element => {
                           if (tab.settingsTab === keyboardSelectedTab) {
                             element?.focus()
                           }
                         }}
-                        className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${tab.settingsTab === settingsTab ? 'disabled bg-selected-frame active' : ''} ${tab.settingsTab === keyboardSelectedTab ? 'focus-ring' : ''}`}
+                        className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${tab.settingsTab === settingsTab ? 'disabled bg-selected-frame active' : ''}`}
                         onClick={() => {
                           setSettingsTab(tab.settingsTab)
                         }}
