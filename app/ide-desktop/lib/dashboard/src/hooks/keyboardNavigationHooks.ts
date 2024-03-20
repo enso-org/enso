@@ -43,17 +43,20 @@ export function useKeyboardChildNavigation(
         case otherPreviousKey:
         case otherNextKey: {
           if (catchAllArrowKeysRef.current) {
+            event.preventDefault()
             event.stopPropagation()
           }
           break
         }
         case previousKey: {
           if (catchAllArrowKeysRef.current) {
+            event.preventDefault()
             event.stopPropagation()
           }
           const oldIndex = keyboardSelectedIndexRef.current ?? defaultIndexRef.current
           const newIndex = Math.max(0, oldIndex - 1)
           if (newIndex !== oldIndex) {
+            event.preventDefault()
             event.stopPropagation()
             setKeyboardSelectedIndex(newIndex)
           }
@@ -61,23 +64,27 @@ export function useKeyboardChildNavigation(
         }
         case nextKey: {
           if (catchAllArrowKeysRef.current) {
+            event.preventDefault()
             event.stopPropagation()
           }
           const oldIndex = keyboardSelectedIndexRef.current ?? defaultIndexRef.current
           const newIndex = Math.min(lengthRef.current - 1, oldIndex + 1)
           if (newIndex !== oldIndex) {
+            event.preventDefault()
             event.stopPropagation()
             setKeyboardSelectedIndex(newIndex)
           }
           break
         }
         case 'Enter': {
+          event.preventDefault()
           event.stopPropagation()
           // Should already be handled by the button's `onClick`.
           break
         }
         case 'Escape': {
           if (keyboardSelectedIndexRef.current != null) {
+            event.preventDefault()
             event.stopPropagation()
             setKeyboardSelectedIndex(null)
           }
