@@ -193,6 +193,22 @@ final class JobExecutionEngine(
       .interruptThreads()
   }
 
+  /** @inheritdoc */
+  override def abortJobs(
+    contextId: UUID,
+    accept: java.util.function.Function[Job[_], java.lang.Boolean]
+  ): Unit = {
+    val allJobs     = runningJobsRef.get()
+    val contextJobs = allJobs.filter(_.job.contextIds.contains(contextId))
+    contextJobs.foreach { runningJob =>
+      if (runningJob.job.isCancellable && accept.apply(runningJob.job)) {
+        runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+      }
+    }
+    runtimeContext.executionService.getContext.getThreadManager
+      .interruptThreads()
+  }
+
   override def abortBackgroundJobs(toAbort: Class[_ <: Job[_]]*): Unit = {
     val allJobs =
       backgroundJobsRef.updateAndGet(_.filterNot(_.future.isCancelled))

@@ -564,12 +564,13 @@ object ProgramExecutionSupport {
               .getOrElse(expressionValue.getClass)
           ctx.executionService.getLogger.log(
             Level.WARNING,
-            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3}",
+            "Execution of visualization [{0}] on value [{1}] of [{2}] failed. {3} | {4}",
             Array[Object](
               visualizationId,
               expressionId,
               typeOfNode,
               message,
+              expressionValue,
               error
             )
           )

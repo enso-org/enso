@@ -28,6 +28,15 @@ public interface JobControlPlane {
   void abortJobs(UUID contextId, Class<? extends Job<?>>... classOf);
 
   /**
+   * Aborts jobs that relate to the specified execution context.
+   *
+   * @param contextId an identifier of a context
+   * @param accept filter that selects jobs to be aborted
+   */
+  @SuppressWarnings("unchecked")
+  void abortJobs(UUID contextId, java.util.function.Function<Job<?>, Boolean> accept);
+
+  /**
    * Abort provided background jobs.
    *
    * @param toAbort the list of jobs to abort

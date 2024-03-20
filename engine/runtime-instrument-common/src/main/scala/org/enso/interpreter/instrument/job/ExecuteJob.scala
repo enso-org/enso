@@ -5,7 +5,6 @@ import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ExecutionResult
 
 import java.util.logging.Level
 
@@ -18,12 +17,13 @@ import java.util.logging.Level
 class ExecuteJob(
   contextId: UUID,
   stack: List[InstrumentFrame],
-  val executionEnvironment: Option[Api.ExecutionEnvironment]
+  val executionEnvironment: Option[Api.ExecutionEnvironment],
+  val visualizationTriggered: Boolean = false
 ) extends Job[Unit](
       List(contextId),
       isCancellable = true,
-      // TODO[MK]: make this interruptible when https://github.com/oracle/graal/issues/3590
-      // is resolved
+      // Interruptions may turn out to be problematic in enterprise edition of GraalVM
+      // until https://github.com/oracle/graal/issues/3590 is resolved
       mayInterruptIfRunning = true
     ) {
 
@@ -78,7 +78,7 @@ class ExecuteJob(
             Api.Response(
               Api.ExecutionFailed(
                 contextId,
-                ExecutionResult.Failure(t.getMessage, None)
+                Api.ExecutionResult.Failure(t.getMessage, None)
               )
             )
           )
@@ -109,10 +109,19 @@ object ExecuteJob {
   /** Create execute job from the executable.
     *
     * @param executable the executable to run
+    * @param visualizationTriggered true if execution is triggered by a visualization request, false otherwise
     * @return the new execute job
     */
-  def apply(executable: Executable): ExecuteJob =
-    new ExecuteJob(executable.contextId, executable.stack.toList, None)
+  def apply(
+    executable: Executable,
+    visualizationTriggered: Boolean = false
+  ): ExecuteJob =
+    new ExecuteJob(
+      executable.contextId,
+      executable.stack.toList,
+      None,
+      visualizationTriggered
+    )
 
   /** Create execute job from the context and stack.
     *
