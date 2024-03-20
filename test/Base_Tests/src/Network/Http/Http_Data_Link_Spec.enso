@@ -61,17 +61,17 @@ add_specs suite_builder =
             r1.should_equal ('{"hello": "world"}'.parse_json)
 
             r2 = Data.read base_url_with_slash+"dynamic-datalink" Plain_Text
-            r2.should_equal '{"hello": "world"}'
+            r2.trim.should_equal '{"hello": "world"}'
 
         group_builder.specify "should be able to follow a datalink from HTTP in Data.fetch/post, if auto parse is on" <|
             r1 = Data.fetch base_url_with_slash+"dynamic.datalink"
-            r1.should_equal '{"hello": "world"}'
+            r1.trim.should_equal '{"hello": "world"}'
 
             r2 = Data.fetch base_url_with_slash+"dynamic-datalink"
-            r2.should_equal '{"hello": "world"}'
+            r2.trim.should_equal '{"hello": "world"}'
 
             r3 = Data.post base_url_with_slash+"dynamic.datalink"
-            r3.should_equal '{"hello": "world"}'
+            r3.trim.should_equal '{"hello": "world"}'
 
         group_builder.specify "will return raw datalink config data in Data.fetch/post if auto parse is off" <|
             r1 = Data.fetch base_url_with_slash+"dynamic.datalink" try_auto_parse_response=False

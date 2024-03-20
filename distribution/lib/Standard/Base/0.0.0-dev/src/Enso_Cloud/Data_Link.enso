@@ -131,14 +131,21 @@ data_link_extension = ".datalink"
 ## PRIVATE
    Checks if the given file is a data-link.
 is_data_link (file_metadata : File_Format_Metadata) -> Boolean =
-    case file_metadata.interpret_content_type of
+    content_type_matches = case file_metadata.interpret_content_type of
         content_type : Content_Type_Metadata ->
             content_type.base_type == data_link_content_type
-        Nothing ->
-            case file_metadata.guess_extension of
-                extension : Text ->
-                    extension == data_link_extension
-                Nothing -> False
+        _ -> False
+
+    # If the content type matches, it is surely a data link.
+    if content_type_matches then True else
+        ## If the content type does not match, we check the extension even if _different content type was provided_.
+           That is because many HTTP servers will not understand data links and may return a data link with
+           a content type like `text/plain` or `application/json`. We still want to treat the file as a data link
+           if its extension is correct.
+        case file_metadata.guess_extension of
+            extension : Text ->
+                extension == data_link_extension
+            Nothing -> False
 
 ## PRIVATE
 interpret_json_as_datalink json =
