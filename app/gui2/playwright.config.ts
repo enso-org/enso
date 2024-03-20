@@ -36,8 +36,8 @@ process.env.PLAYWRIGHT_PORT = `${PORT}`
 export default defineConfig({
   globalSetup: './e2e/setup.ts',
   testDir: './e2e',
-  // forbidOnly: !!process.env.CI,
-  repeatEach: process.env.CI ? 100 : 1,
+  forbidOnly: !!process.env.CI,
+  repeatEach: process.env.CI ? 3 : 1,
   ...(process.env.CI ? { workers: 1 } : {}),
   timeout: 60000,
   expect: {
