@@ -568,8 +568,13 @@ add_specs suite_builder =
             r.column_names . should_equal ["Column 1", "Column 2"]
             r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]
 
-        group_builder.specify "should be able to read a datalink stored on S3" pending="TODO" <|
-            Error.throw "TODO"
+        group_builder.specify "should be able to read a data link stored on S3" <|
+            s3_link = my_writable_dir / "my-simple.datalink"
+
+            raw_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
+            Data_Link_Format.write_raw_config s3_link raw_content replace_existing=True . should_succeed
+            Panic.with_finalizer s3_link.delete <|
+                s3_link.read . should_equal "Hello WORLD!"
 
 main filter=Nothing =
     suite = Test.build suite_builder->
