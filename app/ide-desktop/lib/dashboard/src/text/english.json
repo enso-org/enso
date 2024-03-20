@@ -231,6 +231,12 @@
   "sortByModificationDate": "Sort by modification date",
   "sortByModificationDateDescending": "Sort by modification date descending",
   "stopSortingByModificationDate": "Stop sorting by modification date",
+  "sortByEmail": "Sort by email",
+  "sortByEmailDescending": "Sort by email descending",
+  "stopSortingByEmail": "Stop sorting by email",
+  "sortByTimestamp": "Sort by timestamp",
+  "sortByTimestampDescending": "Sort by timestamp descending",
+  "stopSortingByTimestamp": "Stop sorting by timestamp",
   "closeAssetPanel": "Close Asset Panel",
   "openAssetPanel": "Open Asset Panel",
   "confirmEdit": "Confirm Edit",
@@ -443,5 +449,21 @@
   "accessedDataColumnShow": "Show Accessed data column",
   "accessedDataColumnHide": "Hide Accessed data column",
   "docsColumnShow": "Show Docs column",
-  "docsColumnHide": "Hide Doc columns"
+  "docsColumnHide": "Hide Doc columns",
+
+  "activityLog": "Activity Log",
+  "startDate": "Start Date",
+  "endDate": "End Date",
+  "types": "Types",
+  "users": "Users",
+  "type": "Type",
+  "timestamp": "Timestamp",
+
+  "mondayAbbr": "M",
+  "tuesdayAbbr": "Tu",
+  "wednesdayAbbr": "W",
+  "thursdayAbbr": "Th",
+  "fridayAbbr": "F",
+  "saturdayAbbr": "Sa",
+  "sundayAbbr": "Su"
 }
