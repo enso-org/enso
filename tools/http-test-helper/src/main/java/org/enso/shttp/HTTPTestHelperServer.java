@@ -81,16 +81,23 @@ public class HTTPTestHelperServer {
       server.addHandler(path, new TestHandler(method));
     }
 
+    // HTTP helpers
     server.addHandler("/test_headers", new HeaderTestHandler());
     server.addHandler("/test_token_auth", new TokenAuthTestHandler());
     server.addHandler("/test_basic_auth", new BasicAuthTestHandler());
     server.addHandler("/crash", new CrashingTestHandler());
+
+    // Cloud mock
     var expiredTokensCounter = new ExpiredTokensCounter();
     server.addHandler("/COUNT-EXPIRED-TOKEN-FAILURES", expiredTokensCounter);
     CloudRoot cloudRoot = new CloudRoot(expiredTokensCounter);
     server.addHandler(cloudRoot.prefix, cloudRoot);
     server.addHandler("/enso-cloud-auth-renew", new CloudAuthRenew());
     setupFileServer(server, projectRoot);
+
+    // Data link helpers
+    server.addHandler("/dynamic-datalink", new GenerateDataLinkHandler(true));
+    server.addHandler("/dynamic2.datalink", new GenerateDataLinkHandler(false));
   }
 
   private static void setupFileServer(HybridHTTPServer server, Path projectRoot) {
