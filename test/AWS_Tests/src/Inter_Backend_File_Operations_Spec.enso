@@ -89,6 +89,10 @@ add_specs suite_builder =
     # TODO Enso_File datalink once Enso_File & cloud datalink write is supported
     datalink_sources = [my_writable_s3_dir / "s3.datalink", Files.create_temporary_file "local" ".datalink"]
     datalink_destinations = [my_writable_s3_dir / "s3-target.datalink", Files.create_temporary_file "local-target" ".datalink"]
+    ## This introduces a lot of combinations for testing the datalink copy/move logic, but unfortunately it is needed,
+       because various combinations of backends may rely on different logic (different operations happen under the hood
+       if a file is moved locally vs if it is moved from a local filesystem to S3 or vice versa), and all that different
+       logic may be prone to mis-handling datalinks - so we need to test all paths to ensure coverage.
     sources.each source_file-> destinations.each destination_file->
         src_typ = Meta.type_of source_file . to_display_text
         dest_typ = Meta.type_of destination_file . to_display_text
