@@ -20,7 +20,7 @@ export default function DeleteUserAccountSettingsSection() {
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const navigator2D = navigator2DProvider.useNavigator2D()
-  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
     keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: 1 })

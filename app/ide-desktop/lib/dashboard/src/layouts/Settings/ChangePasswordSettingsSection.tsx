@@ -23,7 +23,7 @@ export default function ChangePasswordSettingsSection() {
   const [currentPassword, setCurrentPassword] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
   const [confirmNewPassword, setConfirmNewPassword] = React.useState('')
-  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
     keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: 3 })

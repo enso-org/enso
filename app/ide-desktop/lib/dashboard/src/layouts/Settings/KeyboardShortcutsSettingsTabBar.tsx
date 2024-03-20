@@ -28,7 +28,7 @@ export default function KeyboardShortcutsSettingsTabBar(
   const inputBindings = inputBindingsManager.useInputBindings()
   const { setModal } = modalProvider.useSetModal()
   const navigator2D = navigator2DProvider.useNavigator2D()
-  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
     keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: 1 })

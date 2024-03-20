@@ -31,7 +31,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const navigator2D = navigator2DProvider.useNavigator2D()
-  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
   const nameRef = React.useRef<HTMLInputElement | null>(null)
   const emailRef = React.useRef<HTMLInputElement | null>(null)
   const websiteRef = React.useRef<HTMLInputElement | null>(null)
