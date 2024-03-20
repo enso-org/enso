@@ -77,7 +77,6 @@ export function useKeyboardChildNavigation(
           break
         }
         case 'Enter': {
-          event.preventDefault()
           event.stopPropagation()
           // Should already be handled by the button's `onClick`.
           break

@@ -122,6 +122,14 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
         <tbody ref={bodyRef}>
           {visibleBindings.map((kv, i) => {
             const [action, info] = kv
+            const isNewButtonKeyboardSelected =
+              keyboardSelectedIndex === i &&
+              selectedBindings != null &&
+              bindingKeyboardSelectedIndex === selectedBindings.length
+            const isResetButtonKeyboardSelected =
+              keyboardSelectedIndex === i &&
+              selectedBindings != null &&
+              bindingKeyboardSelectedIndex === selectedBindings.length + 1
             return (
               <tr key={action}>
                 <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-icon-column-r">
@@ -160,18 +168,12 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                     <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
                       <button
                         ref={element => {
-                          if (
-                            keyboardSelectedIndex === i &&
-                            bindingKeyboardSelectedIndex === selectedBindings?.length
-                          ) {
+                          if (isNewButtonKeyboardSelected) {
                             element?.focus()
                           }
                         }}
                         className={`my-auto flex rounded-full ${keyboardSelectedIndex === i ? 'visible' : 'invisible group-hover:visible'} ${
-                          keyboardSelectedIndex === i &&
-                          bindingKeyboardSelectedIndex === selectedBindings?.length
-                            ? 'focus-ring'
-                            : ''
+                          isNewButtonKeyboardSelected ? 'focus-ring' : ''
                         }`}
                         onClick={event => {
                           event.stopPropagation()
@@ -191,18 +193,12 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                       </button>
                       <button
                         ref={element => {
-                          if (
-                            keyboardSelectedIndex === i &&
-                            bindingKeyboardSelectedIndex === (selectedBindings?.length ?? 0) + 1
-                          ) {
+                          if (isResetButtonKeyboardSelected) {
                             element?.focus()
                           }
                         }}
                         className={`my-auto flex rounded-full ${keyboardSelectedIndex === i ? 'visible' : 'invisible group-hover:visible'} ${
-                          keyboardSelectedIndex === i &&
-                          bindingKeyboardSelectedIndex === (selectedBindings?.length ?? 0) + 1
-                            ? 'focus-ring'
-                            : ''
+                          isResetButtonKeyboardSelected ? 'focus-ring' : ''
                         }`}
                         onClick={() => {
                           inputBindings.reset(action)
