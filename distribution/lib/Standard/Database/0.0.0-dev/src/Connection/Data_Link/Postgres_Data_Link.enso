@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Enso_Cloud.Data_Link import parse_secure_value
-from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
+from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
@@ -19,19 +19,19 @@ type Postgres_Data_Link
 
     ## PRIVATE
     parse json -> Postgres_Data_Link =
-        host = get_required_field "host" json
-        port = get_required_field "port" json
-        db_name = get_required_field "database_name" json
-        schema = json.get "schema" if_missing=""
+        host = get_required_field "host" json expected_type=Text
+        port = get_required_field "port" json expected_type=Integer
+        db_name = get_required_field "database_name" json expected_type=Text
+        schema = get_optional_field "schema" json if_missing="" expected_type=Text
 
-        credentials_json = json.get "credentials"
+        credentials_json = get_optional_field "credentials" json
         credentials = credentials_json.if_not_nothing <|
             username = get_required_field "username" credentials_json |> parse_secure_value
             password = get_required_field "password" credentials_json |> parse_secure_value
             Credentials.Username_And_Password username password
 
         details = Postgres_Details.Postgres host=host port=port database=db_name schema=schema credentials=credentials
-        case json.get "table" of
+        case get_optional_field "table" json expected_type=Text of
             Nothing ->
                 Postgres_Data_Link.Connection details
             table_name : Text ->

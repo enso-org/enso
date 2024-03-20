@@ -31,12 +31,16 @@ class EnsoSecretReader {
       return secrets.get(secretId);
     }
 
-    var apiUri = AuthenticationProvider.getAPIRootURI() + "s3cr3tz/" + secretId;
+    return fetchSecretValue(secretId, 3);
+  }
+
+  private static String fetchSecretValue(String secretId, int retryCount) {
+    var apiUri = CloudAPI.getAPIRootURI() + "s3cr3tz/" + secretId;
     var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
     var request =
         HttpRequest.newBuilder()
             .uri(URI.create(apiUri))
-            .header("Authorization", "Bearer " + AuthenticationProvider.getToken())
+            .header("Authorization", "Bearer " + AuthenticationProvider.getAccessToken())
             .GET()
             .build();
 
@@ -45,11 +49,29 @@ class EnsoSecretReader {
     try {
       response = client.send(request, HttpResponse.BodyHandlers.ofString());
     } catch (IOException | InterruptedException e) {
-      throw new IllegalArgumentException("Unable to read secret.");
+      if (retryCount < 0) {
+        throw new IllegalArgumentException("Unable to read secret.");
+      } else {
+        return fetchSecretValue(secretId, retryCount - 1);
+      }
     }
 
-    if (response.statusCode() != 200) {
-      throw new IllegalArgumentException("Unable to read secret.");
+    int status = response.statusCode();
+    if (status == 401 || status == 403 || status >= 500) {
+      if (retryCount < 0) {
+        String kind = status >= 500 ? "server" : "authentication";
+        throw new IllegalArgumentException(
+            "Unable to read secret - numerous " + kind + " failures.");
+      } else {
+        // We forcibly refresh the access token and try again.
+        AuthenticationProvider.getAuthenticationService().force_refresh();
+        return fetchSecretValue(secretId, retryCount - 1);
+      }
+    }
+
+    if (status != 200) {
+      throw new IllegalArgumentException(
+          "Unable to read secret - the service responded with status " + status + ".");
     }
 
     var secretJSON = response.body();

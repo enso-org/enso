@@ -10,10 +10,10 @@ import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
-import Standard.Database.Internal.Postgres.Postgres_Entity_Naming_Properties
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import all
+from Standard.Database.Internal.Postgres.Postgres_Connection import parse_postgres_encoding
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -208,7 +208,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                 ["EUC_JIS_2004", "LATIN6", "LATIN8", "MULE_INTERNAL", "SHIFT_JIS_2004"]
 
             known_encodings.each encoding_name->
-                encoding = Postgres_Entity_Naming_Properties.parse_postgres_encoding encoding_name
+                encoding = parse_postgres_encoding encoding_name
                 encoding.should_be_a Encoding
 
                 case unsupported_encodings.contains encoding_name of
