@@ -179,7 +179,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
           className={`relative before:absolute before:top before:w-full before:rounded-input before:border before:border-primary/10 before:backdrop-blur-default before:transition-colors ${
             isDropdownVisible
               ? 'before:h-full before:shadow-soft'
-              : 'before:h-text group-hover:before:bg-frame'
+              : 'before:h-text group-hover:before:bg-hover-bg'
           }`}
         >
           {/* Spacing. */}
@@ -207,7 +207,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
                   } ${
                     i === visuallySelectedIndex
                       ? `cursor-default bg-frame font-bold`
-                      : 'hover:bg-primary/10'
+                      : 'hover:bg-hover-bg'
                   }`}
                   key={i}
                   onMouseDown={event => {
@@ -284,10 +284,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
        * Classes that do not affect width have been removed. */}
       <div className="flex h flex-col overflow-hidden">
         {items.map((item, i) => (
-          <div
-            key={i}
-            className={`flex gap-dropdown-arrow px-input-x ${i === visuallySelectedIndex ? 'font-bold' : ''}`}
-          >
+          <div key={i} className="flex gap-dropdown-arrow px-input-x font-bold">
             <SvgMask src={CheckMarkIcon} />
             <Child item={item} />
           </div>
