@@ -341,7 +341,7 @@ download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.G
 type Raw_Response
 
 ## PRIVATE
-fetch_impl (uri:URI) (method:HTTP_Method) (headers:Vector) format =
+fetch_impl (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (headers:Vector = []) format =
     response = HTTP.fetch uri method headers
     decode_http_response response format
 

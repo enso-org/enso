@@ -38,18 +38,21 @@ add_specs suite_builder =
             r.get "hello" . should_equal "world"
 
         group_builder.specify "will fail if invalid format is used" <|
-            r = (data_link_root / "example-http-format-invalid.datalink").read
+            f = replace_url_in_datalink (data_link_root / "example-http-format-invalid.datalink")
+            r = f.read
             r.should_fail_with Illegal_State
             r.catch.to_display_text.should_contain "Unknown format"
 
         group_builder.specify "will fail if an unloaded format is used" <|
             # We assume that Base_Tests _do not_ import Standard.Table
-            r = (data_link_root / "example-http-format-delimited.datalink").read
+            f = replace_url_in_datalink (data_link_root / "example-http-format-delimited.datalink")
+            r = f.read
             r.should_fail_with Illegal_State
             r.catch.to_display_text.should_contain "Unknown format"
 
         group_builder.specify "but will succeed if an unknown format is not used because it was overridden" <|
-            r = (data_link_root / "example-http-format-delimited.datalink").read Plain_Text
+            f = replace_url_in_datalink (data_link_root / "example-http-format-delimited.datalink")
+            r = f.read Plain_Text
             r.should_be_a Text
             r.trim.should_equal '{"hello": "world"}'
 

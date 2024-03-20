@@ -97,7 +97,7 @@ public class HTTPTestHelperServer {
 
     // Data link helpers
     server.addHandler("/dynamic-datalink", new GenerateDataLinkHandler(true));
-    server.addHandler("/dynamic2.datalink", new GenerateDataLinkHandler(false));
+    server.addHandler("/dynamic.datalink", new GenerateDataLinkHandler(false));
   }
 
   private static void setupFileServer(HybridHTTPServer server, Path projectRoot) {
