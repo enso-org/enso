@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Network.HTTP.Response.Response
 
@@ -89,6 +90,9 @@ add_specs suite_builder =
 
             r2_plain = r2.decode Plain_Text
             r2_plain.should_equal '{"hello": "world"}'
+
+        group_builder.specify "should follow a datalink encountered in Data.download" pending="TODO?" <|
+            Error.throw "TODO"
 
 ## Reads the datalink as plain text and replaces the placeholder URL with actual
    URL of the server. It then writes the new contents to a temporary file and

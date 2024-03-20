@@ -3,6 +3,7 @@ import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Data_Link
 import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -65,9 +66,9 @@ from project.System.File_Format import Auto_Detect, File_Format
 @format File_Format.default_widget
 read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case path of
-    _ : Text -> if (path.starts_with "http://") || (path.starts_with "https://") then fetch path else
+    _ : Text -> if (path.starts_with "http://") || (path.starts_with "https://") then fetch_impl path format=format else
         read (File.new path) format on_problems
-    uri : URI -> fetch uri
+    uri : URI -> fetch_impl uri format=format
     _ -> File.new path . read format on_problems
 
 ## ALIAS load text, open text
@@ -187,13 +188,8 @@ list_directory directory:File (name_filter:(Text | Nothing)=Nothing) recursive:B
 @uri Text_Input
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
 fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    response = HTTP.fetch uri method headers
-    if try_auto_parse_response.not then response.with_materialized_body else
-        ## We cannot catch decoding errors here and fall-back to the raw response
-           body, because as soon as decoding is started, at least part of the
-           input stream may already be consumed, so we cannot easily reconstruct
-           the whole stream.
-        response.decode if_unsupported=response.with_materialized_body
+    format = if try_auto_parse_response then Auto_Detect else Raw_Response
+    fetch_impl uri method headers format
 
 ## ALIAS http post, upload
    GROUP Output
@@ -317,9 +313,9 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
 @uri Text_Input
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
 post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
+    format = if try_auto_parse_response then Auto_Detect else Raw_Response
     response = HTTP.post uri body method headers
-    if try_auto_parse_response.not then response.with_materialized_body else
-        response.decode if_unsupported=response.with_materialized_body
+    decode_http_response response format
 
 ## GROUP Input
    ICON data_download
@@ -337,5 +333,26 @@ post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Meth
 download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
 download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
     Context.Output.if_enabled disabled_message="Downloading to a file is forbidden as the Output context is disabled." panic=False <|
+        # TODO datalink?
         response = HTTP.fetch uri method headers
         response.write file
+
+## PRIVATE
+type Raw_Response
+
+## PRIVATE
+fetch_impl (uri:URI) (method:HTTP_Method) (headers:Vector) format =
+    response = HTTP.fetch uri method headers
+    decode_http_response response format
+
+## PRIVATE
+   Decodes a HTTP response, handling data link access.
+decode_http_response response format =
+    # If Raw_Response is requested, we ignore data link handling.
+    if format == Raw_Response then response.with_materialized_body else
+        body = response.body
+        case Data_Link.is_data_link body.metadata of
+            True ->
+                data_link = Data_Link.interpret_json_as_datalink response.decode_as_json
+                data_link.read format Problem_Behavior.Report_Error
+            False -> body.decode format=format if_unsupported=body.materialize
