@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
 import Standard.Base.Enso_Cloud.Errors.Missing_Data_Link_Library
 import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
 
@@ -34,6 +36,11 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             r = datalink.read
             r.should_fail_with Missing_Data_Link_Library
             r.catch.to_display_text . should_contain "The data link for S3 is provided by the library Standard.AWS which is not loaded."
+
+        group_builder.specify "does not allow to use Data_Link_Format to read/write regular files" <|
+            temp_file = File.create_temporary_file "not-a-datalink" ".txt"
+            Data_Link_Format.write_raw_config temp_file "{}" . should_fail_with Illegal_Argument
+            Data_Link_Format.read_raw_config temp_file . should_fail_with Illegal_Argument
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
