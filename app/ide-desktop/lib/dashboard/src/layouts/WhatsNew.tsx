@@ -5,6 +5,8 @@ import DiscordIcon from 'enso-assets/discord.svg'
 import IntegrationsImage from 'enso-assets/integrations.png'
 import YoutubeIcon from 'enso-assets/youtube.svg'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
+
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 // ================
@@ -16,21 +18,34 @@ export default function WhatsNew() {
   const rootRef = React.useRef<HTMLDivElement>(null)
   const navigator2D = navigator2DProvider.useNavigator2D()
 
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
+      axis: keyboardNavigationHooks.Axis.horizontal,
+      length: 3,
+    })
+
   React.useEffect(() => {
     const root = rootRef.current
     if (root == null) {
       return
     } else {
-      return navigator2D.register(root)
+      return navigator2D.register(root, {
+        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
+      })
     }
-  }, [navigator2D])
+  }, [navigator2D, setKeyboardSelectedIndex])
 
   return (
     <div ref={rootRef} className="flex flex-col gap-subheading px-home-section-x">
       <h2 className="text-subheading">Discover what&rsquo;s new</h2>
       <div className="grid grid-cols-fill-news-items gap-news-items">
         <a
-          className="relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text col-span-2-news-item sm:col-span-2"
+          ref={element => {
+            if (keyboardSelectedIndex === 0) {
+              element?.focus()
+            }
+          }}
+          className={`relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text col-span-2-news-item sm:col-span-2 ${keyboardSelectedIndex === 2 ? 'focus-ring' : ''}`}
           rel="noreferrer"
           target="_blank"
           href="https://enso.org/"
@@ -46,7 +61,12 @@ export default function WhatsNew() {
           </div>
         </a>
         <a
-          className="relative h-news-item rounded-default bg-youtube text-tag-text"
+          ref={element => {
+            if (keyboardSelectedIndex === 1) {
+              element?.focus()
+            }
+          }}
+          className={`relative h-news-item rounded-default bg-youtube text-tag-text ${keyboardSelectedIndex === 1 ? 'focus-ring' : ''}`}
           rel="noreferrer"
           target="_blank"
           href="https://www.youtube.com/c/Enso_org"
@@ -60,7 +80,12 @@ export default function WhatsNew() {
           </div>
         </a>
         <a
-          className="relative h-news-item rounded-default bg-discord text-tag-text"
+          ref={element => {
+            if (keyboardSelectedIndex === 2) {
+              element?.focus()
+            }
+          }}
+          className={`relative h-news-item rounded-default bg-discord text-tag-text ${keyboardSelectedIndex === 2 ? 'focus-ring' : ''}`}
           rel="noreferrer"
           target="_blank"
           href="https://discord.gg/enso"
