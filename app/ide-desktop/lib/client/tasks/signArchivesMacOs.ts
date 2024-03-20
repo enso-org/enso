@@ -71,55 +71,6 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
     // in the error message provided by Apple and can then be added here.
     const engineDir = `${resourcesDir}/enso/dist/*`
     const archivePatterns: ArchivePattern[] = [
-        /* TODO: Add     {
-      "severity": "error",
-      "code": null,
-      "path": "Enso.zip/Enso.app/Contents/Resources/enso/dist/2024.1.1-dev/lib/Standard/Snowflake/2024.1.1-dev/polyglot/java/snowflake-jdbc-3.15.0.jar/META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib",
-      "message": "The binary is not signed.",
-      "docUrl": "https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues#3087721",
-      "architecture": "x86_64"
-    },
-    {
-      "severity": "error",
-      "code": null,
-      "path": "Enso.zip/Enso.app/Contents/Resources/enso/dist/2024.1.1-dev/lib/Standard/Snowflake/2024.1.1-dev/polyglot/java/snowflake-jdbc-3.15.0.jar/META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib",
-      "message": "The signature does not include a secure timestamp.",
-      "docUrl": "https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues#3087733",
-      "architecture": "x86_64"
-    },
-    {
-      "severity": "error",
-      "code": null,
-      "path": "Enso.zip/Enso.app/Contents/Resources/enso/dist/2024.1.1-dev/lib/Standard/Snowflake/2024.1.1-dev/polyglot/java/snowflake-jdbc-3.15.0.jar/META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_x86_64.jnilib",
-      "message": "The binary is not signed.",
-      "docUrl": "https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues#3087721",
-      "architecture": "x86_64"
-    },
-    {
-      "severity": "error",
-      "code": null,
-      "path": "Enso.zip/Enso.app/Contents/Resources/enso/dist/2024.1.1-dev/lib/Standard/Snowflake/2024.1.1-dev/polyglot/java/snowflake-jdbc-3.15.0.jar/META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_x86_64.jnilib",
-      "message": "The signature does not include a secure timestamp.",
-      "docUrl": "https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues#3087733",
-      "architecture": "x86_64"
-    },
-    {
-      "severity": "error",
-      "code": null,
-      "path": "Enso.zip/Enso.app/Contents/Resources/enso/dist/2024.1.1-dev/lib/Standard/Snowflake/2024.1.1-dev/polyglot/java/snowflake-jdbc-3.15.0.jar/META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_aarch_64.jnilib",
-      "message": "The binary is not signed with a valid Developer ID certificate.",
-      "docUrl": "https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues#3087721",
-      "architecture": "arm64"
-    },
-    {
-      "severity": "error",
-      "code": null,
-      "path": "Enso.zip/Enso.app/Contents/Resources/enso/dist/2024.1.1-dev/lib/Standard/Snowflake/2024.1.1-dev/polyglot/java/snowflake-jdbc-3.15.0.jar/META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_aarch_64.jnilib",
-      "message": "The signature does not include a secure timestamp.",
-      "docUrl": "https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues#3087733",
-      "architecture": "arm64"
-    }*/
-
         [
             `/component/runner/runner.jar`,
             [
