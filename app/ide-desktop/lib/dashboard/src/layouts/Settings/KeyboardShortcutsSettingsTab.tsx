@@ -113,13 +113,13 @@ export default function KeyboardShortcutsSettingsTab() {
                           >
                             <KeyboardShortcut shortcut={binding} />
                             <button
-                              className="invisible group-hover:visible"
+                              className="invisible flex rounded-full transition-colors hover:bg-hover-bg group-hover:visible"
                               onClick={() => {
                                 inputBindings.delete(action, binding)
                                 doRefresh()
                               }}
                             >
-                              <img src={CrossIcon} />
+                              <SvgMask src={CrossIcon} className="size-icon" />
                             </button>
                           </div>
                         ))}
