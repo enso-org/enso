@@ -1626,7 +1626,9 @@ type DB_Table
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
-    @column Widget_Helpers.make_column_name_selector
+    @columns Widget_Helpers.make_column_name_vector_selector
+    @from_column Widget.Text_Input
+    @to_column Widget.Text_Input
     replace : (DB_Table | Map) -> (Text | Integer | Vector (Text | Integer)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
     replace self lookup_table:(DB_Table | Map) columns:(Text | Integer | Vector (Text | Integer)) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
         Replace_Helpers.replace self lookup_table columns from_column to_column allow_unmatched_rows on_problems
