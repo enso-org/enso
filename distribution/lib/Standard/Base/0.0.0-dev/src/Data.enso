@@ -17,6 +17,7 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Runtime.Context
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Boolean import Boolean, False, True
@@ -334,5 +335,6 @@ post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Meth
 @uri Text_Input
 download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
 download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
-    response = HTTP.fetch uri method headers
-    response.write file
+    Context.Output.if_enabled disabled_message="Downloading to a file is forbidden as the Output context is disabled." panic=False <|
+        response = HTTP.fetch uri method headers
+        response.write file
