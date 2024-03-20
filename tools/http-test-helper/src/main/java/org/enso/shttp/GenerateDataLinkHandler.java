@@ -26,9 +26,7 @@ public class GenerateDataLinkHandler extends SimpleHttpHandler {
     String host = exchange.getRequestHeaders().getFirst("Host");
     String uri = "http://" + host + targetPath;
     String content = dataLinkTemplate.replace("${URI}", uri);
-    if (includeContentType) {
-      exchange.getResponseHeaders().add("Content-Type", "application/x-enso-datalink");
-    }
-    sendResponse(200, content, exchange);
+    String contentType = includeContentType ? "application/x-enso-datalink" : null;
+    sendResponse(200, content, exchange, contentType);
   }
 }

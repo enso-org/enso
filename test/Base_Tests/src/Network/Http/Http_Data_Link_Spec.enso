@@ -77,13 +77,16 @@ add_specs suite_builder =
             r1 = Data.fetch base_url_with_slash+"dynamic.datalink" try_auto_parse_response=False
             r1.should_be_a Response
 
-            # Normally .datalink is not a valid format, so we cannot decode it
+            ## Normally .datalink is not a valid format, so we cannot decode it,
+               assuming that the server did not add some content type that would
+               make us treat the file e.g. as a text file.
             r1_decoded = r1.decode
             r1_decoded.should_fail_with File_Error
             r1_decoded.catch . should_be_a File_Error.Unsupported_Type
 
+            # Still raw data link config is returned if we successfully decode it by overriding the format.
             r1_plain = r1.decode Plain_Text
-            r1_plain.should_equal '{"hello": "world"}'
+            r1_plain.should_contain '"libraryName": "Standard.Base"'
 
             r2 = Data.post base_url_with_slash+"dynamic-datalink" try_auto_parse_response=False
             r2.should_be_a Response
@@ -92,7 +95,7 @@ add_specs suite_builder =
             r2_decoded.catch . should_be_a File_Error.Unsupported_Type
 
             r2_plain = r2.decode Plain_Text
-            r2_plain.should_equal '{"hello": "world"}'
+            r2_plain.should_contain '"libraryName": "Standard.Base"'
 
         group_builder.specify "should follow a datalink encountered in Data.download" pending="TODO?" <|
             Error.throw "TODO"
