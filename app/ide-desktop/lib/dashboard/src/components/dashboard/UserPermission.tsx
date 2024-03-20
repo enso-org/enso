@@ -53,7 +53,7 @@ export default function UserPermission(props: UserPermissionProps) {
     <div className="flex items-center gap-user-permission">
       <PermissionSelector
         showDelete
-        disabled={isOnlyOwner && userPermission.user.pk === self.user.pk}
+        disabled={isOnlyOwner && userPermission.user.sk === self.user.sk}
         error={
           isOnlyOwner
             ? `This ${backendModule.ASSET_TYPE_NAME[asset.type]} must have at least one owner.`

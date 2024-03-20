@@ -163,15 +163,15 @@ export default function ManagePermissionsModal<
           },
           permission: action,
         }))
-        const addedUsersPks = new Set(addedUsersPermissions.map(newUser => newUser.user.pk))
+        const addedUsersSks = new Set(addedUsersPermissions.map(newUser => newUser.user.sk))
         const oldUsersPermissions = permissions.filter(userPermission =>
-          addedUsersPks.has(userPermission.user.pk)
+          addedUsersSks.has(userPermission.user.sk)
         )
         try {
           setPermissions(oldPermissions =>
             [
               ...oldPermissions.filter(
-                oldUserPermissions => !addedUsersPks.has(oldUserPermissions.user.pk)
+                oldUserPermissions => !addedUsersSks.has(oldUserPermissions.user.sk)
               ),
               ...addedUsersPermissions,
             ].sort(backendModule.compareUserPermissions)
@@ -184,7 +184,7 @@ export default function ManagePermissionsModal<
         } catch (error) {
           setPermissions(oldPermissions =>
             [
-              ...oldPermissions.filter(permission => !addedUsersPks.has(permission.user.pk)),
+              ...oldPermissions.filter(permission => !addedUsersSks.has(permission.user.sk)),
               ...oldUsersPermissions,
             ].sort(backendModule.compareUserPermissions)
           )
@@ -197,16 +197,16 @@ export default function ManagePermissionsModal<
     }
 
     const doDelete = async (userToDelete: backendModule.UserInfo) => {
-      if (userToDelete.pk === self.user.pk) {
+      if (userToDelete.sk === self.user.sk) {
         doRemoveSelf()
       } else {
         const oldPermission = permissions.find(
-          userPermission => userPermission.user.pk === userToDelete.pk
+          userPermission => userPermission.user.sk === userToDelete.sk
         )
         try {
           setPermissions(oldPermissions =>
             oldPermissions.filter(
-              oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
+              oldUserPermissions => oldUserPermissions.user.sk !== userToDelete.sk
             )
           )
           await backend.createPermission({
@@ -323,7 +323,7 @@ export default function ManagePermissionsModal<
             </form>
             <div className="max-h-manage-permissions-modal-permissions-list overflow-auto px-manage-permissions-modal-input">
               {editablePermissions.map(userPermission => (
-                <div key={userPermission.user.pk} className="flex h-row items-center">
+                <div key={userPermission.user.sk} className="flex h-row items-center">
                   <UserPermission
                     asset={item}
                     self={self}
@@ -332,12 +332,12 @@ export default function ManagePermissionsModal<
                     setUserPermission={newUserPermission => {
                       setPermissions(oldPermissions =>
                         oldPermissions.map(oldUserPermission =>
-                          oldUserPermission.user.pk === newUserPermission.user.pk
+                          oldUserPermission.user.sk === newUserPermission.user.sk
                             ? newUserPermission
                             : oldUserPermission
                         )
                       )
-                      if (newUserPermission.user.pk === self.user.pk) {
+                      if (newUserPermission.user.sk === self.user.sk) {
                         // This must run only after the permissions have
                         // been updated through `setItem`.
                         setTimeout(() => {
@@ -346,7 +346,7 @@ export default function ManagePermissionsModal<
                       }
                     }}
                     doDelete={userToDelete => {
-                      if (userToDelete.pk === self.user.pk) {
+                      if (userToDelete.sk === self.user.sk) {
                         unsetModal()
                       }
                       void doDelete(userToDelete)
