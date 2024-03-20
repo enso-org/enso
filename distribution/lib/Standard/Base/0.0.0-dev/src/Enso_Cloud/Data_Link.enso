@@ -6,6 +6,7 @@ import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Enso_Cloud.Errors.Missing_Data_Link_Library
 import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
@@ -64,6 +65,8 @@ type Data_Link_Format
          Arguments:
          - file: The file to read the configuration from.
     read_raw_config (file : File_Like) -> Text =
+        if is_data_link file.file . not then
+            Panic.throw (Illegal_Argument.Error "Data_Link_Format should only be used for reading config of Data Links, but "+file.to_display_text+" is not a Data Link.")
         options = [File_Access.Read, Data_Link_Access.No_Follow]
         bytes = file.underlying.with_input_stream options input_stream->
             input_stream.read_all_bytes
@@ -81,6 +84,8 @@ type Data_Link_Format
          existing file. By default, the operation will fail if the file already
          exists.
     write_raw_config (file : Writable_File) (raw_content : Text) (replace_existing : Boolean = False) =
+        if is_data_link file.file . not then
+            Panic.throw (Illegal_Argument.Error "Data_Link_Format should only be used for writing config to Data Links, but "+file.file.to_display_text+" is not a Data Link.")
         exist_options = if replace_existing then [File_Access.Create, File_Access.Truncate_Existing] else [File_Access.Create_New]
         options = exist_options + [File_Access.Write, Data_Link_Access.No_Follow]
 
