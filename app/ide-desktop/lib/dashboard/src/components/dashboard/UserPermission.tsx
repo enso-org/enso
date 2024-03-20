@@ -38,7 +38,7 @@ export default function UserPermission(props: UserPermissionProps) {
       setUserPermission(newUserPermissions)
       outerSetUserPermission(newUserPermissions)
       await backend.createPermission({
-        userSubjects: [newUserPermissions.user.pk],
+        actorsIds: [newUserPermissions.user.sk],
         resourceId: asset.id,
         action: newUserPermissions.permission,
       })

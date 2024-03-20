@@ -154,8 +154,9 @@ export default function ManagePermissionsModal<
             // The names come from a third-party API and cannot be
             // changed.
             /* eslint-disable @typescript-eslint/naming-convention */
-            organization_id: user.id,
-            pk: newUser.id,
+            pk: newUser.organizationId,
+            sk: newUser.userId,
+            user_subject: newUser.id,
             user_email: newUser.email,
             user_name: newUser.name,
             /* eslint-enable @typescript-eslint/naming-convention */
@@ -176,7 +177,7 @@ export default function ManagePermissionsModal<
             ].sort(backendModule.compareUserPermissions)
           )
           await backend.createPermission({
-            userSubjects: addedUsersPermissions.map(userPermissions => userPermissions.user.pk),
+            actorsIds: addedUsersPermissions.map(userPermissions => userPermissions.user.sk),
             resourceId: item.id,
             action: action,
           })
@@ -209,7 +210,7 @@ export default function ManagePermissionsModal<
             )
           )
           await backend.createPermission({
-            userSubjects: [userToDelete.pk],
+            actorsIds: [userToDelete.sk],
             resourceId: item.id,
             action: null,
           })
