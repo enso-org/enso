@@ -51,7 +51,9 @@ export function useText() {
       return replacements.length === 0
         ? template
         : template.replace(/[$]([$]|\d+)/g, (_match, placeholder: string) =>
-            placeholder === '$' ? '$' : replacements[Number(placeholder)] ?? `$${placeholder}`
+            placeholder === '$'
+              ? '$'
+              : String(replacements[Number(placeholder)] ?? `$${placeholder}`)
           )
     },
     [localizedText]
