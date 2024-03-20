@@ -29,6 +29,12 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
         # The A column remains a text column because of being quoted
         t.should_equal (Table.new [["A", ["1", "3"]], ["B", [weird_txt, "y"]]])
 
+    group_builder.specify "overriding the custom format in Delimited datalink" <|
+        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-delimited-ignore-quote.datalink")
+        r = datalink_file.read Plain_Text
+        r.should_be_a Text
+        r.trim.should_equal '{"hello": "world"}'
+
     group_builder.specify "parsing Excel_Format.Workbook" <|
         datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-workbook.datalink")
 
@@ -48,3 +54,12 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
 
         table = datalink_file.read
         table . should_equal (Table.from_rows ["A", "B"] [[3, 'y']])
+
+    group_builder.specify "overriding Excel format" <|
+        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-workbook.datalink")
+
+        table = datalink_file.read (Excel_Format.Range "MyTestSheet!A1:B1")
+        table . should_equal (Table.from_rows ["A", "B"] [[1, 'x']])
+
+        bytes = datalink_file.read_bytes
+        bytes.should_be_a Vector

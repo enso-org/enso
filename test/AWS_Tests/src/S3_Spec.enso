@@ -12,7 +12,7 @@ from Standard.AWS.Errors import AWS_SDK_Error, More_Records_Available, S3_Error,
 import Standard.AWS.Internal.S3_Path.S3_Path
 
 # Needed for custom formats test
-from Standard.Table import Table, Excel_Format
+from Standard.Table import Table, Excel_Format, Delimited
 # Needed for correct `Table.should_equal`
 import enso_dev.Table_Tests.Util
 
@@ -570,11 +570,20 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to read a data link stored on S3" <|
             s3_link = my_writable_dir / "my-simple.datalink"
-
             raw_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
             Data_Link_Format.write_raw_config s3_link raw_content replace_existing=True . should_succeed
             Panic.with_finalizer s3_link.delete <|
                 s3_link.read . should_equal "Hello WORLD!"
+
+        group_builder.specify "should be able to read an S3 data link overriding the format" <|
+            s3_link = my_writable_dir / "my-simple.datalink"
+            raw_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
+            Data_Link_Format.write_raw_config s3_link raw_content replace_existing=True . should_succeed
+            Panic.with_finalizer s3_link.delete <|
+                r = s3_link.read (Delimited " " headers=False)
+                r.should_be_a Table
+                r.column_names . should_equal ["Column 1", "Column 2"]
+                r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]
 
 main filter=Nothing =
     suite = Test.build suite_builder->
