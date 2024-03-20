@@ -70,14 +70,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const count = conflictingFiles.length + conflictingProjects.length
   const firstConflict = conflictingFiles[0] ?? conflictingProjects[0]
   const otherFilesCount = Math.max(0, conflictingFiles.length - 1)
-  const otherFilesText = otherFilesCount === 1 ? getText('fileSingular') : getText('filePlural')
   const otherProjectsCount = conflictingProjects.length - (conflictingFiles.length > 0 ? 0 : 1)
-  const otherProjectsText =
-    otherProjectsCount === 1 ? getText('projectSingular') : getText('projectPlural')
-  const nonConflictingFilesText =
-    nonConflictingFileCount === 1 ? getText('fileSingular') : getText('filePlural')
-  const nonConflictingProjectsText =
-    nonConflictingProjectCount === 1 ? getText('projectSingular') : getText('projectPlural')
 
   React.useEffect(() => {
     for (const name of siblingFileNamesRaw) {
@@ -184,27 +177,20 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
         {nonConflictingFileCount > 0 ||
           (nonConflictingProjectCount > 0 && (
             <div className="relative flex flex-col">
-              <span className="text">
-                {nonConflictingFileCount > 0
-                  ? nonConflictingProjectCount > 0
-                    ? getText(
-                        'filesAndProjectsWithoutConflicts',
-                        String(nonConflictingFileCount),
-                        nonConflictingFilesText,
-                        String(nonConflictingProjectCount),
-                        nonConflictingProjectsText
-                      )
-                    : getText(
-                        'filesOrProjectsWithoutConflicts',
-                        String(nonConflictingFileCount),
-                        nonConflictingFilesText
-                      )
-                  : getText(
-                      'filesOrProjectsWithoutConflicts',
-                      String(nonConflictingProjectCount),
-                      nonConflictingProjectsText
-                    )}
-              </span>
+              {nonConflictingFileCount > 0 && (
+                <span className="text">
+                  {nonConflictingFileCount === 1
+                    ? getText('fileWithoutConflicts')
+                    : getText('filesWithoutConflicts', String(nonConflictingFileCount))}
+                </span>
+              )}
+              {nonConflictingProjectCount > 0 && (
+                <span className="text">
+                  {nonConflictingProjectCount === 1
+                    ? getText('projectWithoutConflicts')
+                    : getText('projectsWithoutConflicts', String(nonConflictingFileCount))}
+                </span>
+              )}
               <button
                 disabled={didUploadNonConflicting}
                 type="button"
@@ -279,22 +265,18 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
             )}
           </>
         )}
-        {(otherFilesCount > 0 ||
-          otherProjectsCount > 0 ||
-          nonConflictingFileCount > 0 ||
-          nonConflictingProjectCount > 0) && (
+        {otherFilesCount > 0 && (
           <span className="relative">
-            {otherFilesCount > 0
-              ? otherProjectsCount > 0
-                ? getText(
-                    'andOtherFilesAndProjects',
-                    String(otherFilesCount),
-                    otherFilesText,
-                    String(otherProjectsCount),
-                    otherProjectsText
-                  )
-                : getText('andOtherFilesOrProjects', String(otherFilesCount), otherFilesText)
-              : getText('andOtherFilesOrProjects', String(otherProjectsCount), otherProjectsText)}
+            {otherFilesCount === 1
+              ? getText('andOtherFile')
+              : getText('andOtherFiles', String(otherFilesCount))}
+          </span>
+        )}
+        {otherProjectsCount > 0 && (
+          <span className="relative">
+            {otherProjectsCount === 1
+              ? getText('andOtherProject')
+              : getText('andOtherProjects', String(otherProjectsCount))}
           </span>
         )}
         <div className="relative flex gap-icons">
@@ -307,7 +289,7 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
               doUpdate([...conflictingFiles, ...conflictingProjects])
             }}
           >
-            {count === 1 ? 'Update' : 'Update All'}
+            {count === 1 ? getText('update') : getText('updateAll')}
           </button>
           <button
             type="button"

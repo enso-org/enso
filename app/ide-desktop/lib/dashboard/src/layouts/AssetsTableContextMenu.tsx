@@ -66,7 +66,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
   )
   const isCloud = backend.type === backendModule.BackendType.remote
 
-  const pluralized = selectedKeys.size === 1 ? getText('itemSingular') : getText('itemPlural')
   // This works because all items are mutated, ensuring their value stays
   // up to date.
   const ownsAllSelectedAssets =
@@ -89,11 +88,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     } else {
       setModal(
         <ConfirmDeleteModal
-          actionText={getText(
-            'deleteSelectedAssetsActionText',
-            String(selectedKeys.size),
-            pluralized
-          )}
+          actionText={
+            selectedKeys.size === 1
+              ? getText('deleteSelectedAssetActionText')
+              : getText('deleteSelectedAssetsActionText', selectedKeys.size)
+          }
           doDelete={() => {
             clearSelectedKeys()
             dispatchAssetEvent({ type: AssetEventType.delete, ids: selectedKeys })
@@ -126,7 +125,11 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               doAction={() => {
                 setModal(
                   <ConfirmDeleteModal
-                    actionText={`delete ${selectedKeys.size} selected ${pluralized} forever`}
+                    actionText={
+                      selectedKeys.size === 1
+                        ? getText('deleteSelectedAssetForeverActionText')
+                        : getText('deleteSelectedAssetsForeverActionText', selectedKeys.size)
+                    }
                     doDelete={() => {
                       clearSelectedKeys()
                       dispatchAssetEvent({ type: AssetEventType.deleteForever, ids: selectedKeys })
