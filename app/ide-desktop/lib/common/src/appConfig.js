@@ -36,8 +36,8 @@ export async function readEnvironmentFromFile() {
         const variables = Object.fromEntries(entries)
         Object.assign(process.env, variables)
     } catch (error) {
-        const expectedKeys = Object.keys(getDefines()).map(key =>
-            key.replace(/^proccess[.]env[.]/, '')
+        const expectedKeys = Object.keys(DUMMY_DEFINES).map(key =>
+            key.replace(/^process[.]env[.]/, '')
         )
         /** @type {string[]} */
         const missingKeys = []

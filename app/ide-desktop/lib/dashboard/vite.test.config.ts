@@ -3,8 +3,6 @@ import * as vite from 'vite'
 
 import * as appConfig from 'enso-common/src/appConfig'
 
-import config from './vite.config'
-
 // =====================
 // === Configuration ===
 // =====================
@@ -13,8 +11,10 @@ import config from './vite.config'
 
 appConfig.loadTestEnvironmentVariables()
 
+const CONFIG = (await import('./vite.config')).default
+
 export default vite.mergeConfig(
-  config,
+  CONFIG,
   vite.defineConfig({
     resolve: {
       extensions: [
