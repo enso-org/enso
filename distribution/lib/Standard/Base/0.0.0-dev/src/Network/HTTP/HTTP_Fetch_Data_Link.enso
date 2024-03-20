@@ -16,22 +16,22 @@ from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_fie
 ## PRIVATE
 type HTTP_Fetch_Data_Link
     ## PRIVATE
-    Value (request : Request) default_format
+    Value (request : Request) format_json
 
     ## PRIVATE
     parse json -> HTTP_Fetch_Data_Link =
         uri = get_required_field "uri" json expected_type=Text
         method = HTTP_Method.from (get_required_field "method" json expected_type=Text)
-        format = parse_format (get_optional_field "format" json)
+        format_json = get_optional_field "format" json
         # TODO headers
         headers = []
         request = Request.new method uri headers
-        HTTP_Fetch_Data_Link.Value request format
+        HTTP_Fetch_Data_Link.Value request format_json
 
     ## PRIVATE
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
         _ = on_problems
-        effective_format = if format != Auto_Detect then format else self.default_format
+        effective_format = if format != Auto_Detect then format else parse_format self.format_json
         response = HTTP.new.request self.request
         response.decode effective_format
 

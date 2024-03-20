@@ -179,7 +179,7 @@ parse_secure_value json -> Text | Enso_Secret =
         _ -> Error.throw (Illegal_State.Error "Parsing a secure value failed. Expected either a string or an object representing a secret, but got "+(Meta.type_of json . to_display_text)+".")
 
 ## PRIVATE
-parse_format json = case json of
+parse_format (json : Any) -> Any ! Illegal_State = case json of
     Nothing -> Auto_Detect
     _ : JS_Object -> case get_required_field "subType" json of
         "default" -> Auto_Detect
