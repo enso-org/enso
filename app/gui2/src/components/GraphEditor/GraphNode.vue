@@ -132,6 +132,13 @@ function eventScenePos(event: MouseEvent) {
 const nodeHoverPos = ref<Vec2>()
 const selectionHoverPos = ref<Vec2>()
 function updateNodeHover(event: PointerEvent | undefined) {
+  console.log(
+    'updateNodeHover',
+    event?.clientX,
+    event?.clientY,
+    event && eventScenePos(event)?.x,
+    event && eventScenePos(event)?.y,
+  )
   nodeHoverPos.value = event && eventScenePos(event)
 }
 function updateSelectionHover(event: PointerEvent | undefined) {
@@ -148,6 +155,18 @@ watchEffect(() => {
   const inZone = (pos: Vec2 | undefined) =>
     pos != null &&
     pos.sub(props.node.position).x < CONTENT_PADDING + ICON_WIDTH + GRAB_HANDLE_X_MARGIN * 2
+  console.log(
+    menuHovered.value,
+    inZone(nodeHoverPos.value),
+    menuEnabledByHover.value,
+    inZone(selectionHoverPos.value),
+  )
+  console.log(
+    nodeHoverPos.value?.x,
+    nodeHoverPos.value?.y,
+    selectionHoverPos.value?.x,
+    selectionHoverPos.value?.y,
+  )
   const hovered =
     menuHovered.value ||
     inZone(nodeHoverPos.value) ||

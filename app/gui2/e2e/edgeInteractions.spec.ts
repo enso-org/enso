@@ -51,12 +51,14 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
   })
   // Click the target port in the `prod` node.
   const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
+  // We need `force: true` because edge connecting is handled in capture phase and may result
+  // in port change, what confuses playwright's actionability checks.
   await targetPort.click({ force: true, noWaitAfter: true })
 
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
 })
 
-test('Conditional ports: Disabled', async ({ page }) => {
+test.only('Conditional ports: Disabled', async ({ page }) => {
   await actions.goToGraph(page)
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
@@ -71,7 +73,9 @@ test('Conditional ports: Disabled', async ({ page }) => {
   await page.mouse.click(outputPort.x, outputPort.y)
   await conditionalPort.hover()
   await expect(conditionalPort).not.toHaveClass(/isTarget/)
-  await conditionalPort.click()
+  // We need `force: true` because ComponentBrowser appears in event's capture phase, what
+  // confuses playwright's actionability checks.
+  await conditionalPort.click({ force: true })
   await expect(locate.componentBrowser(page)).toExist()
   await page.keyboard.press('Escape')
 })
@@ -89,7 +93,8 @@ test('Conditional ports: Enabled', async ({ page }) => {
   await page.mouse.click(outputPort.x, outputPort.y)
   await conditionalPort.hover()
   await expect(conditionalPort).toHaveClass(/isTarget/)
-  await conditionalPort.click()
+  // We need to force port clicks; see comment in 'Connect an node to a port via dragging the edge'
+  await conditionalPort.click({ force: true })
   await expect(node.locator('.WidgetToken')).toHaveText(['final'])
 
   await page.keyboard.up('Meta')

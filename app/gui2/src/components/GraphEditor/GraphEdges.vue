@@ -27,7 +27,9 @@ const editingEdge: Interaction = {
     graph.clearUnconnected()
   },
   click(_e: PointerEvent, graphNavigator: GraphNavigator): boolean {
+    console.log('Click in edge interaction')
     if (graph.unconnectedEdge == null) return false
+    console.log("There's unconnected edge", graph.unconnectedEdge)
     let source: AstId | undefined
     let sourceNode: NodeId | undefined
     if (graph.unconnectedEdge.source) {
@@ -39,6 +41,7 @@ const editingEdge: Interaction = {
     }
     const target = graph.unconnectedEdge.target ?? selection?.hoveredPort
     const targetNode = target && graph.getPortNodeId(target)
+    console.log(source, sourceNode, target, targetNode)
     graph.transact(() => {
       if (source != null && sourceNode != targetNode) {
         if (target == null) {

@@ -153,9 +153,17 @@ useEvent(window, 'keydown', (event) => {
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event))
 })
-useEvent(window, 'pointerdown', (e) => interaction.handleClick(e, graphNavigator), {
-  capture: true,
-})
+useEvent(
+  window,
+  'pointerdown',
+  (e) => {
+    console.log('GLOBAL pointerdown', e.target)
+    interaction.handleClick(e, graphNavigator)
+  },
+  {
+    capture: true,
+  },
+)
 
 onMounted(() => viewportNode.value?.focus())
 
@@ -338,6 +346,7 @@ const groupColors = computed(() => {
 })
 
 function showComponentBrowser(nodePosition?: Vec2 | undefined, usage?: Usage) {
+  console.log('showingComponentBrowser')
   componentBrowserUsage.value = usage ?? { type: 'newNode', sourcePort: sourcePortForSelection() }
   componentBrowserNodePosition.value = nodePosition ?? targetComponentBrowserNodePosition()
   componentBrowserVisible.value = true
@@ -368,6 +377,7 @@ function createNodeFromSource(sourceNode: NodeId, options: NodeCreationOptions) 
 }
 
 function hideComponentBrowser() {
+  console.log('hidingComponentBrowser')
   graphStore.editedNodeInfo = undefined
   componentBrowserVisible.value = false
 }
@@ -389,6 +399,7 @@ function commitComponentBrowser(content: string, requiredImports: RequiredImport
       if (createdNode) nodeSelection.setSelection(new Set([createdNode]))
     }
   }
+  console.log('due to commit')
   hideComponentBrowser()
 }
 
@@ -403,6 +414,7 @@ watch(
         cursorPos: editedInfo.initialCursorPos,
       })
     } else {
+      console.log('due to watch')
       hideComponentBrowser()
     }
   },
@@ -568,6 +580,7 @@ function positionForNodeFromSource(sourceNode: NodeId) {
 const stackNavigator = useStackNavigator()
 
 function handleEdgeDrop(source: AstId, position: Vec2) {
+  console.log('handleEdgeDrop')
   showComponentBrowser(position, { type: 'newNode', sourcePort: source })
 }
 </script>
