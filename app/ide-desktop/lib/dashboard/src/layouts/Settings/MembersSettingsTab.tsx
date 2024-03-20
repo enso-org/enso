@@ -1,14 +1,13 @@
-/** @file Settings tab for viewing and editing account information. */
+/** @file Settings tab for viewing and editing organization members. */
 import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
+
+import MembersSettingsTabBar from '#/layouts/Settings/MembersSettingsTabBar'
 
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
-
-import InviteUsersModal from '#/modals/InviteUsersModal'
 
 // ==========================
 // === MembersSettingsTab ===
@@ -17,7 +16,6 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsTab() {
   const { backend } = backendProvider.useBackend()
-  const { setModal } = modalProvider.useSetModal()
   const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
   const isLoading = members == null
 
@@ -25,17 +23,7 @@ export default function MembersSettingsTab() {
     <div className="flex flex-col gap-settings-subsection">
       <div className="flex flex-col gap-settings-section-header">
         <h3 className="settings-subheading">Members</h3>
-        <div className="flex gap-drive-bar">
-          <button
-            className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-            onClick={event => {
-              event.stopPropagation()
-              setModal(<InviteUsersModal eventTarget={null} />)
-            }}
-          >
-            <span className="text whitespace-nowrap font-semibold">Invite Members</span>
-          </button>
-        </div>
+        <MembersSettingsTabBar />
         <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-row">
