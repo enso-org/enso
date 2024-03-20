@@ -542,6 +542,10 @@ const handler = componentBrowserBindings.handler({
             </div>
           </div>
         </div>
+        <div v-if="isAIPromptMode">
+          AI assistant mode mode: write query in natural language and press Enter.
+        </div>
+        <LoadingSpinner v-if="isAIPromptMode && input.processingAIPrompt" />
       </div>
       <div class="panel docs" :class="{ hidden: !docsVisible }">
         <DocumentationPanel v-model:selectedEntry="docEntry" />

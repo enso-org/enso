@@ -16,7 +16,7 @@ test.each`
 `('Node information from AST $line line', ({ line, pattern, rootExpr, documentation }) => {
   const ast = Ast.Ast.parse(line)
   const node = nodeFromAst(ast)
-  expect(node?.outerExpr).toBe(ast.id)
+  expect(node?.outerExpr).toBe(ast)
   expect(node?.pattern?.code()).toBe(pattern)
   expect(node?.rootExpr.code()).toBe(rootExpr)
   expect(node?.innerExpr.code()).toBe(rootExpr)

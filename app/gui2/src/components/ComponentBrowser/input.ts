@@ -536,6 +536,8 @@ export function useComponentBrowserInput(
     filter,
     /** Flag indicating that we should autoselect first component after last update */
     autoSelectFirstComponent,
+    // TODO[ao] docs here too.
+    processingAIPrompt,
     /** Re-initializes the input for given usage. */
     reset,
     /** Apply given suggested entry to the input. */
