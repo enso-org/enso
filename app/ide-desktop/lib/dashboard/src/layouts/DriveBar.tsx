@@ -8,9 +8,12 @@ import AddKeyIcon from 'enso-assets/add_key.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
+import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
+
 import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -52,9 +55,54 @@ export default function DriveBar(props: DriveBarProps) {
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const inputBindings = inputBindingsProvider.useInputBindings()
+  const navigator2D = navigator2DProvider.useNavigator2D()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
   const effectiveCategory = isCloud ? category : Category.home
+  const visibleButtonIds = React.useMemo(() => {
+    switch (effectiveCategory) {
+      case Category.recent: {
+        return [] as const
+      }
+      case Category.trash: {
+        return ['clearTrash'] as const
+      }
+      case Category.home: {
+        if (isCloud) {
+          return [
+            'newProject',
+            'newFolder',
+            'newSecret',
+            'newDataLink',
+            'uploadFiles',
+            ...(canDownload ? ['downloadFiles'] : []),
+          ] as const
+        } else {
+          return ['newProject', 'uploadFiles', ...(canDownload ? ['downloadFiles'] : [])] as const
+        }
+      }
+    }
+  }, [canDownload, effectiveCategory, isCloud])
+
+  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
+      axis: keyboardNavigationHooks.Axis.horizontal,
+      length: visibleButtonIds.length,
+    })
+  const keyboardSelectedId =
+    keyboardSelectedIndex == null ? null : visibleButtonIds[keyboardSelectedIndex]
+
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (root == null) {
+      return
+    } else {
+      return navigator2D.register(root, {
+        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
+      })
+    }
+  }, [navigator2D, setKeyboardSelectedIndex])
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -79,17 +127,22 @@ export default function DriveBar(props: DriveBarProps) {
       // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
       // in the given directory, to avoid name collisions.
       return (
-        <div className="flex h-row py-drive-bar-y">
+        <div ref={rootRef} className="flex h-row py-drive-bar-y">
           <div className="flex gap-drive-bar" />
         </div>
       )
     }
     case Category.trash: {
       return (
-        <div className="flex h-row py-drive-bar-y">
+        <div ref={rootRef} className="flex h-row py-drive-bar-y">
           <div className="flex gap-drive-bar">
             <button
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              ref={element => {
+                if (keyboardSelectedId === 'clearTrash') {
+                  element?.focus()
+                }
+              }}
+              className={`flex h-row items-center rounded-full bg-frame px-new-project-button-x ${keyboardSelectedId === 'clearTrash' ? 'focus-ring' : ''}`}
               onClick={event => {
                 event.stopPropagation()
                 setModal(
@@ -108,10 +161,15 @@ export default function DriveBar(props: DriveBarProps) {
     }
     case Category.home: {
       return (
-        <div className="flex h-row py-drive-bar-y">
+        <div ref={rootRef} className="flex h-row py-drive-bar-y">
           <div className="flex gap-drive-bar">
             <button
-              className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+              ref={element => {
+                if (keyboardSelectedId === 'newProject') {
+                  element?.focus()
+                }
+              }}
+              className={`flex h-row items-center rounded-full bg-frame px-new-project-button-x ${keyboardSelectedId === 'newProject' ? 'focus-ring' : ''}`}
               onClick={() => {
                 unsetModal()
                 doCreateProject()
@@ -122,6 +180,12 @@ export default function DriveBar(props: DriveBarProps) {
             <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
               {isCloud && (
                 <Button
+                  ref={element => {
+                    if (keyboardSelectedId === 'newFolder') {
+                      element?.focus()
+                    }
+                  }}
+                  focusRing={keyboardSelectedId === 'newFolder'}
                   active
                   image={AddFolderIcon}
                   alt="New Folder"
@@ -133,6 +197,12 @@ export default function DriveBar(props: DriveBarProps) {
               )}
               {isCloud && (
                 <Button
+                  ref={element => {
+                    if (keyboardSelectedId === 'newSecret') {
+                      element?.focus()
+                    }
+                  }}
+                  focusRing={keyboardSelectedId === 'newSecret'}
                   active
                   image={AddKeyIcon}
                   alt="New Secret"
@@ -144,6 +214,12 @@ export default function DriveBar(props: DriveBarProps) {
               )}
               {isCloud && (
                 <Button
+                  ref={element => {
+                    if (keyboardSelectedId === 'newDataLink') {
+                      element?.focus()
+                    }
+                  }}
+                  focusRing={keyboardSelectedId === 'newDataLink'}
                   active
                   image={AddConnectorIcon}
                   alt="New Data Link"
@@ -171,6 +247,12 @@ export default function DriveBar(props: DriveBarProps) {
                 }}
               />
               <Button
+                ref={element => {
+                  if (keyboardSelectedId === 'uploadFiles') {
+                    element?.focus()
+                  }
+                }}
+                focusRing={keyboardSelectedId === 'uploadFiles'}
                 active
                 image={DataUploadIcon}
                 alt="Upload Files"
@@ -180,6 +262,12 @@ export default function DriveBar(props: DriveBarProps) {
                 }}
               />
               <Button
+                ref={element => {
+                  if (keyboardSelectedId === 'downloadFiles') {
+                    element?.focus()
+                  }
+                }}
+                focusRing={keyboardSelectedId === 'downloadFiles'}
                 active={canDownload}
                 disabled={!canDownload}
                 image={DataDownloadIcon}
