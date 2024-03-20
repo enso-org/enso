@@ -71,7 +71,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             autoFocus
             disabled={!isNameEditable}
             placeholder={getText('secretNamePlaceholder')}
-            className="text grow rounded-full border border-black/10 bg-transparent px-input-x selectable enabled:active"
+            className="text grow rounded-full border border-primary/10 bg-transparent px-input-x selectable enabled:active"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
@@ -85,7 +85,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
             placeholder={
               isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
             }
-            className="text grow rounded-full border border-black/10 bg-transparent px-input-x"
+            className="text grow rounded-full border border-primary/10 bg-transparent px-input-x"
             onInput={event => {
               setValue(event.currentTarget.value)
             }}

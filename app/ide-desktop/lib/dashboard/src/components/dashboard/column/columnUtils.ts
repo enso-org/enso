@@ -15,20 +15,6 @@ import * as backend from '#/services/Backend'
 // === Types ===
 // =============
 
-/** Determines which columns are visible. */
-export enum ColumnDisplayMode {
-  /** Show only columns which are ready for release. */
-  release = 'release',
-  /** Show all columns. */
-  all = 'all',
-  /** Show only name and metadata. */
-  compact = 'compact',
-  /** Show only columns relevant to documentation editors. */
-  docs = 'docs',
-  /** Show only name, metadata, and configuration options. */
-  settings = 'settings',
-}
-
 /** Column type. */
 export enum Column {
   name = 'name',

@@ -111,7 +111,7 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { supportsLocalBackend, appRunner, initialProjectName: rawInitialProjectName } = props
+  const { supportsLocalBackend, appRunner, initialProjectName } = props
   const { projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
   const session = authProvider.useNonPartialUserSession()
@@ -142,7 +142,6 @@ export default function Dashboard(props: DashboardProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
-  const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
   const isCloud = backend.type === backendModule.BackendType.remote
   const rootDirectoryId = React.useMemo(
     () => session.user?.rootDirectoryId ?? backendModule.DirectoryId(''),
@@ -178,7 +177,7 @@ export default function Dashboard(props: DashboardProps) {
       setBackend(currentBackend)
     }
     const savedProjectStartupInfo = localStorage.get('projectStartupInfo')
-    if (rawInitialProjectName != null) {
+    if (initialProjectName != null) {
       if (page === pageSwitcher.Page.editor) {
         setPage(pageSwitcher.Page.drive)
       }
@@ -237,23 +236,19 @@ export default function Dashboard(props: DashboardProps) {
           }
         }
       } else {
-        if (currentBackend.type === backendModule.BackendType.local) {
-          setInitialProjectName(savedProjectStartupInfo.projectAsset.id)
-        } else {
-          const localBackend = new LocalBackend(projectManagerUrl)
-          void (async () => {
-            await localBackend.openProject(
-              savedProjectStartupInfo.projectAsset.id,
-              null,
-              savedProjectStartupInfo.projectAsset.title
-            )
-            const project = await localBackend.getProjectDetails(
-              savedProjectStartupInfo.projectAsset.id,
-              savedProjectStartupInfo.projectAsset.title
-            )
-            setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
-          })()
-        }
+        const localBackend = new LocalBackend(projectManagerUrl)
+        void (async () => {
+          await localBackend.openProject(
+            savedProjectStartupInfo.projectAsset.id,
+            null,
+            savedProjectStartupInfo.projectAsset.title
+          )
+          const project = await localBackend.getProjectDetails(
+            savedProjectStartupInfo.projectAsset.id,
+            savedProjectStartupInfo.projectAsset.title
+          )
+          setProjectStartupInfo(object.merge(savedProjectStartupInfo, { project }))
+        })()
       }
     }
     // This MUST only run when the component is mounted.

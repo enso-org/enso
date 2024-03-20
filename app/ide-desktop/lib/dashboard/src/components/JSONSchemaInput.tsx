@@ -75,7 +75,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             children.push(
               <div
                 className={`rounded-default border ${
-                  isValid ? 'border-black/10' : 'border-red-700/60'
+                  isValid ? 'border-primary/10' : 'border-red-700/60'
                 }`}
               >
                 <Autocomplete
@@ -101,7 +101,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 value={typeof value === 'string' ? value : ''}
                 size={1}
                 className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
-                  getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
+                  getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
                 }`}
                 placeholder={getText('enterText')}
                 onChange={event => {
@@ -121,7 +121,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               value={typeof value === 'number' ? value : ''}
               size={1}
               className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
-                getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
+                getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
               }`}
               placeholder={getText('enterNumber')}
               onChange={event => {
@@ -142,7 +142,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               value={typeof value === 'number' ? value : ''}
               size={1}
               className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
-                getValidator(path)(value) ? 'border-black/10' : 'border-red-700/60'
+                getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
               }`}
               placeholder={getText('enterInteger')}
               onChange={event => {
@@ -160,7 +160,8 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               readOnly={readOnly}
               checked={typeof value === 'boolean' && value}
               onChange={event => {
-                setValue(event.currentTarget.checked)
+                const newValue: boolean = event.currentTarget.checked
+                setValue(newValue)
               }}
             />
           )
@@ -181,7 +182,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           )
           if (jsonSchema.constantValue(defs, schema).length !== 1) {
             children.push(
-              <div className="flex flex-col gap-json-schema rounded-default border border-black/10 p-json-schema-object-input">
+              <div className="flex flex-col gap-json-schema rounded-default border border-primary/10 p-json-schema-object-input">
                 {propertyDefinitions.map(definition => {
                   const { key, schema: childSchema } = definition
                   const isOptional = !requiredProperties.includes(key)
@@ -242,7 +243,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                               // This is SAFE; but there is no way to tell TypeScript that an object
                               // has an index signature.
                               // eslint-disable-next-line no-restricted-syntax
-                              (oldValue as Record<string, unknown>)[key] === newValue
+                              (oldValue as Readonly<Record<string, unknown>>)[key] === newValue
                                 ? oldValue
                                 : { ...oldValue, [key]: newValue }
                             )
@@ -302,7 +303,6 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             setSelectedChildIndex(index)
             const newConstantValue = jsonSchema.constantValue(defs, childSchema, true)
             setValue(newConstantValue[0] ?? null)
-            setSelectedChildIndex(index)
           }}
         />
       )

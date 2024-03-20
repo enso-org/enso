@@ -148,7 +148,7 @@ object SearchProtocol {
       getter.module,
       getter.name,
       getter.arguments,
-      getter.returnType,
+      getter.selfType,
       getter.returnType,
       getter.isStatic,
       getter.documentation,

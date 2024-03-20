@@ -6,6 +6,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
+import ActivityLogSettingsTab from '#/layouts/Settings/ActivityLogSettingsTab'
 import KeyboardShortcutsSettingsTab from '#/layouts/Settings/KeyboardShortcutsSettingsTab'
 import MembersSettingsTab from '#/layouts/Settings/MembersSettingsTab'
 import OrganizationSettingsTab from '#/layouts/Settings/OrganizationSettingsTab'
@@ -66,6 +67,10 @@ export default function Settings() {
     }
     case SettingsTab.keyboardShortcuts: {
       content = <KeyboardShortcutsSettingsTab />
+      break
+    }
+    case SettingsTab.activityLog: {
+      content = <ActivityLogSettingsTab />
       break
     }
     default: {

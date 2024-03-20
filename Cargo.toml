@@ -21,7 +21,6 @@ members = [
     "lib/rust/parser/generate-java",
     "lib/rust/parser/schema",
     "lib/rust/parser/debug",
-    "lib/rust/enso-pack",
     "tools/language-server/logstat",
     "tools/language-server/wstest",
 ]

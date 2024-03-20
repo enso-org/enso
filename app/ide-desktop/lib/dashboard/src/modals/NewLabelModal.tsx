@@ -79,7 +79,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
             autoFocus
             size={1}
             placeholder={getText('labelNamePlaceholder')}
-            className={`text grow rounded-full border border-black/10 bg-transparent px-input-x ${
+            className={`text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
               // eslint-disable-next-line @typescript-eslint/no-magic-numbers
               color != null && color.lightness <= 50
                 ? 'text-tag-text placeholder-selected-frame'

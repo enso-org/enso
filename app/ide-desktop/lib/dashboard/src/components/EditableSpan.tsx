@@ -7,6 +7,8 @@ import TickIcon from 'enso-assets/tick.svg'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
+import SvgMask from '#/components/SvgMask'
+
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ====================
@@ -108,13 +110,16 @@ export default function EditableSpan(props: EditableSpanProps) {
               })}
         />
         {isSubmittable && (
-          <button type="submit" className="mx-tick-cross-button">
-            <img src={TickIcon} alt={getText('confirmEdit')} />
+          <button
+            type="submit"
+            className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
+          >
+            <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
           </button>
         )}
         <button
           type="button"
-          className="mx-tick-cross-button"
+          className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
           onMouseDown={() => {
             cancelled.current = true
           }}
@@ -126,7 +131,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             })
           }}
         >
-          <img src={CrossIcon} alt={getText('cancelEdit')} />
+          <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
         </button>
       </form>
     )

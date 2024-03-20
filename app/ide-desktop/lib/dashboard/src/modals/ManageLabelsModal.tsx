@@ -163,7 +163,7 @@ export default function ManageLabelsModal<
             </div>
             <div className="flex gap-input-with-button">
               <div
-                className={`flex grow items-center rounded-full border border-black/10 px-input-x ${
+                className={`flex grow items-center rounded-full border border-primary/10 px-input-x ${
                   // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                   canSelectColor && color != null && color.lightness <= 50
                     ? 'text-tag-text placeholder-tag-text'

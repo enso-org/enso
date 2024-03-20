@@ -869,6 +869,23 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** List events in the organization's audit log. */
+  override async getLogEvents(): Promise<backendModule.Event[]> {
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly events: backendModule.Event[]
+    }
+
+    const path = remoteBackendPaths.GET_LOG_EVENTS_PATH
+    const response = await this.get<ResponseBody>(path)
+    if (!responseIsSuccessful(response)) {
+      return this.throw('Could not get audit log events', response)
+    } else {
+      const json = await response.json()
+      return json.events
+    }
+  }
+
   /** Get the default version given the type of version (IDE or backend). */
   protected async getDefaultVersion(versionType: backendModule.VersionType) {
     const cached = this.defaultVersions[versionType]

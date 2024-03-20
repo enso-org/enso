@@ -11,7 +11,9 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
+import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudRoot;
+import org.enso.shttp.cloud_mock.ExpiredTokensCounter;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
@@ -83,8 +85,11 @@ public class HTTPTestHelperServer {
     server.addHandler("/test_token_auth", new TokenAuthTestHandler());
     server.addHandler("/test_basic_auth", new BasicAuthTestHandler());
     server.addHandler("/crash", new CrashingTestHandler());
-    CloudRoot cloudRoot = new CloudRoot();
+    var expiredTokensCounter = new ExpiredTokensCounter();
+    server.addHandler("/COUNT-EXPIRED-TOKEN-FAILURES", expiredTokensCounter);
+    CloudRoot cloudRoot = new CloudRoot(expiredTokensCounter);
     server.addHandler(cloudRoot.prefix, cloudRoot);
+    server.addHandler("/enso-cloud-auth-renew", new CloudAuthRenew());
     setupFileServer(server, projectRoot);
   }
 

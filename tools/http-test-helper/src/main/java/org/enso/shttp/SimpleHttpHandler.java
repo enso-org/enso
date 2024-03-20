@@ -40,4 +40,8 @@ public abstract class SimpleHttpHandler implements HttpHandler {
     }
     exchange.close();
   }
+
+  protected String decodeBodyAsText(HttpExchange exchange) throws IOException {
+    return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+  }
 }
