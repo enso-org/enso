@@ -1,5 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+import project.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
+import project.Internal.JDBC_Connection.JDBC_Connection
+from project.Internal.JDBC_Connection import get_pragma_value
 
 ## PRIVATE
 type Entity_Naming_Properties
@@ -14,3 +19,18 @@ type Entity_Naming_Properties
        - for_generated_column_names: properties of naming generated columns.
          Should implement the `Naming_Properties` interface.
     Value for_table_names for_column_names for_generated_column_names
+
+    ## PRIVATE
+    from_jdbc_connection : JDBC_Connection -> Encoding -> Boolean -> Entity_Naming_Properties
+    from_jdbc_connection jdbc_connection encoding:Encoding=Encoding.utf_8 is_case_sensitive:Boolean=True =
+        jdbc_connection.with_metadata metadata->
+            table_limit = metadata.getMaxTableNameLength
+            if table_limit == 0 then
+                Panic.throw (Illegal_State.Error "Unexpected: The database server does not report the maximum table name length.")
+            column_limit = metadata.getMaxColumnNameLength
+            if column_limit == 0 then
+                Panic.throw (Illegal_State.Error "Unexpected: The database server does not report the maximum column name length.")
+
+            table_properties = Encoding_Limited_Naming_Properties.Instance encoding table_limit is_case_sensitive=is_case_sensitive
+            column_properties = Encoding_Limited_Naming_Properties.Instance encoding column_limit is_case_sensitive=is_case_sensitive
+            Entity_Naming_Properties.Value for_table_names=table_properties for_column_names=column_properties for_generated_column_names=column_properties

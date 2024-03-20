@@ -23,7 +23,7 @@ import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
-from project.Metadata import make_single_choice, Widget
+from project.Metadata import Display, make_single_choice, Widget
 
 polyglot java import java.io.StringReader
 polyglot java import java.lang.Exception as JException
@@ -250,6 +250,7 @@ type XML_Document
            be automatically deleted on exit of the Enso process.
 
            This allows for building the workflow without affecting the real files.
+    @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
     write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
@@ -591,6 +592,7 @@ type XML_Element
            be automatically deleted on exit of the Enso process.
 
            This allows for building the workflow without affecting the real files.
+    @path (Widget.Text_Input display=Display.Always)
     @encoding Encoding.default_widget
     write : Writable_File -> Encoding -> Existing_File_Behavior -> Boolean -> Problem_Behavior -> File
     write self path:Writable_File (encoding : Encoding = Encoding.utf_8) (on_existing_file : Existing_File_Behavior = Existing_File_Behavior.Backup) (include_xml_declaration : Boolean = Boolean.True) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =

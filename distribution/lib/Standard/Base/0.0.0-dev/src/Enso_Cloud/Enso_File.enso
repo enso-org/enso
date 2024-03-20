@@ -108,14 +108,14 @@ type Enso_File
     size : Integer
     size self -> Integer = if self.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for regular files.") else
         metadata = get_file_description self |> get_required_field "metadata"
-        get_required_field "size" metadata
+        get_required_field "size" metadata expected_type=Integer
 
     ## GROUP Metadata
        Gets the creation time of a file.
     creation_time : Date_Time
     creation_time self -> Date_Time = if self.is_directory then Unimplemented.throw "Enso_File.creation_time is not implemented yet for directories." else
         metadata = get_file_description self |> get_required_field "metadata"
-        Date_Time.parse (get_required_field "created_at" metadata) Date_Time_Formatter.iso_offset_date_time
+        Date_Time.parse (get_required_field "created_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
             . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
@@ -123,7 +123,7 @@ type Enso_File
     last_modified_time : Date_Time
     last_modified_time self = if self.is_directory then Unimplemented.throw "Enso_File.last_modified_time is not implemented yet for directories." else
         metadata = get_file_description self |> get_required_field "metadata"
-        Date_Time.parse (get_required_field "modified_at" metadata) Date_Time_Formatter.iso_offset_date_time
+        Date_Time.parse (get_required_field "modified_at" metadata expected_type=Text) Date_Time_Formatter.iso_offset_date_time
             . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
@@ -386,5 +386,5 @@ get_file_description file:Enso_File -> JS_Object =
    stored anywhere.
 get_download_url_for_file file:Enso_File -> Text =
     file_description = get_file_description file
-    presigned_url = file_description |> get_required_field "url"
+    presigned_url = file_description |> get_required_field "url" expected_type=Text
     presigned_url

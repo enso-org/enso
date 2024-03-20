@@ -4,10 +4,9 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 
 public class TokenAuthTestHandler extends HandlerWithTokenAuth {
-
   @Override
-  protected String getSecretToken() {
-    return "deadbeef-coffee-1234";
+  protected boolean isTokenAllowed(String token) {
+    return token.equals("deadbeef-coffee-1234");
   }
 
   @Override

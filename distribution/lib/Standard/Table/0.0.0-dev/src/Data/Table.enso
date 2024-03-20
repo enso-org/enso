@@ -16,7 +16,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Metadata import make_single_choice, Widget
+from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
 import project.Data.Aggregate_Column.Aggregate_Column
@@ -1526,7 +1526,7 @@ type Table
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Table.Data.Table.Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
-    ## ALIAS first, last, sample, slice
+    ## ALIAS first, last, sample, slice, top, head, tail, foot, limit
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table with the specified range of rows from the input
@@ -2077,16 +2077,16 @@ type Table
     ## ALIAS find replace
        GROUP Standard.Base.Text
        ICON dataframe_map_column
-       Replaces values in `column` using `lookup_table` to specify a
-       mapping from old to new values.
+       Replaces values in the columns using `lookup_table` to specify a mapping
+       from old to new values.
 
        Arguments:
        - lookup_table: the table to use as a mapping from old to new values. A
          `Map` can also be used here (in which case passing `from_column` or
          `to_column` is disallowed and will throw an `Illegal_Argument` error.
-       - column: the column within `self` to perform the replace on.
-       - from_column: the column within `lookup_table` to match against `column`
-         in `self`.
+       - columns: the column or columns within `self` to perform the replace on.
+       - from_column: the column within `lookup_table` to match against
+         `columns` in `self`.
        - to_column: the column within `lookup_table` to get new values from.
        - allow_unmatched_rows: Specifies how to handle missing rows in the lookup.
          If `False` (the default), an `Unmatched_Rows_In_Lookup` error is raised.
@@ -2099,13 +2099,14 @@ type Table
 
          When operating in-memory, this operation preserves the order of rows
          from this table (unlike `join`).
+
          In the Database backend, there are no guarantees related to ordering of
          results.
 
        ! Error Conditions
 
          - If this table or the lookup table is lacking any of the columns
-           specified by `from_column`, `to_column`, or `column`, a
+           specified by `from_column`, `to_column`, or `columns`, a
            `Missing_Input_Columns` error is raised.
          - If a single row is matched by multiple entries in the lookup table,
            a `Non_Unique_Key` error is raised.
@@ -2120,7 +2121,7 @@ type Table
          - The following problems may be reported according to the `on_problems`
            setting:
            - If any of the `columns` is a floating-point type,
-             a `Floating_Point_Equality`.
+             a `Floating_Point_Equality` problem is reported.
 
        > Example
          Replace values in column 'x' using a lookup table.
@@ -2148,10 +2149,12 @@ type Table
              #    1 | 20 | b | f
              #    2 | 30 | c | g
              #    3 | 40 | d | h
-    @column Widget_Helpers.make_column_name_selector
-    replace : Table | Map -> (Text | Integer) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    replace self lookup_table:(Table | Map) column:(Text | Integer) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
-        Replace_Helpers.replace self lookup_table column from_column to_column allow_unmatched_rows on_problems
+    @columns Widget_Helpers.make_column_name_vector_selector
+    @from_column Widget.Text_Input
+    @to_column Widget.Text_Input
+    replace : (Table | Map) -> (Text | Integer | Vector (Text | Integer)) -> (Text | Integer | Nothing) -> (Text | Integer | Nothing) -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
+    replace self lookup_table:(Table | Map) columns:(Text | Integer | Vector (Text | Integer)) from_column:(Text | Integer | Nothing)=Nothing to_column:(Text | Integer | Nothing)=Nothing allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=Problem_Behavior.Report_Warning =
+        Replace_Helpers.replace self lookup_table columns from_column to_column allow_unmatched_rows on_problems
 
     ## ALIAS join by row position
        GROUP Standard.Base.Calculations
@@ -2664,6 +2667,7 @@ type Table
              from Standard.Table import all
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") (Excel_Format.Sheet "MySheetName")
+    @path (Widget.Text_Input display=Display.Always)
     @format Widget_Helpers.write_table_selector
     write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
