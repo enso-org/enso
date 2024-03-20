@@ -39,8 +39,10 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
 
         group_builder.specify "does not allow to use Data_Link_Format to read/write regular files" <|
             temp_file = File.create_temporary_file "not-a-datalink" ".txt"
-            Data_Link_Format.write_raw_config temp_file "{}" . should_fail_with Illegal_Argument
-            Data_Link_Format.read_raw_config temp_file . should_fail_with Illegal_Argument
+            Test.expect_panic Illegal_Argument <|
+                Data_Link_Format.write_raw_config temp_file "{}"
+            Test.expect_panic Illegal_Argument <|
+                Data_Link_Format.read_raw_config temp_file
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
