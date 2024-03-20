@@ -152,11 +152,13 @@ public final class UnresolvedConstructor implements EnsoObject {
       var node =
           InvokeFunctionNode.build(
               prototype.descs, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
-      if (prototype.where != null) {
-        var where = NodeUtil.findParent(prototype.where, ExpressionNode.class);
-        if (where != null) {
-          node.setId(where.getId());
+      var where = prototype.where;
+      while (where != null) {
+        if (where instanceof ExpressionNode withId) {
+          node.setId(withId.getId());
+          break;
         }
+        where = where.getParent();
       }
       return node;
     }
@@ -182,12 +184,9 @@ public final class UnresolvedConstructor implements EnsoObject {
           try {
             invoke = insert(buildInvokeNode(prototype));
             where = prototype.where.getSourceSection();
-            notifyInserted(invoke);
-            assert invoke.getSourceSection() != null;
-
-            var all = NodeUtil.findAllNodeInstances(this, FunctionCallInstrumentationNode.class);
-            assert all.size() == 2 : "Wrapper and real node: " + all;
-            assert all.get(0) instanceof WrapperNode : "Wrapper: " + all;
+            if (invoke.getId() != null) {
+              notifyInsertedWithCheck();
+            }
           } finally {
             lock.unlock();
           }
@@ -196,6 +195,15 @@ public final class UnresolvedConstructor implements EnsoObject {
         var r = invoke.execute(fn, frame, state, unresolved.args);
         return r;
       }
+    }
+
+    private void notifyInsertedWithCheck() {
+      notifyInserted(invoke);
+      assert invoke.getSourceSection() != null;
+
+      var all = NodeUtil.findAllNodeInstances(this, FunctionCallInstrumentationNode.class);
+      assert all.size() == 2 : "Wrapper and real node: " + all;
+      assert all.get(0) instanceof WrapperNode : "Wrapper: " + all;
     }
 
     @Specialization(replaces = "instantiateCached")
