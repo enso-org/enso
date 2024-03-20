@@ -132,6 +132,13 @@ add_specs suite_builder =
             uri_response = url_get.to_uri.fetch
             uri_response.at "headers" . at "Content-Length" . should_equal "0"
 
+        group_builder.specify "can override the format if used with Data.read" <|
+            auto_response = Data.read url_get
+            auto_response.should_be_a JS_Object
+
+            plain_response = Data.read url_get format=Plain_Text
+            plain_response.should_be_a Text
+
         group_builder.specify "Can skip auto-parse" <|
             response = Data.fetch url_get try_auto_parse_response=False
             response.code.code . should_equal 200
