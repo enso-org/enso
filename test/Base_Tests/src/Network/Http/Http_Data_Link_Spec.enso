@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Network.HTTP.Response.Response
 
 from Standard.Test import all
 
@@ -51,19 +52,43 @@ add_specs suite_builder =
             r.should_be_a Text
             r.trim.should_equal '{"hello": "world"}'
 
-        group_builder.specify "should be able to read a datalink from HTTP" <|
+        group_builder.specify "should be able to follow a datalink from HTTP in Data.read" <|
             r1 = Data.read base_url_with_slash+"dynamic.datalink" JSON_Format
             r1.should_equal ('{"hello": "world"}'.parse_json)
 
             r2 = Data.read base_url_with_slash+"dynamic-datalink" Plain_Text
             r2.should_equal '{"hello": "world"}'
 
-        group_builder.specify "should be able to fetch a datalink from HTTP" pending="TODO: are we sure we want this?" <|
+        group_builder.specify "should be able to follow a datalink from HTTP in Data.fetch/post, if auto parse is on" <|
             r1 = Data.fetch base_url_with_slash+"dynamic.datalink"
             r1.should_equal '{"hello": "world"}'
 
             r2 = Data.fetch base_url_with_slash+"dynamic-datalink"
             r2.should_equal '{"hello": "world"}'
+
+            r3 = Data.post base_url_with_slash+"dynamic.datalink"
+            r3.should_equal '{"hello": "world"}'
+
+        group_builder.specify "will return raw datalink config data in Data.fetch/post if auto parse is off" <|
+            r1 = Data.fetch base_url_with_slash+"dynamic.datalink" try_auto_parse_response=False
+            r1.should_be_a Response
+
+            # Normally .datalink is not a valid format, so we cannot decode it
+            r1_decoded = r1.decode
+            r1_decoded.should_fail_with File_Error
+            r1_decoded.catch . should_be_a File_Error.Unsupported_Type
+
+            r1_plain = r1.decode Plain_Text
+            r1_plain.should_equal '{"hello": "world"}'
+
+            r2 = Data.post base_url_with_slash+"dynamic-datalink" try_auto_parse_response=False
+            r2.should_be_a Response
+            r2_decoded = r2.decode
+            r2_decoded.should_fail_with File_Error
+            r2_decoded.catch . should_be_a File_Error.Unsupported_Type
+
+            r2_plain = r2.decode Plain_Text
+            r2_plain.should_equal '{"hello": "world"}'
 
 ## Reads the datalink as plain text and replaces the placeholder URL with actual
    URL of the server. It then writes the new contents to a temporary file and
