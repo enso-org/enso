@@ -105,13 +105,13 @@ export const BINDINGS = inputBindings.defineBindings({
   },
   goBack: {
     name: 'Go Back',
-    bindings: detect.isOnMacOS() ? ['Mod+ArrowLeft', 'Mod+['] : ['Alt+ArrowLeft', 'Alt+['],
+    bindings: detect.isOnMacOS() ? ['Mod+ArrowLeft', 'Mod+['] : ['Alt+ArrowLeft'],
     rebindable: true,
     icon: ArrowLeftIcon,
   },
   goForward: {
     name: 'Go Forward',
-    bindings: detect.isOnMacOS() ? ['Mod+ArrowRight', 'Mod+]'] : ['Alt+ArrowRight', 'Alt+]'],
+    bindings: detect.isOnMacOS() ? ['Mod+ArrowRight', 'Mod+]'] : ['Alt+ArrowRight'],
     rebindable: true,
     icon: ArrowRightIcon,
   },
