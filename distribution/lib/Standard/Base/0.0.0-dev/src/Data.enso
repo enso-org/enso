@@ -194,8 +194,8 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
         response.decode if_unsupported=response.with_materialized_body
 
 ## ALIAS http post, upload
-   GROUP Input
-   ICON data_output
+   GROUP Output
+   ICON data_upload
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
    status code does not represent a successful response.
