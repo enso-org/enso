@@ -16,7 +16,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.Metadata import make_single_choice, Widget
+from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Widget_Helpers import make_delimiter_selector, make_format_chooser
 
 import project.Data.Aggregate_Column.Aggregate_Column
@@ -2665,6 +2665,7 @@ type Table
              from Standard.Table import all
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") (Excel_Format.Sheet "MySheetName")
+    @path (Widget.Text_Input display=Display.Always)
     @format Widget_Helpers.write_table_selector
     write : Writable_File -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path:Writable_File format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =

@@ -31,6 +31,7 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Metadata import Display, Widget
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 from project.System.File_Format import format_types
@@ -197,6 +198,7 @@ type Response_Body
 
              example_write =
                 Examples.get_geo_data.write Examples.scratch_file
+    @path (Widget.Text_Input display=Display.Always)
     write : Writable_File -> Existing_File_Behavior -> File
     write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
         self.with_stream body_stream->
