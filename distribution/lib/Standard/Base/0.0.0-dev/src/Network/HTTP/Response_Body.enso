@@ -214,8 +214,7 @@ can_decode type = Meta.meta type . methods . contains "read_stream"
 decode_format_selector : Widget
 decode_format_selector =
     all_types = [Auto_Detect] + (format_types.filter can_decode)
-    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
-    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
+    Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)
 
 ## PRIVATE
    Utility method for closing primitive Java streams. Provided to avoid
