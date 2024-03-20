@@ -84,6 +84,8 @@ export function useComponentBrowserInput(
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => RawAstExtended.parse(code.value))
   const imports = ref<RequiredImport[]>([])
+  const ai = useAI()
+  const processingAIPrompt = ref(false)
 
   // Code Model to being edited externally (by user).
   //
@@ -492,27 +494,33 @@ export function useComponentBrowserInput(
     selection.value = { start: code.value.length, end: code.value.length }
   }
 
-  const ai = useAI()
   function applyAIPrompt() {
     const ctx = context.value
-    console.log(ctx)
     if (ctx.type !== 'aiPrompt') {
       console.error('Cannot apply AI prompt in non-AI context')
       return
     }
-    const nodeId = graphDb.getIdentDefiningNode(ctx.selfIdent)
-    const node = nodeId ? graphDb.nodeIdToNode.get(nodeId) : undefined
-    if (!node) {
-      console.error('Cannot apply AI prompt without source node')
+    const sourcePort = cbUsage.value?.type === 'newNode' && cbUsage.value.sourcePort
+    if (!sourcePort) {
+      console.error('Cannot apply AI prompt without source port')
       return
     }
-    ai.query(ctx.prompt, node).then((result) => {
-      if (result.ok) {
-        code.value = `${ctx.selfIdent}.${result.value}`
-      } else {
-        result.error.log('Applying AI prompt failed')
-      }
-    })
+    processingAIPrompt.value = true
+    ai.query(ctx.prompt, sourcePort).then(
+      (result) => {
+        if (result.ok) {
+          const sourceNodeName = graphDb.getOutputPortIdentifier(sourcePort)
+          code.value = `${sourceNodeName}.${result.value}`
+        } else {
+          result.error.log('Applying AI prompt failed')
+        }
+        processingAIPrompt.value = false
+      },
+      (err) => {
+        console.error(`Applying AI prompt failed: ${err}`)
+        processingAIPrompt.value = false
+      },
+    )
   }
 
   return {
