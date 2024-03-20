@@ -3,6 +3,7 @@ import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 
 from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
 from Standard.Table.Errors import Invalid_Column_Names, Inexact_Type_Coercion, Duplicate_Output_Column_Names
@@ -905,6 +906,20 @@ add_datalink_specs suite_builder =
                     datalink_table.column_names . should_equal ["X", "Y"]
                     datalink_table.at "X" . to_vector . should_equal [22]
                     datalink_table.at "Y" . to_vector . should_equal ["o"]
+
+        group_builder.specify "will reject any format overrides or stream operations on the data link" <|
+            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
+
+            r1 = Data.read datalink_file Plain_Text
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text . should_contain "Only the default Auto_Detect format should be used"
+
+            r2 = datalink_file.with_input_stream [File_Access.Read] .read_all_bytes
+            r2.should_fail_with Illegal_Argument
+
+            # But we can read the raw data link if we ask for it:
+            r3 = datalink_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
+            r3.should_be_a Vector
 
 add_specs suite_builder =
     add_table_specs suite_builder

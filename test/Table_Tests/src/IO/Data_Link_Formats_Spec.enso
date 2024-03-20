@@ -63,3 +63,17 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
 
         bytes = datalink_file.read_bytes
         bytes.should_be_a Vector
+
+    group_builder.specify "reading a datalink as a stream" <|
+        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-range.datalink")
+
+        r1 = datalink_file.with_input_stream [File_Access.Read] input_stream->
+            Excel_Format.Workbook.read_stream input_stream
+        r1.should_be_a Excel_Workbook
+
+        r2 = datalink_file.with_input_stream [File_Access.Read] .read_all_bytes
+        r2.should_be_a Vector
+
+        # But it is still possible to access the raw data too.
+        r3 = datalink_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
+        Text.from_bytes r3 . should_contain '"type": "HTTP"'
