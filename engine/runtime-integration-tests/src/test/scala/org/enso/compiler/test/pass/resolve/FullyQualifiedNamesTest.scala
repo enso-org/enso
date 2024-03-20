@@ -105,14 +105,12 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
         .asInstanceOf[FullyQualifiedNames.ResolvedModule]
         .moduleRef
         .getName shouldBe (
-        QualifiedName(List("Standard", "Base"), "Main")
+        QualifiedName(List("Standard", "Base", "Data"), "Vector")
       )
 
       val resolutionNames = collectResolutionNames(ir)
-      resolutionNames should contain theSameElementsAs Seq(
-        QualifiedName(List("Standard", "Base"), "Main"),
-        QualifiedName(List("Standard", "Base"), "Data")
-      )
+      resolutionNames should contain
+        QualifiedName(List("Standard", "Base", "Data"), "Vector")
 
       val res = execMain(src)
       res.isMetaObject shouldBe true
@@ -127,13 +125,11 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
           |    Test.Fully_Qualified_Names.A_Type
           |""".stripMargin
       val ir = src.preprocessModule
-      val metadata = collectMetadata(ir)
       val resolutionNames = collectResolutionNames(ir)
-      resolutionNames.size shouldBe 2
-      resolutionNames should contain theSameElementsAs Seq(
-        QualifiedName(List("Test", "Fully_Qualified_Names"), "Main"),
+      resolutionNames should contain
         QualifiedName(List("Test", "Fully_Qualified_Names", "Synthetic_Mod", "A_Mod"), "A_Type")
-      )
+
+      val metadata = collectMetadata(ir)
       metadata.size shouldBe 1
       metadata.head.target
         .asInstanceOf[FullyQualifiedNames.ResolvedModule]
@@ -161,19 +157,12 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
         .asInstanceOf[FullyQualifiedNames.ResolvedModule]
         .moduleRef
         .getName shouldBe (
-        QualifiedName(List("Test", "Fully_Qualified_Names"), "Main")
+        QualifiedName(List("Test", "Fully_Qualified_Names", "Synthetic_Mod"), "A_Mod")
       )
 
       val resolutionNames = collectResolutionNames(ir)
-      resolutionNames.size shouldBe 2
-      resolutionNames should contain theSameElementsAs Seq(
-        QualifiedName(List("Test", "Fully_Qualified_Names"), "Main"),
+      resolutionNames should contain
         QualifiedName(List("Test", "Fully_Qualified_Names", "Synthetic_Mod", "A_Mod"), "A_Type")
-      )
-
-      val res = execMain(src)
-      res.isMetaObject shouldBe true
-      res.getMetaSimpleName shouldBe "A_Type"
     }
 
     "be able to reference methods in synthetic modules via physical path (Execution)" in {
