@@ -1,4 +1,4 @@
-/** @file Settings tab for viewing and changing profile picture. */
+/** @file Settings tab for viewing and editing account information. */
 import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -6,25 +6,35 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
-// =====================================
-// === ProfilePictureSettingsSection ===
-// =====================================
+import type * as backendModule from '#/services/Backend'
 
-/** Settings tab for viewing and changing profile picture. */
-export default function ProfilePictureSettingsSection() {
+// =================================================
+// === OrganizationProfilePictureSettingsSection ===
+// =================================================
+
+/** Props for a {@link OrganizationProfilePictureSettingsSection}. */
+export interface OrganizationProfilePictureSettingsSectionProps {
+  readonly organization: backendModule.OrganizationInfo
+  readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
+}
+
+/** Settings tab for viewing and editing organization information. */
+export default function OrganizationProfilePictureSettingsSection(
+  props: OrganizationProfilePictureSettingsSectionProps
+) {
+  const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { setUser } = authProvider.useAuth()
   const { backend } = backendProvider.useBackend()
-  const { user } = authProvider.useNonPartialUserSession()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const rootRef = React.useRef<HTMLDivElement | null>(null)
 
   const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: 1 })
+    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
+      length: 1,
+    })
 
   React.useEffect(() => {
     const root = rootRef.current
@@ -37,14 +47,17 @@ export default function ProfilePictureSettingsSection() {
     }
   }, [navigator2D, setKeyboardSelectedIndex])
 
-  const doUploadUserPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
       toastAndLog('Could not upload a new profile picture because no image was found')
     } else {
       try {
-        const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
-        setUser(newUser)
+        const newOrganization = await backend.uploadOrganizationPicture(
+          { fileName: image.name },
+          image
+        )
+        setOrganization(newOrganization)
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -61,7 +74,7 @@ export default function ProfilePictureSettingsSection() {
         className={`flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame ${keyboardSelectedIndex === 0 ? 'focus-ring' : ''}`}
       >
         <img
-          src={user?.profilePicture ?? DefaultUserIcon}
+          src={organization.picture ?? DefaultUserIcon}
           width={128}
           height={128}
           className="pointer-events-none"
@@ -75,12 +88,12 @@ export default function ProfilePictureSettingsSection() {
           }}
           className="w"
           accept="image/*"
-          onChange={doUploadUserPicture}
+          onChange={doUploadOrganizationPicture}
         />
       </label>
       <span className="w-profile-picture-caption py-profile-picture-caption-y">
-        Your profile picture should not be irrelevant, abusive or vulgar. It should not be a default
-        image provided by Enso.
+        Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
+        should not be a default image provided by Enso.
       </span>
     </div>
   )
