@@ -18,8 +18,8 @@ from project.S3_Spec import api_pending, writable_root
 
 add_specs suite_builder =
     my_writable_s3_dir = writable_root / "inter-backend-test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
-    sources = [my_writable_dir / "source1.txt", File.create_temporary_file "source2" ".txt"]
-    destinations = [my_writable_dir / "destination1.txt", File.create_temporary_file "destination2" ".txt"]
+    sources = [my_writable_s3_dir / "source1.txt", File.create_temporary_file "source2" ".txt"]
+    destinations = [my_writable_s3_dir / "destination1.txt", File.create_temporary_file "destination2" ".txt"]
     sources.each source_file-> destinations.each destination_file-> if source_file.is_a File && destination_file.is_a File then Nothing else
         src_typ = Meta.type_of source_file . to_display_text
         dest_typ = Meta.type_of destination_file . to_display_text
@@ -87,13 +87,13 @@ add_specs suite_builder =
 
     sample_datalink_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
     # TODO Enso_File datalink once Enso_File & cloud datalink write is supported
-    datalink_sources = [my_writable_s3_dir / "s3.datalink", Files.create_temporary_file "local" ".datalink"]
-    datalink_destinations = [my_writable_s3_dir / "s3-target.datalink", Files.create_temporary_file "local-target" ".datalink"]
+    datalink_sources = [my_writable_s3_dir / "s3.datalink", File.create_temporary_file "local" ".datalink"]
+    datalink_destinations = [my_writable_s3_dir / "s3-target.datalink", File.create_temporary_file "local-target" ".datalink"]
     ## This introduces a lot of combinations for testing the datalink copy/move logic, but unfortunately it is needed,
        because various combinations of backends may rely on different logic (different operations happen under the hood
        if a file is moved locally vs if it is moved from a local filesystem to S3 or vice versa), and all that different
        logic may be prone to mis-handling datalinks - so we need to test all paths to ensure coverage.
-    sources.each source_file-> destinations.each destination_file->
+    datalink_sources.each source_file-> datalink_destinations.each destination_file->
         src_typ = Meta.type_of source_file . to_display_text
         dest_typ = Meta.type_of destination_file . to_display_text
         suite_builder.group "("+src_typ+" -> "+dest_typ+") Data Link copying/moving" pending=api_pending group_builder->
