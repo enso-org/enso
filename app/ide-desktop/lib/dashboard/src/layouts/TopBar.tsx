@@ -52,6 +52,7 @@ export default function TopBar(props: TopBarProps) {
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
   const [root] = React.useState(() => document.getElementById('enso-dashboard'))
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
+  const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
     <div className="relative z-1 m-top-bar mb flex h-row gap-top-bar">
@@ -99,7 +100,9 @@ export default function TopBar(props: TopBarProps) {
       </div>
       {root &&
         reactDom.createPortal(
-          <div className="fixed right top z-1 m-top-bar text-xs text-primary">
+          <div
+            className={`fixed right top z-1 m-top-bar text-xs text-primary ${shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''}`}
+          >
             <div className="flex gap-top-bar-right">
               {page === pageSwitcher.Page.drive && (
                 <AssetInfoBar

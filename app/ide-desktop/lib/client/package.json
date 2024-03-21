@@ -43,6 +43,8 @@
     "lightningcss": "^1.24.0",
     "portfinder": "^1.0.32",
     "tsx": "^4.7.1",
+    "sharp": "^0.31.2",
+    "to-ico": "^1.1.5",
     "vite": "^5.1.5"
   },
   "optionalDependencies": {

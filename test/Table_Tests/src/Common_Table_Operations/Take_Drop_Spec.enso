@@ -228,8 +228,8 @@ add_specs suite_builder setup =
 
         group_builder.specify "should gracefully handle missing constructor arguments" <|
             t = table_builder [["X", [1, 2, 3]]]
-            t.take "FOO" . should_fail_with Type_Error
-            t.drop "FOO" . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| t.take "FOO"
+            Test.expect_panic Type_Error <| t.drop "FOO"
 
             r1 = t.take (Index_Sub_Range.While)
             r1.should_fail_with Illegal_Argument
@@ -432,8 +432,8 @@ add_specs suite_builder setup =
 
         group_builder.specify "should gracefully handle missing constructor arguments" <|
             c = table_builder [["X", [1, 2, 3]]] . at "X"
-            c.take "FOO" . should_fail_with Type_Error
-            c.drop "FOO" . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| c.take "FOO"
+            Test.expect_panic Type_Error <| c.drop "FOO"
 
             r1 = c.take (Index_Sub_Range.While)
             r1.should_fail_with Illegal_Argument
@@ -455,4 +455,3 @@ add_specs suite_builder setup =
             case setup.is_database of
                 True -> unordered_table.at "alpha" . take . should_fail_with Illegal_Argument
                 False -> unordered_table.at "alpha" . take . to_vector . should_equal [1]
-

@@ -22,29 +22,46 @@ type Test
 
     ## Expect a function to fail with the provided panic.
 
-           Arguments:
-           - action: The action to evaluate that is expected to fail with a panic.
-           - matcher: The expected type of the panic thrown by `action`.
+       It returns the caught panic if it matches the expected panic type,
+       otherwise it fails the test.
 
-           > Example
-             Expect that a computation should panic as part of a test.
+       Arguments:
+       - action: The action to evaluate that is expected to fail with a panic.
+       - matcher: The expected type of the panic thrown by `action`.
 
-                 import Standard.Examples
-                 from Standard.Test import Test
+       > Example
+         Expect that a computation should panic as part of a test.
 
-                 example_expect_panic_with =
-                     Test.expect_panic_with Examples.throw_panic Examples.My_Error
-    expect_panic_with : Any -> Any -> Test_Result
-    expect_panic_with ~action matcher =
-        res = Panic.recover Any action
-        case res of
-            _ ->
-                loc = Meta.get_source_location 2
-                return_suffix = if res.is_nothing then "" else "and returned ["+res.to_text+"]"
-                Test.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
-        err = res.catch
-        if err.is_a matcher then Nothing else
-            Test.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
+             import Standard.Examples
+             from Standard.Test import Test
+
+             example_expect_panic_with =
+                 Test.expect_panic_with Examples.throw_panic Examples.My_Error
+    expect_panic_with : Any -> Any -> Integer -> Test_Result
+    expect_panic_with ~action matcher frames_to_skip=0 =
+        loc = Meta.get_source_location 1+frames_to_skip
+        handle_panic caught_panic =
+            payload = caught_panic.payload
+            is_internal_test_panic = payload.is_a Spec_Result
+            if is_internal_test_panic then
+                # If we just caught the internal test panic, we rethrow it.
+                Panic.throw caught_panic
+
+            is_panic_matching = payload.is_a matcher
+            if is_panic_matching then payload else
+                stack_trace = caught_panic.convert_to_dataflow_error.get_stack_trace_text
+                Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at "+loc+").") details=stack_trace
+        Panic.catch Any handler=handle_panic <|
+            res = action
+
+            # If the action did not panic above, we fail the test.
+            case res.is_error of
+                True ->
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action returned a Dataflow Error " + res.catch.to_display_text + " instead (at "+loc+").")
+                False ->
+                    return_suffix = if res.is_nothing then "" else " and returned ["+res.to_text+"]"
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at "+loc+").")
+
 
     ## Expect a function to fail with the provided panic.
 
@@ -68,7 +85,7 @@ type Test
 
                       IO.println 'this is not reached'
     expect_panic : Any -> Any -> Test_Result
-    expect_panic matcher ~action = Test.expect_panic_with action matcher
+    expect_panic matcher ~action = Test.expect_panic_with action matcher frames_to_skip=1
 
 
     ## Checks that the provided action returns without any errors or warnings.
@@ -150,4 +167,3 @@ type Test
         result = behavior
         State.put Clue prev_clue
         result
-

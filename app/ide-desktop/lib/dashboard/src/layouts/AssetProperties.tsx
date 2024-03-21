@@ -51,7 +51,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const [description, setDescription] = React.useState('')
   const [dataLinkValue, setDataLinkValue] = React.useState<NonNullable<unknown> | null>(null)
   const [editedDataLinkValue, setEditedDataLinkValue] = React.useState<NonNullable<unknown> | null>(
-    null
+    dataLinkValue
   )
   const [isDataLinkFetched, setIsDataLinkFetched] = React.useState(false)
   const isDataLinkSubmittable = React.useMemo(
@@ -75,6 +75,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     self?.permission === permissions.PermissionAction.admin ||
     self?.permission === permissions.PermissionAction.edit
   const isDataLink = item.item.type === backendModule.AssetType.dataLink
+  const isDataLinkDisabled = dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable
 
   React.useEffect(() => {
     setDescription(item.item.description ?? '')
@@ -85,7 +86,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
       if (item.item.type === backendModule.AssetType.dataLink) {
         const value = await backend.getConnector(item.item.id, item.item.title)
         setDataLinkValue(value)
-        setEditedDataLinkValue(structuredClone(value))
+        setEditedDataLinkValue(value)
         setIsDataLinkFetched(true)
       }
     })()
@@ -236,8 +237,11 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 <div className="flex gap-buttons">
                   <button
                     type="button"
-                    disabled={dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable}
-                    className="button bg-invite text-white selectable enabled:active"
+                    disabled={isDataLinkDisabled}
+                    {...(isDataLinkDisabled
+                      ? { title: 'Edit the Data Link before updating it.' }
+                      : {})}
+                    className="button bg-invite text-white enabled:active"
                     onClick={() => {
                       void (async () => {
                         if (item.item.type === backendModule.AssetType.dataLink) {
@@ -263,9 +267,10 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                   </button>
                   <button
                     type="button"
-                    className="button bg-selected-frame"
+                    disabled={isDataLinkDisabled}
+                    className="button bg-selected-frame enabled:active"
                     onClick={() => {
-                      setEditedDataLinkValue(structuredClone(dataLinkValue))
+                      setEditedDataLinkValue(dataLinkValue)
                     }}
                   >
                     Cancel

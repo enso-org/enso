@@ -271,7 +271,7 @@ type Filter_Action
     Remove
 
 ## PRIVATE
-sql_like_to_regex sql_pattern =
+sql_like_to_regex (sql_pattern : Text) =
     regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
     Regex.compile regex_pattern
 

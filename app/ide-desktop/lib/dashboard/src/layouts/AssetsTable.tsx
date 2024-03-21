@@ -55,7 +55,7 @@ import PasteType from '#/utilities/PasteType'
 import * as permissions from '#/utilities/permissions'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as set from '#/utilities/set'
-import SortDirection from '#/utilities/SortDirection'
+import * as sorting from '#/utilities/sorting'
 import * as string from '#/utilities/string'
 import * as uniqueString from '#/utilities/uniqueString'
 import Visibility from '#/utilities/Visibility'
@@ -297,10 +297,8 @@ export interface AssetsTableState {
   readonly deletedLabelNames: Set<backendModule.LabelName>
   readonly hasPasteData: boolean
   readonly setPasteData: (pasteData: pasteDataModule.PasteData<Set<backendModule.AssetId>>) => void
-  readonly sortColumn: columnUtils.SortableColumn | null
-  readonly setSortColumn: (column: columnUtils.SortableColumn | null) => void
-  readonly sortDirection: SortDirection | null
-  readonly setSortDirection: (sortDirection: SortDirection | null) => void
+  readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
+  readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
@@ -346,6 +344,7 @@ export interface AssetRowState {
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
   readonly hidden: boolean
+  readonly hideRows: boolean
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly setCanDownload: (canDownload: boolean) => void
@@ -376,7 +375,7 @@ export interface AssetsTableProps {
 
 /** The table of project assets. */
 export default function AssetsTable(props: AssetsTableProps) {
-  const { hidden, query, setQuery, setCanDownload, category, allLabels } = props
+  const { hidden, hideRows, query, setQuery, setCanDownload, category, allLabels } = props
   const { setSuggestions, deletedLabelNames, initialProjectName, projectStartupInfo } = props
   const { queuedAssetEvents: rawQueuedAssetEvents } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
@@ -392,8 +391,8 @@ export default function AssetsTable(props: AssetsTableProps) {
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
-  const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
-  const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
+  const [sortInfo, setSortInfo] =
+    React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
     () => new Set()
   )
@@ -423,6 +422,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       : query.query !== ''
         ? QUERY_PLACEHOLDER
         : PLACEHOLDER
+  /** Events sent when the asset list was still loading. */
+  const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
@@ -544,15 +545,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     }
   }, [query])
   const displayItems = React.useMemo(() => {
-    if (sortColumn == null || sortDirection == null) {
+    if (sortInfo == null) {
       return assetTree.preorderTraversal()
     } else {
-      const multiplier = {
-        [SortDirection.ascending]: 1,
-        [SortDirection.descending]: -1,
-      }[sortDirection]
+      const multiplier = sortInfo.direction === sorting.SortDirection.ascending ? 1 : -1
       let compare: (a: AssetTreeNode, b: AssetTreeNode) => number
-      switch (sortColumn) {
+      switch (sortInfo.field) {
         case columnUtils.Column.name: {
           compare = (a, b) => {
             const aTitle = a.item.title.toLowerCase()
@@ -578,7 +576,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       return assetTree.preorderTraversal(tree => [...tree].sort(compare))
     }
-  }, [assetTree, sortColumn, sortDirection])
+  }, [assetTree, sortInfo])
   const visibilities = React.useMemo(() => {
     const map = new Map<backendModule.AssetId, Visibility>()
     const processNode = (node: AssetTreeNode) => {
@@ -852,18 +850,24 @@ export default function AssetsTable(props: AssetsTableProps) {
   }, [pasteData])
 
   React.useEffect(() => {
-    return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      cancelCut: () => {
-        if (pasteDataRef.current == null) {
-          return false
-        } else {
-          dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
-          setPasteData(null)
-          return
-        }
-      },
-    })
-  }, [/* should never change */ inputBindings, /* should never change */ dispatchAssetEvent])
+    if (!hidden) {
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        cancelCut: () => {
+          if (pasteDataRef.current == null) {
+            return false
+          } else {
+            dispatchAssetEvent({ type: AssetEventType.cancelCut, ids: pasteDataRef.current.data })
+            setPasteData(null)
+            return
+          }
+        },
+      })
+    }
+  }, [
+    hidden,
+    /* should never change */ inputBindings,
+    /* should never change */ dispatchAssetEvent,
+  ])
 
   React.useEffect(() => {
     if (isLoading) {
@@ -1435,7 +1439,9 @@ export default function AssetsTable(props: AssetsTableProps) {
     [rootDirectoryId]
   )
 
-  eventHooks.useEventHandler(assetListEvents, event => {
+  // This is not a React component, even though it contains JSX.
+  // eslint-disable-next-line no-restricted-syntax
+  const onAssetListEvent = (event: assetListEvent.AssetListEvent) => {
     switch (event.type) {
       case AssetListEventType.newFolder: {
         const siblings = nodeMapRef.current.get(event.parentKey)?.children ?? []
@@ -1727,6 +1733,15 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
     }
+  }
+  const onAssetListEventRef = React.useRef(onAssetListEvent)
+  onAssetListEventRef.current = onAssetListEvent
+  eventHooks.useEventHandler(assetListEvents, event => {
+    if (!isLoading) {
+      onAssetListEvent(event)
+    } else {
+      queuedAssetListEventsRef.current.push(event)
+    }
   })
 
   const doOpenManually = React.useCallback(
@@ -1862,10 +1877,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       deletedLabelNames,
       hasPasteData: pasteData != null,
       setPasteData,
-      sortColumn,
-      setSortColumn,
-      sortDirection,
-      setSortDirection,
+      sortInfo,
+      setSortInfo,
       query,
       setQuery,
       assetEvents,
@@ -1890,8 +1903,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       allLabels,
       deletedLabelNames,
       pasteData,
-      sortColumn,
-      sortDirection,
+      sortInfo,
       assetEvents,
       query,
       doToggleDirectoryExpansion,
@@ -1970,6 +1982,13 @@ export default function AssetsTable(props: AssetsTableProps) {
         setSpinnerState(spinner.SpinnerState.loadingFast)
       })
     } else {
+      const queuedAssetEvents = queuedAssetListEventsRef.current
+      if (queuedAssetEvents.length !== 0) {
+        queuedAssetListEventsRef.current = []
+        for (const event of queuedAssetEvents) {
+          onAssetListEventRef.current(event)
+        }
+      }
       setSpinnerState(spinner.SpinnerState.initial)
     }
   }, [isLoading])
@@ -2141,7 +2160,7 @@ export default function AssetsTable(props: AssetsTableProps) {
   const columns = columnUtils.getColumnList(backend.type, enabledColumns)
 
   const headerRow = (
-    <tr ref={headerRowRef} className="sticky top text-sm font-semibold">
+    <tr ref={headerRowRef} className="sticky top-[1px] text-sm font-semibold">
       {columns.map(column => {
         // This is a React component, even though it does not contain JSX.
         // eslint-disable-next-line no-restricted-syntax
@@ -2174,7 +2193,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           columns={columns}
           item={item}
           state={state}
-          hidden={visibilities.get(item.key) === Visibility.hidden}
+          hidden={hideRows || visibilities.get(item.key) === Visibility.hidden}
           selected={isSelected}
           setSelected={selected => {
             setSelectedKeys(set.withPresence(selectedKeysRef.current, key, selected))
@@ -2377,6 +2396,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         </tbody>
       </table>
       <div
+        data-testid="root-directory-dropzone"
         className="grow"
         onClick={() => {
           setSelectedKeys(new Set())
@@ -2413,7 +2433,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
   return (
     <div ref={scrollContainerRef} className="flex-1 overflow-auto container-size">
-      {hiddenContextMenu}
+      {!hidden && hiddenContextMenu}
       {!hidden && (
         <SelectionBrush
           onDrag={onSelectionDrag}
@@ -2421,10 +2441,13 @@ export default function AssetsTable(props: AssetsTableProps) {
           onDragCancel={onSelectionDragCancel}
         />
       )}
-      <div className="w-max">
+      <div className="flex h-max min-h-full w-max min-w-full flex-col">
         {isCloud && (
-          <div className="sticky top flex h flex-col">
-            <div className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y">
+          <div className="flex-0 sticky top flex h flex-col">
+            <div
+              data-testid="extra-columns"
+              className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
+            >
               <div className="inline-flex gap-icons">
                 {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
                   column => (
@@ -2452,7 +2475,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             </div>
           </div>
         )}
-        <div className="flex h-full w-min min-w-full flex-col">{table}</div>
+        <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
       </div>
     </div>
   )

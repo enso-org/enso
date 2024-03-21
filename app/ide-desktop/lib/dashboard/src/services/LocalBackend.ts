@@ -685,4 +685,9 @@ export default class LocalBackend extends Backend {
   override getCheckoutSession() {
     return this.invalidOperation()
   }
+
+  /** Invalid operation. */
+  override getLogEvents() {
+    return this.invalidOperation()
+  }
 }

@@ -633,11 +633,12 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
+                  pk: defaultOrganizationId,
+                  sk: backend.UserId(''),
                   /* eslint-disable @typescript-eslint/naming-convention */
+                  user_subject: backend.Subject(''),
                   user_name: defaultUsername,
                   user_email: defaultEmail,
-                  organization_id: defaultOrganizationId,
                   /* eslint-enable @typescript-eslint/naming-convention */
                 },
                 permission: permissions.PermissionAction.own,
@@ -671,11 +672,12 @@ export async function mockApi({ page }: MockParams) {
             permissions: [
               {
                 user: {
-                  pk: backend.Subject(''),
+                  pk: defaultOrganizationId,
+                  sk: backend.UserId(''),
                   /* eslint-disable @typescript-eslint/naming-convention */
+                  user_subject: backend.Subject(''),
                   user_name: defaultUsername,
                   user_email: defaultEmail,
-                  organization_id: defaultOrganizationId,
                   /* eslint-enable @typescript-eslint/naming-convention */
                 },
                 permission: permissions.PermissionAction.own,

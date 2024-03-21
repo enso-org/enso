@@ -66,6 +66,7 @@ import Subscribe from '#/pages/subscribe/Subscribe'
 import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
+import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
@@ -217,11 +218,11 @@ function AppRouter(props: AppProps) {
     return {
       /** Transparently pass through `handler()`. */
       get handler() {
-        return inputBindingsRaw.handler
+        return inputBindingsRaw.handler.bind(inputBindingsRaw)
       },
       /** Transparently pass through `attach()`. */
       get attach() {
-        return inputBindingsRaw.attach
+        return inputBindingsRaw.attach.bind(inputBindingsRaw)
       },
       reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
         inputBindingsRaw.reset(bindingKey)
@@ -238,6 +239,14 @@ function AppRouter(props: AppProps) {
       /** Transparently pass through `metadata`. */
       get metadata() {
         return inputBindingsRaw.metadata
+      },
+      /** Transparently pass through `register()`. */
+      get register() {
+        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
+      },
+      /** Transparently pass through `unregister()`. */
+      get unregister() {
+        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
       },
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
@@ -259,12 +268,7 @@ function AppRouter(props: AppProps) {
       isClick = true
     }
     const onMouseUp = (event: MouseEvent) => {
-      if (
-        isClick &&
-        !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLTextAreaElement) &&
-        !(event.target instanceof HTMLElement && event.target.isContentEditable)
-      ) {
+      if (isClick && !eventModule.isElementTextInput(event.target)) {
         const selection = document.getSelection()
         const app = document.getElementById('app')
         const appContainsSelection =

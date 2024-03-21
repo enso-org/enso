@@ -59,6 +59,8 @@ export const LIST_VERSIONS_PATH = 'versions'
 export const CREATE_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
 /** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
 export const GET_CHECKOUT_SESSION_PATH = 'payments/checkout-sessions'
+/** Relative HTTP path to the "get log events" endpoint of the Cloud backend API. */
+export const GET_LOG_EVENTS_PATH = 'log_events'
 /** Relative HTTP path to the "list asset versions" endpoint of the Cloud backend API. */
 export function listAssetVersionsPath(assetId: backend.AssetId) {
   return `assets/${assetId}/versions`

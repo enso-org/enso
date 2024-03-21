@@ -5049,7 +5049,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type error: expected `str` to be Text, but got Integer.",
+            "Type error: Expected `str` to be Text, but got Integer.",
             Some(mainFile),
             Some(model.Range(model.Position(3, 10), model.Position(3, 15))),
             None,
@@ -5379,7 +5379,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type error: expected `that` to be Integer, but got Function.",
+            "Type error: Expected `that` to be Integer, but got Function.",
             None,
             Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
             None,
