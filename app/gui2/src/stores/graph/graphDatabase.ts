@@ -347,6 +347,7 @@ export class GraphDb {
         let metadataFields: NodeDataFromMetadata = {
           position: new Vec2(0, 0),
           vis: undefined,
+          colorOverride: undefined,
         }
         // We are notified of new or changed metadata by `updateMetadata`, so we only need to read existing metadata
         // when we switch to a different function.
@@ -356,6 +357,7 @@ export class GraphDb {
           metadataFields = {
             position: new Vec2(pos.x, pos.y),
             vis: nodeMeta.get('visualization'),
+            colorOverride: nodeMeta.get('colorOverride'),
           }
         }
         this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields })
@@ -429,6 +431,7 @@ export class GraphDb {
       const newVis = changes.get('visualization')
       if (!visMetadataEquals(newVis, node.vis)) node.vis = newVis
     }
+    node.colorOverride = changes.get('colorOverride')
   }
 
   /** Get the ID of the `Ast` corresponding to the given `ExternalId` as of the last synchronization. */
@@ -501,6 +504,7 @@ export interface NodeDataFromAst {
 export interface NodeDataFromMetadata {
   position: Vec2
   vis: Opt<VisualizationMetadata>
+  colorOverride: Opt<string>
 }
 
 export interface Node extends NodeDataFromAst, NodeDataFromMetadata {}
@@ -511,6 +515,7 @@ const baseMockNode = {
   prefixes: { enableRecording: undefined },
   primarySubject: undefined,
   documentation: undefined,
+  colorOverride: undefined,
 } satisfies Partial<Node>
 
 /** This should only be used for supplying as initial props when testing.

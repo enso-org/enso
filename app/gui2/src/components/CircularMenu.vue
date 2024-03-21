@@ -3,6 +3,8 @@ import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { Vec2 } from '@/util/data/vec2'
+import ColorPicker from '@/components/ColorPicker.vue'
+import { ref } from 'vue'
 
 const props = defineProps<{
   isRecordingEnabledGlobally: boolean
@@ -10,6 +12,7 @@ const props = defineProps<{
   isDocsVisible: boolean
   isVisualizationVisible: boolean
   isFullMenuVisible: boolean
+  nodeColor: string
 }>()
 const emit = defineEmits<{
   'update:isRecordingOverridden': [isRecordingOverridden: boolean]
@@ -20,7 +23,9 @@ const emit = defineEmits<{
   openFullMenu: []
   delete: []
   addNode: [pos: Vec2 | undefined]
+  overrideColor: [value: string]
 }>()
+const showColorPicker = ref(false)
 </script>
 
 <template>
@@ -33,6 +38,13 @@ const emit = defineEmits<{
         class="icon-container button slot2"
         :alt="`Edit comment`"
         @click.stop="emit('startEditingComment')"
+      />
+      <SvgIcon
+        v-if="isFullMenuVisible"
+        name="paint_palette"
+        class="icon-container button slot3"
+        :alt="`Choose color`"
+        @click.stop="showColorPicker = !showColorPicker"
       />
       <SvgIcon
         v-if="isFullMenuVisible"
@@ -69,6 +81,7 @@ const emit = defineEmits<{
       @addNode="emit('addNode', $event)"
     />
   </div>
+  <ColorPicker class="colorPicker" :show="showColorPicker" :color="props.nodeColor" @update:color="(c) => emit('overrideColor', c)" />
 </template>
 
 <style scoped>
@@ -76,6 +89,13 @@ const emit = defineEmits<{
   position: absolute;
   user-select: none;
   pointer-events: none;
+  z-index: 100;
+}
+
+.colorPicker {
+  position: absolute;
+  top: -150px;
+  left: -300px;
 }
 
 .circle {

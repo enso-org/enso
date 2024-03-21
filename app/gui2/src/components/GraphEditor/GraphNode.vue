@@ -250,7 +250,10 @@ const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.inne
 const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
-const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
+const color = computed(() => {
+  console.log('color override: ', props.node.colorOverride, graph.db.getNodeColorStyle(nodeId.value))
+  return props.node.colorOverride ?? graph.db.getNodeColorStyle(nodeId.value)
+})
 const icon = computed(() => {
   return displayedIconOf(
     suggestionEntry.value,
@@ -389,6 +392,11 @@ const documentation = computed<string | undefined>({
     })
   },
 })
+
+function overrideColor(color: string) {
+  console.log('new color: ', color)
+  graph.overrideNodeColor(nodeId.value, color)
+}
 </script>
 
 <template>
@@ -442,14 +450,14 @@ const documentation = computed<string | undefined>({
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       :isFullMenuVisible="menuVisible && menuFull"
+      :nodeColor="color"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
       @addNode="emit('addNode', $event)"
-      @pointerenter="menuHovered = true"
-      @pointerleave="menuHovered = false"
+      @overrideColor="overrideColor"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
