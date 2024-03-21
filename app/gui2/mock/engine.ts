@@ -291,6 +291,8 @@ const mockVizData: Record<string, Uint8Array | ((params: string[]) => Uint8Array
         return encodeJSON([])
     }
   },
+  'Standard.Visualization.AI.build_ai_prompt': () => encodeJSON('Could you __$$GOAL$$__, please?'),
+
   // The following visualizations do not have unique transformation methods, and as such are only kept
   // for posterity.
   Image: encodeJSON({
@@ -466,6 +468,17 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
           path: { rootId: data_.path.rootId, segments: [...data_.path.segments, name] },
         })),
       } satisfies response.FileList
+    }
+    case 'ai/completion': {
+      const { prompt } = data
+      const match = /$Could you (.*), please?^/.exec(prompt)
+      if (!match) {
+        return { code: 'How rude!' }
+      } else if (match[1] === 'convert to table?') {
+        return { code: 'to_table' }
+      } else {
+        return { code: '"I don\'t understand, sorry"' }
+      }
     }
     default:
       return Promise.reject(`Method '${method}' not mocked`)

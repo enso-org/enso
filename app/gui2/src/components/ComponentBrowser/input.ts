@@ -24,6 +24,7 @@ import {
   tryQualifiedName,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import { useToast } from '@/util/toast'
 import { equalFlat } from 'lib0/array'
 import { sourceRangeKey, type SourceRange } from 'shared/yjsModel'
 import { computed, nextTick, ref, type ComputedRef } from 'vue'
@@ -78,7 +79,7 @@ interface Change {
 export function useComponentBrowserInput(
   graphDb: GraphDb = useGraphStore().db,
   suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
-  ai: { query(query: string, sourcePort: AstId): Promise<Result<string>> } = useAI(),
+  ai: { query(query: string, sourcePort: string): Promise<Result<string>> } = useAI(),
 ) {
   const code = ref('')
   const cbUsage = ref<Usage>()
@@ -87,6 +88,7 @@ export function useComponentBrowserInput(
   const ast = computed(() => RawAstExtended.parse(code.value))
   const imports = ref<RequiredImport[]>([])
   const processingAIPrompt = ref(false)
+  const toastError = useToast.error()
 
   // Code Model to being edited externally (by user).
   //
@@ -501,24 +503,22 @@ export function useComponentBrowserInput(
       console.error('Cannot apply AI prompt in non-AI context')
       return
     }
-    const sourcePort = cbUsage.value?.type === 'newNode' && cbUsage.value.sourcePort
-    if (!sourcePort) {
-      console.error('Cannot apply AI prompt without source port')
-      return
-    }
     processingAIPrompt.value = true
-    ai.query(ctx.prompt, sourcePort).then(
+    ai.query(ctx.prompt, ctx.selfIdent).then(
       (result) => {
         if (result.ok) {
-          const sourceNodeName = graphDb.getOutputPortIdentifier(sourcePort)
-          code.value = `${sourceNodeName}.${result.value}`
+          code.value = `${ctx.selfIdent}.${result.value}`
         } else {
-          result.error.log('Applying AI prompt failed')
+          const msg = result.error.message('Applying AI prompt failed')
+          console.error(msg)
+          toastError.show(msg)
         }
         processingAIPrompt.value = false
       },
       (err) => {
-        console.error(`Applying AI prompt failed: ${err}`)
+        const msg = `Applying AI prompt failed: ${err}`
+        console.error(msg)
+        toastError.show(msg)
         processingAIPrompt.value = false
       },
     )

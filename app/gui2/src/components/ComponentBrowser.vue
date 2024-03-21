@@ -430,7 +430,6 @@ const handler = componentBrowserBindings.handler({
     acceptInput()
   },
   acceptAIPrompt() {
-    console.log(input.context.value)
     if (input.context.value.type !== 'aiPrompt') return false
     input.applyAIPrompt()
   },

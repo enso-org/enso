@@ -16,15 +16,16 @@ export function useAI(
     executeExpression(expressionId: ExternalId, expression: string): Promise<Result<string> | null>
   } = useProjectStore(),
 ) {
-  async function query(query: string, sourcePort: AstId): Promise<Result<string>> {
+  async function query(query: string, sourceIdentifier: string): Promise<Result<string>> {
     const lsRpc = await project.lsRpcConnection
-    const sourceNodeId = graphDb.getPatternExpressionNodeId(sourcePort)
+    const sourceNodeId = graphDb.getIdentDefiningNode(sourceIdentifier)
     const contextId = sourceNodeId && graphDb.nodeIdToNode.get(sourceNodeId)?.outerExpr.externalId
-    if (!contextId) return Err(`Cannot find node with source port ${sourcePort}`)
-    const ident = graphDb.getOutputPortIdentifier(sourcePort)
-    if (!ident) return Err(`Cannot find identifier of source port ${sourcePort}`)
+    if (!contextId) return Err(`Cannot find node with name ${sourceIdentifier}`)
 
-    const prompt = await project.executeExpression(contextId, `(${ident}).build_ai_prompt`)
+    const prompt = await project.executeExpression(
+      contextId,
+      `Standard.Visualization.AI.build_ai_prompt ${sourceIdentifier}`,
+    )
     if (!prompt) return Err('No data from AI visualization')
     if (!prompt.ok)
       return withContext(
