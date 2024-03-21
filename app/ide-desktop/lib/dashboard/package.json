@@ -66,6 +66,7 @@
     "esbuild": "^0.19.3",
     "esbuild-plugin-inline-image": "^0.0.9",
     "esbuild-plugin-time": "^1.0.0",
+    "esbuild-plugin-yaml": "^0.0.1",
     "eslint": "^8.49.0",
     "eslint-plugin-jsdoc": "^46.8.1",
     "eslint-plugin-react": "^7.32.1",

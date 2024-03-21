@@ -1199,7 +1199,6 @@ dependencies = [
  "enso-build-macros-lib",
  "enso-enso-font",
  "enso-font",
- "enso-pack",
  "futures",
  "futures-util",
  "glob",
@@ -1412,20 +1411,6 @@ dependencies = [
  "enso-reflect",
  "lexpr",
  "serde",
-]
-
-[[package]]
-name = "enso-pack"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
- "futures",
- "ide-ci",
- "manifest-dir-macros",
- "serde",
- "serde_json",
- "tokio",
- "walkdir",
 ]
 
 [[package]]
@@ -2511,18 +2496,6 @@ dependencies = [
  "time 0.3.17",
  "tokio",
  "tokio-stream",
-]
-
-[[package]]
-name = "manifest-dir-macros"
-version = "0.1.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f08150cf2bab1fc47c2196f4f41173a27fcd0f684165e5458c0046b53a472e2f"
-dependencies = [
- "once_cell",
- "proc-macro2",
- "quote",
- "syn 1.0.107",
 ]
 
 [[package]]

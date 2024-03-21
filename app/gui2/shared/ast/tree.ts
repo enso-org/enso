@@ -994,6 +994,18 @@ export interface MutablePropertyAccess extends PropertyAccess, MutableAst {
 }
 applyMixins(MutablePropertyAccess, [MutableAst])
 
+/** Unroll the provided chain of `PropertyAccess` nodes, returning the first non-access as `subject` and the accesses
+ *  from left-to-right. */
+export function accessChain(ast: Ast): { subject: Ast; accessChain: PropertyAccess[] } {
+  const accessChain = new Array<PropertyAccess>()
+  while (ast instanceof PropertyAccess && ast.lhs) {
+    accessChain.push(ast)
+    ast = ast.lhs
+  }
+  accessChain.reverse()
+  return { subject: ast, accessChain }
+}
+
 interface GenericFields {
   children: RawNodeChild[]
 }

@@ -1,0 +1,12 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path opacity="0.3" d="M0 4H16V14C16 15.1046 15.1046 16 14 16H2C0.895431 16 0 15.1046 0 14V4Z" fill="black" />
+    <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M3 0C2.44772 0 2 0.447715 2 1V2C0.895431 2 0 2.89543 0 4H3H8H13H16C16 2.89543 15.1046 2 14 2V1C14 0.447715 13.5523 0 13 0C12.4477 0 12 0.447715 12 1V2H9V1C9 0.447715 8.55229 0 8 0C7.44772 0 7 0.447715 7 1V2H4V1C4 0.447715 3.55228 0 3 0Z"
+        fill="black" />
+    <rect x="2" y="5.5" width="2" height="2" fill="black" />
+    <rect x="2" y="8.5" width="2" height="2" fill="black" />
+    <rect x="2" y="11.5" width="2" height="2" fill="black" />
+    <rect x="5" y="5.5" width="9" height="2" fill="black" />
+    <rect x="5" y="8.5" width="9" height="2" fill="black" />
+    <rect x="5" y="11.5" width="9" height="2" fill="black" />
+</svg>

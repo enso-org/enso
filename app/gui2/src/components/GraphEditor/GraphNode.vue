@@ -9,6 +9,7 @@ import NodeWidgetTree, {
   GRAB_HANDLE_X_MARGIN,
   ICON_WIDTH,
 } from '@/components/GraphEditor/NodeWidgetTree.vue'
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
@@ -50,7 +51,7 @@ const emit = defineEmits<{
   outputPortClick: [portId: AstId]
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
-  addNode: [pos: Vec2 | undefined]
+  createNode: [options: NodeCreationOptions]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -439,6 +440,7 @@ function overrideColor(color: string) {
     <button
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton"
+      data-testid="recordingOverriddenButton"
       @click="isRecordingOverridden = false"
     >
       <SvgIcon name="record" />
@@ -456,7 +458,9 @@ function overrideColor(color: string) {
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
-      @addNode="emit('addNode', $event)"
+      @createNode="emit('createNode', $event)"
+      @pointerenter="menuHovered = true"
+      @pointerleave="menuHovered = false"
       @overrideColor="overrideColor"
     />
     <GraphVisualization
@@ -476,7 +480,7 @@ function overrideColor(color: string) {
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
-      @addNode="emit('addNode', $event)"
+      @createNode="emit('createNode', $event)"
     />
     <Suspense>
       <GraphNodeComment
@@ -500,6 +504,7 @@ function overrideColor(color: string) {
         :icon="icon"
         :connectedSelfArgumentId="connectedSelfArgumentId"
         :potentialSelfArgumentId="potentialSelfArgumentId"
+        :conditionalPorts="props.node.conditionalPorts"
         :extended="isOnlyOneSelected"
         @openFullMenu="openFullMenu"
       />

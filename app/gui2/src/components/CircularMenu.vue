@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
@@ -22,7 +23,7 @@ const emit = defineEmits<{
   startEditingComment: []
   openFullMenu: []
   delete: []
-  addNode: [pos: Vec2 | undefined]
+  createNode: [options: NodeCreationOptions]
   overrideColor: [value: string]
 }>()
 const showColorPicker = ref(false)
@@ -69,6 +70,7 @@ const showColorPicker = ref(false)
       <ToggleIcon
         icon="record"
         class="icon-container button slot7"
+        data-testid="overrideRecordingButton"
         :class="{ 'recording-overridden': props.isRecordingOverridden }"
         :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
         :modelValue="props.isRecordingOverridden"
@@ -78,7 +80,7 @@ const showColorPicker = ref(false)
     <SmallPlusButton
       v-if="!isVisualizationVisible"
       class="below-slot5"
-      @addNode="emit('addNode', $event)"
+      @createNode="emit('createNode', $event)"
     />
   </div>
   <ColorPicker class="colorPicker" :show="showColorPicker" :color="props.nodeColor" @update:color="(c) => emit('overrideColor', c)" />

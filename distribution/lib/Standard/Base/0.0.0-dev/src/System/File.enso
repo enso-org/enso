@@ -71,7 +71,7 @@ type File
              import Standard.Examples
 
              example_new = File.new Examples.csv_path
-    new : (Text | File) -> Any
+    new : (Text | File) -> Any ! Illegal_Argument
     new path = case path of
         _ : Text -> if path.contains "://" . not then get_file path else
             protocol = path.split "://" . first
@@ -82,7 +82,7 @@ type File
         _ ->
             ## Check to see if a valid "File" type.
             if (file_types.any file_type-> path.is_a file_type) then path else
-                Error.throw (Type_Error.Error File path "path")
+                Error.throw (Illegal_Argument.Error "The provided path is neither a Text, nor any recognized File-like type.")
 
 
     ## ICON folder_add

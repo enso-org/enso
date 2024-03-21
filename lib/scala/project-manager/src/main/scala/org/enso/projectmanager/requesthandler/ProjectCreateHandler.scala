@@ -7,14 +7,13 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.infrastructure.file.Files
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectCreate
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
-
-import java.io.File
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -61,7 +60,7 @@ class ProjectCreateHandler[
           }
         _ = logger.trace(s"Creating project using engine $actualVersion")
         projectsDirectory <- Sync[F].effect(
-          params.projectsDirectory.map(new File(_))
+          params.projectsDirectory.map(Files.getAbsoluteFile)
         )
         project <- projectService.createUserProject(
           progressTracker        = self,

@@ -4,6 +4,7 @@ import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
+import { injectKeyboard } from '@/providers/keyboard'
 import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
@@ -88,10 +89,6 @@ const innerWidget = computed(() => {
 
 providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 
-watch(nodeSize, updateRect)
-onUpdated(() => nextTick(updateRect))
-useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
-
 const randSlice = randomUuid.slice(0, 4)
 
 watchEffect(
@@ -104,19 +101,37 @@ watchEffect(
   { flush: 'post' },
 )
 
-function updateRect() {
-  let domNode = rootNode.value
+const keyboard = injectKeyboard()
+
+const enabled = computed(() => {
+  const input = props.input.value
+  const isConditional = input instanceof Ast.Ast && tree.conditionalPorts.has(input.id)
+  return !isConditional || keyboard.mod
+})
+
+const computedRect = computed(() => {
+  const domNode = rootNode.value
   const rootDomNode = domNode?.closest('.GraphNode')
   if (domNode == null || rootDomNode == null) return
-
+  if (!enabled.value) return
+  let _nodeSizeEffect = nodeSize.value
   const exprClientRect = Rect.FromDomRect(domNode.getBoundingClientRect())
   const nodeClientRect = Rect.FromDomRect(rootDomNode.getBoundingClientRect())
   const exprSceneRect = navigator.clientToSceneRect(exprClientRect)
   const exprNodeRect = navigator.clientToSceneRect(nodeClientRect)
-  const localRect = exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
-  if (portRect.value != null && localRect.equals(portRect.value)) return
-  portRect.value = localRect
+  return exprSceneRect.offsetBy(exprNodeRect.pos.inverse())
+})
+
+function updateRect() {
+  const newRect = computedRect.value
+  if (!Rect.Equal(portRect.value, newRect)) {
+    portRect.value = newRect
+  }
 }
+
+watch(computedRect, updateRect)
+onUpdated(() => nextTick(updateRect))
+useRaf(toRef(tree, 'hasActiveAnimations'), updateRect)
 </script>
 
 <script lang="ts">
@@ -159,6 +174,7 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
     ref="rootNode"
     class="WidgetPort"
     :class="{
+      enabled,
       connected,
       isTarget,
       isSelfArgument,
