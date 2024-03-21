@@ -176,14 +176,22 @@ public final class EqualsNode extends Node {
           UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, thatType);
       var betweenBoth = UnresolvedConversion.build(selfScope).resolveFor(ctx, selfType, thatType);
 
-      if (isDefinedIn(selfScope, fromSelfType)
-          && isDefinedIn(selfScope, fromThatType)
-          && convertor(ctx, fromSelfType, self) == convertor(ctx, fromThatType, that)
-          && betweenBoth != null) {
-        return true;
-      } else {
+      if (betweenBoth == null) {
         return false;
       }
+
+      if (!isDefinedIn(selfScope, fromSelfType)) {
+        return false;
+      }
+
+      if (!isDefinedIn(selfScope, fromThatType)) {
+        return false;
+      }
+
+      var c1 = convertor(ctx, fromSelfType, self);
+      var c2 = convertor(ctx, fromThatType, that);
+
+      return c1 == c2;
     }
 
     @Specialization(
