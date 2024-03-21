@@ -489,12 +489,13 @@ val zio = Seq(
 
 val bcpkixJdk15Version      = "1.70"
 val declineVersion          = "2.4.1"
+val diffsonVersion          = "4.4.0"
 val directoryWatcherVersion = "0.18.0"
 val flatbuffersVersion      = "24.3.25"
 val guavaVersion            = "32.0.0-jre"
+val helidonVersion          = "4.0.6"
 val jlineVersion            = "3.23.0"
 val jgitVersion             = "6.7.0.202309050840-r"
-val diffsonVersion          = "4.4.0"
 val kindProjectorVersion    = "0.13.2"
 val mockitoScalaVersion     = "1.17.14"
 val newtypeVersion          = "0.4.4"
@@ -1130,6 +1131,55 @@ lazy val searcher = project
   )
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
+
+lazy val `js-websocket` = project
+  .in(file("lib/java/js-websocket"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    modulePath := {
+      JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        GraalVM.modules ++ Seq(
+          "io.helidon.builder"       % "helidon-builder-api"         % helidonVersion,
+          "io.helidon.common"        % "helidon-common"              % helidonVersion,
+          "io.helidon.common"        % "helidon-common-buffers"      % helidonVersion,
+          "io.helidon.common"        % "helidon-common-config"       % helidonVersion,
+          "io.helidon.common"        % "helidon-common-configurable" % helidonVersion,
+          "io.helidon.common"        % "helidon-common-context"      % helidonVersion,
+          "io.helidon.common"        % "helidon-common-mapper"       % helidonVersion,
+          "io.helidon.common"        % "helidon-common-media-type"   % helidonVersion,
+          "io.helidon.common"        % "helidon-common-parameters"   % helidonVersion,
+          "io.helidon.common"        % "helidon-common-socket"       % helidonVersion,
+          "io.helidon.common"        % "helidon-common-security"     % helidonVersion,
+          "io.helidon.common"        % "helidon-common-tls"          % helidonVersion,
+          "io.helidon.common"        % "helidon-common-uri"          % helidonVersion,
+          "io.helidon.config"        % "helidon-config"              % helidonVersion,
+          "io.helidon.http"          % "helidon-http"                % helidonVersion,
+          "io.helidon.http.encoding" % "helidon-http-encoding"       % helidonVersion,
+          "io.helidon.http.media"    % "helidon-http-media"          % helidonVersion,
+          "io.helidon.webclient"     % "helidon-webclient"           % helidonVersion,
+          "io.helidon.webclient"     % "helidon-webclient-api"       % helidonVersion,
+          "io.helidon.webclient"     % "helidon-webclient-http1"     % helidonVersion,
+          "io.helidon.webclient"     % "helidon-webclient-websocket" % helidonVersion,
+          "io.helidon.webserver"     % "helidon-webserver"           % helidonVersion,
+          "io.helidon.webserver"     % "helidon-webserver-websocket" % helidonVersion,
+          "io.helidon.websocket"     % "helidon-websocket"           % helidonVersion
+        ),
+        streams.value.log,
+        shouldContainAll = true
+      )
+    },
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot"                    % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "inspect"                     % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "js"                          % graalMavenPackagesVersion % "provided,runtime",
+      "io.helidon.webclient" % "helidon-webclient-websocket" % helidonVersion,
+      "io.helidon.webserver" % "helidon-webserver-websocket" % helidonVersion,
+      "junit"                % "junit"                       % junitVersion              % Test,
+      "com.github.sbt"       % "junit-interface"             % junitIfVersion            % Test
+    )
+  )
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .settings(
