@@ -40,13 +40,23 @@ public final class ExecuteExpressionCommand extends SynchronousCommand {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public void executeSynchronously(RuntimeContext ctx, ExecutionContext ec) {
     if (ctx.contextManager().contains(contextId)) {
       reply(new Runtime$Api$VisualizationAttached(), ctx);
-      ctx.jobControlPlane().abortJobs(contextId);
+      ctx.jobControlPlane()
+          .abortJobs(
+              contextId,
+              job -> {
+                if (job instanceof ExecuteJob e) {
+                  return e.visualizationTriggered();
+                } else {
+                  return job instanceof ExecuteExpressionJob;
+                }
+              });
       ctx.jobProcessor()
           .run(new ExecuteExpressionJob(contextId, visualizationId, expressionId, expression))
-          .flatMap(executable -> ctx.jobProcessor().run(ExecuteJob.apply(executable)), ec);
+          .flatMap(executable -> ctx.jobProcessor().run(ExecuteJob.apply(executable, true)), ec);
     } else {
       reply(new Runtime$Api$ContextNotExistError(contextId), ctx);
     }
