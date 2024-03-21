@@ -19,8 +19,8 @@ import GlobalContextMenu from '#/layouts/GlobalContextMenu'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 import ContextMenus from '#/components/ContextMenus'
-import ContextMenuSeparator from '#/components/ContextMenuSeparator'
 import type * as assetRow from '#/components/dashboard/AssetRow'
+import Separator from '#/components/styled/Separator'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
@@ -102,7 +102,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   return category === Category.trash ? (
     !ownsThisAsset ? null : (
       <ContextMenus hidden={hidden} key={asset.id} event={event}>
-        <ContextMenu hidden={hidden}>
+        <ContextMenu aria-label="Asset context menu" hidden={hidden}>
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -133,7 +133,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     )
   ) : (
     <ContextMenus hidden={hidden} key={asset.id} event={event}>
-      <ContextMenu hidden={hidden}>
+      <ContextMenu aria-label="Asset context menu" hidden={hidden}>
         {asset.type === backendModule.AssetType.project &&
           canExecute &&
           !isRunningProject &&
@@ -284,7 +284,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && <ContextMenuSeparator hidden={hidden} />}
+        {isCloud && <Separator hidden={hidden} />}
         {isCloud && managesThisAsset && self != null && (
           <ContextMenuEntry
             hidden={hidden}
@@ -324,7 +324,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             }}
           />
         )}
-        {isCloud && managesThisAsset && self != null && <ContextMenuSeparator hidden={hidden} />}
+        {isCloud && managesThisAsset && self != null && <Separator hidden={hidden} />}
         <ContextMenuEntry
           hidden={hidden}
           isDisabled={!isCloud}
@@ -377,7 +377,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       {category === Category.home && (
         <GlobalContextMenu
           hidden={hidden}
-          hasCopyData={hasPasteData}
+          hasPasteData={hasPasteData}
           directoryKey={
             // This is SAFE, as both branches are guaranteed to be `DirectoryId`s
             // eslint-disable-next-line no-restricted-syntax

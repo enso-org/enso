@@ -98,7 +98,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
               }
               setModal(
                 <ContextMenus key={`label-${label}`} event={event}>
-                  <ContextMenu>
+                  <ContextMenu aria-label="Label context menu">
                     <MenuEntry action="delete" doAction={doDelete} />
                   </ContextMenu>
                 </ContextMenus>

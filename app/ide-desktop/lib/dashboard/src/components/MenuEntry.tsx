@@ -32,11 +32,12 @@ export interface MenuEntryProps {
 }
 
 /** An item in a menu. */
-function MenuEntry(props: MenuEntryProps, ref: React.ForwardedRef<HTMLButtonElement>) {
-  const { hidden = false, action, label, isDisabled = false, title } = props
+export default function MenuEntry(props: MenuEntryProps) {
+  const { hidden = false, action, label: labelRaw, isDisabled = false, title } = props
   const { isContextMenuEntry = false, doAction } = props
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
+  const label = labelRaw ?? info.name
   React.useEffect(() => {
     // This is slower (but more convenient) than registering every shortcut in the context menu
     // at once.
@@ -50,23 +51,22 @@ function MenuEntry(props: MenuEntryProps, ref: React.ForwardedRef<HTMLButtonElem
   }, [isDisabled, inputBindings, action, doAction])
 
   return hidden ? null : (
-    <FocusRing>
-      <aria.Button
-        ref={ref}
-        isDisabled={isDisabled}
-        className={`flex h-row place-content-between items-center rounded-menu-entry p-menu-entry text-left selectable hover:bg-hover-bg enabled:active disabled:bg-transparent ${
-          isContextMenuEntry ? 'px-context-menu-entry-x' : ''
-        }`}
-        onPress={doAction}
-      >
-        <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-          <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
-          {label ?? info.name}
-        </div>
-        <KeyboardShortcut action={action} />
-      </aria.Button>
-    </FocusRing>
+    <aria.MenuItem textValue={label} className="flex w-full">
+      <FocusRing>
+        <aria.Button
+          isDisabled={isDisabled}
+          className={`flex h-row grow place-content-between items-center rounded-menu-entry p-menu-entry text-left selectable hover:bg-hover-bg enabled:active disabled:bg-transparent ${
+            isContextMenuEntry ? 'px-context-menu-entry-x' : ''
+          }`}
+          onPress={doAction}
+        >
+          <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
+            <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
+            <aria.Text slot="label">{label}</aria.Text>
+          </div>
+          <KeyboardShortcut action={action} />
+        </aria.Button>
+      </FocusRing>
+    </aria.MenuItem>
   )
 }
-
-export default React.forwardRef(MenuEntry)

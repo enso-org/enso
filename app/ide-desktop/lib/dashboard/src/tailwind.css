@@ -92,7 +92,7 @@
   --context-menu-macos-half-width: calc(var(--context-menu-macos-width) / 2);
   --context-menu-macos-width: 14.375rem;
   --context-menu-entry-padding-x: 0.75rem;
-  --context-menu-separator-padding-y: 0.125rem;
+  --separator-margin-y: 0.125rem;
   /* The vertical gap between entries in a Data Link input. */
   --json-schema-gap: 0.25rem;
   --json-schema-text-input-width: 10rem;
@@ -433,7 +433,7 @@
   /* Only used for the settings sidebar, not the drive sidebar. */
   --sidebar-section-heading-padding-y: 0.125rem;
   /* The vertical gap between the section heading and its content. */
-  --sidebar-section-heading-gap: 0.375rem;
+  --sidebar-section-heading-margin-b: 0.375rem;
 }
 
 body {
@@ -483,6 +483,11 @@ body::before {
   font-family: "M PLUS 1";
   font-weight: 500;
   font-feature-settings: normal;
+}
+
+.enso-dashboard kbd,
+.enso-chat kbd {
+  font-family: "M PLUS 1";
 }
 
 .enso-dashboard :focus,

@@ -4,6 +4,10 @@ import * as React from 'react'
 import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
 import EyeIcon from 'enso-assets/eye.svg'
 
+import * as focusHooks from '#/hooks/focusHooks'
+
+import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
+
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
@@ -26,6 +30,8 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
   const { initialValue, type, placeholder, onChange, onSubmit } = props
   const [isShowingPassword, setIsShowingPassword] = React.useState(false)
   const cancelled = React.useRef(false)
+  const focusDirection = focusDirectionProvider.useFocusDirection()
+  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     switch (event.key) {
@@ -48,6 +54,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
         break
       }
       default: {
+        handleFocusMove(event)
         cancelled.current = false
         break
       }

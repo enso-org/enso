@@ -12,6 +12,7 @@ import type * as dashboardInputBindings from '#/configurations/inputBindings'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
+import * as aria from '#/components/aria'
 import SvgMask from '#/components/SvgMask'
 
 import * as inputBindingsModule from '#/utilities/inputBindings'
@@ -95,7 +96,7 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
       .sort(inputBindingsModule.compareModifiers)
       .map(inputBindingsModule.toModifierKey)
     return (
-      <div
+      <aria.Keyboard
         className={`flex h-text items-center ${
           detect.isOnMacOS() ? 'gap-modifiers-macos' : 'gap-modifiers'
         }`}
@@ -111,7 +112,7 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
         <span className="text">
           {shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}
         </span>
-      </div>
+      </aria.Keyboard>
     )
   }
 }

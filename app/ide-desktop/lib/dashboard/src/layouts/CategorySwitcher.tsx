@@ -7,6 +7,7 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as focusHooks from '#/hooks/focusHooks'
 
+import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
@@ -50,7 +51,8 @@ interface InternalCategorySwitcherItemProps {
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { category, isCurrent, onClick, onDragOver, onDrop } = props
-  const handleFocusMove = focusHooks.useHandleFocusMove('vertical')
+  const focusDirection = focusDirectionProvider.useFocusDirection()
+  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
 
   return (
     <FocusRing placement="after">
@@ -110,7 +112,7 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   return (
     <FocusArea direction="vertical">
       {(ref, innerProps) => (
-        <div ref={ref} className="flex w-full flex-col gap-sidebar-section-heading" {...innerProps}>
+        <div ref={ref} className="gap-sidebar-section-heading flex w-full flex-col" {...innerProps}>
           <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Category</div>
           <div className="flex flex-col items-start">
             {CATEGORIES.map(currentCategory => (

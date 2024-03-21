@@ -3,12 +3,16 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
+import * as aria from '#/components/aria'
+
 // ===================
 // === ContextMenu ===
 // ===================
 
 /** Props for a {@link ContextMenu}. */
 export interface ContextMenuProps extends Readonly<React.PropsWithChildren> {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly 'aria-label': string
   readonly hidden?: boolean
 }
 
@@ -20,16 +24,14 @@ export default function ContextMenu(props: ContextMenuProps) {
     <>{children}</>
   ) : (
     <div className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default">
-      <div
+      <aria.Menu
+        aria-label={props['aria-label']}
         className={`relative flex flex-col rounded-default ${
           detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu'
         } p-context-menu`}
-        onClick={clickEvent => {
-          clickEvent.stopPropagation()
-        }}
       >
         {children}
-      </div>
+      </aria.Menu>
     </div>
   )
 }

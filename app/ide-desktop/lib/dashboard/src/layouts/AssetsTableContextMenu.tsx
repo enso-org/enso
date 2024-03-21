@@ -111,7 +111,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
       <></>
     ) : (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
-        <ContextMenu hidden={hidden}>
+        <ContextMenu aria-label="Drive context menu" hidden={hidden}>
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
@@ -148,7 +148,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     return (
       <ContextMenus key={uniqueString.uniqueString()} hidden={hidden} event={event}>
         {selectedKeys.size !== 0 && (
-          <ContextMenu hidden={hidden}>
+          <ContextMenu aria-label="Drive context menu" hidden={hidden}>
             {ownsAllSelectedAssets && (
               <ContextMenuEntry
                 hidden={hidden}
@@ -186,7 +186,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         )}
         <GlobalContextMenu
           hidden={hidden}
-          hasCopyData={pasteData != null}
+          hasPasteData={pasteData != null}
           directoryKey={null}
           directoryId={null}
           dispatchAssetListEvent={dispatchAssetListEvent}

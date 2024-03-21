@@ -13,6 +13,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 
+import * as aria from '#/components/aria'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
 
@@ -41,7 +42,6 @@ export default function UserMenu(props: UserMenuProps) {
   const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const rootRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     requestAnimationFrame(setInitialized.bind(null, true))
@@ -50,7 +50,6 @@ export default function UserMenu(props: UserMenuProps) {
   return (
     <Modal hidden={hidden} className="absolute size-full overflow-hidden bg-dim">
       <div
-        ref={rootRef}
         // The name comes from a third-party API and cannot be changed.
         // eslint-disable-next-line @typescript-eslint/naming-convention
         {...(!hidden ? { 'data-testid': 'user-menu' } : {})}
@@ -75,7 +74,11 @@ export default function UserMenu(props: UserMenuProps) {
             <div
               className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
             >
-              <div className="flex flex-col overflow-hidden">
+              <aria.Menu
+                aria-label="User menu"
+                autoFocus="first"
+                className="flex flex-col overflow-hidden"
+              >
                 {!supportsLocalBackend && (
                   <MenuEntry
                     action="downloadApp"
@@ -107,7 +110,7 @@ export default function UserMenu(props: UserMenuProps) {
                     }, 0)
                   }}
                 />
-              </div>
+              </aria.Menu>
             </div>
           </>
         ) : (

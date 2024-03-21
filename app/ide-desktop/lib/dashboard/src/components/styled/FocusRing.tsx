@@ -23,7 +23,7 @@ export default function FocusRing(props: FocusRingProps) {
         : 'focus-ring'
 
   return (
-    <aria.FocusRing within={within} focusClass={focusClass}>
+    <aria.FocusRing within={within} focusRingClass={focusClass}>
       {children}
     </aria.FocusRing>
   )

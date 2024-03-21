@@ -8,6 +8,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
+import * as aria from '#/components/aria'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 
@@ -19,7 +20,7 @@ import * as backendModule from '#/services/Backend'
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
   readonly hidden?: boolean
-  readonly hasCopyData: boolean
+  readonly hasPasteData: boolean
   readonly directoryKey: backendModule.DirectoryId | null
   readonly directoryId: backendModule.DirectoryId | null
   readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
@@ -31,7 +32,7 @@ export interface GlobalContextMenuProps {
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-  const { hidden = false, hasCopyData, directoryKey, directoryId, dispatchAssetListEvent } = props
+  const { hidden = false, hasPasteData, directoryKey, directoryId, dispatchAssetListEvent } = props
   const { doPaste } = props
   const { user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
@@ -43,27 +44,30 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   const filesInputRef = React.useRef<HTMLInputElement>(null)
   const isCloud = backend.type === backendModule.BackendType.remote
   return (
-    <ContextMenu hidden={hidden}>
+    <ContextMenu aria-label="Global context menu" hidden={hidden}>
       {!hidden && (
-        <input
-          ref={filesInputRef}
-          multiple
-          type="file"
-          id="context_menu_file_input"
-          {...(backend.type !== backendModule.BackendType.local ? {} : { accept: '.enso-project' })}
-          className="hidden"
-          onInput={event => {
-            if (event.currentTarget.files != null) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.uploadFiles,
-                parentKey: directoryKey ?? rootDirectoryId,
-                parentId: directoryId ?? rootDirectoryId,
-                files: Array.from(event.currentTarget.files),
-              })
-              unsetModal()
-            }
-          }}
-        />
+        <aria.MenuItem className="hidden">
+          <input
+            ref={filesInputRef}
+            multiple
+            type="file"
+            id="context_menu_file_input"
+            {...(backend.type !== backendModule.BackendType.local
+              ? {}
+              : { accept: '.enso-project' })}
+            onInput={event => {
+              if (event.currentTarget.files != null) {
+                dispatchAssetListEvent({
+                  type: AssetListEventType.uploadFiles,
+                  parentKey: directoryKey ?? rootDirectoryId,
+                  parentId: directoryId ?? rootDirectoryId,
+                  files: Array.from(event.currentTarget.files),
+                })
+                unsetModal()
+              }
+            }}
+          />
+        </aria.MenuItem>
       )}
       <ContextMenuEntry
         hidden={hidden}
@@ -167,7 +171,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           }}
         />
       )}
-      {isCloud && directoryKey == null && hasCopyData && (
+      {isCloud && directoryKey == null && hasPasteData && (
         <ContextMenuEntry
           hidden={hidden}
           action="paste"

@@ -8,7 +8,9 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
+import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 
 import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
 
@@ -50,27 +52,28 @@ export default function DeleteUserAccountSettingsSection() {
         >
           <h3 className="settings-subheading text-danger">Danger Zone</h3>
           <div className="flex gap-buttons">
-            <button
-              ref={element => {
-                if (keyboardSelectedIndex === 0) {
-                  element?.focus()
-                }
-              }}
-              className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
-              onClick={event => {
-                event.stopPropagation()
-                setModal(
-                  <ConfirmDeleteUserModal
-                    doDelete={async () => {
-                      await backend.deleteUser()
-                      await signOut()
-                    }}
-                  />
-                )
-              }}
-            >
-              <span className="text inline-block">Delete this user account</span>
-            </button>
+            <FocusRing>
+              <aria.Button
+                ref={element => {
+                  if (keyboardSelectedIndex === 0) {
+                    element?.focus()
+                  }
+                }}
+                className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
+                onPress={() => {
+                  setModal(
+                    <ConfirmDeleteUserModal
+                      doDelete={async () => {
+                        await backend.deleteUser()
+                        await signOut()
+                      }}
+                    />
+                  )
+                }}
+              >
+                <aria.Text className="text inline-block">Delete this user account</aria.Text>
+              </aria.Button>
+            </FocusRing>
             <span className="text my-auto">
               Once deleted, it will be gone forever. Please be certain.
             </span>

@@ -1,5 +1,4 @@
 /** @file A styled button. */
-
 import * as React from 'react'
 
 import * as focusHooks from '#/hooks/focusHooks'
@@ -9,6 +8,10 @@ import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
+
+// ==============
+// === Button ===
+// ==============
 
 /** Props for a {@link Button}. */
 export interface ButtonProps {
