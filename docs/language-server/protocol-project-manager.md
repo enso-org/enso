@@ -569,6 +569,7 @@ interface ProjectCreateRequest {
 interface ProjectCreateResponse {
   projectId: UUID;
   projectName: string;
+  projectNormalizedName: string;
 }
 ```
 

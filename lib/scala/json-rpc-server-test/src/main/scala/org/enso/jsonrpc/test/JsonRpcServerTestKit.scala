@@ -174,7 +174,7 @@ abstract class JsonRpcServerTestKit
     def fuzzyExpectJson(
       json: Json,
       timeout: FiniteDuration = 5.seconds.dilated
-    ): Assertion = {
+    )(implicit pos: Position): Assertion = {
       val parsed = parse(expectMessage(timeout))
 
       parsed should fuzzyMatchJson(json)
