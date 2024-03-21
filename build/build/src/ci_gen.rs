@@ -582,9 +582,8 @@ pub fn typical_check_triggers() -> Event {
 
 pub fn gui() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let mut workflow = Workflow { name: "GUI CI".into(), on, ..default() };
+    let mut workflow = Workflow { name: "GUI Packaging".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
-    workflow.add(PRIMARY_TARGET, job::Lint);
 
     for target in CHECKED_TARGETS {
         let project_manager_job = workflow.add(target, job::BuildBackend);
@@ -599,6 +598,8 @@ pub fn gui() -> Result<Workflow> {
 pub fn gui_tests() -> Result<Workflow> {
     let on = typical_check_triggers();
     let mut workflow = Workflow { name: "GUI Tests".into(), on, ..default() };
+    workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
+    workflow.add(PRIMARY_TARGET, job::Lint);
     workflow.add(PRIMARY_TARGET, job::WasmTest);
     workflow.add(PRIMARY_TARGET, job::NativeTest);
     workflow.add(PRIMARY_TARGET, job::GuiTest);
