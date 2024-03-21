@@ -23,27 +23,29 @@ class OpenFileCmd(
   ): Unit = {
     val logger            = ctx.executionService.getLogger
     val readLockTimestamp = ctx.locking.acquireReadCompilationLock()
-    val fileLockTimestamp = ctx.locking.acquireFileLock(request.path)
     try {
-      ctx.executionService.setModuleSources(
-        request.path,
-        request.contents
-      )
-      ctx.endpoint.sendToClient(
-        Api.Response(maybeRequestId, Api.OpenFileResponse)
-      )
+      val fileLockTimestamp = ctx.locking.acquireFileLock(request.path)
+      try {
+        ctx.executionService.setModuleSources(
+          request.path,
+          request.contents
+        )
+        ctx.endpoint.sendToClient(
+          Api.Response(maybeRequestId, Api.OpenFileResponse)
+        )
+      } finally {
+        ctx.locking.releaseFileLock(request.path)
+        logger.log(
+          Level.FINEST,
+          "Kept file lock [OpenFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
+        )
+      }
     } finally {
-      ctx.locking.releaseFileLock(request.path)
-      logger.log(
-        Level.FINEST,
-        "Kept file lock [OpenFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
-      )
       ctx.locking.releaseReadCompilationLock()
       logger.log(
         Level.FINEST,
         "Kept read compilation lock [OpenFileCmd] for " + (System.currentTimeMillis - readLockTimestamp) + " milliseconds"
       )
-
     }
   }
 }

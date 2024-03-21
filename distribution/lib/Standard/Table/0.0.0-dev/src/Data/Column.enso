@@ -2290,7 +2290,7 @@ type Column
             sorted = self.to_vector.sort order by=wrapped
             Column.from_vector self.name sorted
 
-    ## ALIAS first, last, sample, slice
+    ## ALIAS first, last, sample, slice, top, head, tail, foot, limit
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Column with the specified range of rows from the input
