@@ -11,6 +11,7 @@ import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
+import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -76,105 +77,115 @@ export default function Labels(props: LabelsProps) {
   }, [displayLabels.length, setKeyboardSelectedIndex, navigator2D])
 
   return (
-    <div
-      data-testid="labels"
-      ref={rootRef}
-      className="flex w-full flex-col items-start gap-sidebar-section-heading"
-    >
-      <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Labels</div>
-      <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
-        {displayLabels.map((label, i) => {
-          const negated = currentNegativeLabels.some(term =>
-            array.shallowEqual(term, [label.value])
-          )
-          return (
-            <li key={label.id} className="group flex items-center gap-label-icons">
-              <Label
-                ref={element => {
-                  if (keyboardSelectedIndex === i) {
-                    element?.focus()
-                  }
-                }}
-                draggable
-                focusRing={i === keyboardSelectedIndex}
-                color={label.color}
-                active={
-                  negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
-                }
-                negated={negated}
-                disabled={newLabelNames.has(label.value)}
-                onClick={event => {
-                  setQuery(oldQuery =>
-                    oldQuery.withToggled('labels', 'negativeLabels', label.value, event.shiftKey)
-                  )
-                }}
-                onDragStart={event => {
-                  drag.setDragImageToBlank(event)
-                  const payload: drag.LabelsDragPayload = new Set([label.value])
-                  drag.LABELS.bind(event, payload)
-                  setModal(
-                    <DragModal
-                      event={event}
-                      doCleanup={() => {
-                        drag.LABELS.unbind(payload)
+    <FocusArea direction="vertical">
+      {(ref, innerProps) => (
+        <div
+          data-testid="labels"
+          ref={ref}
+          className="flex w-full flex-col items-start gap-sidebar-section-heading"
+          {...innerProps}
+        >
+          <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Labels</div>
+          <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
+            {displayLabels.map((label, i) => {
+              const negated = currentNegativeLabels.some(term =>
+                array.shallowEqual(term, [label.value])
+              )
+              return (
+                <li key={label.id} className="group flex items-center gap-label-icons">
+                  <Label
+                    ref={element => {
+                      if (keyboardSelectedIndex === i) {
+                        element?.focus()
+                      }
+                    }}
+                    draggable
+                    focusRing={i === keyboardSelectedIndex}
+                    color={label.color}
+                    active={
+                      negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
+                    }
+                    negated={negated}
+                    disabled={newLabelNames.has(label.value)}
+                    onClick={event => {
+                      setQuery(oldQuery =>
+                        oldQuery.withToggled(
+                          'labels',
+                          'negativeLabels',
+                          label.value,
+                          event.shiftKey
+                        )
+                      )
+                    }}
+                    onDragStart={event => {
+                      drag.setDragImageToBlank(event)
+                      const payload: drag.LabelsDragPayload = new Set([label.value])
+                      drag.LABELS.bind(event, payload)
+                      setModal(
+                        <DragModal
+                          event={event}
+                          doCleanup={() => {
+                            drag.LABELS.unbind(payload)
+                          }}
+                        >
+                          <Label active color={label.color} onClick={() => {}}>
+                            {label.value}
+                          </Label>
+                        </DragModal>
+                      )
+                    }}
+                  >
+                    {label.value}
+                  </Label>
+                  {!newLabelNames.has(label.value) && (
+                    <button
+                      className="flex"
+                      onClick={event => {
+                        event.stopPropagation()
+                        setModal(
+                          <ConfirmDeleteModal
+                            actionText={`delete the label '${label.value}'`}
+                            doDelete={() => {
+                              doDeleteLabel(label.id, label.value)
+                            }}
+                          />
+                        )
                       }}
                     >
-                      <Label active color={label.color} onClick={() => {}}>
-                        {label.value}
-                      </Label>
-                    </DragModal>
+                      <SvgMask
+                        src={Trash2Icon}
+                        alt="Delete"
+                        className="size-icon text-delete transition-all transparent group-hover:active"
+                      />
+                    </button>
+                  )}
+                </li>
+              )
+            })}
+            <li>
+              <Label
+                color={labelUtils.DEFAULT_LABEL_COLOR}
+                className="bg-selected-frame"
+                onClick={event => {
+                  event.stopPropagation()
+                  setModal(
+                    <NewLabelModal
+                      labels={labels}
+                      eventTarget={event.currentTarget}
+                      doCreate={doCreateLabel}
+                    />
                   )
                 }}
               >
-                {label.value}
+                {/* This is a non-standard-sized icon. */}
+                {/* eslint-disable-next-line no-restricted-syntax */}
+                <img src={PlusIcon} className="mr-[6px] size-[6px]" />
+                <span className="text-header">new label</span>
               </Label>
-              {!newLabelNames.has(label.value) && (
-                <button
-                  className="flex"
-                  onClick={event => {
-                    event.stopPropagation()
-                    setModal(
-                      <ConfirmDeleteModal
-                        actionText={`delete the label '${label.value}'`}
-                        doDelete={() => {
-                          doDeleteLabel(label.id, label.value)
-                        }}
-                      />
-                    )
-                  }}
-                >
-                  <SvgMask
-                    src={Trash2Icon}
-                    alt="Delete"
-                    className="size-icon text-delete transition-all transparent group-hover:active"
-                  />
-                </button>
-              )}
             </li>
-          )
-        })}
-        <li>
-          <Label
-            color={labelUtils.DEFAULT_LABEL_COLOR}
-            className="bg-selected-frame"
-            onClick={event => {
-              event.stopPropagation()
-              setModal(
-                <NewLabelModal
-                  labels={labels}
-                  eventTarget={event.currentTarget}
-                  doCreate={doCreateLabel}
-                />
-              )
-            }}
-          >
-            {/* This is a non-standard-sized icon. */}
-            {/* eslint-disable-next-line no-restricted-syntax */}
-            <img src={PlusIcon} className="mr-[6px] size-[6px]" />
-            <span className="text-header">new label</span>
-          </Label>
-        </li>
-      </ul>
-    </div>
+          </ul>
+        </div>
+      )}
+    </FocusArea>
   )
 }

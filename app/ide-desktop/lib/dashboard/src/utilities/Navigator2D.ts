@@ -183,11 +183,7 @@ export default class Navigator2D {
       }
       const targetNeighbor = data.neighbors[direction]
       const focusTargetNeighbor =
-        targetNeighbor instanceof HTMLElement
-          ? () => {
-              targetNeighbor.focus()
-            }
-          : null
+        targetNeighbor instanceof HTMLElement ? targetNeighbor.focus.bind(null) : null
       const focus =
         targetNeighbor == null
           ? null

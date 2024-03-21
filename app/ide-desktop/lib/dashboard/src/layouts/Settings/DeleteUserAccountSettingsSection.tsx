@@ -8,6 +8,8 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
+import FocusArea from '#/components/styled/FocusArea'
+
 import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
 
 // ========================================
@@ -37,36 +39,44 @@ export default function DeleteUserAccountSettingsSection() {
   }, [navigator2D, setKeyboardSelectedIndex])
 
   return (
-    // This UI element does not appear anywhere else.
-    // eslint-disable-next-line no-restricted-syntax
-    <div className="flex flex-col items-start gap-settings-section-header rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]">
-      <h3 className="settings-subheading text-danger">Danger Zone</h3>
-      <div className="flex gap-buttons">
-        <button
-          ref={element => {
-            if (keyboardSelectedIndex === 0) {
-              element?.focus()
-            }
-          }}
-          className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
-          onClick={event => {
-            event.stopPropagation()
-            setModal(
-              <ConfirmDeleteUserModal
-                doDelete={async () => {
-                  await backend.deleteUser()
-                  await signOut()
-                }}
-              />
-            )
-          }}
+    <FocusArea direction="vertical">
+      {(ref, innerProps) => (
+        <div
+          ref={ref}
+          // This UI element does not appear anywhere else.
+          // eslint-disable-next-line no-restricted-syntax
+          className="flex flex-col items-start gap-settings-section-header rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]"
+          {...innerProps}
         >
-          <span className="text inline-block">Delete this user account</span>
-        </button>
-        <span className="text my-auto">
-          Once deleted, it will be gone forever. Please be certain.
-        </span>
-      </div>
-    </div>
+          <h3 className="settings-subheading text-danger">Danger Zone</h3>
+          <div className="flex gap-buttons">
+            <button
+              ref={element => {
+                if (keyboardSelectedIndex === 0) {
+                  element?.focus()
+                }
+              }}
+              className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
+              onClick={event => {
+                event.stopPropagation()
+                setModal(
+                  <ConfirmDeleteUserModal
+                    doDelete={async () => {
+                      await backend.deleteUser()
+                      await signOut()
+                    }}
+                  />
+                )
+              }}
+            >
+              <span className="text inline-block">Delete this user account</span>
+            </button>
+            <span className="text my-auto">
+              Once deleted, it will be gone forever. Please be certain.
+            </span>
+          </div>
+        </div>
+      )}
+    </FocusArea>
   )
 }

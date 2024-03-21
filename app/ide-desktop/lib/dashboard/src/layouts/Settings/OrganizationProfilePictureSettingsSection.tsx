@@ -3,11 +3,12 @@ import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
-import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 
 import type * as backendModule from '#/services/Backend'
 
@@ -28,24 +29,6 @@ export default function OrganizationProfilePictureSettingsSection(
   const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const navigator2D = navigator2DProvider.useNavigator2D()
-  const rootRef = React.useRef<HTMLDivElement>(null)
-
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
-      length: 1,
-    })
-
-  React.useEffect(() => {
-    const root = rootRef.current
-    if (root == null) {
-      return
-    } else {
-      return navigator2D.register(root, {
-        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
-      })
-    }
-  }, [navigator2D, setKeyboardSelectedIndex])
 
   const doUploadOrganizationPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
@@ -68,33 +51,32 @@ export default function OrganizationProfilePictureSettingsSection(
   }
 
   return (
-    <div ref={rootRef} className="flex flex-col gap-settings-section-header">
-      <h3 className="settings-subheading">Profile picture</h3>
-      <label
-        className={`flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame ${keyboardSelectedIndex === 0 ? 'focus-ring' : ''}`}
-      >
-        <img
-          src={organization.picture ?? DefaultUserIcon}
-          width={128}
-          height={128}
-          className="pointer-events-none"
-        />
-        <input
-          type="file"
-          ref={element => {
-            if (keyboardSelectedIndex === 0) {
-              element?.focus()
-            }
-          }}
-          className="w"
-          accept="image/*"
-          onChange={doUploadOrganizationPicture}
-        />
-      </label>
-      <span className="w-profile-picture-caption py-profile-picture-caption-y">
-        Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
-        should not be a default image provided by Enso.
-      </span>
-    </div>
+    <FocusArea direction="vertical">
+      {(ref, innerProps) => (
+        <div ref={ref} className="flex flex-col gap-settings-section-header" {...innerProps}>
+          <h3 className="settings-subheading">Profile picture</h3>
+          <FocusRing within>
+            <label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
+              <img
+                src={organization.picture ?? DefaultUserIcon}
+                width={128}
+                height={128}
+                className="pointer-events-none"
+              />
+              <input
+                type="file"
+                className="w"
+                accept="image/*"
+                onChange={doUploadOrganizationPicture}
+              />
+            </label>
+          </FocusRing>
+          <span className="w-profile-picture-caption py-profile-picture-caption-y">
+            Your organization&apos;s profile picture should not be irrelevant, abusive or vulgar. It
+            should not be a default image provided by Enso.
+          </span>
+        </div>
+      )}
+    </FocusArea>
   )
 }

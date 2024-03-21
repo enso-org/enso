@@ -226,11 +226,11 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
           className="search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide"
           {...innerProps}
           onFocus={event => {
-            innerProps.onFocus?.(event)
+            innerProps.onFocus(event)
             setAreSuggestionsVisible(true)
           }}
           onBlur={event => {
-            innerProps.onBlur?.(event)
+            innerProps.onBlur(event)
             if (!event.currentTarget.contains(event.relatedTarget)) {
               if (querySource.current === QuerySource.tabbing) {
                 querySource.current = QuerySource.external

@@ -5,6 +5,8 @@ import * as aria from '#/components/aria'
 
 /** Props for a {@link FocusRing}. */
 export interface FocusRingProps extends Readonly<Pick<aria.FocusRingProps, 'children'>> {
+  /** Whether to show the focus ring on `:focus-within` instead of `:focus`. */
+  readonly within?: boolean
   /** Which pseudo-element to place the focus ring on (if any).
    * Defaults to placement on the actual element. */
   readonly placement?: 'after' | 'before'
@@ -12,7 +14,7 @@ export interface FocusRingProps extends Readonly<Pick<aria.FocusRingProps, 'chil
 
 /** A styled focus ring. */
 export default function FocusRing(props: FocusRingProps) {
-  const { placement, children } = props
+  const { within = false, placement, children } = props
   const focusClass =
     placement === 'before'
       ? 'before:focus-ring'
@@ -20,5 +22,9 @@ export default function FocusRing(props: FocusRingProps) {
         ? 'after:focus-ring'
         : 'focus-ring'
 
-  return <aria.FocusRing focusClass={focusClass}>{children}</aria.FocusRing>
+  return (
+    <aria.FocusRing within={within} focusClass={focusClass}>
+      {children}
+    </aria.FocusRing>
+  )
 }

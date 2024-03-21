@@ -14,12 +14,19 @@ import * as aria from '#/components/aria'
 // === FocusArea ===
 // =================
 
+/** Remove undefined from all values of an object. */
+// eslint-disable-next-line no-restricted-syntax
+interface FocusWithinProps {
+  readonly onFocus: NonNullable<aria.DOMAttributes<Element>['onFocus']>
+  readonly onBlur: NonNullable<aria.DOMAttributes<Element>['onBlur']>
+}
+
 /** Props for a {@link FocusAreaInner} */
 export interface FocusAreaInnerProps {
   readonly active?: boolean
   readonly children: (
     ref: React.RefCallback<HTMLElement | SVGElement | null>,
-    props: aria.DOMAttributes
+    props: FocusWithinProps
   ) => JSX.Element
 }
 
@@ -54,7 +61,9 @@ function FocusAreaInner(props: FocusAreaInnerProps) {
             delete ref.dataset.focusArea
           }
         }
-      }, focusWithinProps)}
+        // This is REQUIRED, otherwise `useFocusWithin` does not work with
+        // eslint-disable-next-line no-restricted-syntax
+      }, focusWithinProps as FocusWithinProps)}
     </AreaFocusProvider>
   )
 }

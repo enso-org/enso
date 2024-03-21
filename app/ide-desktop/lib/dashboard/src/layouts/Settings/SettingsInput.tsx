@@ -4,6 +4,8 @@ import * as React from 'react'
 import EyeCrossedIcon from 'enso-assets/eye_crossed.svg'
 import EyeIcon from 'enso-assets/eye.svg'
 
+import * as aria from '#/components/aria'
+import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 // =============
@@ -12,7 +14,6 @@ import SvgMask from '#/components/SvgMask'
 
 /** Props for an {@link SettingsInput}. */
 export interface SettingsInputProps {
-  readonly focusRing: boolean
   readonly initialValue: string
   readonly type?: string
   readonly placeholder?: string
@@ -22,7 +23,7 @@ export interface SettingsInputProps {
 
 /** A styled input specific to settings pages. */
 function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLInputElement>) {
-  const { focusRing, initialValue, type, placeholder, onChange, onSubmit } = props
+  const { initialValue, type, placeholder, onChange, onSubmit } = props
   const [isShowingPassword, setIsShowingPassword] = React.useState(false)
   const cancelled = React.useRef(false)
 
@@ -54,34 +55,34 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
   }
 
   return (
-    <div
-      className={`relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-full ${focusRing ? 'after:focus-ring' : ''}`}
-    >
-      <input
-        ref={ref}
-        className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
-        type={isShowingPassword ? 'text' : type}
-        size={1}
-        defaultValue={initialValue}
-        placeholder={placeholder}
-        onKeyDown={onKeyDown}
-        onChange={onChange}
-        onBlur={event => {
-          if (!cancelled.current) {
-            onSubmit?.(event.currentTarget.value)
-          }
-        }}
-      />
-      {type === 'password' && (
-        <SvgMask
-          src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
-          className="absolute right-2 top-1 cursor-pointer rounded-full"
-          onClick={() => {
-            setIsShowingPassword(show => !show)
+    <FocusRing within placement="after">
+      <aria.Group className="relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-full">
+        <aria.Input
+          ref={ref}
+          className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
+          type={isShowingPassword ? 'text' : type}
+          size={1}
+          defaultValue={initialValue}
+          placeholder={placeholder}
+          onKeyDown={onKeyDown}
+          onChange={onChange}
+          onBlur={event => {
+            if (!cancelled.current) {
+              onSubmit?.(event.currentTarget.value)
+            }
           }}
         />
-      )}
-    </div>
+        {type === 'password' && (
+          <SvgMask
+            src={isShowingPassword ? EyeIcon : EyeCrossedIcon}
+            className="absolute right-2 top-1 cursor-pointer rounded-full"
+            onClick={() => {
+              setIsShowingPassword(show => !show)
+            }}
+          />
+        )}
+      </aria.Group>
+    </FocusRing>
   )
 }
 

@@ -9,11 +9,10 @@ import ProjectIcon from 'enso-assets/project_icon.svg'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.svg'
 import VisualizeImage from 'enso-assets/visualize.png'
 
-import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
-
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-
+import * as aria from '#/components/aria'
 import Spinner, * as spinner from '#/components/Spinner'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
 // =================
@@ -81,13 +80,12 @@ export const SAMPLES: Sample[] = [
   },
 ]
 
-// =====================
-// === ProjectsEntry ===
-// =====================
+// ========================
+// === BlankProjectTile ===
+// ========================
 
-/** Props for an {@link ProjectsEntry}. */
-interface InternalProjectsEntryProps {
-  readonly focusRing: boolean
+/** Props for an {@link BlankProjectTile}. */
+interface InternalBlankProjectTileProps {
   readonly createProject: (
     templateId: null,
     templateName: null,
@@ -96,11 +94,11 @@ interface InternalProjectsEntryProps {
 }
 
 /** A button that, when clicked, creates and opens a new blank project. */
-function ProjectsEntry(props: InternalProjectsEntryProps) {
-  const { focusRing, createProject } = props
+function BlankProjectTile(props: InternalBlankProjectTileProps) {
+  const { createProject } = props
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
-  const onClick = () => {
+  const onPress = () => {
     setSpinnerState(spinner.SpinnerState.initial)
     createProject(null, null, newSpinnerState => {
       setSpinnerState(newSpinnerState)
@@ -114,28 +112,29 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
 
   return (
     <div className="flex flex-col gap-sample">
-      <button
-        ref={element => {
-          if (focusRing) {
-            element?.focus()
-          }
-        }}
-        // This UI element does not appear anywhere else.
-        // eslint-disable-next-line no-restricted-syntax
-        className={`relative h-sample cursor-pointer before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-frame before:opacity-60 after:pointer-events-none after:absolute after:inset after:rounded-default ${focusRing ? 'after:focus-ring' : ''}`}
-        onClick={onClick}
-      >
-        <div className="relative flex size-full rounded-default">
-          <div className="m-auto flex flex-col items-center gap-new-empty-project text-center">
-            {spinnerState != null ? (
-              <Spinner size={SPINNER_SIZE_PX} padding={2} state={spinnerState} />
-            ) : (
-              <img src={ProjectIcon} />
-            )}
-            <p className="text-sm font-semibold">New empty project</p>
-          </div>
-        </div>
-      </button>
+      <FocusArea direction="horizontal">
+        {(ref, innerProps) => (
+          <FocusRing placement="after">
+            <aria.Button
+              ref={ref}
+              className="relative h-sample cursor-pointer before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-frame before:opacity-60 after:pointer-events-none after:absolute after:inset after:rounded-default"
+              onPress={onPress}
+              {...innerProps}
+            >
+              <div className="relative flex size-full rounded-default">
+                <div className="m-auto flex flex-col items-center gap-new-empty-project text-center">
+                  {spinnerState != null ? (
+                    <Spinner size={SPINNER_SIZE_PX} padding={2} state={spinnerState} />
+                  ) : (
+                    <img src={ProjectIcon} />
+                  )}
+                  <p className="text-sm font-semibold">New empty project</p>
+                </div>
+              </div>
+            </aria.Button>
+          </FocusRing>
+        )}
+      </FocusArea>
       <div className="h-sample-info" />
     </div>
   )
@@ -147,7 +146,6 @@ function ProjectsEntry(props: InternalProjectsEntryProps) {
 
 /** Props for a {@link ProjectTile}. */
 interface InternalProjectTileProps {
-  readonly focusRing: boolean
   readonly sample: Sample
   readonly createProject: (
     templateId: string,
@@ -158,7 +156,7 @@ interface InternalProjectTileProps {
 
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function ProjectTile(props: InternalProjectTileProps) {
-  const { focusRing, sample, createProject } = props
+  const { sample, createProject } = props
   const { id, title, description, background } = sample
   const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
   const author = DUMMY_AUTHOR
@@ -174,39 +172,42 @@ function ProjectTile(props: InternalProjectTileProps) {
     }
   }, [])
 
-  const onClick = () => {
+  const onPress = () => {
     setSpinnerState(spinner.SpinnerState.initial)
     createProject(id, title, onSpinnerStateChange)
   }
 
   return (
     <div className="flex flex-col gap-sample">
-      <button
-        ref={element => {
-          if (focusRing) {
-            element?.focus()
-          }
-        }}
-        key={title}
-        className={`relative flex h-sample grow cursor-pointer flex-col text-left after:pointer-events-none after:absolute after:inset after:rounded-default ${focusRing ? 'after:focus-ring' : ''}`}
-        onClick={onClick}
-      >
-        <div
-          style={{ background }}
-          className={`h-sample-image w-full rounded-t-default ${
-            background != null ? '' : 'bg-frame'
-          }`}
-        />
-        <div className="w-full grow rounded-b-default bg-frame px-sample-description-x pb-sample-description-b pt-sample-description-t backdrop-blur">
-          <h2 className="text-header text-sm font-bold">{title}</h2>
-          <div className="text-ellipsis text-xs leading-snug">{description}</div>
-        </div>
-        {spinnerState != null && (
-          <div className="absolute grid h-sample-image w-full place-items-center">
-            <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
-          </div>
+      <FocusArea direction="horizontal">
+        {(ref, innerProps) => (
+          <FocusRing placement="after">
+            <aria.Button
+              ref={ref}
+              key={title}
+              className="relative flex h-sample grow cursor-pointer flex-col text-left after:pointer-events-none after:absolute after:inset after:rounded-default"
+              onPress={onPress}
+              {...innerProps}
+            >
+              <div
+                style={{ background }}
+                className={`h-sample-image w-full rounded-t-default ${
+                  background != null ? '' : 'bg-frame'
+                }`}
+              />
+              <div className="w-full grow rounded-b-default bg-frame px-sample-description-x pb-sample-description-b pt-sample-description-t backdrop-blur">
+                <h2 className="text-header text-sm font-bold">{title}</h2>
+                <div className="text-ellipsis text-xs leading-snug">{description}</div>
+              </div>
+              {spinnerState != null && (
+                <div className="absolute grid h-sample-image w-full place-items-center">
+                  <Spinner size={SPINNER_SIZE_PX} state={spinnerState} />
+                </div>
+              )}
+            </aria.Button>
+          </FocusRing>
         )}
-      </button>
+      </FocusArea>
       {/* Although this component is instantiated multiple times, it has a unique role and hence
        * its own opacity. */}
       {/* eslint-disable-next-line no-restricted-syntax */}
@@ -247,42 +248,14 @@ export interface SamplesProps {
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
   const { createProject } = props
-  const rootRef = React.useRef<HTMLDivElement>(null)
-  const navigator2D = navigator2DProvider.useNavigator2D()
-
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
-      axis: keyboardNavigationHooks.Axis.horizontal,
-      length: SAMPLES.length + 1,
-    })
-
-  React.useEffect(() => {
-    const root = rootRef.current
-    if (root == null) {
-      return
-    } else {
-      return navigator2D.register(root, {
-        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
-      })
-    }
-  }, [navigator2D, setKeyboardSelectedIndex])
 
   return (
-    <div
-      data-testid="samples"
-      ref={rootRef}
-      className="flex flex-col gap-subheading px-home-section-x"
-    >
+    <div data-testid="samples" className="flex flex-col gap-subheading px-home-section-x">
       <h2 className="text-subheading">Sample and community projects</h2>
       <div className="grid grid-cols-fill-samples gap-samples">
-        <ProjectsEntry focusRing={keyboardSelectedIndex === 0} createProject={createProject} />
-        {SAMPLES.map((sample, i) => (
-          <ProjectTile
-            focusRing={keyboardSelectedIndex === i + 1}
-            key={sample.id}
-            sample={sample}
-            createProject={createProject}
-          />
+        <BlankProjectTile createProject={createProject} />
+        {SAMPLES.map(sample => (
+          <ProjectTile key={sample.id} sample={sample} createProject={createProject} />
         ))}
       </div>
     </div>

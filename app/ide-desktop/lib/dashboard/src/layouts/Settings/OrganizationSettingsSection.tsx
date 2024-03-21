@@ -3,13 +3,13 @@ import * as React from 'react'
 
 import isEmail from 'validator/lib/isEmail'
 
-import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import SettingsInput from '#/layouts/Settings/SettingsInput'
+
+import FocusArea from '#/components/styled/FocusArea'
 
 import * as backendModule from '#/services/Backend'
 
@@ -30,29 +30,10 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   const { organization, setOrganization } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
-  const navigator2D = navigator2DProvider.useNavigator2D()
-  const rootRef = React.useRef<HTMLDivElement>(null)
   const nameRef = React.useRef<HTMLInputElement | null>(null)
   const emailRef = React.useRef<HTMLInputElement | null>(null)
   const websiteRef = React.useRef<HTMLInputElement | null>(null)
   const locationRef = React.useRef<HTMLInputElement | null>(null)
-
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: 4 })
-
-  React.useEffect(() => {
-    const root = rootRef.current
-    if (root == null) {
-      return
-    } else {
-      return navigator2D.register(root, {
-        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
-        focusWhenPressed: {
-          up: setKeyboardSelectedIndex.bind(null, 3),
-        },
-      })
-    }
-  }, [navigator2D, setKeyboardSelectedIndex])
 
   const doUpdateName = async () => {
     const oldName = organization.organization_name ?? null
@@ -138,95 +119,71 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
   }
 
   return (
-    <div ref={rootRef} className="flex flex-col gap-settings-section-header">
-      <h3 className="settings-subheading">Organization</h3>
-      <div className="flex flex-col">
-        <div className="flex h-row gap-settings-entry">
-          <span className="text my-auto w-organization-settings-label">
-            Organization display name
-          </span>
-          <span className="text my-auto grow font-bold">
-            <SettingsInput
-              key={organization.organization_name}
-              type="text"
-              ref={element => {
-                nameRef.current = element
-                if (keyboardSelectedIndex === 0) {
-                  element?.focus()
-                }
-              }}
-              focusRing={keyboardSelectedIndex === 0}
-              initialValue={organization.organization_name ?? ''}
-              onSubmit={doUpdateName}
-            />
-          </span>
+    <FocusArea direction="vertical">
+      {(ref, innerProps) => (
+        <div ref={ref} className="flex flex-col gap-settings-section-header" {...innerProps}>
+          <h3 className="settings-subheading">Organization</h3>
+          <div className="flex flex-col">
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-organization-settings-label">
+                Organization display name
+              </span>
+              <span className="text my-auto grow font-bold">
+                <SettingsInput
+                  key={organization.organization_name}
+                  type="text"
+                  initialValue={organization.organization_name ?? ''}
+                  onSubmit={doUpdateName}
+                />
+              </span>
+            </div>
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-organization-settings-label">Email</span>
+              <span className="text my-auto grow font-bold">
+                <SettingsInput
+                  key={organization.email}
+                  type="text"
+                  initialValue={organization.email ?? ''}
+                  onSubmit={value => {
+                    if (isEmail(value)) {
+                      void doUpdateEmail()
+                    } else {
+                      emailRef.current?.focus()
+                    }
+                  }}
+                  onChange={() => {
+                    emailRef.current?.setCustomValidity(
+                      isEmail(emailRef.current.value) ? '' : 'Invalid email.'
+                    )
+                  }}
+                />
+              </span>
+            </div>
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-organization-settings-label">Website</span>
+              <span className="text my-auto grow font-bold">
+                <SettingsInput
+                  key={organization.website}
+                  type="text"
+                  initialValue={organization.website ?? ''}
+                  onSubmit={doUpdateWebsite}
+                />
+              </span>
+            </div>
+            <div className="flex h-row gap-settings-entry">
+              <span className="text my-auto w-organization-settings-label">Location</span>
+              <span className="text my-auto grow font-bold">
+                <SettingsInput
+                  key={organization.address}
+                  type="text"
+                  initialValue={organization.address ?? ''}
+                  onSubmit={doUpdateLocation}
+                />
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex h-row gap-settings-entry">
-          <span className="text my-auto w-organization-settings-label">Email</span>
-          <span className="text my-auto grow font-bold">
-            <SettingsInput
-              key={organization.email}
-              type="text"
-              ref={element => {
-                emailRef.current = element
-                if (keyboardSelectedIndex === 1) {
-                  element?.focus()
-                }
-              }}
-              focusRing={keyboardSelectedIndex === 1}
-              initialValue={organization.email ?? ''}
-              onSubmit={value => {
-                if (isEmail(value)) {
-                  void doUpdateEmail()
-                } else {
-                  emailRef.current?.focus()
-                }
-              }}
-              onChange={() => {
-                emailRef.current?.setCustomValidity(
-                  isEmail(emailRef.current.value) ? '' : 'Invalid email.'
-                )
-              }}
-            />
-          </span>
-        </div>
-        <div className="flex h-row gap-settings-entry">
-          <span className="text my-auto w-organization-settings-label">Website</span>
-          <span className="text my-auto grow font-bold">
-            <SettingsInput
-              key={organization.website}
-              type="text"
-              ref={element => {
-                websiteRef.current = element
-                if (keyboardSelectedIndex === 2) {
-                  element?.focus()
-                }
-              }}
-              focusRing={keyboardSelectedIndex === 2}
-              initialValue={organization.website ?? ''}
-              onSubmit={doUpdateWebsite}
-            />
-          </span>
-        </div>
-        <div className="flex h-row gap-settings-entry">
-          <span className="text my-auto w-organization-settings-label">Location</span>
-          <span className="text my-auto grow font-bold">
-            <SettingsInput
-              key={organization.address}
-              type="text"
-              ref={element => {
-                locationRef.current = element
-                if (keyboardSelectedIndex === 3) {
-                  element?.focus()
-                }
-              }}
-              focusRing={keyboardSelectedIndex === 3}
-              initialValue={organization.address ?? ''}
-              onSubmit={doUpdateLocation}
-            />
-          </span>
-        </div>
-      </div>
-    </div>
+      )}
+    </FocusArea>
   )
 }

@@ -25,19 +25,23 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
       switch (event.key) {
         case keyPrevious: {
           const element = focusManager?.focusPrevious()
-          console.log(':<', element, document.activeElement)
           if (element != null) {
             reactEvent?.stopPropagation()
+            event.stopPropagation()
             event.preventDefault()
+          } else {
+            ariaEvent?.continuePropagation()
           }
           break
         }
         case keyNext: {
           const element = focusManager?.focusNext()
-          console.log(':>', element, document.activeElement)
           if (element != null) {
             reactEvent?.stopPropagation()
+            event.stopPropagation()
             event.preventDefault()
+          } else {
+            ariaEvent?.continuePropagation()
           }
           break
         }

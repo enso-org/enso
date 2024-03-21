@@ -34,6 +34,7 @@ import Label from '#/components/dashboard/Label'
 import SelectionBrush from '#/components/SelectionBrush'
 import Spinner, * as spinner from '#/components/Spinner'
 import Button from '#/components/styled/Button'
+import FocusArea from '#/components/styled/FocusArea'
 
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
@@ -425,7 +426,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         : PLACEHOLDER
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
-  const rootRef = React.useRef<HTMLDivElement>(null)
+  const rootRef = React.useRef<HTMLDivElement | null>(null)
   const headerRowRef = React.useRef<HTMLTableRowElement>(null)
   const assetTreeRef = React.useRef<AssetTreeNode>(assetTree)
   const pasteDataRef = React.useRef<pasteDataModule.PasteData<
@@ -2501,50 +2502,61 @@ export default function AssetsTable(props: AssetsTableProps) {
   )
 
   return (
-    <div ref={rootRef} className="flex-1 overflow-auto container-size">
-      {!hidden && hiddenContextMenu}
-      {!hidden && (
-        <SelectionBrush
-          onDrag={onSelectionDrag}
-          onDragEnd={onSelectionDragEnd}
-          onDragCancel={onSelectionDragCancel}
-        />
-      )}
-      <div className="flex h-max min-h-full w-max min-w-full flex-col">
-        {isCloud && (
-          <div className="flex-0 sticky top flex h flex-col">
-            <div
-              data-testid="extra-columns"
-              className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
-            >
-              <div className="inline-flex gap-icons">
-                {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
-                  column => (
-                    <Button
-                      key={column}
-                      active
-                      image={columnUtils.COLUMN_ICONS[column]}
-                      alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
-                        columnUtils.COLUMN_NAME[column]
-                      }`}
-                      onPress={() => {
-                        const newExtraColumns = new Set(enabledColumns)
-                        if (enabledColumns.has(column)) {
-                          newExtraColumns.delete(column)
-                        } else {
-                          newExtraColumns.add(column)
-                        }
-                        setEnabledColumns(newExtraColumns)
-                      }}
-                    />
-                  )
-                )}
+    <FocusArea direction="vertical">
+      {(ref, innerProps) => (
+        <div
+          ref={element => {
+            ref(element)
+            rootRef.current = element
+          }}
+          className="flex-1 overflow-auto container-size"
+          {...innerProps}
+        >
+          {!hidden && hiddenContextMenu}
+          {!hidden && (
+            <SelectionBrush
+              onDrag={onSelectionDrag}
+              onDragEnd={onSelectionDragEnd}
+              onDragCancel={onSelectionDragCancel}
+            />
+          )}
+          <div className="flex h-max min-h-full w-max min-w-full flex-col">
+            {isCloud && (
+              <div className="flex-0 sticky top flex h flex-col">
+                <div
+                  data-testid="extra-columns"
+                  className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
+                >
+                  <div className="inline-flex gap-icons">
+                    {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
+                      column => (
+                        <Button
+                          key={column}
+                          active
+                          image={columnUtils.COLUMN_ICONS[column]}
+                          alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
+                            columnUtils.COLUMN_NAME[column]
+                          }`}
+                          onPress={() => {
+                            const newExtraColumns = new Set(enabledColumns)
+                            if (enabledColumns.has(column)) {
+                              newExtraColumns.delete(column)
+                            } else {
+                              newExtraColumns.add(column)
+                            }
+                            setEnabledColumns(newExtraColumns)
+                          }}
+                        />
+                      )
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+            <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
           </div>
-        )}
-        <div className="flex h-full w-min min-w-full grow flex-col">{table}</div>
-      </div>
-    </div>
+        </div>
+      )}
+    </FocusArea>
   )
 }
