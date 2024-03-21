@@ -193,7 +193,7 @@ type File
 
         Context.Output.if_enabled disabled_message="File writing is forbidden as the Output context is disabled." panic=False <|
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
-            if open_as_data_link then Data_Link.write_datalink_as_stream self open_options action else
+            if open_as_data_link then Data_Link.write_data_link_as_stream self open_options action else
                 # We ignore the Data_Link_Access options at this stage:
                 just_file_options = open_options.filter opt-> opt.is_a File_Access
                 Managed_Resource.bracket (new_output_stream self just_file_options) (_.close) action
@@ -253,7 +253,7 @@ type File
 
         if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
-            if open_as_data_link then Data_Link.read_datalink_as_stream self open_options action else
+            if open_as_data_link then Data_Link.read_data_link_as_stream self open_options action else
                 # We ignore the Data_Link_Access options at this stage:
                 just_file_options = open_options.filter opt-> opt.is_a File_Access
                 Managed_Resource.bracket (new_input_stream self just_file_options) (_.close) action
@@ -293,7 +293,7 @@ type File
     read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         if self.exists.not then Error.throw (File_Error.Not_Found self) else
-            if Data_Link.is_data_link self then Data_Link.read_datalink self format on_problems else
+            if Data_Link.is_data_link self then Data_Link.read_data_link self format on_problems else
                 File_Format.handle_format_missing_arguments format <|
                     format.read self on_problems
 

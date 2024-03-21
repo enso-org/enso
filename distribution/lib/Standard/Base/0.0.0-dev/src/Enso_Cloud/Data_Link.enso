@@ -102,7 +102,7 @@ type Data_Link_Format
        will fail with `Missing_Data_Link_Library`, even if the config would be
        valid.
     validate_config (config : JS_Object) -> Nothing ! Missing_Data_Link_Library | Illegal_State =
-        interpret_json_as_datalink config . if_not_error Nothing
+        interpret_json_as_data_link config . if_not_error Nothing
 
 ## PRIVATE
    An interface for a data link description.
@@ -160,7 +160,7 @@ is_data_link (file_metadata : File_Format_Metadata) -> Boolean =
             Nothing -> False
 
 ## PRIVATE
-interpret_json_as_datalink json =
+interpret_json_as_data_link json =
     typ = get_required_field "type" json expected_type=Text
     case DataLinkSPI.findDataLinkType typ of
         Nothing ->
@@ -170,29 +170,29 @@ interpret_json_as_datalink json =
             data_link_type.parse json
 
 ## PRIVATE
-read_datalink (file : File_Like) format (on_problems : Problem_Behavior) =
+read_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
     json = Data_Link_Format.read_config file
-    data_link_instance = interpret_json_as_datalink json
+    data_link_instance = interpret_json_as_data_link json
     data_link_instance.read format on_problems
 
 ## PRIVATE
-read_datalink_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
+read_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
     json = Data_Link_Format.read_config file
-    data_link_instance = interpret_json_as_datalink json
+    data_link_instance = interpret_json_as_data_link json
     data_link_instance.with_input_stream open_options f
 
 ## PRIVATE
-write_datalink (file : File_Like) format (on_problems : Problem_Behavior) =
+write_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
     _ = [file, format, on_problems]
     Unimplemented.throw "Writing data links is not yet supported."
 
 ## PRIVATE
-write_datalink_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
+write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
     _ = [file, open_options, f]
     Unimplemented.throw "Writing data links is not yet supported."
 
 ## PRIVATE
-save_datalink_to_file data_link_instance (target_file : Writable_File) =
+save_data_link_to_file data_link_instance (target_file : Writable_File) =
     case data_link_instance.is_file_like of
         True ->
             data_link_instance.with_input_stream [File_Access.Read] input_stream->

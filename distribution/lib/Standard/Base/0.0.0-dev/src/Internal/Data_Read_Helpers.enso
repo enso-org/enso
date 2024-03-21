@@ -18,7 +18,7 @@ decode_http_response_following_data_links response format =
     if format == Raw_Response then response.with_materialized_body else
         case Data_Link.is_data_link response.body.metadata of
             True ->
-                data_link = Data_Link.interpret_json_as_datalink response.decode_as_json
+                data_link = Data_Link.interpret_json_as_data_link response.decode_as_json
                 data_link.read format Problem_Behavior.Report_Error
             False ->
                 response.decode format=format if_unsupported=response.with_materialized_body

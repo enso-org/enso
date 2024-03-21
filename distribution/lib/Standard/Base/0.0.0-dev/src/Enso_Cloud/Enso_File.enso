@@ -189,7 +189,7 @@ type Enso_File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error | Illegal_Argument
     with_input_stream self (open_options : Vector) action =
         open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (Data_Link.is_data_link self)
-        if open_as_data_link then Data_Link.read_datalink_as_stream self open_options action else
+        if open_as_data_link then Data_Link.read_data_link_as_stream self open_options action else
             File_Access.ensure_options_allowed [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
                 uri = case self.asset_type of
                     Enso_Asset_Type.File ->
@@ -224,7 +224,7 @@ type Enso_File
         Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be read directly.")
         Enso_Asset_Type.Data_Link ->
             json = Utils.http_request_as_json HTTP_Method.Get self.internal_uri
-            datalink = Data_Link.interpret_json_as_datalink json
+            datalink = Data_Link.interpret_json_as_data_link json
             datalink.read format on_problems
         Enso_Asset_Type.Directory -> if format == Auto_Detect then self.list else Error.throw (Illegal_Argument.Error "Directories can only be read using the Auto_Detect format.")
         Enso_Asset_Type.File -> File_Format.handle_format_missing_arguments format <| case format of

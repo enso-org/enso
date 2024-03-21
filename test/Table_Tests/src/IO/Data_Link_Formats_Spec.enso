@@ -6,7 +6,7 @@ from Standard.Table import all
 from Standard.Test import all
 
 from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
-from enso_dev.Base_Tests.Network.Http.Http_Data_Link_Spec import replace_url_in_datalink
+from enso_dev.Base_Tests.Network.Http.Http_Data_Link_Spec import replace_url_in_data_link
 
 import project.Util
 
@@ -19,62 +19,62 @@ main filter=Nothing =
 add_specs suite_builder = suite_builder.group "parsing Table formats in DataLinks" pending=pending_has_url group_builder->
     data_link_root = enso_project.data / "datalinks"
     group_builder.specify "parsing Delimited without quotes" <|
-        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-delimited-ignore-quote.datalink")
-        t = datalink_file.read
+        data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-delimited-ignore-quote.datalink")
+        t = data_link_file.read
         t.should_equal (Table.from_rows ["Column 1", "Column 2"] [['{"hello":', '"world"}']])
 
     group_builder.specify "parsing Delimited with custom delimiter quotes" <|
-        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-delimited-custom-quote.datalink")
-        t = datalink_file.read
+        data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-delimited-custom-quote.datalink")
+        t = data_link_file.read
         weird_txt = "x'z" + '""w'
         # The A column remains a text column because of being quoted
         t.should_equal (Table.new [["A", ["1", "3"]], ["B", [weird_txt, "y"]]])
 
     group_builder.specify "overriding the custom format in Delimited datalink" <|
-        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-delimited-ignore-quote.datalink")
-        r = datalink_file.read Plain_Text
+        data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-delimited-ignore-quote.datalink")
+        r = data_link_file.read Plain_Text
         r.should_be_a Text
         r.trim.should_equal '{"hello": "world"}'
 
     group_builder.specify "parsing Excel_Format.Workbook" <|
-        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-workbook.datalink")
+        data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-workbook.datalink")
 
-        workbook = datalink_file.read
+        workbook = data_link_file.read
         Panic.with_finalizer workbook.close <|
             workbook.should_be_a Excel_Workbook
             workbook.sheet_names . should_equal ["MyTestSheet"]
 
     group_builder.specify "parsing Excel_Format.Sheet" <|
-        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-sheet.datalink")
+        data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-sheet.datalink")
 
-        table = datalink_file.read
+        table = data_link_file.read
         table . should_equal (Table.from_rows ["A", "B"] [[1, 'x'], [3, 'y']])
 
     group_builder.specify "parsing Excel_Format.Range" <|
-        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-range.datalink")
+        data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-range.datalink")
 
-        table = datalink_file.read
+        table = data_link_file.read
         table . should_equal (Table.from_rows ["A", "B"] [[3, 'y']])
 
     group_builder.specify "overriding Excel format" <|
-        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-workbook.datalink")
+        data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-workbook.datalink")
 
-        table = datalink_file.read (Excel_Format.Range "MyTestSheet!A1:B1")
+        table = data_link_file.read (Excel_Format.Range "MyTestSheet!A1:B1")
         table . should_equal (Table.from_rows ["A", "B"] [[1, 'x']])
 
-        bytes = datalink_file.read_bytes
+        bytes = data_link_file.read_bytes
         bytes.should_be_a Vector
 
     group_builder.specify "reading a datalink as a stream" <|
-        datalink_file = replace_url_in_datalink (data_link_root / "example-http-format-excel-range.datalink")
+        data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-range.datalink")
 
-        r1 = datalink_file.with_input_stream [File_Access.Read] input_stream->
+        r1 = data_link_file.with_input_stream [File_Access.Read] input_stream->
             Excel_Format.Workbook.read_stream input_stream
         r1.should_be_a Excel_Workbook
 
-        r2 = datalink_file.with_input_stream [File_Access.Read] .read_all_bytes
+        r2 = data_link_file.with_input_stream [File_Access.Read] .read_all_bytes
         r2.should_be_a Vector
 
         # But it is still possible to access the raw data too.
-        r3 = datalink_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
+        r3 = data_link_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
         Text.from_bytes r3 . should_contain '"type": "HTTP"'

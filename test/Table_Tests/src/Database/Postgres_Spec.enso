@@ -863,7 +863,7 @@ add_connection_setup_specs suite_builder = suite_builder.group "[PostgreSQL] Con
                     [c2, c3, c4].each c->
                         c.jdbc_properties . should_equal <| add_ssl [Pair.new "user" "other user", Pair.new "password" "other password"]
 
-add_datalink_specs suite_builder =
+add_data_link_specs suite_builder =
     connection_details = get_configured_connection_details
     pending = if connection_details.is_nothing then "PostgreSQL test database is not configured. See README.md for instructions."
 
@@ -881,19 +881,19 @@ add_datalink_specs suite_builder =
 
     suite_builder.group "[PostgreSQL] DataLink" pending=pending group_builder->
         group_builder.specify "should be able to open a datalink setting up a connection to the database" <|
-            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
+            data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
 
-            datalink_connection = Data.read datalink_file
-            Panic.with_finalizer datalink_connection.close <|
-                datalink_connection.tables.column_names . should_contain "Name"
+            data_link_connection = Data.read data_link_file
+            Panic.with_finalizer data_link_connection.close <|
+                data_link_connection.tables.column_names . should_contain "Name"
 
                 # Test that this is really a DB connection:
-                q = datalink_connection.query 'SELECT 1 AS "A"'
+                q = data_link_connection.query 'SELECT 1 AS "A"'
                 q.column_names . should_equal ["A"]
                 q.at "A" . to_vector . should_equal [1]
 
         group_builder.specify "should be able to open a datalink to a particular database table" <|
-            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-table.datalink")
+            data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-table.datalink")
             connection = Database.connect connection_details
             Panic.with_finalizer connection.close <|
                 # We create the table that will then be accessed through the datalink, and ensure it's cleaned up afterwards.
@@ -902,24 +902,24 @@ add_datalink_specs suite_builder =
                 Panic.with_finalizer (connection.drop_table example_table.name) <|
                     ## Now we access this table but this time through a datalink.
                        Btw. this will keep a connection open until the table is garbage collected, but that is probably fine...
-                    datalink_table = Data.read datalink_file
-                    datalink_table.should_be_a DB_Table
-                    datalink_table.column_names . should_equal ["X", "Y"]
-                    datalink_table.at "X" . to_vector . should_equal [22]
-                    datalink_table.at "Y" . to_vector . should_equal ["o"]
+                    data_link_table = Data.read data_link_file
+                    data_link_table.should_be_a DB_Table
+                    data_link_table.column_names . should_equal ["X", "Y"]
+                    data_link_table.at "X" . to_vector . should_equal [22]
+                    data_link_table.at "Y" . to_vector . should_equal ["o"]
 
         group_builder.specify "will reject any format overrides or stream operations on the data link" <|
-            datalink_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
+            data_link_file = transform_file (enso_project.data / "datalinks" / "postgres-db.datalink")
 
-            r1 = Data.read datalink_file Plain_Text
+            r1 = Data.read data_link_file Plain_Text
             r1.should_fail_with Illegal_Argument
             r1.catch.to_display_text . should_contain "Only the default Auto_Detect format should be used"
 
-            r2 = datalink_file.with_input_stream [File_Access.Read] .read_all_bytes
+            r2 = data_link_file.with_input_stream [File_Access.Read] .read_all_bytes
             r2.should_fail_with Illegal_Argument
 
             # But we can read the raw data link if we ask for it:
-            r3 = datalink_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
+            r3 = data_link_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
             r3.should_be_a Vector
 
         group_builder.specify "will fail with a clear message if trying to download a Database datalink" pending=Http_Test_Setup.pending_has_url <|
@@ -935,7 +935,7 @@ add_specs suite_builder =
     add_table_specs suite_builder
     add_pgpass_specs suite_builder
     add_connection_setup_specs suite_builder
-    add_datalink_specs suite_builder
+    add_data_link_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->

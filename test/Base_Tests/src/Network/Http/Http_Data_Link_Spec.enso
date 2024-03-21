@@ -18,40 +18,40 @@ add_specs suite_builder =
     data_link_root = enso_project.data / "datalinks"
     suite_builder.group "HTTP DataLink" pending=pending_has_url group_builder->
         group_builder.specify "should allow to read a web resource" <|
-            f = replace_url_in_datalink (data_link_root / "example-http.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http.datalink")
             r = f.read
             # Defaults to reading as text, because the resource read is called `js.txt`, implying Plain_Text format
             r.should_be_a Text
             r.trim.should_equal '{"hello": "world"}'
 
         group_builder.specify "should allow to read a web resource, with explicitly using default format" <|
-            f = replace_url_in_datalink (data_link_root / "example-http-format-explicit-default.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http-format-explicit-default.datalink")
             r = f.read
             r.should_be_a Text
             r.trim.should_equal '{"hello": "world"}'
 
         group_builder.specify "should allow to read a web resource, setting format to JSON" <|
-            f = replace_url_in_datalink (data_link_root / "example-http-format-json.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http-format-json.datalink")
             r = f.read
             js = '{"hello": "world"}'.parse_json
             r.should_equal js
             r.get "hello" . should_equal "world"
 
         group_builder.specify "will fail if invalid format is used" <|
-            f = replace_url_in_datalink (data_link_root / "example-http-format-invalid.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http-format-invalid.datalink")
             r = f.read
             r.should_fail_with Illegal_State
             r.catch.to_display_text.should_contain "Unknown format"
 
         group_builder.specify "will fail if an unloaded format is used" <|
             # We assume that Base_Tests _do not_ import Standard.Table
-            f = replace_url_in_datalink (data_link_root / "example-http-format-delimited.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http-format-delimited.datalink")
             r = f.read
             r.should_fail_with Illegal_State
             r.catch.to_display_text.should_contain "Unknown format"
 
         group_builder.specify "but will succeed if an unknown format is not used because it was overridden" <|
-            f = replace_url_in_datalink (data_link_root / "example-http-format-delimited.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http-format-delimited.datalink")
             r = f.read Plain_Text
             r.should_be_a Text
             r.trim.should_equal '{"hello": "world"}'
@@ -109,7 +109,7 @@ add_specs suite_builder =
 ## Reads the datalink as plain text and replaces the placeholder URL with actual
    URL of the server. It then writes the new contents to a temporary file and
    returns it.
-replace_url_in_datalink base_file =
+replace_url_in_data_link base_file =
     content = Data_Link_Format.read_raw_config base_file
     new_content = content.replace "http://http-test-helper.local/" base_url_with_slash
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
