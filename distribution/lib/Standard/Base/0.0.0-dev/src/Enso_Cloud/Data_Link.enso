@@ -193,9 +193,13 @@ write_datalink_as_stream (file : File_Like) (open_options : Vector) (f : Input_S
 
 ## PRIVATE
 save_datalink_to_file data_link_instance (target_file : Writable_File) =
-    if data_link_instance.is_file_like.not then Error.throw (Illegal_Argument.Error "The "+(Meta.type_of data_link_instance . to_display_text)+" cannot be saved to a file.") else
-        data_link_instance.with_input_stream [File_Access.Read] input_stream->
+    case data_link_instance.is_file_like of
+        True ->
+            data_link_instance.with_input_stream [File_Access.Read] input_stream->
             input_stream.write_to_file target_file
+        False ->
+            data_link_name = Meta.type_of data_link_instance . to_display_text . replace "_" " "
+            Error.throw (Illegal_Argument.Error "The "+data_link_name+" cannot be saved to a file.") else
 
 ## PRIVATE
 parse_secure_value json -> Text | Enso_Secret =

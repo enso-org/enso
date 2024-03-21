@@ -30,6 +30,7 @@ from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 
@@ -920,6 +921,15 @@ add_datalink_specs suite_builder =
             # But we can read the raw data link if we ask for it:
             r3 = datalink_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
             r3.should_be_a Vector
+
+        group_builder.specify "will fail with a clear message if trying to download a Database datalink" pending=Http_Test_Setup.pending_has_url <|
+            url = Http_Test_Setup.base_url_with_slash+"testfiles/some-postgres.datalink"
+            target_file = enso_project.data / "transient" / "some-postgres-target"
+            target_file.delete_if_exists
+            r = Data.download url target_file
+            r.should_fail_with Illegal_Argument
+            r.catch.to_display_text . should_contain "The Postgres_Data_Link cannot be saved to a file."
+
 
 add_specs suite_builder =
     add_table_specs suite_builder
