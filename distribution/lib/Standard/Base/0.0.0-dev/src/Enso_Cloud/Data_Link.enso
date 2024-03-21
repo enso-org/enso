@@ -115,16 +115,13 @@ type Data_Link
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Specifies if the data link points to a resource that is a file
-       (S3 file, HTTP response, etc.) and can be opened as a stream.
-
-       Some data links, like Database connections cannot be opened as a stream.
-    is_file_like self -> Boolean =
+       Specifies if the data link target can be opened as a stream for reading.
+    supports_input_stream self -> Boolean =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Opens the data pointed at by the data link as a raw stream.
-       This method is only allowed if `is_file_like` returns `True`.
+       This method is only allowed if `supports_input_stream` returns `True`.
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
         _ = [open_options, action]
         Unimplemented.throw "This is an interface only."
@@ -193,7 +190,7 @@ write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_
 
 ## PRIVATE
 save_data_link_to_file data_link_instance (target_file : Writable_File) =
-    case data_link_instance.is_file_like of
+    case data_link_instance.supports_input_stream of
         True ->
             data_link_instance.with_input_stream [File_Access.Read] input_stream->
                 input_stream.write_to_file target_file

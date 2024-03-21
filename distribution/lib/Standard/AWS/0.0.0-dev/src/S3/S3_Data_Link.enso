@@ -21,7 +21,7 @@ type S3_Data_Link
         S3_Data_Link.Value uri format_json auth
 
     ## PRIVATE
-    is_file_like self = True
+    supports_input_stream self = True
 
     ## PRIVATE
     as_file self -> S3_File = S3_File.new self.uri self.credentials

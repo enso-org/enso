@@ -37,7 +37,7 @@ type HTTP_Fetch_Data_Link
         response.decode effective_format
 
     ## PRIVATE
-    is_file_like self = True
+    supports_input_stream self = True
 
     ## PRIVATE
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =

@@ -51,7 +51,7 @@ type Postgres_Data_Link
                     connection.query table_name
 
     ## PRIVATE
-    is_file_like self = False
+    supports_input_stream self = False
 
     ## PRIVATE
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
