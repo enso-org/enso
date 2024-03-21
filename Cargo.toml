@@ -12,7 +12,6 @@ members = [
     "build/macros/proc-macro",
     "build/ci-gen",
     "build/cli",
-    "build/intellij-run-config-gen",
     "lib/rust/*",
     "lib/rust/parser/doc-parser",
     "lib/rust/parser/src/syntax/tree/visitor",
