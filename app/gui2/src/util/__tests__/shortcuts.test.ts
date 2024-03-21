@@ -126,13 +126,14 @@ test.each([
     const stopImmediatePropagation = vi.spyOn(event, 'stopImmediatePropagation')
 
     const handler = testBindings.handler(definedHandlers)
-    handler(event)
+    const handled = handler(event)
 
     const expectedSet = new Set(expected)
     for (const handler in definedHandlers) {
       if (expectedSet.has(handler)) expect(definedHandlers[handler], handler).toHaveBeenCalledOnce()
       else expect(definedHandlers[handler], handler).not.toHaveBeenCalled()
     }
+    expect(handled).toBe(expectPropagation !== true)
     if (expectPropagation) {
       expect(preventDefault).not.toHaveBeenCalled()
       expect(stopImmediatePropagation).not.toHaveBeenCalled()

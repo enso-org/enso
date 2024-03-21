@@ -414,7 +414,7 @@ export function defineKeybinds<
         event.stopImmediatePropagation()
         event.preventDefault()
       }
-      return true
+      return handled
     }
   }
 

@@ -28,6 +28,7 @@ import { debouncedGetter } from '@/util/reactivity'
 import type { SuggestionId } from 'shared/languageServerTypes/suggestions'
 import type { VisualizationIdentifier } from 'shared/yjsModel'
 import { computed, onMounted, reactive, ref, watch, type Ref } from 'vue'
+import LoadingSpinner from './LoadingSpinner.vue'
 
 const ITEM_SIZE = 32
 const TOP_BAR_HEIGHT = 32
@@ -403,7 +404,8 @@ function acceptSuggestion(component: Opt<Component> = null) {
   const providedSuggestion =
     component != null ? suggestionDbStore.entries.get(component.suggestionId) : null
   const suggestion = providedSuggestion ?? selectedSuggestion.value
-  const shouldFinish = suggestion != null && suggestion.kind !== SuggestionKind.Module
+  const shouldFinish =
+    component == null || (suggestion != null && suggestion.kind !== SuggestionKind.Module)
   if (shouldFinish) acceptInput()
 }
 
@@ -542,13 +544,10 @@ const handler = componentBrowserBindings.handler({
             </div>
           </div>
         </div>
-        <div v-if="isAIPromptMode">
-          AI assistant mode mode: write query in natural language and press Enter.
-        </div>
         <LoadingSpinner v-if="isAIPromptMode && input.processingAIPrompt" />
       </div>
       <div class="panel docs" :class="{ hidden: !docsVisible }">
-        <DocumentationPanel v-model:selectedEntry="docEntry" />
+        <DocumentationPanel v-model:selectedEntry="docEntry" :aiMode="isAIPromptMode" />
       </div>
     </div>
     <div class="bottom-panel">

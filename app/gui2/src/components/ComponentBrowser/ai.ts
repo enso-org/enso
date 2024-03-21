@@ -1,15 +1,21 @@
-import { useGraphStore, type Node } from '@/stores/graph'
+import { useGraphStore } from '@/stores/graph'
+import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import type { AstId } from 'shared/ast'
+import type { LanguageServer } from 'shared/languageServer'
 import { Err, Ok, withContext, type Result } from 'shared/util/data/result'
+import type { ExternalId } from 'shared/yjsModel'
 
 const AI_GOAL_PLACEHOLDER = '__$$GOAL$$__'
 const AI_STOP_SEQUENCE = '`'
 
-export function useAI() {
-  const project = useProjectStore()
-  const graphDb = useGraphStore().db
-
+export function useAI(
+  graphDb: GraphDb = useGraphStore().db,
+  project: {
+    lsRpcConnection: Promise<LanguageServer>
+    executeExpression(expressionId: ExternalId, expression: string): Promise<Result<string> | null>
+  } = useProjectStore(),
+) {
   async function query(query: string, sourcePort: AstId): Promise<Result<string>> {
     const lsRpc = await project.lsRpcConnection
     const sourceNodeId = graphDb.getPatternExpressionNodeId(sourcePort)

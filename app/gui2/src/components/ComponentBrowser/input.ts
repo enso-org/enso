@@ -16,6 +16,7 @@ import { RawAstExtended } from '@/util/ast/extended'
 import { GeneralOprApp, type OperatorChain } from '@/util/ast/opr'
 import { RawAst, astContainingChar } from '@/util/ast/raw'
 import { MappedSet } from '@/util/containers'
+import type { Result } from '@/util/data/result'
 import {
   qnFromSegments,
   qnLastSegment,
@@ -77,6 +78,7 @@ interface Change {
 export function useComponentBrowserInput(
   graphDb: GraphDb = useGraphStore().db,
   suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
+  ai: { query(query: string, sourcePort: AstId): Promise<Result<string>> } = useAI(),
 ) {
   const code = ref('')
   const cbUsage = ref<Usage>()
@@ -84,7 +86,6 @@ export function useComponentBrowserInput(
   const selection = ref({ start: 0, end: 0 })
   const ast = computed(() => RawAstExtended.parse(code.value))
   const imports = ref<RequiredImport[]>([])
-  const ai = useAI()
   const processingAIPrompt = ref(false)
 
   // Code Model to being edited externally (by user).
