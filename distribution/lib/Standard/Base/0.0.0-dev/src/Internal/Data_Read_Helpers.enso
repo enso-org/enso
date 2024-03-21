@@ -1,0 +1,24 @@
+private
+
+## PRIVATE
+looks_like_uri path:Text -> Boolean =
+    (path.starts_with "http://") || (path.starts_with "https://")
+
+## PRIVATE
+   A common implementation for fetching a resource and decoding it,
+   following encountered data links.
+fetch_following_data_links (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (headers:Vector = []) format =
+    response = HTTP.fetch uri method headers
+    decode_http_response_following_data_links response format
+
+## PRIVATE
+   Decodes a HTTP response, handling data link access.
+decode_http_response_following_data_links response format =
+    # If Raw_Response is requested, we ignore data link handling.
+    if format == Raw_Response then response.with_materialized_body else
+        case Data_Link.is_data_link response.body.metadata of
+            True ->
+                data_link = Data_Link.interpret_json_as_datalink response.decode_as_json
+                data_link.read format Problem_Behavior.Report_Error
+            False ->
+                response.decode format=format if_unsupported=response.with_materialized_body

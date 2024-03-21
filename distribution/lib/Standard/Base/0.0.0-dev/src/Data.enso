@@ -8,6 +8,7 @@ import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Internal.Data_Read_Helpers
 import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
@@ -66,9 +67,9 @@ from project.System.File_Format import Auto_Detect, File_Format
 @format File_Format.default_widget
 read : Text | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) = case path of
-    _ : Text -> if (path.starts_with "http://") || (path.starts_with "https://") then fetch_impl path format=format else
+    _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
-    uri : URI -> fetch_impl uri format=format
+    uri : URI -> Data_Read_Helpers.fetch_following_data_links uri format=format
     _ -> File.new path . read format on_problems
 
 ## ALIAS load text, open text
@@ -189,7 +190,7 @@ list_directory directory:File (name_filter:(Text | Nothing)=Nothing) recursive:B
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
 fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     format = if try_auto_parse_response then Auto_Detect else Raw_Response
-    fetch_impl uri method headers format
+    Data_Read_Helpers.fetch_following_data_links uri method headers format
 
 ## ALIAS http post, upload
    GROUP Output
@@ -315,7 +316,7 @@ post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text
 post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
     format = if try_auto_parse_response then Auto_Detect else Raw_Response
     response = HTTP.post uri body method headers
-    decode_http_response response format
+    Data_Read_Helpers.decode_http_response_following_data_links response format
 
 ## GROUP Input
    ICON data_download
@@ -344,19 +345,3 @@ download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.G
 
 ## PRIVATE
 type Raw_Response
-
-## PRIVATE
-fetch_impl (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (headers:Vector = []) format =
-    response = HTTP.fetch uri method headers
-    decode_http_response response format
-
-## PRIVATE
-   Decodes a HTTP response, handling data link access.
-decode_http_response response format =
-    # If Raw_Response is requested, we ignore data link handling.
-    if format == Raw_Response then response.with_materialized_body else
-        case Data_Link.is_data_link response.body.metadata of
-            True ->
-                data_link = Data_Link.interpret_json_as_datalink response.decode_as_json
-                data_link.read format Problem_Behavior.Report_Error
-            False -> response.decode format=format if_unsupported=response.with_materialized_body
