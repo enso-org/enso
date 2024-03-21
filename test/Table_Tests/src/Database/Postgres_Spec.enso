@@ -928,7 +928,7 @@ add_data_link_specs suite_builder =
             target_file.delete_if_exists
             r = Data.download url target_file
             r.should_fail_with Illegal_Argument
-            r.catch.to_display_text . should_contain "The Postgres_Data_Link cannot be saved to a file."
+            r.catch.to_display_text . should_contain "The Postgres Data Link cannot be saved to a file."
 
 
 add_specs suite_builder =
