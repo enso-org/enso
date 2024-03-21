@@ -9,7 +9,7 @@ use syn_1 as syn;
 
 
 
-#[derive(Clone, Debug, enso_build_macros::Arg)]
+#[derive(Clone, Copy, Debug, enso_build_macros::Arg)]
 pub enum Foo {
     Foo,
     BarBaz,

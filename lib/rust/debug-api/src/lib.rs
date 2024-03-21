@@ -4,10 +4,6 @@
 #![feature(extern_types)]
 
 // === Non-Standard Linter Configuration ===
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(unused_qualifications)]
-
 use futures::prelude::*;
 
 use derivative::Derivative;
@@ -103,6 +99,7 @@ pub fn open_gpu_debug_info() {
 // ===========
 
 /// Javascript FFI
+#[allow(clippy::empty_docs)] // https://github.com/rust-lang/rust-clippy/issues/12377
 pub mod js {
     /// Enso Lifecycle API
     pub mod lifecycle {

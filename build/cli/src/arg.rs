@@ -1,3 +1,5 @@
+#![allow(unused_qualifications)] // https://github.com/enso-org/enso/issues/5168v
+
 use enso_build::prelude::*;
 
 use clap::Arg;
@@ -10,6 +12,7 @@ use enso_build_base::extensions::path::display_fmt;
 use ide_ci::cache;
 use ide_ci::github::Repo;
 use octocrab::models::RunId;
+
 
 
 // ==============

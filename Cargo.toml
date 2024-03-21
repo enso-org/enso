@@ -79,6 +79,7 @@ unused_qualifications = "warn"
 [workspace.lints.clippy]
 bool_to_int_with_if = "allow"
 let_and_return = "allow"
+blocks_in_conditions = "allow" # Until the issue is fixed: https://github.com/rust-lang/rust-clippy/issues/12281
 
 [workspace.dependencies]
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -86,6 +87,7 @@ let_and_return = "allow"
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
 # with the core development team. Thank you!
+derive-where = "1.2.7"
 dirs = { version = "5.0.1" }
 nix = { version = "0.27.1" }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
@@ -100,7 +102,7 @@ sysinfo = { version = "0.29.10" }
 tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-stream = { version = "0.1.12", features = ["fs"] }
 tokio-util = { version = "0.7.4", features = ["full"] }
-wasm-bindgen = { version = "0.2.87", features = [] }
+wasm-bindgen = { version = "0.2.92", features = [] }
 wasm-bindgen-test = { version = "0.3.34" }
 anyhow = { version = "1.0.66" }
 failure = { version = "0.1.8" }
