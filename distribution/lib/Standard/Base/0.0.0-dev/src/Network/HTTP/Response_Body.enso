@@ -115,7 +115,8 @@ type Response_Body
 
        Arguments:
        - format: The format to use to decode the body.
-       - if_unsupported: Specifies how to proceed if the format is not supported.
+       - if_unsupported: Specifies how to proceed if `Auto_Detect` was selected
+         but the format could not be determined.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
     decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =

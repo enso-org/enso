@@ -125,7 +125,8 @@ type Response
        ICON data_input
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
-       format.
+       format. If the format cannot be detected automatically, `if_unsupported`
+       is returned.
     @format decode_format_selector
     decode : File_Format -> Any -> Any
     decode self format=Auto_Detect ~if_unsupported=Throw_Unsupported_Error =
