@@ -74,7 +74,7 @@ add_specs suite_builder =
             r3.trim.should_equal '{"hello": "world"}'
 
         group_builder.specify "will return raw datalink config data in Data.fetch/post if auto parse is off" <|
-            r1 = Data.fetch base_url_with_slash+"dynamic.datalink" try_auto_parse_response=False
+            r1 = Data.fetch base_url_with_slash+"dynamic.datalink" format=Raw_Response
             r1.should_be_a Response
 
             ## Normally .datalink is not a valid format, so we cannot decode it,
@@ -88,7 +88,7 @@ add_specs suite_builder =
             r1_plain = r1.decode Plain_Text
             r1_plain.should_contain '"libraryName": "Standard.Base"'
 
-            r2 = Data.post base_url_with_slash+"dynamic-datalink" try_auto_parse_response=False
+            r2 = Data.post base_url_with_slash+"dynamic-datalink" response_format=Raw_Response
             r2.should_be_a Response
             r2_decoded = r2.decode
             r2_decoded.should_fail_with File_Error

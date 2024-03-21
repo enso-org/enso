@@ -4,12 +4,18 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Data import Raw_Response
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
+from project.System.File_Format import Auto_Detect, format_types
+
 
 ## PRIVATE
 looks_like_uri path:Text -> Boolean =
@@ -33,3 +39,8 @@ decode_http_response_following_data_links response format =
                 data_link.read format Problem_Behavior.Report_Error
             False ->
                 response.decode format=format if_unsupported=response.with_materialized_body
+
+## PRIVATE
+format_widget_with_raw_response -> Widget =
+    options = ([Auto_Detect, Raw_Response] + format_types).flat_map .get_dropdown_options
+    Single_Choice display=Display.When_Modified values=options

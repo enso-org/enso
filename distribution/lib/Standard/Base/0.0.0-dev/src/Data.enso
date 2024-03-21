@@ -9,6 +9,7 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Internal.Data_Read_Helpers
+import project.Meta
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
@@ -21,6 +22,7 @@ import project.Runtime.Context
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Boolean import Boolean, False, True
+from project.Metadata.Choice import Option
 from project.Metadata.Widget import Text_Input
 from project.System.File_Format import Auto_Detect, File_Format
 
@@ -169,8 +171,9 @@ list_directory directory:File (name_filter:(Text | Nothing)=Nothing) recursive:B
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse_response:  If successful should the body be attempted to be
-     parsed to an Enso native object.
+   - format: The format to use for interpreting the response.
+     Defaults to `Auto_Detect`.
+     If `Raw_Response` is provided, a raw HTTP `Response` will be returned.
 
    > Example
      Read from an HTTP endpoint.
@@ -185,9 +188,9 @@ list_directory directory:File (name_filter:(Text | Nothing)=Nothing) recursive:B
          file = enso_project.data / "spreadsheet.xls"
          Data.fetch URL . body . write file
 @uri Text_Input
-fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
-fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    format = if try_auto_parse_response then Auto_Detect else Raw_Response
+@format Data_Read_Helpers.format_widget_with_raw_response
+fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
+fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) =
     Data_Read_Helpers.fetch_following_data_links uri method headers format
 
 ## ALIAS http post, upload
@@ -203,8 +206,9 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
    - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
      `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse:  If successful should the body be attempted to be parsed to
-     an Enso native object.
+   - response_format: The format to use for interpreting the response.
+     Defaults to `Auto_Detect`.
+     If `Raw_Response` is provided, a raw HTTP `Response` will be returned.
 
    ! Supported Body Types
 
@@ -310,11 +314,11 @@ fetch (uri:(URI | Text)) (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (
          form_data = Map.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 @uri Text_Input
-post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any ! Request_Error | HTTP_Error
-post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    format = if try_auto_parse_response then Auto_Detect else Raw_Response
+@response_format Data_Read_Helpers.format_widget_with_raw_response
+post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
+post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) =
     response = HTTP.post uri body method headers
-    Data_Read_Helpers.decode_http_response_following_data_links response format
+    Data_Read_Helpers.decode_http_response_following_data_links response response_format
 
 ## GROUP Input
    ICON data_download
@@ -341,5 +345,9 @@ download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.G
             False ->
                 response.write file
 
-## PRIVATE
+## If the `format` is set to `Raw_Response`, a raw HTTP `Response` is returned
+   that can be then processed further manually.
 type Raw_Response
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "Raw HTTP Response" (Meta.get_qualified_type_name Raw_Response)]
