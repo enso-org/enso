@@ -14,9 +14,13 @@ import * as uniqueString from '#/utilities/uniqueString'
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
 
-/** Unique identifier for a user/organization. */
+/** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
+
+/** Unique identifier for a user. */
+export type UserId = newtype.Newtype<string, 'UserId'>
+export const UserId = newtype.newtypeConstructor<UserId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
@@ -380,10 +384,11 @@ export interface ResourceUsage {
 /** Metadata uniquely identifying a user. */
 export interface UserInfo {
   /* eslint-disable @typescript-eslint/naming-convention */
-  readonly pk: Subject
+  readonly pk: OrganizationId
+  readonly sk: UserId
+  readonly user_subject: Subject
   readonly user_name: string
   readonly user_email: EmailAddress
-  readonly organization_id: OrganizationId
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -399,9 +404,11 @@ export interface OrganizationInfo {
 }
 
 /** Metadata uniquely identifying a user inside an organization.
- * This is similar to {@link UserInfo}, but without `organization_id`. */
+ * This is similar to {@link UserInfo}, but with different field names. */
 export interface SimpleUser {
-  readonly id: Subject
+  readonly organizationId: OrganizationId
+  readonly userId: UserId
+  readonly userSubject: Subject
   readonly name: string
   readonly email: EmailAddress
 }
@@ -901,7 +908,7 @@ export interface InviteUserRequestBody {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly userSubjects: Subject[]
+  readonly actorsIds: UserId[]
   readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
 }
