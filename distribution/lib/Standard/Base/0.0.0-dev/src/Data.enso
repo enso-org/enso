@@ -333,9 +333,14 @@ post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Meth
 download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
 download (uri:(URI | Text)) file:Writable_File (method:HTTP_Method=HTTP_Method.Get) (headers:(Vector (Header | Pair Text Text))=[]) =
     Context.Output.if_enabled disabled_message="Downloading to a file is forbidden as the Output context is disabled." panic=False <|
-        # TODO datalink?
         response = HTTP.fetch uri method headers
-        response.write file
+        case Data_Link.is_data_link response.body.metadata of
+            True ->
+                # If the resource was a data link, we follow it, download the target data and try to write it to a file.
+                data_link = Data_Link.interpret_json_as_datalink response.decode_as_json
+                Data_Link.save_datalink_to_file data_link file
+            False ->
+                response.write file
 
 ## PRIVATE
 type Raw_Response

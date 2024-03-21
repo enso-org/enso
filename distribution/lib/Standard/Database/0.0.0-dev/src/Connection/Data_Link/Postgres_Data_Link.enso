@@ -51,6 +51,9 @@ type Postgres_Data_Link
                     connection.query table_name
 
     ## PRIVATE
+    is_file_like self = False
+
+    ## PRIVATE
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
         _ = [open_options, action]
         Error.throw (Illegal_Argument.Error "A Postgres Data Link cannot be opened as a stream, because it points to a database entity, not a file resource.")

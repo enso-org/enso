@@ -108,11 +108,23 @@ type Data_Link_Format
    An interface for a data link description.
 type Data_Link
     ## PRIVATE
+       Reads a data link and interprets it using the provided format.
+       If the format is `Auto_Detect` (default), a default format provided by the data link is used, if available.
     read self (format = Auto_Detect) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) -> Any =
         _ = [format, on_problems]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Specifies if the data link points to a resource that is a file
+       (S3 file, HTTP response, etc.) and can be opened as a stream.
+
+       Some data links, like Database connections cannot be opened as a stream.
+    is_file_like self -> Boolean =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Opens the data pointed at by the data link as a raw stream.
+       This method is only allowed if `is_file_like` returns `True`.
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
         _ = [open_options, action]
         Unimplemented.throw "This is an interface only."
@@ -178,6 +190,12 @@ write_datalink (file : File_Like) format (on_problems : Problem_Behavior) =
 write_datalink_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
     _ = [file, open_options, f]
     Unimplemented.throw "Writing data links is not yet supported."
+
+## PRIVATE
+save_datalink_to_file data_link_instance (target_file : Writable_File) =
+    if data_link_instance.is_file_like.not then Error.throw (Illegal_Argument.Error "The "+(Meta.type_of data_link_instance . to_display_text)+" cannot be saved to a file.") else
+        data_link_instance.with_input_stream [File_Access.Read] input_stream->
+            input_stream.write_to_file target_file
 
 ## PRIVATE
 parse_secure_value json -> Text | Enso_Secret =
