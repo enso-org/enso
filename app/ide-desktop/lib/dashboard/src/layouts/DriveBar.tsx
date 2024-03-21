@@ -20,7 +20,8 @@ import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
-import Button from '#/components/Button'
+import * as aria from '#/components/aria'
+import Button from '#/components/styled/Button'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
@@ -127,165 +128,140 @@ export default function DriveBar(props: DriveBarProps) {
       // It is INCORRECT to have a "New Project" button here as it requires a full list of projects
       // in the given directory, to avoid name collisions.
       return (
-        <div ref={rootRef} className="flex h-row py-drive-bar-y">
-          <div className="flex gap-drive-bar" />
-        </div>
+        <aria.FocusScope>
+          <div ref={rootRef} className="flex h-row py-drive-bar-y">
+            <div className="flex gap-drive-bar" />
+          </div>
+        </aria.FocusScope>
       )
     }
     case Category.trash: {
       return (
-        <div ref={rootRef} className="flex h-row py-drive-bar-y">
-          <div className="flex gap-drive-bar">
-            <button
-              ref={element => {
-                if (keyboardSelectedId === 'clearTrash') {
-                  element?.focus()
-                }
-              }}
-              className={`flex h-row items-center rounded-full bg-frame px-new-project-button-x ${keyboardSelectedId === 'clearTrash' ? 'focus-ring' : ''}`}
-              onClick={event => {
-                event.stopPropagation()
-                setModal(
-                  <ConfirmDeleteModal
-                    actionText="all trashed items forever"
-                    doDelete={doEmptyTrash}
-                  />
-                )
-              }}
-            >
-              <span className="text whitespace-nowrap font-semibold">Clear Trash</span>
-            </button>
+        <aria.FocusScope>
+          <div ref={rootRef} className="flex h-row py-drive-bar-y">
+            <div className="flex gap-drive-bar">
+              <button
+                ref={element => {
+                  if (keyboardSelectedId === 'clearTrash') {
+                    element?.focus()
+                  }
+                }}
+                className={`flex h-row items-center rounded-full bg-frame px-new-project-button-x ${keyboardSelectedId === 'clearTrash' ? 'focus-ring' : ''}`}
+                onClick={event => {
+                  event.stopPropagation()
+                  setModal(
+                    <ConfirmDeleteModal
+                      actionText="all trashed items forever"
+                      doDelete={doEmptyTrash}
+                    />
+                  )
+                }}
+              >
+                <span className="text whitespace-nowrap font-semibold">Clear Trash</span>
+              </button>
+            </div>
           </div>
-        </div>
+        </aria.FocusScope>
       )
     }
     case Category.home: {
       return (
-        <div ref={rootRef} className="flex h-row py-drive-bar-y">
-          <div className="flex gap-drive-bar">
-            <button
-              ref={element => {
-                if (keyboardSelectedId === 'newProject') {
-                  element?.focus()
-                }
-              }}
-              className={`flex h-row items-center rounded-full bg-frame px-new-project-button-x ${keyboardSelectedId === 'newProject' ? 'focus-ring' : ''}`}
-              onClick={() => {
-                unsetModal()
-                doCreateProject()
-              }}
-            >
-              <span className="text whitespace-nowrap font-semibold">New Project</span>
-            </button>
-            <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
-              {isCloud && (
-                <Button
-                  ref={element => {
-                    if (keyboardSelectedId === 'newFolder') {
-                      element?.focus()
-                    }
-                  }}
-                  focusRing={keyboardSelectedId === 'newFolder'}
-                  active
-                  image={AddFolderIcon}
-                  alt="New Folder"
-                  onClick={() => {
-                    unsetModal()
-                    doCreateDirectory()
-                  }}
-                />
-              )}
-              {isCloud && (
-                <Button
-                  ref={element => {
-                    if (keyboardSelectedId === 'newSecret') {
-                      element?.focus()
-                    }
-                  }}
-                  focusRing={keyboardSelectedId === 'newSecret'}
-                  active
-                  image={AddKeyIcon}
-                  alt="New Secret"
-                  onClick={event => {
-                    event.stopPropagation()
-                    setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
-                  }}
-                />
-              )}
-              {isCloud && (
-                <Button
-                  ref={element => {
-                    if (keyboardSelectedId === 'newDataLink') {
-                      element?.focus()
-                    }
-                  }}
-                  focusRing={keyboardSelectedId === 'newDataLink'}
-                  active
-                  image={AddConnectorIcon}
-                  alt="New Data Link"
-                  onClick={event => {
-                    event.stopPropagation()
-                    setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
-                  }}
-                />
-              )}
-              <input
-                ref={uploadFilesRef}
-                type="file"
-                multiple
-                id="upload_files_input"
-                name="upload_files_input"
-                {...(isCloud ? {} : { accept: '.enso-project' })}
-                className="hidden"
-                onInput={event => {
-                  if (event.currentTarget.files != null) {
-                    doUploadFiles(Array.from(event.currentTarget.files))
-                  }
-                  // Clear the list of selected files. Otherwise, `onInput` will not be
-                  // dispatched again if the same file is selected.
-                  event.currentTarget.value = ''
-                }}
-              />
-              <Button
+        <aria.FocusScope>
+          <div ref={rootRef} className="flex h-row py-drive-bar-y">
+            <div className="flex gap-drive-bar">
+              <button
                 ref={element => {
-                  if (keyboardSelectedId === 'uploadFiles') {
+                  if (keyboardSelectedId === 'newProject') {
                     element?.focus()
                   }
                 }}
-                focusRing={keyboardSelectedId === 'uploadFiles'}
-                active
-                image={DataUploadIcon}
-                alt="Upload Files"
+                className={`flex h-row items-center rounded-full bg-frame px-new-project-button-x ${keyboardSelectedId === 'newProject' ? 'focus-ring' : ''}`}
                 onClick={() => {
                   unsetModal()
-                  uploadFilesRef.current?.click()
+                  doCreateProject()
                 }}
-              />
-              <Button
-                ref={element => {
-                  if (keyboardSelectedId === 'downloadFiles') {
-                    element?.focus()
+              >
+                <span className="text whitespace-nowrap font-semibold">New Project</span>
+              </button>
+              <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
+                {isCloud && (
+                  <Button
+                    active
+                    image={AddFolderIcon}
+                    alt="New Folder"
+                    onPress={() => {
+                      unsetModal()
+                      doCreateDirectory()
+                    }}
+                  />
+                )}
+                {isCloud && (
+                  <Button
+                    active
+                    image={AddKeyIcon}
+                    alt="New Secret"
+                    onPress={() => {
+                      setModal(
+                        <UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />
+                      )
+                    }}
+                  />
+                )}
+                {isCloud && (
+                  <Button
+                    active
+                    image={AddConnectorIcon}
+                    alt="New Data Link"
+                    onPress={() => {
+                      setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
+                    }}
+                  />
+                )}
+                <input
+                  ref={uploadFilesRef}
+                  type="file"
+                  multiple
+                  id="upload_files_input"
+                  name="upload_files_input"
+                  {...(isCloud ? {} : { accept: '.enso-project' })}
+                  className="hidden"
+                  onInput={event => {
+                    if (event.currentTarget.files != null) {
+                      doUploadFiles(Array.from(event.currentTarget.files))
+                    }
+                    // Clear the list of selected files. Otherwise, `onInput` will not be
+                    // dispatched again if the same file is selected.
+                    event.currentTarget.value = ''
+                  }}
+                />
+                <Button
+                  active
+                  image={DataUploadIcon}
+                  alt="Upload Files"
+                  onPress={() => {
+                    unsetModal()
+                    uploadFilesRef.current?.click()
+                  }}
+                />
+                <Button
+                  active={canDownload}
+                  isDisabled={!canDownload}
+                  image={DataDownloadIcon}
+                  alt="Download Files"
+                  error={
+                    isCloud
+                      ? 'You currently can only download files.'
+                      : 'First select a project to download.'
                   }
-                }}
-                focusRing={keyboardSelectedId === 'downloadFiles'}
-                active={canDownload}
-                disabled={!canDownload}
-                image={DataDownloadIcon}
-                alt="Download Files"
-                error={
-                  isCloud
-                    ? 'You currently can only download files.'
-                    : 'First select a project to download.'
-                }
-                onClick={event => {
-                  event.stopPropagation()
-                  unsetModal()
-                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
-                }}
-              />
+                  onPress={() => {
+                    unsetModal()
+                    dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </aria.FocusScope>
       )
     }
   }

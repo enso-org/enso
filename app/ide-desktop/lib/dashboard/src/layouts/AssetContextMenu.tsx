@@ -222,7 +222,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {canExecute && !isRunningProject && !isOtherUserUsingProject && (
           <ContextMenuEntry
             hidden={hidden}
-            disabled={
+            isDisabled={
               asset.type !== backendModule.AssetType.project &&
               asset.type !== backendModule.AssetType.directory
             }
@@ -257,7 +257,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {isCloud && (
           <ContextMenuEntry
             hidden={hidden}
-            disabled
+            isDisabled
             action="snapshot"
             doAction={() => {
               // No backend support yet.
@@ -327,7 +327,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {isCloud && managesThisAsset && self != null && <ContextMenuSeparator hidden={hidden} />}
         <ContextMenuEntry
           hidden={hidden}
-          disabled={!isCloud}
+          isDisabled={!isCloud}
           action="duplicate"
           doAction={() => {
             unsetModal()
@@ -345,7 +345,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         )}
         <ContextMenuEntry
           hidden={hidden}
-          disabled={
+          isDisabled={
             isCloud &&
             asset.type !== backendModule.AssetType.file &&
             asset.type !== backendModule.AssetType.dataLink &&

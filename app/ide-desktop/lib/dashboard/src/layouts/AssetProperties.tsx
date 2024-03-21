@@ -12,11 +12,11 @@ import type * as assetEvent from '#/events/assetEvent'
 
 import type Category from '#/layouts/CategorySwitcher/Category'
 
-import Button from '#/components/Button'
 import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import DataLinkInput from '#/components/dashboard/DataLinkInput'
 import Label from '#/components/dashboard/Label'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import Button from '#/components/styled/Button'
 
 import * as backendModule from '#/services/Backend'
 
@@ -122,7 +122,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           {ownsThisAsset && !isEditingDescription && (
             <Button
               image={PenIcon}
-              onClick={() => {
+              onPress={() => {
                 setIsEditingDescription(true)
                 setQueuedDescripion(item.item.description)
               }}

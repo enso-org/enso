@@ -4,17 +4,17 @@ import * as React from 'react'
 import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
-import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
-
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
 
-import Button from '#/components/Button'
+import * as aria from '#/components/aria'
+import Button from '#/components/styled/Button'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
@@ -62,141 +62,89 @@ export default function UserBar(props: UserBarProps) {
     self != null
   const shouldShowInviteButton =
     sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
-  const rootRef = React.useRef<HTMLDivElement>(null)
-  const navigator2D = navigator2DProvider.useNavigator2D()
-  const childrenLengthRef = React.useRef(0)
-  childrenLengthRef.current = 2 + (shouldShowInviteButton ? 1 : 0) + (shouldShowShareButton ? 1 : 0)
-
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
-      axis: keyboardNavigationHooks.Axis.horizontal,
-      length: childrenLengthRef.current,
-    })
-  const keyboardSelectedChildId =
-    keyboardSelectedIndex == null
-      ? null
-      : (
-          [
-            'chat',
-            ...(shouldShowInviteButton ? (['invite'] as const) : ([] as const)),
-            ...(shouldShowShareButton ? (['share'] as const) : ([] as const)),
-            'user-menu',
-          ] as const
-        )[keyboardSelectedIndex] ?? null
-
-  React.useEffect(() => {
-    const root = rootRef.current
-    if (invisible || root == null) {
-      return
-    } else {
-      return navigator2D.register(root, {
-        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
-        focusWhenPressed: {
-          left: () => {
-            setKeyboardSelectedIndex(childrenLengthRef.current - 1)
-          },
-          right: setKeyboardSelectedIndex.bind(null, 0),
-        },
-      })
-    }
-  }, [invisible, navigator2D, setKeyboardSelectedIndex])
 
   return (
-    <div
-      ref={rootRef}
-      className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
-    >
-      <Button
-        ref={element => {
-          if (keyboardSelectedChildId === 'chat') {
-            element?.focus()
-          }
-        }}
-        focusRing={keyboardSelectedChildId === 'chat'}
-        active={isHelpChatOpen}
-        image={ChatIcon}
-        onClick={() => {
-          setIsHelpChatOpen(!isHelpChatOpen)
-        }}
-      />
-      {shouldShowInviteButton && (
-        <button
-          ref={element => {
-            if (keyboardSelectedChildId === 'invite') {
-              element?.focus()
-            }
-          }}
-          className={`text my-auto rounded-full bg-share px-button-x text-inversed ${keyboardSelectedChildId === 'invite' ? 'focus-ring' : ''}`}
-          onClick={event => {
-            event.stopPropagation()
-            setModal(<InviteUsersModal eventTarget={null} />)
-          }}
+    <FocusArea active={!invisible} direction="horizontal">
+      {(ref, innerProps) => (
+        <div
+          ref={ref}
+          className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default"
+          {...innerProps}
         >
-          Invite
-        </button>
-      )}
-      {shouldShowShareButton && (
-        <button
-          ref={element => {
-            if (keyboardSelectedChildId === 'share') {
-              element?.focus()
-            }
-          }}
-          className={`text my-auto rounded-full bg-share px-button-x text-inversed ${keyboardSelectedChildId === 'invite' ? 'focus-ring' : ''}`}
-          onClick={event => {
-            event.stopPropagation()
-            setModal(
-              <ManagePermissionsModal
-                item={projectAsset}
-                setItem={setProjectAsset}
-                self={self}
-                doRemoveSelf={doRemoveSelf}
-                eventTarget={null}
+          <Button
+            active={isHelpChatOpen}
+            image={ChatIcon}
+            onPress={() => {
+              setIsHelpChatOpen(!isHelpChatOpen)
+            }}
+          />
+          {shouldShowInviteButton && (
+            <FocusRing>
+              <aria.Button
+                className="text my-auto rounded-full bg-share px-button-x text-inversed"
+                onPress={() => {
+                  setModal(<InviteUsersModal eventTarget={null} />)
+                }}
+              >
+                Invite
+              </aria.Button>
+            </FocusRing>
+          )}
+          {shouldShowShareButton && (
+            <FocusRing>
+              <aria.Button
+                className="text my-auto rounded-full bg-share px-button-x text-inversed"
+                onPress={() => {
+                  setModal(
+                    <ManagePermissionsModal
+                      item={projectAsset}
+                      setItem={setProjectAsset}
+                      self={self}
+                      doRemoveSelf={doRemoveSelf}
+                      eventTarget={null}
+                    />
+                  )
+                }}
+              >
+                Share
+              </aria.Button>
+            </FocusRing>
+          )}
+          <FocusRing>
+            <aria.Button
+              className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+              onPress={() => {
+                updateModal(oldModal =>
+                  oldModal?.type === UserMenu ? null : (
+                    <UserMenu
+                      setPage={setPage}
+                      supportsLocalBackend={supportsLocalBackend}
+                      onSignOut={onSignOut}
+                    />
+                  )
+                )
+              }}
+            >
+              <img
+                src={user?.profilePicture ?? DefaultUserIcon}
+                alt="Open user menu"
+                className="pointer-events-none"
+                height={28}
+                width={28}
               />
-            )
-          }}
-        >
-          Share
-        </button>
+            </aria.Button>
+          </FocusRing>
+          {/* Required for shortcuts to work. */}
+          <div className="hidden">
+            <UserMenu
+              hidden
+              setPage={setPage}
+              supportsLocalBackend={supportsLocalBackend}
+              onSignOut={onSignOut}
+            />
+          </div>
+        </div>
       )}
-      <button
-        ref={element => {
-          if (keyboardSelectedChildId === 'user-menu') {
-            element?.focus()
-          }
-        }}
-        className={`flex size-profile-picture select-none items-center overflow-clip rounded-full ${keyboardSelectedChildId === 'user-menu' ? 'focus-ring' : ''}`}
-        onClick={event => {
-          event.stopPropagation()
-          updateModal(oldModal =>
-            oldModal?.type === UserMenu ? null : (
-              <UserMenu
-                keyboardNavigating={keyboardSelectedChildId === 'user-menu'}
-                setPage={setPage}
-                supportsLocalBackend={supportsLocalBackend}
-                onSignOut={onSignOut}
-              />
-            )
-          )
-        }}
-      >
-        <img
-          src={user?.profilePicture ?? DefaultUserIcon}
-          alt="Open user menu"
-          className="pointer-events-none"
-          height={28}
-          width={28}
-        />
-      </button>
-      {/* Required for shortcuts to work. */}
-      <div className="hidden">
-        <UserMenu
-          hidden
-          setPage={setPage}
-          supportsLocalBackend={supportsLocalBackend}
-          onSignOut={onSignOut}
-        />
-      </div>
-    </div>
+    </FocusArea>
   )
 }

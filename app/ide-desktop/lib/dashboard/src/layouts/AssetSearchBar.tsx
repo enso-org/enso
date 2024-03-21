@@ -4,12 +4,12 @@ import * as React from 'react'
 import FindIcon from 'enso-assets/find.svg'
 import * as detect from 'enso-common/src/detect'
 
-import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
-
 import * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
+import * as aria from '#/components/aria'
 import Label from '#/components/dashboard/Label'
+import FocusArea from '#/components/styled/FocusArea'
+import FocusRing from '#/components/styled/FocusRing'
 
 import type * as backend from '#/services/Backend'
 
@@ -71,24 +71,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   const areSuggestionsVisibleRef = React.useRef(areSuggestionsVisible)
   const querySource = React.useRef(QuerySource.external)
   const [isShiftPressed, setIsShiftPressed] = React.useState(false)
-  const rootRef = React.useRef<HTMLLabelElement>(null)
+  const rootRef = React.useRef<HTMLLabelElement | null>(null)
   const searchRef = React.useRef<HTMLInputElement | null>(null)
-  const navigator2D = navigator2DProvider.useNavigator2D()
   areSuggestionsVisibleRef.current = areSuggestionsVisible
-
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: 1 })
-
-  React.useEffect(() => {
-    const root = rootRef.current
-    if (root == null) {
-      return
-    } else {
-      return navigator2D.register(root, {
-        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
-      })
-    }
-  }, [navigator2D, setKeyboardSelectedIndex])
 
   React.useEffect(() => {
     if (querySource.current !== QuerySource.tabbing && !isShiftPressed) {
@@ -230,178 +215,185 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
   }, [query, /* should never change */ setQuery])
 
   return (
-    <label
-      ref={rootRef}
-      data-testid="asset-search-bar"
-      tabIndex={-1}
-      onFocus={() => {
-        setAreSuggestionsVisible(true)
-      }}
-      onBlur={event => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          if (querySource.current === QuerySource.tabbing) {
-            querySource.current = QuerySource.external
-          }
-          setAreSuggestionsVisible(false)
-        }
-      }}
-      className="search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide"
-    >
-      <img src={FindIcon} className="relative z-1 placeholder" />
-      <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
-        <div className="padding relative h-row" />
-        {areSuggestionsVisible && (
-          <div className="relative flex flex-col gap-search-suggestions">
-            {/* Tags (`name:`, `modified:`, etc.) */}
-            <div
-              data-testid="asset-search-tag-names"
-              className="pointer-events-auto flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions"
-            >
-              {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
-                const [key, tag] = entry
-                return tag == null || isShiftPressed !== tag.startsWith('-')
-                  ? []
-                  : [
-                      <button
-                        key={key}
-                        className="h-text rounded-full bg-frame px-button-x transition-all hover:bg-selected-frame"
-                        onClick={() => {
-                          querySource.current = QuerySource.internal
-                          setQuery(query.add({ [key]: [[]] }))
-                        }}
-                      >
-                        {tag}:
-                      </button>,
-                    ]
-              })}
-            </div>
-            {/* Asset labels */}
-            {isCloud && labels.length !== 0 && (
-              <div
-                data-testid="asset-search-labels"
-                className="pointer-events-auto flex gap-buttons p-search-suggestions"
-              >
-                {labels
-                  .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
-                  .map(label => {
-                    const negated = query.negativeLabels.some(term =>
-                      array.shallowEqual(term, [label.value])
-                    )
-                    return (
-                      <Label
-                        key={label.id}
-                        color={label.color}
-                        active={
-                          negated ||
-                          query.labels.some(term => array.shallowEqual(term, [label.value]))
-                        }
-                        negated={negated}
-                        onClick={event => {
-                          querySource.current = QuerySource.internal
-                          setQuery(oldQuery => {
-                            const newQuery = oldQuery.withToggled(
-                              'labels',
-                              'negativeLabels',
-                              label.value,
-                              event.shiftKey
-                            )
-                            baseQuery.current = newQuery
-                            return newQuery
-                          })
-                        }}
-                      >
-                        {label.value}
-                      </Label>
-                    )
+    <FocusArea direction="horizontal">
+      {(ref, innerProps) => (
+        <label
+          ref={element => {
+            ref(element)
+            rootRef.current = element
+          }}
+          data-testid="asset-search-bar"
+          className="search-bar group relative flex h-row max-w-asset-search-bar grow items-center gap-asset-search-bar rounded-full px-input-x text-primary xl:max-w-asset-search-bar-wide"
+          {...innerProps}
+          onFocus={event => {
+            innerProps.onFocus?.(event)
+            setAreSuggestionsVisible(true)
+          }}
+          onBlur={event => {
+            innerProps.onBlur?.(event)
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              if (querySource.current === QuerySource.tabbing) {
+                querySource.current = QuerySource.external
+              }
+              setAreSuggestionsVisible(false)
+            }
+          }}
+        >
+          <img src={FindIcon} className="relative z-1 placeholder" />
+          <div className="pointer-events-none absolute left top flex w-full flex-col overflow-hidden rounded-default before:absolute before:inset before:bg-frame before:backdrop-blur-default">
+            <div className="padding relative h-row" />
+            {areSuggestionsVisible && (
+              <div className="relative flex flex-col gap-search-suggestions">
+                {/* Tags (`name:`, `modified:`, etc.) */}
+                <div
+                  data-testid="asset-search-tag-names"
+                  className="pointer-events-auto flex flex-wrap gap-buttons whitespace-nowrap px-search-suggestions"
+                >
+                  {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap(entry => {
+                    const [key, tag] = entry
+                    return tag == null || isShiftPressed !== tag.startsWith('-')
+                      ? []
+                      : [
+                          <aria.Button
+                            key={key}
+                            className="h-text rounded-full bg-frame px-button-x transition-all hover:bg-selected-frame"
+                            onPress={() => {
+                              querySource.current = QuerySource.internal
+                              setQuery(query.add({ [key]: [[]] }))
+                            }}
+                          >
+                            {tag}:
+                          </aria.Button>,
+                        ]
                   })}
+                </div>
+                {/* Asset labels */}
+                {isCloud && labels.length !== 0 && (
+                  <div
+                    data-testid="asset-search-labels"
+                    className="pointer-events-auto flex gap-buttons p-search-suggestions"
+                  >
+                    {labels
+                      .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
+                      .map(label => {
+                        const negated = query.negativeLabels.some(term =>
+                          array.shallowEqual(term, [label.value])
+                        )
+                        return (
+                          <Label
+                            key={label.id}
+                            color={label.color}
+                            active={
+                              negated ||
+                              query.labels.some(term => array.shallowEqual(term, [label.value]))
+                            }
+                            negated={negated}
+                            onClick={event => {
+                              querySource.current = QuerySource.internal
+                              setQuery(oldQuery => {
+                                const newQuery = oldQuery.withToggled(
+                                  'labels',
+                                  'negativeLabels',
+                                  label.value,
+                                  event.shiftKey
+                                )
+                                baseQuery.current = newQuery
+                                return newQuery
+                              })
+                            }}
+                          >
+                            {label.value}
+                          </Label>
+                        )
+                      })}
+                  </div>
+                )}
+                {/* Suggestions */}
+                <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto">
+                  {suggestions.map((suggestion, index) => (
+                    // This should not be a `<button>`, since `render()` may output a
+                    // tree containing a button.
+                    <div
+                      data-testid="asset-search-suggestion"
+                      key={index}
+                      role="button"
+                      ref={el => {
+                        if (index === selectedIndex) {
+                          el?.focus()
+                        }
+                      }}
+                      className={`pointer-events-auto mx-search-suggestion cursor-pointer rounded-default px-search-suggestions py-search-suggestion-y text-left transition-colors last:mb-search-suggestion hover:bg-selected-frame ${
+                        index === selectedIndex
+                          ? 'bg-selected-frame'
+                          : selectedIndices.has(index)
+                            ? 'bg-frame'
+                            : ''
+                      }`}
+                      onClick={event => {
+                        querySource.current = QuerySource.internal
+                        setQuery(
+                          selectedIndices.has(index)
+                            ? suggestion.deleteFromQuery(event.shiftKey ? query : baseQuery.current)
+                            : suggestion.addToQuery(event.shiftKey ? query : baseQuery.current)
+                        )
+                        if (event.shiftKey) {
+                          setSelectedIndices(
+                            new Set(
+                              selectedIndices.has(index)
+                                ? [...selectedIndices].filter(otherIndex => otherIndex !== index)
+                                : [...selectedIndices, index]
+                            )
+                          )
+                        } else {
+                          setAreSuggestionsVisible(false)
+                        }
+                      }}
+                    >
+                      {suggestion.render()}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            {/* Suggestions */}
-            <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto">
-              {suggestions.map((suggestion, index) => (
-                // This should not be a `<button>`, since `render()` may output a
-                // tree containing a button.
-                <div
-                  data-testid="asset-search-suggestion"
-                  key={index}
-                  ref={el => {
-                    if (index === selectedIndex) {
-                      el?.focus()
-                    }
-                  }}
-                  tabIndex={-1}
-                  className={`pointer-events-auto mx-search-suggestion cursor-pointer rounded-default px-search-suggestions py-search-suggestion-y text-left transition-colors last:mb-search-suggestion hover:bg-selected-frame ${
-                    index === selectedIndex
-                      ? 'bg-selected-frame'
-                      : selectedIndices.has(index)
-                        ? 'bg-frame'
-                        : ''
-                  }`}
-                  onClick={event => {
-                    querySource.current = QuerySource.internal
-                    setQuery(
-                      selectedIndices.has(index)
-                        ? suggestion.deleteFromQuery(event.shiftKey ? query : baseQuery.current)
-                        : suggestion.addToQuery(event.shiftKey ? query : baseQuery.current)
-                    )
-                    if (event.shiftKey) {
-                      setSelectedIndices(
-                        new Set(
-                          selectedIndices.has(index)
-                            ? [...selectedIndices].filter(otherIndex => otherIndex !== index)
-                            : [...selectedIndices, index]
-                        )
-                      )
-                    } else {
-                      setAreSuggestionsVisible(false)
-                    }
-                  }}
-                >
-                  {suggestion.render()}
-                </div>
-              ))}
-            </div>
           </div>
-        )}
-      </div>
-      <div
-        className={`relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all ${keyboardSelectedIndex === 0 ? 'before:focus-ring' : ''}`}
-      >
-        <input
-          ref={element => {
-            searchRef.current = element
-            if (keyboardSelectedIndex === 0) {
-              element?.focus()
-            }
-          }}
-          type="search"
-          size={1}
-          placeholder={
-            isCloud
-              ? 'Type to search for projects, Data Links, users, and more.'
-              : 'Type to search for projects.'
-          }
-          className="peer text relative z-1 w-full bg-transparent placeholder:text-center"
-          onChange={event => {
-            if (querySource.current !== QuerySource.internal) {
-              querySource.current = QuerySource.typing
-              setQuery(AssetQuery.fromString(event.target.value))
-            }
-          }}
-          onKeyDown={event => {
-            if (
-              event.key === 'Enter' &&
-              !event.shiftKey &&
-              !event.altKey &&
-              !event.metaKey &&
-              !event.ctrlKey
-            ) {
-              // Clone the query to refresh results.
-              setQuery(query.clone())
-            }
-          }}
-        />
-      </div>
-    </label>
+          <FocusRing placement="before">
+            <aria.SearchField
+              aria-label="Search through items"
+              className="relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all"
+            >
+              <aria.Input
+                type="search"
+                ref={searchRef}
+                size={1}
+                placeholder={
+                  isCloud
+                    ? 'Type to search for projects, Data Links, users, and more.'
+                    : 'Type to search for projects.'
+                }
+                className="peer text relative z-1 w-full bg-transparent placeholder:text-center"
+                onChange={event => {
+                  if (querySource.current !== QuerySource.internal) {
+                    querySource.current = QuerySource.typing
+                    setQuery(AssetQuery.fromString(event.target.value))
+                  }
+                }}
+                onKeyDown={event => {
+                  if (
+                    event.key === 'Enter' &&
+                    !event.shiftKey &&
+                    !event.altKey &&
+                    !event.metaKey &&
+                    !event.ctrlKey
+                  ) {
+                    // Clone the query to refresh results.
+                    setQuery(query.clone())
+                  }
+                }}
+              />
+            </aria.SearchField>
+          </FocusRing>
+        </label>
+      )}
+    </FocusArea>
   )
 }

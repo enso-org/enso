@@ -516,3 +516,7 @@ body::before {
 ::-webkit-scrollbar-corner {
   background: rgba(0, 0, 0, 0);
 }
+
+[data-debug] [data-focus-area] {
+  outline: 1px solid red;
+}

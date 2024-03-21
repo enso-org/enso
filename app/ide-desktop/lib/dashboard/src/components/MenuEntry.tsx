@@ -7,6 +7,7 @@ import type * as inputBindings from '#/configurations/inputBindings'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
+import * as aria from '#/components/aria'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
 
@@ -24,7 +25,7 @@ export interface MenuEntryProps {
   /** Overrides the text for the menu entry. */
   readonly label?: string
   /** When true, the button is not clickable. */
-  readonly disabled?: boolean
+  readonly isDisabled?: boolean
   readonly title?: string
   readonly isContextMenuEntry?: boolean
   readonly doAction: () => void
@@ -32,41 +33,37 @@ export interface MenuEntryProps {
 
 /** An item in a menu. */
 function MenuEntry(props: MenuEntryProps, ref: React.ForwardedRef<HTMLButtonElement>) {
-  const { focusRing = false, hidden = false, action, label, disabled = false, title } = props
+  const { focusRing = false, hidden = false, action, label, isDisabled = false, title } = props
   const { isContextMenuEntry = false, doAction } = props
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
   React.useEffect(() => {
     // This is slower (but more convenient) than registering every shortcut in the context menu
     // at once.
-    if (disabled) {
+    if (isDisabled) {
       return
     } else {
       return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         [action]: doAction,
       })
     }
-  }, [disabled, inputBindings, action, doAction])
+  }, [isDisabled, inputBindings, action, doAction])
 
   return hidden ? null : (
-    <button
+    <aria.Button
       ref={ref}
-      disabled={disabled}
-      title={title}
+      isDisabled={isDisabled}
       className={`flex h-row place-content-between items-center rounded-menu-entry p-menu-entry text-left selectable hover:bg-hover-bg enabled:active disabled:bg-transparent ${
         isContextMenuEntry ? 'px-context-menu-entry-x' : ''
       } ${focusRing ? 'focus-ring' : ''}`}
-      onClick={event => {
-        event.stopPropagation()
-        doAction()
-      }}
+      onPress={doAction}
     >
-      <div className="flex items-center gap-menu-entry whitespace-nowrap">
+      <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
         <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
         {label ?? info.name}
       </div>
       <KeyboardShortcut action={action} />
-    </button>
+    </aria.Button>
   )
 }
 

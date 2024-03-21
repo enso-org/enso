@@ -24,7 +24,6 @@ import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import Category from '#/layouts/CategorySwitcher/Category'
 
-import Button from '#/components/Button'
 import type * as assetRow from '#/components/dashboard/AssetRow'
 import AssetRow from '#/components/dashboard/AssetRow'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
@@ -34,6 +33,7 @@ import * as columnHeading from '#/components/dashboard/columnHeading'
 import Label from '#/components/dashboard/Label'
 import SelectionBrush from '#/components/SelectionBrush'
 import Spinner, * as spinner from '#/components/Spinner'
+import Button from '#/components/styled/Button'
 
 import DragModal from '#/modals/DragModal'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
@@ -2527,8 +2527,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                       alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
                         columnUtils.COLUMN_NAME[column]
                       }`}
-                      onClick={event => {
-                        event.stopPropagation()
+                      onPress={() => {
                         const newExtraColumns = new Set(enabledColumns)
                         if (enabledColumns.has(column)) {
                           newExtraColumns.delete(column)
