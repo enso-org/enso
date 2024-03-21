@@ -27,7 +27,7 @@ type File_Format_Metadata
        - extension: the extension of the file.
        - read_first_bytes: a function that reads the first bytes of the file.
        - content_type: the content type of the file.
-    Value path:Text|Nothing name:Text|Nothing (extension:Text|Nothing = Nothing) (read_first_bytes:(Integer -> Nothing | Vector Integer)=(_->Nothing)) (content_type:Text|Nothing = Nothing)
+    Value (path:Text|Nothing = Nothing) (name:Text|Nothing = Nothing) (extension:Text|Nothing = Nothing) (read_first_bytes:(Integer -> Nothing | Vector Integer)=(_->Nothing)) (content_type:Text|Nothing = Nothing)
 
     ## PRIVATE
        An instance that contains no information at all.

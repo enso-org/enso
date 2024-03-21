@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 
 from Standard.Table import all
 
@@ -69,7 +70,10 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
         data_link_file = replace_url_in_data_link (data_link_root / "example-http-format-excel-range.datalink")
 
         r1 = data_link_file.with_input_stream [File_Access.Read] input_stream->
-            Excel_Format.Workbook.read_stream input_stream
+            ## We need to specify the format explicitly because the raw stream
+               has no access to file metadata and the excel reader needs to know if its XLS or XLSX.
+            metadata = File_Format_Metadata.Value extension=".xls"
+            Excel_Format.Workbook.read_stream input_stream metadata
         r1.should_be_a Excel_Workbook
 
         r2 = data_link_file.with_input_stream [File_Access.Read] .read_all_bytes
@@ -77,4 +81,4 @@ add_specs suite_builder = suite_builder.group "parsing Table formats in DataLink
 
         # But it is still possible to access the raw data too.
         r3 = data_link_file.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
-        Text.from_bytes r3 . should_contain '"type": "HTTP"'
+        Text.from_bytes r3 Encoding.utf_8 . should_contain '"type": "HTTP"'
