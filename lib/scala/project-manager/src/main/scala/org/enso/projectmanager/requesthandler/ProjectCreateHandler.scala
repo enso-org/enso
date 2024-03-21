@@ -75,7 +75,7 @@ class ProjectCreateHandler[
           s"Created requested project ${params.name} with real " +
           s"name ${project.name}"
         )
-      } yield ProjectCreate.Result(project.id, project.name)
+      } yield ProjectCreate.Result(project.id, project.name, project.module)
   }
 }
 
