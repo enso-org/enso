@@ -597,6 +597,11 @@ export default class LocalBackend extends Backend {
     return { path, id: newFileId(path), project: null }
   }
 
+  /** Construct a new path using the given parent directory and a file name. */
+  joinPath(parentId: backend.DirectoryId, fileName: string) {
+    return projectManager.joinPath(extractTypeAndId(parentId).id, fileName)
+  }
+
   /** Invalid operation. */
   override updateDirectory() {
     return this.invalidOperation()

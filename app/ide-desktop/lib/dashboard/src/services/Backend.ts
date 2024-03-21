@@ -711,7 +711,8 @@ export function createPlaceholderProjectAsset(
   title: string,
   parentId: DirectoryId,
   assetPermissions: UserPermission[],
-  organization: User | null
+  organization: User | null,
+  path: Path | null
 ): ProjectAsset {
   return {
     type: AssetType.project,
@@ -726,6 +727,7 @@ export function createPlaceholderProjectAsset(
       volume_id: '',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       ...(organization != null ? { opened_by: organization.email } : {}),
+      ...(path != null ? { path } : {}),
     },
     labels: [],
     description: null,

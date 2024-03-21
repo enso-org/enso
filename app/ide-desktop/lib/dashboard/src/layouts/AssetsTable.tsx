@@ -39,6 +39,7 @@ import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
 import * as backendModule from '#/services/Backend'
+import LocalBackend from '#/services/LocalBackend'
 
 import * as array from '#/utilities/array'
 import type * as assetQuery from '#/utilities/AssetQuery'
@@ -1474,6 +1475,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       case AssetListEventType.newProject: {
         const projectName = getNewProjectName(event.templateName, event.parentId)
         const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
+        const path =
+          backend instanceof LocalBackend ? backend.joinPath(event.parentId, projectName) : null
         const placeholderItem: backendModule.ProjectAsset = {
           type: backendModule.AssetType.project,
           id: dummyId,
@@ -1487,6 +1490,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             volume_id: '',
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ...(user != null ? { opened_by: user.email } : {}),
+            ...(path != null ? { path } : {}),
           },
           labels: [],
           description: null,
@@ -1502,6 +1506,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         break
       }
       case AssetListEventType.uploadFiles: {
+        const localBackend = backend instanceof LocalBackend ? backend : null
         const reversedFiles = Array.from(event.files).reverse()
         const siblingNodes = nodeMapRef.current.get(event.parentKey)?.children ?? []
         const siblings = siblingNodes.map(node => node.item)
@@ -1520,14 +1525,16 @@ export default function AssetsTable(props: AssetsTableProps) {
           const placeholderFiles = files.map(file =>
             backendModule.createPlaceholderFileAsset(file.name, event.parentId, ownerPermission)
           )
-          const placeholderProjects = projects.map(project =>
-            backendModule.createPlaceholderProjectAsset(
-              project.name,
+          const placeholderProjects = projects.map(project => {
+            const basename = backendModule.stripProjectExtension(project.name)
+            return backendModule.createPlaceholderProjectAsset(
+              basename,
               event.parentId,
               ownerPermission,
-              user
+              user,
+              localBackend?.joinPath(event.parentId, basename) ?? null
             )
-          )
+          })
           doToggleDirectoryExpansion(event.parentId, event.parentKey, null, true)
           insertAssets(placeholderFiles, event.parentKey, event.parentId)
           insertAssets(placeholderProjects, event.parentKey, event.parentId)
@@ -1571,7 +1578,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                 basename,
                 event.parentId,
                 ownerPermission,
-                user
+                user,
+                localBackend?.joinPath(event.parentId, basename) ?? null
               ),
               file: project,
             }
@@ -1612,11 +1620,13 @@ export default function AssetsTable(props: AssetsTableProps) {
                       !siblingProjectTitles.has(backendModule.stripProjectExtension(project.name))
                   )
                   .map(project => {
+                    const basename = backendModule.stripProjectExtension(project.name)
                     const asset = backendModule.createPlaceholderProjectAsset(
-                      backendModule.stripProjectExtension(project.name),
+                      basename,
                       event.parentId,
                       ownerPermission,
-                      user
+                      user,
+                      localBackend?.joinPath(event.parentId, basename) ?? null
                     )
                     fileMap.set(asset.id, project)
                     return asset
