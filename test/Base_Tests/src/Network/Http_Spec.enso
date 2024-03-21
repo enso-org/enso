@@ -71,6 +71,11 @@ add_specs suite_builder =
             http = HTTP.new (follow_redirects = False)
             http.follow_redirects.should_equal False
 
+            r = http.request (Request.new HTTP_Method.Get base_url_with_slash+"test_redirect")
+            r.should_fail_with HTTP_Error
+            r.catch.should_be_a HTTP_Error.Status_Error
+            r.catch.status_code.code . should_equal 302
+
         group_builder.specify "should create HTTP client with proxy setting" <|
             proxy_setting = Proxy.Address "example.com" 80
             http = HTTP.new (proxy = proxy_setting)
@@ -142,6 +147,11 @@ add_specs suite_builder =
         group_builder.specify "can use URI in Data.read" <|
             r = Data.read (URI.from url_get)
             r.should_be_a JS_Object
+
+        group_builder.specify "should follow redirects" <|
+            r = Data.read base_url_with_slash+"test_redirect"
+            r.should_be_a Text
+            r.trim . should_equal '{"hello": "world"}'
 
         group_builder.specify "Can skip auto-parse" <|
             response = Data.fetch url_get try_auto_parse_response=False
