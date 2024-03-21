@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use anyhow::Context;
+use enso_build_base::extensions::future::TryFutureExt;
 use sha2::Digest;
 use std::hash::Hasher;
 
@@ -162,6 +163,7 @@ impl Cache {
                     let metadata = storable
                         .generate(this, entry_dir.clone())
                         .instrument(info_span!("Generating value to fill the cache."))
+                        .context("Failed to generate the cache entry.")
                         .await?;
                     let info = EntryIndexExtended::<S>::new(metadata, key);
                     entry_meta.write_as_json(&info)?;
