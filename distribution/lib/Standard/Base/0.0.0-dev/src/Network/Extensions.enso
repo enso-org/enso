@@ -40,8 +40,8 @@ Text.to_uri self = URI.parse self
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
    - format: The format to use for interpreting the response.
-     Defaults to `Auto_Detect`.
-     If `Raw_Response` is provided, a raw HTTP `Response` will be returned.
+     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
+     cannot be determined automatically, a raw HTTP `Response` will be returned.
 @format Data_Read_Helpers.format_widget_with_raw_response
 URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any
 URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] format=Auto_Detect =
@@ -60,8 +60,8 @@ URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] format=Auto_Detec
      `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
    - headers: The headers to send with the request. Defaults to an empty vector.
    - response_format: The format to use for interpreting the response.
-     Defaults to `Auto_Detect`.
-     If `Raw_Response` is provided, a raw HTTP `Response` will be returned.
+     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
+     cannot be determined automatically, a raw HTTP `Response` will be returned.
 
    ! Specifying Content Types
 
