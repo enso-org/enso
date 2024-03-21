@@ -357,6 +357,12 @@ function addNodeAuto() {
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   const [withPos, withoutPos] = partition(toCommit, (opts) => !!opts.position)
+  if (
+    document.activeElement instanceof HTMLElement ||
+    document.activeElement instanceof SVGElement
+  ) {
+    document.activeElement.blur()
+  }
   const created = new Set<NodeId>()
   const createWithOptions = (opts: NodeCreationOptions) => {
     const node = createNodeFromSource(sourceNode, opts)
