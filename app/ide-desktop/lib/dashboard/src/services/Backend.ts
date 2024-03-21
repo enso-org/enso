@@ -395,8 +395,7 @@ export interface UserInfo {
 /** Metadata for an organization. */
 export interface OrganizationInfo {
   readonly id: OrganizationId
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  readonly organization_name: string | null
+  readonly name: string | null
   readonly email: EmailAddress | null
   readonly website: HttpsUrl | null
   readonly address: string | null
