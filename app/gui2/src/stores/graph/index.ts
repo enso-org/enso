@@ -440,6 +440,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   const nodesToPlace = reactive<NodeId[]>([])
+  const { place: placeNode } = usePlacement(visibleNodeAreas, Rect.Zero)
 
   watch(nodesToPlace, (nodeIds) => {
     if (nodeIds.length === 0) return
@@ -450,7 +451,6 @@ export const useGraphStore = defineStore('graph', () => {
         const nodeAst = syncModule.value?.get(nodeId)
         const rect = nodeRects.get(nodeId)
         if (!rect || !nodeAst || nodeAst.nodeMetadata.get('position') != null) continue
-        const { place: placeNode } = usePlacement(visibleNodeAreas.value, Rect.Zero)
         const { position } = placeNode([], rect.size)
         editNodeMetadata(nodeAst, (metadata) =>
           metadata.set('position', { x: position.x, y: position.y }),
