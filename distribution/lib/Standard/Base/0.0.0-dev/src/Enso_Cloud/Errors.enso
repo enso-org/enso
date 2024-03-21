@@ -6,8 +6,21 @@ import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
    Error if the user is not logged into Enso Cloud.
 type Not_Logged_In
     ## PRIVATE
+    Error
+
+    ## PRIVATE
     to_display_text : Text
     to_display_text self = "Not logged into Enso cloud. Please log in and restart."
+
+## PRIVATE
+   Indicates that the session with Enso Cloud has expired and the user needs to log in again.
+type Cloud_Session_Expired
+    ## PRIVATE
+       The `underlying_error` is not shown in the error message, but is saved for debugging purposes.
+    Error underlying_error
+
+    to_display_text : Text
+    to_display_text self = "Login session with Enso Cloud has expired. Please log in again and restart."
 
 ## PRIVATE
 type Enso_Cloud_Error

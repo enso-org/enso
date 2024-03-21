@@ -17,24 +17,30 @@ class CloseFileCmd(request: Api.CloseFileNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Unit = {
-    val logger                    = ctx.executionService.getLogger
-    val readLockTimestamp         = ctx.locking.acquireReadCompilationLock()
-    val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    val logger            = ctx.executionService.getLogger
+    val readLockTimestamp = ctx.locking.acquireReadCompilationLock()
     try {
-      ctx.state.pendingEdits.dequeue(request.path)
-      ctx.executionService.resetModuleSources(request.path)
+      val fileLockTimestamp = ctx.locking.acquireFileLock(request.path)
+      try {
+        val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+        try {
+          ctx.state.pendingEdits.dequeue(request.path)
+          ctx.executionService.resetModuleSources(request.path)
+        } finally {
+          ctx.locking.releasePendingEditsLock()
+          logger.log(
+            Level.FINEST,
+            "Kept pending edits lock [CloseFileCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
+          )
+        }
+      } finally {
+        ctx.locking.releaseFileLock(request.path)
+        logger.log(
+          Level.FINEST,
+          "Kept file lock [CloseFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
+        )
+      }
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      logger.log(
-        Level.FINEST,
-        "Kept pending edits lock [CloseFileCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
-      )
-      ctx.locking.releaseFileLock(request.path)
-      logger.log(
-        Level.FINEST,
-        "Kept file lock [CloseFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
-      )
       ctx.locking.releaseReadCompilationLock()
       logger.log(
         Level.FINEST,

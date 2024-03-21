@@ -123,7 +123,7 @@ add_specs suite_builder =
             (accent_1 != Nothing) . should_be_true
             Ordering.compare accent_1 Nothing . should_fail_with Incomparable_Values
             (accent_1 > Nothing) . should_fail_with Incomparable_Values
-            accent_1 . compare_to_ignore_case Nothing . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| accent_1 . compare_to_ignore_case Nothing
 
             earlier_suffix = "aooooz"
             later_suffix = "bo"
@@ -758,8 +758,8 @@ add_specs suite_builder =
             "".drop (Sample 100) . should_equal ""
 
         group_builder.specify "take and drop should gracefully handle missing constructor arguments" <|
-            "".take "FOO" . should_fail_with Type_Error
-            "".drop "FOO" . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| "".take "FOO"
+            Test.expect_panic Type_Error <| "".drop "FOO"
 
             r1 = "".take (Index_Sub_Range.While)
             r1.should_fail_with Illegal_Argument
@@ -774,7 +774,7 @@ add_specs suite_builder =
             r3.catch.to_display_text . should_contain "Got a Function instead of a range, is a constructor argument missing?"
 
             # Double-check that constructors of _unexpected_ types are still yielding a type error.
-            "".take (Case_Sensitivity.Insensitive ...) . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| "".take (Case_Sensitivity.Insensitive ...)
 
         group_builder.specify "should correctly convert character case" <|
             "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
@@ -1666,4 +1666,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

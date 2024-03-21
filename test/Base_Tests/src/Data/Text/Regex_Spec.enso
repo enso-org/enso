@@ -76,9 +76,9 @@ add_specs suite_builder =
             pattern = Regex.compile ""
             pattern.matches "ABC" . should_fail_with Illegal_Argument
 
-         group_builder.specify "`matches` against a non-Text should fail with Illegal_Argument" <|
-             pattern = Regex.compile "abc"
-             pattern.matches 1 . should_fail_with Type_Error
+        group_builder.specify "`matches` against a non-Text should fail with Type_Error" <|
+            pattern = Regex.compile "abc"
+            Test.expect_panic Type_Error <| pattern.matches 1
 
 
     suite_builder.group "Pattern.match and .match_all" group_builder->
@@ -122,11 +122,11 @@ add_specs suite_builder =
 
         group_builder.specify "`match` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
-            pattern.match 1 . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| pattern.match 1
 
         group_builder.specify "`match_all` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
-            pattern.match_all 1 . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| pattern.match_all 1
 
 
     suite_builder.group "Pattern.find and .find_all" group_builder->
@@ -217,7 +217,7 @@ add_specs suite_builder =
 
         group_builder.specify "`split` against a non-Text should fail with Illegal_Argument" <|
             pattern = Regex.compile "abc"
-            pattern.split 1 . should_fail_with Type_Error
+            Test.expect_panic Type_Error <| pattern.split 1
 
 
     suite_builder.group "Pattern.tokenize" group_builder->
@@ -342,13 +342,13 @@ add_specs suite_builder =
            pattern = Regex.compile "([a-z]+)"
            pattern.replace "foo bar, baz" "[$1]" . should_equal "[foo] [bar], [baz]"
 
-        group_builder.specify "`replace` with an empty pattern should be an error" <|
-            pattern = Regex.compile ""
-            pattern.replace "ABC" . should_fail_with Illegal_Argument
+       group_builder.specify "`replace` with an empty pattern should be an error" <|
+           pattern = Regex.compile ""
+           pattern.replace "ABC" . should_fail_with Illegal_Argument
 
-        group_builder.specify "`replace` against a non-Text should fail with Illegal_Argument" <|
-            pattern = Regex.compile "abc"
-            pattern.replace 1 "abc" . should_fail_with Type_Error
+       group_builder.specify "`replace` against a non-Text should fail with Type_Error" <|
+           pattern = Regex.compile "abc"
+           Test.expect_panic Type_Error <| pattern.replace 1 "abc"
 
 
     suite_builder.group "Match.text" group_builder->
@@ -538,4 +538,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

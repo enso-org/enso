@@ -18,7 +18,8 @@ object Editions {
     "Standard.Visualization",
     "Standard.Examples",
     "Standard.Searcher",
-    "Standard.Google_Api"
+    "Standard.Google_Api",
+    "Standard.Snowflake"
   )
 
   case class ContribLibrary(name: String, version: String)
