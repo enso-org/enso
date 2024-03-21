@@ -35,8 +35,8 @@ public abstract class SimpleHttpHandler implements HttpHandler {
     sendResponse(code, message, exchange, "text/plain; charset=utf-8");
   }
 
-  protected final void sendResponse(int code, String message, HttpExchange exchange, String contentType)
-      throws IOException {
+  protected final void sendResponse(
+      int code, String message, HttpExchange exchange, String contentType) throws IOException {
     byte[] response = message.getBytes(StandardCharsets.UTF_8);
     if (contentType != null) {
       exchange.getResponseHeaders().add("Content-Type", contentType);

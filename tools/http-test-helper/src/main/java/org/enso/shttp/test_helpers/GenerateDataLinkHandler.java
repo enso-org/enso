@@ -1,15 +1,15 @@
 package org.enso.shttp.test_helpers;
 
 import com.sun.net.httpserver.HttpExchange;
-import org.enso.shttp.SimpleHttpHandler;
-
 import java.io.IOException;
+import org.enso.shttp.SimpleHttpHandler;
 
 /** A handler that generates a Data Link pointing to a file on this server. */
 public class GenerateDataLinkHandler extends SimpleHttpHandler {
   private final boolean includeContentType;
-  private final static String targetPath = "/testfiles/js.txt";
-  private final static String dataLinkTemplate = """
+  private static final String targetPath = "/testfiles/js.txt";
+  private static final String dataLinkTemplate =
+      """
       {
           "type": "HTTP",
           "libraryName": "Standard.Base",
