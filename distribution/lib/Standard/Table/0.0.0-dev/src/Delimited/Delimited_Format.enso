@@ -5,8 +5,8 @@ import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
 from Standard.Base.System.File_Format import parse_boolean_with_infer
+from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
 
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
