@@ -5,7 +5,7 @@ import {
   previousNodeDictatedPlacement,
   type Environment,
   type Placement,
-} from '@/components/ComponentBrowser/placement'
+} from '@/composables/placement'
 import * as iterable from '@/util/data/iterable'
 import { chain, map, range } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
@@ -50,9 +50,6 @@ describe('Non dictated placement', () => {
       nodeRects,
       get selectedNodeRects() {
         return getSelectedNodeRects()
-      },
-      get mousePosition() {
-        return getMousePosition()
       },
     }
   }
@@ -204,16 +201,14 @@ describe('Previous node dictated placement', () => {
       screenBounds,
       nodeRects,
       selectedNodeRects: nodeRects.slice(-1),
-      get mousePosition() {
-        return getMousePosition()
-      },
     }
   }
 
-  test('Previous node dictated placement throws when there are no selected nodes', () => {
-    expect(() =>
-      previousNodeDictatedPlacement(nodeSize, previousNodeDictatedEnvironment([])),
-    ).toThrow()
+  test('Previous node dictated placement is equivalent to non-dictated placement when there are no nodes', () => {
+    const environment = previousNodeDictatedEnvironment([])
+    expect(previousNodeDictatedPlacement(nodeSize, environment)).toEqual(
+      nonDictatedPlacement(nodeSize, environment),
+    )
   })
 
   test.each([
@@ -376,9 +371,6 @@ describe('Previous node dictated placement', () => {
         screenBounds,
         nodeRects,
         selectedNodeRects,
-        get mousePosition() {
-          return getMousePosition()
-        },
       }).position,
       nodeSize,
     )
@@ -411,31 +403,7 @@ describe('Mouse dictated placement', () => {
     x: fc.nat(1000),
     y: fc.nat(1000),
   })('prop testing', ({ x, y }) => {
-    expect(
-      mouseDictatedPlacement(
-        nodeSize,
-        {
-          mousePosition: new Vec2(x, y),
-          get screenBounds() {
-            return getScreenBounds()
-          },
-          get nodeRects() {
-            return getNodeRects()
-          },
-          get selectedNodeRects() {
-            return getSelectedNodeRects()
-          },
-        },
-        {
-          get horizontalGap() {
-            return getHorizontalGap()
-          },
-          get verticalGap() {
-            return getVerticalGap()
-          },
-        },
-      ),
-    ).toEqual<Placement>({
+    expect(mouseDictatedPlacement(nodeSize, new Vec2(x, y))).toEqual<Placement>({
       // Note: Currently, this is a reimplementation of the entire mouse dictated placement algorithm.
       position: new Vec2(x + radius, y + radius),
     })
@@ -454,9 +422,6 @@ describe('Collapsed node placement', () => {
       screenBounds,
       nodeRects: [...selectedNodeRects, ...nonSelectedNodeRects],
       selectedNodeRects,
-      get mousePosition() {
-        return getMousePosition()
-      },
     }
   }
 
