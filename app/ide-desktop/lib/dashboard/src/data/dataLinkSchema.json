@@ -219,7 +219,13 @@
         },
         "table": { "title": "Table to access", "type": "string" }
       },
-      "required": ["type", "libraryName", "account", "database_name", "credentials"]
+      "required": [
+        "type",
+        "libraryName",
+        "account",
+        "database_name",
+        "credentials"
+      ]
     },
 
     "Format": {
