@@ -14,6 +14,10 @@ import org.enso.shttp.auth.TokenAuthTestHandler;
 import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudRoot;
 import org.enso.shttp.cloud_mock.ExpiredTokensCounter;
+import org.enso.shttp.test_helpers.CrashingTestHandler;
+import org.enso.shttp.test_helpers.GenerateDataLinkHandler;
+import org.enso.shttp.test_helpers.HeaderTestHandler;
+import org.enso.shttp.test_helpers.TestHandler;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
