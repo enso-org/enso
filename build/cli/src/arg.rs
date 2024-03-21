@@ -1,4 +1,4 @@
-#![allow(unused_qualifications)] // https://github.com/enso-org/enso/issues/5168v
+#![allow(unused_qualifications)] // https://github.com/enso-org/enso/issues/5168
 
 use enso_build::prelude::*;
 

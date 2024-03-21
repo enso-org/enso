@@ -104,14 +104,6 @@ impl<'a> RepoRef<'a> {
         T2: AsRef<str> + ?Sized, {
         Self { owner: owner.as_ref(), name: name.as_ref() }
     }
-
-    // #[allow(missing_docs)]
-    // pub const fn new<T1, T2>(owner: &'a T1, name: &'a T2) -> Self
-    //     where
-    //         T1: ~const AsRef<str> + ?Sized,
-    //         T2: ~const AsRef<str> + ?Sized, {
-    //     Self { owner: owner.as_ref(), name: name.as_ref() }
-    // }
 }
 
 /// Note that we chose to implement `TryFrom` rather than `FromStr` for `RepoRef` because
