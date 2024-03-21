@@ -15,8 +15,6 @@ const primitive = computed(() => {
       return 'number'
     case 'boolean':
       return 'boolean'
-    case 'undefined':
-      return 'undefined'
     case 'object':
       return 'null'
   }
@@ -36,9 +34,6 @@ const primitive = computed(() => {
   color: darkgreen;
 }
 .boolean {
-  color: darkgreen;
-}
-.undefined {
   color: darkgreen;
 }
 .null {

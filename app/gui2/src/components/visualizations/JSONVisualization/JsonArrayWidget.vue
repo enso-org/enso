@@ -10,16 +10,25 @@ const emit = defineEmits<{
 const MAX_INLINE_LENGTH = 40
 
 const block = computed(() => JSON.stringify(props.data).length > MAX_INLINE_LENGTH)
+
+function entryTitle(index: number) {
+  const singleEntry = `Click to create a node selecting element ${index} of the array.`
+  return props.data.length > 1 ?
+      `${singleEntry} Shift-click to create nodes selecting all ${props.data.length} elements.`
+    : singleEntry
+}
 </script>
 
 <template>
-  <span class="JsonArrayWidget" :class="{ block }" @pointerdown.stop @pointerup.stop @click.stop>
+  <span class="JsonArrayWidget" :class="{ block }">
     <span
       v-for="(child, index) in props.data"
       :key="index"
-      :title="`Click to create a node selecting element ${index} of the array.`"
+      :title="entryTitle(index)"
       class="button element"
-      @click="emit('createProjection', [[index]])"
+      @pointerdown.stop
+      @pointerup.stop
+      @click.stop="emit('createProjection', [$event.shiftKey ? [...props.data.keys()] : [index]])"
     >
       <JsonValueWidget
         :data="child"

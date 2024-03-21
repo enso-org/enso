@@ -24,13 +24,15 @@ function entryTitle(key: string) {
 </script>
 
 <template>
-  <span class="JsonObjectWidget" :class="{ block }" @pointerdown.stop @pointerup.stop @click.stop>
+  <span class="JsonObjectWidget" :class="{ block }">
     <span
       v-for="[key, value] in Object.entries(props.data)"
       :key="key"
       :title="entryTitle(key)"
       class="button field"
-      @click="emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])"
+      @pointerdown.stop
+      @pointerup.stop
+      @click.stop="emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])"
     >
       <span class="key" v-text="JSON.stringify(key)" />:
       <JsonValueWidget
