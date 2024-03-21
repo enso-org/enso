@@ -619,20 +619,14 @@ handle_java_exception ~action =
     Panic.catch ArithmeticException action caught_panic->
         Error.throw (Arithmetic_Error.Error caught_panic.payload.getMessage)
 
-## PRIVATE
 Comparable.from (_ : Decimal) = Decimal_Comparator
 
-## PRIVATE
 Comparable.from (_ : Number) = Decimal_Comparator
 
-## PRIVATE
 Decimal.from (that : Text) = Decimal.parse that
 
-## PRIVATE
 Decimal.from (that : Number) = Decimal.new that
 
-## PRIVATE
 Integer.from (that : Decimal) = that.to_integer
 
-## PRIVATE
 Float.from (that : Decimal) = that.to_float
