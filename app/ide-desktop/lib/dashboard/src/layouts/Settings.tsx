@@ -24,7 +24,7 @@ export default function Settings() {
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
-    pk: user?.id ?? backendModule.OrganizationId(''),
+    id: user?.id ?? backendModule.OrganizationId(''),
     // eslint-disable-next-line @typescript-eslint/naming-convention
     organization_name: null,
     email: null,
