@@ -126,14 +126,14 @@ final class JobExecutionEngine(
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
     val logger  = runtimeContext.executionService.getLogger
-    logger.log(Level.FINE, s"Submitting job: $job...")
+    logger.log(Level.FINE, s"Submitting job: {0}...", job)
     val future = executorService.submit(() => {
-      logger.log(Level.FINE, s"Executing job: $job...")
+      logger.log(Level.FINE, s"Executing job: {0}...", job)
       val before = System.currentTimeMillis()
       try {
         val result = job.run(runtimeContext)
         val took   = System.currentTimeMillis() - before
-        logger.log(Level.FINE, s"Job $job finished in $took ms.")
+        logger.log(Level.FINE, s"Job {0} finished in {1} ms.", Array(job, took))
         promise.success(result)
       } catch {
         case NonFatal(ex) =>
@@ -150,7 +150,8 @@ final class JobExecutionEngine(
     })
     val runningJob = RunningJob(jobId, job, future)
 
-    runningJobsRef.updateAndGet(_ :+ runningJob)
+    val queue = runningJobsRef.updateAndGet(_ :+ runningJob)
+    logger.log(Level.FINE, "Number of pending jobs: {}", queue.size)
 
     promise.future
   }
