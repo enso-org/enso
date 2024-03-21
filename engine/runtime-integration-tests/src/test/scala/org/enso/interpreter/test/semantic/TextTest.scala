@@ -108,6 +108,7 @@ class TextTest extends InterpreterTest {
         """
           |import Standard.Base.Any.Any
           |import Standard.Base.Data.List.List
+          |import Standard.Base.Data.Numbers
           |from Standard.Base.Errors.Common import all
           |import Standard.Base.Panic.Panic
           |import Standard.Base.IO
@@ -117,7 +118,7 @@ class TextTest extends InterpreterTest {
           |main =
           |    IO.println (List.Cons Nothing Nothing).to_display_text
           |    IO.println (Syntax_Error.Error "foo").to_display_text
-          |    IO.println (Type_Error.Error Nothing List.Nil "`myvar`").to_display_text
+          |    IO.println (Type_Error.Error Nothing List.Nil "`myvar`: exp={exp} got={got}").to_display_text
           |    IO.println (Compile_Error.Error "error :(").to_display_text
           |    IO.println (Inexhaustive_Pattern_Match.Error 32).to_display_text
           |    IO.println (Arithmetic_Error.Error "cannot frobnicate quaternions").to_display_text
@@ -129,11 +130,11 @@ class TextTest extends InterpreterTest {
       consumeOut shouldEqual List(
         "Cons",
         "Syntax error: foo.",
-        "Type error: expected `myvar` to be Nothing, but got List.",
+        "Type error: `myvar`: exp=Nothing got=List.",
         "Compile error: error :(.",
         "Inexhaustive pattern match: no branch matches 32.",
         "Arithmetic error: cannot frobnicate quaternions.",
-        "Type error: expected `that` to be Integer, but got Text.",
+        "Type error: Expected `that` to be Integer, but got Text.",
         "Type error: expected a function, but got 7.",
         "Wrong number of arguments. Expected 10, but got 20."
       )

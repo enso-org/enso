@@ -676,8 +676,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
                 v.take (Sample 3) . should_not_equal (v.take (Sample 3))
 
     group_builder.specify "take/drop should gracefully handle missing constructor arguments" <|
-        [].take "FOO" . should_fail_with Type_Error
-        [].drop "FOO" . should_fail_with Type_Error
+        Test.expect_panic Type_Error <| [].take "FOO"
+        Test.expect_panic Type_Error <| [].drop "FOO"
 
         r1 = [].take (Index_Sub_Range.While)
         r1.should_fail_with Illegal_Argument

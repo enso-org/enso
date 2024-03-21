@@ -52,6 +52,13 @@ function scroll(event: ScrollbarEvent) {
       scrollingState.value = undefined
       break
     }
+    case 'jump': {
+      const proportionalPos = event.position / scrollInputs.value.range.getAxis(event.axis)
+      const scaledPos = proportionalPos * props.scrollableArea.size.getAxis(event.axis)
+      const pos = scaledPos + props.scrollableArea.pos.getAxis(event.axis)
+      props.navigator.scrollTo(props.navigator.viewport.center().setAxis(event.axis, pos))
+      break
+    }
   }
 }
 </script>
