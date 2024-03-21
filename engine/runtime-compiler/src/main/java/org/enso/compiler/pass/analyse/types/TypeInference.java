@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse.types;
 
+import org.enso.compiler.PackageRepository;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.context.NameResolution;
@@ -56,6 +57,8 @@ public final class TypeInference implements IRPass {
   public Seq<IRPass> precursorPasses() {
     List<IRPass> passes = List.of(
         BindingAnalysis$.MODULE$,
+        GlobalNames$.MODULE$,
+        FullyQualifiedNames$.MODULE$,
         TypeNames$.MODULE$,
         Patterns$.MODULE$,
         TypeSignatures$.MODULE$
@@ -76,9 +79,9 @@ public final class TypeInference implements IRPass {
         moduleContext.compilerConfig(),
         Option.empty(),
         Option.empty(),
-        Option.empty(),
-        Option.empty(),
-        Option.empty()
+        moduleContext.freshNameSupply(),
+        moduleContext.passConfiguration(),
+        moduleContext.pkgRepo()
     );
 
     BindingsMap bindingsMap = getMetadata(ir, BindingAnalysis$.MODULE$, BindingsMap.class);
@@ -140,7 +143,8 @@ public final class TypeInference implements IRPass {
       );
     };
 
-    processTypePropagation(mappedIr, bindingsMap, localBindingsTyping);
+    PackageRepository packageRepository = inlineContext.pkgRepo().isDefined() ? inlineContext.pkgRepo().get() : null;
+    processTypePropagation(mappedIr, packageRepository, localBindingsTyping);
 
     // The ascriptions are processed later, because we want them to _overwrite_ any type that was inferred.
     processTypeAscription(mappedIr);
@@ -172,7 +176,7 @@ public final class TypeInference implements IRPass {
     }
   }
 
-  private void processTypePropagation(Expression ir, BindingsMap bindingsMap, LocalBindingsTyping localBindingsTyping) {
+  private void processTypePropagation(Expression ir, PackageRepository packageRepository, LocalBindingsTyping localBindingsTyping) {
     switch (ir) {
       case Name.Literal l -> processName(l, localBindingsTyping);
       case Application.Force f -> {
@@ -184,7 +188,7 @@ public final class TypeInference implements IRPass {
       case Application.Prefix p -> {
         var functionType = getInferredType(p.function());
         if (functionType != null) {
-          var inferredType = processApplication(functionType.type(), p.arguments(), p, bindingsMap);
+          var inferredType = processApplication(functionType.type(), p.arguments(), p, packageRepository);
           if (inferredType != null) {
             setInferredType(p, new InferredType(inferredType));
           }
@@ -271,6 +275,10 @@ public final class TypeInference implements IRPass {
   }
 
   private TypeRepresentation.TypeObject resolvedTypeAsTypeObject(BindingsMap.ResolvedType resolvedType) {
+    // TODO check if we have access to package repository, otherwise this will not be reversible!
+    if (resolvedType.qualifiedName().item().equals("Illegal_Argument")) {
+      System.out.println("resolvedType: " + resolvedType);
+    }
     return new TypeRepresentation.TypeObject(resolvedType.qualifiedName());
   }
 
@@ -286,14 +294,14 @@ public final class TypeInference implements IRPass {
   }
 
   @SuppressWarnings("unchecked")
-  private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR, BindingsMap bindingsMap) {
+  private TypeRepresentation processApplication(TypeRepresentation functionType, scala.collection.immutable.List<CallArgument> arguments, Application.Prefix relatedIR, PackageRepository packageRepository) {
     if (arguments.isEmpty()) {
       logger.warn("processApplication: {} - unexpected - no arguments in a function application", relatedIR.showCode());
       return functionType;
     }
 
     var firstArgument = arguments.head();
-    var firstResult = processSingleApplication(functionType, firstArgument, relatedIR, bindingsMap);
+    var firstResult = processSingleApplication(functionType, firstArgument, relatedIR, packageRepository);
     if (firstResult == null) {
       return null;
     }
@@ -301,11 +309,11 @@ public final class TypeInference implements IRPass {
     if (arguments.length() == 1) {
       return firstResult;
     } else {
-      return processApplication(firstResult, (scala.collection.immutable.List<CallArgument>) arguments.tail(), relatedIR, bindingsMap);
+      return processApplication(firstResult, (scala.collection.immutable.List<CallArgument>) arguments.tail(), relatedIR, packageRepository);
     }
   }
 
-  private TypeRepresentation processSingleApplication(TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR, BindingsMap bindingsMap) {
+  private TypeRepresentation processSingleApplication(TypeRepresentation functionType, CallArgument argument, Application.Prefix relatedIR, PackageRepository packageRepository) {
     if (argument.name().isDefined()) {
       // TODO named arguments are not yet supported
       return null;
@@ -321,7 +329,7 @@ public final class TypeInference implements IRPass {
       }
 
       case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
-        return processUnresolvedSymbolApplication(bindingsMap, unresolvedSymbol, argument.value());
+        return processUnresolvedSymbolApplication(packageRepository, unresolvedSymbol, argument.value());
       }
 
       case TypeRepresentation.TopType() -> {
@@ -336,8 +344,21 @@ public final class TypeInference implements IRPass {
     return null;
   }
 
-  private BindingsMap.Type findResolvedType(BindingsMap bindingsMap, QualifiedName typeName) {
-    var resolved = switch (bindingsMap.resolveQualifiedName(typeName.fullPath())) {
+  private BindingsMap.Type findResolvedType(PackageRepository packageRepository, QualifiedName typeName) {
+    if (typeName.item().equals("Illegal_Argument")) {
+      System.out.println("typeName: " + typeName);
+    }
+
+    // TODO or else?
+    var moduleName = typeName.getParent().get();
+    var module = packageRepository.getLoadedModule(moduleName.toString());
+    if (module.isEmpty()) {
+      throw new IllegalStateException("Internal error: type signature contained reference to type " + typeName + ", but the module " + moduleName + " is not loaded.");
+    }
+
+    var loadedModule = module.get();
+    var relevantBindingsMap = loadedModule.getBindingsMap();
+    var resolved = switch (relevantBindingsMap.resolveName(typeName.item())) {
       case Right<BindingsMap.ResolutionError, BindingsMap.ResolvedName> right -> right.value();
       default ->
           throw new IllegalStateException("Internal error: type signature contained _already resolved_ reference to type " + typeName + ", but now that type cannot be found in the bindings map.");
@@ -350,7 +371,7 @@ public final class TypeInference implements IRPass {
     };
   }
 
-  private TypeRepresentation processUnresolvedSymbolApplication(BindingsMap bindingsMap, TypeRepresentation.UnresolvedSymbol function, Expression argument) {
+  private TypeRepresentation processUnresolvedSymbolApplication(PackageRepository packageRepository, TypeRepresentation.UnresolvedSymbol function, Expression argument) {
     var argumentType = getInferredType(argument);
     if (argumentType == null) {
       return null;
@@ -358,7 +379,7 @@ public final class TypeInference implements IRPass {
 
     switch (argumentType.type()) {
       case TypeRepresentation.TypeObject typeObject -> {
-        var typeDescription = findResolvedType(bindingsMap, typeObject.name());
+        var typeDescription = findResolvedType(packageRepository, typeObject.name());
         Option<BindingsMap.Cons> ctorCandidate = typeDescription.members().find((ctor) -> ctor.name().equals(function.name()));
         if (ctorCandidate.isDefined()) {
           return buildAtomConstructorType(typeObject, ctorCandidate.get());

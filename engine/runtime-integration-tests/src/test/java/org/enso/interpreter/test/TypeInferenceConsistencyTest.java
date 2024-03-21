@@ -73,4 +73,22 @@ public class TypeInferenceConsistencyTest extends TestBase {
     // But we also expect the compile warning:
     assertContains("Invoking a value that has a non-function type Integer will result in a Not_Invokable error in runtime.", getOutput());
   }
+
+  /** Checks that the micro-distribution variant of Standard.Base can be compiled with type checking enabled. */
+  @Test
+  public void microDistributionBase() throws Exception {
+    final URI uri = new URI("memory://microDistributionBase.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso", """
+    from Standard.Base import all
+    foo = (123 + 10000).to_text.take 3
+    """, uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals("101", result.as(Object.class));
+  }
 }

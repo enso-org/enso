@@ -219,6 +219,13 @@ case class BindingsMap(
     case _ => Left(ResolutionNotFound)
   }
 
+  def resolveQualifiedNameString(qualifiedName: String): Either[ResolutionError, ResolvedName] = {
+    val parsed = QualifiedName.fromString(qualifiedName)
+    val result = resolveQualifiedName(parsed.path)
+    println("Resolving qualified name: " + parsed + " ==> " + result)
+    result
+  }
+
   /** Resolves a qualified name to a symbol in the context of this module.
     *
     * @param name the name to resolve
