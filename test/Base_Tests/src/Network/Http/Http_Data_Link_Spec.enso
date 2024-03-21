@@ -97,8 +97,14 @@ add_specs suite_builder =
             r2_plain = r2.decode Plain_Text
             r2_plain.should_contain '"libraryName": "Standard.Base"'
 
-        group_builder.specify "should follow a datalink encountered in Data.download" pending="TODO?" <|
-            Error.throw "TODO"
+        group_builder.specify "should follow a datalink encountered in Data.download" <|
+            target_file = enso_project.data / "transient" / "my_download.txt"
+            target_file.delete_if_exists
+            Data.download base_url_with_slash+"dynamic.datalink" target_file . should_equal target_file
+
+            Panic.with_finalizer target_file.delete_if_exists <|
+                target_file.read.trim.should_equal '{"hello": "world"}'
+
 
 ## Reads the datalink as plain text and replaces the placeholder URL with actual
    URL of the server. It then writes the new contents to a temporary file and

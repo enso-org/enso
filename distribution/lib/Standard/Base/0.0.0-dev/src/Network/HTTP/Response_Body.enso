@@ -203,7 +203,7 @@ type Response_Body
         self.with_stream body_stream->
             file.write on_existing_file output_stream->
                 r = output_stream.write_stream body_stream
-                r.if_not_error file
+                r.if_not_error file.file
 
 ## PRIVATE
 can_decode : File_Format -> Boolean
