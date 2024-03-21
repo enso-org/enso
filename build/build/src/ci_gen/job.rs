@@ -300,19 +300,6 @@ impl JobArchetype for WasmTest {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct IntegrationTest;
-
-impl JobArchetype for IntegrationTest {
-    fn job(&self, target: Target) -> Job {
-        plain_job(
-            target,
-            "IDE integration tests",
-            "ide integration-test --backend-source current-ci-run",
-        )
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
 pub struct BuildBackend;
 
 impl JobArchetype for BuildBackend {
