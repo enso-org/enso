@@ -1,0 +1,48 @@
+from Standard.Base import all
+from Standard.Base.Enso_Cloud.Data_Link import parse_secure_value
+from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
+
+import Standard.Database.Connection.Connection_Options.Connection_Options
+import Standard.Database.Connection.Credentials.Credentials
+
+import project.Snowflake_Details.Snowflake_Details
+
+## PRIVATE
+type Snowflake_Data_Link
+    ## PRIVATE
+       A data-link returning a connection to the specified database.
+    Connection details:Snowflake_Details
+
+    ## PRIVATE
+       A data-link returning a query to a specific table within a database.
+    Table name:Text details:Snowflake_Details
+
+    ## PRIVATE
+    parse json -> Snowflake_Data_Link =
+        account = get_required_field "account" json expected_type=Text
+        db_name = get_required_field "database_name" json expected_type=Text
+        schema = get_optional_field "schema" json if_missing="SNOWFLAKE" expected_type=Text
+        warehouse = get_optional_field "warehouse" json if_missing="" expected_type=Text
+
+        credentials_json = get_optional_field "credentials" json
+        credentials = credentials_json.if_not_nothing <|
+            username = get_required_field "username" credentials_json |> parse_secure_value
+            password = get_required_field "password" credentials_json |> parse_secure_value
+            Credentials.Username_And_Password username password
+
+        details = Snowflake_Details.Snowflake account=account database=db_name schema=schema warehouse=warehouse credentials=credentials
+        case get_optional_field "table" json expected_type=Text of
+            Nothing ->
+                Snowflake_Data_Link.Connection details
+            table_name : Text ->
+                Snowflake_Data_Link.Table table_name details
+
+    ## PRIVATE
+    read self (on_problems : Problem_Behavior) =
+        _ = on_problems
+        default_options = Connection_Options.Value
+        connection = self.details.connect default_options
+        case self of
+            Snowflake_Data_Link.Connection _ -> connection
+            Snowflake_Data_Link.Table table_name _ ->
+                connection.query table_name
