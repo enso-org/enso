@@ -1,6 +1,8 @@
 <script lang="ts">
+import SvgIcon from '@/components/SvgIcon.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
 
 export const name = 'Warnings'
@@ -17,9 +19,6 @@ const removeWarnings = computed(() =>
 </script>
 
 <script setup lang="ts">
-import SvgIcon from '@/components/SvgIcon.vue'
-import { useVisualizationConfig, VisualizationContainer } from '@/util/visualizationBuiltins'
-
 type Data = string[]
 
 const props = defineProps<{ data: Data }>()
