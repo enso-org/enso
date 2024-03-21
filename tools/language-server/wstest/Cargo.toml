@@ -16,3 +16,6 @@ tokio = { workspace = true }
 tokio-stream = { version = "0.1.9", features = ["io-util"] }
 url = "2.2"
 websocket-lite = "0.5"
+
+[lints]
+workspace = true

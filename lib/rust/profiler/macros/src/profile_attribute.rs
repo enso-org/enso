@@ -57,13 +57,13 @@ fn make_label<L: fmt::Display>(name: L) -> String {
 
 struct WrapAwait;
 
-impl visit_mut::VisitMut for WrapAwait {
+impl VisitMut for WrapAwait {
     ignore_inner_fn_items!();
 
     fn visit_expr_mut(&mut self, expr: &mut syn::Expr) {
         match expr {
             syn::Expr::Await(await_) => *expr = wrap_await(await_),
-            _ => syn::visit_mut::visit_expr_mut(self, expr),
+            _ => visit_mut::visit_expr_mut(self, expr),
         }
     }
 }
@@ -131,13 +131,13 @@ struct InstrumentAsync {
     origin: AsyncBlockOrigin,
 }
 
-impl visit_mut::VisitMut for InstrumentAsync {
+impl VisitMut for InstrumentAsync {
     ignore_inner_fn_items!();
 
     fn visit_expr_mut(&mut self, expr: &mut syn::Expr) {
         match expr {
             syn::Expr::Async(async_) => *expr = self.instrument_async(async_),
-            _ => syn::visit_mut::visit_expr_mut(self, expr),
+            _ => visit_mut::visit_expr_mut(self, expr),
         }
     }
 }

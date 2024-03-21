@@ -1,4 +1,5 @@
 /// Power Shell handling. See [`PwSh`] for details.
+
 use crate::prelude::*;
 
 use crate::env::Action;

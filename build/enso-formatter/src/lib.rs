@@ -11,11 +11,6 @@
 
 // === Features ===
 #![feature(exit_status_error)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 #![deny(keyword_idents)]
@@ -27,15 +22,11 @@
 #![warn(absolute_paths_not_starting_with_crate)]
 #![warn(elided_lifetimes_in_paths)]
 #![warn(explicit_outlives_requirements)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 #![warn(noop_method_call)]
 #![warn(single_use_lifetimes)]
 #![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
 #![warn(unused_crate_dependencies)]
 #![warn(unused_extern_crates)]
-#![warn(unused_import_braces)]
 #![warn(unused_lifetimes)]
 #![warn(unused_qualifications)]
 #![warn(variant_size_differences)]
@@ -68,20 +59,20 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     // "deny(keyword_idents)",
     // "deny(macro_use_extern_crate)",
     // "deny(missing_abi)",
-    // "warn(missing_copy_implementations)",
-    // "warn(missing_debug_implementations)",
+    "warn(missing_copy_implementations)",
+    "warn(missing_debug_implementations)",
     // "warn(missing_docs)",
     "deny(non_ascii_idents)",
     // "warn(noop_method_call)",
     // "deny(pointer_structural_match)",
     // "warn(single_use_lifetimes)",
     // "warn(trivial_casts)",
-    // "warn(trivial_numeric_casts)",
+    "warn(trivial_numeric_casts)",
     "warn(unsafe_code)",
     // "deny(unsafe_op_in_unsafe_fn)",
     // "warn(unused_crate_dependencies)",
     // "warn(unused_extern_crates)",
-    // "warn(unused_import_braces)",
+    "warn(unused_import_braces)",
     // "warn(unused_lifetimes)",
     // "warn(unused_qualifications)",
     // "warn(variant_size_differences)",
@@ -567,10 +558,8 @@ pub fn process_file_content(input: String, is_main_file: bool) -> Result<String>
     print_section(&mut out, &mut map, &[ModuleAttrib]);
     print_h2(&mut out, &map, &[ModuleAttribAllowIncFeat, ModuleAttribFeature], "Features");
     print_section(&mut out, &mut map, &[ModuleAttribAllowIncFeat, ModuleAttribFeature]);
-    if !STD_LINTER_ATTRIBS.is_empty() {
-        print_h2(&mut out, &map, &[StandardLinterConfig], "Standard Linter Configuration");
-        print_section(&mut out, &mut map, &[StandardLinterConfig]);
-    }
+    // Note: we intentionally do not put standard linter configuration here, because it is
+    // already covered by the workspace-wide configuration.
     print_h2(
         &mut out,
         &map,

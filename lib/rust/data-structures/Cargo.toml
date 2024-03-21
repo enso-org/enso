@@ -19,3 +19,6 @@ crate-type = ["rlib", "cdylib"]
 enso-prelude = { path = "../prelude" }
 serde = { workspace = true }
 failure = { workspace = true }
+
+[lints]
+workspace = true

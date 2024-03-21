@@ -6,3 +6,6 @@ edition = "2021"
 
 [dependencies]
 toml = "0.5"
+
+[lints]
+workspace = true

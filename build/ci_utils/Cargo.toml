@@ -71,3 +71,6 @@ zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 [dev-dependencies]
 warp = "0.3.2"
 wiremock = "0.5.10"
+
+[lints]
+workspace = true

@@ -17,3 +17,6 @@ default = ["graphviz", "java", "rust"]
 graphviz = []
 java = []
 rust = []
+
+[lints]
+workspace = true

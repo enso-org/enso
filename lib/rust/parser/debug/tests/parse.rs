@@ -2,6 +2,7 @@
 
 // === Features ===
 #![feature(cell_update)]
+
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -172,7 +173,7 @@ fn plain_comments() {
 #[test]
 fn doc_comments() {
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "## The Identity Function",
         "",
         "   Arguments:",
@@ -189,7 +190,7 @@ fn doc_comments() {
          #(()))
          (Function (Ident id) #((() (Ident x) () ())) () "=" (Ident x)))]);
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "type Foo",
         " ## Test indent handling",
         "  ",
@@ -1321,7 +1322,7 @@ fn private_keyword() {
 fn private_is_first_statement() {
     // Comments and empty lines are allowed before `private`.
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "# Some comment",
         "# Other comment",
         "",
@@ -1330,7 +1331,7 @@ fn private_is_first_statement() {
     test(&lines.join("\n"), block![()()()(Private)]);
 
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "type T",
         "",
         "private"

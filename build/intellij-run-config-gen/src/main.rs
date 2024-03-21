@@ -19,11 +19,7 @@
 
 // === Features ===
 #![feature(exit_status_error)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
+
 // === Non-Standard Linter Configuration ===
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
@@ -35,15 +31,11 @@
 #![warn(absolute_paths_not_starting_with_crate)]
 #![warn(elided_lifetimes_in_paths)]
 #![warn(explicit_outlives_requirements)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 #![warn(noop_method_call)]
 #![warn(single_use_lifetimes)]
 #![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
 #![warn(unused_crate_dependencies)]
 #![warn(unused_extern_crates)]
-#![warn(unused_import_braces)]
 #![warn(unused_lifetimes)]
 #![warn(unused_qualifications)]
 #![warn(variant_size_differences)]

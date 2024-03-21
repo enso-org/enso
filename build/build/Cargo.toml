@@ -54,3 +54,6 @@ zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 enso-build-macros-lib = { path = "../macros/lib" }
 ide-ci = { path = "../ci_utils" }
 serde_yaml = { workspace = true }
+
+[lints]
+workspace = true

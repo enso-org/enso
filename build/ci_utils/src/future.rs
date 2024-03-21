@@ -18,13 +18,13 @@ pub enum AsyncPolicy {
     TaskParallelism,
 }
 
-pub async fn join_all<I, F: Future<Output = std::result::Result<T, E>>, T, E>(
+pub async fn join_all<I, F, T, E>(
     futures: I,
     parallel: AsyncPolicy,
 ) -> Vec<Result<T>>
 where
     I: IntoIterator<Item = F>,
-    F: Send + 'static,
+    F: Future<Output = std::result::Result<T, E>> + Send + 'static,
     T: Send + 'static,
     E: Into<anyhow::Error> + Send + 'static,
 {
@@ -47,13 +47,13 @@ where
     }
 }
 
-pub async fn try_join_all<I, F: Future<Output = std::result::Result<T, E>>, T, E>(
+pub async fn try_join_all<I, F, T, E>(
     futures: I,
     parallel: AsyncPolicy,
 ) -> Result<Vec<T>>
 where
     I: IntoIterator<Item = F>,
-    F: Send + 'static,
+    F: Future<Output = std::result::Result<T, E>> + Send + 'static,
     T: Send + 'static,
     E: Into<anyhow::Error> + Send + 'static,
 {

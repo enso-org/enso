@@ -3,11 +3,7 @@
 
 // === Features ===
 #![feature(trait_alias)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
+
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 
@@ -41,7 +37,7 @@ pub fn rewrite_stream<F: Fn(TokenTree) -> TokenStream + Copy>(
     let mut ret = TokenStream::new();
     for token in input.into_iter() {
         match token {
-            proc_macro2::TokenTree::Group(group) => {
+            TokenTree::Group(group) => {
                 let delim = group.delimiter();
                 let span = group.span();
                 let rewritten = rewrite_stream(group.stream(), f);
@@ -188,7 +184,7 @@ pub fn last_type_arg(ty_path: &syn::TypePath) -> Option<&syn::GenericArgument> {
 // =====================
 
 /// Visitor that accumulates all visited `syn::TypePath`.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct TypeGatherer<'ast> {
     /// Observed types accumulator.
     pub types: Vec<&'ast syn::TypePath>,
@@ -325,7 +321,7 @@ mod tests {
     fn collecting_type_path_args() {
         fn check(expected_type_args: Vec<&str>, ty_path: &str) {
             let ty_path = parse(ty_path);
-            let args = super::ty_path_type_args(&ty_path);
+            let args = ty_path_type_args(&ty_path);
             assert_eq!(expected_type_args.len(), args.len());
             let zipped = expected_type_args.iter().zip(args.iter());
             for (expected, got) in zipped {
@@ -335,7 +331,7 @@ mod tests {
         check(vec!["T"], "std::Option<T>");
         check(vec!["U"], "std::Option<U>");
         check(vec!["A", "B"], "Either<A,B>");
-        assert_eq!(super::last_type_arg(&parse("i32")), None);
-        assert_eq!(repr(&super::last_type_arg(&parse("Foo<C>"))), "C");
+        assert_eq!(last_type_arg(&parse("i32")), None);
+        assert_eq!(repr(&last_type_arg(&parse("Foo<C>"))), "C");
     }
 }

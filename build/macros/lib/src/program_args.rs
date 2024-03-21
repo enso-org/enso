@@ -23,7 +23,7 @@ impl Policy {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Generator<'a> {
-    pub input:  &'a syn::DeriveInput,
+    pub input:  &'a DeriveInput,
     pub policy: Vec<Policy>,
 }
 
@@ -33,7 +33,7 @@ impl<'a> Generator<'a> {
         self.policy.last().unwrap_or(&DEFAULT_POLICY)
     }
 
-    pub fn new(input: &'a syn::DeriveInput) -> Self {
+    pub fn new(input: &'a DeriveInput) -> Self {
         Self { input, policy: vec![Default::default()] }
     }
 

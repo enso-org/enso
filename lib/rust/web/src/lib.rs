@@ -28,7 +28,7 @@ use crate::prelude::*;
 
 use std::cell::Cell;
 
-#[allow(hidden_glob_reexports)] // Glob import from prelude is intentionally shadowed.
+// #[allow(hidden_glob_reexports)] // Glob import from prelude is intentionally shadowed.
 use wasm_bindgen::prelude::wasm_bindgen;
 
 

@@ -96,7 +96,7 @@ macro_rules! define_zst {
             impl<$($bounds)*> Clone for $name<$($params)*> {
                 #[inline(always)]
                 fn clone(&self) -> Self {
-                    $name()
+                    *self
                 }
             }
 
@@ -117,8 +117,8 @@ macro_rules! define_zst {
 
             impl<$($bounds)*> PartialOrd for $name<$($params)*> {
                 #[inline(always)]
-                fn partial_cmp(&self, _: &Self) -> Option<std::cmp::Ordering> {
-                    Some(std::cmp::Ordering::Equal)
+                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                    Some(self.cmp(other))
                 }
             }
 

@@ -18,16 +18,8 @@
 #![feature(const_trait_impl)]
 #![feature(extend_one)]
 #![feature(lazy_cell)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
+
 // === Non-Standard Linter Configuration ===
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 
