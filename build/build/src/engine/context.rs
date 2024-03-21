@@ -33,7 +33,6 @@ use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
-use sysinfo::SystemExt;
 
 
 

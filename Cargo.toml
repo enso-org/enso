@@ -89,7 +89,6 @@ blocks_in_conditions = "allow" # Until the issue is fixed: https://github.com/ru
 # with the core development team. Thank you!
 derive-where = "1.2.7"
 dirs = { version = "5.0.1" }
-nix = { version = "0.27.1" }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
     "rustls",
 ] }
@@ -98,7 +97,7 @@ portpicker = { version = "0.1.1" }
 regex = { version = "1.6.0" }
 serde = { version = "1.0.130", features = ["derive", "rc"] }
 serde_yaml = { version = "0.9.16" }
-sysinfo = { version = "0.29.10" }
+sysinfo = { version = "0.30.7" }
 tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-stream = { version = "0.1.12", features = ["fs"] }
 tokio-util = { version = "0.7.4", features = ["full"] }
@@ -110,7 +109,7 @@ derive_more = { version = "0.99" }
 boolinator = { version = "2.4.0" }
 derivative = { version = "2.2" }
 futures = { version = "0.3" }
-itertools = { version = "0.10.5" }
+itertools = { version = "0.12.1" }
 lazy_static = { version = "1.4" }
 paste = { version = "1.0" }
 serde_json = { version = "1.0", features = ["raw_value"] }
@@ -124,7 +123,7 @@ byte-unit = { version = "5.1.4", features = ["serde"] }
 bytes = { version = "1.1.0" }
 matches = { version = "0.1" }
 console_error_panic_hook = { version = "0.1.6" }
-reqwest = { version = "0.11.5", default-features = false, features = [
+reqwest = { version = "0.11.27", default-features = false, features = [
     "rustls-tls",
     "stream",
 ] }
