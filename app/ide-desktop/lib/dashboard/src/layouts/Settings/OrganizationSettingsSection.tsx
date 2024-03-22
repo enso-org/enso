@@ -131,6 +131,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
               <span className="text my-auto grow font-bold">
                 <SettingsInput
                   key={organization.organization_name}
+                  ref={nameRef}
                   type="text"
                   initialValue={organization.organization_name ?? ''}
                   onSubmit={doUpdateName}
@@ -142,6 +143,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
               <span className="text my-auto grow font-bold">
                 <SettingsInput
                   key={organization.email}
+                  ref={emailRef}
                   type="text"
                   initialValue={organization.email ?? ''}
                   onSubmit={value => {
@@ -164,6 +166,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
               <span className="text my-auto grow font-bold">
                 <SettingsInput
                   key={organization.website}
+                  ref={websiteRef}
                   type="text"
                   initialValue={organization.website ?? ''}
                   onSubmit={doUpdateWebsite}
@@ -174,6 +177,7 @@ export default function OrganizationSettingsSection(props: OrganizationSettingsS
               <span className="text my-auto w-organization-settings-label">Location</span>
               <span className="text my-auto grow font-bold">
                 <SettingsInput
+                  ref={locationRef}
                   key={organization.address}
                   type="text"
                   initialValue={organization.address ?? ''}
