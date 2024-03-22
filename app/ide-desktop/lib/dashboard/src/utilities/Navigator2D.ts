@@ -179,10 +179,12 @@ export default class Navigator2D {
       if (this.isLayoutDirty) {
         this.recomputeLayout()
       }
+      const isNavigatingVertically = direction === Direction.up || direction === Direction.down
       const boundingBox = event.target.getBoundingClientRect()
       const targetNeighbors = data.neighbors[direction]
       let targetNeighbor = targetNeighbors[0]
-      let minimumDistance = Infinity
+      let minimumVerticalDistance = Infinity
+      let minimumHorizontalDistance = Infinity
       for (const neighbor of targetNeighbors) {
         const neighborBoundingBox = neighbor.getBoundingClientRect()
         const distanceFromLeft = boundingBox.left - neighborBoundingBox.right
@@ -191,10 +193,26 @@ export default class Navigator2D {
         const distanceFromTop = boundingBox.top - neighborBoundingBox.bottom
         const distanceFromBottom = neighborBoundingBox.top - boundingBox.bottom
         const verticalDistance = Math.max(distanceFromTop, distanceFromBottom)
-        const distance = horizontalDistance + verticalDistance
-        if (distance < minimumDistance) {
-          targetNeighbor = neighbor
-          minimumDistance = distance
+        if (isNavigatingVertically) {
+          if (
+            horizontalDistance < minimumHorizontalDistance ||
+            (horizontalDistance === minimumHorizontalDistance &&
+              verticalDistance < minimumVerticalDistance)
+          ) {
+            targetNeighbor = neighbor
+            minimumHorizontalDistance = horizontalDistance
+            minimumVerticalDistance = verticalDistance
+          }
+        } else {
+          if (
+            verticalDistance < minimumVerticalDistance ||
+            (verticalDistance === minimumVerticalDistance &&
+              horizontalDistance < minimumHorizontalDistance)
+          ) {
+            targetNeighbor = neighbor
+            minimumHorizontalDistance = horizontalDistance
+            minimumVerticalDistance = verticalDistance
+          }
         }
       }
       const focusTargetNeighbor =
