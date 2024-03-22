@@ -351,7 +351,7 @@ add_specs suite_builder =
             r.catch.to_display_text . should_contain "read it, modify and then write the new contents"
 
             r2 = new_file.with_output_stream [File_Access.Read] _->Nothing
-            r2.should_fail_with S3_Error
+            r2.should_fail_with Illegal_Argument
 
         group_builder.specify "will respect the File_Access.Create_New option and fail if the file already exists" <|
             new_file = my_writable_dir / "new_file-stream-create-new.txt"
