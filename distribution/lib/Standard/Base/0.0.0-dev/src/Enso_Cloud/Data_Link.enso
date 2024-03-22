@@ -6,6 +6,7 @@ import project.Data.Vector.Vector
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Enso_Cloud.Errors.Missing_Data_Link_Library
 import project.Error.Error
+import project.Errors.Common.No_Such_Conversion
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -130,7 +131,7 @@ type Data_Link_With_Input_Stream
     ## PRIVATE
        Creates a `Data_Link_With_Input_Stream` from a data link instance, if
        that data link supports streaming. If it does not, an error is thrown.
-    find instance (~if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) -> Data_Link_With_Input_Stream ! Illegal_Argument =
+    find data_link_instance (~if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) -> Data_Link_With_Input_Stream ! Illegal_Argument =
         handle_no_conversion _ =
             if_not_supported
         Panic.catch No_Such_Conversion (Data_Link_With_Input_Stream.from data_link_instance) handle_no_conversion
