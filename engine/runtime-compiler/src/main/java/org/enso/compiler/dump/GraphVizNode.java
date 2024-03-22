@@ -109,8 +109,6 @@ record GraphVizNode(
       }
       bldr.addLabelLine("id: " + ir.getId());
       bldr.addLabelLine("pass_data: " + ir.passData());
-      var code = ir.showCode().replace("\n", "\\n");
-      bldr.addAttribute("comment", code);
       return bldr;
     }
 
