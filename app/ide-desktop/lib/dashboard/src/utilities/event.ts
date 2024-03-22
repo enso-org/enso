@@ -52,11 +52,35 @@ export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
 }
 
 /** Whether the element accepts text input. */
-export function isElementTextInput(element: EventTarget | null) {
+export function isElementTextInput(
+  element: EventTarget | null
+): element is HTMLElement | HTMLInputElement | HTMLTextAreaElement {
   return (
     element != null &&
-    (element instanceof HTMLInputElement ||
+    (isElementSingleLineTextInput(element) ||
       element instanceof HTMLTextAreaElement ||
       (element instanceof HTMLElement && element.isContentEditable))
+  )
+}
+
+const TEXT_INPUT_TYPES = new Set([
+  'text',
+  'password',
+  'search',
+  'tel',
+  'number',
+  'email',
+  'month',
+  'url',
+  'week',
+  'datetime',
+])
+
+/** Whether the element is a single-line text input. */
+export function isElementSingleLineTextInput(
+  element: EventTarget | null
+): element is HTMLInputElement {
+  return (
+    element != null && element instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(element.type)
   )
 }

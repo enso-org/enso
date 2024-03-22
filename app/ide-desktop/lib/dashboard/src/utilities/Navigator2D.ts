@@ -1,4 +1,5 @@
 /** @file A class for handling navigation between elements on a 2D plane. */
+import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 
 // =================
@@ -175,7 +176,33 @@ export default class Navigator2D {
             : event.key === this.directionKeys[Direction.right]
               ? Direction.right
               : null
-    if (data != null && direction != null && event.target instanceof Element) {
+    const shouldHandleEvent = data != null && direction != null && event.target instanceof Element
+    let shouldHandleKey = true
+    if (shouldHandleEvent && eventModule.isElementTextInput(event.target)) {
+      if (eventModule.isElementSingleLineTextInput(event.target)) {
+        const selectionIndex =
+          event.target.selectionStart === event.target.selectionEnd
+            ? event.target.selectionStart
+            : null
+        shouldHandleKey =
+          (selectionIndex === 0 || event.key !== 'ArrowLeft') &&
+          (selectionIndex === event.target.value.length || event.key !== 'ArrowRight')
+      } else {
+        const selectionIndex =
+          event.target instanceof HTMLTextAreaElement &&
+          event.target.selectionStart === event.target.selectionEnd
+            ? event.target.selectionStart
+            : null
+        const length =
+          event.target instanceof HTMLTextAreaElement ? event.target.value.length : null
+        shouldHandleKey =
+          (selectionIndex === 0 || event.key !== 'ArrowLeft') &&
+          (selectionIndex === length || event.key !== 'ArrowRight') &&
+          event.key !== 'ArrowUp' &&
+          event.key !== 'ArrowDown'
+      }
+    }
+    if (shouldHandleEvent && shouldHandleKey) {
       if (this.isLayoutDirty) {
         this.recomputeLayout()
       }
