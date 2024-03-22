@@ -2,6 +2,11 @@
 import { codeEditorBindings, graphBindings, interactionBindings } from '@/bindings'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
+import {
+  DEFAULT_NODE_SIZE,
+  mouseDictatedPlacement,
+  usePlacement,
+} from '@/components/ComponentBrowser/placement'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
@@ -13,7 +18,6 @@ import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, useEvent } from '@/composables/events'
-import { DEFAULT_NODE_SIZE, mouseDictatedPlacement, usePlacement } from '@/composables/placement'
 import { useStackNavigator } from '@/composables/stackNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphSelection } from '@/providers/graphSelection'

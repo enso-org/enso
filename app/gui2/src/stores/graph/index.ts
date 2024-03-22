@@ -1,4 +1,4 @@
-import { usePlacement } from '@/composables/placement'
+import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import type { WidgetUpdate } from '@/providers/widgetRegistry'
 import { GraphDb, asNodeId, type NodeId } from '@/stores/graph/graphDatabase'

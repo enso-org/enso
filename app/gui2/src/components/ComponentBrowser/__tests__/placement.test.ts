@@ -5,7 +5,7 @@ import {
   previousNodeDictatedPlacement,
   type Environment,
   type Placement,
-} from '@/composables/placement'
+} from '@/components/ComponentBrowser/placement'
 import * as iterable from '@/util/data/iterable'
 import { chain, map, range } from '@/util/data/iterable'
 import { Rect } from '@/util/data/rect'
