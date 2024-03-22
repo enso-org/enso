@@ -352,6 +352,7 @@ add_specs suite_builder =
 
             r2 = new_file.with_output_stream [File_Access.Read] _->Nothing
             r2.should_fail_with Illegal_Argument
+            r2.catch.to_display_text . should_contain "Invalid open options for `with_output_stream`"
 
         group_builder.specify "will respect the File_Access.Create_New option and fail if the file already exists" <|
             new_file = my_writable_dir / "new_file-stream-create-new.txt"

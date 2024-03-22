@@ -1,3 +1,4 @@
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -62,7 +63,7 @@ type File_Access
         File_Access.Write             -> StandardOpenOption.WRITE
 
     ## PRIVATE
-    ensure_options_allowed (allowed_options : Vector) (got_options : Vector) ~action =
+    ensure_only_allowed_options (operation_name : Text) (allowed_options : Vector) (got_options : Vector) ~action =
         disallowed_options = got_options.filter o-> allowed_options.contains o . not
         if disallowed_options.is_empty then action else
-            Error.throw (Illegal_Argument.Error "Invalid open options: "+disallowed_options.to_text+".")
+            Error.throw (Illegal_Argument.Error "Invalid open options for `"+operation_name+"`: "+disallowed_options.to_text+".")
