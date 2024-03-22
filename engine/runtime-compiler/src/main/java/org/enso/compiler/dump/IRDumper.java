@@ -223,12 +223,20 @@ public class IRDumper {
         addNode(lambdaNode);
         var body = lambda.body();
         createIRGraph(body);
-        createEdge((lambda), (body), "body");
+        createEdge(lambda, body, "body");
         for (int i = 0; i < lambda.arguments().size(); i++) {
           var arg = lambda.arguments().apply(i);
           createIRGraph(arg);
           createEdge(lambda, arg, "arg[" + i + "]");
         }
+      }
+      case Expression.Binding exprBinding ->  {
+        var exprBindNode = GraphVizNode.Builder.fromIr(exprBinding)
+                              .addLabelLine("name: " + exprBinding.name().name())
+                                .build();
+        addNode(exprBindNode);
+        createIRGraph(exprBinding.expression());
+        createEdge(exprBinding, exprBinding.expression(), "expression");
       }
       case Number number -> {
         var numNode =
