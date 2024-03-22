@@ -3,6 +3,15 @@ import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 
 // =================
+// === Constants ===
+// =================
+
+/** A singleton function that returns true. */
+function returnTrue() {
+  return true
+}
+
+// =================
 // === Direction ===
 // =================
 
@@ -48,6 +57,8 @@ interface ElementData extends Omit<Required<Navigator2DElementOptions>, 'focusPr
 
 /** Options when registering a element with a {@link Navigator2D}. */
 interface Navigator2DElementOptions {
+  /** A function that returns whether navigation is currently enabled. */
+  readonly allowNavigation?: () => boolean
   /** The child that should be focused instead of the parent (if any).
    * Used as the fallback . */
   readonly focusPrimaryChild?: () => void
@@ -174,7 +185,8 @@ export default class Navigator2D {
             : event.key === this.directionKeys[Direction.right]
               ? Direction.right
               : null
-    const shouldHandleEvent = data != null && direction != null && event.target instanceof Element
+    const shouldHandleEvent =
+      data?.allowNavigation() === true && direction != null && event.target instanceof Element
     let shouldHandleKey = true
     if (shouldHandleEvent && eventModule.isElementTextInput(event.target)) {
       if (eventModule.isElementSingleLineTextInput(event.target)) {
@@ -299,6 +311,7 @@ export default class Navigator2D {
     }
     this.elements.set(element, {
       boundingBox: element.getBoundingClientRect(),
+      allowNavigation: options.allowNavigation ?? returnTrue,
       neighbors: mapDirections(() => []),
       focusWhenPressed: mapDirections(direction =>
         // This line is specialcasing `null` but not `undefined`.

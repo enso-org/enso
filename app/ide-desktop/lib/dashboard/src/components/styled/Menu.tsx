@@ -25,7 +25,8 @@ export default function Menu<T extends object>(props: MenuProps<T>) {
   const { active = true, currentKey, firstKey, lastKey, children, ...menuProps } = props
   const navigator2D = navigator2DProvider.useNavigator2D()
   const rootRef = React.useRef<HTMLDivElement | null>(null)
-  const unregisterNavigatorRef = React.useRef(() => {})
+  const wasJustChangedRef = React.useRef(false)
+  const cleanupRef = React.useRef(() => {})
   const onSelectionChangeRef = React.useRef(props.onSelectionChange)
   onSelectionChangeRef.current = props.onSelectionChange
   const currentKeyRef = React.useRef(currentKey)
@@ -35,13 +36,40 @@ export default function Menu<T extends object>(props: MenuProps<T>) {
   const lastKeyRef = React.useRef(lastKey)
   lastKeyRef.current = lastKey
 
+  React.useEffect(() => {
+    return () => {
+      cleanupRef.current()
+    }
+  }, [])
+
   return (
     <aria.Menu
       ref={element => {
         rootRef.current = element
-        unregisterNavigatorRef.current()
+        cleanupRef.current()
         if (active && element != null) {
-          unregisterNavigatorRef.current = navigator2D.register(element, {
+          let allowNavigation = true
+          const onKeyDown = (event: KeyboardEvent) => {
+            if (
+              wasJustChangedRef.current &&
+              !event.shiftKey &&
+              !event.altKey &&
+              !event.metaKey &&
+              !event.ctrlKey &&
+              (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+            ) {
+              wasJustChangedRef.current = false
+              allowNavigation = false
+              window.setTimeout(() => {
+                allowNavigation = true
+              })
+            }
+          }
+          element.addEventListener('keydown', onKeyDown)
+          const unregisterNavigator = navigator2D.register(element, {
+            allowNavigation: () => {
+              return allowNavigation
+            },
             focusPrimaryChild: () => {
               onSelectionChangeRef.current?.(
                 new Set([currentKeyRef.current ?? firstKeyRef.current])
@@ -56,8 +84,12 @@ export default function Menu<T extends object>(props: MenuProps<T>) {
               },
             },
           })
+          cleanupRef.current = () => {
+            unregisterNavigator()
+            element.removeEventListener('keydown', onKeyDown)
+          }
         } else {
-          unregisterNavigatorRef.current = () => {}
+          cleanupRef.current = () => {}
         }
         if (element != null && detect.IS_DEV_MODE) {
           if (active) {
@@ -68,7 +100,12 @@ export default function Menu<T extends object>(props: MenuProps<T>) {
         }
       }}
       shouldFocusWrap={false}
-      {...menuProps}
+      {...aria.mergeProps<aria.MenuProps<T>[]>(menuProps, {
+        onAction: key => {
+          // FIXME: This should actually change when *focus* changes.
+          wasJustChangedRef.current = true
+        },
+      })}
     >
       {children}
     </aria.Menu>
