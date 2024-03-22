@@ -288,7 +288,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                               query.labels.some(term => array.shallowEqual(term, [label.value]))
                             }
                             negated={negated}
-                            onClick={event => {
+                            onPress={event => {
                               querySource.current = QuerySource.internal
                               setQuery(oldQuery => {
                                 const newQuery = oldQuery.withToggled(

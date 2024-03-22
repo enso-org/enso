@@ -4,10 +4,7 @@ import * as React from 'react'
 import PlusIcon from 'enso-assets/plus.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
-
 import * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
@@ -47,8 +44,6 @@ export default function Labels(props: LabelsProps) {
   const currentLabels = query.labels
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
-  const navigator2D = navigator2DProvider.useNavigator2D()
-  const rootRef = React.useRef<HTMLDivElement>(null)
   const displayLabels = React.useMemo(
     () =>
       labels
@@ -57,57 +52,32 @@ export default function Labels(props: LabelsProps) {
     [deletedLabelNames, labels]
   )
 
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
-      length: labels.length,
-    })
-
-  React.useEffect(() => {
-    const root = rootRef.current
-    if (root == null) {
-      return
-    } else {
-      return navigator2D.register(root, {
-        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
-        focusWhenPressed: {
-          up: setKeyboardSelectedIndex.bind(null, displayLabels.length - 1),
-        },
-      })
-    }
-  }, [displayLabels.length, setKeyboardSelectedIndex, navigator2D])
-
   return (
     <FocusArea direction="vertical">
       {(ref, innerProps) => (
         <div
           data-testid="labels"
           ref={ref}
-          className="flex w-full flex-col items-start gap-sidebar-section-heading"
+          className="gap-sidebar-section-heading flex w-full flex-col items-start"
           {...innerProps}
         >
           <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Labels</div>
           <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
-            {displayLabels.map((label, i) => {
+            {displayLabels.map(label => {
               const negated = currentNegativeLabels.some(term =>
                 array.shallowEqual(term, [label.value])
               )
               return (
                 <li key={label.id} className="group flex items-center gap-label-icons">
                   <Label
-                    ref={element => {
-                      if (keyboardSelectedIndex === i) {
-                        element?.focus()
-                      }
-                    }}
                     draggable
-                    focusRing={i === keyboardSelectedIndex}
                     color={label.color}
                     active={
                       negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
                     }
                     negated={negated}
-                    disabled={newLabelNames.has(label.value)}
-                    onClick={event => {
+                    isDisabled={newLabelNames.has(label.value)}
+                    onPress={event => {
                       setQuery(oldQuery =>
                         oldQuery.withToggled(
                           'labels',
@@ -128,7 +98,7 @@ export default function Labels(props: LabelsProps) {
                             drag.LABELS.unbind(payload)
                           }}
                         >
-                          <Label active color={label.color} onClick={() => {}}>
+                          <Label active color={label.color} onPress={() => {}}>
                             {label.value}
                           </Label>
                         </DragModal>
@@ -166,15 +136,16 @@ export default function Labels(props: LabelsProps) {
               <Label
                 color={labelUtils.DEFAULT_LABEL_COLOR}
                 className="bg-selected-frame"
-                onClick={event => {
-                  event.stopPropagation()
-                  setModal(
-                    <NewLabelModal
-                      labels={labels}
-                      eventTarget={event.currentTarget}
-                      doCreate={doCreateLabel}
-                    />
-                  )
+                onPress={event => {
+                  if (event.target instanceof HTMLElement) {
+                    setModal(
+                      <NewLabelModal
+                        labels={labels}
+                        eventTarget={event.target}
+                        doCreate={doCreateLabel}
+                      />
+                    )
+                  }
                 }}
               >
                 {/* This is a non-standard-sized icon. */}

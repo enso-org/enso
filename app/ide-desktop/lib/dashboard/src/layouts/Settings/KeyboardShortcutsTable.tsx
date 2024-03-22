@@ -6,16 +6,15 @@ import CrossIcon from 'enso-assets/cross.svg'
 import Plus2Icon from 'enso-assets/plus2.svg'
 import ReloadInCircleIcon from 'enso-assets/reload_in_circle.svg'
 
-import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
 import type * as refreshHooks from '#/hooks/refreshHooks'
 
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import KeyboardShortcutsSettingsTabBar from '#/layouts/Settings/KeyboardShortcutsSettingsTabBar'
 
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
@@ -49,33 +48,6 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
     () => object.unsafeEntries(inputBindings.metadata).filter(kv => kv[1].rebindable !== false),
     [inputBindings.metadata]
   )
-  const navigator2D = navigator2DProvider.useNavigator2D()
-
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: visibleBindings.length })
-
-  const selectedBindings =
-    keyboardSelectedIndex == null ? null : visibleBindings[keyboardSelectedIndex]?.[1].bindings
-  const [bindingKeyboardSelectedIndex, setBindingKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, {
-      axis: keyboardNavigationHooks.Axis.horizontal,
-      length: (selectedBindings?.length ?? 0) + 2,
-    })
-
-  React.useEffect(() => {
-    setBindingKeyboardSelectedIndex(selectedBindings?.length ?? 0)
-  }, [keyboardSelectedIndex, selectedBindings?.length, setBindingKeyboardSelectedIndex])
-
-  React.useEffect(() => {
-    const root = rootRef.current
-    if (root == null) {
-      return
-    } else {
-      return navigator2D.register(root, {
-        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
-      })
-    }
-  }, [navigator2D, setKeyboardSelectedIndex])
 
   // This is required to prevent the table body from overlapping the table header, because
   // the table header is transparent.
@@ -120,16 +92,8 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
           </tr>
         </thead>
         <tbody ref={bodyRef}>
-          {visibleBindings.map((kv, i) => {
+          {visibleBindings.map(kv => {
             const [action, info] = kv
-            const isNewButtonKeyboardSelected =
-              keyboardSelectedIndex === i &&
-              selectedBindings != null &&
-              bindingKeyboardSelectedIndex === selectedBindings.length
-            const isResetButtonKeyboardSelected =
-              keyboardSelectedIndex === i &&
-              selectedBindings != null &&
-              bindingKeyboardSelectedIndex === selectedBindings.length + 1
             return (
               <tr key={action}>
                 <td className="flex h-row items-center rounded-l-full bg-clip-padding pl-cell-x pr-icon-column-r">
@@ -149,34 +113,21 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                         className="inline-flex shrink-0 items-center gap-keyboard-shortcuts-button"
                       >
                         <KeyboardShortcut shortcut={binding} />
-                        <button
-                          ref={element => {
-                            if (keyboardSelectedIndex === i && bindingKeyboardSelectedIndex === j) {
-                              element?.focus()
-                            }
-                          }}
-                          className={`flex rounded-full transition-colors hover:bg-hover-bg focus:bg-hover-bg ${keyboardSelectedIndex === i ? 'visible' : 'invisible group-hover:visible'} ${keyboardSelectedIndex === i && bindingKeyboardSelectedIndex === j ? 'focus-ring' : ''}`}
-                          onClick={() => {
+                        <UnstyledButton
+                          className="flex rounded-full transition-colors hover:bg-hover-bg focus:bg-hover-bg"
+                          onPress={() => {
                             inputBindings.delete(action, binding)
                             doRefresh()
                           }}
                         >
                           <SvgMask src={CrossIcon} className="size-icon" />
-                        </button>
+                        </UnstyledButton>
                       </div>
                     ))}
                     <div className="gap-keyboard-shortcuts-buttons flex shrink-0">
-                      <button
-                        ref={element => {
-                          if (isNewButtonKeyboardSelected) {
-                            element?.focus()
-                          }
-                        }}
-                        className={`my-auto flex rounded-full ${keyboardSelectedIndex === i ? 'visible' : 'invisible group-hover:visible'} ${
-                          isNewButtonKeyboardSelected ? 'focus-ring' : ''
-                        }`}
-                        onClick={event => {
-                          event.stopPropagation()
+                      <UnstyledButton
+                        className="my-auto flex rounded-full"
+                        onPress={() => {
                           setModal(
                             <CaptureKeyboardShortcutModal
                               description={`'${info.name}'`}
@@ -190,23 +141,16 @@ export default function KeyboardShortcutsTable(props: KeyboardShortcutsTableProp
                         }}
                       >
                         <img className="size-plus-icon" src={Plus2Icon} />
-                      </button>
-                      <button
-                        ref={element => {
-                          if (isResetButtonKeyboardSelected) {
-                            element?.focus()
-                          }
-                        }}
-                        className={`my-auto flex rounded-full ${keyboardSelectedIndex === i ? 'visible' : 'invisible group-hover:visible'} ${
-                          isResetButtonKeyboardSelected ? 'focus-ring' : ''
-                        }`}
-                        onClick={() => {
+                      </UnstyledButton>
+                      <UnstyledButton
+                        className="my-auto flex rounded-full"
+                        onPress={() => {
                           inputBindings.reset(action)
                           doRefresh()
                         }}
                       >
                         <img className="size-plus-icon" src={ReloadInCircleIcon} />
-                      </button>
+                      </UnstyledButton>
                     </div>
                   </div>
                 </td>

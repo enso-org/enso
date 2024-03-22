@@ -201,7 +201,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 {item.item.labels?.map(value => {
                   const label = labels.find(otherLabel => otherLabel.value === value)
                   return label == null ? null : (
-                    <Label key={value} active disabled color={label.color} onClick={() => {}}>
+                    <Label key={value} active isDisabled color={label.color} onPress={() => {}}>
                       {value}
                     </Label>
                   )

@@ -1,12 +1,9 @@
 /** @file Settings tab for deleting the current user. */
 import * as React from 'react'
 
-import * as keyboardNavigationHooks from '#/hooks/keyboardNavigationHooks'
-
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
@@ -23,22 +20,6 @@ export default function DeleteUserAccountSettingsSection() {
   const { signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
-  const navigator2D = navigator2DProvider.useNavigator2D()
-  const rootRef = React.useRef<HTMLDivElement>(null)
-
-  const [keyboardSelectedIndex, setKeyboardSelectedIndex] =
-    keyboardNavigationHooks.useKeyboardChildNavigation(rootRef, { length: 1 })
-
-  React.useEffect(() => {
-    const root = rootRef.current
-    if (root == null) {
-      return
-    } else {
-      return navigator2D.register(root, {
-        focusPrimaryChild: setKeyboardSelectedIndex.bind(null, 0),
-      })
-    }
-  }, [navigator2D, setKeyboardSelectedIndex])
 
   return (
     <FocusArea direction="vertical">
@@ -54,11 +35,6 @@ export default function DeleteUserAccountSettingsSection() {
           <div className="flex gap-buttons">
             <FocusRing>
               <aria.Button
-                ref={element => {
-                  if (keyboardSelectedIndex === 0) {
-                    element?.focus()
-                  }
-                }}
                 className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
                 onPress={() => {
                   setModal(

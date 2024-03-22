@@ -762,7 +762,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                   allLabels.values(),
                   (label): assetSearchBar.Suggestion => ({
                     render: () => (
-                      <Label active color={label.color} onClick={() => {}}>
+                      <Label active color={label.color} onPress={() => {}}>
                         {label.value}
                       </Label>
                     ),
@@ -2534,7 +2534,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                 >
                   <FocusArea direction="horizontal">
                     {(columnsBarRef, columnsBarProps) => (
-                      <div ref={columnsBarRef} className="inline-flex gap-icons" {...columnsBarProps}>
+                      <div
+                        ref={columnsBarRef}
+                        className="inline-flex gap-icons"
+                        {...columnsBarProps}
+                      >
                         {columnUtils.CLOUD_COLUMNS.filter(
                           column => !enabledColumns.has(column)
                         ).map(column => (

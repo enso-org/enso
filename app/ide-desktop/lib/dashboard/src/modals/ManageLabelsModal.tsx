@@ -207,10 +207,8 @@ export default function ManageLabelsModal<
                     <Label
                       active={labels.includes(label.value)}
                       color={label.color}
-                      onClick={async event => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        await doToggleLabel(label.value)
+                      onPress={() => {
+                        void doToggleLabel(label.value)
                       }}
                     >
                       {label.value}

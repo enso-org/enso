@@ -66,10 +66,9 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <Label
             key={label}
             data-testid="asset-label"
-            title="Right click to remove label."
             color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
             active={!temporarilyRemovedLabels.has(label)}
-            disabled={temporarilyRemovedLabels.has(label)}
+            isDisabled={temporarilyRemovedLabels.has(label)}
             negated={temporarilyRemovedLabels.has(label)}
             className={
               temporarilyRemovedLabels.has(label)
@@ -104,9 +103,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 </ContextMenus>
               )
             }}
-            onClick={event => {
-              event.preventDefault()
-              event.stopPropagation()
+            onPress={event => {
               setQuery(oldQuery =>
                 oldQuery.withToggled('labels', 'negativeLabels', label, event.shiftKey)
               )
@@ -119,11 +116,11 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
         .filter(label => asset.labels?.includes(label) !== true)
         .map(label => (
           <Label
-            disabled
+            isDisabled
             key={label}
             color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
             className="pointer-events-none"
-            onClick={() => {}}
+            onPress={() => {}}
           >
             {label}
           </Label>

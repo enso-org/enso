@@ -20,12 +20,14 @@ export interface UnstyledButtonProps extends Readonly<React.PropsWithChildren> {
   /** When `true`, the button is not clickable. */
   readonly isDisabled?: boolean
   readonly className?: string
+  readonly style?: React.CSSProperties
   readonly onPress: (event: aria.PressEvent) => void
 }
 
 /** An unstyled button with a focus ring and focus movement behavior. */
 export default function UnstyledButton(props: UnstyledButtonProps) {
-  const { focusRingPlacement, autoFocus = false, isDisabled = false, className, onPress } = props
+  const { focusRingPlacement, autoFocus = false, isDisabled = false, className, style } = props
+  const { onPress } = props
   const { children } = props
   const focusDirection = focusDirectionProvider.useFocusDirection()
   const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
@@ -36,6 +38,7 @@ export default function UnstyledButton(props: UnstyledButtonProps) {
         autoFocus={autoFocus}
         isDisabled={isDisabled}
         className={className ?? ''}
+        style={style ?? {}}
         onPress={onPress}
         onKeyDown={handleFocusMove}
       >
