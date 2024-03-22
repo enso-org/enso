@@ -412,7 +412,9 @@ public class IRDumper {
     nodes.add(node);
     if (INCLUDE_CODE) {
       if (node.object() instanceof IR ir) {
-        var code = new Code(ir.showCode().replace("\n", "\\n"));
+        // Replace new lines with left-justify literals, so that all the lines
+        // in the code are justified to the left side of the box.
+        var code = new Code(ir.showCode().replace("\n", "\\l"));
         var codeNode =
             GraphVizNode.Builder.fromObjectPlain(code)
                 .addAttribute("shape", "box")
