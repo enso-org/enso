@@ -414,9 +414,7 @@ public class IRDumper {
     nodes.add(node);
     if (INCLUDE_CODE) {
       if (node.object() instanceof IR ir) {
-        // Replace new lines with left-justify literals, so that all the lines
-        // in the code are justified to the left side of the box.
-        var code = new Code(ir.showCode().replace("\n", "\\l"));
+        var code = new Code(ir.showCode());
         var codeNode =
             GraphVizNode.Builder.fromObjectPlain(code)
                 .addAttribute("shape", "box")
@@ -497,8 +495,14 @@ public class IRDumper {
     private final String code;
 
     private Code(String code) {
-      assert Utils.hasOneLine(code);
-      this.code = code;
+      // Replace new lines with left-justify literals, so that all the lines
+      // in the code are justified to the left side of the box.
+      String formattedCode = code.replace("\n", "\\l");
+      if (code.contains("\"")) {
+        formattedCode = code.replace("\"", "\\\"");
+      }
+      assert Utils.hasOneLine(formattedCode);
+      this.code = formattedCode;
     }
   }
 }
