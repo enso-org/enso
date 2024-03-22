@@ -121,7 +121,8 @@
           "title": "Path",
           "description": "Must start with \"enso://<organization-name>/\".",
           "type": "string",
-          "pattern": "^enso://.+/.*$"
+          "pattern": "^enso://.+/.*$",
+          "format": "enso-file"
         },
         "format": { "title": "Format", "$ref": "#/$defs/Format" }
       },

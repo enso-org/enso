@@ -7,7 +7,7 @@ import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 import * as error from '#/utilities/error'
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const AJV = new Ajv({ formats: { 'enso-secret': true } })
+export const AJV = new Ajv({ formats: { 'enso-secret': true, 'enso-file': true } })
 AJV.addSchema(SCHEMA)
 // This is a function, even though it does not contain function syntax.
 // eslint-disable-next-line no-restricted-syntax
