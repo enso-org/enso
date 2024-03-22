@@ -14,7 +14,7 @@ import AssetEventType from '#/events/AssetEventType'
 import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
-import FocusArea from '#/components/styled/FocusArea'
+import Menu from '#/components/styled/Menu'
 import SvgMask from '#/components/SvgMask'
 
 import * as array from '#/utilities/array'
@@ -35,6 +35,12 @@ interface CategoryMetadata {
 // =================
 
 const CATEGORIES = Object.values(Category)
+// The non-null assertions below are SAFE, since `CATEGORIES` is statically known to have
+// at least one item.
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const FIRST_CATEGORY = CATEGORIES[0]!
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const LAST_CATEGORY = CATEGORIES[CATEGORIES.length - 1]!
 /** Sentinel object indicating that the header should be rendered. */
 const HEADER_OBJECT = { isHeader: true }
 const CATEGORY_DATA: CategoryMetadata[] = [
@@ -66,7 +72,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     <aria.MenuItem
       id={id}
       textValue={category}
-      className="after:focus-ring-within relative after:pointer-events-none after:absolute after:inset after:rounded-full"
+      className="relative after:pointer-events-none after:absolute after:inset after:rounded-full after:focus-ring-within"
     >
       <aria.Button onPress={onPress}>
         <div
@@ -116,70 +122,71 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   }, [category, /* should never change */ localStorage])
 
   return (
-    <FocusArea direction="vertical">
-      {(ref, innerProps) => (
-        <aria.Menu
-          ref={ref}
-          aria-label="Category switcher"
-          className="flex w-full flex-col items-start"
-          onAction={key => {
-            if (array.includesPredicate(CATEGORIES)(key)) {
-              setCategory(key)
-            }
-          }}
-          {...innerProps}
-        >
-          <aria.Section dependencies={[category]} items={[HEADER_OBJECT, ...CATEGORY_DATA]}>
-            {data =>
-              'isHeader' in data ? (
-                <aria.Header
-                  id="header"
-                  className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"
-                >
-                  Category
-                </aria.Header>
-              ) : (
-                <CategorySwitcherItem
-                  id={data.category}
-                  data={data}
-                  isCurrent={category === data.category}
-                  onPress={() => {
-                    setCategory(data.category)
-                  }}
-                  onDragOver={event => {
-                    if (
-                      (category === Category.trash && data.category === Category.home) ||
-                      (category !== Category.trash && data.category === Category.trash)
-                    ) {
-                      event.preventDefault()
-                    }
-                  }}
-                  onDrop={event => {
-                    if (
-                      (category === Category.trash && data.category === Category.home) ||
-                      (category !== Category.trash && data.category === Category.trash)
-                    ) {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      unsetModal()
-                      const payload = drag.ASSET_ROWS.lookup(event)
-                      if (payload != null) {
-                        dispatchAssetEvent({
-                          type:
-                            category === Category.trash
-                              ? AssetEventType.restore
-                              : AssetEventType.delete,
-                          ids: new Set(payload.map(item => item.key)),
-                        })
-                      }
-                    }
-                  }}
-                />
-              )
-            }
-          </aria.Section>
-        </aria.Menu>
-      )}
-    </FocusArea>
+    <Menu
+      aria-label="Category switcher"
+      className="w-full"
+      currentKey={category}
+      firstKey={FIRST_CATEGORY}
+      lastKey={LAST_CATEGORY}
+      onAction={key => {
+        if (array.includesPredicate(CATEGORIES)(key)) {
+          setCategory(key)
+        }
+      }}
+    >
+      <aria.Section
+        dependencies={[category]}
+        items={[HEADER_OBJECT, ...CATEGORY_DATA]}
+        className="flex flex-col items-start"
+      >
+        {data =>
+          'isHeader' in data ? (
+            <aria.Header
+              id="header"
+              className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"
+            >
+              Category
+            </aria.Header>
+          ) : (
+            <CategorySwitcherItem
+              id={data.category}
+              data={data}
+              isCurrent={category === data.category}
+              onPress={() => {
+                setCategory(data.category)
+              }}
+              onDragOver={event => {
+                if (
+                  (category === Category.trash && data.category === Category.home) ||
+                  (category !== Category.trash && data.category === Category.trash)
+                ) {
+                  event.preventDefault()
+                }
+              }}
+              onDrop={event => {
+                if (
+                  (category === Category.trash && data.category === Category.home) ||
+                  (category !== Category.trash && data.category === Category.trash)
+                ) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  unsetModal()
+                  const payload = drag.ASSET_ROWS.lookup(event)
+                  if (payload != null) {
+                    dispatchAssetEvent({
+                      type:
+                        category === Category.trash
+                          ? AssetEventType.restore
+                          : AssetEventType.delete,
+                      ids: new Set(payload.map(item => item.key)),
+                    })
+                  }
+                }
+              }}
+            />
+          )
+        }
+      </aria.Section>
+    </Menu>
   )
 }

@@ -358,7 +358,7 @@ export default function Drive(props: DriveProps) {
             hidden ? 'hidden' : ''
           }`}
         >
-          <div className="flex flex-col gap-icons self-start">
+          <div className="flex flex-col gap-icons self-start items-start">
             <h1 className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug">
               {backend.type === backendModule.BackendType.remote ? 'Cloud Drive' : 'Local Drive'}
             </h1>
