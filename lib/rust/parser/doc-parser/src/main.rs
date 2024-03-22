@@ -1,7 +1,6 @@
 //! Prints a debug representation of Enso documentation found in the given Enso source file(s).
 
 #![recursion_limit = "256"]
-
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(assert_matches)]
@@ -11,7 +10,6 @@
 #![feature(specialization)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
-
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]

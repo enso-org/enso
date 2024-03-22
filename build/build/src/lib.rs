@@ -13,7 +13,6 @@
 #![feature(slice_take)]
 #![feature(future_join)]
 #![feature(trait_upcasting)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(trivial_casts)]
 #![warn(unused_qualifications)]

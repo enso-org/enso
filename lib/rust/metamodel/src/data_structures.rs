@@ -2,8 +2,8 @@
 
 use vecmap::*;
 
-use derive_where::derive_where;
 use derivative::Derivative;
+use derive_where::derive_where;
 use enso_zst::ZST;
 
 

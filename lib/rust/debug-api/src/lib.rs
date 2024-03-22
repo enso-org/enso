@@ -3,7 +3,6 @@
 // === Features ===
 #![feature(extern_types)]
 
-// === Non-Standard Linter Configuration ===
 use futures::prelude::*;
 
 use derivative::Derivative;

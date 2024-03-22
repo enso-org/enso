@@ -644,10 +644,7 @@ mod tests {
     // This function might be unused, depending on what platform-specific tests are compiled.
     #[allow(dead_code)]
     fn get_kernel_version() -> Result<u32> {
-        let mut sysinfo = sysinfo::System::new();
-        sysinfo.refresh_all();
-        let ret = sysinfo
-            .kernel_version()
+        let ret = sysinfo::System::kernel_version()
             .with_context(|| "Failed to get OS kernel version.")?
             .parse2()?;
         debug!("OS kernel version: {ret}.");

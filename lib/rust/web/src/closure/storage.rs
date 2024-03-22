@@ -4,7 +4,6 @@
 use crate::prelude::*;
 
 use derivative::Derivative;
-// We want to always use WASM, even on non-WASM targets where prelude re-exports our mocks.
 #[cfg(not(target_arch = "wasm32"))]
 use js_sys::Function;
 use wasm_bindgen::convert::FromWasmAbi;

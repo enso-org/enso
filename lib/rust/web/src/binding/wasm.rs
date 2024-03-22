@@ -7,7 +7,6 @@ use crate::prelude::*;
 // === Export ===
 // ==============
 
-pub use wasm_bindgen::prelude::*;
 pub use js_sys::Array;
 pub use js_sys::Error;
 pub use js_sys::Function;
@@ -18,6 +17,7 @@ pub use js_sys::Promise;
 pub use std::time::Duration;
 pub use std::time::Instant;
 pub use wasm_bindgen::prelude::Closure;
+pub use wasm_bindgen::prelude::*;
 pub use wasm_bindgen::JsCast;
 pub use wasm_bindgen::JsValue;
 pub use web_sys::console;

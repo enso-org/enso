@@ -36,7 +36,6 @@
 
 // === Features ===
 #![feature(let_chains)]
-
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -169,7 +168,8 @@ impl<'g> ToSExpr<'g> {
             return None;
         }
         if let Data::Primitive(Primitive::Option(t0)) = &self.graph[field.type_].data
-                && self.skip.contains(t0) {
+            && self.skip.contains(t0)
+        {
             return None;
         }
         Some(if field.name.is_empty() {

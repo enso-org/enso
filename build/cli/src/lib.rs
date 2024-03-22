@@ -1,6 +1,5 @@
 // === Features ===
 #![feature(future_join)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 

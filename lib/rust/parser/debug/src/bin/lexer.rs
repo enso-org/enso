@@ -4,7 +4,6 @@
 #![feature(exact_size_is_empty)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
-
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]

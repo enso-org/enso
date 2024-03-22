@@ -18,7 +18,6 @@
 #![feature(const_trait_impl)]
 #![feature(extend_one)]
 #![feature(lazy_cell)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 

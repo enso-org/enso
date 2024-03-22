@@ -109,7 +109,6 @@
 // === Features ===
 #![feature(associated_type_defaults)]
 #![feature(option_get_or_insert_default)]
-
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]

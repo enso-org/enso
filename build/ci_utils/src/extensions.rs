@@ -1,4 +1,3 @@
-
 // ==============
 // === Export ===
 // ==============
@@ -11,6 +10,3 @@ pub mod os;
 pub mod output;
 pub mod reqwest;
 pub mod version;
-
-
-

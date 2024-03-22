@@ -6,7 +6,6 @@
 #![feature(exact_size_is_empty)]
 #![feature(proc_macro_span)]
 #![feature(proc_macro_def_site)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

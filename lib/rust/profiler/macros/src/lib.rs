@@ -10,7 +10,6 @@
 // === Features ===
 #![feature(proc_macro_span)]
 #![feature(let_chains)]
-
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_docs)]

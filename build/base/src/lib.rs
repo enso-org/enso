@@ -7,7 +7,6 @@
 #![feature(result_flattening)]
 #![feature(associated_type_bounds)]
 #![feature(extend_one)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 

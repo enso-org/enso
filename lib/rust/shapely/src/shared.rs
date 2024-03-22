@@ -1,5 +1,3 @@
-
-
 /// This module implements the `shared` macro, an utility allowing for easy definition of
 /// `Rc<RefCell<...>>` wrappers.
 

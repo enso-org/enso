@@ -3,7 +3,6 @@
 
 // === Features ===
 #![feature(trait_alias)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 

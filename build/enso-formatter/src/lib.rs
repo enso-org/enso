@@ -11,7 +11,6 @@
 
 // === Features ===
 #![feature(exit_status_error)]
-
 // === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 #![deny(keyword_idents)]

@@ -129,7 +129,6 @@
 #![feature(test)]
 #![feature(maybe_uninit_uninit_array)]
 #![feature(extend_one)]
-
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_docs)]

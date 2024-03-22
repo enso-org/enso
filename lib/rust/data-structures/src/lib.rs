@@ -5,7 +5,6 @@
 #![feature(test)]
 #![feature(trait_alias)]
 #![feature(cell_update)]
-
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_docs)]
@@ -19,6 +18,3 @@
 pub mod im_list;
 
 pub use enso_prelude as prelude;
-
-
-
