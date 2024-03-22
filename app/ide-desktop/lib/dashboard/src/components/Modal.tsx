@@ -30,29 +30,34 @@ export default function Modal(props: ModalProps) {
   const { onClick, onContextMenu } = props
   const { unsetModal } = modalProvider.useSetModal()
 
-  return (
+  const inner = (
+    <div
+      // The name comes from a third-party API and cannot be changed.
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
+      style={style}
+      className={`inset z-1 ${centered ? 'size-screen fixed grid place-items-center' : ''} ${
+        className ?? ''
+      }`}
+      onClick={
+        onClick ??
+        (event => {
+          if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
+            event.stopPropagation()
+            unsetModal()
+          }
+        })
+      }
+      onContextMenu={onContextMenu}
+    >
+      {children}
+    </div>
+  )
+  return hidden ? (
+    inner
+  ) : (
     <aria.FocusScope contain restoreFocus autoFocus>
-      <div
-        // The name comes from a third-party API and cannot be changed.
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        {...(!hidden ? { 'data-testid': 'modal-background' } : {})}
-        style={style}
-        className={`inset z-1 ${centered ? 'size-screen fixed grid place-items-center' : ''} ${
-          className ?? ''
-        }`}
-        onClick={
-          onClick ??
-          (event => {
-            if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
-              event.stopPropagation()
-              unsetModal()
-            }
-          })
-        }
-        onContextMenu={onContextMenu}
-      >
-        {children}
-      </div>
+      {inner}
     </aria.FocusScope>
   )
 }
