@@ -39,14 +39,18 @@ function FocusAreaInner(props: FocusAreaInnerProps) {
   const focusManager = aria.useFocusManager()
   const navigator2D = navigator2DProvider.useNavigator2D()
   const rootRef = React.useRef<HTMLElement | SVGElement | null>(null)
+  const unregisterNavigatorRef = React.useRef(() => {})
 
   React.useEffect(() => {
     if (!active || rootRef.current == null || focusManager == null) {
       return
     } else {
-      return navigator2D.register(rootRef.current, {
+      unregisterNavigatorRef.current = navigator2D.register(rootRef.current, {
         focusPrimaryChild: focusManager.focusFirst.bind(null),
       })
+      return () => {
+        unregisterNavigatorRef.current()
+      }
     }
   }, [active, focusManager, navigator2D])
 
@@ -54,6 +58,14 @@ function FocusAreaInner(props: FocusAreaInnerProps) {
     () =>
       children(ref => {
         rootRef.current = ref
+        unregisterNavigatorRef.current()
+        if (ref != null && focusManager != null) {
+          unregisterNavigatorRef.current = navigator2D.register(ref, {
+            focusPrimaryChild: focusManager.focusFirst.bind(null),
+          })
+        } else {
+          unregisterNavigatorRef.current = () => {}
+        }
         if (ref != null && detect.IS_DEV_MODE) {
           if (active) {
             ref.dataset.focusArea = ''
@@ -64,7 +76,7 @@ function FocusAreaInner(props: FocusAreaInnerProps) {
         // This is REQUIRED, otherwise `useFocusWithin` does not work with
         // eslint-disable-next-line no-restricted-syntax
       }, focusWithinProps as FocusWithinProps),
-    [active, children, focusWithinProps]
+    [active, children, focusManager, focusWithinProps, navigator2D]
   )
 
   return <AreaFocusProvider areaFocus={areaFocus}>{cachedChildren}</AreaFocusProvider>
