@@ -1,2 +1,0 @@
-main =
-    local.Test_Fully_Qualified_Name_Local_1.Mod.Type

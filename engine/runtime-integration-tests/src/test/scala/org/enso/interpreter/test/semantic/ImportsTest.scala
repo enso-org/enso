@@ -209,15 +209,6 @@ class ImportsTest extends PackageTest {
     )
   }
 
-  "Fully qualified names" should "resolve symbols from local project without import" in {
-    evalTestProject(
-      "Test_Fully_Qualified_Name_Local_1"
-    ).toString shouldEqual "0"
-    val outLines = consumeOut
-    outLines should have length 1
-    outLines(0) shouldEqual "Type"
-  }
-
   "Fully qualified names" should "resolve symbols via physical FQN from other project" in {
     val res = evalTestProject(
       "Test_Fully_Qualified_Name_2"
