@@ -1332,6 +1332,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           break
         }
         case 'Escape': {
+          console.log(' const onKeyDown = (event: KeyboardEvent)')
           setSelectedKeys(new Set())
           setMostRecentlySelectedIndex(null)
           selectionStartIndexRef.current = null
