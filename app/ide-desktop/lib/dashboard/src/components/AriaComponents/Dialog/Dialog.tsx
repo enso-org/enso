@@ -3,6 +3,8 @@
  * A dialog is an overlay shown above other content in an application.
  * Can be used to display alerts, confirmations, or other content.
  */
+import * as React from 'react'
+
 import * as reactAriaComponents from 'react-aria-components'
 import * as tailwindMerge from 'tailwind-merge'
 
@@ -40,10 +42,8 @@ export function Dialog(props: types.DialogProps) {
     title,
     type = 'modal',
     isDismissible = true,
-    onOpenChange = () => {},
     isKeyboardDismissDisabled = false,
     className,
-
     ...ariaDialogProps
   } = props
 
@@ -53,10 +53,8 @@ export function Dialog(props: types.DialogProps) {
     <reactAriaComponents.Modal
       className={tailwindMerge.twMerge(MODAL_CLASSES, [MODAL_CLASSES_BY_TYPE[type]])}
       isDismissable={isDismissible}
-      onOpenChange={onOpenChange}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root.current}
-      {...props}
     >
       <reactAriaComponents.Dialog
         className={tailwindMerge.twMerge(DIALOG_CLASSES, [DIALOG_CLASSES_BY_TYPE[type]], className)}
@@ -86,6 +84,3 @@ export function Dialog(props: types.DialogProps) {
     </reactAriaComponents.Modal>
   )
 }
-
-// eslint-disable-next-line no-restricted-syntax
-export { DialogTrigger, type DialogTriggerProps } from 'react-aria-components'

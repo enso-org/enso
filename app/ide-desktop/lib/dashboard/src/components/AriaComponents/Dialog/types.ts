@@ -10,7 +10,7 @@ import type * as reactAriaComponents from 'react-aria-components'
 export type DialogType = 'fullscreen' | 'modal' | 'popover'
 
 /**
- *
+ * The props for the Dialog component.
  */
 export interface DialogProps extends reactAriaComponents.DialogProps {
   /**
@@ -23,3 +23,8 @@ export interface DialogProps extends reactAriaComponents.DialogProps {
   readonly onOpenChange?: (isOpen: boolean) => void
   readonly isKeyboardDismissDisabled?: boolean
 }
+
+/**
+ * The props for the DialogTrigger component.
+ */
+export interface DialogTriggerProps extends reactAriaComponents.DialogTriggerProps {}

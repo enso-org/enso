@@ -5,3 +5,4 @@
  */
 export * from './Dialog'
 export * from './types'
+export * from './DialogTrigger'

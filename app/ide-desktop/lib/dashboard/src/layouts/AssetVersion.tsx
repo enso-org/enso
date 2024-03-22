@@ -2,7 +2,6 @@
 import Duplicate from 'enso-assets/duplicate.svg'
 
 import * as ariaComponents from '#/components/AriaComponents'
-import * as dialog from '#/components/AriaComponents/Dialog/Dialog'
 
 import * as backendService from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
@@ -29,12 +28,14 @@ export default function AssetVersion(props: AssetVersionProps) {
   const { number, version, item, backend, latestVersion } = props
 
   const isProject = item.type === backendService.AssetType.project
-  const versionName = `version ${number}`
+  const versionName = `Version ${number}`
 
   return (
     <div className="flex w-full flex-shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2">
       <div className="flex flex-1 flex-col">
-        <div>{versionName}</div>
+        <div>
+          {versionName} {version.isLatest && `(Latest)`}
+        </div>
 
         <time className="text-xs text-not-selected">
           on {dateTime.formatDateTime(new Date(version.lastModified))}
@@ -43,27 +44,27 @@ export default function AssetVersion(props: AssetVersionProps) {
 
       <div className="flex items-center gap-1">
         {isProject && (
-          <dialog.DialogTrigger>
+          <ariaComponents.DialogTrigger>
             <ariaComponents.TooltipTrigger>
               <ariaComponents.Button
                 variant="icon"
-                aria-label="Compare with HEAD"
+                aria-label="Compare with latest"
                 icon={Duplicate}
                 isDisabled={version.isLatest}
               />
 
-              <ariaComponents.Tooltip>Compare with HEAD</ariaComponents.Tooltip>
+              <ariaComponents.Tooltip>Compare with latest</ariaComponents.Tooltip>
             </ariaComponents.TooltipTrigger>
 
-            <dialog.Dialog type="fullscreen" title={`Compare ${versionName} with HEAD`}>
+            <ariaComponents.Dialog type="fullscreen" title={`Compare ${versionName} with latest`}>
               <assetDiffView.AssetDiffView
                 latestVersionId={latestVersion.versionId}
                 versionId={version.versionId}
                 projectId={item.id}
                 backend={backend}
               />
-            </dialog.Dialog>
-          </dialog.DialogTrigger>
+            </ariaComponents.Dialog>
+          </ariaComponents.DialogTrigger>
         )}
       </div>
     </div>

@@ -281,7 +281,11 @@ function AppRouter(props: AppProps) {
       isClick = true
     }
     const onMouseUp = (event: MouseEvent) => {
-      if (isClick && !eventModule.isElementTextInput(event.target)) {
+      if (
+        isClick &&
+        !eventModule.isElementTextInput(event.target) &&
+        !eventModule.isElementPartOfMonaco(event.target)
+      ) {
         const selection = document.getSelection()
         const app = document.getElementById('app')
         const appContainsSelection =
