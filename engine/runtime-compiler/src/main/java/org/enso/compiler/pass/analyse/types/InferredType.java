@@ -29,7 +29,8 @@ public record InferredType(TypeRepresentation type) implements ProcessingPass.Me
 
   @Override
   public Option<ProcessingPass.Metadata> duplicate() {
-    return null;
+    // No need to deep copy the type as its an immutable structure.
+    return Option.apply(new InferredType(type));
   }
 
   public static InferredType create(TypeRepresentation type) {
