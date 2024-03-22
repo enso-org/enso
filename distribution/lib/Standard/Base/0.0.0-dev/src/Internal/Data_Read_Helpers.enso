@@ -4,12 +4,14 @@ import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link
+import project.Errors.Deprecated.Deprecated
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
+import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Data import Raw_Response
@@ -45,3 +47,16 @@ decode_http_response_following_data_links response format =
 format_widget_with_raw_response -> Widget =
     options = ([Auto_Detect, Raw_Response] + format_types).flat_map .get_dropdown_options
     Single_Choice display=Display.When_Modified values=options
+
+## PRIVATE
+   A helper method that handles the old-style invocation of `Data.fetch` and `Data.post`.
+   Before the introduction of the `format` parameter, these methods had a
+   `try_auto_parse_result` parameter taking a Boolean at the same position.
+   To ensure old code relying on positional arguments still works, we have special handling for the Boolean case.
+   This 'migration' will not work unfortunately if the argument was named.
+handle_legacy_format (method_name : Text) (new_argument_name : Text) format = case format of
+    try_auto_parse_result : Boolean ->
+        new_format = if try_auto_parse_result then Auto_Detect else Raw_Response
+        warning = Deprecated.Warning "Standard.Base.Data" method_name "Deprecated: The `try_auto_parse_result` argument was replaced with `"+new_argument_name+"`. `True` becomes `Auto_Detect` and `False` becomes `Raw_Response`."
+        Warning.attach warning new_format
+    _ -> format
