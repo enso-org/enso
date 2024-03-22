@@ -18,10 +18,10 @@ type Enso_File_Data_Link
     Value (path : Text) format_json
 
     ## PRIVATE
-    parse json -> HTTP_Fetch_Data_Link =
-        uri = get_required_field "path" json expected_type=Text
+    parse json -> Enso_File_Data_Link =
+        path = get_required_field "path" json expected_type=Text
         format_json = get_optional_field "format" json
-        Enso_File_Data_Link.Value request format_json
+        Enso_File_Data_Link.Value path format_json
 
     ## PRIVATE
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
