@@ -1,12 +1,10 @@
 import type { PortId } from '@/providers//portInfo'
 import type { GraphNavigator } from '@/providers/graphNavigator'
-import {
-  injectInteractionHandler,
-  type Interaction,
-  type InteractionHandler,
-} from '@/providers/interactionHandler'
+import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { WidgetInput } from '@/providers/widgetRegistry'
 import type { Ast } from '@/util/ast'
+import { markRaw } from 'vue'
+import { injectWidgetTree } from '../widgetTree'
 
 /** An extend {@link Interaction} used in {@link WidgetEditHandler} */
 export interface WidgetEditInteraction extends Interaction {
@@ -60,11 +58,19 @@ export class WidgetEditHandler {
     private portId: PortId,
     innerInteraction: WidgetEditInteraction,
     private parent?: WidgetEditHandler,
-    private interactionHandler: InteractionHandler = injectInteractionHandler(),
+    private interactionHandler = injectInteractionHandler(),
+    private widgetTree: { currentEdit: WidgetEditHandler | undefined } = injectWidgetTree(),
   ) {
+    const noLongerActive = () => {
+      this.activeInteraction = undefined
+      console.log('nolongeractive', widgetTree.currentEdit, this, widgetTree.currentEdit === this)
+      if (widgetTree.currentEdit === this) {
+        widgetTree.currentEdit = undefined
+      }
+    }
     this.interaction = {
       cancel: () => {
-        this.activeInteraction = undefined
+        noLongerActive()
         innerInteraction.cancel?.()
         parent?.interaction.cancel?.()
       },
@@ -87,7 +93,7 @@ export class WidgetEditHandler {
         parent?.interaction.edit?.(portId, value)
       },
       end: (portId) => {
-        this.activeInteraction = undefined
+        noLongerActive()
         innerInteraction.end?.(portId)
         parent?.interaction.end?.(portId)
       },
@@ -106,6 +112,7 @@ export class WidgetEditHandler {
 
   start() {
     this.interactionHandler.setCurrent(this.interaction)
+    this.widgetTree.currentEdit = markRaw(this)
     for (
       let handler: WidgetEditHandler | undefined = this;
       handler != null;
