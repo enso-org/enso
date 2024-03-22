@@ -77,6 +77,15 @@ add_specs suite_builder setup:Cloud_Tests_Setup = setup.with_prepared_environmen
             File.new "enso://"+Enso_User.current.name+"/" . should_equal Enso_File.root
             File.new "enso://"+Enso_User.current.name+"/test_file.json" . should_equal (Enso_File.root / "test_file.json")
 
+        group_builder.specify "should be able to read a local datalink to an Enso File" <|
+            datalink = replace_org_name_in_data_link (enso_project.data / "datalinks" / "example-enso-file.datalink")
+            datalink.read . should_equal "Hello Another!"
+
+        group_builder.specify "should be able to read a datalink in the Cloud to Enso File" <|
+            # TODO currently this link is created manually, later we should be generating it as part of the test
+            datalink = Enso_File.new "enso://"+Enso_User.current.name+"/MyTestEnsoFileLink"
+            datalink.read . should_equal "Hello Another!"
+
         group_builder.specify "should not find nonexistent files" <|
             f = Enso_File.root / "nonexistent_file.json"
             f.should_fail_with Not_Found
@@ -214,3 +223,11 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder setup
     suite.run_with_filter filter
+
+## Reads the datalink as plain text and replaces the placeholder organization name.
+replace_org_name_in_data_link base_file =
+    content = Data_Link_Format.read_raw_config base_file
+    org_name = Enso_User.current.name
+    new_content = content.replace "PLACEHOLDER_ORG_NAME" org_name
+    temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
+    Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
