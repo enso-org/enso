@@ -42,7 +42,6 @@ type ElementNeighbors = Readonly<Record<Direction, readonly Element[]>>
 interface ElementData extends Omit<Required<Navigator2DElementOptions>, 'focusPrimaryChild'> {
   readonly boundingBox: DOMRectReadOnly
   readonly neighbors: ElementNeighbors
-  readonly allowedDirections: Readonly<Record<Direction, boolean>>
   readonly focusWhenPressed: Readonly<Record<Direction, (() => void) | null>>
   readonly dispose: () => void
 }
@@ -55,7 +54,6 @@ interface Navigator2DElementOptions {
   /** The child that should be focused instead of the parent (if any),
    * when entering this element from the given direction. */
   readonly focusWhenPressed?: Partial<Record<Direction, (() => void) | null>>
-  readonly allowedDirections?: Partial<Record<Direction, boolean>>
 }
 
 /** Options for a {@link Navigator2D}. */
@@ -299,13 +297,9 @@ export default class Navigator2D {
       this.resizeObserver.unobserve(element)
       this.elements.delete(element)
     }
-    const defaultAllowedDirections = options.allowedDirections == null
     this.elements.set(element, {
-      boundingBox: new DOMRectReadOnly(),
+      boundingBox: element.getBoundingClientRect(),
       neighbors: mapDirections(() => []),
-      allowedDirections: mapDirections(
-        direction => options.allowedDirections?.[direction] ?? defaultAllowedDirections
-      ),
       focusWhenPressed: mapDirections(direction =>
         // This line is specialcasing `null` but not `undefined`.
         // eslint-disable-next-line eqeqeq
