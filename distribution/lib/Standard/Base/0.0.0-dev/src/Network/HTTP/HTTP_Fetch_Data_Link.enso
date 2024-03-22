@@ -40,7 +40,7 @@ type HTTP_Fetch_Data_Link
 
     ## PRIVATE
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
-        File_Access.ensure_only_allowed_options "with_output_stream" [File_Access.Read] open_options <|
+        File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read] open_options <|
             response = HTTP.new.request self.request
             response.body.with_stream action
 
