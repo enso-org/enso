@@ -50,7 +50,7 @@ export default function AssetVersions(props: AssetVersionsProps) {
   const latestVersion = versions?.find(version => version.isLatest)
 
   return (
-    <div className="flex flex-col overflow-y-auto overflow-x-hidden flex-1 shrink-0 items-center">
+    <div className="flex flex-1 shrink-0 flex-col items-center overflow-y-auto overflow-x-hidden">
       {(() => {
         if (!isRemote) {
           return <div>Local assets do not have versions</div>

@@ -32,8 +32,8 @@ export default function AssetVersion(props: AssetVersionProps) {
   const versionName = `version ${number}`
 
   return (
-    <div className="flex flex-row w-full flex-shrink-0 basis-0 gap-4 rounded-2xl p-2 select-none">
-      <div className="flex flex-col flex-1">
+    <div className="flex w-full flex-shrink-0 basis-0 select-none flex-row gap-4 rounded-2xl p-2">
+      <div className="flex flex-1 flex-col">
         <div>{versionName}</div>
 
         <time className="text-xs text-not-selected">
@@ -41,7 +41,7 @@ export default function AssetVersion(props: AssetVersionProps) {
         </time>
       </div>
 
-      <div className="flex gap-1 items-center">
+      <div className="flex items-center gap-1">
         {isProject && (
           <dialog.DialogTrigger>
             <ariaComponents.TooltipTrigger>
