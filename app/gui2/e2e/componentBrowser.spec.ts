@@ -311,7 +311,7 @@ test('AI prompt', async ({ page }) => {
   await locate.graphEditor(page).press('Enter')
   await expect(locate.componentBrowser(page)).toBeVisible()
 
-  await page.keyboard.insertText('AI: convert to table')
+  await page.keyboard.insertText('AI:convert to table')
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue('data.to_table')
 })

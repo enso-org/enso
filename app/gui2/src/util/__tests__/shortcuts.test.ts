@@ -1,10 +1,8 @@
 import {
-  DefaultHandler,
   decomposeKeybindString,
   defineKeybinds,
   normalizedKeyboardSegmentLookup,
 } from '@/util/shortcuts'
-import { describe } from 'node:test'
 import { expect, test, vi, type MockInstance } from 'vitest'
 
 test.each([

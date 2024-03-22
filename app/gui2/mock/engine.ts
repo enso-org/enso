@@ -471,10 +471,11 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
     }
     case 'ai/completion': {
       const { prompt } = data
-      const match = /$Could you (.*), please?^/.exec(prompt)
+      console.log(prompt)
+      const match = /^"Could you (.*), please\?"$/.exec(prompt)
       if (!match) {
         return { code: 'How rude!' }
-      } else if (match[1] === 'convert to table?') {
+      } else if (match[1] === 'convert to table') {
         return { code: 'to_table' }
       } else {
         return { code: '"I don\'t understand, sorry"' }

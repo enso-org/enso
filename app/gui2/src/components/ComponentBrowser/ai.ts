@@ -1,7 +1,6 @@
 import { useGraphStore } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
-import type { AstId } from 'shared/ast'
 import type { LanguageServer } from 'shared/languageServer'
 import { Err, Ok, withContext, type Result } from 'shared/util/data/result'
 import type { ExternalId } from 'shared/yjsModel'

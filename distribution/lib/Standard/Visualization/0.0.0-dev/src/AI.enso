@@ -29,7 +29,4 @@ Table.build_ai_prompt self =
     base_prompt + '\n' + columns + goal_line
 
 ## PRIVATE
-Any.build_ai_prompt self = "````"
-
-## PRIVATE
 build_ai_prompt subject = subject.build_ai_prompt
