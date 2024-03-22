@@ -232,6 +232,7 @@ case object FullyQualifiedNames extends IRPass {
         val isTypeName = typeParams.find(_.name == lit.name).nonEmpty
         if (!lit.isMethod && !isLocalVar(lit) && !isTypeName) {
           val resolution = bindings.resolveName(lit.name)
+          // If the `lit.name` cannot be resolved in the `bindings`, then it might be a library name.
           resolution match {
             case Left(_) =>
               if (
@@ -328,7 +329,7 @@ case object FullyQualifiedNames extends IRPass {
       case List(thisArg) =>
         val thisArgMeta = thisArg.value.getMetadata(this).map(_.target)
         // First, collect the name of the library and the module within that library
-        // that should be resolve. These will only be present if the currently processed
+        // that should be resolved. These will only be present if the currently processed
         // IR has attached metadata from previous processing.
         (thisArgMeta, processedFun) match {
           case (
@@ -351,24 +352,47 @@ case object FullyQualifiedNames extends IRPass {
                 Some(ResolvedModule(moduleRef, Some(libName))),
                 name: Name.Literal
               ) =>
-            // resolvedMod is a resolved module inside some library. Let's see whether
-            // the current `name` literal points to a child module of the resolvedMod.
-            val isMainModule =
-              moduleRef.getName.item == Imports.mainModuleName.name
-            val modNameToResolve = if (isMainModule) {
-              QualifiedName(moduleRef.getName.path, name.name)
+            // At this point, we have a resolved module inside some library.
+            // The symbol referred to by `name` can be either its child module or its exported
+            // symbol. If it is the latter, we should prioritize it over the child module, and thus,
+            // exit the processing now.
+            val shouldExitProcessing =
+              getModuleBindings(moduleRef, pkgRepo) match {
+                case Some(moduleBindings) =>
+                  moduleBindings.resolveExportedName(name.name) match {
+                    case Right(_) =>
+                      // The symbol is exported from the module. It should be prioritized over the
+                      // child module. Let's exit the processing now and leave further processing
+                      // for subsequent passes.
+                      true
+                    case Left(_) => false
+                  }
+                case None => false
+              }
+
+            if (!shouldExitProcessing) {
+              // resolvedMod is a resolved module inside some library. Let's see whether
+              // the current `name` literal points to a child module of the resolvedMod.
+              val isMainModule =
+                moduleRef.getName.item == Imports.mainModuleName.name
+
+              val modNameToResolveInLib = if (isMainModule) {
+                QualifiedName(moduleRef.getName.path, name.name)
+              } else {
+                val newPath =
+                  moduleRef.getName.path ++ List(moduleRef.getName.item)
+                QualifiedName(newPath, name.name)
+              }
+              transformLiteral(
+                name,
+                libName,
+                modNameToResolveInLib,
+                pkgRepo,
+                freshNameSupply
+              )
             } else {
-              val newPath =
-                moduleRef.getName.path ++ List(moduleRef.getName.item)
-              QualifiedName(newPath, name.name)
+              None
             }
-            transformLiteral(
-              name,
-              libName,
-              modNameToResolve,
-              pkgRepo,
-              freshNameSupply
-            )
           case _ =>
             None
         }
@@ -481,6 +505,20 @@ case object FullyQualifiedNames extends IRPass {
       .unsafeAs[AliasAnalysis.Info.Occurrence]
     val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
     defLink.isDefined
+  }
+
+  private def getModuleBindings(
+    moduleRef: ModuleReference,
+    pkgRepoOpt: Option[PackageRepository]
+  ): Option[BindingsMap] = {
+    pkgRepoOpt.flatMap { pkgRepo =>
+      val moduleMap = pkgRepo.getModuleMap
+      moduleRef.toConcrete(moduleMap) match {
+        case Some(module) =>
+          Some(module.module.getBindingsMap)
+        case None => None
+      }
+    }
   }
 
   /** The FQN resolution metadata for a node.
