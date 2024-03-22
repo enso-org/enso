@@ -7,16 +7,18 @@ import { nextTick, ref, watch } from 'vue';
 const props = defineProps<{ show: boolean; color: string }>()
 const emit = defineEmits<{ 'update:color': [string] }>()
 
-const color = ref(convertToRgb(props.color))
+const colorModel = ref(convertToRgb(props.color))
+watch(() => props.color, (c) => { colorModel.value = convertToRgb(c) })
+watch(colorModel, (c) => c != null && props.show && emit('update:color', c))
+
 const verteKey = ref(0)
 watch(() => props.show, () => nextTick(() => verteKey.value++))
-watch(color, (c) => c != null && props.show && emit('update:color', c))
 </script>
 
 <template>
   <Verte v-show="props.show" 
     :key="verteKey"
-    v-model="color"
+    v-model="colorModel"
     picker="square"
     model="rgb"
     display="widget"

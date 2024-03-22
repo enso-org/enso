@@ -33,6 +33,7 @@ export const graphBindings = defineKeybinds('graph-editor', {
   stopProfiling: ['Mod+Alt+.'],
   enterNode: ['Mod+E'],
   exitNode: ['Mod+Shift+E'],
+  changeColorSelectedNodes: ['Mod+Shift+C'],
 })
 
 export const visualizationBindings = defineKeybinds('visualization', {

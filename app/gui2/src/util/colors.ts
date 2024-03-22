@@ -1,4 +1,4 @@
-import { formatCss, formatRgb, formatHex, converter, modeOklch, modeRgb, useMode, type Oklch } from 'culori/fn'
+import { formatCss, formatRgb, converter, modeOklch, modeRgb, useMode, type Oklch } from 'culori/fn'
 import { v3 as hashString } from 'murmurhash'
 
 useMode(modeOklch)
@@ -8,7 +8,6 @@ const rgbConverter = converter('rgb')
 
 export function convertToRgb(color: string): string | undefined {
   const colorRgb = rgbConverter(color)
-  console.log('convertToRgb:', color, colorRgb, formatRgb(colorRgb))
   return colorRgb ? formatRgb(colorRgb) : undefined
 }
 

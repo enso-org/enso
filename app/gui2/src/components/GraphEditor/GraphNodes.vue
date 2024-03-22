@@ -23,6 +23,7 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
   createNode: [source: NodeId, options: NodeCreationOptions]
+  toggleColorPicker: []
 }>()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
@@ -57,6 +58,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     @outputPortDoubleClick="emit('nodeOutputPortDoubleClick', $event)"
     @doubleClick="emit('nodeDoubleClick', id)"
     @createNode="emit('createNode', id, $event)"
+    @toggleColorPicker="emit('toggleColorPicker')"
     @update:edited="graphStore.setEditedNode(id, $event)"
     @update:rect="graphStore.updateNodeRect(id, $event)"
     @update:visualizationId="

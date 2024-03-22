@@ -52,6 +52,7 @@ const emit = defineEmits<{
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
   createNode: [options: NodeCreationOptions]
+  toggleColorPicker: []
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -251,10 +252,7 @@ const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.inne
 const outputPortLabel = computed(() => expressionInfo.value?.typename ?? 'Unknown')
 const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
 const suggestionEntry = computed(() => graph.db.nodeMainSuggestion.lookup(nodeId.value))
-const color = computed(() => {
-  console.log('color override: ', props.node.colorOverride, graph.db.getNodeColorStyle(nodeId.value))
-  return props.node.colorOverride ?? graph.db.getNodeColorStyle(nodeId.value)
-})
+const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
 const icon = computed(() => {
   return displayedIconOf(
     suggestionEntry.value,
@@ -395,7 +393,6 @@ const documentation = computed<string | undefined>({
 })
 
 function overrideColor(color: string) {
-  console.log('new color: ', color)
   graph.overrideNodeColor(nodeId.value, color)
 }
 </script>
@@ -452,7 +449,6 @@ function overrideColor(color: string) {
       :isRecordingEnabledGlobally="projectStore.isRecordingEnabled"
       :isVisualizationVisible="isVisualizationVisible"
       :isFullMenuVisible="menuVisible && menuFull"
-      :nodeColor="color"
       @update:isVisualizationVisible="emit('update:visualizationVisible', $event)"
       @startEditing="startEditingNode"
       @startEditingComment="editingComment = true"
@@ -461,7 +457,7 @@ function overrideColor(color: string) {
       @createNode="emit('createNode', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
-      @overrideColor="overrideColor"
+      @toggleColorPicker="emit('toggleColorPicker')"
     />
     <GraphVisualization
       v-if="isVisualizationVisible"
