@@ -86,8 +86,8 @@ add_specs suite_builder =
             http = HTTP.new (version = version_setting)
             http.version.should_equal version_setting
 
+    url_get = base_url_with_slash + "get"
     suite_builder.group "fetch" pending=pending_has_url group_builder->
-        url_get = base_url_with_slash + "get"
         url_head = base_url_with_slash + "head"
         url_options = base_url_with_slash + "options"
 
@@ -136,26 +136,6 @@ add_specs suite_builder =
 
             uri_response = url_get.to_uri.fetch
             uri_response.at "headers" . at "Content-Length" . should_equal "0"
-
-        group_builder.specify "can override the format if used with Data.read" <|
-            auto_response = Data.read url_get
-            auto_response.should_be_a JS_Object
-
-            plain_response = Data.read url_get format=Plain_Text
-            plain_response.should_be_a Text
-
-        group_builder.specify "can use URI in Data.read" <|
-            r = Data.read (URI.from url_get)
-            r.should_be_a JS_Object
-
-        group_builder.specify "works if HTTP is uppercase" <|
-            r = Data.fetch (url_get.replace "http" "HTTP")
-            r.should_be_a JS_Object
-
-        group_builder.specify "should follow redirects" <|
-            r = Data.read base_url_with_slash+"test_redirect"
-            r.should_be_a Text
-            r.trim . should_equal '{"hello": "world"}'
 
         group_builder.specify "Can skip auto-parse" <|
             response = Data.fetch url_get format=Raw_Response
@@ -212,6 +192,27 @@ add_specs suite_builder =
             header_names.should_not_contain "connection"
             header_names.should_not_contain "http2-settings"
             header_names.should_not_contain "upgrade"
+
+    suite_builder.group "HTTP in Data.read" pending=pending_has_url group_builder->
+        group_builder.specify "can use URI in Data.read" <|
+            r = Data.read (URI.from url_get)
+            r.should_be_a JS_Object
+
+        group_builder.specify "works if HTTP is uppercase" <|
+            r = Data.fetch (url_get.replace "http" "HTTP")
+            r.should_be_a JS_Object
+
+        group_builder.specify "should follow redirects" <|
+            r = Data.read base_url_with_slash+"test_redirect"
+            r.should_be_a Text
+            r.trim . should_equal '{"hello": "world"}'
+
+        group_builder.specify "can override the format" <|
+            auto_response = Data.read url_get
+            auto_response.should_be_a JS_Object
+
+            plain_response = Data.read url_get format=Plain_Text
+            plain_response.should_be_a Text
 
     suite_builder.group "post" pending=pending_has_url group_builder->
         url_post = base_url_with_slash + "post"
