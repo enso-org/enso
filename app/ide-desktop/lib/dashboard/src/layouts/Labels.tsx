@@ -6,6 +6,7 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import * as modalProvider from '#/providers/ModalProvider'
 
+import * as aria from '#/components/aria'
 import Label from '#/components/dashboard/Label'
 import * as labelUtils from '#/components/dashboard/Label/labelUtils'
 import FocusArea from '#/components/styled/FocusArea'
@@ -25,6 +26,9 @@ import * as string from '#/utilities/string'
 // ==============
 // === Labels ===
 // ==============
+
+/** A sentinel object indicating that the "new label" button should be rendered. */
+const NEW_LABEL_OBJECT = { isNewLabel: true }
 
 /** Props for a {@link Labels}. */
 export interface LabelsProps {
@@ -62,99 +66,113 @@ export default function Labels(props: LabelsProps) {
           {...innerProps}
         >
           <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Labels</div>
-          <ul data-testid="labels-list" className="flex flex-col items-start gap-labels">
-            {displayLabels.map(label => {
-              const negated = currentNegativeLabels.some(term =>
-                array.shallowEqual(term, [label.value])
-              )
-              return (
-                <li key={label.id} className="group flex items-center gap-label-icons">
-                  <Label
-                    draggable
-                    color={label.color}
-                    active={
-                      negated || currentLabels.some(term => array.shallowEqual(term, [label.value]))
-                    }
-                    negated={negated}
-                    isDisabled={newLabelNames.has(label.value)}
-                    onPress={event => {
-                      setQuery(oldQuery =>
-                        oldQuery.withToggled(
-                          'labels',
-                          'negativeLabels',
-                          label.value,
-                          event.shiftKey
-                        )
-                      )
-                    }}
-                    onDragStart={event => {
-                      drag.setDragImageToBlank(event)
-                      const payload: drag.LabelsDragPayload = new Set([label.value])
-                      drag.LABELS.bind(event, payload)
-                      setModal(
-                        <DragModal
-                          event={event}
-                          doCleanup={() => {
-                            drag.LABELS.unbind(payload)
-                          }}
-                        >
-                          <Label active color={label.color} onPress={() => {}}>
-                            {label.value}
-                          </Label>
-                        </DragModal>
-                      )
-                    }}
+          <aria.GridList
+            data-testid="labels-list"
+            aria-label="Labels"
+            dependencies={[displayLabels]}
+            items={[...displayLabels, NEW_LABEL_OBJECT]}
+            className="flex flex-col items-start gap-labels"
+          >
+            {label => {
+              if (!('isNewLabel' in label)) {
+                const negated = currentNegativeLabels.some(term =>
+                  array.shallowEqual(term, [label.value])
+                )
+                return (
+                  <aria.GridListItem
+                    id={label.id}
+                    className="after:focus-ring-within group relative flex items-center gap-label-icons rounded-full after:absolute after:inset after:rounded-full"
                   >
-                    {label.value}
-                  </Label>
-                  {!newLabelNames.has(label.value) && (
-                    <button
-                      className="flex"
-                      onClick={event => {
-                        event.stopPropagation()
+                    <Label
+                      draggable
+                      color={label.color}
+                      active={
+                        negated ||
+                        currentLabels.some(term => array.shallowEqual(term, [label.value]))
+                      }
+                      negated={negated}
+                      isDisabled={newLabelNames.has(label.value)}
+                      onPress={event => {
+                        setQuery(oldQuery =>
+                          oldQuery.withToggled(
+                            'labels',
+                            'negativeLabels',
+                            label.value,
+                            event.shiftKey
+                          )
+                        )
+                      }}
+                      onDragStart={event => {
+                        drag.setDragImageToBlank(event)
+                        const payload: drag.LabelsDragPayload = new Set([label.value])
+                        drag.LABELS.bind(event, payload)
                         setModal(
-                          <ConfirmDeleteModal
-                            actionText={`delete the label '${label.value}'`}
-                            doDelete={() => {
-                              doDeleteLabel(label.id, label.value)
+                          <DragModal
+                            event={event}
+                            doCleanup={() => {
+                              drag.LABELS.unbind(payload)
                             }}
-                          />
+                          >
+                            <Label active color={label.color} onPress={() => {}}>
+                              {label.value}
+                            </Label>
+                          </DragModal>
                         )
                       }}
                     >
-                      <SvgMask
-                        src={Trash2Icon}
-                        alt="Delete"
-                        className="size-icon text-delete transition-all transparent group-hover:active"
-                      />
-                    </button>
-                  )}
-                </li>
-              )
-            })}
-            <li>
-              <Label
-                color={labelUtils.DEFAULT_LABEL_COLOR}
-                className="bg-selected-frame"
-                onPress={event => {
-                  if (event.target instanceof HTMLElement) {
-                    setModal(
-                      <NewLabelModal
-                        labels={labels}
-                        eventTarget={event.target}
-                        doCreate={doCreateLabel}
-                      />
-                    )
-                  }
-                }}
-              >
-                {/* This is a non-standard-sized icon. */}
-                {/* eslint-disable-next-line no-restricted-syntax */}
-                <img src={PlusIcon} className="mr-[6px] size-[6px]" />
-                <span className="text-header">new label</span>
-              </Label>
-            </li>
-          </ul>
+                      {label.value}
+                    </Label>
+                    {!newLabelNames.has(label.value) && (
+                      <aria.Button
+                        className="focus-skip flex"
+                        onPress={() => {
+                          setModal(
+                            <ConfirmDeleteModal
+                              actionText={`delete the label '${label.value}'`}
+                              doDelete={() => {
+                                doDeleteLabel(label.id, label.value)
+                              }}
+                            />
+                          )
+                        }}
+                      >
+                        <SvgMask
+                          src={Trash2Icon}
+                          alt="Delete"
+                          className="size-icon text-delete transition-all transparent group-hover:active"
+                        />
+                      </aria.Button>
+                    )}
+                  </aria.GridListItem>
+                )
+              } else {
+                return (
+                  <aria.GridListItem id="new label">
+                    <Label
+                      color={labelUtils.DEFAULT_LABEL_COLOR}
+                      className="bg-selected-frame"
+                      onPress={event => {
+                        if (event.target instanceof HTMLElement) {
+                          setModal(
+                            <NewLabelModal
+                              labels={labels}
+                              eventTarget={event.target}
+                              doCreate={doCreateLabel}
+                            />
+                          )
+                        }
+                      }}
+                    >
+                      {/* This is a non-standard-sized icon. */}
+                      {/* eslint-disable-next-line no-restricted-syntax */}
+                      <img src={PlusIcon} className="mr-[6px] size-[6px]" />
+                      <span className="text-header">new label</span>
+                    </Label>
+                  </aria.GridListItem>
+                )
+              }
+            }}
+          </aria.GridList>
         </div>
       )}
     </FocusArea>

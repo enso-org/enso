@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
-import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backend from '#/services/Backend'
 
@@ -59,6 +58,7 @@ export default function Label(props: InternalLabelProps) {
           } ${className} ${textColorClassName}`}
           style={{ backgroundColor: backend.lChColorToCssColor(color) }}
           onPress={onPress}
+          // onKeyDown={handleFocusMove}
         >
           {children}
         </aria.Button>

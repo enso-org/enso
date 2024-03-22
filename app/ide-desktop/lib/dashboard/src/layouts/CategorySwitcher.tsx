@@ -15,9 +15,9 @@ import Category from '#/layouts/CategorySwitcher/Category'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
+import * as array from '#/utilities/array'
 import * as drag from '#/utilities/drag'
 
 // =============
@@ -34,9 +34,10 @@ interface CategoryMetadata {
 // === Constants ===
 // =================
 
+const CATEGORIES = Object.values(Category)
 /** Sentinel object indicating that the header should be rendered. */
 const HEADER_OBJECT = { isHeader: true }
-const CATEGORIES: CategoryMetadata[] = [
+const CATEGORY_DATA: CategoryMetadata[] = [
   { category: Category.recent, icon: RecentIcon },
   { category: Category.home, icon: Home2Icon },
   { category: Category.trash, icon: Trash2Icon },
@@ -62,36 +63,34 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { category, icon } = data
 
   return (
-    <FocusRing within placement="after">
-      <aria.MenuItem
-        id={id}
-        textValue={category}
-        className="relative after:pointer-events-none after:absolute after:inset after:rounded-full after:transition-all"
-      >
-        <aria.Button onPress={onPress}>
-          <div
-            title={`Go To ${category}`}
-            className={`selectable ${
-              isCurrent ? 'disabled bg-selected-frame active' : ''
-            } group flex h-row items-center gap-icon-with-text rounded-full px-button-x hover:bg-selected-frame`}
-            // Required because `dragover` does not fire on `mouseenter`.
-            onDragEnter={onDragOver}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-          >
-            <SvgMask
-              src={icon}
-              className={
-                // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
-                // eslint-disable-next-line no-restricted-syntax
-                category === Category.recent ? '-ml-0.5' : ''
-              }
-            />
-            <aria.Text slot="label">{category}</aria.Text>
-          </div>
-        </aria.Button>
-      </aria.MenuItem>
-    </FocusRing>
+    <aria.MenuItem
+      id={id}
+      textValue={category}
+      className="after:focus-ring-within relative after:pointer-events-none after:absolute after:inset after:rounded-full"
+    >
+      <aria.Button onPress={onPress}>
+        <div
+          title={`Go To ${category}`}
+          className={`selectable ${
+            isCurrent ? 'disabled bg-selected-frame active' : ''
+          } group flex h-row items-center gap-icon-with-text rounded-full px-button-x hover:bg-selected-frame`}
+          // Required because `dragover` does not fire on `mouseenter`.
+          onDragEnter={onDragOver}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+        >
+          <SvgMask
+            src={icon}
+            className={
+              // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
+              // eslint-disable-next-line no-restricted-syntax
+              category === Category.recent ? '-ml-0.5' : ''
+            }
+          />
+          <aria.Text slot="label">{category}</aria.Text>
+        </div>
+      </aria.Button>
+    </aria.MenuItem>
   )
 }
 
@@ -123,9 +122,14 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
           ref={ref}
           aria-label="Category switcher"
           className="flex w-full flex-col items-start"
+          onAction={key => {
+            if (array.includesPredicate(CATEGORIES)(key)) {
+              setCategory(key)
+            }
+          }}
           {...innerProps}
         >
-          <aria.Section dependencies={[category]} items={[HEADER_OBJECT, ...CATEGORIES]}>
+          <aria.Section dependencies={[category]} items={[HEADER_OBJECT, ...CATEGORY_DATA]}>
             {data =>
               'isHeader' in data ? (
                 <aria.Header
