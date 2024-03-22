@@ -766,11 +766,12 @@ public class TypeInferenceTest extends CompilerTest {
         Source.newBuilder(
                 "enso",
                 """
+                type My_Type
                 foo unknown =
-                    x1 = 1 2
-                    x2 = "a" x1
-                    x3 = unknown x2
-                    [x1]
+                    x1 = 0 1
+                    x2 = "a" 2
+                    x3 = unknown 3
+                    [x1, x2, x3]
                 """,
                 uri.getAuthority())
             .uri(uri)
@@ -794,6 +795,36 @@ public class TypeInferenceTest extends CompilerTest {
         "x3 should not contain any warnings",
         List.of(),
         getDescendantsDiagnostics(x3.expression()));
+  }
+
+  @Test
+  public void notInvokableFunctionNoWarning() throws Exception {
+    final URI uri = new URI("memory://notInvokableFunctionNoWarning.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                import Standard.Base.Function.Function
+                foo (fun : Function)  =
+                    f = fun
+                    x1 = f 123
+                    [x1]
+                """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = findStaticMethod(module, "foo");
+
+    var functionType = TypeRepresentation.fromQualifiedName("Standard.Base.Function.Function");
+    assertEquals(functionType, getInferredType(findAssignment(foo, "f").expression()));
+
+    var x1 = findAssignment(foo, "x1");
+    assertEquals(
+        "x1 should not contain any warnings",
+        List.of(),
+        getDescendantsDiagnostics(x1.expression()));
   }
 
   /**
