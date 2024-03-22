@@ -69,7 +69,8 @@ const cbOpen: Interaction = {
   },
   click: (e: PointerEvent) => {
     if (targetIsOutside(e, cbRoot.value)) {
-      if (input.anyChange.value) {
+      // In AI prompt mode likely the input is not a valid mode.
+      if (input.anyChange.value && input.context.value.type !== 'aiPrompt') {
         acceptInput()
       } else {
         interaction.cancel(cbOpen)
