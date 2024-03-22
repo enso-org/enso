@@ -48,6 +48,14 @@ v.test('correctly validates example HTTP .datalink files with the schema', () =>
   }
 })
 
+v.test('correctly validates example Enso_File .datalink files with the schema', () => {
+  const schemas = ['example-enso-file.datalink']
+  for (const schema of schemas) {
+    const json = loadDataLinkFile(path.resolve(BASE_DATA_LINKS_ROOT, schema))
+    testSchema(json, schema)
+  }
+})
+
 v.test('rejects invalid schemas (Base)', () => {
   const invalidSchemas = ['example-http-format-invalid.datalink']
   for (const schema of invalidSchemas) {
