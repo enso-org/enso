@@ -1,5 +1,6 @@
 private
 
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link
@@ -19,7 +20,7 @@ from project.System.File_Format import Auto_Detect, format_types
 
 ## PRIVATE
 looks_like_uri path:Text -> Boolean =
-    (path.starts_with "http://") || (path.starts_with "https://")
+    (path.starts_with "http://" Case_Sensitivity.Insensitive) || (path.starts_with "https://" Case_Sensitivity.Insensitive)
 
 ## PRIVATE
    A common implementation for fetching a resource and decoding it,
