@@ -140,7 +140,7 @@ export interface AppProps {
 export default function App(props: AppProps) {
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
-  const Router = detect.isOnElectron() ? router.MemoryRouter : router.BrowserRouter
+  const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
@@ -186,6 +186,7 @@ function AppRouter(props: AppProps) {
     window.navigate = navigate
   }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
+
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
     if (savedInputBindings != null) {
@@ -203,6 +204,7 @@ function AppRouter(props: AppProps) {
       }
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+
   const inputBindings = React.useMemo(() => {
     const updateLocalStorage = () => {
       localStorage.set(
@@ -250,11 +252,14 @@ function AppRouter(props: AppProps) {
       },
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+
   const mainPageUrl = getMainPageUrl()
+
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
   }, [props, /* should never change */ navigate])
+
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
   const initialBackend: Backend = isAuthenticationDisabled
@@ -262,6 +267,7 @@ function AppRouter(props: AppProps) {
     : // This is safe, because the backend is always set by the authentication flow.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       null!
+
   React.useEffect(() => {
     let isClick = false
     const onMouseDown = () => {
@@ -283,6 +289,7 @@ function AppRouter(props: AppProps) {
         }
       }
     }
+
     const onSelectStart = () => {
       isClick = false
     }
@@ -295,6 +302,7 @@ function AppRouter(props: AppProps) {
       document.removeEventListener('selectstart', onSelectStart)
     }
   }, [])
+
   const routes = (
     <router.Routes>
       <React.Fragment>
