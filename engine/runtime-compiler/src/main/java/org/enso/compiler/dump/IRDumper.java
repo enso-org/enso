@@ -407,8 +407,10 @@ public class IRDumper {
 
   private void addNode(GraphVizNode node) {
     var isNodeAlreadyDefined = nodes.stream().anyMatch(n -> n.equals(node));
-    assert !isNodeAlreadyDefined
-        : "Node " + node + " already exists. You must not create duplicate nodes.";
+    if (isNodeAlreadyDefined) {
+      // Skip duplicate nodes.
+      return;
+    }
     nodes.add(node);
     if (INCLUDE_CODE) {
       if (node.object() instanceof IR ir) {
@@ -448,9 +450,9 @@ public class IRDumper {
     assert nodesContainsTo
         : "Node " + toId + " not found. You must first create it before creating an edge to it";
     var edgeAlreadyExists = edges.stream().anyMatch(e -> e.equals(edge));
-    assert !edgeAlreadyExists
-        : "Edge " + edge + " already exists. You must not create duplicate edges.";
-    edges.add(edge);
+    if (!edgeAlreadyExists) {
+      edges.add(edge);
+    }
   }
 
   private void createEdge(Object from, Object to, String label) {
@@ -459,7 +461,6 @@ public class IRDumper {
 
   /** Dump all the nodes and edges definitions into the GraphViz format. */
   private void dumpGraph() {
-    assert edges.size() < nodes.size();
     write("digraph {");
     write(System.lineSeparator());
     for (GraphVizNode node : nodes) {
