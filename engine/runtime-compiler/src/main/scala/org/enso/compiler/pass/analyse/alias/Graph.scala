@@ -5,13 +5,16 @@ import org.enso.syntax.text.Debug
 import org.enso.compiler.pass.analyse.alias.Graph.{Occurrence, Scope}
 
 import java.util.UUID
+import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
 /** A graph containing aliasing information for a given root scope in Enso. */
 sealed class Graph extends Serializable {
   var rootScope: Graph.Scope = new Graph.Scope()
-  var links: Set[Graph.Link] = Set()
+  private var links: Set[Graph.Link] = Set()
+  private var sourceLinks: Map[Graph.Id, Set[Graph.Link]] = new HashMap()
+  private var targetLinks: Map[Graph.Id, Set[Graph.Link]] = new HashMap()
   var nextIdCounter          = 0
 
   private var globalSymbols: Map[Graph.Symbol, Occurrence.Global] =
@@ -24,10 +27,21 @@ sealed class Graph extends Serializable {
     val copy = new Graph
     copy.rootScope     = this.rootScope.deepCopy(scope_mapping)
     copy.links         = this.links
+    copy.sourceLinks         = this.sourceLinks
+    copy.targetLinks         = this.targetLinks
     copy.globalSymbols = this.globalSymbols
     copy.nextIdCounter = this.nextIdCounter
     copy
   }
+
+  def initLinks(links: Set[Graph.Link]): Unit = {
+    links.foreach { link =>
+      sourceLinks = sourceLinks.updatedWith(link.source)(v => v.map(s => s + link).orElse(Some(Set(link))))
+      targetLinks = targetLinks.updatedWith(link.target)(v => v.map(s => s + link).orElse(Some(Set(link))))
+    }
+  }
+
+  def getLinks(): Set[Graph.Link] = links
 
   /** Registers a requested global symbol in the aliasing scope.
     *
@@ -46,6 +60,8 @@ sealed class Graph extends Serializable {
   def copy: Graph = {
     val graph = new Graph
     graph.links         = links
+    graph.sourceLinks = sourceLinks
+    graph.targetLinks = targetLinks
     graph.rootScope     = rootScope.deepCopy(mutable.Map())
     graph.nextIdCounter = nextIdCounter
 
@@ -85,6 +101,8 @@ sealed class Graph extends Serializable {
   ): Option[Graph.Link] = {
     scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
       links += link
+      sourceLinks = sourceLinks.updatedWith(link.source)(v => v.map(s => s + link).orElse(Some(Set(link))))
+      targetLinks = targetLinks.updatedWith(link.target)(v => v.map(s => s + link).orElse(Some(Set(link))))
       link
     })
   }
@@ -129,7 +147,7 @@ sealed class Graph extends Serializable {
     * @return a list of links in which `id` occurs
     */
   def linksFor(id: Graph.Id): Set[Graph.Link] = {
-    links.filter(l => l.source == id || l.target == id)
+    sourceLinks.getOrElse(id, Set.empty[Graph.Link]) ++ targetLinks.getOrElse(id, Set())
   }
 
   /** Finds all links in the graph where `symbol` appears in the role
