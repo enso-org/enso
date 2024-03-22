@@ -14,7 +14,7 @@ bytes = { workspace = true }
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.1.5", features = ["derive", "env"] }
 data-encoding = "2.3.2"
-dependency_runner = "1.0.0"
+dependency_runner = "1.1.0"
 derivative = { workspace = true }
 derive_more = { workspace = true }
 dirs = { workspace = true }
