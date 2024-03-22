@@ -28,5 +28,9 @@ Table.build_ai_prompt self =
     goal_line = "goal=" + goal_placeholder + "==>>`"
     base_prompt + '\n' + columns + goal_line
 
+# TODO [ao]: commented, because it caused weird responses in GUI - see https://github.com/enso-org/enso/issues/9518
+# ## PRIVATE
+# Any.build_ai_prompt self = "````"
+
 ## PRIVATE
 build_ai_prompt subject = subject.build_ai_prompt
