@@ -7,6 +7,7 @@ polyglot java import java.math.RoundingMode
    `Rounding_Mode` is used to specify the method to use for rounding a value in
    operations on `Decimal`s.` See `Decimal` for more details.
 type Rounding_Mode
+    ## PRIVATE
     Value (rounding_mode : RoundingMode)
 
     ## Round towards positive infinity for positive numbers, and negative
