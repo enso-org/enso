@@ -1998,7 +1998,14 @@ export default function AssetsTable(props: AssetsTableProps) {
   React.useEffect(() => {
     const body = bodyRef.current
     const scrollContainer = rootRef.current
-    if (body != null && scrollContainer != null) {
+    if (body == null || scrollContainer == null) {
+      // eslint-disable-next-line no-restricted-properties
+      console.warn(
+        'The React ref for the drive table scroll container or the drive table body ' +
+          'is not attached to an element. This should never happen.'
+      )
+      return
+    } else {
       let isClipPathUpdateQueued = false
       const updateClipPath = () => {
         isClipPathUpdateQueued = false
@@ -2015,10 +2022,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       return () => {
         scrollContainer.removeEventListener('scroll', onScroll)
       }
-    } else {
-      return
     }
-  }, [/* should never change */ rootRef])
+  }, [])
 
   React.useEffect(
     () =>

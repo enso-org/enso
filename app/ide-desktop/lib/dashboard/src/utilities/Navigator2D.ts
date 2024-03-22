@@ -28,8 +28,14 @@ function mapDirections<T>(map: (direction: Direction) => T): Readonly<Record<Dir
 // === Navigator2D ===
 // ===================
 
+/** Metadata containing an element and its distance. */
+interface ElementAndDistance {
+  readonly element: Element
+  readonly distance: number
+}
+
 /** The neighbors of an element in each of the four cardinal directions. */
-type ElementNeighbors = Readonly<Record<Direction, Element | null>>
+type ElementNeighbors = Readonly<Record<Direction, readonly Element[]>>
 
 /** All data associated with an element. */
 interface ElementData extends Omit<Required<Navigator2DElementOptions>, 'focusPrimaryChild'> {
@@ -83,7 +89,7 @@ export default class Navigator2D {
     this.directionKeys = options.directionKeys ?? this.directionKeys
   }
 
-  /** Recomputes the neighors of all elements.
+  /** Recomputes the neighbors of all elements.
    *
    * Full layout recomputations are expensive, but should amortize the cost of sorting the arrays. */
   recomputeLayout() {
@@ -97,10 +103,8 @@ export default class Navigator2D {
     }).filter(data => data.data.boundingBox.width > 0 || data.data.boundingBox.height > 0)
     const byHorizontalCenter = [...datas].sort((a, b) => a.x - b.x)
     for (const data of byHorizontalCenter) {
-      let nearestLeftNeighbor: Element | null = null
-      let leftNeighborDistance = Infinity
-      let nearestRightNeighbor: Element | null = null
-      let rightNeighborDistance = Infinity
+      const leftNeighbors: ElementAndDistance[] = []
+      const rightNeighbors: ElementAndDistance[] = []
       for (const otherData of datas) {
         const distanceFromLeft = data.data.boundingBox.left - otherData.data.boundingBox.right
         const distanceFromRight = otherData.data.boundingBox.left - data.data.boundingBox.right
@@ -109,29 +113,25 @@ export default class Navigator2D {
         if (data.element !== otherData.element && horizontalDistance >= 0) {
           const distance = horizontalDistance + Math.abs(data.y - otherData.y)
           if (otherData.x < data.x) {
-            if (distance < leftNeighborDistance) {
-              nearestLeftNeighbor = otherData.element
-              leftNeighborDistance = distance
-            }
+            leftNeighbors.push({ element: otherData.element, distance })
           } else if (otherData.x > data.x) {
-            if (distance < rightNeighborDistance) {
-              nearestRightNeighbor = otherData.element
-              rightNeighborDistance = distance
-            }
+            rightNeighbors.push({ element: otherData.element, distance })
           }
         }
       }
       // This usage of `unsafeMutable` is SAFE, as `neighbors` is mutable internally.
       const neighbors = object.unsafeMutable(data.data.neighbors)
-      neighbors[Direction.left] = nearestLeftNeighbor
-      neighbors[Direction.right] = nearestRightNeighbor
+      neighbors[Direction.left] = leftNeighbors
+        .sort((a, b) => a.distance - b.distance)
+        .map(metadata => metadata.element)
+      neighbors[Direction.right] = rightNeighbors
+        .sort((a, b) => a.distance - b.distance)
+        .map(metadata => metadata.element)
     }
     const byVerticalCenter = [...datas].sort((a, b) => a.y - b.y)
     for (const data of byVerticalCenter) {
-      let nearestAboveNeighbor: Element | null = null
-      let aboveNeighborDistance = Infinity
-      let nearestBelowNeighbor: Element | null = null
-      let belowNeighborDistance = Infinity
+      const aboveNeighbors: ElementAndDistance[] = []
+      const belowNeighbors: ElementAndDistance[] = []
       for (const otherData of datas) {
         const distanceFromTop = data.data.boundingBox.top - otherData.data.boundingBox.bottom
         const distanceFromBottom = otherData.data.boundingBox.top - data.data.boundingBox.bottom
@@ -140,22 +140,20 @@ export default class Navigator2D {
         if (data.element !== otherData.element && verticalDistance >= 0) {
           const distance = Math.abs(data.x - otherData.x) + verticalDistance
           if (otherData.y < data.y) {
-            if (distance < aboveNeighborDistance) {
-              nearestAboveNeighbor = otherData.element
-              aboveNeighborDistance = distance
-            }
+            aboveNeighbors.push({ element: otherData.element, distance })
           } else if (otherData.y > data.y) {
-            if (distance < belowNeighborDistance) {
-              nearestBelowNeighbor = otherData.element
-              belowNeighborDistance = distance
-            }
+            belowNeighbors.push({ element: otherData.element, distance })
           }
         }
       }
       // This usage of `unsafeMutable` is SAFE, as `neighbors` is mutable internally.
       const neighbors = object.unsafeMutable(data.data.neighbors)
-      neighbors[Direction.up] = nearestAboveNeighbor
-      neighbors[Direction.down] = nearestBelowNeighbor
+      neighbors[Direction.up] = aboveNeighbors
+        .sort((a, b) => a.distance - b.distance)
+        .map(metadata => metadata.element)
+      neighbors[Direction.down] = belowNeighbors
+        .sort((a, b) => a.distance - b.distance)
+        .map(metadata => metadata.element)
     }
   }
 
@@ -177,11 +175,28 @@ export default class Navigator2D {
             : event.key === this.directionKeys[Direction.right]
               ? Direction.right
               : null
-    if (data != null && direction != null) {
+    if (data != null && direction != null && event.target instanceof Element) {
       if (this.isLayoutDirty) {
         this.recomputeLayout()
       }
-      const targetNeighbor = data.neighbors[direction]
+      const boundingBox = event.target.getBoundingClientRect()
+      const targetNeighbors = data.neighbors[direction]
+      let targetNeighbor = targetNeighbors[0]
+      let minimumDistance = Infinity
+      for (const neighbor of targetNeighbors) {
+        const neighborBoundingBox = neighbor.getBoundingClientRect()
+        const distanceFromLeft = boundingBox.left - neighborBoundingBox.right
+        const distanceFromRight = neighborBoundingBox.left - boundingBox.right
+        const horizontalDistance = Math.max(distanceFromLeft, distanceFromRight)
+        const distanceFromTop = boundingBox.top - neighborBoundingBox.bottom
+        const distanceFromBottom = neighborBoundingBox.top - boundingBox.bottom
+        const verticalDistance = Math.max(distanceFromTop, distanceFromBottom)
+        const distance = horizontalDistance + verticalDistance
+        if (distance < minimumDistance) {
+          targetNeighbor = neighbor
+          minimumDistance = distance
+        }
+      }
       const focusTargetNeighbor =
         targetNeighbor instanceof HTMLElement ? targetNeighbor.focus.bind(null) : null
       const focus =
@@ -242,7 +257,7 @@ export default class Navigator2D {
     const defaultAllowedDirections = options.allowedDirections == null
     this.elements.set(element, {
       boundingBox: new DOMRectReadOnly(),
-      neighbors: mapDirections(() => null),
+      neighbors: mapDirections(() => []),
       allowedDirections: mapDirections(
         direction => options.allowedDirections?.[direction] ?? defaultAllowedDirections
       ),

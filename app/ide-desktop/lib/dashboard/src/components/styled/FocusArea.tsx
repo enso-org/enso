@@ -50,9 +50,9 @@ function FocusAreaInner(props: FocusAreaInnerProps) {
     }
   }, [active, focusManager, navigator2D])
 
-  return (
-    <AreaFocusProvider areaFocus={areaFocus}>
-      {children(ref => {
+  const cachedChildren = React.useMemo(
+    () =>
+      children(ref => {
         rootRef.current = ref
         if (ref != null && detect.IS_DEV_MODE) {
           if (active) {
@@ -63,9 +63,11 @@ function FocusAreaInner(props: FocusAreaInnerProps) {
         }
         // This is REQUIRED, otherwise `useFocusWithin` does not work with
         // eslint-disable-next-line no-restricted-syntax
-      }, focusWithinProps as FocusWithinProps)}
-    </AreaFocusProvider>
+      }, focusWithinProps as FocusWithinProps),
+    [active, children, focusWithinProps]
   )
+
+  return <AreaFocusProvider areaFocus={areaFocus}>{cachedChildren}</AreaFocusProvider>
 }
 
 /** Props for a {@link FocusArea} */
