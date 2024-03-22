@@ -58,12 +58,16 @@ interface InternalCategorySwitcherItemProps {
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { data, isCurrent, onPress, onDragOver, onDrop } = props
+  const { id, data, isCurrent, onPress, onDragOver, onDrop } = props
   const { category, icon } = data
 
   return (
     <FocusRing within placement="after">
-      <aria.MenuItem className="relative after:pointer-events-none after:absolute after:inset after:rounded-full after:transition-all">
+      <aria.MenuItem
+        id={id}
+        textValue={category}
+        className="relative after:pointer-events-none after:absolute after:inset after:rounded-full after:transition-all"
+      >
         <aria.Button onPress={onPress}>
           <div
             title={`Go To ${category}`}

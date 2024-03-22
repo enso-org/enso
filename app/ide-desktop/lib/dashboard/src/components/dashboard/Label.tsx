@@ -1,7 +1,7 @@
 /** @file An label that can be applied to an asset. */
 import * as React from 'react'
 
-import type * as aria from '#/components/aria'
+import * as aria from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
@@ -42,14 +42,14 @@ export default function Label(props: InternalLabelProps) {
       : 'text-primary'
 
   return (
-    <FocusRing placement="after">
+    <FocusRing within placement="after">
       <div
         draggable={draggable}
         className="relative after:pointer-events-none after:absolute after:inset after:rounded-full"
         onDragStart={onDragStart}
         onContextMenu={onContextMenu}
       >
-        <UnstyledButton
+        <aria.Button
           data-testid={props['data-testid']}
           isDisabled={isDisabled}
           className={`selectable ${
@@ -61,7 +61,7 @@ export default function Label(props: InternalLabelProps) {
           onPress={onPress}
         >
           {children}
-        </UnstyledButton>
+        </aria.Button>
       </div>
     </FocusRing>
   )
