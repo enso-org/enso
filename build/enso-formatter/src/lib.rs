@@ -609,6 +609,7 @@ mod tests {
         let input = r#"//! Module-level documentation
 //! written in two lines.
 
+#![warn(absolute_paths_not_starting_with_crate)]
 #![warn(missing_copy_implementations)]
 #![allow(incomplete_features)]
 #![recursion_limit = "512"]
@@ -635,14 +636,8 @@ pub struct Struct1 {}
 // === Features ===
 #![allow(incomplete_features)]
 
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
-
 // === Non-Standard Linter Configuration ===
-#![warn(missing_copy_implementations)]
+#![warn(absolute_paths_not_starting_with_crate)]
 
 use super::prelude::*;
 use crate::prelude::*;
