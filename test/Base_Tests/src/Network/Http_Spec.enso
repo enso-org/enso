@@ -148,6 +148,10 @@ add_specs suite_builder =
             r = Data.read (URI.from url_get)
             r.should_be_a JS_Object
 
+        group_builder.specify "works if HTTP is uppercase" <|
+            r = Data.fetch (url_get.replace "http" "HTTP")
+            r.should_be_a JS_Object
+
         group_builder.specify "should follow redirects" <|
             r = Data.read base_url_with_slash+"test_redirect"
             r.should_be_a Text
