@@ -119,8 +119,26 @@ record GraphVizNode(
         bldr.addLabelLine("location: null");
       }
       bldr.addLabelLine("id: " + ir.getId());
-      bldr.addLabelLine("pass_data: " + ir.passData());
+      if (!isPassDataEmpty(ir.passData())) {
+        bldr.addLabelLine("pass_data: ");
+        ir.passData().map((pass, metadata) -> {
+          var metaName = metadata.metadataName();
+          bldr.addLabelLine("  - " + metaName);
+          return null;
+        });
+      } else {
+        bldr.addLabelLine("pass_data: []");
+      }
       return bldr;
+    }
+
+    private static boolean isPassDataEmpty(MetadataStorage passData) {
+      int[] counter = new int[]{0};
+      passData.map((pass, data) -> {
+        counter[0]++;
+        return null;
+      });
+      return counter[0] == 0;
     }
 
     Builder addLabelLine(String line) {
