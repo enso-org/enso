@@ -8,18 +8,21 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.MetadataStorage;
 
 /**
  * Represents a node in the GraphViz graph.
  *
  * @param id Identifier of the node. Used to refer to the node in edges. Must be unique.
+ * @param header The first line of the label. It is not justified to the left.
+ *               Can be null.
  * @param multiLineLabel A label in GraphViz is a simple textual attribute. To make it multi-line,
  *     we need to escape newlines with "\\n".
  * @param additionalAttrs Additional attributes to specify for the node, apart from `label`.
  * @param object The underlying object from which the node was created.
  */
 record GraphVizNode(
-    String id, List<String> multiLineLabel, Map<String, String> additionalAttrs, Object object) {
+    String id, String header, List<String> multiLineLabel, Map<String, String> additionalAttrs, Object object) {
   public String toGraphViz() {
     var sb = new StringBuilder();
     sb.append(id);
@@ -42,9 +45,15 @@ record GraphVizNode(
     } else {
       sb.append(" [label=\"");
     }
+    // Id is the "header" of the node - the first line of the label.
+    // It is not justified to the left.
+    if (header != null) {
+      sb.append(header).append("\\n");
+    }
     for (var line : multiLineLabel) {
       sb.append(line);
-      sb.append("\\n");
+      // Justify every line to the left - it looks better in the resulting graph.
+      sb.append("\\l");
     }
     sb.append("\"];");
     return sb.toString();
@@ -65,6 +74,7 @@ record GraphVizNode(
 
   static class Builder {
     private String id;
+    private String header;
     private List<String> labelLines = new ArrayList<>();
     private Map<String, String> additionalAttrs = new HashMap<>();
     private Object object;
@@ -75,7 +85,7 @@ record GraphVizNode(
       var bldr = new Builder();
       bldr.object = obj;
       bldr.id = id;
-      bldr.addLabelLine(id);
+      bldr.header = id;
       bldr.addLabelLine("className: " + className);
       return bldr;
     }
@@ -89,6 +99,7 @@ record GraphVizNode(
       var bldr = new Builder();
       bldr.object = obj;
       bldr.id = id;
+      bldr.header = null;
       return bldr;
     }
 
@@ -98,7 +109,7 @@ record GraphVizNode(
       var id = Utils.id(ir);
       bldr.object = ir;
       bldr.id = id;
-      bldr.addLabelLine(id);
+      bldr.header = id;
       bldr.addLabelLine("className: " + className);
       if (ir.location().isDefined()) {
         var loc = ir.location().get();
@@ -127,7 +138,7 @@ record GraphVizNode(
       Objects.requireNonNull(labelLines);
       Objects.requireNonNull(additionalAttrs);
       Objects.requireNonNull(object);
-      return new GraphVizNode(id, labelLines, additionalAttrs, object);
+      return new GraphVizNode(id, header, labelLines, additionalAttrs, object);
     }
 
     private static String className(Object obj) {
