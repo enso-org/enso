@@ -16,9 +16,9 @@ import * as portal from '#/components/Portal'
 import type * as types from './types'
 
 const MODAL_CLASSES =
-  'fixed z-1 top-0 left-0 right-0 bottom-0 isolate bg-black/[15%] flex items-center justify-center text-center'
+  'fixed z-1 top-0 left-0 right-0 bottom-0 bg-black/[15%] flex items-center justify-center text-center'
 const DIALOG_CLASSES =
-  'flex flex-col overflow-hidden rounded-xl bg-white text-left align-middle text-slate-700 shadow-2xl bg-clip-padding border border-black/10'
+  'relative flex flex-col overflow-hidden rounded-xl text-left align-middle text-slate-700 shadow-2xl bg-clip-padding border border-black/10 before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default'
 
 const MODAL_CLASSES_BY_TYPE = {
   modal: 'p-4',
@@ -63,8 +63,8 @@ export function Dialog(props: types.DialogProps) {
         {opts => (
           <>
             {typeof title === 'string' && (
-              <reactAriaComponents.Header className="center sticky flex flex-none border-b px-4 py-3 text-primary shadow">
-                <h2 className="my-0 text-xl font-semibold leading-6">{title}</h2>
+              <reactAriaComponents.Header className="center sticky flex flex-none border-b px-3.5 py-2.5 text-primary shadow">
+                <h2 className="text-l my-0 font-semibold leading-6">{title}</h2>
 
                 <ariaComponents.Button
                   variant="icon"

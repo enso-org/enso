@@ -52,11 +52,22 @@ export function AssetDiffView(props: AssetDiffViewProps) {
   } else {
     return (
       <react.DiffEditor
+        beforeMount={monaco => {
+          monaco.editor.defineTheme('myTheme', {
+            base: 'vs',
+            inherit: true,
+            rules: [],
+            // This comes from third-party code and we can't change it
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            colors: { 'editor.background': '#00000000' },
+          })
+        }}
         original={versionContent.data}
         modified={headContent.data}
         language="enso"
         options={{ readOnly: true }}
         loading={loader}
+        theme={'myTheme'}
       />
     )
   }
