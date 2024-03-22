@@ -253,7 +253,10 @@ public class IRDumper {
         var literalNode = bldr.build();
         addNode(literalNode);
       }
-      default -> unimpl(expression);
+      default -> {
+        var node = GraphVizNode.Builder.fromIr(expression).build();
+        addNode(node);
+      }
     }
   }
 
