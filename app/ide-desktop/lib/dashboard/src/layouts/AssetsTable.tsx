@@ -2532,29 +2532,33 @@ export default function AssetsTable(props: AssetsTableProps) {
                   data-testid="extra-columns"
                   className="sticky right flex self-end px-extra-columns-panel-x py-extra-columns-panel-y"
                 >
-                  <div className="inline-flex gap-icons">
-                    {columnUtils.CLOUD_COLUMNS.filter(column => !enabledColumns.has(column)).map(
-                      column => (
-                        <Button
-                          key={column}
-                          active
-                          image={columnUtils.COLUMN_ICONS[column]}
-                          alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
-                            columnUtils.COLUMN_NAME[column]
-                          }`}
-                          onPress={() => {
-                            const newExtraColumns = new Set(enabledColumns)
-                            if (enabledColumns.has(column)) {
-                              newExtraColumns.delete(column)
-                            } else {
-                              newExtraColumns.add(column)
-                            }
-                            setEnabledColumns(newExtraColumns)
-                          }}
-                        />
-                      )
+                  <FocusArea direction="horizontal">
+                    {(columnsBarRef, columnsBarProps) => (
+                      <div ref={columnsBarRef} className="inline-flex gap-icons" {...columnsBarProps}>
+                        {columnUtils.CLOUD_COLUMNS.filter(
+                          column => !enabledColumns.has(column)
+                        ).map(column => (
+                          <Button
+                            key={column}
+                            active
+                            image={columnUtils.COLUMN_ICONS[column]}
+                            alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
+                              columnUtils.COLUMN_NAME[column]
+                            }`}
+                            onPress={() => {
+                              const newExtraColumns = new Set(enabledColumns)
+                              if (enabledColumns.has(column)) {
+                                newExtraColumns.delete(column)
+                              } else {
+                                newExtraColumns.add(column)
+                              }
+                              setEnabledColumns(newExtraColumns)
+                            }}
+                          />
+                        ))}
+                      </div>
                     )}
-                  </div>
+                  </FocusArea>
                 </div>
               </div>
             )}

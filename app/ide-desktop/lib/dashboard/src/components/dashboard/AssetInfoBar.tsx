@@ -34,16 +34,12 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
           className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-icons rounded-full bg-frame px-icons-x ${
             backend.type === backendModule.BackendType.remote ? '' : 'invisible'
           }`}
-          onClick={event => {
-            event.stopPropagation()
-          }}
           {...innerProps}
         >
           <Button
             alt={isAssetPanelEnabled ? 'Close Asset Panel' : 'Open Asset Panel'}
             active={isAssetPanelEnabled}
             image={SettingsIcon}
-            error="Select exactly one asset to see its settings."
             onPress={() => {
               setIsAssetPanelEnabled(visible => !visible)
             }}

@@ -5,9 +5,6 @@ import Home2Icon from 'enso-assets/home2.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
-import * as focusHooks from '#/hooks/focusHooks'
-
-import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
@@ -23,17 +20,27 @@ import SvgMask from '#/components/SvgMask'
 
 import * as drag from '#/utilities/drag'
 
+// =============
+// === Types ===
+// =============
+
+/** Metadata for a category. */
+interface CategoryMetadata {
+  readonly category: Category
+  readonly icon: string
+}
+
 // =================
 // === Constants ===
 // =================
 
-const CATEGORIES = Object.values(Category)
-
-const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
-  [Category.recent]: RecentIcon,
-  [Category.home]: Home2Icon,
-  [Category.trash]: Trash2Icon,
-}
+/** Sentinel object indicating that the header should be rendered. */
+const HEADER_OBJECT = { isHeader: true }
+const CATEGORIES: CategoryMetadata[] = [
+  { category: Category.recent, icon: RecentIcon },
+  { category: Category.home, icon: Home2Icon },
+  { category: Category.trash, icon: Trash2Icon },
+]
 
 // ============================
 // === CategorySwitcherItem ===
@@ -41,47 +48,45 @@ const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps {
-  readonly category: Category
+  readonly id: string
+  readonly data: CategoryMetadata
   readonly isCurrent: boolean
-  readonly onClick: (event: aria.PressEvent) => void
+  readonly onPress: (event: aria.PressEvent) => void
   readonly onDragOver: (event: React.DragEvent) => void
   readonly onDrop: (event: React.DragEvent) => void
 }
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { category, isCurrent, onClick, onDragOver, onDrop } = props
-  const focusDirection = focusDirectionProvider.useFocusDirection()
-  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+  const { data, isCurrent, onPress, onDragOver, onDrop } = props
+  const { category, icon } = data
 
   return (
-    <FocusRing placement="after">
-      <aria.Button
-        className="relative after:pointer-events-none after:absolute after:inset after:rounded-full after:transition-all"
-        onPress={onClick}
-        onKeyDown={handleFocusMove}
-      >
-        <div
-          title={`Go To ${category}`}
-          className={`selectable ${
-            isCurrent ? 'disabled bg-selected-frame active' : ''
-          } group flex h-row items-center gap-icon-with-text rounded-full px-button-x hover:bg-selected-frame`}
-          // Required because `dragover` does not fire on `mouseenter`.
-          onDragEnter={onDragOver}
-          onDragOver={onDragOver}
-          onDrop={onDrop}
-        >
-          <SvgMask
-            src={CATEGORY_ICONS[category]}
-            className={
-              // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
-              // eslint-disable-next-line no-restricted-syntax
-              category === Category.recent ? '-ml-0.5' : ''
-            }
-          />
-          <span>{category}</span>
-        </div>
-      </aria.Button>
+    <FocusRing within placement="after">
+      <aria.MenuItem className="relative after:pointer-events-none after:absolute after:inset after:rounded-full after:transition-all">
+        <aria.Button onPress={onPress}>
+          <div
+            title={`Go To ${category}`}
+            className={`selectable ${
+              isCurrent ? 'disabled bg-selected-frame active' : ''
+            } group flex h-row items-center gap-icon-with-text rounded-full px-button-x hover:bg-selected-frame`}
+            // Required because `dragover` does not fire on `mouseenter`.
+            onDragEnter={onDragOver}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+          >
+            <SvgMask
+              src={icon}
+              className={
+                // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
+                // eslint-disable-next-line no-restricted-syntax
+                category === Category.recent ? '-ml-0.5' : ''
+              }
+            />
+            <aria.Text slot="label">{category}</aria.Text>
+          </div>
+        </aria.Button>
+      </aria.MenuItem>
     </FocusRing>
   )
 }
@@ -102,59 +107,70 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const selectedChildIndexRef = React.useRef(0)
 
   React.useEffect(() => {
     localStorage.set('driveCategory', category)
-    selectedChildIndexRef.current = CATEGORIES.indexOf(category)
   }, [category, /* should never change */ localStorage])
 
   return (
     <FocusArea direction="vertical">
       {(ref, innerProps) => (
-        <div ref={ref} className="gap-sidebar-section-heading flex w-full flex-col" {...innerProps}>
-          <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Category</div>
-          <div className="flex flex-col items-start">
-            {CATEGORIES.map(currentCategory => (
-              <CategorySwitcherItem
-                key={currentCategory}
-                category={currentCategory}
-                isCurrent={category === currentCategory}
-                onClick={() => {
-                  setCategory(currentCategory)
-                }}
-                onDragOver={event => {
-                  if (
-                    (category === Category.trash && currentCategory === Category.home) ||
-                    (category !== Category.trash && currentCategory === Category.trash)
-                  ) {
-                    event.preventDefault()
-                  }
-                }}
-                onDrop={event => {
-                  if (
-                    (category === Category.trash && currentCategory === Category.home) ||
-                    (category !== Category.trash && currentCategory === Category.trash)
-                  ) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    unsetModal()
-                    const payload = drag.ASSET_ROWS.lookup(event)
-                    if (payload != null) {
-                      dispatchAssetEvent({
-                        type:
-                          category === Category.trash
-                            ? AssetEventType.restore
-                            : AssetEventType.delete,
-                        ids: new Set(payload.map(item => item.key)),
-                      })
+        <aria.Menu
+          ref={ref}
+          aria-label="Category switcher"
+          className="flex w-full flex-col items-start"
+          {...innerProps}
+        >
+          <aria.Section dependencies={[category]} items={[HEADER_OBJECT, ...CATEGORIES]}>
+            {data =>
+              'isHeader' in data ? (
+                <aria.Header
+                  id="header"
+                  className="text-header mb-sidebar-section-heading-b px-sidebar-section-heading-x text-sm font-bold"
+                >
+                  Category
+                </aria.Header>
+              ) : (
+                <CategorySwitcherItem
+                  id={data.category}
+                  data={data}
+                  isCurrent={category === data.category}
+                  onPress={() => {
+                    setCategory(data.category)
+                  }}
+                  onDragOver={event => {
+                    if (
+                      (category === Category.trash && data.category === Category.home) ||
+                      (category !== Category.trash && data.category === Category.trash)
+                    ) {
+                      event.preventDefault()
                     }
-                  }
-                }}
-              />
-            ))}
-          </div>
-        </div>
+                  }}
+                  onDrop={event => {
+                    if (
+                      (category === Category.trash && data.category === Category.home) ||
+                      (category !== Category.trash && data.category === Category.trash)
+                    ) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      unsetModal()
+                      const payload = drag.ASSET_ROWS.lookup(event)
+                      if (payload != null) {
+                        dispatchAssetEvent({
+                          type:
+                            category === Category.trash
+                              ? AssetEventType.restore
+                              : AssetEventType.delete,
+                          ids: new Set(payload.map(item => item.key)),
+                        })
+                      }
+                    }
+                  }}
+                />
+              )
+            }
+          </aria.Section>
+        </aria.Menu>
       )}
     </FocusArea>
   )

@@ -360,6 +360,9 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
             <aria.SearchField
               aria-label="Search through items"
               className="relative grow before:text before:absolute before:inset-x-button-focus-ring-inset before:my-auto before:rounded-full before:transition-all"
+              onKeyDown={event => {
+                event.continuePropagation()
+              }}
             >
               <aria.Input
                 type="search"

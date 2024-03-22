@@ -14,7 +14,7 @@ import UserMenu from '#/layouts/UserMenu'
 import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
@@ -79,61 +79,55 @@ export default function UserBar(props: UserBarProps) {
             }}
           />
           {shouldShowInviteButton && (
-            <FocusRing>
-              <aria.Button
-                className="text my-auto rounded-full bg-share px-button-x text-inversed"
-                onPress={() => {
-                  setModal(<InviteUsersModal eventTarget={null} />)
-                }}
-              >
-                Invite
-              </aria.Button>
-            </FocusRing>
+            <UnstyledButton
+              className="text my-auto rounded-full bg-share px-button-x text-inversed"
+              onPress={() => {
+                setModal(<InviteUsersModal eventTarget={null} />)
+              }}
+            >
+              <aria.Text slot="label">Invite</aria.Text>
+            </UnstyledButton>
           )}
           {shouldShowShareButton && (
-            <FocusRing>
-              <aria.Button
-                className="text my-auto rounded-full bg-share px-button-x text-inversed"
-                onPress={() => {
-                  setModal(
-                    <ManagePermissionsModal
-                      item={projectAsset}
-                      setItem={setProjectAsset}
-                      self={self}
-                      doRemoveSelf={doRemoveSelf}
-                      eventTarget={null}
-                    />
-                  )
-                }}
-              >
-                Share
-              </aria.Button>
-            </FocusRing>
-          )}
-          <FocusRing>
-            <aria.Button
-              className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+            <UnstyledButton
+              className="text my-auto rounded-full bg-share px-button-x text-inversed"
               onPress={() => {
-                updateModal(oldModal =>
-                  oldModal?.type === UserMenu ? null : (
-                    <UserMenu
-                      setPage={setPage}
-                      supportsLocalBackend={supportsLocalBackend}
-                      onSignOut={onSignOut}
-                    />
-                  )
+                setModal(
+                  <ManagePermissionsModal
+                    item={projectAsset}
+                    setItem={setProjectAsset}
+                    self={self}
+                    doRemoveSelf={doRemoveSelf}
+                    eventTarget={null}
+                  />
                 )
               }}
             >
-              <img
-                src={user?.profilePicture ?? DefaultUserIcon}
-                alt="Open user menu"
-                className="pointer-events-none"
-                height={28}
-                width={28}
-              />
-            </aria.Button>
-          </FocusRing>
+              <aria.Text slot="label">Share</aria.Text>
+            </UnstyledButton>
+          )}
+          <UnstyledButton
+            className="flex size-profile-picture select-none items-center overflow-clip rounded-full"
+            onPress={() => {
+              updateModal(oldModal =>
+                oldModal?.type === UserMenu ? null : (
+                  <UserMenu
+                    setPage={setPage}
+                    supportsLocalBackend={supportsLocalBackend}
+                    onSignOut={onSignOut}
+                  />
+                )
+              )
+            }}
+          >
+            <img
+              src={user?.profilePicture ?? DefaultUserIcon}
+              alt="Open user menu"
+              className="pointer-events-none"
+              height={28}
+              width={28}
+            />
+          </UnstyledButton>
           {/* Required for shortcuts to work. */}
           <div className="hidden">
             <UserMenu

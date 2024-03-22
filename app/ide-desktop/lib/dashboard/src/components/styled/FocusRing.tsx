@@ -3,13 +3,16 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
+/** Which pseudo-element to place the focus ring on (if any). */
+export type FocusRingPlacement = 'after' | 'before'
+
 /** Props for a {@link FocusRing}. */
 export interface FocusRingProps extends Readonly<Pick<aria.FocusRingProps, 'children'>> {
   /** Whether to show the focus ring on `:focus-within` instead of `:focus`. */
   readonly within?: boolean
   /** Which pseudo-element to place the focus ring on (if any).
    * Defaults to placement on the actual element. */
-  readonly placement?: 'after' | 'before'
+  readonly placement?: FocusRingPlacement
 }
 
 /** A styled focus ring. */

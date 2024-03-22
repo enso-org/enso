@@ -51,8 +51,8 @@ export default function MenuEntry(props: MenuEntryProps) {
   }, [isDisabled, inputBindings, action, doAction])
 
   return hidden ? null : (
-    <aria.MenuItem textValue={label} className="flex w-full">
-      <FocusRing>
+    <FocusRing within>
+      <aria.MenuItem textValue={label} className="flex w-full">
         <aria.Button
           isDisabled={isDisabled}
           className={`flex h-row grow place-content-between items-center rounded-menu-entry p-menu-entry text-left selectable hover:bg-hover-bg enabled:active disabled:bg-transparent ${
@@ -66,7 +66,7 @@ export default function MenuEntry(props: MenuEntryProps) {
           </div>
           <KeyboardShortcut action={action} />
         </aria.Button>
-      </FocusRing>
-    </aria.MenuItem>
+      </aria.MenuItem>
+    </FocusRing>
   )
 }
