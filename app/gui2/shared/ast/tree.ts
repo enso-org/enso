@@ -1428,7 +1428,7 @@ export class MutableTextLiteral extends TextLiteral implements MutableAst {
   setRawTextContent(rawText: string) {
     let boundary = this.boundaryTokenCode()
     const isInterpolated = this.isInterpolated()
-    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.includes(boundary))
+    const mustBecomeInterpolated = !isInterpolated && (!boundary || rawText.match(/["\n\r]/))
     if (mustBecomeInterpolated) {
       boundary = "'"
       this.setBoundaries(boundary)

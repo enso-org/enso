@@ -49,7 +49,7 @@ export default function MembersSettingsTab() {
               </tr>
             ) : (
               members.map(member => (
-                <tr key={member.id} className="h-row">
+                <tr key={member.userId} className="h-row">
                   <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 ">
                     {member.name}
                   </td>
