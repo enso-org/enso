@@ -114,18 +114,26 @@ type Data_Link
         _ = [format, on_problems]
         Unimplemented.throw "This is an interface only."
 
+## PRIVATE
+   A type class representing a data link that can be opened as a stream.
+
+   It requires the underlying data link to provide a `with_input_stream` method.
+type Data_Link_With_Input_Stream
     ## PRIVATE
-       Specifies if the data link target can be opened as a stream for reading.
-    supports_input_stream self -> Boolean =
-        Unimplemented.throw "This is an interface only."
+    Value underlying
 
     ## PRIVATE
        Opens the data pointed at by the data link as a raw stream.
-       This method is only allowed if `supports_input_stream` returns `True`.
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
-        _ = [open_options, action]
-        Unimplemented.throw "This is an interface only."
+        self.underlying.with_input_stream open_options action
 
+    ## PRIVATE
+       Creates a `Data_Link_With_Input_Stream` from a data link instance, if
+       that data link supports streaming. If it does not, an error is thrown.
+    find instance (~if_not_supported = (Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be opened as a stream."))) -> Data_Link_With_Input_Stream ! Illegal_Argument =
+        handle_no_conversion _ =
+            if_not_supported
+        Panic.catch No_Such_Conversion (Data_Link_With_Input_Stream.from data_link_instance) handle_no_conversion
 
 ## PRIVATE
    All data-link config files should be saved with UTF-8 encoding.
@@ -176,7 +184,8 @@ read_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
 read_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_Stream -> Any) =
     json = Data_Link_Format.read_config file
     data_link_instance = interpret_json_as_data_link json
-    data_link_instance.with_input_stream open_options f
+    data_link_with_input_stream = Data_Link_With_Input_Stream.find data_link_instance
+    data_link_with_input_stream.with_input_stream open_options f
 
 ## PRIVATE
 write_data_link (file : File_Like) format (on_problems : Problem_Behavior) =
@@ -190,13 +199,9 @@ write_data_link_as_stream (file : File_Like) (open_options : Vector) (f : Input_
 
 ## PRIVATE
 save_data_link_to_file data_link_instance (target_file : Writable_File) =
-    case data_link_instance.supports_input_stream of
-        True ->
-            data_link_instance.with_input_stream [File_Access.Read] input_stream->
-                input_stream.write_to_file target_file
-        False ->
-            data_link_name = Meta.type_of data_link_instance . to_display_text . replace "_" " "
-            Error.throw (Illegal_Argument.Error "The "+data_link_name+" cannot be saved to a file.")
+    data_link_with_input_stream = Data_Link_With_Input_Stream.find data_link_instance if_not_supported=(Error.throw (Illegal_Argument.Error "The "+(data_link_name data_link_instance)+" cannot be saved to a file."))
+    data_link_with_input_stream.with_input_stream [File_Access.Read] input_stream->
+        input_stream.write_to_file target_file
 
 ## PRIVATE
 parse_secure_value json -> Text | Enso_Secret =
@@ -222,3 +227,8 @@ parse_format (json : Any) -> Any ! Illegal_State = case json of
         other ->
             Error.throw (Illegal_State.Error "Expected `subType` to be a string, but got: "+other.to_display_text+".")
     other -> Error.throw (Illegal_State.Error "Unexpected value inside of a data-link `format` field: "+other.to_display_text+".")
+
+## PRIVATE
+   Returns a human readable name of the data link type, based on its type.
+data_link_name data_link_instance =
+    Meta.type_of data_link_instance . to_display_text . replace "_" " "

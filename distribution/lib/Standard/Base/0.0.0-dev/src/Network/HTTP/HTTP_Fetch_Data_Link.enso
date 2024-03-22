@@ -11,7 +11,7 @@ import project.System.File.File_Access.File_Access
 import project.System.File_Format.Auto_Detect
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
-from project.Enso_Cloud.Data_Link import parse_format, parse_secure_value
+from project.Enso_Cloud.Data_Link import Data_Link_With_Input_Stream, parse_format, parse_secure_value
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
 ## PRIVATE
@@ -37,10 +37,10 @@ type HTTP_Fetch_Data_Link
         response.decode effective_format
 
     ## PRIVATE
-    supports_input_stream self = True
-
-    ## PRIVATE
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
         File_Access.ensure_options_allowed [File_Access.Read] open_options <|
             response = HTTP.new.request self.request
             response.body.with_stream action
+
+## PRIVATE
+Data_Link_With_Input_Stream.from (that:HTTP_Fetch_Data_Link) = Data_Link_With_Input_Stream.Value that
