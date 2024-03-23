@@ -2,12 +2,10 @@
 
 #![recursion_limit = "256"]
 // === Features ===
-#![allow(incomplete_features)]
 #![feature(assert_matches)]
 #![feature(allocator_api)]
 #![feature(exact_size_is_empty)]
 #![feature(test)]
-#![feature(specialization)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
 // === Non-Standard Linter Configuration ===

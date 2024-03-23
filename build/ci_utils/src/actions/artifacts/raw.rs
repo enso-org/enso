@@ -106,7 +106,7 @@ pub mod endpoints {
         serde_json::from_value(body).anyhow_err()
     }
 
-    // #[context("Failed to finalize upload of the artifact `{}`.", artifact_name.as_ref())]
+    #[context("Failed to finalize upload of the artifact `{}`.", artifact_name.as_ref())]
     pub async fn patch_artifact_size(
         json_client: &reqwest::Client,
         artifact_url: &Url,

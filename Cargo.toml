@@ -74,6 +74,9 @@ unsafe_code = "warn"
 trivial_numeric_casts = "warn"
 unused_import_braces = "warn"
 unused_qualifications = "warn"
+# This is fine, since we plan to use our traits only in our own code and
+# potential ABI breaking changes are not a concern.
+async_fn_in_trait = "allow"
 
 [workspace.lints.clippy]
 bool_to_int_with_if = "allow"

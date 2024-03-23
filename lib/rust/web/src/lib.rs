@@ -3,10 +3,8 @@
 //! compilation in order to run native tests of code which uses this API.
 
 // === Features ===
-#![allow(incomplete_features)]
 #![feature(trait_alias)]
 #![feature(negative_impls)]
-#![feature(specialization)]
 #![feature(auto_traits)]
 #![feature(unsize)]
 #![feature(cell_update)]
