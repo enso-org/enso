@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use crate::extensions::os_str::OsStrExt;
 
-use serde::de::DeserializeOwned;
 use std::env::consts::EXE_EXTENSION;
 
 
@@ -20,7 +19,7 @@ pub trait PathExt: AsRef<Path> {
 
     /// Strips the leading `\\?\` prefix from Windows paths if present.
     fn without_verbatim_prefix(&self) -> &Path
-    where Self: AsRef<std::ffi::OsStr> {
+    where Self: AsRef<OsStr> {
         self.as_str().strip_prefix(r"\\?\").map_or(self.as_ref(), Path::new)
     }
 
@@ -179,7 +178,7 @@ impl<T: AsRef<Path>> PathExt for T {}
 /// }
 /// ```
 pub fn display_fmt(path: &Path, f: &mut Formatter) -> std::fmt::Result {
-    std::fmt::Display::fmt(&path.display(), f)
+    Display::fmt(&path.display(), f)
 }
 
 

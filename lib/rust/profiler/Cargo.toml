@@ -10,3 +10,6 @@ serde = { workspace = true }
 serde_json = { version = "1.0.59", features = ["raw_value"] }
 enso-profiler-macros = { path = "macros" }
 enso-web = { path = "../web" }
+
+[lints]
+workspace = true

@@ -3,19 +3,12 @@
 //! command line flag, so we have to disable it by setting an appropriate flag in each Cargo.toml.
 
 // === Features ===
-#![feature(option_result_contains)]
 #![feature(associated_type_bounds)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 
 use enso_build_cli::prelude::*;
 
 use enso_build::paths::parent_cargo_toml;
 use enso_build::repo::deduce_repository_path;
-use ide_ci::log::setup_logging;
 
 
 

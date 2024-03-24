@@ -2,8 +2,6 @@
 
 use super::*;
 
-use quote::ToTokens;
-use syn::punctuated::Punctuated;
 use syn::DeriveInput;
 use syn::GenericParam;
 use syn::Token;

@@ -68,7 +68,7 @@ impl SessionClient {
         &self,
         artifact: &ArtifactResponse,
     ) -> Result<Vec<ContainerEntry>> {
-        Ok(crate::actions::artifacts::raw::endpoints::get_container_items(
+        Ok(raw::endpoints::get_container_items(
             &self.json_client,
             artifact.file_container_resource_url.clone(),
             &artifact.name,

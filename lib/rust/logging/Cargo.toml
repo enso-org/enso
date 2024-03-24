@@ -19,3 +19,6 @@ default = []
 [dependencies]
 enso-logging-macros = { path = "macros" }
 web-sys = { version = "0.3.4", features = ["console"] }
+
+[lints]
+workspace = true
