@@ -1,7 +1,8 @@
-package org.enso.shttp;
+package org.enso.shttp.test_helpers;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import org.enso.shttp.SimpleHttpHandler;
 
 public class CrashingTestHandler extends SimpleHttpHandler {
   @Override

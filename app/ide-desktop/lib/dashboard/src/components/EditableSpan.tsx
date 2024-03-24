@@ -4,6 +4,8 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
+import * as eventCalback from '#/hooks/eventCallbackHooks'
+
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import SvgMask from '#/components/SvgMask'
@@ -38,6 +40,10 @@ export default function EditableSpan(props: EditableSpanProps) {
   const inputRef = React.useRef<HTMLInputElement>(null)
   const cancelled = React.useRef(false)
 
+  // Making sure that the event callback is stable.
+  // to prevent the effect from re-running.
+  const onCancelEventCallback = eventCalback.useEventCallback(onCancel)
+
   React.useEffect(() => {
     setIsSubmittable(checkSubmittable?.(inputRef.current?.value ?? '') ?? true)
     // This effect MUST only run on mount.
@@ -48,7 +54,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     if (editable) {
       return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
         cancelEditName: () => {
-          onCancel()
+          onCancelEventCallback()
           cancelled.current = true
           inputRef.current?.blur()
         },
@@ -56,7 +62,7 @@ export default function EditableSpan(props: EditableSpanProps) {
     } else {
       return
     }
-  }, [editable, onCancel, /* should never change */ inputBindings])
+  }, [editable, /* should never change */ inputBindings, onCancelEventCallback])
 
   React.useEffect(() => {
     cancelled.current = false

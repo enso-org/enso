@@ -1,6 +1,8 @@
 /** @file Settings screen. */
 import * as React from 'react'
 
+import * as searchParamsState from '#/hooks/searchParamsStateHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 
@@ -14,13 +16,19 @@ import SettingsSidebar from '#/layouts/SettingsSidebar'
 
 import * as backendModule from '#/services/Backend'
 
+import * as array from '#/utilities/array'
+
 // ================
 // === Settings ===
 // ================
 
 /** Settings screen. */
 export default function Settings() {
-  const [settingsTab, setSettingsTab] = React.useState(SettingsTab.account)
+  const [settingsTab, setSettingsTab] = searchParamsState.useSearchParamsState(
+    'SettingsTab',
+    SettingsTab.account,
+    (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
+  )
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({

@@ -16,6 +16,7 @@
     "noEmit": false,
     "outDir": "../../../../node_modules/.cache/tsc",
     "paths": { "#/*": ["./src/*"] },
+
     "plugins": [
       {
         "name": "ts-plugin-namespace-auto-import"
