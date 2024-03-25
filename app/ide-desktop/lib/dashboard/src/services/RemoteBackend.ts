@@ -438,6 +438,22 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Fetch the content of the `Main.enso` file of a project. */
+  override async getFileContent(
+    projectId: backendModule.ProjectId,
+    version: string,
+    title: string
+  ): Promise<string> {
+    const path = remoteBackendPaths.getProjectContentPath(projectId, version)
+    const response = await this.get<string>(path)
+
+    if (!responseIsSuccessful(response)) {
+      return this.throw(response, 'getFileContentsBackendError', title)
+    } else {
+      return await response.text()
+    }
+  }
+
   /** Change the parent directory of an asset.
    * @throws An error if a non-successful status code (not 200-299) was received. */
   override async updateAsset(

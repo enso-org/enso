@@ -420,7 +420,7 @@ export default function AssetRow(props: AssetRowProps) {
             await backend.createPermission({
               action: null,
               resourceId: asset.id,
-              userSubjects: [userInfo.id],
+              actorsIds: [userInfo.userId],
             })
             dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {

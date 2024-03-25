@@ -199,32 +199,32 @@ export function locateNameColumnToggle(page: test.Locator | test.Page) {
 
 /** Find a toggle for the "Modified" column (if any) on the current page. */
 export function locateModifiedColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Modified date$/)
+  return page.getByAltText(/^(?:Show|Hide) Modified date column$/)
 }
 
 /** Find a toggle for the "Shared with" column (if any) on the current page. */
 export function locateSharedWithColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Shared with$/)
+  return page.getByAltText(/^(?:Show|Hide) Shared with column$/)
 }
 
 /** Find a toggle for the "Labels" column (if any) on the current page. */
 export function locateLabelsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Labels$/)
+  return page.getByAltText(/^(?:Show|Hide) Labels column$/)
 }
 
 /** Find a toggle for the "Accessed by projects" column (if any) on the current page. */
 export function locateAccessedByProjectsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed by projects$/)
+  return page.getByAltText(/^(?:Show|Hide) Accessed by projects column$/)
 }
 
 /** Find a toggle for the "Accessed data" column (if any) on the current page. */
 export function locateAccessedDataColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed data$/)
+  return page.getByAltText(/^(?:Show|Hide) Accessed data column$/)
 }
 
 /** Find a toggle for the "Docs" column (if any) on the current page. */
 export function locateDocsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Docs$/)
+  return page.getByAltText(/^(?:Show|Hide) Docs column$/)
 }
 
 /** Find a button for the "Recent" category (if any) on the current page. */
@@ -234,7 +234,7 @@ export function locateRecentCategory(page: test.Locator | test.Page) {
 
 /** Find a button for the "Home" category (if any) on the current page. */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Homoe')
+  return page.getByTitle('Go To Home')
 }
 
 /** Find a button for the "Trash" category (if any) on the current page. */

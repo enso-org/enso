@@ -24,6 +24,7 @@
   "noBinaryEndpointError": "Could not get the address of the project's binary endpoint",
 
   "listVersionsError": "Could not list versions",
+  "loadFileError": "Could not load file",
   "noAppDownloadError": "Could not find a compatible download link",
   "multipleAssetsSettingsError": "Select exactly one asset to see its settings.",
   "editDescriptionError": "Could not edit description",
@@ -40,6 +41,7 @@
   "unknownThreadIdError": "Unknown thread id '$0'.",
   "needsOwnerError": "This $0 must have at least one owner.",
   "asyncHookError": "Error while fetching data",
+  "fetchLatestVersionError": "Could not get the latest version of the asset",
   "uploadProjectToCloudSuccess": "Successfully uploaded local project to the cloud!",
 
   "projectHasNoSourceFilesPhrase": "project has no source files",
@@ -82,6 +84,7 @@
   "createFolderBackendError": "Could not create folder '$0'.",
   "updateFolderBackendError": "Could not update folder '$0'.",
   "listAssetVersionsBackendError": "Could not list versions for '$0'.",
+  "getFileContentsBackendError": "Could not get contents of '$0'",
   "updateAssetBackendError": "Could not update '$0'.",
   "deleteAssetBackendError": "Could not delete '$0'.",
   "undoDeleteAssetBackendError": "Could not restore '$0' from Trash.",
@@ -259,7 +262,9 @@
   "newColon": "New:",
   "replyExclamation": "Reply!",
   "lastModifiedOn": "last modified on $0",
-  "versionX": "version $0",
+  "versionX": "Version $0",
+  "compareWithLatest": "Compare with latest",
+  "compareVersionXWithLatest": "Compare version $0 with latest",
   "onDateX": "on $0",
   "xUsersSelected": "$0 users selected",
   "allTrashedItemsForever": "all trashed items forever",
@@ -287,6 +292,9 @@
   "localBackendSearchPlaceholder": "Type to search for projects.",
   "canOnlyEmptyTrashWhenInTrash": "Can only empty trash when in Trash",
   "upgradeTo": "Upgrade to $0",
+  "localAssetsDoNotHaveVersions": "Local assets do not have versions",
+  "noVersionsFound": "No versions found",
+  "latestIndicator": "(Latest)",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "selected item",
@@ -424,6 +432,8 @@
   "selectAdditionalShortcut": "Select Additional",
   "selectRangeShortcut": "Select Range",
   "selectAdditionalRangeShortcut": "Select Additional Range",
+  "goBackShortcut": "Go Back",
+  "goForwardShortcut": "Go Forward",
 
   "moveToTrashShortcut": "Move To Trash",
   "moveAllToTrashShortcut": "Move All To Trash",

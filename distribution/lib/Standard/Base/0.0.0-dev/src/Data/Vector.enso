@@ -870,7 +870,7 @@ type Vector a
     slice : Integer -> Integer -> Vector Any
     slice self start end = Array_Like_Helpers.slice self start end
 
-    ## ALIAS first, last, sample, slice
+    ## ALIAS first, last, sample, slice, top, head, tail, limit
        GROUP Selections
        ICON select_row
        Creates a new `Vector` with only the specified range of elements from the

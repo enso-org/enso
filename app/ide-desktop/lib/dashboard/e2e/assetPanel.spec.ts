@@ -34,8 +34,9 @@ test.test('asset panel contents', async ({ page }) => {
         permission: permissions.PermissionAction.own,
         user: {
           /* eslint-disable @typescript-eslint/naming-convention */
-          pk: backend.Subject(''),
-          organization_id: defaultOrganizationId,
+          pk: defaultOrganizationId,
+          sk: backend.UserId(''),
+          user_subject: backend.Subject(''),
           user_name: username,
           user_email: backend.EmailAddress(email),
           /* eslint-enable @typescript-eslint/naming-convention */

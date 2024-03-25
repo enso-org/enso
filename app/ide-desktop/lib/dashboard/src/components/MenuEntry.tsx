@@ -53,6 +53,8 @@ const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text
   selectAdditional: 'selectAdditionalShortcut',
   selectRange: 'selectRangeShortcut',
   selectAdditionalRange: 'selectAdditionalRangeShortcut',
+  goBack: 'goBackShortcut',
+  goForward: 'goForwardShortcut',
 } satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 // =================
@@ -102,7 +104,8 @@ export default function MenuEntry(props: MenuEntryProps) {
     <button
       disabled={disabled}
       title={title}
-      className={`flex h-row place-content-between items-center rounded-menu-entry p-menu-entry text-left selectable hover:bg-hover-bg enabled:active disabled:bg-transparent ${
+      className={`items -center flex h-row
+      place-content-between rounded-menu-entry p-menu-entry text-left selectable enabled:active hover:bg-hover-bg disabled:bg-transparent ${
         isContextMenuEntry ? 'px-context-menu-entry-x' : ''
       }`}
       onClick={event => {

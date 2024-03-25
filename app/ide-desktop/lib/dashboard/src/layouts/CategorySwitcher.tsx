@@ -7,7 +7,6 @@ import Trash2Icon from 'enso-assets/trash2.svg'
 
 import type * as text from '#/text'
 
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -100,12 +99,7 @@ export interface CategorySwitcherProps {
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
-  const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
-
-  React.useEffect(() => {
-    localStorage.set('driveCategory', category)
-  }, [category, /* should never change */ localStorage])
 
   return (
     <div className="flex w-full flex-col gap-sidebar-section-heading">

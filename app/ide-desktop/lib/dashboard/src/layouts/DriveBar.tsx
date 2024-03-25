@@ -119,7 +119,7 @@ export default function DriveBar(props: DriveBarProps) {
                 doCreateProject()
               }}
             >
-              <span className="text whitespace-nowrap font-semibold">{getText('newFolder')}</span>
+              <span className="text whitespace-nowrap font-semibold">{getText('newProject')}</span>
             </button>
             <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
               {isCloud && (

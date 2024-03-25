@@ -3,7 +3,9 @@ import * as React from 'react'
 
 import * as appUtils from '#/appUtils'
 
+import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as navigateHooks from '#/hooks/navigateHooks'
+import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
@@ -120,8 +122,10 @@ export default function Drive(props: DriveProps) {
   const { getText } = textProvider.useText()
   const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-  const [category, setCategory] = React.useState(
-    () => localStorage.get('driveCategory') ?? Category.home
+  const [category, setCategory] = searchParamsState.useSearchParamsState(
+    'driveCategory',
+    () => localStorage.get('driveCategory') ?? Category.home,
+    (value): value is Category => array.includes(Object.values(Category), value)
   )
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
   const [deletedLabelNames, setDeletedLabelNames] = React.useState(
@@ -144,6 +148,11 @@ export default function Drive(props: DriveProps) {
         : isCloud && user?.isEnabled !== true
           ? DriveStatus.notEnabled
           : DriveStatus.ok
+
+  const onSetCategory = eventCallback.useEventCallback((value: Category) => {
+    setCategory(value)
+    localStorage.set('driveCategory', value)
+  })
 
   React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {
@@ -384,7 +393,7 @@ export default function Drive(props: DriveProps) {
               <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
                 <CategorySwitcher
                   category={category}
-                  setCategory={setCategory}
+                  setCategory={onSetCategory}
                   dispatchAssetEvent={dispatchAssetEvent}
                 />
                 <Labels

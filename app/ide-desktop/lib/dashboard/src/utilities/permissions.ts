@@ -246,8 +246,9 @@ export function tryGetSingletonOwnerPermission(
           user: {
             // The names are defined by the backend and cannot be changed.
             /* eslint-disable @typescript-eslint/naming-convention */
-            pk: user?.id ?? backend.Subject(''),
-            organization_id: owner.id,
+            pk: owner.id,
+            sk: backend.UserId(''),
+            user_subject: user?.userSubject ?? backend.Subject(''),
             user_email: owner.email,
             user_name: owner.name,
             /* eslint-enable @typescript-eslint/naming-convention */

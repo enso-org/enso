@@ -61,7 +61,7 @@ export default function UserPermission(props: UserPermissionProps) {
       setUserPermission(newUserPermissions)
       outerSetUserPermission(newUserPermissions)
       await backend.createPermission({
-        userSubjects: [newUserPermissions.user.pk],
+        actorsIds: [newUserPermissions.user.sk],
         resourceId: asset.id,
         action: newUserPermissions.permission,
       })
@@ -76,7 +76,7 @@ export default function UserPermission(props: UserPermissionProps) {
     <div className="flex items-center gap-user-permission">
       <PermissionSelector
         showDelete
-        disabled={isOnlyOwner && userPermission.user.pk === self.user.pk}
+        disabled={isOnlyOwner && userPermission.user.sk === self.user.sk}
         error={isOnlyOwner ? getText('needsOwnerError', assetTypeName) : null}
         selfPermission={self.permission}
         action={userPermission.permission}

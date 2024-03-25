@@ -55,6 +55,19 @@ interface AuthenticationApi {
     readonly saveAccessToken: (accessToken: SaveAccessTokenPayload | null) => void
 }
 
+// ======================
+// === Navigation API ===
+// ======================
+
+/** `window.navigationApi` is a context bridge to the main process, when we're running in an
+ * Electron context. It contains navigation-related functionality. */
+interface NavigationApi {
+    /** Go back in the navigation history. */
+    readonly goBack: () => void
+    /** Go forward in the navigation history. */
+    readonly goForward: () => void
+}
+
 // =====================================
 // === Global namespace augmentation ===
 // =====================================
@@ -67,6 +80,7 @@ declare global {
         readonly enso?: AppRunner & Enso
         readonly backendApi?: BackendApi
         readonly authenticationApi: AuthenticationApi
+        readonly navigationApi: NavigationApi
     }
 
     namespace NodeJS {

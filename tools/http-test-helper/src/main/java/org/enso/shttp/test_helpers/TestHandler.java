@@ -1,4 +1,4 @@
-package org.enso.shttp;
+package org.enso.shttp.test_helpers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +14,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
+import org.enso.shttp.HttpMethod;
+import org.enso.shttp.SimpleHttpHandler;
 
 public class TestHandler extends SimpleHttpHandler {
   private final HttpMethod expectedMethod;

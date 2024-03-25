@@ -7,7 +7,7 @@ import * as textProvider from '#/providers/TextProvider'
 import type * as assetEvent from '#/events/assetEvent'
 
 import AssetProperties from '#/layouts/AssetProperties'
-import AssetVersions from '#/layouts/AssetVersions'
+import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as backend from '#/services/Backend'
@@ -141,7 +141,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}
-          <AssetVersions hidden={tab !== AssetPanelTab.versions} item={item} />
+          {tab === AssetPanelTab.versions && <AssetVersions item={item} />}
         </>
       )}
     </div>
