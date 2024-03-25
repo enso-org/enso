@@ -230,10 +230,11 @@ public class IRDumper {
           createEdge(lambda, arg, "arg[" + i + "]");
         }
       }
-      case Expression.Binding exprBinding ->  {
-        var exprBindNode = GraphVizNode.Builder.fromIr(exprBinding)
-                              .addLabelLine("name: " + exprBinding.name().name())
-                                .build();
+      case Expression.Binding exprBinding -> {
+        var exprBindNode =
+            GraphVizNode.Builder.fromIr(exprBinding)
+                .addLabelLine("name: " + exprBinding.name().name())
+                .build();
         addNode(exprBindNode);
         createIRGraph(exprBinding.expression());
         createEdge(exprBinding, exprBinding.expression(), "expression");
@@ -501,20 +502,18 @@ public class IRDumper {
     }
   }
 
-  /**
-   * Just a wrapper for code, we need this to be able to add the code to the graph.
-   */
-    private record Code(String code) {
+  /** Just a wrapper for code, we need this to be able to add the code to the graph. */
+  private record Code(String code) {
 
     private Code(String code) {
-        // Replace new lines with left-justify literals, so that all the lines
-        // in the code are justified to the left side of the box.
-        String formattedCode = code.replace("\n", "\\l");
-        if (code.contains("\"")) {
-          formattedCode = formattedCode.replace("\"", "\\\"");
-        }
-        assert Utils.hasOneLine(formattedCode);
-        this.code = formattedCode;
+      // Replace new lines with left-justify literals, so that all the lines
+      // in the code are justified to the left side of the box.
+      String formattedCode = code.replace("\n", "\\l");
+      if (code.contains("\"")) {
+        formattedCode = formattedCode.replace("\"", "\\\"");
       }
+      assert Utils.hasOneLine(formattedCode);
+      this.code = formattedCode;
     }
+  }
 }

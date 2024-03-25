@@ -14,15 +14,18 @@ import org.enso.compiler.core.ir.MetadataStorage;
  * Represents a node in the GraphViz graph.
  *
  * @param id Identifier of the node. Used to refer to the node in edges. Must be unique.
- * @param header The first line of the label. It is not justified to the left.
- *               Can be null.
+ * @param header The first line of the label. It is not justified to the left. Can be null.
  * @param multiLineLabel A label in GraphViz is a simple textual attribute. To make it multi-line,
  *     we need to escape newlines with "\\n".
  * @param additionalAttrs Additional attributes to specify for the node, apart from `label`.
  * @param object The underlying object from which the node was created.
  */
 record GraphVizNode(
-    String id, String header, List<String> multiLineLabel, Map<String, String> additionalAttrs, Object object) {
+    String id,
+    String header,
+    List<String> multiLineLabel,
+    Map<String, String> additionalAttrs,
+    Object object) {
   public String toGraphViz() {
     var sb = new StringBuilder();
     sb.append(id);
@@ -121,11 +124,13 @@ record GraphVizNode(
       bldr.addLabelLine("id: " + ir.getId());
       if (!isPassDataEmpty(ir.passData())) {
         bldr.addLabelLine("pass_data: ");
-        ir.passData().map((pass, metadata) -> {
-          var metaName = metadata.metadataName();
-          bldr.addLabelLine("  - " + metaName);
-          return null;
-        });
+        ir.passData()
+            .map(
+                (pass, metadata) -> {
+                  var metaName = metadata.metadataName();
+                  bldr.addLabelLine("  - " + metaName);
+                  return null;
+                });
       } else {
         bldr.addLabelLine("pass_data: []");
       }
@@ -133,11 +138,12 @@ record GraphVizNode(
     }
 
     private static boolean isPassDataEmpty(MetadataStorage passData) {
-      int[] counter = new int[]{0};
-      passData.map((pass, data) -> {
-        counter[0]++;
-        return null;
-      });
+      int[] counter = new int[] {0};
+      passData.map(
+          (pass, data) -> {
+            counter[0]++;
+            return null;
+          });
       return counter[0] == 0;
     }
 
