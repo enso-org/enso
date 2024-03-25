@@ -29,7 +29,6 @@ import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.analyse.alias.{Info => AliasInfo}
 import org.enso.compiler.pass.desugar.Imports
 import org.enso.editions.LibraryName
-import org.enso.pkg.QualifiedName
 
 /** Partially resolves fully qualified names corresponding to the library names
   *
@@ -233,7 +232,6 @@ case object FullyQualifiedNames extends IRPass {
         val isTypeName = typeParams.find(_.name == lit.name).nonEmpty
         if (!lit.isMethod && !isLocalVar(lit) && !isTypeName) {
           val resolution = bindings.resolveName(lit.name)
-          // If the `lit.name` cannot be resolved in the `bindings`, then it might be a library name.
           resolution match {
             case Left(_) =>
               if (
@@ -244,7 +242,7 @@ case object FullyQualifiedNames extends IRPass {
                 lit.updateMetadata(
                   new MetadataPair(
                     this,
-                    FQNResolution(ResolvedLibraryNamespace(lit.name))
+                    FQNResolution(ResolvedLibrary(lit.name))
                   )
                 )
               } else {
@@ -326,74 +324,19 @@ case object FullyQualifiedNames extends IRPass {
         )
       )
 
-    val processedApp: Option[Expression] = processedArgs match {
+    val processedApp = processedArgs match {
       case List(thisArg) =>
-        val thisArgMeta = thisArg.value.getMetadata(this).map(_.target)
-        // First, collect the name of the library and the module within that library
-        // that should be resolved. These will only be present if the currently processed
-        // IR has attached metadata from previous processing.
-        (thisArgMeta, processedFun) match {
-          case (
-                Some(ResolvedLibraryNamespace(namespace)),
-                name: Name.Literal
-              ) =>
-            val libName = LibraryName(namespace, name.name)
-            val modNameToResolve = QualifiedName(
-              List(libName.namespace, libName.name),
-              Imports.mainModuleName.name
-            )
-            transformLiteral(
-              name,
-              libName,
-              modNameToResolve,
-              pkgRepo,
-              freshNameSupply
-            )
-          case (
-                Some(ResolvedModule(moduleRef, Some(libName))),
-                name: Name.Literal
-              ) =>
-            // At this point, we have a resolved module inside some library.
-            // The symbol referred to by `name` can be either its child module or its exported
-            // symbol. If it is the latter, we should prioritize it over the child module, and thus,
-            // exit the processing now.
-            val shouldExitProcessing =
-              getModuleBindings(moduleRef, pkgRepo) match {
-                case Some(moduleBindings) =>
-                  moduleBindings.resolveExportedName(name.name) match {
-                    case Right(_) =>
-                      // The symbol is exported from the module. It should be prioritized over the
-                      // child module. Let's exit the processing now and leave further processing
-                      // for subsequent passes.
-                      true
-                    case Left(_) => false
-                  }
-                case None => false
-              }
-
-            if (!shouldExitProcessing) {
-              // resolvedMod is a resolved module inside some library. Let's see whether
-              // the current `name` literal points to a child module of the resolvedMod.
-              val isMainModule =
-                moduleRef.getName.item == Imports.mainModuleName.name
-
-              val modNameToResolveInLib = if (isMainModule) {
-                QualifiedName(moduleRef.getName.path, name.name)
-              } else {
-                val newPath =
-                  moduleRef.getName.path ++ List(moduleRef.getName.item)
-                QualifiedName(newPath, name.name)
-              }
-              transformLiteral(
-                name,
-                libName,
-                modNameToResolveInLib,
-                pkgRepo,
+        (thisArg.value.getMetadata(this).map(_.target), processedFun) match {
+          case (Some(resolved @ ResolvedLibrary(_)), name: Name.Literal) =>
+            resolveQualName(resolved, name, pkgRepo).fold(
+              err => Some(err),
+              _.map(resolvedMod =>
                 freshNameSupply
+                  .newName(from = Some(name))
+                  .updateMetadata(new MetadataPair(this, resolvedMod))
+                  .setLocation(name.location)
               )
-            } else {
-              None
-            }
+            )
           case _ =>
             None
         }
@@ -406,35 +349,30 @@ case object FullyQualifiedNames extends IRPass {
     )
   }
 
-  /** Tries to resolve a FQN of a module within a library.
-    * @param libName Library name of the library in which the module is to be resolved.
-    * @param modFQN Fully qualified name of the module to be resolved.
-    * @param literal Currently processed Literal
-    * @param optPkgRepo Optional package repository. Not present in inline compilation.
-    * @return
-    */
   private def resolveQualName(
-    libName: LibraryName,
-    modFQN: QualifiedName,
-    literal: Name.Literal,
+    thisResolution: ResolvedLibrary,
+    consName: Name.Literal,
     optPkgRepo: Option[PackageRepository]
   ): Either[Expression, Option[FQNResolution]] = {
     optPkgRepo
       .flatMap { pkgRepo =>
+        val libName = LibraryName(thisResolution.namespace, consName.name)
         if (pkgRepo.isPackageLoaded(libName)) {
           pkgRepo
-            .getLoadedModule(modFQN.toString)
-            .map { loadedModule =>
-              if (loadedModule.getIr == null && !loadedModule.isSynthetic) {
+            .getLoadedModule(
+              s"${libName.toString}.${Imports.mainModuleName.name}"
+            )
+            .map { m =>
+              if (m.getIr == null) {
                 // Limitation of Fully Qualified Names:
                 // If the library has not been imported explicitly, then we won't have
                 // IR for it. Triggering a full compilation at this stage may have
                 // undesired consequences and is therefore prohibited on purpose.
                 Left(
                   errors.Resolution(
-                    literal,
+                    consName,
                     errors.Resolution
-                      .MissingLibraryImportInFQNError(libName.namespace)
+                      .MissingLibraryImportInFQNError(thisResolution.namespace)
                   )
                 )
               } else {
@@ -442,8 +380,7 @@ case object FullyQualifiedNames extends IRPass {
                   Some(
                     FQNResolution(
                       ResolvedModule(
-                        ModuleReference.Concrete(loadedModule),
-                        Some(libName)
+                        ModuleReference.Concrete(m)
                       )
                     )
                   )
@@ -454,47 +391,15 @@ case object FullyQualifiedNames extends IRPass {
           Some(
             Left(
               errors.Resolution(
-                literal,
+                consName,
                 errors.Resolution
-                  .MissingLibraryImportInFQNError(libName.namespace)
+                  .MissingLibraryImportInFQNError(thisResolution.namespace)
               )
             )
           )
         }
       }
       .getOrElse(Right(None))
-  }
-
-  /** Optionally transforms the given literal to an IR error, or to a new literal
-    * with attached metadata.
-    * @param literal Literal to transform
-    * @param libName Library name of the library in which the module is to be resolved.
-    * @param modNameToResolve Fully qualified name of the module to be resolved.
-    * @param pkgRepo Optional package repository. Not present in inline compilation.
-    * @param freshNameSupply Fresh name supply for generating new names.
-    * @return Either an IR error or a new literal with attached metadata.
-    */
-  private def transformLiteral(
-    literal: Name.Literal,
-    libName: LibraryName,
-    modNameToResolve: QualifiedName,
-    pkgRepo: Option[PackageRepository],
-    freshNameSupply: FreshNameSupply
-  ): Option[Expression] = {
-    resolveQualName(
-      libName,
-      modNameToResolve,
-      literal,
-      pkgRepo
-    ).fold(
-      err => Some(err),
-      _.map(resolvedMod =>
-        freshNameSupply
-          .newName(from = Some(literal))
-          .updateMetadata(new MetadataPair(this, resolvedMod))
-          .setLocation(literal.location)
-      )
-    )
   }
 
   private def isLocalVar(name: Name.Literal): Boolean = {
@@ -506,20 +411,6 @@ case object FullyQualifiedNames extends IRPass {
       .unsafeAs[AliasInfo.Occurrence]
     val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
     defLink.isDefined
-  }
-
-  private def getModuleBindings(
-    moduleRef: ModuleReference,
-    pkgRepoOpt: Option[PackageRepository]
-  ): Option[BindingsMap] = {
-    pkgRepoOpt.flatMap { pkgRepo =>
-      val moduleMap = pkgRepo.getModuleMap
-      moduleRef.toConcrete(moduleMap) match {
-        case Some(module) =>
-          Some(module.module.getBindingsMap)
-        case None => None
-      }
-    }
   }
 
   /** The FQN resolution metadata for a node.
@@ -553,8 +444,7 @@ case object FullyQualifiedNames extends IRPass {
     ): Option[PartiallyResolvedFQN]
   }
 
-  case class ResolvedLibraryNamespace(namespace: String)
-      extends PartiallyResolvedFQN {
+  case class ResolvedLibrary(namespace: String) extends PartiallyResolvedFQN {
     override def prepareForSerialization(
       compiler: CompilerContext
     ): PartiallyResolvedFQN = this
@@ -563,18 +453,12 @@ case object FullyQualifiedNames extends IRPass {
       compiler: CompilerContext
     ): Option[PartiallyResolvedFQN] = Some(this)
   }
-
-  /** @param moduleRef Reference to the resolved module
-    * @param libName Optional name of the library that contains the module
-    */
-  case class ResolvedModule(
-    moduleRef: ModuleReference,
-    libName: Option[LibraryName]
-  ) extends PartiallyResolvedFQN {
+  case class ResolvedModule(moduleRef: ModuleReference)
+      extends PartiallyResolvedFQN {
     override def prepareForSerialization(
       compiler: CompilerContext
     ): PartiallyResolvedFQN =
-      ResolvedModule(moduleRef.toAbstract, libName)
+      ResolvedModule(moduleRef.toAbstract)
 
     override def restoreFromSerialization(
       compiler: CompilerContext
@@ -582,9 +466,7 @@ case object FullyQualifiedNames extends IRPass {
       val packageRepository = compiler.getPackageRepository
       moduleRef
         .toConcrete(packageRepository.getModuleMap)
-        .map(concreteMod => {
-          ResolvedModule(concreteMod, libName)
-        })
+        .map(ResolvedModule(_))
     }
   }
 

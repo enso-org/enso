@@ -238,7 +238,7 @@ case object DocumentationComments extends IRPass {
     */
   sealed case class Doc(documentation: String) extends IRPass.IRMetadata {
     override val metadataName: String =
-      "DocumentationComments.Doc"
+      "DocumentationComments.Doc(\"" + documentation + "\")"
 
     /** @inheritdoc */
     override def prepareForSerialization(compiler: Compiler): Doc = this

@@ -166,7 +166,7 @@ case object GlobalNames extends IRPass {
           lit.getMetadata(FullyQualifiedNames) match {
             case Some(
                   FullyQualifiedNames.FQNResolution(
-                    FullyQualifiedNames.ResolvedModule(modRef, _)
+                    FullyQualifiedNames.ResolvedModule(modRef)
                   )
                 ) =>
               lit.updateMetadata(
@@ -399,23 +399,17 @@ case object GlobalNames extends IRPass {
   ): Option[BindingsMap.ResolvedName] =
     thisResolution.target match {
       case BindingsMap.ResolvedModule(module) =>
-        val ir = module
+        val resolution = module
           .unsafeAsModule()
           .getIr
-        // ir can be null if ResolvedModule points to a synthetic module.
-        if (ir != null) {
-          val resolution = ir
-            .unsafeGetMetadata(
-              BindingAnalysis,
-              "Imported module without bindings analysis results"
-            )
-            .resolveExportedName(consName.name)
-          resolution match {
-            case Right(res) => Some(res)
-            case _          => None
-          }
-        } else {
-          None
+          .unsafeGetMetadata(
+            BindingAnalysis,
+            "Imported module without bindings analysis results"
+          )
+          .resolveExportedName(consName.name)
+        resolution match {
+          case Right(res) => Some(res)
+          case _          => None
         }
       case _ => None
     }
