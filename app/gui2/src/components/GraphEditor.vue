@@ -85,28 +85,13 @@ projectStore.executionContext.on('executionFailed', (e) =>
 
 // === nodes ===
 
-class NodesOrdering {
-  private zIndexAbove = 1
-  private orderedNodes: Map<NodeId, number> = reactive(new Map())
-
-  moveToTop(id: NodeId) {
-    this.orderedNodes.set(id, this.zIndexAbove)
-    this.zIndexAbove++
-  }
-
-  nodeZIndex(id: NodeId) {
-    return this.orderedNodes.get(id) ?? 0
-  }
-}
-const ordering = new NodesOrdering()
-
 const nodeSelection = provideGraphSelection(
   graphNavigator,
   graphStore.nodeRects,
   graphStore.isPortEnabled,
   {
     onSelected(id) {
-      ordering.moveToTop(id)
+      graphStore.db.moveNodeToTop(id)
     },
   },
 )
@@ -601,7 +586,6 @@ function handleEdgeDrop(source: AstId, position: Vec2) {
   >
     <div class="layer" :style="{ transform: graphNavigator.transform }">
       <GraphNodes
-        :nodesZIndexes="(id) => ordering.nodeZIndex(id)"
         @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
         @nodeDoubleClick="(id) => stackNavigator.enterNode(id)"
         @createNode="createNodeFromSource"

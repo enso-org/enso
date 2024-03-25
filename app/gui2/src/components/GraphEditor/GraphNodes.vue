@@ -19,8 +19,6 @@ const dragging = useDragging()
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 
-const props = defineProps<{ nodesZIndexes: (id: NodeId) => number }>()
-
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   nodeDoubleClick: [nodeId: NodeId]
@@ -50,7 +48,6 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :key="id"
     :node="node"
     :edited="id === graphStore.editedNodeInfo?.id"
-    :style="{ 'z-index': nodesZIndexes(id) }"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
     @delete="graphStore.deleteNodes([id])"
