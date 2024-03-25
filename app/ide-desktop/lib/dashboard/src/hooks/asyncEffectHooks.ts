@@ -38,7 +38,7 @@ export function useAsyncEffect<T>(
           setValue(result)
         }
       } catch (error) {
-        toastAndLog('Error while fetching data', error)
+        toastAndLog('asyncHookError', error)
       }
     })()
     /** Cancel any future `setValue` calls. */

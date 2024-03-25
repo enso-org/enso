@@ -1,7 +1,7 @@
 import { provideGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import { useGraphStore } from '@/stores/graph'
-import { GraphDb, mockNode } from '@/stores/graph/graphDatabase'
+import { GraphDb } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import { Ast } from '@/util/ast'
@@ -79,12 +79,6 @@ export function projectStoreAndGraphStore(): readonly [
   ReturnType<typeof useGraphStore>,
 ] {
   return [projectStore(), graphStore()] as const
-}
-
-/** This should only be used for supplying as initial props when testing.
- * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
-export function node() {
-  return mockNode()
 }
 
 export function waitForMainModule(projectStore?: ReturnType<typeof useProjectStore>) {

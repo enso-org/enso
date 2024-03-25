@@ -4,6 +4,8 @@ import * as React from 'react'
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import SvgMask from '#/components/SvgMask'
@@ -14,6 +16,7 @@ import * as sorting from '#/utilities/sorting'
 export default function ModifiedColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
   const { sortInfo, setSortInfo, hideColumn } = state
+  const { getText } = textProvider.useText()
   const isSortActive = sortInfo?.field === columnUtils.Column.modified
   const isDescending = sortInfo?.direction === sorting.SortDirection.descending
 
@@ -21,10 +24,10 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
     <button
       title={
         !isSortActive
-          ? 'Sort by modification date'
+          ? getText('sortByModificationDate')
           : isDescending
-            ? 'Stop sorting by modification date'
-            : 'Sort by modification date descending'
+            ? getText('stopSortingByModificationDate')
+            : getText('sortByModificationDateDescending')
       }
       className="group flex h-drive-table-heading w-full cursor-pointer items-center gap-icon-with-text"
       onClick={event => {
@@ -42,15 +45,15 @@ export default function ModifiedColumnHeading(props: column.AssetColumnHeadingPr
       <SvgMask
         src={TimeIcon}
         className="size-icon"
-        title="Hide this column"
+        title={getText('modifiedColumnHide')}
         onClick={event => {
           event.stopPropagation()
           hideColumn(columnUtils.Column.modified)
         }}
       />
-      <span className="text-header">{columnUtils.COLUMN_NAME[columnUtils.Column.modified]}</span>
+      <span className="text-header">{getText('modifiedColumnName')}</span>
       <img
-        alt={isDescending ? 'Sort Descending' : 'Sort Ascending'}
+        alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
         src={SortAscendingIcon}
         className={`transition-all duration-arrow ${
           isSortActive ? 'selectable active' : 'transparent group-hover:selectable'

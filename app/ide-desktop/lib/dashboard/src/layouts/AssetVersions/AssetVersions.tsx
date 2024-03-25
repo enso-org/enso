@@ -4,17 +4,17 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AssetVersion from '#/layouts/AssetVersion'
+import * as useAssetVersions from '#/layouts/AssetVersions/useAssetVersions'
 
 import Spinner from '#/components/Spinner'
 import * as spinnerModule from '#/components/Spinner'
 
-import RemoteBackend from '#/services/RemoteBackend'
+import * as backendService from '#/services/Backend'
 
 import type AssetTreeNode from '#/utilities/AssetTreeNode'
-
-import * as assetVersions from './useAssetVersions'
 
 // =====================
 // === AssetVersions ===
@@ -28,23 +28,21 @@ export interface AssetVersionsProps {
 /** A list of previous versions of an asset. */
 export default function AssetVersions(props: AssetVersionsProps) {
   const { item } = props
-
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-
-  const isRemote = backend instanceof RemoteBackend
+  const isCloud = backend.type === backendService.BackendType.remote
 
   const {
     status,
-    error,
     data: versions,
     isPending,
-  } = assetVersions.useAssetVersions({
+  } = useAssetVersions.useAssetVersions({
     backend,
     assetId: item.item.id,
     title: item.item.title,
-    onError: backendError => toastAndLog('Could not list versions', backendError),
-    enabled: isRemote,
+    onError: backendError => toastAndLog('listVersionsError', backendError),
+    enabled: isCloud,
   })
 
   const latestVersion = versions?.find(version => version.isLatest)
@@ -52,16 +50,16 @@ export default function AssetVersions(props: AssetVersionsProps) {
   return (
     <div className="flex flex-1 shrink-0 flex-col items-center overflow-y-auto overflow-x-hidden">
       {(() => {
-        if (!isRemote) {
-          return <div>Local assets do not have versions</div>
+        if (!isCloud) {
+          return <div>{getText('localAssetsDoNotHaveVersions')}</div>
         } else if (isPending) {
           return <Spinner size={32} state={spinnerModule.SpinnerState.loadingMedium} />
         } else if (status === 'error') {
-          return <div>Error: {error.message}</div>
+          return <div>{getText('listVersionsError')}</div>
         } else if (versions.length === 0) {
-          return <div>No versions found</div>
+          return <div>{getText('noVersionsFound')}</div>
         } else if (!latestVersion) {
-          return <div>Could not fetch the latest version of the file</div>
+          return <div>{getText('fetchLatestVersionError')}</div>
         } else {
           return versions.map((version, i) => (
             <AssetVersion

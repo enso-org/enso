@@ -323,6 +323,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'chat-button-y': 'var(--chat-button-padding-y)',
         'chat-reaction-bar-y': 'var(--chat-reaction-bar-padding-y)',
         'chat-reaction': 'var(--chat-reaction-padding)',
+        'missing-functionality-text-x': 'var(--missing-functionality-text-padding-x)',
       },
       margin: {
         'top-bar': 'var(--top-bar-margin)',

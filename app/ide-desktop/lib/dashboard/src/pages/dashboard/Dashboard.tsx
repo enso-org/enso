@@ -13,6 +13,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -123,6 +124,7 @@ export default function Dashboard(props: DashboardProps) {
   const { modalRef } = modalProvider.useModalRef()
   const { updateModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
@@ -212,7 +214,7 @@ export default function Dashboard(props: DashboardProps) {
             const httpClient = new HttpClient(
               new Headers([['Authorization', `Bearer ${session.accessToken}`]])
             )
-            const remoteBackend = new RemoteBackend(httpClient, logger)
+            const remoteBackend = new RemoteBackend(httpClient, logger, getText)
             void (async () => {
               const abortController = new AbortController()
               setOpenProjectAbortController(abortController)
@@ -370,7 +372,7 @@ export default function Dashboard(props: DashboardProps) {
             const client = new HttpClient([
               ['Authorization', `Bearer ${session.accessToken ?? ''}`],
             ])
-            setBackend(new RemoteBackend(client, logger))
+            setBackend(new RemoteBackend(client, logger, getText))
             break
           }
         }
@@ -380,6 +382,7 @@ export default function Dashboard(props: DashboardProps) {
       backend.type,
       session.accessToken,
       logger,
+      getText,
       /* should never change */ projectManagerUrl,
       /* should never change */ setBackend,
     ]

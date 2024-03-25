@@ -4,7 +4,7 @@
     "src",
     "e2e",
     "../types",
-    "./**/*.json",
+    "./src/**/*.json",
     "../../utils.ts",
     ".prettierrc.cjs",
     "*.js",

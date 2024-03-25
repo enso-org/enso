@@ -628,6 +628,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override getFileContent() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override createConnector() {
     return this.invalidOperation()
   }

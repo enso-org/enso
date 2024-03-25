@@ -24,6 +24,7 @@ module.exports = {
           '',
           '^#[/]App',
           '^#[/]appUtils',
+          '^#[/]text',
           '',
           '^#[/]configurations[/]',
           '',
