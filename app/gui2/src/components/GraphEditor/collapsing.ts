@@ -167,9 +167,9 @@ export function performCollapse(
   const posToInsert = findInsertionPos(topLevel, currentMethodName)
   const collapsedName = findSafeMethodName(topLevel, COLLAPSED_FUNCTION_NAME)
   const astIdsToExtract = new Set(
-    [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExprId),
+    [...info.extracted.ids].map((nodeId) => db.nodeIdToNode.get(nodeId)?.outerExpr.id),
   )
-  const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExprId
+  const astIdToReplace = db.nodeIdToNode.get(info.refactored.id)?.outerExpr.id
   const { ast: refactoredAst, nodeId: refactoredNodeId } = collapsedCallAst(
     info,
     collapsedName,
