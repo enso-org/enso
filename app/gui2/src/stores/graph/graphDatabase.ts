@@ -4,7 +4,7 @@ import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { assert } from '@/util/assert'
 import { Ast, RawAst } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
-import { subtrees } from '@/util/ast/abstract'
+import { MutableModule, autospaced, subtrees } from '@/util/ast/abstract'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { nodeFromAst } from '@/util/ast/node'
 import { colorFromString } from '@/util/colors'
@@ -13,7 +13,6 @@ import { arrayEquals, tryGetIndex } from '@/util/data/array'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import { syncSet } from '@/util/reactivity'
-import * as random from 'lib0/random'
 import * as set from 'lib0/set'
 import { methodPointerEquals, type MethodCall, type StackItem } from 'shared/languageServerTypes'
 import type { Opt } from 'shared/util/data/opt'
@@ -362,7 +361,7 @@ export class GraphDb {
         this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields })
       } else {
         const {
-          outerExprId,
+          outerExpr,
           pattern,
           rootExpr,
           innerExpr,
@@ -373,7 +372,7 @@ export class GraphDb {
         } = newNode
         const differentOrDirty = (a: Ast.Ast | undefined, b: Ast.Ast | undefined) =>
           a?.id !== b?.id || (a && subtreeDirty(a.id))
-        if (node.outerExprId !== outerExprId) node.outerExprId = outerExprId
+        if (differentOrDirty(node.outerExpr, outerExpr)) node.outerExpr = outerExpr
         if (differentOrDirty(node.pattern, pattern)) node.pattern = pattern
         if (differentOrDirty(node.rootExpr, rootExpr)) node.rootExpr = rootExpr
         if (differentOrDirty(node.innerExpr, innerExpr)) node.innerExpr = innerExpr
@@ -388,7 +387,7 @@ export class GraphDb {
         syncSet(node.conditionalPorts, conditionalPorts)
         // Ensure new fields can't be added to `NodeAstData` without this code being updated.
         const _allFieldsHandled = {
-          outerExprId,
+          outerExpr,
           pattern,
           rootExpr,
           innerExpr,
@@ -462,10 +461,19 @@ export class GraphDb {
   }
 
   mockNode(binding: string, id: Ast.AstId, code?: string): Node {
-    const pattern = Ast.parse(binding)
+    const edit = MutableModule.Transient()
+    const pattern = Ast.parse(binding, edit)
+    const expression = Ast.parse(code ?? '0', edit)
+    const outerExpr = Ast.Assignment.concrete(
+      edit,
+      autospaced(pattern),
+      { node: Ast.Token.new('='), whitespace: ' ' },
+      { node: expression, whitespace: ' ' },
+    )
+
     const node: Node = {
       ...baseMockNode,
-      outerExprId: id,
+      outerExpr,
       pattern,
       rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
@@ -484,8 +492,8 @@ export function asNodeId(id: Ast.AstId): NodeId {
 }
 
 export interface NodeDataFromAst {
-  /** The ID of the outer expression. Usually this is an assignment expression (`a = b`). */
-  outerExprId: Ast.AstId
+  /** The outer expression, usually an assignment expression (`a = b`). */
+  outerExpr: Ast.Ast
   /** The left side of the assignment experssion, if `outerExpr` is an assignment expression. */
   pattern: Ast.Ast | undefined
   /** The value of the node. The right side of the assignment, if `outerExpr` is an assignment
@@ -519,18 +527,6 @@ const baseMockNode = {
   documentation: undefined,
   conditionalPorts: new Set(),
 } satisfies Partial<Node>
-
-/** This should only be used for supplying as initial props when testing.
- * Please do {@link GraphDb.mockNode} with a `useGraphStore().db` after mount. */
-export function mockNode(exprId?: Ast.AstId): Node {
-  return {
-    ...baseMockNode,
-    outerExprId: exprId ?? (random.uuidv4() as Ast.AstId),
-    pattern: undefined,
-    rootExpr: Ast.parse('0'),
-    innerExpr: Ast.parse('0'),
-  }
-}
 
 function mathodCallEquals(a: MethodCall | undefined, b: MethodCall | undefined): boolean {
   return (

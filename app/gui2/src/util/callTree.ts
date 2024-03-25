@@ -18,7 +18,7 @@ export const enum ApplicationKind {
  * represented in the AST.
  */
 export class ArgumentPlaceholder {
-  constructor(
+  private constructor(
     public callId: string,
     public index: number,
     public argInfo: SuggestionEntryArgument,

@@ -27,7 +27,7 @@ export function nodeFromAst(ast: Ast.Ast): NodeDataFromAst | undefined {
   const { innerExpr, matches } = prefixes.extractMatches(rootExpr)
   const primaryApplication = primaryApplicationSubject(innerExpr)
   return {
-    outerExprId: ast.id,
+    outerExpr: ast,
     pattern,
     rootExpr,
     innerExpr,

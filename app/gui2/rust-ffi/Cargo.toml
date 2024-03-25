@@ -13,3 +13,6 @@ enso-doc-parser = { path = "../../../lib/rust/parser/doc-parser" }
 wasm-bindgen = { workspace = true }
 serde_json = { workspace = true }
 console_error_panic_hook = { workspace = true }
+
+[lints]
+workspace = true

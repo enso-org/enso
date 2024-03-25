@@ -10,3 +10,6 @@ enso-profiler-data = { path = "../data" }
 
 [dev-dependencies]
 futures = { workspace = true }
+
+[lints]
+workspace = true

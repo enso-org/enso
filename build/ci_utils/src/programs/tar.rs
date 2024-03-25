@@ -268,7 +268,6 @@ pub mod tests {
     use super::*;
     use crate::archive::compress_directory_contents;
     use crate::archive::extract_to;
-    use crate::log::setup_logging;
 
     #[test]
     fn deduce_format_from_extension() {

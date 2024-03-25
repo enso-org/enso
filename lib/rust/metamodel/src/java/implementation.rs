@@ -258,7 +258,7 @@ fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let mut values = vec!["true".to_string()];
     values.extend(field_comparisons);
     let expr = values.join(" && ");
-    let body = vec![
+    let body = [
         format!("if ({} == this) return true;", &object),
         format!("if (!({} instanceof {})) return false;", &object, &class.name),
         format!("{} {} = ({}){};", &class.name, &that, &class.name, &object),

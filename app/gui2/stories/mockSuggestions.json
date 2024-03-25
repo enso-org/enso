@@ -1193,5 +1193,33 @@
     "returnType": "Standard.Table.Data.Aggregate_Column.Aggregate_Column",
     "documentation": " Creates a new column with the count of unique items in the selected\ncolumn(s) within each group. If no rows, evaluates to 0.\n\nArguments:\n- columns: either a single or set of columns (specified by name or\n index) to count across. The aggregation may also be computed over\n an expression evaluated on the Table, if provided instead of a\n single column name. Currently expressions are not supported with\n multiple selection.\n- new_name: name of new column.\n- ignore_nothing: if all values are Nothing won't be included.",
     "annotations": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Data.Table",
+    "name": "select_columns",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Table.Data.Table.Table",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "columns",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": []
+      }
+    ],
+    "selfType": "Standard.Table.Data.Table.Table",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": false,
+    "documentation": "",
+    "annotations": ["columns"]
   }
 ]

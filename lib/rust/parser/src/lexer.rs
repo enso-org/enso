@@ -608,7 +608,10 @@ impl<'s> Lexer<'s> {
     /// If the current char could start an identifier, consume it and return true; otherwise, return
     /// false.
     fn ident_start_char(&mut self) -> bool {
-        if let Some(char) = self.current_char && is_ident_char(char) && char != '\'' {
+        if let Some(char) = self.current_char
+            && is_ident_char(char)
+            && char != '\''
+        {
             self.take_next();
             return true;
         }
@@ -659,7 +662,9 @@ impl<'s> Lexer<'s> {
                 // have different precedences; this is a special case here because the distinction
                 // requires lookahead.
                 "." if self.last_spaces_visible_offset.width_in_spaces == 0
-                    && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    && let Some(char) = self.current_char
+                    && char.is_ascii_digit() =>
+                {
                     let opr = token::OperatorProperties::new()
                         .with_binary_infix_precedence(81)
                         .as_decimal();
@@ -669,7 +674,9 @@ impl<'s> Lexer<'s> {
                 // The unary-negation operator binds tighter to numeric literals than other
                 // expressions.
                 "-" if self.last_spaces_visible_offset.width_in_spaces == 0
-                    && let Some(char) = self.current_char && char.is_ascii_digit() => {
+                    && let Some(char) = self.current_char
+                    && char.is_ascii_digit() =>
+                {
                     let opr = token::OperatorProperties::new()
                         .with_unary_prefix_mode(token::Precedence::unary_minus_numeric_literal())
                         .with_binary_infix_precedence(15);
@@ -931,12 +938,16 @@ impl<'s> Lexer<'s> {
         self.last_spaces_visible_offset = VisibleOffset(0);
         self.last_spaces_offset = self.current_offset;
         // At least two quote characters.
-        if let Some(char) = self.current_char && char == quote_char {
+        if let Some(char) = self.current_char
+            && char == quote_char
+        {
             let close_quote_start = self.mark_without_whitespace();
             self.take_next();
             let mut multiline = false;
             // If more than two quote characters: Start a multiline quote.
-            while let Some(char) = self.current_char && char == quote_char {
+            while let Some(char) = self.current_char
+                && char == quote_char
+            {
                 multiline = true;
                 self.take_next();
             }
@@ -946,18 +957,21 @@ impl<'s> Lexer<'s> {
             } else {
                 // Exactly two quote characters: Open and shut case.
                 let close_quote_end = self.mark_without_whitespace();
-                let token = self.make_token(open_quote_start, close_quote_start.clone(),
-                                            token::Variant::text_start());
+                let token = self.make_token(
+                    open_quote_start,
+                    close_quote_start.clone(),
+                    token::Variant::text_start(),
+                );
                 self.output.push(token);
-                let token = self.make_token(close_quote_start, close_quote_end,
-                                            token::Variant::text_end());
+                let token =
+                    self.make_token(close_quote_start, close_quote_end, token::Variant::text_end());
                 self.output.push(token);
             }
         } else {
             // One quote followed by non-quote character: Inline quote.
             let open_quote_end = self.mark_without_whitespace();
-            let token = self.make_token(open_quote_start, open_quote_end,
-                                        token::Variant::text_start());
+            let token =
+                self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
             self.output.push(token);
             self.inline_quote(quote_char, text_type);
         }
@@ -974,7 +988,9 @@ impl<'s> Lexer<'s> {
         let token = self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
         self.output.push(token);
         let mut initial_indent = None;
-        if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {
+        if text_type.expects_initial_newline()
+            && let Some(newline) = self.line_break()
+        {
             self.output.push(newline.with_variant(token::Variant::text_initial_newline()));
             if self.last_spaces_visible_offset > block_indent {
                 initial_indent = self.last_spaces_visible_offset.into();
@@ -1178,7 +1194,9 @@ impl<'s> Lexer<'s> {
             }
             let mut value: Option<u32> = None;
             for _ in 0..expect_len {
-                if let Some(c) = self.current_char && let Some(x) = decode_hexadecimal_digit(c) {
+                if let Some(c) = self.current_char
+                    && let Some(x) = decode_hexadecimal_digit(c)
+                {
                     value = Some(16 * value.unwrap_or_default() + x as u32);
                     self.take_next();
                 } else {
@@ -1372,7 +1390,7 @@ impl<'s> Lexer<'s> {
                 // If the file starts at indent > 0, we treat that as the root indent level
                 // instead of creating a sub-block. If indent then decreases below that level,
                 // there's no block to exit.
-                break
+                break;
             };
             if block_indent > previous_indent {
                 // The new line indent is smaller than current block but bigger than the
