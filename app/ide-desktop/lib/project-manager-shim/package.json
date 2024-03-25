@@ -1,0 +1,8 @@
+{
+  "name": "enso-project-manager-shim",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "yaml": "^2.4.1"
+  }
+}

@@ -5,7 +5,7 @@ import * as fsSync from 'node:fs'
 import * as http from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import type * as stream from 'node:stream'
+import * as stream from 'node:stream'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
@@ -274,11 +274,23 @@ export class Server {
                             .writeHead(HTTP_STATUS_BAD_REQUEST, common.COOP_COEP_CORP_HEADERS)
                             .end('Command arguments must be an array of strings.')
                     } else {
-                        const commandOutput =
-                            this.config.externalFunctions.runProjectManagerCommand(
-                                cliArguments,
-                                request
-                            )
+                        const commandOutput = (() => {
+                            try {
+                                return this.config.externalFunctions.runProjectManagerCommand(
+                                    cliArguments,
+                                    request
+                                )
+                            } catch {
+                                const readableStream = new stream.Readable()
+                                readableStream.push(
+                                    JSON.stringify({
+                                        error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
+                                    })
+                                )
+                                readableStream.push(null)
+                                return readableStream
+                            }
+                        })()
                         response.writeHead(HTTP_STATUS_OK, [
                             ['Content-Type', 'application/json'],
                             ...common.COOP_COEP_CORP_HEADERS,
