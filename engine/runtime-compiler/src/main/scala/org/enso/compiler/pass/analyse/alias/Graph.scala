@@ -35,14 +35,10 @@ sealed class Graph extends Serializable {
   }
 
   def initLinks(links: Set[Graph.Link]): Unit = {
-    links.foreach { link =>
-      sourceLinks = sourceLinks.updatedWith(link.source)(v =>
-        v.map(s => s + link).orElse(Some(Set(link)))
-      )
-      targetLinks = targetLinks.updatedWith(link.target)(v =>
-        v.map(s => s + link).orElse(Some(Set(link)))
-      )
-    }
+    sourceLinks = new HashMap()
+    targetLinks = new HashMap()
+    links.foreach(addSourceTargetLink)
+    this.links = links
   }
 
   def getLinks(): Set[Graph.Link] = links
@@ -105,14 +101,18 @@ sealed class Graph extends Serializable {
   ): Option[Graph.Link] = {
     scopeFor(occurrence.id).flatMap(_.resolveUsage(occurrence).map { link =>
       links += link
-      sourceLinks = sourceLinks.updatedWith(link.source)(v =>
-        v.map(s => s + link).orElse(Some(Set(link)))
-      )
-      targetLinks = targetLinks.updatedWith(link.target)(v =>
-        v.map(s => s + link).orElse(Some(Set(link)))
-      )
+      addSourceTargetLink(link)
       link
     })
+  }
+
+  private def addSourceTargetLink(link: Graph.Link): Unit = {
+    sourceLinks = sourceLinks.updatedWith(link.source)(v =>
+      v.map(s => s + link).orElse(Some(Set(link)))
+    )
+    targetLinks = targetLinks.updatedWith(link.target)(v =>
+      v.map(s => s + link).orElse(Some(Set(link)))
+    )
   }
 
   /** Resolves any links for the given usage of a symbol, assuming the symbol
