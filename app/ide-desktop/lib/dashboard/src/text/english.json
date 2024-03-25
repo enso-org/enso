@@ -217,6 +217,11 @@
   "homeCategory": "Home",
   "rootCategory": "Root",
   "trashCategory": "Trash",
+  "recentCategoryTitle": "Go to Recent category",
+  "draftsCategoryTitle": "Go to Drafts category",
+  "homeCategoryTitle": "Go to Home category",
+  "rootCategoryTitle": "Go to Root category",
+  "trashCategoryTitle": "Go to Trash category",
 
   "newFolder": "New Folder",
   "newProject": "New Project",

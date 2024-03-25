@@ -241,17 +241,17 @@ export function locateDocsColumnToggle(page: test.Locator | test.Page) {
 
 /** Find a button for the "Recent" category (if any). */
 export function locateRecentCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Recent')
+  return page.getByTitle('Go to Recent category')
 }
 
 /** Find a button for the "Home" category (if any). */
 export function locateHomeCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Home')
+  return page.getByTitle('Go to Home category')
 }
 
 /** Find a button for the "Trash" category (if any). */
 export function locateTrashCategory(page: test.Locator | test.Page) {
-  return page.getByTitle('Go To Trash')
+  return page.getByTitle('Go to Trash category')
 }
 
 /** Find a button for the cloud backend (if any). */
