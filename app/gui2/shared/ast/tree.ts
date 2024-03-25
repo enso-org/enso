@@ -584,6 +584,10 @@ export class App extends Ast {
     )
   }
 
+  static positional(func: Owned, argument: Owned, module?: MutableModule): Owned<MutableApp> {
+    return App.new(module ?? MutableModule.Transient(), func, undefined, argument)
+  }
+
   static PositionalSequence(func: Owned, args: Owned[]): Owned {
     return args.reduce(
       (expression, argument) => App.new(func.module, expression, undefined, argument),
@@ -904,13 +908,14 @@ export class PropertyAccess extends Ast {
     if (parsed instanceof MutablePropertyAccess) return parsed
   }
 
-  static new(module: MutableModule, lhs: Owned, rhs: IdentLike) {
-    const dot = unspaced(Token.new('.', RawAst.Token.Type.Operator))
+  static new(module: MutableModule, lhs: Owned, rhs: IdentLike, style?: { spaced?: boolean }) {
+    const dot = Token.new('.', RawAst.Token.Type.Operator)
+    const whitespace = style?.spaced ? ' ' : ''
     return this.concrete(
       module,
       unspaced(lhs),
-      dot,
-      unspaced(Ident.newAllowingOperators(module, toIdent(rhs))),
+      { whitespace, node: dot },
+      { whitespace, node: Ident.newAllowingOperators(module, toIdent(rhs)) },
     )
   }
 

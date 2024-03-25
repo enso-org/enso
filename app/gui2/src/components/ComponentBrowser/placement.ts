@@ -1,18 +1,48 @@
-import { assert, bail } from '@/util/assert'
+import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme.json'
+import type { ComputedRef, MaybeRefOrGetter } from 'vue'
+import { toValue } from 'vue'
 
-export interface Environment {
-  screenBounds: Rect
-  selectedNodeRects: Iterable<Rect>
-  nodeRects: Iterable<Rect>
-  mousePosition: Vec2
-}
+// Assumed size of a newly created node. This is used to place the component browser and creating a node before other
+// recently-created nodes have rendered and computed their real sizes.
+export const DEFAULT_NODE_SIZE = new Vec2(240, 24)
 
 export interface PlacementOptions {
   horizontalGap?: number
   verticalGap?: number
+}
+
+type ToValue<T> = MaybeRefOrGetter<T> | ComputedRef<T>
+
+export function usePlacement(nodeRects: ToValue<Iterable<Rect>>, screenBounds: ToValue<Rect>) {
+  const orDefaultSize = (rect: Rect) =>
+    rect.width !== 0 ? rect : new Rect(rect.pos, DEFAULT_NODE_SIZE)
+  const options = { horizontalGap: theme.node.horizontal_gap, verticalGap: theme.node.vertical_gap }
+  const environment = (selectedNodeRects: Iterable<Rect>) => ({
+    selectedNodeRects: Array.from(selectedNodeRects, orDefaultSize),
+    screenBounds: toValue(screenBounds),
+    nodeRects: Array.from(toValue(nodeRects), orDefaultSize),
+  })
+  return {
+    place: (
+      selectedNodeRects: Iterable<Rect> = [],
+      nodeSize: Vec2 = DEFAULT_NODE_SIZE,
+    ): Placement =>
+      previousNodeDictatedPlacement(nodeSize, environment(selectedNodeRects), options),
+    collapse: (selectedNodeRects: Iterable<Rect>, nodeSize: Vec2 = DEFAULT_NODE_SIZE): Placement =>
+      collapsedNodePlacement(nodeSize, environment(selectedNodeRects), options),
+  }
+}
+
+interface NonDictatedEnvironment {
+  screenBounds: Rect
+  nodeRects: Iterable<Rect>
+}
+
+export interface Environment extends NonDictatedEnvironment {
+  selectedNodeRects: Iterable<Rect>
 }
 
 export interface Placement {
@@ -33,7 +63,7 @@ export interface Placement {
  * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
 export function nonDictatedPlacement(
   nodeSize: Vec2,
-  { screenBounds, nodeRects }: Environment,
+  { screenBounds, nodeRects }: NonDictatedEnvironment,
   { verticalGap = theme.node.vertical_gap }: PlacementOptions = {},
 ): Placement {
   const initialPosition = screenBounds.center().sub(new Vec2(nodeSize.y / 2, nodeSize.y / 2))
@@ -90,8 +120,9 @@ export function previousNodeDictatedPlacement(
     const newTop = rect.bottom + verticalGap
     if (newTop > top) top = newTop
   }
-  if (initialLeft == null)
-    bail('There are no selected nodes, so placement cannot be dictated by the previous node.')
+  if (initialLeft == null) {
+    return nonDictatedPlacement(nodeSize, { screenBounds, nodeRects }, { verticalGap })
+  }
   let left = initialLeft
   const width = nodeSize.x
   const right = () => left + width
@@ -120,11 +151,7 @@ export function previousNodeDictatedPlacement(
  * positions.
  *
  * [Documentation](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#placement-of-newly-opened-component-browser) */
-export function mouseDictatedPlacement(
-  nodeSize: Vec2,
-  { mousePosition }: Environment,
-  _opts?: PlacementOptions,
-): Placement {
+export function mouseDictatedPlacement(nodeSize: Vec2, mousePosition: Vec2): Placement {
   const nodeRadius = nodeSize.y / 2
   return { position: mousePosition.add(new Vec2(nodeRadius, nodeRadius)) }
 }
