@@ -1,12 +1,3 @@
-// ==============
-// === Export ===
-// ==============
-
-pub use crate::CloneRef;
-pub use crate::NoCloneBecauseOfCustomDrop;
-
-
-
 // ================
 // === CloneRef ===
 // ================
@@ -75,7 +66,7 @@ macro_rules! impl_clone_ref_as_clone_no_from {
 }
 
 
-// === Prim Impls ===
+// === Primitive Impls ===
 
 impl_clone_ref_as_clone_no_from!(());
 impl_clone_ref_as_clone_no_from!(f32);
@@ -90,16 +81,6 @@ impl_clone_ref_as_clone_no_from!([T] std::marker::PhantomData<T>);
 impl_clone_ref_as_clone_no_from!([T] enso_zst::ZST<T>);
 impl_clone_ref_as_clone_no_from!([T:?Sized] std::rc::Rc<T>);
 impl_clone_ref_as_clone_no_from!([T:?Sized] std::rc::Weak<T>);
-
-impl_clone_ref_as_clone_no_from!(wasm_bindgen::JsValue);
-impl_clone_ref_as_clone_no_from!(web_sys::Element);
-impl_clone_ref_as_clone_no_from!(web_sys::HtmlDivElement);
-impl_clone_ref_as_clone_no_from!(web_sys::HtmlElement);
-impl_clone_ref_as_clone_no_from!(web_sys::Performance);
-impl_clone_ref_as_clone_no_from!(web_sys::WebGl2RenderingContext);
-impl_clone_ref_as_clone_no_from!(web_sys::HtmlCanvasElement);
-impl_clone_ref_as_clone_no_from!(web_sys::EventTarget);
-
 
 // === Option ===
 

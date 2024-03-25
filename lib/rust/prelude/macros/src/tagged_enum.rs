@@ -1,12 +1,10 @@
-use crate::prelude::*;
-
 use inflector::cases::snakecase::to_snake_case;
+use quote::quote;
 use syn::AttrStyle;
 use syn::Attribute;
 use syn::Data;
 use syn::DeriveInput;
 use syn::Fields;
-
 
 
 // ===================

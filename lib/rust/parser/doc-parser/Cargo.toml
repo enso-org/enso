@@ -12,7 +12,6 @@ license-file = "../../LICENSE"
 [dependencies]
 enso-parser = { path = ".." }
 enso-prelude = { path = "../../prelude" }
-enso-profiler = { path = "../../profiler" }
 enso-reflect = { path = "../../reflect" }
 serde = { workspace = true }
 

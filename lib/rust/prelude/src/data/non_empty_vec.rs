@@ -17,12 +17,11 @@ use std::vec::Drain;
 #[reflect(transparent)]
 #[derive(crate::serde_reexports::Serialize)]
 #[derive(crate::serde_reexports::Deserialize)]
-pub struct NonEmptyVec<T, I = usize> {
-    #[reflect(as = "Vec<T>")]
-    pub elems: VecIndexedBy<T, I>,
+pub struct NonEmptyVec<T> {
+    pub elems: Vec<T>,
 }
 
-impl<T, I> NonEmptyVec<T, I> {
+impl<T> NonEmptyVec<T> {
     /// Construct a new non-empty vector.
     ///
     /// # Examples
@@ -32,8 +31,8 @@ impl<T, I> NonEmptyVec<T, I> {
     /// use enso_prelude::NonEmptyVec;
     /// let mut vec: NonEmptyVec<usize> = NonEmptyVec::new(0, vec![]);
     /// ```
-    pub fn new(first: T, rest: Vec<T>) -> NonEmptyVec<T, I> {
-        let mut elems = VecIndexedBy::with_capacity(1 + rest.len());
+    pub fn new(first: T, rest: Vec<T>) -> NonEmptyVec<T> {
+        let mut elems = Vec::with_capacity(1 + rest.len());
         elems.push(first);
         elems.extend(rest);
         NonEmptyVec { elems }
@@ -48,7 +47,7 @@ impl<T, I> NonEmptyVec<T, I> {
     /// use enso_prelude::NonEmptyVec;
     /// let mut vec: NonEmptyVec<usize> = NonEmptyVec::new_with_last(vec![], 0);
     /// ```
-    pub fn new_with_last(mut elems: Vec<T>, last: T) -> NonEmptyVec<T, I> {
+    pub fn new_with_last(mut elems: Vec<T>, last: T) -> NonEmptyVec<T> {
         elems.push(last);
         NonEmptyVec { elems: elems.into() }
     }
@@ -57,12 +56,6 @@ impl<T, I> NonEmptyVec<T, I> {
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.elems.len()
-    }
-
-    /// Return the last valid index.
-    pub fn last_valid_index(&self) -> I
-    where I: From<usize> {
-        (self.len() - 1).into()
     }
 
     /// Construct a `NonEmptyVec` containing a single element.
@@ -75,12 +68,12 @@ impl<T, I> NonEmptyVec<T, I> {
     /// assert_eq!(vec.get(0), Some(&0));
     /// assert_eq!(vec.len(), 1);
     /// ```
-    pub fn singleton(first: T) -> NonEmptyVec<T, I> {
+    pub fn singleton(first: T) -> NonEmptyVec<T> {
         let elems = vec![first];
         Self { elems: elems.into() }
     }
 
-    /// Construct a new, `NonEmptyVec<T, I>` containing the provided element and with the
+    /// Construct a new, `NonEmptyVec<T>` containing the provided element and with the
     /// provided `capacity`.
     ///
     /// If `capacity` is 0, then the vector will be allocated with capacity for the provided `first`
@@ -97,7 +90,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::<_, usize>::with_capacity(0, 10);
+    /// let mut vec = NonEmptyVec::<_>::with_capacity(0, 10);
     ///
     /// // The vector contains one item, even though it has capacity for more
     /// assert_eq!(vec.len(), 1);
@@ -110,9 +103,9 @@ impl<T, I> NonEmptyVec<T, I> {
     /// // ...but this may make the vector reallocate
     /// vec.push(11);
     /// ```
-    pub fn with_capacity(first: T, capacity: usize) -> NonEmptyVec<T, I> {
+    pub fn with_capacity(first: T, capacity: usize) -> NonEmptyVec<T> {
         debug_assert_ne!(capacity, 0, "Capacity must be greater than zero for a NonEmptyVec.");
-        let mut elems = VecIndexedBy::with_capacity(capacity);
+        let mut elems = Vec::with_capacity(capacity);
         elems.push(first);
         NonEmptyVec { elems }
     }
@@ -132,7 +125,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![]);
+    /// let mut vec = NonEmptyVec::<_>::new(0, vec![]);
     /// vec.reserve(10);
     /// assert!(vec.capacity() >= 11);
     /// ```
@@ -149,7 +142,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::<_, usize>::with_capacity(0, 10);
+    /// let mut vec = NonEmptyVec::<_>::with_capacity(0, 10);
     /// assert_eq!(vec.capacity(), 10);
     /// vec.shrink_to_fit();
     /// assert!(vec.capacity() < 10);
@@ -168,7 +161,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
+    /// let mut vec = NonEmptyVec::<_>::new(0, vec![1, 2]);
     /// vec.push(3);
     /// assert_eq!(vec.len(), 4);
     /// ```
@@ -182,7 +175,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1]);
+    /// let mut vec = NonEmptyVec::<_>::new(0, vec![1]);
     /// assert!(vec.pop_if_has_more_than_1_elem().is_some());
     /// assert!(vec.pop_if_has_more_than_1_elem().is_none());
     /// assert_eq!(vec.len(), 1);
@@ -193,7 +186,7 @@ impl<T, I> NonEmptyVec<T, I> {
 
     /// Remove an element from the back of the collection, returning it and a new possibly empty
     /// vector.
-    pub fn pop(mut self) -> (T, VecIndexedBy<T, I>) {
+    pub fn pop(mut self) -> (T, Vec<T>) {
         let first = self.elems.pop().unwrap();
         (first, self.elems)
     }
@@ -204,7 +197,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
+    /// let vec = NonEmptyVec::<_>::new(0, vec![1, 2]);
     /// assert_eq!(*vec.first(), 0);
     /// ```
     pub fn first(&self) -> &T {
@@ -217,7 +210,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
+    /// let mut vec = NonEmptyVec::<_>::new(0, vec![1, 2]);
     /// assert_eq!(*vec.first_mut(), 0);
     /// ```
     pub fn first_mut(&mut self) -> &mut T {
@@ -230,7 +223,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
+    /// let vec = NonEmptyVec::<_>::new(0, vec![1, 2]);
     /// assert_eq!(*vec.last(), 2)
     /// ```
     pub fn last(&self) -> &T {
@@ -243,7 +236,7 @@ impl<T, I> NonEmptyVec<T, I> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::<_, usize>::new(0, vec![1, 2]);
+    /// let mut vec = NonEmptyVec::<_>::new(0, vec![1, 2]);
     /// assert_eq!(*vec.last_mut(), 2)
     /// ```
     pub fn last_mut(&mut self) -> &mut T {
@@ -267,9 +260,7 @@ impl<T, I> NonEmptyVec<T, I> {
     }
 }
 
-impl<T, I> NonEmptyVec<T, I>
-where I: vec_indexed_by::Index
-{
+impl<T> NonEmptyVec<T> {
     /// Obtain a mutable reference to the element in the vector at the specified `index`.
     ///
     /// # Examples
@@ -281,20 +272,18 @@ where I: vec_indexed_by::Index
     /// assert!(reference.is_some());
     /// assert_eq!(*reference.unwrap(), 0);
     /// ```
-    pub fn get_mut(&mut self, index: I) -> Option<&mut T> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         self.elems.get_mut(index)
     }
 
     /// Get the tail reference.
-    pub fn tail(&self) -> &[T]
-    where I: From<u8> {
-        &self.elems[I::from(1_u8)..]
+    pub fn tail(&self) -> &[T] {
+        &self.elems[1..]
     }
 
     /// Get the mutable tail reference.
-    pub fn tail_mut(&mut self) -> &mut [T]
-    where I: From<u8> {
-        &mut self.elems[I::from(1_u8)..]
+    pub fn tail_mut(&mut self) -> &mut [T] {
+        &mut self.elems[1..]
     }
 
     /// Create a draining iterator that removes the specified range in the vector and yields the
@@ -316,14 +305,12 @@ where I: vec_indexed_by::Index
     /// assert_eq!(drained, [1, 2, 3, 4, 5])
     /// ```
     pub fn drain<R>(&mut self, range: R) -> Drain<T>
-    where
-        R: RangeBounds<I>,
-        I: PartialOrd + Copy + From<u8>, {
-        if range.contains(&I::from(0_u8)) {
+    where R: RangeBounds<usize> {
+        if range.contains(&0) {
             match range.end_bound() {
-                Bound::Included(n) => self.elems.drain(I::from(1_u8)..=*n),
-                Bound::Excluded(n) => self.elems.drain(I::from(1_u8)..*n),
-                Bound::Unbounded => self.elems.drain(I::from(1_u8)..),
+                Bound::Included(n) => self.elems.drain(1..=*n),
+                Bound::Excluded(n) => self.elems.drain(1..*n),
+                Bound::Unbounded => self.elems.drain(1..),
             }
         } else {
             self.elems.drain(range)
@@ -350,7 +337,7 @@ where I: vec_indexed_by::Index
     /// vec.extend_at(2, vec![2, 3]);
     /// assert_eq!(&vec.as_slice(), &[0, 1, 2, 3, 4, 5])
     /// ```
-    pub fn extend_at(&mut self, index: I, elems: impl IntoIterator<Item = T>) {
+    pub fn extend_at(&mut self, index: usize, elems: impl IntoIterator<Item = T>) {
         self.splice(index..index, elems);
     }
 }
@@ -358,26 +345,26 @@ where I: vec_indexed_by::Index
 
 // === Trait Impls ===
 
-impl<T: Default, I> Default for NonEmptyVec<T, I> {
+impl<T: Default> Default for NonEmptyVec<T> {
     fn default() -> Self {
         Self::singleton(default())
     }
 }
 
-impl<T, I> TryFrom<Vec<T>> for NonEmptyVec<T, I> {
+impl<T> TryFrom<Vec<T>> for NonEmptyVec<T> {
     type Error = ();
     fn try_from(elems: Vec<T>) -> Result<Self, Self::Error> {
         (!elems.is_empty()).as_result_from(|| NonEmptyVec { elems: elems.into() }, || ())
     }
 }
 
-impl<T, I> From<NonEmptyVec<T, I>> for Vec<T> {
-    fn from(v: NonEmptyVec<T, I>) -> Self {
+impl<T> From<NonEmptyVec<T>> for Vec<T> {
+    fn from(v: NonEmptyVec<T>) -> Self {
         v.elems.into()
     }
 }
 
-impl<T, I> IntoIterator for NonEmptyVec<T, I> {
+impl<T> IntoIterator for NonEmptyVec<T> {
     type Item = T;
     type IntoIter = std::vec::IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {
@@ -385,7 +372,7 @@ impl<T, I> IntoIterator for NonEmptyVec<T, I> {
     }
 }
 
-impl<'a, T, I> IntoIterator for &'a NonEmptyVec<T, I> {
+impl<'a, T> IntoIterator for &'a NonEmptyVec<T> {
     type Item = &'a T;
     type IntoIter = slice::Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
@@ -393,7 +380,7 @@ impl<'a, T, I> IntoIterator for &'a NonEmptyVec<T, I> {
     }
 }
 
-impl<'a, T, I> IntoIterator for &'a mut NonEmptyVec<T, I> {
+impl<'a, T> IntoIterator for &'a mut NonEmptyVec<T> {
     type Item = &'a mut T;
     type IntoIter = slice::IterMut<'a, T>;
     fn into_iter(self) -> Self::IntoIter {

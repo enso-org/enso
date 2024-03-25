@@ -29,11 +29,6 @@ pub use doc_sections::DocSection;
 
 
 
-pub(crate) use enso_profiler as profiler;
-pub(crate) use enso_profiler::profile;
-
-
-
 // ============
 // === Tags ===
 // ============

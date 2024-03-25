@@ -4,14 +4,13 @@
 //! libraries in the future.
 
 // === Features ===
-#![feature(trait_alias)]
-#![feature(allocator_api)]
-#![feature(auto_traits)]
-#![feature(negative_impls)]
-#![feature(pattern)]
+// #![feature(auto_traits)]
+// #![feature(negative_impls)]
+// #![feature(pattern)]
 
 
 
+mod clone_ref;
 mod data;
 mod macros;
 mod not_same;
@@ -19,19 +18,19 @@ mod option;
 mod serde;
 mod smallvec;
 mod std_reexports;
-mod string;
 mod vec;
 
 pub use crate::serde::*;
 pub use crate::smallvec::*;
+pub use enso_macros::*;
 pub use enso_zst::*;
 
 pub use anyhow;
+pub use clone_ref::*;
 pub use data::*;
 pub use macros::*;
 pub use option::*;
 pub use std_reexports::*;
-pub use string::*;
 pub use vec::*;
 
 pub use boolinator::Boolinator;

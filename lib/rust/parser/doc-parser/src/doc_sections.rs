@@ -41,7 +41,6 @@ impl DocParser {
     }
 
     /// Parse the documentation.
-    #[profile(Detail)]
     pub fn parse(&mut self, input: &str) -> Vec<DocSection> {
         for (line_number, line) in input.trim_start().lines().enumerate() {
             let location = Location::start_of_line(line_number);

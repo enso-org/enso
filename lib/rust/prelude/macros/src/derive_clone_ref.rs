@@ -1,9 +1,9 @@
-use crate::prelude::*;
-
 use enso_macro_utils::field_names;
 use enso_macro_utils::identifier_sequence;
 use enso_macro_utils::index_sequence;
 use enso_macro_utils::path_matching_ident;
+use proc_macro2::TokenStream;
+use quote::quote;
 use syn::Attribute;
 use syn::Data;
 use syn::DataEnum;

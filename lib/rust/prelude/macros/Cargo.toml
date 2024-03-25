@@ -1,16 +1,12 @@
 [package]
-name = "enso-shapely-macros"
-version = "0.2.1"
+name = "enso-macros"
+version = "0.2.7"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
-description = "Automated typeclass derivation."
-readme = "README.md"
-homepage = "https://github.com/enso-org/enso/lib/rust/shapely/macros"
+description = "Common macros used in Enso codebase."
+homepage = "https://github.com/enso-org/enso"
 repository = "https://github.com/enso-org/enso"
 license-file = "../../../LICENSE"
-keywords = ["typeclass", "deriving", "macro"]
-categories = ["algorithms"]
-publish = true
 
 [lib]
 proc-macro = true
@@ -23,8 +19,6 @@ enso-macro-utils = { path = "../../macro-utils" }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
 Inflector = "0.11.4"
-itertools = { workspace = true }
-boolinator = { workspace = true }
 
 [dependencies.syn]
 version = "1.0"

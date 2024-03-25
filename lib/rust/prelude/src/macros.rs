@@ -1,14 +1,5 @@
 //! This module defines set of common macros which are useful across different projects.
 
-
-// ==============
-// === Export ===
-// ==============
-
-pub use enso_shapely::ForEachVariant;
-
-
-
 /// Allows for nicer definition of impls, similar to what Haskell or Scala does. Reduces the needed
 /// boilerplate. For example, the following usage:
 ///
