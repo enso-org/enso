@@ -36,6 +36,7 @@
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
+import { createReactQueryClient } from '#/reactQueryClient'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
@@ -144,7 +145,7 @@ export default function App(props: AppProps) {
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
   const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
-  const queryClient = React.useMemo(() => new reactQuery.QueryClient(), [])
+  const queryClient = React.useMemo(() => createReactQueryClient(), [])
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.

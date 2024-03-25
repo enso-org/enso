@@ -3,9 +3,9 @@
  * Each exported function in the {@link RemoteBackend} in this module corresponds to
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API. */
-import * as detect from 'enso-common/src/detect'
-
 import type * as text from '#/text'
+
+import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 import type * as textProvider from '#/providers/TextProvider'
@@ -14,6 +14,7 @@ import Backend, * as backendModule from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
 import type HttpClient from '#/utilities/HttpClient'
+import * as httpClientModule from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
 // =================
@@ -190,7 +191,7 @@ export default class RemoteBackend extends Backend {
           ((await response.json()) as RemoteBackendError)
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
     this.logger.error(message)
-    throw new Error(message)
+    throw new httpClientModule.NetworkError(message, response?.status)
   }
 
   /** Return a list of all users in the same organization. */
