@@ -89,10 +89,11 @@ class ProjectService[
   ): F[ProjectServiceFailure, Project] = for {
     projectId <- gen.randomUUID()
     _ <- log.debug(
-      "Creating project [{}, {}, {}].",
+      "Creating project [{}, {}, {}, {}].",
       projectName,
       projectId,
-      projectTemplate
+      projectTemplate,
+      projectsDirectory
     )
     repo = projectRepositoryFactory.getProjectRepository(projectsDirectory)
     name         <- getNameForNewProject(projectName, projectTemplate, repo)

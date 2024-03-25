@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 
 from Standard.Database.Internal.Postgres.Postgres_Dialect import make_internal_generator_dialect, Postgres_Dialect

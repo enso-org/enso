@@ -3,9 +3,7 @@ package org.enso.interpreter.runtime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -20,13 +18,28 @@ final class ThreadExecutors {
     this.context = context;
   }
 
-  final ExecutorService newCachedThreadPool(String name, boolean systemThread) {
+  ExecutorService newCachedThreadPool(String name, boolean systemThread) {
     var s = Executors.newCachedThreadPool(new Factory(name, systemThread));
     pools.put(s, name);
     return s;
   }
 
-  final ExecutorService newFixedThreadPool(int cnt, String name, boolean systemThread) {
+  ExecutorService newCachedThreadPool(String name, boolean systemThread, int min, int max) {
+    assert min >= 0;
+    assert max <= Integer.MAX_VALUE;
+    var s =
+        new ThreadPoolExecutor(
+            min,
+            max,
+            60L,
+            TimeUnit.SECONDS,
+            new SynchronousQueue<Runnable>(),
+            new Factory(name, systemThread));
+    pools.put(s, name);
+    return s;
+  }
+
+  ExecutorService newFixedThreadPool(int cnt, String name, boolean systemThread) {
     var s = Executors.newFixedThreadPool(cnt, new Factory(name, systemThread));
     pools.put(s, name);
     return s;

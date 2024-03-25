@@ -2,6 +2,7 @@
 import * as React from 'react'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
@@ -32,6 +33,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const [value, setValue] = React.useState(valueRaw)
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
     typeof value === 'string' ? value : null
@@ -80,7 +82,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                   items={autocompleteItems ?? []}
                   itemToKey={item => item}
                   itemToString={item => item}
-                  placeholder="Enter secret path"
+                  placeholder={getText('enterSecretPath')}
                   matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
                   values={isValid ? [value] : []}
                   setValues={values => {
@@ -101,7 +103,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
                 className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
                   getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
                 }`}
-                placeholder="Enter text"
+                placeholder={getText('enterText')}
                 onChange={event => {
                   const newValue: string = event.currentTarget.value
                   setValue(newValue)
@@ -121,7 +123,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
                 getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
               }`}
-              placeholder="Enter number"
+              placeholder={getText('enterNumber')}
               onChange={event => {
                 const newValue: number = event.currentTarget.valueAsNumber
                 if (Number.isFinite(newValue)) {
@@ -142,7 +144,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
               className={`w-data-link-text-input text grow rounded-input border bg-transparent px-input-x read-only:read-only ${
                 getValidator(path)(value) ? 'border-primary/10' : 'border-red-700/60'
               }`}
-              placeholder="Enter integer"
+              placeholder={getText('enterInteger')}
               onChange={event => {
                 const newValue: number = Math.floor(event.currentTarget.valueAsNumber)
                 setValue(newValue)

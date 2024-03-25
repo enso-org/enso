@@ -15,8 +15,17 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 abstract class Job[+A](
   val contextIds: List[UUID],
   val isCancellable: Boolean,
-  val mayInterruptIfRunning: Boolean
+  val mayInterruptIfRunning: Boolean,
+  val highPriority: Boolean
 ) {
+
+  def this(
+    contextIds: List[UUID],
+    isCancellable: Boolean,
+    mayInterruptIfRunning: Boolean
+  ) = {
+    this(contextIds, isCancellable, mayInterruptIfRunning, false)
+  }
 
   /** Executes a job.
     *

@@ -15,7 +15,6 @@ use reqwest::header::HeaderMap;
 use reqwest::Body;
 use reqwest::Response;
 use reqwest::StatusCode;
-use serde::de::DeserializeOwned;
 use tokio::io::AsyncReadExt;
 
 
@@ -24,7 +23,6 @@ pub mod endpoints {
     use super::*;
     use crate::io::retry;
     use reqwest::header::HeaderValue;
-    use std::pin::Pin;
     use tokio::io::AsyncRead;
 
     /// Creates a file container for the new artifact in the remote blob storage/file service.
@@ -117,7 +115,7 @@ pub mod endpoints {
     ) -> Result<PatchArtifactSizeResponse> {
         debug!("Patching the artifact `{}` size.", artifact_name.as_ref());
         let artifact_name = artifact_name.as_ref();
-        retry(async move || {
+        retry(move || async move {
             let patch_request = json_client
                 .patch(artifact_url.clone())
                 .query(&[("artifactName", artifact_name)]) // OsStr can be passed here, fails runtime
@@ -243,7 +241,7 @@ pub fn stream_file_in_chunks(
     file: tokio::fs::File,
     chunk_size: usize,
 ) -> impl Stream<Item = Result<Bytes>> + Send {
-    futures::stream::try_unfold(file, async move |mut file| {
+    futures::stream::try_unfold(file, move |mut file: tokio::fs::File| async move {
         let mut buffer = BytesMut::with_capacity(chunk_size);
         while file.read_buf(&mut buffer).await? > 0 && buffer.len() < chunk_size {}
         if buffer.is_empty() {

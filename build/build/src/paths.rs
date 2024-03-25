@@ -4,7 +4,6 @@ use crate::version::Versions;
 
 use std::env::consts::EXE_EXTENSION;
 use std::env::consts::EXE_SUFFIX;
-use std::fmt::Formatter;
 
 
 

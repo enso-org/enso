@@ -32,6 +32,7 @@ transport formats, please look [here](./protocol-architecture.md).
   - [Create Directory](#create-directory)
   - [Delete Directory](#delete-directory)
   - [Move File Or Directory](#move-file-or-directory)
+  - [Write to File](#write-to-file)
 - [Project Management Operations](#project-management-operations)
   - [`project/open`](#projectopen)
   - [`project/close`](#projectclose)
@@ -338,6 +339,27 @@ null;
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
   underlying data store.
 
+### Write to File
+
+Writes bytes from stdin to the provided path.
+
+#### Parameters
+
+```typescript
+echo 'Hello World!' | project-manager --filesystem-write-path {path}
+```
+
+### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+
 ## Project Management Operations
 
 The primary responsibility of the project managers is to allow users to manage
@@ -569,6 +591,7 @@ interface ProjectCreateRequest {
 interface ProjectCreateResponse {
   projectId: UUID;
   projectName: string;
+  projectNormalizedName: string;
 }
 ```
 

@@ -9,6 +9,7 @@
       std-libs-benchmark.yml:
       changelog.yml:
       gui.yml:
+      gui-tests.yml:
       nightly.yml:
       promote.yml:
       release.yml:

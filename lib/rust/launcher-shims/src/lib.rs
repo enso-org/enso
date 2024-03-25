@@ -1,9 +1,3 @@
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
-
 use std::io::prelude::*;
 
 use std::env;
@@ -80,7 +74,7 @@ pub fn wrap_launcher(version: impl AsRef<str>) {
 
 /// Appends a line to the file located at the provided path.
 pub fn append_to_log(path: PathBuf, line: impl AsRef<str>) -> io::Result<()> {
-    let mut log_file = OpenOptions::new().create(true).write(true).append(true).open(path)?;
+    let mut log_file = OpenOptions::new().append(true).open(path)?;
     writeln!(log_file, "{}", line.as_ref())?;
     Ok(())
 }

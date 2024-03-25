@@ -8,6 +8,7 @@ import org.enso.jsonrpc._
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.{Exec, Sync}
+import org.enso.projectmanager.infrastructure.file.Files
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectRename
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{
@@ -15,8 +16,6 @@ import org.enso.projectmanager.service.{
   ProjectServiceFailure
 }
 import org.enso.projectmanager.util.UnhandledLogging
-
-import java.io.File
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -40,7 +39,7 @@ class ProjectRenameHandler[F[+_, +_]: Exec: CovariantFlatMap: Sync](
     case Request(ProjectRename, id, params: ProjectRename.Params) =>
       val action = for {
         projectsDirectory <-
-          Sync[F].effect(params.projectsDirectory.map(new File(_)))
+          Sync[F].effect(params.projectsDirectory.map(Files.getAbsoluteFile))
         _ <- service.renameProject(
           params.projectId,
           params.name,

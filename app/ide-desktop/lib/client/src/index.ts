@@ -306,6 +306,7 @@ class App {
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
+
                 if (this.args.groups.debug.options.devTools.value) {
                     window.webContents.openDevTools()
                 }
@@ -380,7 +381,8 @@ class App {
         })
         electron.ipcMain.handle(
             ipc.Channel.openFileBrowser,
-            async (_event, kind: 'any' | 'directory' | 'file') => {
+            async (_event, kind: 'default' | 'directory' | 'file') => {
+                logger.log('Request for opening browser for ', kind)
                 /** Helper for `showOpenDialog`, which has weird types by default. */
                 type Properties = ('openDirectory' | 'openFile')[]
                 const properties: Properties =
@@ -388,7 +390,9 @@ class App {
                         ? ['openFile']
                         : kind === 'directory'
                           ? ['openDirectory']
-                          : ['openFile', 'openDirectory']
+                          : process.platform === 'darwin'
+                            ? ['openFile', 'openDirectory']
+                            : ['openFile']
                 const { canceled, filePaths } = await electron.dialog.showOpenDialog({ properties })
                 if (!canceled) {
                     return filePaths
@@ -397,6 +401,15 @@ class App {
                 }
             }
         )
+
+        // Handling navigation events from renderer process
+        electron.ipcMain.on(ipc.Channel.goBack, () => {
+            this.window?.webContents.goBack()
+        })
+
+        electron.ipcMain.on(ipc.Channel.goForward, () => {
+            this.window?.webContents.goForward()
+        })
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration

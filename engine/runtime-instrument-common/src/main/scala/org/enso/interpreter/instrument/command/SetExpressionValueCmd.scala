@@ -23,35 +23,37 @@ class SetExpressionValueCmd(request: Api.SetExpressionValueNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    val logger                    = ctx.executionService.getLogger
-    val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
-    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+    val logger            = ctx.executionService.getLogger
+    val fileLockTimestamp = ctx.locking.acquireFileLock(request.path)
     try {
-      val pendingApplyEdits =
-        request.edits.map(
-          PendingEdit.SetExpressionValue(
-            _,
-            request.expressionId,
-            request.expressionValue
+      val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
+      try {
+        val pendingApplyEdits =
+          request.edits.map(
+            PendingEdit.SetExpressionValue(
+              _,
+              request.expressionId,
+              request.expressionValue
+            )
           )
+        ctx.state.pendingEdits.enqueue(request.path, pendingApplyEdits)
+        ctx.jobControlPlane.abortAllJobs()
+        ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
+        executeJobs.foreach(ctx.jobProcessor.run)
+        Future.successful(())
+      } finally {
+        ctx.locking.releasePendingEditsLock()
+        logger.log(
+          Level.FINEST,
+          "Kept pending edits lock [SetExpressionValueCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
         )
-      ctx.state.pendingEdits.enqueue(request.path, pendingApplyEdits)
-      ctx.jobControlPlane.abortAllJobs()
-      ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
-      executeJobs.foreach(ctx.jobProcessor.run)
-      Future.successful(())
+      }
     } finally {
-      ctx.locking.releasePendingEditsLock()
-      logger.log(
-        Level.FINEST,
-        "Kept pending edits lock [SetExpressionValueCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
-      )
       ctx.locking.releaseFileLock(request.path)
       logger.log(
         Level.FINEST,
         "Kept file lock [SetExpressionValueCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
       )
-
     }
   }
 

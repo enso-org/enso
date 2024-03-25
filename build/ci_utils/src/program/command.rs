@@ -3,9 +3,6 @@ use crate::prelude::*;
 use crate::env::accessor::TypedVariable;
 
 use anyhow::Context;
-use std::borrow::BorrowMut;
-use std::fmt::Debug;
-use std::fmt::Formatter;
 use std::process::ExitStatus;
 use std::process::Output;
 use std::process::Stdio;
@@ -339,9 +336,9 @@ impl Command {
         let pretty = self.describe();
         let span = info_span!(
             "Running process.",
-            status = tracing::field::Empty,
-            pid = tracing::field::Empty,
-            command = tracing::field::Empty,
+            status = field::Empty,
+            pid = field::Empty,
+            command = field::Empty,
         )
         .entered();
         let child = self.spawn_intercepting();
@@ -364,9 +361,9 @@ impl Command {
         let pretty = self.describe();
         let span = info_span!(
             "Running process for the output.",
-            status = tracing::field::Empty,
-            pid = tracing::field::Empty,
-            command = tracing::field::Empty,
+            status = field::Empty,
+            pid = field::Empty,
+            command = field::Empty,
         )
         .entered();
 

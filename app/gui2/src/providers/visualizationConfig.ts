@@ -22,7 +22,7 @@ export interface VisualizationConfig {
   fullscreen: boolean
   hide: () => void
   updateType: (type: VisualizationIdentifier) => void
-  createNode: (options: NodeCreationOptions) => void
+  createNodes: (...options: NodeCreationOptions[]) => void
 }
 
 export { provideFn as provideVisualizationConfig }
