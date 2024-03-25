@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
+import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.test.TestBase;
 import org.enso.polyglot.LanguageInfo;
@@ -47,8 +48,8 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
    * Gather all the exported symbols from Standard.Base library. Exclude builtin symbols, and
    * modules with extension methods.
    */
-  @Parameters(name = "(exported symbol from Standard.Base): {0}")
-  public static List<Symbol> stdBaseExportedSymbols() {
+  @Parameters(name = "exported symbol '{0}'")
+  public static List<Symbol> symbolsToTest() {
     try (var ctx =
         TestBase.defaultContextBuilder(LanguageInfo.ID)
             .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
@@ -56,26 +57,31 @@ public class ImportsAndFQNConsistencyTest extends TestBase {
       var ensoCtx = TestBase.leakContext(ctx);
       var src = """
 from Standard.Base import all
+from Standard.Table import all
 main = 42
 """;
+      // Ensure that the context is initialized first.
       var res = TestBase.evalModule(ctx, src);
       assertThat(res.isNumber(), is(true));
       List<Symbol> symbolsToTest = new ArrayList<>();
-      gatherExportedSymbols("Standard.Base.Main", ensoCtx).stream()
+      gatherExportedSymbols(ensoCtx, List.of("Standard.Base.Main", "Standard.Table.Main")).stream()
           .map(Symbol::new)
           .forEach(
               exportedSymbol -> {
                 var mod = ensoCtx.findModule(exportedSymbol.getModuleName());
                 if (mod.isPresent()) {
-                  var builtin = ensoCtx.getBuiltins().getBuiltinType(exportedSymbol.getTypeName());
+                  var builtin =
+                      ensoCtx.getBuiltins().getBuiltinType(exportedSymbol.getLastPathItem());
                   if (builtin == null) {
+                    if (mod.get().isSynthetic()) {
+                      symbolsToTest.add(exportedSymbol);
+                      return;
+                    }
                     // The symbol is not a builtin type
                     var modIr = mod.get().getIr();
                     if (modIr != null) {
-                      var isTypeInModule =
-                          bindingsContainsType(
-                              mod.get().getIr().bindings(), exportedSymbol.getTypeName());
-                      if (isTypeInModule) {
+                      var bindings = mod.get().getIr().bindings();
+                      if (shouldIncludeSymbolForTest(bindings, exportedSymbol.getLastPathItem())) {
                         symbolsToTest.add(exportedSymbol);
                       }
                     }
@@ -105,7 +111,7 @@ main = 42
   private void evalCode(Symbol symbol) {
     var res = TestBase.evalModule(ctx, code);
     assertThat(res.isString(), is(true));
-    assertThat(res.asString(), is(symbol.getTypeName()));
+    assertThat(res.asString(), is(symbol.getLastPathItem()));
   }
 
   /** Tests that a symbol can be used via its simple name with an FQN import of that symbol. */
@@ -114,7 +120,7 @@ main = 42
     var sb = new StringBuilder();
     sb.append("import ").append(symbol.getFqn()).append(System.lineSeparator());
     sb.append("main = ")
-        .append(symbol.getTypeName())
+        .append(symbol.getLastPathItem())
         .append(".to_text")
         .append(System.lineSeparator());
     code = sb.toString();
@@ -149,7 +155,7 @@ main = 42
       return pathItems.get(0) + "." + pathItems.get(1);
     }
 
-    String getTypeName() {
+    String getLastPathItem() {
       return pathItems.get(pathItems.size() - 1);
     }
 
@@ -201,13 +207,21 @@ main = 42
     }
   }
 
+  private static List<String> gatherExportedSymbols(EnsoContext ensoCtx, List<String> moduleNames) {
+    List<String> allExportedSymbols = new ArrayList<>();
+    for (var moduleName : moduleNames) {
+      allExportedSymbols.addAll(gatherExportedSymbols(moduleName, ensoCtx));
+    }
+    return allExportedSymbols;
+  }
+
   private static List<String> gatherExportedSymbols(String moduleName, EnsoContext ensoCtx) {
     var mod = ensoCtx.getPackageRepository().getLoadedModule(moduleName);
     assertThat(mod.isDefined(), is(true));
-    var stdBaseExports = mod.get().getIr().exports();
-    assertThat(stdBaseExports.size(), greaterThan(1));
+    var exports = mod.get().getIr().exports();
+    assertThat(exports.size(), greaterThan(1));
     List<String> exportedSymbols = new ArrayList<>();
-    stdBaseExports.foreach(
+    exports.foreach(
         export -> {
           if (export instanceof Export.Module moduleExport) {
             exportedSymbols.add(moduleExport.name().name());
@@ -217,14 +231,18 @@ main = 42
     return exportedSymbols;
   }
 
-  private static boolean bindingsContainsType(
-      scala.collection.immutable.List<Definition> bindings, String typeName) {
+  private static boolean shouldIncludeSymbolForTest(
+      scala.collection.immutable.List<Definition> bindings, String symbol) {
     return bindings.exists(
-        binding -> {
-          if (binding instanceof Definition.Type typeBinding) {
-            return typeBinding.name().name().equals(typeName);
-          }
-          return false;
-        });
+        binding ->
+            switch (binding) {
+              case Definition.Type tp -> tp.name().name().equals(symbol);
+              case Method.Binding methodBind -> methodBind.methodName().name().equals(symbol);
+              case Method.Explicit methodExplicit -> methodExplicit
+                  .methodName()
+                  .name()
+                  .equals(symbol);
+              default -> false;
+            });
   }
 }
