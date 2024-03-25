@@ -362,7 +362,7 @@ export class GraphDb {
             vis: nodeMeta.get('visualization'),
           }
         }
-        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields })
+        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
       } else {
         const {
           outerExpr,
@@ -481,6 +481,7 @@ export class GraphDb {
       pattern,
       rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
+      zIndex: this.highestZIndex,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(asNodeId(id), node)
@@ -522,7 +523,7 @@ export interface NodeDataFromMetadata {
 }
 
 export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
-  zIndex?: number
+  zIndex: number
 }
 
 const baseMockNode = {
