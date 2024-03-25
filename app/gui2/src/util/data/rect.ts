@@ -23,7 +23,9 @@ export class Rect {
     return new Rect(center.addScaled(size, -0.5), size)
   }
 
-  static FromDomRect(domRect: DOMRect): Rect {
+  static FromDomRect(
+    domRect: Readonly<{ x: number; y: number; width: number; height: number }>,
+  ): Rect {
     return new Rect(Vec2.FromXY(domRect), Vec2.FromSize(domRect))
   }
 
@@ -39,6 +41,15 @@ export class Rect {
       if (!(rect.bottom <= bottom)) bottom = rect.bottom
     }
     return this.FromBounds(left, top, right, bottom)
+  }
+
+  static Equal(a: Rect, b: Rect): boolean
+  static Equal(a: Rect | null, b: Rect | null): boolean
+  static Equal(a: Rect | undefined, b: Rect | undefined): boolean
+  static Equal(a: Rect | null | undefined, b: Rect | null | undefined): boolean {
+    if (!a && !b) return true
+    if (!a || !b) return false
+    return a.equals(b)
   }
 
   offsetBy(offset: Vec2): Rect {

@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -111,6 +112,7 @@ export default function AccountSettingsTab() {
   const { setModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
   const { user, accessToken } = authProvider.useNonPartialUserSession()
+  const { getText } = textProvider.useText()
   const [passwordFormKey, setPasswordFormKey] = React.useState('')
   const [currentPassword, setCurrentPassword] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
@@ -122,6 +124,12 @@ export default function AccountSettingsTab() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
     accessToken != null ? JSON.parse(atob(accessToken.split('.')[1]!)).username : null
   const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
+  const canSubmitPassword =
+    currentPassword !== '' &&
+    newPassword !== '' &&
+    confirmNewPassword !== '' &&
+    newPassword === confirmNewPassword &&
+    validation.PASSWORD_REGEX.test(newPassword)
 
   const doUpdateName = async (newName: string) => {
     const oldName = user?.name ?? ''
@@ -141,7 +149,7 @@ export default function AccountSettingsTab() {
   const doUploadUserPicture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const image = event.target.files?.[0]
     if (image == null) {
-      toastAndLog('Could not upload a new profile picture because no image was found')
+      toastAndLog('noNewProfilePictureError')
     } else {
       try {
         const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
@@ -159,32 +167,32 @@ export default function AccountSettingsTab() {
     <div className="flex h flex-col gap-settings-section lg:h-auto lg:flex-row">
       <div className="flex w-settings-main-section flex-col gap-settings-subsection">
         <div className="flex flex-col gap-settings-section-header">
-          <h3 className="settings-subheading">User Account</h3>
+          <h3 className="settings-subheading">{getText('userAccount')}</h3>
           <div className="flex flex-col">
             <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-user-account-settings-label">Name</span>
+              <span className="text my-auto w-user-account-settings-label">{getText('name')}</span>
               <span className="text my-auto grow font-bold">
                 <Input originalValue={user?.name ?? ''} onSubmit={doUpdateName} />
               </span>
             </div>
             <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-user-account-settings-label">Email</span>
+              <span className="text my-auto w-user-account-settings-label">{getText('email')}</span>
               <span className="settings-value my-auto grow font-bold">{user?.email ?? ''}</span>
             </div>
           </div>
         </div>
         {canChangePassword && (
           <div key={passwordFormKey}>
-            <h3 className="settings-subheading">Change Password</h3>
+            <h3 className="settings-subheading">{getText('changePassword')}</h3>
             <div className="flex h-row gap-settings-entry">
               <span className="text my-auto w-change-password-settings-label">
-                Current Password
+                {getText('currentPasswordLabel')}
               </span>
               <span className="text my-auto grow font-bold">
                 <Input
                   type="password"
                   originalValue=""
-                  placeholder="Enter your current password"
+                  placeholder={getText('currentPasswordPlaceholder')}
                   onChange={event => {
                     setCurrentPassword(event.currentTarget.value)
                   }}
@@ -192,19 +200,21 @@ export default function AccountSettingsTab() {
               </span>
             </div>
             <div className="flex h-row gap-settings-entry">
-              <span className="text my-auto w-change-password-settings-label">New Password</span>
+              <span className="text my-auto w-change-password-settings-label">
+                {getText('newPasswordLabel')}
+              </span>
               <span className="text my-auto grow font-bold">
                 <Input
                   type="password"
                   originalValue=""
-                  placeholder="Enter your new password"
+                  placeholder={getText('newPasswordPlaceholder')}
                   onChange={event => {
                     const newValue = event.currentTarget.value
                     setNewPassword(newValue)
                     event.currentTarget.setCustomValidity(
                       newValue === '' || validation.PASSWORD_REGEX.test(newValue)
                         ? ''
-                        : validation.PASSWORD_ERROR
+                        : getText('passwordValidationError')
                     )
                   }}
                 />
@@ -212,13 +222,13 @@ export default function AccountSettingsTab() {
             </div>
             <div className="flex h-row gap-settings-entry">
               <span className="text my-auto w-change-password-settings-label">
-                Confirm New Password
+                {getText('confirmNewPasswordLabel')}
               </span>
               <span className="text my-auto grow font-bold">
                 <Input
                   type="password"
                   originalValue=""
-                  placeholder="Confirm your new password"
+                  placeholder={getText('confirmNewPasswordPlaceholder')}
                   onChange={event => {
                     const newValue = event.currentTarget.value
                     setConfirmNewPassword(newValue)
@@ -231,14 +241,8 @@ export default function AccountSettingsTab() {
             </div>
             <div className="flex h-row items-center gap-buttons">
               <button
-                disabled={
-                  currentPassword === '' ||
-                  newPassword === '' ||
-                  confirmNewPassword === '' ||
-                  newPassword !== confirmNewPassword ||
-                  !validation.PASSWORD_REGEX.test(newPassword)
-                }
                 type="submit"
+                disabled={!canSubmitPassword}
                 className={`settings-value rounded-full bg-invite font-medium text-white selectable enabled:active`}
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
@@ -248,11 +252,12 @@ export default function AccountSettingsTab() {
                   void changePassword(currentPassword, newPassword)
                 }}
               >
-                Change
+                {getText('change')}
               </button>
               <button
                 type="button"
-                className="settings-value rounded-full bg-selected-frame font-medium"
+                disabled={!canSubmitPassword}
+                className="settings-value rounded-full bg-selected-frame font-medium selectable enabled:active"
                 onClick={() => {
                   setPasswordFormKey(uniqueString.uniqueString())
                   setCurrentPassword('')
@@ -260,7 +265,7 @@ export default function AccountSettingsTab() {
                   setConfirmNewPassword('')
                 }}
               >
-                Cancel
+                {getText('cancel')}
               </button>
             </div>
           </div>
@@ -268,7 +273,7 @@ export default function AccountSettingsTab() {
         {/* This UI element does not appear anywhere else. */}
         {/* eslint-disable-next-line no-restricted-syntax */}
         <div className="flex flex-col items-start gap-settings-section-header rounded-2.5xl border-2 border-danger px-[1rem] pb-[0.9375rem] pt-[0.5625rem]">
-          <h3 className="settings-subheading text-danger">Danger Zone</h3>
+          <h3 className="settings-subheading text-danger">{getText('dangerZone')}</h3>
           <div className="flex gap-buttons">
             <button
               className="button bg-danger px-delete-user-account-button-x text-inversed opacity-full hover:opacity-full"
@@ -284,16 +289,14 @@ export default function AccountSettingsTab() {
                 )
               }}
             >
-              <span className="text inline-block">Delete this user account</span>
+              <span className="text inline-block">{getText('deleteUserAccountButtonLabel')}</span>
             </button>
-            <span className="text my-auto">
-              Once deleted, it will be gone forever. Please be certain.
-            </span>
+            <span className="text my-auto">{getText('deleteUserAccountWarning')}</span>
           </div>
         </div>
       </div>
       <div className="flex flex-col gap-settings-section-header">
-        <h3 className="settings-subheading">Profile picture</h3>
+        <h3 className="settings-subheading">{getText('profilePicture')}</h3>
         <label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
           <img
@@ -304,8 +307,7 @@ export default function AccountSettingsTab() {
           />
         </label>
         <span className="w-profile-picture-caption py-profile-picture-caption-y">
-          Your profile picture should not be irrelevant, abusive or vulgar. It should not be a
-          default image provided by Enso.
+          {getText('profilePictureWarning')}
         </span>
       </div>
     </div>

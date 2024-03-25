@@ -28,3 +28,6 @@ version = "0.3.4"
 
 [dev-dependencies]
 enso-prelude = { path = "../prelude" }
+
+[lints]
+workspace = true

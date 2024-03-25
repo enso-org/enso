@@ -7,6 +7,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
@@ -42,6 +43,7 @@ export default function UserBar(props: UserBarProps) {
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const self =
     user != null
       ? projectAsset?.permissions?.find(
@@ -56,14 +58,9 @@ export default function UserBar(props: UserBarProps) {
     self != null
   const shouldShowInviteButton =
     sessionType === authProvider.UserSessionType.full && !shouldShowShareButton
-  const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
-    <div
-      className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default ${
-        shouldMakeSpaceForExtendedEditorMenu ? 'mr-extended-editor-menu' : ''
-      }`}
-    >
+    <div className="pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-user-bar rounded-full bg-frame px-icons-x pr-profile-picture backdrop-blur-default">
       <Button
         active={isHelpChatOpen}
         image={ChatIcon}
@@ -79,7 +76,7 @@ export default function UserBar(props: UserBarProps) {
             setModal(<InviteUsersModal eventTarget={null} />)
           }}
         >
-          Invite
+          {getText('invite')}
         </button>
       )}
       {shouldShowShareButton && (
@@ -98,7 +95,7 @@ export default function UserBar(props: UserBarProps) {
             )
           }}
         >
-          Share
+          {getText('share')}
         </button>
       )}
       <button
@@ -118,7 +115,7 @@ export default function UserBar(props: UserBarProps) {
       >
         <img
           src={user?.profilePicture ?? DefaultUserIcon}
-          alt="Open user menu"
+          alt={getText('openUserMenu')}
           className="pointer-events-none"
           height={28}
           width={28}

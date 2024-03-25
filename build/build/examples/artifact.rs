@@ -1,6 +1,3 @@
-// === Features ===
-#![feature(default_free_fn)]
-
 use enso_build::prelude::*;
 
 use ide_ci::actions::artifacts;
@@ -55,7 +52,7 @@ async fn main() -> Result {
 
     dbg!(&relevant_entry);
 
-    let items = ide_ci::actions::artifacts::raw::endpoints::get_container_items(
+    let items = artifacts::raw::endpoints::get_container_items(
         &context.json_client()?,
         relevant_entry.file_container_resource_url.clone(),
         &relevant_entry.name,

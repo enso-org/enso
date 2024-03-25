@@ -79,6 +79,15 @@ const sourceRect = computed<Rect | undefined>(() => {
   }
 })
 
+/** Edges which do not have `sourceRect` and `targetPos` initialized are marked by a special
+ * `broken-edge` data-testid, for debugging and e2e test purposes. */
+const edgeIsBroken = computed(
+  () =>
+    sourceRect.value == null ||
+    targetPos.value == null ||
+    (sourceRect.value.pos.equals(targetPos.value) && sourceRect.value.size.equals(Vec2.Zero)),
+)
+
 type NodeMask = {
   id: string
   rect: Rect
@@ -508,6 +517,7 @@ const connected = computed(() => isConnected(props.edge))
         class="edge io"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
+        :data-testid="edgeIsBroken ? 'broken-edge' : null"
         @pointerdown.stop="click"
         @pointerenter="hovered = true"
         @pointerleave="hovered = false"

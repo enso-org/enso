@@ -612,7 +612,7 @@ add_common_specs suite_builder prefix:Text (pending : (Text | Nothing)) (empty_m
             m2 = m1.remove "B"
             m2.get "A" . should_equal 1
             m2.remove "A" . should_equal empty_map
-            Test.expect_panic_with (m1.remove "foo") Any
+            m1.remove "foo" . should_fail_with No_Such_Key
 
         group_builder.specify "should be able to remove entries (2)" <|
             m1 = empty_map.insert "A" 1
@@ -632,4 +632,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

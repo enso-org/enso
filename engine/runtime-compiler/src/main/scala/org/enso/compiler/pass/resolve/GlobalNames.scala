@@ -27,6 +27,7 @@ import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
+import org.enso.compiler.pass.analyse.alias.{Info => AliasInfo}
 
 /** Resolves name occurences in non-pattern contexts.
   *
@@ -441,7 +442,7 @@ case object GlobalNames extends IRPass {
         AliasAnalysis,
         "no alias analysis info on a name"
       )
-      .unsafeAs[AliasAnalysis.Info.Occurrence]
+      .unsafeAs[AliasInfo.Occurrence]
     val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
     defLink.isDefined
   }

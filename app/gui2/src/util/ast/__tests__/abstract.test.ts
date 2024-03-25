@@ -1,10 +1,18 @@
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import {
+  MutableModule,
+  TextLiteral,
+  escapeTextLiteral,
+  substituteQualifiedName,
+  unescapeTextLiteral,
+  type Identifier,
+} from '@/util/ast/abstract'
 import { tryQualifiedName } from '@/util/qualifiedName'
+import { fc, test } from '@fast-check/vitest'
 import { initializeFFI } from 'shared/ast/ffi'
 import { unwrap } from 'shared/util/data/result'
-import { describe, expect, test } from 'vitest'
-import { MutableModule, substituteQualifiedName, type Identifier } from '../abstract'
+import { describe, expect } from 'vitest'
 import { findExpressions, testCase, tryFindExpressions } from './testCase'
 
 await initializeFFI()
@@ -854,6 +862,63 @@ test.each([
   expect(edit.root()?.code()).toEqual(expected)
 })
 
+test.each([
+  ['', ''],
+  ['\\x20', ' ', ' '],
+  ['\\b', '\b'],
+  ['abcdef_123', 'abcdef_123'],
+  ['\\t\\r\\n\\v\\"\\\'\\`', '\t\r\n\v"\'`'],
+  ['\\u00B6\\u{20}\\U\\u{D8\\xBFF}', '\xB6 \0\xD8\xBFF}', '\xB6 \\0\xD8\xBFF}'],
+  ['\\`foo\\` \\`bar\\` \\`baz\\`', '`foo` `bar` `baz`'],
+])(
+  'Applying and escaping text literal interpolation',
+  (escapedText: string, rawText: string, roundtrip?: string) => {
+    const actualApplied = unescapeTextLiteral(escapedText)
+    const actualEscaped = escapeTextLiteral(rawText)
+
+    expect(actualEscaped).toBe(roundtrip ?? escapedText)
+    expect(actualApplied).toBe(rawText)
+  },
+)
+
+const sometimesUnicodeString = fc.oneof(fc.string(), fc.unicodeString())
+
+test.prop({ rawText: sometimesUnicodeString })('Text interpolation roundtrip', ({ rawText }) => {
+  expect(unescapeTextLiteral(escapeTextLiteral(rawText))).toBe(rawText)
+})
+
+test.prop({ rawText: sometimesUnicodeString })('AST text literal new', ({ rawText }) => {
+  const literal = TextLiteral.new(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
+})
+
+test.prop({
+  boundary: fc.constantFrom('"', "'"),
+  rawText: sometimesUnicodeString,
+})('AST text literal rawTextContent', ({ boundary, rawText }) => {
+  const literal = TextLiteral.new('')
+  literal.setBoundaries(boundary)
+  literal.setRawTextContent(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
+  const codeAsInterpolated = `'${escapeTextLiteral(rawText)}'`
+  if (boundary === "'") {
+    expect(literal.code()).toBe(codeAsInterpolated)
+  } else {
+    const codeAsRaw = `"${rawText}"`
+    // Uninterpolated text will be promoted to interpolated if necessary to escape a special character.
+    expect([codeAsInterpolated, codeAsRaw]).toContainEqual(literal.code())
+  }
+})
+
+test('setRawTextContent promotes single-line uninterpolated text to interpolated if a newline is added', () => {
+  const literal = TextLiteral.new('')
+  literal.setBoundaries('"')
+  const rawText = '\n'
+  literal.setRawTextContent(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
+  expect(literal.code()).toBe(`'${escapeTextLiteral(rawText)}'`)
+})
+
 const docEditCases = [
   { code: '## Simple\nnode', documentation: 'Simple' },
   {
@@ -897,4 +962,34 @@ test('Adding comments', () => {
   expr.module.replaceRoot(expr)
   expr.update((expr) => Ast.Documented.new('Calculate five', expr))
   expect(expr.module.root()?.code()).toBe('## Calculate five\n2 + 2')
+})
+
+test.each([
+  { code: 'operator1', expected: { subject: 'operator1', accesses: [] } },
+  { code: 'operator1 foo bar', expected: { subject: 'operator1 foo bar', accesses: [] } },
+  { code: 'operator1.parse_json', expected: { subject: 'operator1', accesses: ['parse_json'] } },
+  {
+    code: 'operator1.parse_json operator2.to_json',
+    expected: { subject: 'operator1.parse_json operator2.to_json', accesses: [] },
+  },
+  {
+    code: 'operator1.parse_json foo bar',
+    expected: { subject: 'operator1.parse_json foo bar', accesses: [] },
+  },
+  {
+    code: 'operator1.parse_json.length',
+    expected: { subject: 'operator1', accesses: ['parse_json', 'length'] },
+  },
+  {
+    code: 'operator1.parse_json.length foo bar',
+    expected: { subject: 'operator1.parse_json.length foo bar', accesses: [] },
+  },
+  { code: 'operator1 + operator2', expected: { subject: 'operator1 + operator2', accesses: [] } },
+])('Access chain in $code', ({ code, expected }) => {
+  const ast = Ast.parse(code)
+  const { subject, accessChain } = Ast.accessChain(ast)
+  expect({
+    subject: subject.code(),
+    accesses: accessChain.map((ast) => ast.rhs.code()),
+  }).toEqual(expected)
 })

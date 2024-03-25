@@ -95,7 +95,6 @@ impl<T: smallvec::Array> SmallVecOps for SmallVec<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::iter::FromIterator;
 
     #[test]
     fn test_binary_search_by() {

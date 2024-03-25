@@ -16,6 +16,7 @@
   --heading-padding-x: 0.375rem;
   --heading-padding-y: 0.125rem;
   --input-corner-radius: 0.75rem;
+  --small-rectangle-button-corner-radius: 0.375rem;
   /* The height of a profile picture when displayed in a row.
    * This should be slightly less than `--row-height`. */
   --profile-picture-size: 1.75rem;
@@ -29,6 +30,9 @@
   --icons-padding-x: 0.5rem;
   --icon-size: 1rem;
   --project-icon-size: 1.5rem;
+  /* The horizontal padding of the large text indicating that a feature is not enabled in the user's
+   * current plan. */
+  --missing-functionality-text-padding-x: 1rem;
   /* The horizontal gap between each icon in a list of buttons. */
   --buttons-gap: 0.5rem;
   /* The horizontal gap between each icon in a list of icons. */
@@ -140,6 +144,13 @@
   --search-suggestion-padding-y: 0.25rem;
   --search-suggestion-margin: 0.25rem;
   --close-icon-margin: 0.25rem;
+  --date-input-padding: 0.5rem;
+  --date-picker-width: 7.5rem;
+  --date-cell-width: 1.5rem;
+  /* The gap between the date display and the input of the date picker. */
+  --date-input-gap: 0.5rem;
+  /* The gap between the month display and the calendar of the date picker. */
+  --date-input-calendar-gap: 0.5rem;
 
   /********\
   |* Chat *|
@@ -217,7 +228,7 @@
   --side-panel-label-width: 8rem;
   --side-panel-description-padding-y: 0.25rem;
 
-  --extended-editor-menu-size: 2.5rem;
+  --extended-editor-menu-size: 48px;
 
   --menu-entry-padding: 0.25rem;
 
@@ -319,9 +330,17 @@
   --members-email-column-width: 12rem;
   --keyboard-shortcuts-icon-column-width: 2rem;
   --keyboard-shortcuts-name-column-width: 9rem;
-  --keyboard-shortcuts-icon-column-padding-right: 0.375rem;
+  --icon-column-padding-right: 0.375rem;
   /* The horizontal gap between each icon for modifying the shortcuts for a particular action. */
   --keyboard-shortcuts-button-gap: 0.25rem;
+  /** The horizontal gap between individual filters in the activity log. */
+  --activity-log-filters-gap: 0.75rem;
+  /** The horizontal gap between a filter and its input in the activity log. */
+  --activity-log-filter-gap: 0.5rem;
+  --activity-log-icon-column-width: 2rem;
+  --activity-log-type-column-width: 8rem;
+  --activity-log-email-column-width: 12rem;
+  --activity-log-timestamp-column-width: 9rem;
 
   /***********************\
   |* Authentication flow *|

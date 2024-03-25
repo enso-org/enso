@@ -3,6 +3,7 @@
 use vecmap::*;
 
 use derivative::Derivative;
+use derive_where::derive_where;
 use enso_zst::ZST;
 
 
@@ -12,15 +13,7 @@ use enso_zst::ZST;
 // ===========
 
 /// A globally unique identifier, with a type-tag.
-#[derive(Derivative)]
-#[derivative(Copy(bound = ""))]
-#[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = ""))]
-#[derivative(Eq(bound = ""))]
-#[derivative(PartialEq(bound = ""))]
-#[derivative(Ord(bound = ""))]
-#[derivative(PartialOrd(bound = ""))]
-#[derivative(Hash(bound = ""))]
+#[derive_where(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Id<T> {
     value:  u32,
     marker: ZST<T>,
@@ -67,8 +60,8 @@ impl<T> std::fmt::Display for Id<T> {
 /// cannot be rebound. This improves the failure mode of broken references: Rather than likely
 /// become apparently-valid references to the wrong values, attempts to access removed elements will
 /// fail, and be detected.
-#[derive(Debug, Derivative, Clone)]
-#[derivative(Default(bound = ""))]
+#[derive(Debug, Clone)]
+#[derive_where(Default)]
 pub struct VecMap<T> {
     data: Vec<Option<T>>,
 }
@@ -183,14 +176,9 @@ pub mod vecmap {
 
     /// Identifies a location within a `VecMap`.
     #[derive(Derivative)]
-    #[derivative(Copy(bound = "State: Copy"))]
-    #[derivative(Clone(bound = "State: Clone"))]
-    #[derivative(Debug(bound = ""))]
-    #[derivative(Eq(bound = ""))]
-    #[derivative(PartialEq(bound = ""))]
-    #[derivative(Ord(bound = ""))]
-    #[derivative(PartialOrd(bound = ""))]
-    #[derivative(Hash(bound = ""))]
+    #[derivative(Debug)]
+    #[derive_where(Clone, Copy; State)]
+    #[derive_where(Eq, PartialEq, Ord, PartialOrd, Hash)]
     pub struct Key<T, State = MaybeBound> {
         pub(super) index: usize,
         #[derivative(Debug = "ignore")]

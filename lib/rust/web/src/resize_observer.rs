@@ -2,9 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::Closure;
-use crate::JsValue;
-
 
 
 // =============
