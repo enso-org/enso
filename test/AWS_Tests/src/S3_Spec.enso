@@ -21,7 +21,7 @@ import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setu
 from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import with_retries
 
 
-api_pending = if Environment.get "AWS_ACCESS_KEY_ID" . is_nothing then "No Access Key found." else Nothing
+api_pending = if test_credentials.is_nothing then "No Access Key found." else Nothing
 
 bucket_name = "enso-data-samples"
 writable_bucket_name = "enso-ci-s3-test-stage"
@@ -544,5 +544,9 @@ main filter=Nothing =
         add_specs suite_builder
     suite.run_with_filter filter
 
-test_credentials =
-    AWS_Credential.Key (Environment.get "ENSO_LIB_S3_AWS_ACCESS_KEY_ID") (Environment.get "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY")
+test_credentials -> AWS_Credential | Nothing =
+    access_key_id = Environment.get "ENSO_LIB_S3_AWS_ACCESS_KEY_ID"
+    secret_access_key = Environment.get "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY"
+    access_key_id.if_not_nothing <|
+        secret_access_key.if_not_nothing <|
+            AWS_Credential.Key access_key_id secret_access_key
