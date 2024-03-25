@@ -139,6 +139,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 id: createdProject.projectId,
                 projectState: object.merge(projectState, {
                   type: backendModule.ProjectState.placeholder,
+                  ...(backend.type === backendModule.BackendType.remote
+                    ? {}
+                    : { path: createdProject.state.path }),
                 }),
               })
             )
@@ -149,10 +152,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               runInBackground: false,
             })
           } catch (error) {
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
+            dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
             toastAndLog('createProjectError', error)
           }
         }
