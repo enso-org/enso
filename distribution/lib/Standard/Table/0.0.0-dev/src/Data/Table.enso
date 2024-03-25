@@ -1814,7 +1814,8 @@ type Table
         Array_Proxy.new self.java_table.getColumns.length i->
             self.java_table.getColumns.at i . getName
 
-    ## Returns a vector of rows contained in this table.
+    ## ICON select_row
+       Returns a vector of rows contained in this table.
 
        In the database backend, it first materializes the table to in-memory.
 
