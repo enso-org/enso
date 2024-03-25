@@ -2,6 +2,7 @@ package org.enso.table.operations;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,7 @@ import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.index.MultiValueIndex;
@@ -21,7 +23,7 @@ import org.enso.table.util.ConstantList;
 
 public class AddRunning {
 
-  public static Storage<?> create_grouped_running(
+  public static Storage<Double> create_grouped_running(
       Column sourceColumn, Column[] groupingColumns, ProblemAggregator problemAggregator) {
     if (groupingColumns.length == 0) {
       throw new IllegalArgumentException("At least one grouping column is required.");
@@ -36,19 +38,21 @@ public class AddRunning {
     List<TextFoldingStrategy> textFoldingStrategy =
         ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, groupingStorages.length);
     Map<UnorderedMultiValueKey, RunningIterator> groups = new HashMap<>();
-    Storage<?> sourceStorage = sourceColumn.getStorage();
+    DoubleStorage sourceStorage = sourceColumn.getStorage();
     for (int i = 0; i < n; i++) {
       UnorderedMultiValueKey key =
           new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
       key.checkAndReportFloatingEquality(
           groupingProblemAggregator, columnIx -> groupingColumns[columnIx].getName());
       RunningIterator it = groups.computeIfAbsent(key, k -> new RunningIterator());
-      numbers[i] = it.next(sourceStorage.getItemBoxed(i));
+      numbers[i] = Double.doubleToRawLongBits(it.next(sourceStorage.getItem(i)));
     }
-    return new LongStorage(numbers, IntegerType.INT_64);
+    BitSet isNothing = new BitSet(n);
+    isNothing.set(0, n);
+    return new DoubleStorage(numbers, n, isNothing);
   }
 
-  public static Storage<?> create_ordered_running(
+  public static Storage<Double> create_ordered_running(
       Column sourceColumn, Column[] orderingColumns, int[] directions) {
     if (orderingColumns.length == 0) {
       throw new IllegalArgumentException("At least one ordering column is required.");
@@ -71,15 +75,17 @@ public class AddRunning {
     keys.sort(null);
 
     RunningIterator it = new RunningIterator();
-    Storage<?> sourceStorage = sourceColumn.getStorage();
+    DoubleStorage sourceStorage = sourceColumn.getStorage();
     for (var key : keys) {
       var i = key.getRowIndex();
-      numbers[i] = it.next(sourceStorage.getItemBoxed(i));
+      numbers[i] = Double.doubleToRawLongBits(it.next(sourceStorage.getItem(i)));
     }
-    return new LongStorage(numbers, IntegerType.INT_64);
+    BitSet isNothing = new BitSet(n);
+    isNothing.set(0, n);
+    return new DoubleStorage(numbers, n, isNothing);
   }
 
-  public static Storage<?> create_grouped_ordered_running(
+  public static Storage<Double> create_grouped_ordered_running(
       Column sourceColumn,
       Column[] orderingColumns,
       int[] directions,
@@ -110,14 +116,15 @@ public class AddRunning {
                   .toList());
       orderingKeys.sort(null);
       RunningIterator it = new RunningIterator();
-      Storage<?> sourceStorage = sourceColumn.getStorage();
+      DoubleStorage sourceStorage = sourceColumn.getStorage();
       for (OrderedMultiValueKey key : orderingKeys) {
         var i = key.getRowIndex();
-        numbers[i] = it.next(sourceStorage.getItemBoxed(i));
+        numbers[i] = Double.doubleToRawLongBits(it.next(sourceStorage.getItem(i)));
       }
     }
-
-    return new LongStorage(numbers, IntegerType.INT_64);
+    BitSet isNothing = new BitSet(n);
+    isNothing.set(0, n);
+    return new DoubleStorage(numbers, n, isNothing);
   }
 
   /**
@@ -125,35 +132,18 @@ public class AddRunning {
    * java.lang.ArithmeticException} if the next number overflows.
    */
   private static class RunningIterator {
-    private Object current;
+    private double current;
+    private boolean isFirst = true;
 
     RunningIterator() {
     }
 
-    Object next(Object value) {
-      if (current == null) {
+    double next(double value) {
+      if (isFirst) {
+        isFirst = false;
         current = value;
       } else {
-        Long lCurrent = NumericConverter.tryConvertingToLong(current);
-        Long lValue = NumericConverter.tryConvertingToLong(value);
-        if (lCurrent != null && lValue != null) {
-          try {
-            current = Math.addExact(lCurrent, lValue);
-          } catch (ArithmeticException exception) {
-            innerAggregator.reportOverflow(IntegerType.INT_64, "Sum");
-            return null;
-          }
-        } else {
-          Double dCurrent = NumericConverter.tryConvertingToDouble(current);
-          Double dValue = NumericConverter.tryConvertingToDouble(value);
-          if (dCurrent != null && dValue != null) {
-            current = dCurrent + dValue;
-          } else {
-            innerAggregator.reportColumnAggregatedProblem(
-                new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
-            return null;
-          }
-        }
+        current = Math.addExact(current, value);
       }
       return current;
     }
