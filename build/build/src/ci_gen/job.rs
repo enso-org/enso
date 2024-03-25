@@ -9,8 +9,10 @@ use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
 use crate::engine::env;
 
-use crate::env::ENSO_AG_GRID_LICENSE_KEY;
+use crate::ci_gen::variables::ENSO_AG_GRID_LICENSE_KEY;
+use crate::ci_gen::variables::ENSO_MAPBOX_API_TOKEN;
 use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
+use crate::ide::web::env::VITE_ENSO_MAPBOX_API_TOKEN;
 use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
@@ -146,7 +148,10 @@ pub fn expose_cloud_vars(step: Step) -> Step {
 
 /// Expose variables for the GUI build.
 pub fn expose_gui_vars(step: Step) -> Step {
-    let step = step.with_secret_exposed_as(ENSO_AG_GRID_LICENSE_KEY, VITE_ENSO_AG_GRID_LICENSE_KEY);
+    let step = step
+        .with_variable_exposed_as(ENSO_AG_GRID_LICENSE_KEY, VITE_ENSO_AG_GRID_LICENSE_KEY)
+        .with_variable_exposed_as(ENSO_MAPBOX_API_TOKEN, VITE_ENSO_MAPBOX_API_TOKEN);
+
     // GUI includes the cloud-delivered dashboard.
     expose_cloud_vars(step)
 }
