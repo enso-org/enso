@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
-import * as DataLinkValidator from '#/data/DataLinkValidator'
+import * as dataLinkValidator from '#/data/dataLinkValidator'
 
 import type * as jsonSchemaInput from '#/components/JSONSchemaInput'
 import JSONSchemaInput from '#/components/JSONSchemaInput'
@@ -22,7 +22,7 @@ const DEFS: Record<string, object> = SCHEMA.$defs
 /** Get a known schema using a path.
  * @throws {Error} when there is no schema present at the given path. */
 function getValidator(path: string) {
-  return error.assert<(value: unknown) => boolean>(() => DataLinkValidator.AJV.getSchema(path))
+  return error.assert<(value: unknown) => boolean>(() => dataLinkValidator.AJV.getSchema(path))
 }
 
 // =====================
