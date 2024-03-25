@@ -406,6 +406,7 @@
   "uploadToCloudShortcut": "Upload To Cloud",
   "renameShortcut": "Rename",
   "editShortcut": "Edit",
+  "editDescriptionShortcut": "Edit Description",
   "snapshotShortcut": "Snapshot",
   "deleteShortcut": "Delete",
   "undeleteShortcut": "Restore From Trash",
