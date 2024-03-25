@@ -86,7 +86,7 @@ add_specs suite_builder =
             http = HTTP.new (version = version_setting)
             http.version.should_equal version_setting
 
-    url_get = base_url_with_slash + "get"
+    url_get = if base_url_with_slash.is_nothing.not then base_url_with_slash + "get"
     suite_builder.group "fetch" pending=pending_has_url group_builder->
         url_head = base_url_with_slash + "head"
         url_options = base_url_with_slash + "options"
