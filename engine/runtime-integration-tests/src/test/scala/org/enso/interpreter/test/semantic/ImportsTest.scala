@@ -213,7 +213,8 @@ class ImportsTest extends PackageTest {
     val res = evalTestProject(
       "Test_Fully_Qualified_Name_2"
     )
-    res shouldBe true
+    res.isBoolean shouldBe true
+    res.asBoolean() shouldBe true
   }
 
   "Deeply nested modules" should "infer correct synthetic modules" in {
