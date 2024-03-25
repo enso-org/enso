@@ -10,6 +10,7 @@ import * as appUtils from '#/appUtils'
 import * as navigateHooks from '#/hooks/navigateHooks'
 
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as chat from '#/layouts/Chat'
 
@@ -23,6 +24,7 @@ export interface ChatPlaceholderProps {
 /** A placeholder component replacing `Chat` when a user is not logged in. */
 export default function ChatPlaceholder(props: ChatPlaceholderProps) {
   const { isOpen, doClose } = props
+  const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
   const navigate = navigateHooks.useNavigate()
 
@@ -44,10 +46,8 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
         </div>
         <div className="grid grow place-items-center">
           <div className="flex flex-col gap-status-page text-center text-base">
-            <div>
-              Login or register to access live chat
-              <br />
-              with our support team.
+            <div className="px-missing-functionality-text-x">
+              {getText('placeholderChatPrompt')}
             </div>
             <button
               className="button self-center bg-help text-white"
@@ -55,7 +55,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
                 navigate(appUtils.LOGIN_PATH)
               }}
             >
-              Login
+              {getText('login')}
             </button>
             <button
               className="button self-center bg-help text-white"
@@ -63,7 +63,7 @@ export default function ChatPlaceholder(props: ChatPlaceholderProps) {
                 navigate(appUtils.REGISTRATION_PATH)
               }}
             >
-              Register
+              {getText('register')}
             </button>
           </div>
         </div>

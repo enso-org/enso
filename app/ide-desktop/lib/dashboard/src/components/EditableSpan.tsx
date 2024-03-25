@@ -7,6 +7,7 @@ import TickIcon from 'enso-assets/tick.svg'
 import * as eventCalback from '#/hooks/eventCallbackHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -35,6 +36,7 @@ export interface EditableSpanProps {
 export default function EditableSpan(props: EditableSpanProps) {
   const { 'data-testid': dataTestId, className, editable = false, children } = props
   const { checkSubmittable, onSubmit, onCancel, inputPattern, inputTitle } = props
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [isSubmittable, setIsSubmittable] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -118,7 +120,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             type="submit"
             className="mx-tick-cross-button my-auto flex rounded-full transition-colors hover:bg-hover-bg"
           >
-            <SvgMask src={TickIcon} alt="Confirm Edit" className="size-icon" />
+            <SvgMask src={TickIcon} alt={getText('confirmEdit')} className="size-icon" />
           </button>
         )}
         <button
@@ -135,7 +137,7 @@ export default function EditableSpan(props: EditableSpanProps) {
             })
           }}
         >
-          <SvgMask src={CrossIcon} alt="Cancel Edit" className="size-icon" />
+          <SvgMask src={CrossIcon} alt={getText('cancelEdit')} className="size-icon" />
         </button>
       </form>
     )

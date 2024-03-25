@@ -219,8 +219,15 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `while (true)` instead of `for (;;)`',
     },
     {
-        selector: 'CallExpression[callee.name=toastAndLog][arguments.0.value=/\\.$/]',
-        message: '`toastAndLog` already includes a trailing `.`',
+        selector: `:matches(\
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title|actionButtonLabel|actionText|aria-label)$/][value.raw=/^'|^"|^\`/], \
+            JSXText[value=/\\S/], \
+            JSXAttribute[name.name=/^(?:alt|error|label|placeholder|text|title|actionButtonLabel|actionText|aria-label)$/] ConditionalExpression:matches(\
+                [consequent.raw=/^'|^"|^\`/], \
+                [alternate.raw=/^'|^"|^\`/]\
+            )\
+        )`,
+        message: 'Use a `getText()` from `useText` instead of a literal string',
     },
 ]
 

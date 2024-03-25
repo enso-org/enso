@@ -12,6 +12,7 @@ import * as refreshHooks from '#/hooks/refreshHooks'
 
 import * as inputBindingsManager from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
@@ -29,6 +30,7 @@ import * as object from '#/utilities/object'
 export default function KeyboardShortcutsSettingsTab() {
   const inputBindings = inputBindingsManager.useInputBindings()
   const { setModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const [refresh, doRefresh] = refreshHooks.useRefresh()
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const bodyRef = React.useRef<HTMLTableSectionElement>(null)
@@ -68,7 +70,7 @@ export default function KeyboardShortcutsSettingsTab() {
 
   return (
     <div className="flex w-full flex-1 flex-col gap-settings-section-header">
-      <h3 className="settings-subheading">Keyboard shortcuts</h3>
+      <h3 className="settings-subheading">{getText('keyboardShortcuts')}</h3>
       <div className="flex gap-drive-bar">
         <button
           className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
@@ -76,8 +78,8 @@ export default function KeyboardShortcutsSettingsTab() {
             event.stopPropagation()
             setModal(
               <ConfirmDeleteModal
-                actionText="reset all keyboard shortcuts"
-                actionButtonLabel="Reset All"
+                actionText={getText('resetAllKeyboardShortcuts')}
+                actionButtonLabel={getText('resetAll')}
                 doDelete={() => {
                   for (const k in inputBindings.metadata) {
                     // eslint-disable-next-line no-restricted-syntax
@@ -89,7 +91,7 @@ export default function KeyboardShortcutsSettingsTab() {
             )
           }}
         >
-          <span className="text whitespace-nowrap font-semibold">Reset All</span>
+          <span className="text whitespace-nowrap font-semibold">{getText('resetAll')}</span>
         </button>
       </div>
       {/* There is a horizontal scrollbar for some reason without `px-px`. */}
@@ -101,9 +103,9 @@ export default function KeyboardShortcutsSettingsTab() {
               <th className="pr-keyboard-shortcuts-icon-column-r min-w-keyboard-shortcuts-icon-column pl-cell-x">
                 {/* Icon */}
               </th>
-              <th className="min-w-keyboard-shortcuts-name-column px-cell-x">Name</th>
-              <th className="px-cell-x">Shortcuts</th>
-              <th className="w-full px-cell-x">Description</th>
+              <th className="min-w-keyboard-shortcuts-name-column px-cell-x">{getText('name')}</th>
+              <th className="px-cell-x">{getText('shortcuts')}</th>
+              <th className="w-full px-cell-x">{getText('description')}</th>
             </tr>
           </thead>
           <tbody ref={bodyRef}>

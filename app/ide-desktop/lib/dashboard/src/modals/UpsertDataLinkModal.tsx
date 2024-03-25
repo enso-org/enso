@@ -4,6 +4,7 @@ import * as React from 'react'
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import DataLinkInput from '#/components/dashboard/DataLinkInput'
 import Modal from '#/components/Modal'
@@ -32,6 +33,7 @@ export interface UpsertDataLinkModalProps {
 export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
   const { doCreate } = props
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const [name, setName] = React.useState('')
   const [value, setValue] = React.useState<NonNullable<unknown> | null>(INITIAL_DATA_LINK_VALUE)
   const isValueSubmittable = React.useMemo(() => validateDataLink.validateDataLink(value), [value])
@@ -55,12 +57,12 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
           doCreate(name, value)
         }}
       >
-        <h1 className="relative text-sm font-semibold">Create Data Link</h1>
-        <div className="relative flex items-center" title="Must not be blank.">
-          <div className="text w-modal-label">Name</div>
+        <h1 className="relative text-sm font-semibold">{getText('createDataLink')}</h1>
+        <div className="relative flex items-center" title={getText('mustNotBeBlank')}>
+          <div className="text w-modal-label">{getText('name')}</div>
           <input
             autoFocus
-            placeholder="Enter the name of the Data Link"
+            placeholder={getText('dataLinkNamePlaceholder')}
             className={`text grow rounded-full border bg-transparent px-input-x ${
               name !== '' ? 'border-primary/10' : 'border-red-700/60'
             }`}
@@ -79,10 +81,10 @@ export default function UpsertDataLinkModal(props: UpsertDataLinkModalProps) {
             disabled={!isSubmittable}
             className="button bg-invite text-white enabled:active"
           >
-            Create
+            {getText('create')}
           </button>
           <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>

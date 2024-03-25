@@ -10,6 +10,7 @@ import TrashIcon from 'enso-assets/trash.svg'
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import DateInput from '#/components/DateInput'
 import Dropdown from '#/components/Dropdown'
@@ -55,6 +56,7 @@ const EVENT_TYPE_NAME: Record<backendModule.EventType, string> = {
 /** Settings tab for viewing and editing organization members. */
 export default function ActivityLogSettingsTab() {
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const [startDate, setStartDate] = React.useState<Date | null>(null)
   const [endDate, setEndDate] = React.useState<Date | null>(null)
   const [types, setTypes] = React.useState<readonly backendModule.EventType[]>([])
@@ -117,18 +119,18 @@ export default function ActivityLogSettingsTab() {
   return (
     <div className="flex flex-col gap-settings-subsection">
       <div className="flex flex-col gap-settings-section-header">
-        <h3 className="settings-subheading">Activity Log</h3>
+        <h3 className="settings-subheading">{getText('activityLog')}</h3>
         <div className="flex gap-activity-log-filters">
           <div className="flex items-center gap-activity-log-filter">
-            Start Date
+            {getText('startDate')}
             <DateInput date={startDate} onInput={setStartDate} />
           </div>
           <div className="flex items-center gap-activity-log-filter">
-            End Date
+            {getText('endDate')}
             <DateInput date={endDate} onInput={setEndDate} />
           </div>
           <div className="flex items-center gap-activity-log-filter">
-            Types
+            {getText('types')}
             <Dropdown
               multiple
               items={backendModule.EVENT_TYPES}
@@ -147,7 +149,7 @@ export default function ActivityLogSettingsTab() {
             />
           </div>
           <div className="flex items-center gap-activity-log-filter">
-            Users
+            {getText('users')}
             <Dropdown
               multiple
               items={allEmails}
@@ -174,10 +176,10 @@ export default function ActivityLogSettingsTab() {
                 <button
                   title={
                     sortInfo?.field !== ActivityLogSortableColumn.type
-                      ? 'Sort by name'
+                      ? getText('sortByName')
                       : isDescending
-                        ? 'Stop sorting by name'
-                        : 'Sort by name descending'
+                        ? getText('stopSortingByName')
+                        : getText('sortByNameDescending')
                   }
                   className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
                   onClick={event => {
@@ -196,19 +198,23 @@ export default function ActivityLogSettingsTab() {
                     }
                   }}
                 >
-                  <span className="text-header">Type</span>
+                  <span className="text-header">{getText('type')}</span>
                   <img
                     alt={
                       sortInfo?.field === ActivityLogSortableColumn.type && isDescending
-                        ? 'Sort Descending'
-                        : 'Sort Ascending'
+                        ? getText('sortDescending')
+                        : getText('sortAscending')
                     }
                     src={SortAscendingIcon}
                     className={`transition-all duration-arrow ${
                       sortInfo?.field === ActivityLogSortableColumn.type
                         ? 'selectable active'
                         : 'transparent group-hover:selectable'
-                    } ${isDescending ? 'rotate-180' : ''}`}
+                    } ${
+                      sortInfo?.field === ActivityLogSortableColumn.type && isDescending
+                        ? 'rotate-180'
+                        : ''
+                    }`}
                   />
                 </button>
               </th>
@@ -216,10 +222,10 @@ export default function ActivityLogSettingsTab() {
                 <button
                   title={
                     sortInfo?.field !== ActivityLogSortableColumn.email
-                      ? 'Sort by email'
+                      ? getText('sortByEmail')
                       : isDescending
-                        ? 'Stop sorting by email'
-                        : 'Sort by email descending'
+                        ? getText('stopSortingByEmail')
+                        : getText('sortByEmailDescending')
                   }
                   className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
                   onClick={event => {
@@ -238,19 +244,23 @@ export default function ActivityLogSettingsTab() {
                     }
                   }}
                 >
-                  <span className="text-header">Email</span>
+                  <span className="text-header">{getText('email')}</span>
                   <img
                     alt={
                       sortInfo?.field === ActivityLogSortableColumn.email && isDescending
-                        ? 'Sort Descending'
-                        : 'Sort Ascending'
+                        ? getText('sortDescending')
+                        : getText('sortAscending')
                     }
                     src={SortAscendingIcon}
                     className={`transition-all duration-arrow ${
                       sortInfo?.field === ActivityLogSortableColumn.email
                         ? 'selectable active'
                         : 'transparent group-hover:selectable'
-                    } ${isDescending ? 'rotate-180' : ''}`}
+                    } ${
+                      sortInfo?.field === ActivityLogSortableColumn.email && isDescending
+                        ? 'rotate-180'
+                        : ''
+                    }`}
                   />
                 </button>
               </th>
@@ -258,10 +268,10 @@ export default function ActivityLogSettingsTab() {
                 <button
                   title={
                     sortInfo?.field !== ActivityLogSortableColumn.timestamp
-                      ? 'Sort by timestamp'
+                      ? getText('sortByTimestamp')
                       : isDescending
-                        ? 'Stop sorting by timestamp'
-                        : 'Sort by timestamp descending'
+                        ? getText('stopSortingByTimestamp')
+                        : getText('sortByTimestampDescending')
                   }
                   className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
                   onClick={event => {
@@ -280,19 +290,23 @@ export default function ActivityLogSettingsTab() {
                     }
                   }}
                 >
-                  <span className="text-header">Timestamp</span>
+                  <span className="text-header">{getText('timestamp')}</span>
                   <img
                     alt={
                       sortInfo?.field === ActivityLogSortableColumn.timestamp && isDescending
-                        ? 'Sort Descending'
-                        : 'Sort Ascending'
+                        ? getText('sortDescending')
+                        : getText('sortAscending')
                     }
                     src={SortAscendingIcon}
                     className={`transition-all duration-arrow ${
                       sortInfo?.field === ActivityLogSortableColumn.timestamp
                         ? 'selectable active'
                         : 'transparent group-hover:selectable'
-                    } ${isDescending ? 'rotate-180' : ''}`}
+                    } ${
+                      sortInfo?.field === ActivityLogSortableColumn.timestamp && isDescending
+                        ? 'rotate-180'
+                        : ''
+                    }`}
                   />
                 </button>
               </th>

@@ -3,14 +3,59 @@ import * as React from 'react'
 
 import BlankIcon from 'enso-assets/blank.svg'
 
+import type * as text from '#/text'
+
 import type * as inputBindings from '#/configurations/inputBindings'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import SvgMask from '#/components/SvgMask'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+
+// =================
+// === Constants ===
+// =================
+
+const ACTION_TO_TEXT_ID: Readonly<Record<inputBindings.DashboardBindingKey, text.TextId>> = {
+  settings: 'settingsShortcut',
+  open: 'openShortcut',
+  run: 'runShortcut',
+  close: 'closeShortcut',
+  uploadToCloud: 'uploadToCloudShortcut',
+  rename: 'renameShortcut',
+  edit: 'editShortcut',
+  snapshot: 'snapshotShortcut',
+  delete: 'deleteShortcut',
+  undelete: 'undeleteShortcut',
+  share: 'shareShortcut',
+  label: 'labelShortcut',
+  duplicate: 'duplicateShortcut',
+  copy: 'copyShortcut',
+  cut: 'cutShortcut',
+  paste: 'pasteShortcut',
+  download: 'downloadShortcut',
+  uploadFiles: 'uploadFilesShortcut',
+  uploadProjects: 'uploadProjectsShortcut',
+  newProject: 'newProjectShortcut',
+  newFolder: 'newFolderShortcut',
+  newDataLink: 'newDataLinkShortcut',
+  newSecret: 'newSecretShortcut',
+  closeModal: 'closeModalShortcut',
+  cancelEditName: 'cancelEditNameShortcut',
+  signIn: 'signInShortcut',
+  signOut: 'signOutShortcut',
+  downloadApp: 'downloadAppShortcut',
+  cancelCut: 'cancelCutShortcut',
+  editName: 'editNameShortcut',
+  selectAdditional: 'selectAdditionalShortcut',
+  selectRange: 'selectRangeShortcut',
+  selectAdditionalRange: 'selectAdditionalRangeShortcut',
+  goBack: 'goBackShortcut',
+  goForward: 'goForwardShortcut',
+} satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 // =================
 // === MenuEntry ===
@@ -40,6 +85,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     isContextMenuEntry = false,
   } = props
   const { doAction } = props
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const info = inputBindings.metadata[action]
   React.useEffect(() => {
@@ -69,7 +115,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     >
       <div className="flex items-center gap-menu-entry whitespace-nowrap">
         <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
-        {label ?? info.name}
+        {label ?? getText(ACTION_TO_TEXT_ID[action])}
       </div>
       <KeyboardShortcut action={action} />
     </button>

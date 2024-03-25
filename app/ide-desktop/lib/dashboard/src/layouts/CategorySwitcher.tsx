@@ -5,7 +5,10 @@ import Home2Icon from 'enso-assets/home2.svg'
 import RecentIcon from 'enso-assets/recent.svg'
 import Trash2Icon from 'enso-assets/trash2.svg'
 
+import type * as text from '#/text'
+
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -28,6 +31,12 @@ const CATEGORY_ICONS: Readonly<Record<Category, string>> = {
   [Category.trash]: Trash2Icon,
 }
 
+const CATEGORY_TO_TEXT_ID: Readonly<Record<Category, text.TextId>> = {
+  [Category.recent]: 'recentCategory',
+  [Category.home]: 'homeCategory',
+  [Category.trash]: 'trashCategory',
+} satisfies { [C in Category]: `${C}Category` }
+
 // ============================
 // === CategorySwitcherItem ===
 // ============================
@@ -45,6 +54,7 @@ interface InternalCategorySwitcherItemProps {
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { category, isCurrent, onClick } = props
   const { onDragOver, onDrop } = props
+  const { getText } = textProvider.useText()
 
   return (
     <button
@@ -69,7 +79,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
           category === Category.recent ? '-ml-0.5' : ''
         }`}
       />
-      <span>{category}</span>
+      <span>{getText(CATEGORY_TO_TEXT_ID[category])}</span>
     </button>
   )
 }
@@ -89,10 +99,13 @@ export interface CategorySwitcherProps {
 export default function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategory, dispatchAssetEvent } = props
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
 
   return (
     <div className="flex w-full flex-col gap-sidebar-section-heading">
-      <div className="text-header px-sidebar-section-heading-x text-sm font-bold">Category</div>
+      <div className="text-header px-sidebar-section-heading-x text-sm font-bold">
+        {getText('category')}
+      </div>
       <div className="flex flex-col items-start">
         {CATEGORIES.map(currentCategory => (
           <CategorySwitcherItem
