@@ -8,17 +8,17 @@ import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
-const dynamicConfig = computed(() =>
+const itemConfig = computed(() =>
   props.input.dynamicConfig?.kind === 'Vector_Editor' ?
-    {
-      item: props.input.dynamicConfig.item_editor,
-      default: Ast.parse(props.input.dynamicConfig.item_default),
-    }
+    props.input.dynamicConfig.item_editor
   : undefined,
 )
 
-const itemConfig = computed(() => dynamicConfig.value?.item)
-const defaultItem = computed(() => dynamicConfig.value?.default ?? DEFAULT_ITEM.value)
+const defaultItem = computed(() =>
+  props.input.dynamicConfig?.kind === 'Vector_Editor' ?
+    Ast.parse(props.input.dynamicConfig.item_default)
+  : DEFAULT_ITEM.value,
+)
 
 function newItem() {
   if (props.input.editHandler?.addItem()) return
