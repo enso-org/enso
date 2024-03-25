@@ -514,8 +514,8 @@ case object FullyQualifiedNames extends IRPass {
     pkgRepoOpt.flatMap { pkgRepo =>
       val moduleMap = pkgRepo.getModuleMap
       moduleRef.toConcrete(moduleMap) match {
-        case Some(module) =>
-          Some(module.module.getBindingsMap)
+        case Some(concreteModule) =>
+          Option(concreteModule.module.getBindingsMap)
         case None => None
       }
     }
