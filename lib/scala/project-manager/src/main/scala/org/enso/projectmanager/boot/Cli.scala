@@ -22,6 +22,7 @@ object Cli {
   val FILESYSTEM_DELETE           = "filesystem-delete"
   val FILESYSTEM_MOVE_FROM        = "filesystem-move-from"
   val FILESYSTEM_MOVE_TO          = "filesystem-move-to"
+  val FILESYSTEM_WRITE_PATH       = "filesystem-write-path"
 
   object option {
 
@@ -128,6 +129,14 @@ object Cli {
       .longOpt(FILESYSTEM_MOVE_TO)
       .desc("Move directory. Destination.")
       .build()
+
+    val filesystemWritePath: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(FILESYSTEM_WRITE_PATH)
+      .desc("Write data from stdin to the provided file")
+      .build()
   }
 
   val options: cli.Options =
@@ -146,6 +155,7 @@ object Cli {
       .addOption(option.filesystemDelete)
       .addOption(option.filesystemMoveFrom)
       .addOption(option.filesystemMoveTo)
+      .addOption(option.filesystemWritePath)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {

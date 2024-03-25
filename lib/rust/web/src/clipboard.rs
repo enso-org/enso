@@ -21,6 +21,7 @@ use crate::prelude::*;
 
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::wasm_bindgen;
+#[cfg(not(target_arch = "wasm32"))]
 use wasm_bindgen::prelude::Closure;
 
 
@@ -132,7 +133,7 @@ pub fn read_text(callback: impl Fn(String) + 'static) {
 fn create_handler_string(
     callback: impl Fn(String) + 'static,
 ) -> Rc<RefCell<Option<Closure<dyn Fn(String)>>>> {
-    let handler: Rc<RefCell<Option<ReadTextClosure>>> = default();
+    let handler: Rc<RefCell<Option<ReadTextClosure>>> = Default::default();
     let handler_clone = handler.clone_ref();
     let closure: ReadTextClosure = Closure::new(move |result| {
         *handler_clone.borrow_mut() = None;
@@ -145,7 +146,7 @@ fn create_handler_string(
 fn create_handler_binary(
     callback: impl Fn(Vec<u8>) + 'static,
 ) -> Rc<RefCell<Option<Closure<dyn Fn(Vec<u8>)>>>> {
-    let handler: Rc<RefCell<Option<ReadClosure>>> = default();
+    let handler: Rc<RefCell<Option<ReadClosure>>> = Default::default();
     let handler_clone = handler.clone_ref();
     let closure: ReadClosure = Closure::new(move |result| {
         *handler_clone.borrow_mut() = None;

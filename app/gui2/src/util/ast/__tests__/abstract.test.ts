@@ -900,9 +900,23 @@ test.prop({
   literal.setBoundaries(boundary)
   literal.setRawTextContent(rawText)
   expect(literal.rawTextContent).toBe(rawText)
-  const expectInterpolated = rawText.includes('"') || boundary === "'"
-  const expectedCode = expectInterpolated ? `'${escapeTextLiteral(rawText)}'` : `"${rawText}"`
-  expect(literal.code()).toBe(expectedCode)
+  const codeAsInterpolated = `'${escapeTextLiteral(rawText)}'`
+  if (boundary === "'") {
+    expect(literal.code()).toBe(codeAsInterpolated)
+  } else {
+    const codeAsRaw = `"${rawText}"`
+    // Uninterpolated text will be promoted to interpolated if necessary to escape a special character.
+    expect([codeAsInterpolated, codeAsRaw]).toContainEqual(literal.code())
+  }
+})
+
+test('setRawTextContent promotes single-line uninterpolated text to interpolated if a newline is added', () => {
+  const literal = TextLiteral.new('')
+  literal.setBoundaries('"')
+  const rawText = '\n'
+  literal.setRawTextContent(rawText)
+  expect(literal.rawTextContent).toBe(rawText)
+  expect(literal.code()).toBe(`'${escapeTextLiteral(rawText)}'`)
 })
 
 const docEditCases = [

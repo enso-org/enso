@@ -1,7 +1,6 @@
 //! Implementation of [`wrap_async_fn`], a helper for macros that operate on async functions.
 
 use quote::ToTokens;
-use syn::visit_mut;
 use syn::visit_mut::VisitMut;
 
 
@@ -144,7 +143,7 @@ impl ExplicitizeInputLifetimes {
     }
 }
 
-impl visit_mut::VisitMut for ExplicitizeInputLifetimes {
+impl VisitMut for ExplicitizeInputLifetimes {
     ignore_inner_fn_items!();
 
     // Handles 'x in generic parameters in types of non-self arguments.
@@ -174,7 +173,7 @@ struct ExplicitizeOutputLifetimes {
     lifetime: syn::Lifetime,
 }
 
-impl visit_mut::VisitMut for ExplicitizeOutputLifetimes {
+impl VisitMut for ExplicitizeOutputLifetimes {
     ignore_inner_fn_items!();
 
     // Handles 'x in generic parameters in types.

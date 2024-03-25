@@ -1,19 +1,8 @@
 //! The crate provides an executable for collecting the performance statistics by analyzing the
 //! log files.
 
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
+#![allow(unused_qualifications)] // https://github.com/enso-org/enso/issues/5168
 
 use enso_prelude::*;
 
@@ -21,7 +10,6 @@ use clap::Parser;
 use clap::ValueHint;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::fmt;
 use std::io::Result;
 use std::path::PathBuf;
 use std::process;
@@ -266,7 +254,7 @@ fn calculate_durations(iterations: &mut Vec<Iteration>) {
     for iteration in iterations {
         let mut timestamp = OffsetDateTime::UNIX_EPOCH;
 
-        for mut op in iteration.operations.iter_mut() {
+        for op in iteration.operations.iter_mut() {
             if timestamp == OffsetDateTime::UNIX_EPOCH {
                 timestamp = op.timestamp
             }

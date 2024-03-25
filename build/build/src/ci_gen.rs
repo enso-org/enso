@@ -582,18 +582,8 @@ pub fn typical_check_triggers() -> Event {
 
 pub fn gui() -> Result<Workflow> {
     let on = typical_check_triggers();
-    let mut workflow = Workflow { name: "GUI CI".into(), on, ..default() };
+    let mut workflow = Workflow { name: "GUI Packaging".into(), on, ..default() };
     workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
-    workflow.add(PRIMARY_TARGET, job::Lint);
-    workflow.add(PRIMARY_TARGET, job::WasmTest);
-    workflow.add(PRIMARY_TARGET, job::NativeTest);
-    workflow.add(PRIMARY_TARGET, job::GuiTest);
-
-    // FIXME: Integration tests are currently always failing.
-    //        The should be reinstated when fixed.
-    // workflow.add_customized::<job::IntegrationTest>(PRIMARY_OS, PRIMARY_ARCH,|job| {
-    //     job.needs.insert(job::BuildBackend::key(PRIMARY_OS));
-    // });
 
     for target in CHECKED_TARGETS {
         let project_manager_job = workflow.add(target, job::BuildBackend);
@@ -602,6 +592,17 @@ pub fn gui() -> Result<Workflow> {
         });
         workflow.add(target, job::NewGuiBuild);
     }
+    Ok(workflow)
+}
+
+pub fn gui_tests() -> Result<Workflow> {
+    let on = typical_check_triggers();
+    let mut workflow = Workflow { name: "GUI Tests".into(), on, ..default() };
+    workflow.add(PRIMARY_TARGET, job::CancelWorkflow);
+    workflow.add(PRIMARY_TARGET, job::Lint);
+    workflow.add(PRIMARY_TARGET, job::WasmTest);
+    workflow.add(PRIMARY_TARGET, job::NativeTest);
+    workflow.add(PRIMARY_TARGET, job::GuiTest);
     Ok(workflow)
 }
 
@@ -694,6 +695,7 @@ pub fn generate(
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.scala_new_yml.to_path_buf(), backend()?),
         (repo_root.gui_yml.to_path_buf(), gui()?),
+        (repo_root.gui_tests_yml.to_path_buf(), gui_tests()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
         (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
         (repo_root.release_yml.to_path_buf(), release()?),

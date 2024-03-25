@@ -2,7 +2,6 @@
 //!
 //! See: https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md#profiling-data
 
-use serde;
 use serde::Deserialize;
 use serde::Serialize;
 use std::borrow::Cow;

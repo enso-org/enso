@@ -4,19 +4,10 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(proc_macro_span)]
 #![feature(let_chains)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
 
 use inflector::Inflector;
 use quote::quote;
@@ -190,7 +181,7 @@ impl Api {
             quote! { pub use crate::internal::#name; }
         };
         let prelude: proc_macro2::TokenStream =
-            self.exports.iter().filter_map(|e| e.prelude.then(|| reexport(&e.ident))).collect();
+            self.exports.iter().filter(|&e| e.prelude).map(|e| reexport(&e.ident)).collect();
         let exports: proc_macro2::TokenStream =
             self.exports.iter().map(|e| reexport(&e.ident)).collect();
         let implementation = self.implementation;

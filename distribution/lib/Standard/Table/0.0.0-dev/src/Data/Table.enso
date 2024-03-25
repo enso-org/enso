@@ -1526,7 +1526,7 @@ type Table
         result = self.filter column Filter_Condition.Is_True
         Warning.attach (Deprecated.Warning "Standard.Table.Data.Table.Table" "filter_by_expression" "Deprecated: use `filter` with an `Expression` instead.") result
 
-    ## ALIAS first, last, sample, slice, top, head, tail, foot, limit
+    ## ALIAS first, last, sample, slice, top, head, tail, limit
        GROUP Standard.Base.Selections
        ICON select_row
        Creates a new Table with the specified range of rows from the input

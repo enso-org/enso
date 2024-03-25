@@ -21,6 +21,8 @@ const AUTHENTICATION_API_KEY = 'authenticationApi'
  * window. */
 const FILE_BROWSER_API_KEY = 'fileBrowserApi'
 
+const NAVIGATION_API_KEY = 'navigationApi'
+
 // =============================
 // === importProjectFromPath ===
 // =============================
@@ -36,6 +38,15 @@ const BACKEND_API = {
     },
 }
 electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, BACKEND_API)
+
+electron.contextBridge.exposeInMainWorld(NAVIGATION_API_KEY, {
+    goBack: () => {
+        electron.ipcRenderer.send(ipc.Channel.goBack)
+    },
+    goForward: () => {
+        electron.ipcRenderer.send(ipc.Channel.goForward)
+    },
+})
 
 electron.ipcRenderer.on(
     ipc.Channel.importProjectFromPath,
