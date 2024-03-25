@@ -19,6 +19,7 @@ import type * as backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
+import type * as color from '#/utilities/color'
 import * as drag from '#/utilities/drag'
 import * as string from '#/utilities/string'
 
@@ -31,7 +32,7 @@ export interface LabelsProps {
   readonly labels: backend.Label[]
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-  readonly doCreateLabel: (name: string, color: backend.LChColor) => void
+  readonly doCreateLabel: (name: string, color: color.LChColor) => void
   readonly doDeleteLabel: (id: backend.TagId, name: backend.LabelName) => void
   readonly newLabelNames: Set<backend.LabelName>
   readonly deletedLabelNames: Set<backend.LabelName>

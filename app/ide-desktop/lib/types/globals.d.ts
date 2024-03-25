@@ -108,6 +108,8 @@ declare global {
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly ENSO_BUILD_ICONS?: string
             // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+            readonly SUPPORTS_LOCAL_BACKEND?: string
+            // @ts-expect-error The index signature is intentional to disallow unknown env vars.
             readonly npm_package_name?: string
 
             // === Cloud environment variables ===

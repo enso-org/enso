@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
+import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -17,10 +17,14 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsTab() {
-  const { backend } = backendProvider.useBackend()
+  const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
+  const members = asyncEffectHooks.useAsyncEffect(
+    null,
+    async () => (await user?.listUsers()) ?? null,
+    [user]
+  )
   const { getText } = textProvider.useText()
-  const members = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [backend])
   const isLoading = members == null
 
   return (

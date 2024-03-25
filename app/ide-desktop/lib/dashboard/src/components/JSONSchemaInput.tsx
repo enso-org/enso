@@ -1,7 +1,7 @@
 /** @file A dynamic wizard for creating an arbitrary type of Data Link. */
 import * as React from 'react'
 
-import * as backendProvider from '#/providers/BackendProvider'
+import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Autocomplete from '#/components/Autocomplete'
@@ -32,7 +32,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { value: valueRaw, setValue: setValueRaw } = props
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
-  const { backend } = backendProvider.useBackend()
+  const { user } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const [value, setValue] = React.useState(valueRaw)
   const [autocompleteText, setAutocompleteText] = React.useState(() =>
@@ -66,11 +66,13 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
             const isValid = typeof value === 'string' && value !== ''
             if (autocompleteItems == null) {
               setAutocompleteItems([])
-              void (async () => {
-                const secrets = await backend.listSecrets()
-                // FIXME: Extract secret path instead of ID.
-                setAutocompleteItems(secrets.map(secret => secret.id))
-              })()
+              if (user != null) {
+                void (async () => {
+                  const secrets = await user.listSecrets()
+                  // FIXME: Extract secret path instead of ID.
+                  setAutocompleteItems(secrets.map(secret => secret.id))
+                })()
+              }
             }
             children.push(
               <div

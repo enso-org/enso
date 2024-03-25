@@ -15,7 +15,10 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
 }
 
 /** The data that can be stored in a {@link LocalStorage}.
- * Declaration merge into this interface to add a new key. */
+ * [Declaration merge] into this interface to add a new key.
+ *
+ * [Declaration merge]: https://www.typescriptlang.org/docs/handbook/declaration-merging.html#module-augmentation
+ */
 export interface LocalStorageData {}
 
 /** All possible keys of a {@link LocalStorage}. */

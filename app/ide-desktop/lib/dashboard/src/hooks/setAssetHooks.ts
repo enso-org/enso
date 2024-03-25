@@ -22,13 +22,15 @@ export function useSetAsset<T extends backend.AnyAsset>(
   return React.useCallback(
     (valueOrUpdater: React.SetStateAction<T>) => {
       setNode(oldNode => {
-        const item =
+        const value =
           typeof valueOrUpdater === 'function'
             ? // This is SAFE, because it is a mistake for an item to change type.
               // eslint-disable-next-line no-restricted-syntax
-              valueOrUpdater(oldNode.item as T)
+              valueOrUpdater(oldNode.item.value as T)
             : valueOrUpdater
-        return oldNode.with({ item })
+        // This is SAFE, because it is a mistake for an item to change type.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, no-restricted-syntax, @typescript-eslint/no-explicit-any
+        return oldNode.with({ item: oldNode.item.withValue(value as any) })
       })
     },
     [/* should never change */ setNode]

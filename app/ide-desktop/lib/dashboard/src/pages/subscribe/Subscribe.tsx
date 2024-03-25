@@ -12,12 +12,12 @@ import type * as text from '#/text'
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as load from '#/utilities/load'
 import * as string from '#/utilities/string'
@@ -40,6 +40,11 @@ const PLAN_TO_TEXT_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
 // === Subscribe ===
 // =================
 
+/** Types for a {@link Subscribe}. */
+export interface SubscribeProps {
+  readonly backend: Backend
+}
+
 /** A page in which the currently active payment plan can be changed.
  *
  * This page can be in one of several states:
@@ -52,7 +57,8 @@ const PLAN_TO_TEXT_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
  * 4. Session complete (e.g. `plan = 'solo', clientSecret = 'cs_foo',
  * sessionStatus.status = { status: 'complete',
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`). */
-export default function Subscribe() {
+export default function Subscribe(props: SubscribeProps) {
+  const { backend } = props
   const { getText } = textProvider.useText()
   const navigate = navigateHooks.useNavigate()
   // Plan that the user has currently selected, if any (e.g., 'solo', 'team', etc.).
@@ -73,7 +79,6 @@ export default function Subscribe() {
   // payment has been confirmed.
   const [sessionStatus, setSessionStatus] =
     React.useState<backendModule.CheckoutSessionStatus | null>(null)
-  const { backend } = backendProvider.useBackend()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   if (stripePromise == null && process.env.ENSO_CLOUD_STRIPE_KEY != null) {

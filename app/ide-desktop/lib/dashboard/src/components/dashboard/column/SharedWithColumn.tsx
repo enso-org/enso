@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import Plus2Icon from 'enso-assets/plus2.svg'
 
+import * as setAssetHooks from '#/hooks/setAssetHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
@@ -15,9 +17,6 @@ import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
-import type * as backendModule from '#/services/Backend'
-
-import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as uniqueString from '#/utilities/uniqueString'
 
@@ -38,25 +37,19 @@ interface SharedWithColumnPropsInternal extends Pick<column.AssetColumnProps, 'i
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, setItem, state } = props
   const { category, dispatchAssetEvent, setQuery } = state
-  const asset = item.item
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal } = modalProvider.useSetModal()
-  const self = asset.permissions?.find(permission => permission.user.user_email === user?.email)
+  const smartAsset = item.item
+  const asset = smartAsset.value
+  const self = asset.permissions?.find(
+    permission => permission.user.user_email === user?.value.email
+  )
   const managesThisAsset =
     category !== Category.trash &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
-  const setAsset = React.useCallback(
-    (valueOrUpdater: React.SetStateAction<backendModule.AnyAsset>) => {
-      setItem(oldItem =>
-        object.merge(oldItem, {
-          item:
-            typeof valueOrUpdater !== 'function' ? valueOrUpdater : valueOrUpdater(oldItem.item),
-        })
-      )
-    },
-    [/* should never change */ setItem]
-  )
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+
   return (
     <div className="group flex items-center gap-column-items">
       {(asset.permissions ?? []).map(otherUser => (
@@ -85,7 +78,7 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
             setModal(
               <ManagePermissionsModal
                 key={uniqueString.uniqueString()}
-                item={asset}
+                item={smartAsset}
                 setItem={setAsset}
                 self={self}
                 eventTarget={event.currentTarget}

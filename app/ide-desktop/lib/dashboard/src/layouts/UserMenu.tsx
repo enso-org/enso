@@ -68,11 +68,11 @@ export default function UserMenu(props: UserMenuProps) {
             >
               <div className="flex size-profile-picture shrink-0 items-center overflow-clip rounded-full">
                 <img
-                  src={user.profilePicture ?? DefaultUserIcon}
+                  src={user.value.profilePicture ?? DefaultUserIcon}
                   className="pointer-events-none size-profile-picture"
                 />
               </div>
-              <span className="text">{user.name}</span>
+              <span className="text">{user.value.name}</span>
             </div>
             <div
               className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}

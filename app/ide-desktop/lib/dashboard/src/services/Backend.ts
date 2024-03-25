@@ -2,6 +2,7 @@
 import type * as React from 'react'
 
 import * as array from '#/utilities/array'
+import type * as color from '#/utilities/color'
 import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as permissions from '#/utilities/permissions'
@@ -117,13 +118,6 @@ export interface User {
   readonly rootDirectoryId: DirectoryId
 }
 
-/** A `Directory` returned by `createDirectory`. */
-export interface CreatedDirectory {
-  readonly id: DirectoryId
-  readonly parentId: DirectoryId
-  readonly title: string
-}
-
 /** Possible states that a project can be in. */
 export enum ProjectState {
   created = 'Created',
@@ -181,47 +175,15 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.closing]: false,
 }
 
-/** Common `Project` fields returned by all `Project`-related endpoints. */
-export interface BaseProject {
+/** A user/organization's project containing and/or currently executing code. */
+export interface Project {
   readonly organizationId: string
   readonly projectId: ProjectId
   readonly name: string
-}
-
-/** A `Project` returned by `createProject`. */
-export interface CreatedProject extends BaseProject {
   readonly state: ProjectStateType
   readonly packageName: string
-}
-
-/** A `Project` returned by the `listProjects` endpoint. */
-export interface ListedProjectRaw extends CreatedProject {
-  readonly address?: Address
-}
-
-/** A `Project` returned by `listProjects`. */
-export interface ListedProject extends CreatedProject {
   readonly binaryAddress: Address | null
   readonly jsonAddress: Address | null
-}
-
-/** A `Project` returned by `updateProject`. */
-export interface UpdatedProject extends BaseProject {
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
-  readonly engineVersion: VersionNumber | null
-}
-
-/** A user/organization's project containing and/or currently executing code. */
-export interface ProjectRaw extends ListedProjectRaw {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  readonly ide_version: VersionNumber | null
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  readonly engine_version: VersionNumber | null
-}
-
-/** A user/organization's project containing and/or currently executing code. */
-export interface Project extends ListedProject {
   readonly ideVersion: VersionNumber | null
   readonly engineVersion: VersionNumber | null
   readonly openedBy?: EmailAddress
@@ -236,10 +198,21 @@ export interface BackendProject extends Project {
 }
 
 /** Information required to open a project. */
+export interface SavedProjectStartupInfo {
+  readonly backendType: BackendType
+  readonly parentId: DirectoryId
+  readonly id: ProjectId
+  readonly title: string
+  readonly accessToken: string | null
+}
+
+/** Information related to the currently open project. */
 export interface ProjectStartupInfo {
-  readonly project: Project
-  readonly projectAsset: ProjectAsset
-  // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`.
+  readonly details: Project
+  readonly projectAsset: SmartProject
+  // This MUST BE optional because it is lost when `JSON.stringify`ing to put in `localStorage`,
+  // and cannot be reconstructed. It is mainly used for updating the row when editing the asset
+  // using the "Share" button on the top right.
   readonly setProjectAsset?: React.Dispatch<React.SetStateAction<ProjectAsset>>
   readonly backendType: BackendType
   readonly accessToken: string | null
@@ -250,15 +223,6 @@ export interface FileLocator {
   readonly fileId: FileId
   readonly fileName: string | null
   readonly path: S3FilePath
-}
-
-/** Metadata uniquely identifying an uploaded file. */
-export interface FileInfo {
-  /* TODO: Should potentially be S3FilePath,
-   * but it's just string on the backend. */
-  readonly path: string
-  readonly id: FileId
-  readonly project: CreatedProject | null
 }
 
 /** Metadata for a file. */
@@ -305,7 +269,7 @@ export interface ConnectorInfo {
 export interface Label {
   readonly id: TagId
   readonly value: LabelName
-  readonly color: LChColor
+  readonly color: color.LChColor
 }
 
 /** Type of application that a {@link Version} applies to.
@@ -419,13 +383,6 @@ export interface UserPermission {
   readonly permission: permissions.PermissionAction
 }
 
-/** The type returned from the "update directory" endpoint. */
-export interface UpdatedDirectory {
-  readonly id: DirectoryId
-  readonly parentId: DirectoryId
-  readonly title: string
-}
-
 /** The type returned from the "create directory" endpoint. */
 export interface Directory extends DirectoryAsset {}
 
@@ -448,6 +405,10 @@ export enum FilterBy {
   recent = 'Recent',
   trashed = 'Trashed',
 }
+
+// =============
+// === Event ===
+// =============
 
 /** An event in an audit log. */
 export interface Event {
@@ -511,55 +472,17 @@ export interface LChColor {
   readonly alpha?: number
 }
 
-/** A pre-selected list of colors to be used in color pickers. */
-export const COLORS: readonly [LChColor, ...LChColor[]] = [
-  /* eslint-disable @typescript-eslint/no-magic-numbers */
-  // Red
-  { lightness: 50, chroma: 66, hue: 7 },
-  // Orange
-  { lightness: 50, chroma: 66, hue: 34 },
-  // Yellow
-  { lightness: 50, chroma: 66, hue: 80 },
-  // Turquoise
-  { lightness: 50, chroma: 66, hue: 139 },
-  // Teal
-  { lightness: 50, chroma: 66, hue: 172 },
-  // Blue
-  { lightness: 50, chroma: 66, hue: 271 },
-  // Lavender
-  { lightness: 50, chroma: 66, hue: 295 },
-  // Pink
-  { lightness: 50, chroma: 66, hue: 332 },
-  // Light blue
-  { lightness: 50, chroma: 22, hue: 252 },
-  // Dark blue
-  { lightness: 22, chroma: 13, hue: 252 },
-  /* eslint-enable @typescript-eslint/no-magic-numbers */
-]
+// ===================================
+// === serializeProjectStartupInfo ===
+// ===================================
 
-/** Converts a {@link LChColor} to a CSS color string. */
-export function lChColorToCssColor(color: LChColor): string {
-  return 'alpha' in color
-    ? `lcha(${color.lightness}% ${color.chroma} ${color.hue} / ${color.alpha})`
-    : `lch(${color.lightness}% ${color.chroma} ${color.hue})`
-}
-
-export const COLOR_STRING_TO_COLOR = new Map(
-  COLORS.map(color => [lChColorToCssColor(color), color])
-)
-
-export const INITIAL_COLOR_COUNTS = new Map(COLORS.map(color => [lChColorToCssColor(color), 0]))
-
-/** The color that is used for the least labels. Ties are broken by order. */
-export function leastUsedColor(labels: Iterable<Label>) {
-  const colorCounts = new Map(INITIAL_COLOR_COUNTS)
-  for (const label of labels) {
-    const colorString = lChColorToCssColor(label.color)
-    colorCounts.set(colorString, (colorCounts.get(colorString) ?? 0) + 1)
-  }
-  const min = Math.min(...colorCounts.values())
-  const [minColor] = [...colorCounts.entries()].find(kv => kv[1] === min) ?? []
-  return minColor == null ? COLORS[0] : COLOR_STRING_TO_COLOR.get(minColor) ?? COLORS[0]
+/** Convert a {@link ProjectStartupInfo} into a serializable form. */
+export function serializeProjectStartupInfo(
+  projectStartupInfo: ProjectStartupInfo
+): SavedProjectStartupInfo {
+  const { backendType, accessToken, projectAsset } = projectStartupInfo
+  const { id, parentId, title } = projectAsset.value
+  return { backendType, accessToken, id, parentId, title }
 }
 
 // =================
@@ -670,83 +593,6 @@ export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAss
   }
 }
 
-/** Creates a {@link FileAsset} using the given values. */
-export function createPlaceholderFileAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: UserPermission[]
-): FileAsset {
-  return {
-    type: AssetType.file,
-    id: FileId(uniqueString.uniqueString()),
-    title,
-    parentId,
-    permissions: assetPermissions,
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    labels: [],
-    description: null,
-  }
-}
-
-/** Creates a {@link ProjectAsset} using the given values. */
-export function createPlaceholderProjectAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: UserPermission[],
-  organization: User | null
-): ProjectAsset {
-  return {
-    type: AssetType.project,
-    id: ProjectId(uniqueString.uniqueString()),
-    title,
-    parentId,
-    permissions: assetPermissions,
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: {
-      type: ProjectState.new,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      volume_id: '',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      ...(organization != null ? { opened_by: organization.email } : {}),
-    },
-    labels: [],
-    description: null,
-  }
-}
-
-/** Creates a {@link SpecialLoadingAsset}, with all irrelevant fields initialized to default
- * values. */
-export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoadingAsset {
-  return {
-    type: AssetType.specialLoading,
-    title: '',
-    id: LoadingAssetId(uniqueString.uniqueString()),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    labels: [],
-    description: null,
-  }
-}
-
-/** Creates a {@link SpecialEmptyAsset}, with all irrelevant fields initialized to default
- * values. */
-export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyAsset {
-  return {
-    type: AssetType.specialEmpty,
-    title: '',
-    id: EmptyAssetId(uniqueString.uniqueString()),
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: directoryId,
-    permissions: [],
-    projectState: null,
-    labels: [],
-    description: null,
-  }
-}
-
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset =
   | DataLinkAsset
@@ -760,6 +606,17 @@ export type AnyAsset =
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
   return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
+}
+
+/** An asset with a specific type. */
+interface HasType<Type extends AssetType> {
+  readonly type: Type
+}
+
+/** A type guard that returns whether an {@link SmartAsset} is a specific type of asset. */
+export function smartAssetIsType<Type extends AssetType>(type: Type) {
+  return (asset: AnySmartAsset): asset is Extract<AnySmartAsset, HasType<Type>> =>
+    asset.type === type
 }
 
 /** Creates a new placeholder asset id for the given asset type. */
@@ -818,6 +675,14 @@ export const assetIsDataLink = assetIsType(AssetType.dataLink)
 export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
 export const assetIsFile = assetIsType(AssetType.file)
+/** A type guard that returns whether a {@link SmartAsset} is a {@link SmartProject}. */
+export const smartAssetIsProject = smartAssetIsType(AssetType.project)
+/** A type guard that returns whether a {@link SmartAsset} is a {@link SmartDirectory}. */
+export const smartAssetIsDirectory = smartAssetIsType(AssetType.directory)
+/** A type guard that returns whether a {@link SmartAsset} is a {@link SmartSecret}. */
+export const smartAssetIsSecret = smartAssetIsType(AssetType.secret)
+/** A type guard that returns whether a {@link SmartAsset} is a {@link SmartFile}. */
+export const smartAssetIsFile = smartAssetIsType(AssetType.file)
 /* eslint-disable no-restricted-syntax */
 
 /** Metadata describing a specific version of an asset. */
@@ -893,49 +758,16 @@ export interface UpdateOrganizationRequestBody {
   location?: string
 }
 
-/** HTTP request body for the "invite user" endpoint. */
-export interface InviteUserRequestBody {
-  readonly organizationId: OrganizationId
-  readonly userEmail: EmailAddress
-}
-
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
   readonly actorsIds: UserId[]
-  readonly resourceId: AssetId
   readonly action: permissions.PermissionAction | null
-}
-
-/** HTTP request body for the "create directory" endpoint. */
-export interface CreateDirectoryRequestBody {
-  readonly title: string
-  readonly parentId: DirectoryId | null
-}
-
-/** HTTP request body for the "update directory" endpoint. */
-export interface UpdateDirectoryRequestBody {
-  readonly title: string
 }
 
 /** HTTP request body for the "update asset" endpoint. */
 export interface UpdateAssetRequestBody {
-  readonly parentDirectoryId: DirectoryId | null
-  readonly description: string | null
-}
-
-/** HTTP request body for the "create project" endpoint. */
-export interface CreateProjectRequestBody {
-  readonly projectName: string
-  readonly projectTemplateName: string | null
-  readonly parentDirectoryId: DirectoryId | null
-}
-
-/** HTTP request body for the "update project" endpoint.
- * Only updates of the `projectName` or `ami` are allowed. */
-export interface UpdateProjectRequestBody {
-  readonly projectName: string | null
-  readonly ami: Ami | null
-  readonly ideVersion: VersionNumber | null
+  readonly parentDirectoryId?: DirectoryId | null
+  readonly description?: string | null
 }
 
 /** HTTP request body for the "open project" endpoint. */
@@ -943,16 +775,35 @@ export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
 }
 
-/** HTTP request body for the "create secret" endpoint. */
-export interface CreateSecretRequestBody {
-  readonly name: string
-  readonly value: string
-  readonly parentDirectoryId: DirectoryId | null
+/** Body for the "update directory" API function. */
+export interface UpdateAssetOrDirectoryRequestBody extends UpdateAssetRequestBody {
+  readonly title?: string
 }
 
-/** HTTP request body for the "update secret" endpoint. */
-export interface UpdateSecretRequestBody {
-  readonly value: string
+/** Body for the "update project" API function. */
+export interface UpdateAssetOrProjectRequestBody extends UpdateAssetRequestBody {
+  // Project update parameters
+  readonly projectName?: string | null
+  readonly ami?: Ami | null
+  /** Updating this field is not allowed. */
+  readonly ideVersion?: VersionNumber | null
+  // File update parameters
+  readonly file?: globalThis.File
+}
+
+/** Body for the "update file" API function. */
+export interface UpdateAssetOrFileRequestBody extends UpdateAssetRequestBody {
+  readonly file?: globalThis.File
+}
+
+/** Body for the "update Data Link" API function. */
+export interface UpdateAssetOrDataLinkRequestBody extends UpdateAssetRequestBody {
+  readonly value?: unknown
+}
+
+/** Body for the "update secret" API function. */
+export interface UpdateAssetOrSecretRequestBody extends UpdateAssetRequestBody {
+  readonly value?: string
 }
 
 /** HTTP request body for the "create connector" endpoint. */
@@ -966,7 +817,7 @@ export interface CreateConnectorRequestBody {
 /** HTTP request body for the "create tag" endpoint. */
 export interface CreateTagRequestBody {
   readonly value: string
-  readonly color: LChColor
+  readonly color: color.LChColor
 }
 
 /** HTTP request body for the "create checkout session" endpoint. */
@@ -976,29 +827,13 @@ export interface CreateCheckoutSessionRequestBody {
 
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
-  readonly parentId: string | null
   readonly filterBy: FilterBy | null
   readonly labels: LabelName[] | null
-  readonly recentProjects: boolean
-}
-
-/** URL query string parameters for the "upload file" endpoint. */
-export interface UploadFileRequestParams {
-  readonly fileId: AssetId | null
-  // Marked as optional in the data type, however it is required by the actual route handler.
-  readonly fileName: string
-  readonly parentDirectoryId: DirectoryId | null
 }
 
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
   readonly fileName: string | null
-}
-
-/** URL query string parameters for the "list versions" endpoint. */
-export interface ListVersionsRequestParams {
-  readonly versionType: VersionType
-  readonly default: boolean
 }
 
 // ==============================
@@ -1080,6 +915,178 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
+// =====================
+// === Smart objects ===
+// =====================
+
+/** A wrapper around a subset of the API endpoints. */
+export interface SmartObject<T> {
+  readonly value: T
+  /** Return a copy of this object, but with a different value. */
+  readonly withValue: (value: T) => this
+}
+
+/** A smart wrapper around a {@link User}. */
+export interface SmartUser extends SmartObject<User> {
+  /** Change the username of the current user. */
+  readonly update: (body: UpdateUserRequestBody) => Promise<void>
+  /** Delete the current user. */
+  readonly delete: () => Promise<void>
+  /** Upload a new profile picture for the current user. */
+  readonly uploadPicture: (params: UploadPictureRequestParams, file: Blob) => Promise<User>
+  /** Get the root directory for this user. */
+  readonly rootDirectory: () => SmartDirectory
+  /** Invite a new user to the organization by email. */
+  readonly invite: (email: EmailAddress) => Promise<void>
+  /** List all users in the same organization. */
+  readonly listUsers: () => Promise<SimpleUser[]>
+  /** List recently modified assets. */
+  readonly listRecentFiles: () => Promise<AnySmartAsset[]>
+  /** List all secrets in all directories. */
+  readonly listSecrets: () => Promise<SecretInfo[]>
+  /** Get the details of the current user's organization. */
+  readonly getOrganization: () => Promise<SmartOrganization>
+  /** List events in the organization's audit log. */
+  readonly getLogEvents: () => Promise<Event[]>
+}
+
+/** A smart wrapper around an {@link OrganizationInfo}. */
+export interface SmartOrganization extends SmartObject<OrganizationInfo | null> {
+  /** Change the details of the current user's organization. */
+  readonly update: (body: UpdateOrganizationRequestBody) => Promise<OrganizationInfo | null>
+  /** Upload a new profile picture for the current user's organization. */
+  readonly uploadPicture: (
+    params: UploadPictureRequestParams,
+    file: Blob
+  ) => Promise<OrganizationInfo>
+}
+
+/** A smart wrapper around an {@link AnyAsset}. */
+export interface SmartAsset<T extends AnyAsset = AnyAsset> extends SmartObject<T> {
+  /** This is required to exist so that {@link AnySmartAsset} is a discriminated union. */
+  readonly type: T['type']
+  /** If this is a placeholder asset, return its non-placeholder equivalent after creating it on
+   * the backend. Otherwise, return `this`, as a non-{@link Promise}.
+   *
+   * If returning `this` as a {@link Promise}, it causes a race condition when reopening the last
+   * opened project on application start, as it is opened on the first frame, but the project state
+   * is overwritten by the return value of this on the next render cycle. */
+  readonly materialize: () => Promise<this> | this
+  /** Change the parent directory of an asset. */
+  readonly update: (body: UpdateAssetRequestBody) => Promise<this>
+  /** Move an arbitrary asset to the trash. */
+  readonly delete: (force?: boolean) => Promise<void>
+  /** Restore an arbitrary asset from the trash. */
+  readonly undoDelete: () => Promise<void>
+  /** Copy an arbitrary asset to another directory. */
+  readonly copy: (
+    parentDirectoryId: DirectoryId,
+    parentDirectoryTitle: string
+  ) => Promise<CopyAssetResponse>
+  /** List all versions of this asset. Only works for projects and files. */
+  readonly listVersions: () => Promise<AssetVersions>
+  /** Set permissions for a user. */
+  readonly setPermissions: (body: CreatePermissionRequestBody) => Promise<void>
+  /** Replace the list of labels. */
+  readonly setTags: (tagIds: LabelName[]) => Promise<void>
+}
+
+/** A smart wrapper around a {@link DirectoryAsset}. */
+export interface SmartDirectory extends SmartAsset<DirectoryAsset> {
+  /** Return a list of assets in a directory. */
+  readonly list: (query: ListDirectoryRequestParams) => Promise<AnySmartAsset[]>
+  /** Change the name or description of a directory. */
+  readonly update: (body: UpdateAssetOrDirectoryRequestBody) => Promise<this>
+  /** Create a {@link SpecialLoadingAsset}. */
+  readonly createSpecialLoadingAsset: () => SmartSpecialLoadingAsset
+  /** Create a {@link SpecialEmptyAsset}. */
+  readonly createSpecialEmptyAsset: () => SmartSpecialEmptyAsset
+  /** Create a {@link SmartDirectory} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderDirectory: (
+    title: string,
+    permissions: UserPermission[]
+  ) => SmartDirectory
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderProject: (
+    title: string,
+    fileOrTemplateName: globalThis.File | string | null,
+    permissions: UserPermission[]
+  ) => SmartProject
+  /** Create a {@link SmartFile} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderFile: (
+    title: string,
+    file: globalThis.File,
+    permissions: UserPermission[]
+  ) => SmartFile
+  /** Create a {@link SmartDataLink} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderDataLink: (
+    title: string,
+    value: unknown,
+    permissions: UserPermission[]
+  ) => SmartDataLink
+  /** Create a {@link SmartSecret} that is to be uploaded on the backend via `.materialize()` */
+  readonly createPlaceholderSecret: (
+    title: string,
+    value: string,
+    permissions: UserPermission[]
+  ) => SmartSecret
+}
+
+/** A smart wrapper around a {@link ProjectAsset}. */
+export interface SmartProject extends SmartAsset<ProjectAsset> {
+  readonly update: (body: UpdateAssetOrProjectRequestBody) => Promise<this>
+  /** Set a project to an open state. */
+  readonly open: (body?: OpenProjectRequestBody) => Promise<void>
+  /** Return project details. */
+  readonly getDetails: () => Promise<Project>
+  /** Return project memory, processor and storage usage. */
+  readonly getResourceUsage: () => Promise<ResourceUsage>
+  /** Fetch the content of the `Main.enso` file. */
+  readonly getMainFile: (version: string) => Promise<string>
+  /** Close a project. */
+  readonly close: () => Promise<void>
+  /** Resolve only when the project is ready to be opened. */
+  readonly waitUntilReady: (abortController?: AbortController) => Promise<Project>
+}
+
+/** A smart wrapper around a {@link FileAsset}. */
+export interface SmartFile extends SmartAsset<FileAsset> {
+  readonly update: (body: UpdateAssetOrFileRequestBody) => Promise<this>
+  /** Return file details. */
+  readonly getDetails: () => Promise<FileDetails>
+}
+
+/** A smart wrapper around a {@link DataLinkAsset}. */
+export interface SmartDataLink extends SmartAsset<DataLinkAsset> {
+  /** Return the JSON value of this Data Link. */
+  readonly getValue: () => Promise<Connector>
+  readonly update: (body: UpdateAssetOrDataLinkRequestBody) => Promise<this>
+}
+
+/** A smart wrapper around a {@link SecretAsset}. */
+export interface SmartSecret extends SmartAsset<SecretAsset> {
+  /** Return a secret environment variable. */
+  readonly getValue: () => Promise<Secret>
+  /** Change the value or description of a secret environment variable. */
+  readonly update: (body: UpdateAssetOrSecretRequestBody) => Promise<this>
+}
+
+/** A smart wrapper around a {@link SpecialLoadingAsset}. */
+export interface SmartSpecialLoadingAsset extends SmartAsset<SpecialLoadingAsset> {}
+
+/** A smart wrapper around a {@link SpecialEmptyAsset}. */
+export interface SmartSpecialEmptyAsset extends SmartAsset<SpecialEmptyAsset> {}
+
+/** All possible types of smart asset. */
+export type AnySmartAsset =
+  | SmartDataLink
+  | SmartDirectory
+  | SmartFile
+  | SmartProject
+  | SmartSecret
+  | SmartSpecialEmptyAsset
+  | SmartSpecialLoadingAsset
+
 // ===============
 // === Backend ===
 // ===============
@@ -1088,118 +1095,18 @@ export function extractProjectExtension(name: string) {
 export default abstract class Backend {
   abstract readonly type: BackendType
 
-  /** Return a list of all users in the same organization. */
-  abstract listUsers(): Promise<SimpleUser[]>
+  /** Return user details for the current user. */
+  abstract self(): Promise<SmartUser | null>
   /** Set the username of the current user. */
   abstract createUser(body: CreateUserRequestBody): Promise<User>
-  /** Change the username of the current user. */
-  abstract updateUser(body: UpdateUserRequestBody): Promise<void>
-  /** Delete the current user. */
-  abstract deleteUser(): Promise<void>
-  /** Upload a new profile picture for the current user. */
-  abstract uploadUserPicture(params: UploadPictureRequestParams, file: Blob): Promise<User>
-  /** Invite a new user to the organization by email. */
-  abstract inviteUser(body: InviteUserRequestBody): Promise<void>
-  /** Get the details of the current organization. */
-  abstract getOrganization(): Promise<OrganizationInfo | null>
-  /** Change the details of the current organization. */
-  abstract updateOrganization(body: UpdateOrganizationRequestBody): Promise<OrganizationInfo | null>
-  /** Upload a new profile picture for the current organization. */
-  abstract uploadOrganizationPicture(
-    params: UploadPictureRequestParams,
-    file: Blob
-  ): Promise<OrganizationInfo>
-  /** Adds a permission for a specific user on a specific asset. */
-  abstract createPermission(body: CreatePermissionRequestBody): Promise<void>
-  /** Return user details for the current user. */
-  abstract usersMe(): Promise<User | null>
-  /** Return a list of assets in a directory. */
-  abstract listDirectory(query: ListDirectoryRequestParams, title: string): Promise<AnyAsset[]>
-  /** Create a directory. */
-  abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
-  /** Change the name of a directory. */
-  abstract updateDirectory(
-    directoryId: DirectoryId,
-    body: UpdateDirectoryRequestBody,
-    title: string
-  ): Promise<UpdatedDirectory>
-  /** List previous versions of an asset. */
-  abstract listAssetVersions(assetId: AssetId, title: string | null): Promise<AssetVersions>
-  /** Change the parent directory of an asset. */
-  abstract updateAsset(assetId: AssetId, body: UpdateAssetRequestBody, title: string): Promise<void>
-  /** Delete an arbitrary asset. */
-  abstract deleteAsset(assetId: AssetId, force: boolean, title: string): Promise<void>
-  /** Restore an arbitrary asset from the trash. */
-  abstract undoDeleteAsset(assetId: AssetId, title: string): Promise<void>
-  /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(
-    assetId: AssetId,
-    parentDirectoryId: DirectoryId,
-    title: string,
-    parentDirectoryTitle: string
-  ): Promise<CopyAssetResponse>
-  /** Return a list of projects belonging to the current user. */
-  abstract listProjects(): Promise<ListedProject[]>
-  /** Create a project for the current user. */
-  abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
-  /** Close a project. */
-  abstract closeProject(projectId: ProjectId, title: string): Promise<void>
-  /** Return project details. */
-  abstract getProjectDetails(projectId: ProjectId, title: string): Promise<Project>
-  /** Set a project to an open state. */
-  abstract openProject(
-    projectId: ProjectId,
-    body: OpenProjectRequestBody | null,
-    title: string
-  ): Promise<void>
-  /** Change the AMI or IDE version of a project. */
-  abstract updateProject(
-    projectId: ProjectId,
-    body: UpdateProjectRequestBody,
-    title: string
-  ): Promise<UpdatedProject>
-  /** Fetch the content of the `Main.enso` file of a project. */
-  abstract getFileContent(projectId: ProjectId, version: string, title: string): Promise<string>
-  /** Return project memory, processor and storage usage. */
-  abstract checkResources(projectId: ProjectId, title: string): Promise<ResourceUsage>
-  /** Return a list of files accessible by the current user. */
-  abstract listFiles(): Promise<FileLocator[]>
-  /** Upload a file. */
-  abstract uploadFile(params: UploadFileRequestParams, file: Blob): Promise<FileInfo>
-  /** Return file details. */
-  abstract getFileDetails(fileId: FileId, title: string): Promise<FileDetails>
-  /** Create a Data Link. */
-  abstract createConnector(body: CreateConnectorRequestBody): Promise<ConnectorInfo>
-  /** Return a Data Link. */
-  abstract getConnector(connectorId: ConnectorId, title: string | null): Promise<Connector>
-  /** Delete a Data Link. */
-  abstract deleteConnector(connectorId: ConnectorId, title: string | null): Promise<void>
-  /** Create a secret environment variable. */
-  abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
-  /** Return a secret environment variable. */
-  abstract getSecret(secretId: SecretId, title: string): Promise<Secret>
-  /** Change the value of a secret. */
-  abstract updateSecret(
-    secretId: SecretId,
-    body: UpdateSecretRequestBody,
-    title: string
-  ): Promise<void>
-  /** Return the secret environment variables accessible by the user. */
-  abstract listSecrets(): Promise<SecretInfo[]>
   /** Create a label used for categorizing assets. */
   abstract createTag(body: CreateTagRequestBody): Promise<Label>
   /** Return all labels accessible by the user. */
   abstract listTags(): Promise<Label[]>
-  /** Set the full list of labels for a specific asset. */
-  abstract associateTag(assetId: AssetId, tagIds: LabelName[], title: string): Promise<void>
   /** Delete a label. */
   abstract deleteTag(tagId: TagId, value: LabelName): Promise<void>
-  /** Return a list of backend or IDE versions. */
-  abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
   /** Create a payment checkout session. */
   abstract createCheckoutSession(plan: Plan): Promise<CheckoutSession>
   /** Get the status of a payment checkout session. */
   abstract getCheckoutSession(sessionId: CheckoutSessionId): Promise<CheckoutSessionStatus>
-  /** List events in the organization's audit log. */
-  abstract getLogEvents(): Promise<Event[]>
 }

@@ -12,7 +12,10 @@ authentication.run({
   // Browsers usually do not support vibrancy for webpages.
   vibrancy: false,
   // This file is only included when building for the cloud.
-  supportsLocalBackend: false,
+  supportsLocalBackend:
+    process.env.SUPPORTS_LOCAL_BACKEND == null
+      ? false
+      : process.env.SUPPORTS_LOCAL_BACKEND === 'true',
   supportsDeepLinks: false,
   isAuthenticationDisabled: false,
   shouldShowDashboard: true,

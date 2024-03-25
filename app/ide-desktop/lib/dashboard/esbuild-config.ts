@@ -127,7 +127,10 @@ export function bundlerOptions(args: Arguments) {
     alias: {
       '#': './src',
     },
-    define: appConfig.getDefines(),
+    define: {
+      'process.env.SUPPORTS_LOCAL_BACKEND': 'undefined',
+      ...appConfig.getDefines(),
+    },
     pure: ['assert'],
     sourcemap: true,
     metafile: trueBoolean,

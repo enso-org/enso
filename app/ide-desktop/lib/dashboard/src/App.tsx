@@ -46,7 +46,6 @@ import * as appUtils from '#/appUtils'
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider from '#/providers/BackendProvider'
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
 import LoggerProvider from '#/providers/LoggerProvider'
@@ -67,8 +66,10 @@ import Subscribe from '#/pages/subscribe/Subscribe'
 import * as rootComponent from '#/components/Root'
 
 import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
+import * as array from '#/utilities/array'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
@@ -82,9 +83,15 @@ import * as authServiceModule from '#/authentication/service'
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
+    readonly backendType: backendModule.BackendType
     readonly inputBindings: Readonly<Record<string, readonly string[]>>
   }
 }
+
+const BACKEND_TYPES = Object.values(backendModule.BackendType)
+LocalStorage.registerKey('backendType', {
+  tryParse: value => (array.includes(BACKEND_TYPES, value) ? value : null),
+})
 
 LocalStorage.registerKey('inputBindings', {
   tryParse: value =>
@@ -274,7 +281,14 @@ function AppRouter(props: AppProps) {
     : // This is safe, because the backend is always set by the authentication flow.
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       null!
-
+  const [backend, setBackendWithoutSavingType] = React.useState<Backend>(initialBackend)
+  const setBackend = React.useCallback(
+    (newBackend: Backend) => {
+      setBackendWithoutSavingType(newBackend)
+      localStorage.set('backendType', newBackend.type)
+    },
+    [/* should never change */ localStorage]
+  )
   React.useEffect(() => {
     let isClick = false
     const onMouseDown = () => {
@@ -329,9 +343,13 @@ function AppRouter(props: AppProps) {
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route
             path={appUtils.DASHBOARD_PATH}
-            element={shouldShowDashboard && <Dashboard {...props} />}
+            element={
+              shouldShowDashboard && (
+                <Dashboard {...props} backend={backend} setBackend={setBackend} />
+              )
+            }
           />
-          <router.Route path={appUtils.SUBSCRIBE_PATH} element={<Subscribe />} />
+          <router.Route path={appUtils.SUBSCRIBE_PATH} element={<Subscribe backend={backend} />} />
         </router.Route>
         {/* Semi-protected pages are visible to users currently registering. */}
         <router.Route element={<authProvider.SemiProtectedLayout />}>
@@ -352,6 +370,8 @@ function AppRouter(props: AppProps) {
     <AuthProvider
       shouldStartInOfflineMode={isAuthenticationDisabled}
       supportsLocalBackend={supportsLocalBackend}
+      backend={backend}
+      setBackendWithoutSavingType={setBackendWithoutSavingType}
       authService={authService}
       onAuthenticated={onAuthenticated}
       projectManagerUrl={projectManagerUrl}
@@ -359,7 +379,6 @@ function AppRouter(props: AppProps) {
       {result}
     </AuthProvider>
   )
-  result = <BackendProvider initialBackend={initialBackend}>{result}</BackendProvider>
   result = (
     <SessionProvider
       mainPageUrl={mainPageUrl}

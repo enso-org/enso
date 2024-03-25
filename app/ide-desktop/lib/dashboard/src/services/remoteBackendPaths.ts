@@ -35,12 +35,8 @@ export const LIST_DIRECTORY_PATH = 'directories'
 export const CREATE_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
 export const UNDO_DELETE_ASSET_PATH = 'assets'
-/** Relative HTTP path to the "list projects" endpoint of the Cloud backend API. */
-export const LIST_PROJECTS_PATH = 'projects'
 /** Relative HTTP path to the "create project" endpoint of the Cloud backend API. */
 export const CREATE_PROJECT_PATH = 'projects'
-/** Relative HTTP path to the "list files" endpoint of the Cloud backend API. */
-export const LIST_FILES_PATH = 'files'
 /** Relative HTTP path to the "upload file" endpoint of the Cloud backend API. */
 export const UPLOAD_FILE_PATH = 'files'
 /** Relative HTTP path to the "create secret" endpoint of the Cloud backend API. */
@@ -123,6 +119,10 @@ export function getSecretPath(secretId: backend.SecretId) {
 }
 /** Relative HTTP path to the "get connector" endpoint of the Cloud backend API. */
 export function getConnectorPath(connectorId: backend.ConnectorId) {
+  return `connectors/${connectorId}`
+}
+/** Relative HTTP path to the "delete connector" endpoint of the Cloud backend API. */
+export function deleteConnectorPath(connectorId: backend.ConnectorId) {
   return `connectors/${connectorId}`
 }
 /** Relative HTTP path to the "associate tag" endpoint of the Cloud backend API. */

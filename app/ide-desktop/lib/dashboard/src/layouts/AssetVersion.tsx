@@ -5,7 +5,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
-import type Backend from '#/services/Backend'
 import * as backendService from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
@@ -18,16 +17,15 @@ import * as assetDiffView from './AssetDiffView'
 
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
-  readonly item: backendService.AnyAsset
+  readonly item: backendService.AnySmartAsset
   readonly number: number
   readonly version: backendService.S3ObjectVersion
   readonly latestVersion: backendService.S3ObjectVersion
-  readonly backend: Backend
 }
 
 /** Displays information describing a specific version of an asset. */
 export default function AssetVersion(props: AssetVersionProps) {
-  const { number, version, item, backend, latestVersion } = props
+  const { number, version, item, latestVersion } = props
   const { getText } = textProvider.useText()
 
   const isProject = item.type === backendService.AssetType.project
@@ -64,7 +62,6 @@ export default function AssetVersion(props: AssetVersionProps) {
                 latestVersionId={latestVersion.versionId}
                 versionId={version.versionId}
                 project={item}
-                backend={backend}
               />
             </ariaComponents.Dialog>
           </ariaComponents.DialogTrigger>

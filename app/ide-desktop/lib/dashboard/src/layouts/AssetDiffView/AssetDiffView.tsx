@@ -6,7 +6,6 @@ import * as textProvider from '#/providers/TextProvider'
 import Spinner, * as spinnerModule from '#/components/Spinner'
 
 import type * as backendService from '#/services/Backend'
-import type Backend from '#/services/Backend'
 
 import * as useFetchVersionContent from './useFetchVersionContent'
 
@@ -18,24 +17,21 @@ import * as useFetchVersionContent from './useFetchVersionContent'
 export interface AssetDiffViewProps {
   readonly versionId: string
   readonly latestVersionId: string
-  readonly project: backendService.ProjectAsset
-  readonly backend: Backend
+  readonly project: backendService.SmartProject
 }
 
 /** Diff view comparing `Main.enso` of two versions for a specific project. */
 export function AssetDiffView(props: AssetDiffViewProps) {
-  const { versionId, project, backend, latestVersionId } = props
+  const { versionId, project, latestVersionId } = props
   const { getText } = textProvider.useText()
 
   const versionContent = useFetchVersionContent.useFetchVersionContent({
     versionId,
     project,
-    backend,
   })
   const headContent = useFetchVersionContent.useFetchVersionContent({
     versionId: latestVersionId,
     project,
-    backend,
   })
 
   const loader = (

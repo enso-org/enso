@@ -64,6 +64,7 @@ interface PlaceholderOverrides {
   readonly undoDeleteAssetBackendError: [string]
   readonly copyAssetBackendError: [string, string]
   readonly createProjectBackendError: [string]
+  readonly badCreateProjectResponseBackendError: [string]
   readonly closeProjectBackendError: [string]
   readonly getProjectDetailsBackendError: [string]
   readonly openProjectBackendError: [string]
@@ -71,8 +72,10 @@ interface PlaceholderOverrides {
   readonly checkResourcesBackendError: [string]
   readonly uploadFileWithNameBackendError: [string]
   readonly getFileDetailsBackendError: [string]
+  readonly updateFileBackendError: [string]
   readonly createConnectorBackendError: [string]
   readonly getConnectorBackendError: [string]
+  readonly updateConnectorBackendError: [string]
   readonly deleteConnectorBackendError: [string]
   readonly createSecretBackendError: [string]
   readonly getSecretBackendError: [string]
@@ -84,6 +87,7 @@ interface PlaceholderOverrides {
   readonly createCheckoutSessionBackendError: [string]
   readonly getCheckoutSessionBackendError: [string]
   readonly getDefaultVersionBackendError: [string]
+  readonly projectNotFoundBackendError: [string]
 }
 
 /** An tuple of `string` for placeholders for each {@link TextId}. */

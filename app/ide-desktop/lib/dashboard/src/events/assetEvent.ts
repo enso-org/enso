@@ -1,8 +1,6 @@
 /** @file Events related to changes in asset state. */
 import type AssetEventType from '#/events/AssetEventType'
 
-import type * as spinner from '#/components/Spinner'
-
 import type * as backendModule from '#/services/Backend'
 
 // This is required, to whitelist this event.
@@ -25,12 +23,7 @@ interface AssetBaseEvent<Type extends AssetEventType> {
 
 /** All possible events. */
 interface AssetEvents {
-  readonly newProject: AssetNewProjectEvent
-  readonly newFolder: AssetNewFolderEvent
-  readonly uploadFiles: AssetUploadFilesEvent
   readonly updateFiles: AssetUpdateFilesEvent
-  readonly newDataLink: AssetNewDataLinkEvent
-  readonly newSecret: AssetNewSecretEvent
   readonly openProject: AssetOpenProjectEvent
   readonly closeProject: AssetCloseProjectEvent
   readonly copy: AssetCopyEvent
@@ -59,38 +52,9 @@ type SanityCheck<
   } = AssetEvents,
 > = [T]
 
-/** A signal to create a project. */
-export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newProject> {
-  readonly placeholderId: backendModule.ProjectId
-  readonly templateId: string | null
-  readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
-}
-
-/** A signal to create a directory. */
-export interface AssetNewFolderEvent extends AssetBaseEvent<AssetEventType.newFolder> {
-  readonly placeholderId: backendModule.DirectoryId
-}
-
-/** A signal to upload files. */
-export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.uploadFiles> {
-  readonly files: ReadonlyMap<backendModule.AssetId, File>
-}
-
 /** A signal to update files with new versions. */
 export interface AssetUpdateFilesEvent extends AssetBaseEvent<AssetEventType.updateFiles> {
   readonly files: ReadonlyMap<backendModule.AssetId, File>
-}
-
-/** A signal to create a Data Link. */
-export interface AssetNewDataLinkEvent extends AssetBaseEvent<AssetEventType.newDataLink> {
-  readonly placeholderId: backendModule.ConnectorId
-  readonly value: unknown
-}
-
-/** A signal to create a secret. */
-export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
-  readonly placeholderId: backendModule.SecretId
-  readonly value: string
 }
 
 /** A signal to open the specified project. */
@@ -110,7 +74,7 @@ export interface AssetCloseProjectEvent extends AssetBaseEvent<AssetEventType.cl
 export interface AssetCopyEvent extends AssetBaseEvent<AssetEventType.copy> {
   readonly ids: ReadonlySet<backendModule.AssetId>
   readonly newParentKey: backendModule.AssetId
-  readonly newParentId: backendModule.DirectoryId
+  readonly newParent: backendModule.SmartDirectory
 }
 
 /** A signal to cut multiple assets. */
@@ -127,7 +91,7 @@ export interface AssetCancelCutEvent extends AssetBaseEvent<AssetEventType.cance
 export interface AssetMoveEvent extends AssetBaseEvent<AssetEventType.move> {
   readonly ids: ReadonlySet<backendModule.AssetId>
   readonly newParentKey: backendModule.AssetId
-  readonly newParentId: backendModule.DirectoryId
+  readonly newParent: backendModule.SmartDirectory
 }
 
 /** A signal to delete assets. */

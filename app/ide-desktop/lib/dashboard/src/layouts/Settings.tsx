@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import AccountSettingsTab from '#/layouts/Settings/AccountSettingsTab'
@@ -15,7 +14,7 @@ import OrganizationSettingsTab from '#/layouts/Settings/OrganizationSettingsTab'
 import SettingsTab from '#/layouts/Settings/SettingsTab'
 import SettingsSidebar from '#/layouts/SettingsSidebar'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 
@@ -31,31 +30,34 @@ export default function Settings() {
     (value): value is SettingsTab => array.includes(Object.values(SettingsTab), value)
   )
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
-  const [organization, setOrganization] = React.useState<backendModule.OrganizationInfo>(() => ({
-    pk: user?.id ?? backendModule.OrganizationId(''),
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    organization_name: null,
-    email: null,
-    website: null,
-    address: null,
-    picture: null,
-  }))
+  const [organization, setOrganization] = React.useState<backendModule.SmartOrganization | null>(
+    null
+  )
+
+  const setOrganizationInfo = React.useCallback(
+    (valueOrUpdater: React.SetStateAction<backendModule.OrganizationInfo>) => {
+      setOrganization(
+        oldOrganization =>
+          oldOrganization?.withValue(
+            oldOrganization.value == null
+              ? null
+              : typeof valueOrUpdater !== 'function'
+                ? valueOrUpdater
+                : valueOrUpdater(oldOrganization.value)
+          ) ?? null
+      )
+    },
+    []
+  )
 
   React.useEffect(() => {
     void (async () => {
-      if (
-        sessionType === authProvider.UserSessionType.full &&
-        backend.type === backendModule.BackendType.remote
-      ) {
-        const newOrganization = await backend.getOrganization()
-        if (newOrganization != null) {
-          setOrganization(newOrganization)
-        }
+      if (sessionType === authProvider.UserSessionType.full) {
+        setOrganization(await user.getOrganization())
       }
     })()
-  }, [sessionType, backend])
+  }, [user, sessionType])
 
   let content: JSX.Element
   switch (settingsTab) {
@@ -65,7 +67,10 @@ export default function Settings() {
     }
     case SettingsTab.organization: {
       content = (
-        <OrganizationSettingsTab organization={organization} setOrganization={setOrganization} />
+        <OrganizationSettingsTab
+          organization={organization}
+          setOrganizationInfo={setOrganizationInfo}
+        />
       )
       break
     }
@@ -96,8 +101,8 @@ export default function Settings() {
         {/* eslint-disable-next-line no-restricted-syntax */}
         <div className="ml-[0.625rem] h-[2.25rem] rounded-full bg-frame px-[0.5625rem] pb-[0.3125rem] pt-[0.125rem] leading-snug">
           {settingsTab !== SettingsTab.organization
-            ? user?.name ?? 'your account'
-            : organization.organization_name ?? 'your organization'}
+            ? user?.value.name ?? 'your account'
+            : organization?.value?.organization_name ?? 'your organization'}
         </div>
       </div>
       <div className="flex flex-1 gap-settings overflow-hidden">

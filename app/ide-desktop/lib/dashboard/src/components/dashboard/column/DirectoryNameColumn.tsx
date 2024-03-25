@@ -4,16 +4,11 @@ import * as React from 'react'
 import FolderArrowIcon from 'enso-assets/folder_arrow.svg'
 import FolderIcon from 'enso-assets/folder.svg'
 
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -25,11 +20,10 @@ import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as string from '#/utilities/string'
-import Visibility from '#/utilities/Visibility'
 
-// =====================
-// === DirectoryName ===
-// =====================
+// ===========================
+// === DirectoryNameColumn ===
+// ===========================
 
 /** Props for a {@link DirectoryNameColumn}. */
 export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
@@ -39,19 +33,17 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
-  const { selectedKeys, assetEvents, dispatchAssetListEvent, nodeMap } = state
-  const { doToggleDirectoryExpansion } = state
+  const { isCloud, selectedKeys, nodeMap, doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.directory) {
+  const smartAsset = item.item
+  if (smartAsset.type !== backendModule.AssetType.directory) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DirectoryNameColumn` can only display folders.')
   }
+  const asset = smartAsset.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
-  const isCloud = backend.type === backendModule.BackendType.remote
 
   const doRename = async (newTitle: string) => {
     setRowState(object.merger({ isEditingName: false }))
@@ -61,69 +53,13 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       const oldTitle = asset.title
       setAsset(object.merger({ title: newTitle }))
       try {
-        await backend.updateDirectory(asset.id, { title: newTitle }, asset.title)
+        await smartAsset.update({ title: newTitle })
       } catch (error) {
         toastAndLog('renameFolderError', error)
         setAsset(object.merger({ title: oldTitle }))
       }
     }
   }
-
-  eventHooks.useEventHandler(assetEvents, async event => {
-    switch (event.type) {
-      case AssetEventType.newProject:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newDataLink:
-      case AssetEventType.newSecret:
-      case AssetEventType.openProject:
-      case AssetEventType.updateFiles:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. These events should all be unrelated to directories.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
-      case AssetEventType.newFolder: {
-        if (item.key === event.placeholderId) {
-          if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog('localBackendFolderError')
-          } else {
-            rowState.setVisibility(Visibility.faded)
-            try {
-              const createdDirectory = await backend.createDirectory({
-                parentId: asset.parentId,
-                title: asset.title,
-              })
-              rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, createdDirectory))
-            } catch (error) {
-              dispatchAssetListEvent({
-                type: AssetListEventType.delete,
-                key: item.key,
-              })
-              toastAndLog('createFolderError', error)
-            }
-          }
-        }
-        break
-      }
-    }
-  })
 
   const handleClick = inputBindings.handler({
     editName: () => {
@@ -162,7 +98,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }`}
         onClick={event => {
           event.stopPropagation()
-          doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+          doToggleDirectoryExpansion(smartAsset, item.key)
         }}
       />
       <SvgMask src={FolderIcon} className="m-name-column-icon size-icon group-hover:hidden" />
@@ -178,9 +114,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
               // All siblings,
               child.key === item.key ||
               // that are directories,
-              !backendModule.assetIsDirectory(child.item) ||
+              !backendModule.assetIsDirectory(child.item.value) ||
               // must have a different name.
-              child.item.title !== newTitle
+              child.item.value.title !== newTitle
           )
         }
         onSubmit={doRename}

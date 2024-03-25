@@ -8,7 +8,6 @@ import EyeIcon from 'enso-assets/eye.svg'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -110,7 +109,6 @@ export default function AccountSettingsTab() {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { setUser, changePassword, signOut } = authProvider.useAuth()
   const { setModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { getText } = textProvider.useText()
   const [passwordFormKey, setPasswordFormKey] = React.useState('')
@@ -132,12 +130,12 @@ export default function AccountSettingsTab() {
     validation.PASSWORD_REGEX.test(newPassword)
 
   const doUpdateName = async (newName: string) => {
-    const oldName = user?.name ?? ''
+    const oldName = user?.value.name ?? ''
     if (newName === oldName) {
       return
     } else {
       try {
-        await backend.updateUser({ username: newName })
+        await user?.update({ username: newName })
         setUser(object.merger({ name: newName }))
       } catch (error) {
         toastAndLog(null, error)
@@ -152,8 +150,10 @@ export default function AccountSettingsTab() {
       toastAndLog('noNewProfilePictureError')
     } else {
       try {
-        const newUser = await backend.uploadUserPicture({ fileName: image.name }, image)
-        setUser(newUser)
+        const newUser = await user?.uploadPicture({ fileName: image.name }, image)
+        if (newUser != null) {
+          setUser(newUser)
+        }
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -172,12 +172,14 @@ export default function AccountSettingsTab() {
             <div className="flex h-row gap-settings-entry">
               <span className="text my-auto w-user-account-settings-label">{getText('name')}</span>
               <span className="text my-auto grow font-bold">
-                <Input originalValue={user?.name ?? ''} onSubmit={doUpdateName} />
+                <Input originalValue={user?.value.name ?? ''} onSubmit={doUpdateName} />
               </span>
             </div>
             <div className="flex h-row gap-settings-entry">
               <span className="text my-auto w-user-account-settings-label">{getText('email')}</span>
-              <span className="settings-value my-auto grow font-bold">{user?.email ?? ''}</span>
+              <span className="settings-value my-auto grow font-bold">
+                {user?.value.email ?? ''}
+              </span>
             </div>
           </div>
         </div>
@@ -282,7 +284,7 @@ export default function AccountSettingsTab() {
                 setModal(
                   <ConfirmDeleteUserModal
                     doDelete={async () => {
-                      await backend.deleteUser()
+                      await user?.delete()
                       await signOut()
                     }}
                   />
@@ -300,7 +302,7 @@ export default function AccountSettingsTab() {
         <label className="flex h-profile-picture-large w-profile-picture-large cursor-pointer items-center overflow-clip rounded-full transition-colors hover:bg-frame">
           <input type="file" className="hidden" accept="image/*" onChange={doUploadUserPicture} />
           <img
-            src={user?.profilePicture ?? DefaultUserIcon}
+            src={user?.value.profilePicture ?? DefaultUserIcon}
             width={128}
             height={128}
             className="pointer-events-none"

@@ -2,8 +2,7 @@
 
 import * as reactQuery from '@tanstack/react-query'
 
-import type * as backendService from '#/services/Backend'
-import type Backend from '#/services/Backend'
+import type * as backend from '#/services/Backend'
 
 // =================
 // === Constants ===
@@ -19,20 +18,19 @@ const HUNDRED_SECONDS = HUNDRED * MS_IN_SECOND
 
 /** Options for {@link useFetchVersionContent}. */
 export interface FetchVersionContentOptions {
-  readonly project: backendService.ProjectAsset
+  readonly project: backend.SmartProject
   readonly versionId: string
-  readonly backend: Backend
   /** If `false`, the metadata is stripped out. Defaults to `false`. */
   readonly metadata?: boolean
 }
 
 /** Fetch the content of a version. */
 export function useFetchVersionContent(params: FetchVersionContentOptions) {
-  const { versionId, backend, project, metadata = false } = params
+  const { versionId, project, metadata = false } = params
 
   return reactQuery.useQuery({
     queryKey: ['versionContent', versionId],
-    queryFn: () => backend.getFileContent(project.id, versionId, project.title),
+    queryFn: () => project.getMainFile(versionId),
     select: data => (metadata ? data : omitMetadata(data)),
     staleTime: HUNDRED_SECONDS,
   })

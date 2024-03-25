@@ -5,11 +5,9 @@ import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -35,15 +33,15 @@ export interface FileNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function FileNameColumn(props: FileNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
-  const { nodeMap, assetEvents, dispatchAssetListEvent } = state
+  const { nodeMap, assetEvents } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.file) {
+  const smartAsset = item.item
+  if (smartAsset.type !== backendModule.AssetType.file) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`FileNameColumn` can only display files.')
   }
+  const asset = smartAsset.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
@@ -55,59 +53,22 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
-      case AssetEventType.newProject:
-      case AssetEventType.newFolder:
-      case AssetEventType.newDataLink:
-      case AssetEventType.newSecret:
-      case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. These events should all be unrelated to projects.
-        // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
-        // are handled by `AssetRow`.
-        break
-      }
-      case AssetEventType.updateFiles:
-      case AssetEventType.uploadFiles: {
-        const file = event.files.get(item.item.id)
+      case AssetEventType.updateFiles: {
+        const file = event.files.get(item.item.value.id)
         if (file != null) {
-          const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
           rowState.setVisibility(Visibility.faded)
           try {
-            const createdFile = await backend.uploadFile(
-              { fileId, fileName: asset.title, parentDirectoryId: asset.parentId },
-              file
-            )
+            const createdFile = await smartAsset.update({ file })
             rowState.setVisibility(Visibility.visible)
-            setAsset(object.merge(asset, { id: createdFile.id }))
+            setAsset(createdFile.value)
           } catch (error) {
-            switch (event.type) {
-              case AssetEventType.uploadFiles: {
-                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-                toastAndLog(null, error)
-                break
-              }
-              case AssetEventType.updateFiles: {
-                toastAndLog(null, error)
-                break
-              }
-            }
+            toastAndLog(null, error)
+            break
           }
         }
+        break
+      }
+      default: {
         break
       }
     }
@@ -148,9 +109,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
               // All siblings,
               child.key === item.key ||
               // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
+              backendModule.assetIsDirectory(child.item.value) ||
               // must have a different name.
-              child.item.title !== newTitle
+              child.item.value.title !== newTitle
           )
         }
         onSubmit={async newTitle => {

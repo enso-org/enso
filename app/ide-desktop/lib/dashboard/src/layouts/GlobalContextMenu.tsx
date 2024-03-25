@@ -2,7 +2,6 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
 import type * as assetListEventModule from '#/events/assetListEvent'
@@ -14,35 +13,30 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
   readonly hidden?: boolean
-  readonly hasCopyData: boolean
+  readonly isCloud: boolean
+  readonly hasPasteData: boolean
   readonly directoryKey: backendModule.DirectoryId | null
-  readonly directoryId: backendModule.DirectoryId | null
+  readonly directory: backendModule.SmartDirectory | null
   readonly dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-  readonly doPaste: (
-    newParentKey: backendModule.AssetId,
-    newParentId: backendModule.DirectoryId
-  ) => void
+  readonly doPaste: (newParentKey: backendModule.AssetId) => void
 }
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-  const { hidden = false, hasCopyData, directoryKey, directoryId, dispatchAssetListEvent } = props
-  const { doPaste } = props
+  const { hidden = false, isCloud, hasPasteData, directoryKey, directory } = props
+  const { dispatchAssetListEvent, doPaste } = props
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const rootDirectoryId = React.useMemo(
-    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [user]
-  )
+  const rootDirectory = React.useMemo(() => user?.rootDirectory(), [user])
   const filesInputRef = React.useRef<HTMLInputElement>(null)
-  const isCloud = backend.type === backendModule.BackendType.remote
-  return (
+  return rootDirectory == null ? (
+    <></>
+  ) : (
     <ContextMenu hidden={hidden}>
       {!hidden && (
         <input
@@ -50,14 +44,14 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           multiple
           type="file"
           id="context_menu_file_input"
-          {...(backend.type !== backendModule.BackendType.local ? {} : { accept: '.enso-project' })}
+          {...(isCloud ? {} : { accept: '.enso-project' })}
           className="hidden"
           onInput={event => {
             if (event.currentTarget.files != null) {
               dispatchAssetListEvent({
                 type: AssetListEventType.uploadFiles,
-                parentKey: directoryKey ?? rootDirectoryId,
-                parentId: directoryId ?? rootDirectoryId,
+                parentKey: directoryKey ?? rootDirectory.value.id,
+                parent: directory ?? rootDirectory,
                 files: Array.from(event.currentTarget.files),
               })
               unsetModal()
@@ -67,7 +61,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
       )}
       <ContextMenuEntry
         hidden={hidden}
-        action={backend.type === backendModule.BackendType.local ? 'uploadProjects' : 'uploadFiles'}
+        action={isCloud ? 'uploadProjects' : 'uploadFiles'}
         doAction={() => {
           if (filesInputRef.current?.isConnected === true) {
             filesInputRef.current.click()
@@ -80,8 +74,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
               if (input.files != null) {
                 dispatchAssetListEvent({
                   type: AssetListEventType.uploadFiles,
-                  parentKey: directoryKey ?? rootDirectoryId,
-                  parentId: directoryId ?? rootDirectoryId,
+                  parentKey: directoryKey ?? rootDirectory.value.id,
+                  parent: directory ?? rootDirectory,
                   files: Array.from(input.files),
                 })
                 unsetModal()
@@ -100,8 +94,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             unsetModal()
             dispatchAssetListEvent({
               type: AssetListEventType.newProject,
-              parentKey: directoryKey ?? rootDirectoryId,
-              parentId: directoryId ?? rootDirectoryId,
+              parentKey: directoryKey ?? rootDirectory.value.id,
+              parent: directory ?? rootDirectory,
               templateId: null,
               templateName: null,
               onSpinnerStateChange: null,
@@ -117,8 +111,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             unsetModal()
             dispatchAssetListEvent({
               type: AssetListEventType.newFolder,
-              parentKey: directoryKey ?? rootDirectoryId,
-              parentId: directoryId ?? rootDirectoryId,
+              parentKey: directoryKey ?? rootDirectory.value.id,
+              parent: directory ?? rootDirectory,
             })
           }}
         />
@@ -135,8 +129,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
                     type: AssetListEventType.newSecret,
-                    parentKey: directoryKey ?? rootDirectoryId,
-                    parentId: directoryId ?? rootDirectoryId,
+                    parentKey: directoryKey ?? rootDirectory.value.id,
+                    parent: directory ?? rootDirectory,
                     name,
                     value,
                   })
@@ -156,8 +150,8 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 doCreate={(name, value) => {
                   dispatchAssetListEvent({
                     type: AssetListEventType.newDataLink,
-                    parentKey: directoryKey ?? rootDirectoryId,
-                    parentId: directoryId ?? rootDirectoryId,
+                    parentKey: directoryKey ?? rootDirectory.value.id,
+                    parent: directory ?? rootDirectory,
                     name,
                     value,
                   })
@@ -167,13 +161,13 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
           }}
         />
       )}
-      {isCloud && directoryKey == null && hasCopyData && (
+      {isCloud && directoryKey == null && hasPasteData && (
         <ContextMenuEntry
           hidden={hidden}
           action="paste"
           doAction={() => {
             unsetModal()
-            doPaste(rootDirectoryId, rootDirectoryId)
+            doPaste(rootDirectory.value.id)
           }}
         />
       )}

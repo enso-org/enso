@@ -9,143 +9,364 @@ import Backend, * as backend from '#/services/Backend'
 
 import * as dateTime from '#/utilities/dateTime'
 import * as errorModule from '#/utilities/error'
-import * as projectManager from '#/utilities/ProjectManager'
+import * as object from '#/utilities/object'
+import * as projectManagerModule from '#/utilities/ProjectManager'
 import ProjectManager from '#/utilities/ProjectManager'
+import * as uniqueString from '#/utilities/uniqueString'
 
 // =============================
 // === ipWithSocketToAddress ===
 // =============================
 
-/** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
-function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
+/** Convert a {@link projectManagerModule.IpWithSocket} to a {@link backend.Address}. */
+function ipWithSocketToAddress(ipWithSocket: projectManagerModule.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
-// ====================
-// === LocalBackend ===
-// ====================
+// ============================
+// === overwriteMaterialize ===
+// ============================
 
-/** Class for sending requests to the Project Manager API endpoints.
- * This is used instead of the cloud backend API when managing local projects from the dashboard. */
-export default class LocalBackend extends Backend {
-  static currentlyOpeningProjectId: backend.ProjectId | null = null
-  static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
-  readonly type = backend.BackendType.local
-  private readonly projectManager: ProjectManager
+/** Any object that has a `materialize()` method that accepts no arguments. */
+interface HasMaterialize<T> {
+  readonly materialize: () => Promise<T> | T
+}
 
-  /** Create a {@link LocalBackend}. */
-  constructor(projectManagerUrl: string | null) {
-    super()
-    this.projectManager = ProjectManager.default(projectManagerUrl)
-    if (detect.IS_DEV_MODE) {
-      // @ts-expect-error This exists only for debugging purposes. It does not have types
-      // because it MUST NOT be used in this codebase.
-      window.localBackend = this
+/** Overwrites `materialize` so that it does not. */
+function overwriteMaterialize<T>(
+  smartAsset: HasMaterialize<T>,
+  materialize: () => Promise<T>
+): () => Promise<T> {
+  return () => {
+    const promise = materialize()
+    // This is SAFE - `materialize` is intended to be mutated here. This is the only place where
+    // it should be mutated.
+    object.unsafeMutable(smartAsset).materialize = () => promise
+    return promise
+  }
+}
+
+// =====================
+// === Smart objects ===
+// =====================
+
+/** A wrapper around a subset of the API endpoints. */
+class SmartObject<T> implements backend.SmartObject<T> {
+  /** Create a {@link SmartObject}. */
+  constructor(
+    protected readonly projectManager: ProjectManager,
+    readonly value: T
+  ) {}
+
+  /** Return a copy of this object, but with a different value. */
+  withValue(value: T): this {
+    // This is SAFE (as long as no child classes override the constructor),
+    // as it uses runtime reflection to get the constructor of the current object.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, no-restricted-syntax, @typescript-eslint/no-explicit-any
+    return new (this.constructor as any)(this.projectManager, value)
+  }
+
+  /** Called for any function that does not make sense in the Local Backend.
+   * @throws An error stating that the operation is intentionally unavailable on the local
+   * backend. */
+  protected invalidOperation(): never {
+    throw new Error('Cannot manage users, folders, files, tags, and secrets on the local backend.')
+  }
+}
+
+/** A smart wrapper around a {@link backend.User}. */
+class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
+  /** Invalid operation. */
+  update() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  delete() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  uploadPicture() {
+    return this.invalidOperation()
+  }
+
+  /** Get the root directory for this user. */
+  rootDirectory(): backend.SmartDirectory {
+    const rootDirectory = backend.createRootDirectoryAsset(this.value.rootDirectoryId)
+    return new SmartDirectory(this.projectManager, rootDirectory)
+  }
+
+  /** Invalid operation. */
+  invite() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  listUsers() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  listRecentFiles() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  listSecrets() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  getOrganization() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  getLogEvents() {
+    return this.invalidOperation()
+  }
+}
+
+/** A smart wrapper around a {@link backend.AnyAsset}. */
+class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
+  extends SmartObject<T>
+  implements backend.SmartAsset
+{
+  /** The type of the wrapped value. */
+  get type(): T['type'] {
+    return this.value.type
+  }
+
+  /** If this is a placeholder asset, return its non-placeholder equivalent after creating it on
+   * the backend. Otherwise, return `this`. */
+  materialize(): Promise<this> | this {
+    return this
+  }
+
+  /** Invalid operation. */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  update(_body: backend.UpdateAssetRequestBody): Promise<this> {
+    return this.invalidOperation()
+  }
+
+  /** Permanently delete a project. */
+  async delete(): Promise<void> {
+    if (this.value.type !== backend.AssetType.project) {
+      return this.invalidOperation()
+    } else {
+      try {
+        await this.projectManager.deleteProject({ projectId: this.value.id })
+        return
+      } catch (error) {
+        throw new Error(
+          `Could not delete project '${this.value.title}': ${
+            errorModule.getMessageOrToString(error) ?? 'unknown error'
+          }.`
+        )
+      }
     }
   }
 
-  /** Return a list of assets in a directory.
-   * @throws An error if the JSON-RPC call fails. */
-  override async listDirectory(): Promise<backend.AnyAsset[]> {
+  /** Invalid operation. */
+  undoDelete() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  copy() {
+    return this.invalidOperation()
+  }
+
+  /** Return a copy of this object, but with a different value. */
+  // @ts-expect-error This is SAFE, under the same conditions as `SmartObject.withValue`.
+  override withValue(value: T): this {
+    return super.withValue(value)
+  }
+
+  /** Invalid operation. */
+  listVersions() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  setPermissions() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  setTags() {
+    return this.invalidOperation()
+  }
+}
+
+/** A smart wrapper around a {@link backend.DirectoryAsset}. */
+class SmartDirectory extends SmartAsset<backend.DirectoryAsset> implements backend.SmartDirectory {
+  /** Return a list of assets in a directory. */
+  async list(): Promise<backend.AnySmartAsset[]> {
     const result = await this.projectManager.listProjects({})
-    return result.projects.map(project => ({
-      type: backend.AssetType.project,
-      id: project.id,
-      title: project.name,
-      modifiedAt: project.lastOpened ?? project.created,
-      parentId: backend.DirectoryId(''),
+    return result.projects.map(
+      project =>
+        new SmartProject(this.projectManager, {
+          type: backend.AssetType.project,
+          id: project.id,
+          title: project.name,
+          modifiedAt: project.lastOpened ?? project.created,
+          parentId: this.value.id,
+          permissions: [],
+          projectState: {
+            type: LocalBackend.currentlyOpenProjects.has(project.id)
+              ? backend.ProjectState.opened
+              : project.id === LocalBackend.currentlyOpeningProjectId
+                ? backend.ProjectState.openInProgress
+                : backend.ProjectState.closed,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            volume_id: '',
+          },
+          labels: [],
+          description: null,
+        })
+    )
+  }
+
+  /** Invalid operation. */
+  override update() {
+    return this.invalidOperation()
+  }
+
+  /** Create a {@link backend.SpecialLoadingAsset}. */
+  createSpecialLoadingAsset(): backend.SmartSpecialLoadingAsset {
+    return new SmartAsset<backend.SpecialLoadingAsset>(this.projectManager, {
+      type: backend.AssetType.specialLoading,
+      title: '',
+      id: backend.LoadingAssetId(
+        `${backend.AssetType.specialLoading}-${uniqueString.uniqueString()}`
+      ),
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
       permissions: [],
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+  }
+
+  /** Create a {@link backend.SpecialEmptyAsset}. */
+  createSpecialEmptyAsset(): backend.SmartSpecialEmptyAsset {
+    return new SmartAsset<backend.SpecialEmptyAsset>(this.projectManager, {
+      type: backend.AssetType.specialEmpty,
+      title: '',
+      id: backend.EmptyAssetId(`${backend.AssetType.specialEmpty}-${uniqueString.uniqueString()}`),
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions: [],
+      projectState: null,
+      labels: [],
+      description: null,
+    })
+  }
+
+  /** Invalid operation. */
+  createPlaceholderDirectory() {
+    return this.invalidOperation()
+  }
+
+  /** Create a {@link SmartProject} that is to be uploaded on the backend via `.materialize()` */
+  createPlaceholderProject(
+    title: string,
+    fileOrTemplateName: File | string | null,
+    permissions: backend.UserPermission[]
+  ): backend.SmartProject {
+    const result = new SmartProject(this.projectManager, {
+      type: backend.AssetType.project,
+      id: backend.ProjectId(`${backend.AssetType.project}-${uniqueString.uniqueString()}`),
+      title,
+      modifiedAt: dateTime.toRfc3339(new Date()),
+      parentId: this.value.id,
+      permissions,
       projectState: {
-        type: LocalBackend.currentlyOpenProjects.has(project.id)
-          ? backend.ProjectState.opened
-          : project.id === LocalBackend.currentlyOpeningProjectId
-            ? backend.ProjectState.openInProgress
-            : backend.ProjectState.closed,
+        type: backend.ProjectState.placeholder,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         volume_id: '',
       },
       labels: [],
       description: null,
-    }))
-  }
-
-  /** Return a list of projects belonging to the current user.
-   * @throws An error if the JSON-RPC call fails. */
-  override async listProjects(): Promise<backend.ListedProject[]> {
-    const result = await this.projectManager.listProjects({})
-    return result.projects.map(project => ({
-      name: project.name,
-      organizationId: '',
-      projectId: project.id,
-      packageName: project.name,
-      state: {
-        type: backend.ProjectState.closed,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
-      },
-      jsonAddress: null,
-      binaryAddress: null,
-    }))
-  }
-
-  /** Create a project.
-   * @throws An error if the JSON-RPC call fails. */
-  override async createProject(
-    body: backend.CreateProjectRequestBody
-  ): Promise<backend.CreatedProject> {
-    const project = await this.projectManager.createProject({
-      name: projectManager.ProjectName(body.projectName),
-      ...(body.projectTemplateName != null ? { projectTemplate: body.projectTemplateName } : {}),
-      missingComponentAction: projectManager.MissingComponentAction.install,
     })
-    return {
-      name: body.projectName,
-      organizationId: '',
-      projectId: project.projectId,
-      packageName: body.projectName,
-      state: {
-        type: backend.ProjectState.closed,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        volume_id: '',
-      },
+    if (fileOrTemplateName instanceof File) {
+      return this.invalidOperation()
+    } else {
+      result.materialize = overwriteMaterialize(result, async () => {
+        const project = await this.projectManager.createProject({
+          name: projectManagerModule.ProjectName(title),
+          ...(fileOrTemplateName != null ? { projectTemplate: fileOrTemplateName } : {}),
+          missingComponentAction: projectManagerModule.MissingComponentAction.install,
+        })
+        return result.withValue(
+          object.merge(result.value, {
+            id: project.projectId,
+            projectState: {
+              type: backend.ProjectState.closed,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              volume_id: '',
+            },
+          })
+        )
+      })
     }
+    return result
   }
 
-  /** Close the project identified by the given project ID.
-   * @throws An error if the JSON-RPC call fails. */
-  override async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
-    if (LocalBackend.currentlyOpeningProjectId === projectId) {
-      LocalBackend.currentlyOpeningProjectId = null
-    }
-    LocalBackend.currentlyOpenProjects.delete(projectId)
-    try {
-      await this.projectManager.closeProject({ projectId })
-      return
-    } catch (error) {
-      throw new Error(
-        `Could not close project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-          errorModule.tryGetMessage(error) ?? 'unknown error'
-        }.`
-      )
-    }
+  /** Invalid operation. */
+  createPlaceholderFile() {
+    return this.invalidOperation()
   }
 
-  /** Close the project identified by the given project ID.
-   * @throws An error if the JSON-RPC call fails. */
-  override async getProjectDetails(
-    projectId: backend.ProjectId,
-    title: string | null
-  ): Promise<backend.Project> {
-    const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
-    if (cachedProject == null) {
-      const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === projectId)
-      if (project == null) {
+  /** Invalid operation. */
+  createPlaceholderDataLink() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  createPlaceholderSecret() {
+    return this.invalidOperation()
+  }
+}
+
+/** A smart wrapper around a {@link backend.ProjectAsset}. */
+class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.SmartProject {
+  /** Set a project to an open state. */
+  async open(): Promise<void> {
+    LocalBackend.currentlyOpeningProjectId = this.value.id
+    if (!LocalBackend.currentlyOpenProjects.has(this.value.id)) {
+      try {
+        const project = await this.projectManager.openProject({
+          projectId: this.value.id,
+          missingComponentAction: projectManagerModule.MissingComponentAction.install,
+        })
+        LocalBackend.currentlyOpenProjects.set(this.value.id, project)
+        return
+      } catch (error) {
         throw new Error(
-          `Could not get details of project ${
-            title != null ? `'${title}'` : `with ID '${projectId}'`
+          `Could not open project '${this.value.title}': ${
+            errorModule.getMessageOrToString(error) ?? 'unknown error'
           }.`
         )
+      } finally {
+        if (LocalBackend.currentlyOpeningProjectId === this.value.id) {
+          LocalBackend.currentlyOpeningProjectId = null
+        }
+      }
+    }
+  }
+
+  /** Return project details. */
+  async getDetails(): Promise<backend.Project> {
+    const cachedProject = LocalBackend.currentlyOpenProjects.get(this.value.id)
+    if (cachedProject == null) {
+      const result = await this.projectManager.listProjects({})
+      const project = result.projects.find(listedProject => listedProject.id === this.value.id)
+      if (project == null) {
+        throw new Error(`Could not get details of project '${this.value.title}'.`)
       } else {
         const version =
           project.engineVersion == null
@@ -162,10 +383,10 @@ export default class LocalBackend extends Backend {
           binaryAddress: null,
           organizationId: '',
           packageName: project.name,
-          projectId,
+          projectId: this.value.id,
           state: {
             type:
-              projectId === LocalBackend.currentlyOpeningProjectId
+              this.value.id === LocalBackend.currentlyOpeningProjectId
                 ? backend.ProjectState.openInProgress
                 : project.lastOpened != null
                   ? backend.ProjectState.closed
@@ -190,7 +411,7 @@ export default class LocalBackend extends Backend {
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
         organizationId: '',
         packageName: cachedProject.projectNormalizedName,
-        projectId,
+        projectId: this.value.id,
         state: {
           type: backend.ProjectState.opened,
           // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -200,9 +421,109 @@ export default class LocalBackend extends Backend {
     }
   }
 
+  /** Invalid operation. */
+  getResourceUsage() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  getMainFile() {
+    return this.invalidOperation()
+  }
+
+  /** Change the name, description, AMI, or parent of a project. */
+  override async update(body: backend.UpdateAssetOrProjectRequestBody): Promise<this> {
+    if (body.ami != null) {
+      throw new Error('Cannot change project AMI on local backend.')
+    } else if (body.ideVersion != null) {
+      throw new Error('Cannot change project IDE version on local backend.')
+    } else {
+      if (body.projectName != null) {
+        await this.projectManager.renameProject({
+          projectId: this.value.id,
+          name: projectManagerModule.ProjectName(body.projectName),
+        })
+      }
+      const result = await this.projectManager.listProjects({})
+      const project = result.projects.find(listedProject => listedProject.id === this.value.id)
+      if (project == null) {
+        throw new Error('The project that is being updated no longer exists.')
+      } else {
+        return this.withValue(object.merge(this.value, { title: project.name }))
+      }
+    }
+  }
+
+  /** Close a project. */
+  async close(): Promise<void> {
+    if (LocalBackend.currentlyOpeningProjectId === this.value.id) {
+      LocalBackend.currentlyOpeningProjectId = null
+    }
+    LocalBackend.currentlyOpenProjects.delete(this.value.id)
+    try {
+      await this.projectManager.closeProject({ projectId: this.value.id })
+      return
+    } catch (error) {
+      throw new Error(
+        `Could not close project '${this.value.title}': ${
+          errorModule.getMessageOrToString(error) ?? 'unknown error'
+        }.`
+      )
+    }
+  }
+
+  /** Resolve only when the project is ready to be opened. */
+  waitUntilReady() {
+    return this.getDetails()
+  }
+}
+
+// ====================
+// === LocalBackend ===
+// ====================
+
+/** Class for sending requests to the Project Manager API endpoints.
+ * This is used instead of the cloud backend API when managing local projects from the dashboard. */
+export default class LocalBackend extends Backend {
+  static currentlyOpeningProjectId: backend.ProjectId | null = null
+  static currentlyOpenProjects = new Map<
+    projectManagerModule.ProjectId,
+    projectManagerModule.OpenProject
+  >()
+  readonly type = backend.BackendType.local
+  private readonly projectManager: ProjectManager
+
+  /** Create a {@link LocalBackend}. */
+  constructor(projectManagerUrl: string | null) {
+    super()
+    this.projectManager = ProjectManager.default(projectManagerUrl)
+    if (detect.IS_DEV_MODE) {
+      // @ts-expect-error This exists only for debugging purposes. It does not have types
+      // because it MUST NOT be used in this codebase.
+      window.localBackend = this
+    }
+  }
+
+  /** Get the project identified by the given project ID.
+   * @throws An error if the JSON-RPC call fails. */
+  async getProject(projectId: backend.ProjectId, title: string): Promise<backend.SmartProject> {
+    const self = await this.self()
+    const rootDirectory = self.rootDirectory()
+    const children = await rootDirectory.list({
+      filterBy: backend.FilterBy.active,
+      labels: null,
+    })
+    const project = children.find(child => child.value.id === projectId)
+    if (project?.type !== backend.AssetType.project) {
+      throw new Error(`The project '${title}' was not found.`)
+    } else {
+      return project
+    }
+  }
+
   /** Prepare a project for execution.
    * @throws An error if the JSON-RPC call fails. */
-  override async openProject(
+  async openProject(
     projectId: backend.ProjectId,
     _body: backend.OpenProjectRequestBody | null,
     title: string | null
@@ -212,108 +533,20 @@ export default class LocalBackend extends Backend {
       try {
         const project = await this.projectManager.openProject({
           projectId,
-          missingComponentAction: projectManager.MissingComponentAction.install,
+          missingComponentAction: projectManagerModule.MissingComponentAction.install,
         })
         LocalBackend.currentlyOpenProjects.set(projectId, project)
         return
       } catch (error) {
         throw new Error(
           `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-            errorModule.tryGetMessage(error) ?? 'unknown error'
+            errorModule.getMessageOrToString(error) ?? 'unknown error'
           }.`
         )
       } finally {
         LocalBackend.currentlyOpeningProjectId = null
       }
     }
-  }
-
-  /** Change the name of a project.
-   * @throws An error if the JSON-RPC call fails. */
-  override async updateProject(
-    projectId: backend.ProjectId,
-    body: backend.UpdateProjectRequestBody
-  ): Promise<backend.UpdatedProject> {
-    if (body.ami != null) {
-      throw new Error('Cannot change project AMI on local backend.')
-    } else {
-      if (body.projectName != null) {
-        await this.projectManager.renameProject({
-          projectId,
-          name: projectManager.ProjectName(body.projectName),
-        })
-      }
-      const result = await this.projectManager.listProjects({})
-      const project = result.projects.find(listedProject => listedProject.id === projectId)
-      const version =
-        project?.engineVersion == null
-          ? null
-          : {
-              lifecycle: backend.detectVersionLifecycle(project.engineVersion),
-              value: project.engineVersion,
-            }
-      if (project == null) {
-        throw new Error(`The project ID '${projectId}' is invalid.`)
-      } else {
-        return {
-          ami: null,
-          engineVersion: version,
-          ideVersion: version,
-          name: project.name,
-          organizationId: '',
-          projectId,
-        }
-      }
-    }
-  }
-
-  /** Delete an arbitrary asset.
-   * @throws An error if the JSON-RPC call fails. */
-  override async deleteAsset(
-    assetId: backend.AssetId,
-    _force: boolean,
-    title: string | null
-  ): Promise<void> {
-    // This is SAFE, as the only asset type on the local backend is projects.
-    // eslint-disable-next-line no-restricted-syntax
-    const projectId = assetId as backend.ProjectId
-    if (LocalBackend.currentlyOpeningProjectId === projectId) {
-      LocalBackend.currentlyOpeningProjectId = null
-    }
-    LocalBackend.currentlyOpenProjects.delete(projectId)
-    try {
-      await this.projectManager.deleteProject({ projectId })
-      return
-    } catch (error) {
-      throw new Error(
-        `Could not delete project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-          errorModule.tryGetMessage(error) ?? 'unknown error'
-        }.`
-      )
-    }
-  }
-
-  /** Copy an arbitrary asset to another directory. Not yet implemented in the backend.
-   * @throws {Error} Always. */
-  override copyAsset(): Promise<backend.CopyAssetResponse> {
-    throw new Error('Cannot copy assets in local backend yet.')
-  }
-
-  /** Return a list of engine versions. */
-  override async listVersions(params: backend.ListVersionsRequestParams) {
-    const engineVersions = await this.projectManager.listAvailableEngineVersions()
-    const engineVersionToVersion = (version: projectManager.EngineVersion): backend.Version => ({
-      ami: null,
-      created: dateTime.toRfc3339(new Date()),
-      number: {
-        value: version.version,
-        lifecycle: backend.detectVersionLifecycle(version.version),
-      },
-      // The names come from a third-party API and cannot be changed.
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      version_type: params.versionType,
-    })
-    return engineVersions.versions.map(engineVersionToVersion)
   }
 
   // === Endpoints that intentionally do not work on the Local Backend ===
@@ -325,164 +558,38 @@ export default class LocalBackend extends Backend {
     throw new Error('Cannot manage users, folders, files, tags, and secrets on the local backend.')
   }
 
-  /** Do nothing. This function should never need to be called. */
-  override undoDeleteAsset(): Promise<void> {
-    return this.invalidOperation()
-  }
-
-  /** Return an empty array. This function should never need to be called. */
-  override listUsers() {
-    return Promise.resolve([])
-  }
-
   /** Invalid operation. */
   override createUser() {
     return this.invalidOperation()
   }
 
-  /** Invalid operation. */
-  override updateUser() {
-    return this.invalidOperation()
+  /** Return details for the current user. */
+  override self(): Promise<SmartUser> {
+    return Promise.resolve(
+      new SmartUser(this.projectManager, {
+        email: backend.EmailAddress(''),
+        id: backend.OrganizationId('organization-local'),
+        isEnabled: false,
+        rootDirectoryId: backend.DirectoryId(`${backend.AssetType.directory}-local`),
+        name: 'Local User',
+        profilePicture: null,
+      })
+    )
   }
 
-  /** Invalid operation. */
-  override deleteUser() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override uploadUserPicture() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override getOrganization() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override updateOrganization() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override uploadOrganizationPicture() {
-    return this.invalidOperation()
-  }
-
-  /** Do nothing. This function should never need to be called. */
-  override inviteUser() {
-    return Promise.resolve()
-  }
-
-  /** Do nothing. This function should never need to be called. */
-  override createPermission() {
-    return Promise.resolve()
-  }
-
-  /** Return `null`. This function should never need to be called. */
-  override usersMe() {
-    return Promise.resolve(null)
-  }
-
-  /** Invalid operation. */
-  override createDirectory() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override updateDirectory() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override listAssetVersions() {
-    return this.invalidOperation()
-  }
-
-  /** Return `void`. This function should never need to be called. */
-  override updateAsset() {
-    return Promise.resolve()
-  }
-
-  /** Invalid operation. */
-  override checkResources() {
-    return this.invalidOperation()
-  }
-
-  /** Return an empty array. This function should never need to be called. */
-  override listFiles() {
-    return Promise.resolve([])
-  }
-
-  /** Invalid operation. While project bundles can be uploaded to the Project Manager,
-   * they are not uploaded as file assets, and hence do not return a {@link backend.FileInfo}. */
-  override uploadFile() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override getFileDetails() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override getFileContent() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override createConnector() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override getConnector() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override deleteConnector() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override createSecret() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override updateSecret() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override getSecret() {
-    return this.invalidOperation()
-  }
-
-  /** Return an empty array. This function should never need to be called. */
-  override listSecrets() {
-    return Promise.resolve([])
-  }
   /** Invalid operation. */
   override createTag() {
     return this.invalidOperation()
   }
 
-  /** Return an empty array. This function should never need to be called. */
+  /** Invalid operation. */
   override listTags() {
-    return Promise.resolve([])
+    return this.invalidOperation()
   }
 
-  /** Do nothing. This function should never need to be called. */
-  override associateTag() {
-    return Promise.resolve()
-  }
-
-  /** Do nothing. This function should never need to be called. */
+  /** Invalid operation. */
   override deleteTag() {
-    return Promise.resolve()
+    return this.invalidOperation()
   }
 
   /** Invalid operation. */
@@ -492,11 +599,6 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override getCheckoutSession() {
-    return this.invalidOperation()
-  }
-
-  /** Invalid operation. */
-  override getLogEvents() {
     return this.invalidOperation()
   }
 }

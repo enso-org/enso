@@ -37,6 +37,12 @@ const CATEGORY_TO_TEXT_ID: Readonly<Record<Category, text.TextId>> = {
   [Category.trash]: 'trashCategory',
 } satisfies { [C in Category]: `${C}Category` }
 
+const CATEGORY_TO_TITLE_ID: Readonly<Record<Category, text.TextId>> = {
+  [Category.recent]: 'recentCategoryTitle',
+  [Category.home]: 'homeCategoryTitle',
+  [Category.trash]: 'trashCategoryTitle',
+} satisfies { [C in Category]: `${C}CategoryTitle` }
+
 // ============================
 // === CategorySwitcherItem ===
 // ============================
@@ -59,7 +65,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   return (
     <button
       disabled={isCurrent}
-      title={`Go To ${category}`}
+      title={getText(CATEGORY_TO_TITLE_ID[category])}
       className={`selectable ${
         isCurrent ? 'bg-selected-frame active' : ''
       } group flex h-row items-center gap-icon-with-text rounded-full px-button-x transition-colors hover:bg-selected-frame`}

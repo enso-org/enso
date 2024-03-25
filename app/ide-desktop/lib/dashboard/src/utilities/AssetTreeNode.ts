@@ -1,6 +1,8 @@
 /** @file A node in the drive's item tree. */
 import * as backendModule from '#/services/Backend'
 
+import * as array from '#/utilities/array'
+
 // =====================
 // === AssetTreeNode ===
 // =====================
@@ -9,7 +11,7 @@ import * as backendModule from '#/services/Backend'
 export interface AssetTreeNodeData
   extends Pick<
     AssetTreeNode,
-    'children' | 'depth' | 'directoryId' | 'directoryKey' | 'item' | 'key'
+    'children' | 'depth' | 'directory' | 'directoryKey' | 'item' | 'key'
   > {}
 
 /** A node in the drive's item tree. */
@@ -20,12 +22,12 @@ export default class AssetTreeNode {
     public readonly key: backendModule.AssetId,
     /** The actual asset. This MAY change if this is initially a placeholder item, but rows MAY
      * keep updated values within the row itself as well. */
-    public item: backendModule.AnyAsset,
+    public item: backendModule.AnySmartAsset,
     /** The id of the asset's parent directory (or the placeholder id for new assets).
      * This must never change. */
     public readonly directoryKey: backendModule.AssetId,
     /** The actual id of the asset's parent directory (or the placeholder id for new assets). */
-    public readonly directoryId: backendModule.DirectoryId,
+    public readonly directory: backendModule.SmartDirectory,
     /** This is `null` if the asset is not a directory asset, OR if it is a collapsed directory
      * asset. */
     public readonly children: AssetTreeNode[] | null,
@@ -41,20 +43,27 @@ export default class AssetTreeNode {
   /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`.
    * Uses {@link backendModule.compareAssets} internally. */
   static compare(this: void, a: AssetTreeNode, b: AssetTreeNode) {
-    return backendModule.compareAssets(a.item, b.item)
+    return backendModule.compareAssets(a.item.value, b.item.value)
   }
 
-  /** Creates an {@link AssetTreeNode} from a {@link backendModule.AnyAsset}. */
-  static fromAsset(
+  /** Creates an {@link AssetTreeNode} from a {@link backendModule.AnySmartAsset}. */
+  static fromSmartAsset(
     this: void,
-    asset: backendModule.AnyAsset,
+    smartAsset: backendModule.AnySmartAsset,
     directoryKey: backendModule.AssetId,
-    directoryId: backendModule.DirectoryId,
+    directory: backendModule.SmartDirectory,
     depth: number,
     getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
   ): AssetTreeNode {
     getKey ??= oldAsset => oldAsset.id
-    return new AssetTreeNode(getKey(asset), asset, directoryKey, directoryId, null, depth)
+    return new AssetTreeNode(
+      getKey(smartAsset.value),
+      smartAsset,
+      directoryKey,
+      directory,
+      null,
+      depth
+    )
   }
 
   /** Create a new {@link AssetTreeNode} with the specified properties updated. */
@@ -63,7 +72,7 @@ export default class AssetTreeNode {
       update.key ?? this.key,
       update.item ?? this.item,
       update.directoryKey ?? this.directoryKey,
-      update.directoryId ?? this.directoryId,
+      update.directory ?? this.directory,
       // `null` MUST be special-cases in the following line.
       // eslint-disable-next-line eqeqeq
       update.children === null ? update.children : update.children ?? this.children,
@@ -134,6 +143,99 @@ export default class AssetTreeNode {
   ): AssetTreeNode[] {
     return (preprocess?.(this.children ?? []) ?? this.children ?? []).flatMap(node =>
       node.children == null ? [node] : [node, ...node.preorderTraversal(preprocess)]
+    )
+  }
+
+  /** Return self, with new children added into its list of children.
+   * The children MAY be of different asset types. */
+  withChildrenInserted(
+    children: backendModule.AnySmartAsset[],
+    directoryKey: backendModule.AssetId,
+    directory: backendModule.SmartDirectory,
+    getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
+  ) {
+    const depth = this.depth + 1
+    const nodes = (this.children ?? []).filter(
+      node => node.item.value.type !== backendModule.AssetType.specialEmpty
+    )
+    const byType: Record<backendModule.AssetType, backendModule.AnySmartAsset[]> = {
+      [backendModule.AssetType.directory]: [],
+      [backendModule.AssetType.project]: [],
+      [backendModule.AssetType.file]: [],
+      [backendModule.AssetType.dataLink]: [],
+      [backendModule.AssetType.secret]: [],
+      [backendModule.AssetType.specialLoading]: [],
+      [backendModule.AssetType.specialEmpty]: [],
+    }
+    for (const child of children) {
+      byType[child.value.type].push(child)
+    }
+    let newNodes = nodes
+    for (const childrenOfSpecificType of Object.values(byType)) {
+      const firstChild = childrenOfSpecificType[0]
+      if (firstChild) {
+        const typeOrder = backendModule.ASSET_TYPE_ORDER[firstChild.value.type]
+        const nodesToInsert = childrenOfSpecificType.map(asset =>
+          AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth, getKey)
+        )
+        newNodes = array.splicedBefore(
+          newNodes,
+          nodesToInsert,
+          child => backendModule.ASSET_TYPE_ORDER[child.item.value.type] >= typeOrder
+        )
+      }
+    }
+    return newNodes === nodes ? this : this.with({ children: newNodes })
+  }
+
+  /** Return self, with new children added into its list of children.
+   * All children MUST have the same asset type. */
+  withHomogeneousChildrenInserted(
+    children: backendModule.AnySmartAsset[],
+    directoryKey: backendModule.AssetId,
+    directory: backendModule.SmartDirectory
+  ): AssetTreeNode {
+    const depth = this.depth + 1
+    const typeOrder =
+      children[0] != null ? backendModule.ASSET_TYPE_ORDER[children[0].value.type] : 0
+    const nodes = (this.children ?? []).filter(
+      node => node.item.value.type !== backendModule.AssetType.specialEmpty
+    )
+    const nodesToInsert = children.map(asset =>
+      AssetTreeNode.fromSmartAsset(asset, directoryKey, directory, depth)
+    )
+    const newNodes = array.splicedBefore(
+      nodes,
+      nodesToInsert,
+      innerItem => backendModule.ASSET_TYPE_ORDER[innerItem.item.value.type] >= typeOrder
+    )
+    return this.with({ children: newNodes })
+  }
+
+  /** Return self, with new children added into the children list of the given directory.
+   * The children MAY be of different asset types. */
+  withDescendantsInserted(
+    assets: backendModule.AnySmartAsset[],
+    parentKey: backendModule.AssetId,
+    parent: backendModule.SmartDirectory,
+    getKey: ((asset: backendModule.AnyAsset) => backendModule.AssetId) | null = null
+  ) {
+    return this.map(item =>
+      item.key !== parentKey ? item : item.withChildrenInserted(assets, parentKey, parent, getKey)
+    )
+  }
+
+  /** Return self, with new children added into the children list of the given directory.
+   * All children MUST have the same asset type. */
+  withHomogeneousDescendantsInserted(
+    assets: backendModule.AnySmartAsset[],
+    parentKey: backendModule.AssetId,
+    parent: backendModule.SmartDirectory
+  ) {
+    return this.map(item =>
+      item.key !== parentKey
+        ? item
+        : item.withHomogeneousChildrenInserted(assets, parentKey, parent)
     )
   }
 }

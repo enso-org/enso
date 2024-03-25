@@ -59,10 +59,10 @@ export default function Editor(props: EditorProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     hasEffectRun = true
     if (projectStartupInfo != null) {
-      const { project, backendType, accessToken } = projectStartupInfo
+      const { details, backendType, accessToken } = projectStartupInfo
       void (async () => {
-        const jsonAddress = project.jsonAddress
-        const binaryAddress = project.binaryAddress
+        const jsonAddress = details.jsonAddress
+        const binaryAddress = details.binaryAddress
         if (jsonAddress == null) {
           toastAndLog('noJSONEndpointError')
         } else if (binaryAddress == null) {
@@ -71,13 +71,13 @@ export default function Editor(props: EditorProps) {
           let assetsRoot: string
           switch (backendType) {
             case backendModule.BackendType.remote: {
-              if (project.ideVersion == null) {
+              if (details.ideVersion == null) {
                 toastAndLog('noIdeVersionError')
                 // This is too deeply nested to easily return from
                 // eslint-disable-next-line no-restricted-syntax
                 return
               }
-              assetsRoot = `${IDE_CDN_BASE_URL}/${project.ideVersion.value}/`
+              assetsRoot = `${IDE_CDN_BASE_URL}/${details.ideVersion.value}/`
               break
             }
             case backendModule.BackendType.local: {
@@ -106,20 +106,20 @@ export default function Editor(props: EditorProps) {
                   },
                   engine: {
                     ...engineConfig,
-                    ...(project.engineVersion != null
-                      ? { preferredVersion: project.engineVersion.value }
+                    ...(details.engineVersion != null
+                      ? { preferredVersion: details.engineVersion.value }
                       : {}),
                   },
                   startup: {
-                    project: project.packageName,
-                    displayedProjectName: project.name,
+                    project: details.packageName,
+                    displayedProjectName: details.name,
                   },
                   window: {
                     topBarOffset: `${TOP_BAR_X_OFFSET_PX}`,
                   },
                 },
                 accessToken,
-                { projectId: project.projectId }
+                { projectId: details.projectId }
               )
             } catch (error) {
               toastAndLog('openEditorError', error)

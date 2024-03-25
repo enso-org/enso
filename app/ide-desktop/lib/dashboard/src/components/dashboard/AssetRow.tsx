@@ -8,7 +8,6 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -61,11 +60,10 @@ export interface AssetRowInnerProps {
 }
 
 /** Props for an {@link AssetRow}. */
-export interface AssetRowProps
-  extends Readonly<Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'>> {
+export interface AssetRowProps {
   readonly item: AssetTreeNode
   readonly state: assetsTable.AssetsTableState
-  readonly hidden: boolean
+  readonly visibility: Visibility | null
   readonly columns: columnUtils.Column[]
   readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
@@ -73,51 +71,94 @@ export interface AssetRowProps
   readonly isKeyboardSelected: boolean
   readonly allowContextMenu: boolean
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  readonly onContextMenu?: (
+  readonly onContextMenu: (
     props: AssetRowInnerProps,
     event: React.MouseEvent<HTMLTableRowElement>
   ) => void
+  readonly onDragStart: React.DragEventHandler<HTMLTableRowElement>
+  readonly onDragOver: React.DragEventHandler<HTMLTableRowElement>
+  readonly onDragEnd: React.DragEventHandler<HTMLTableRowElement>
+  readonly onDrop: React.DragEventHandler<HTMLTableRowElement>
 }
 
-/** A row containing an {@link backendModule.AnyAsset}. */
+/** A row containing an {@link backendModule.AnySmartAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
-  const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
-  const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
-  const { setIsAssetPanelTemporarilyVisible, scrollContainerRef } = state
+  const { item: rawItem, visibility: visibilityRaw, selected, setSelected, isSoleSelected } = props
+  const { isKeyboardSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
+  const { onDragStart, onDragOver: onDragOverRaw, onDragEnd, onDrop } = props
+  const { nodeMap, rootDirectory, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { isCloud, setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
+  const { scrollContainerRef, setIsAssetPanelTemporarilyVisible } = state
 
   const { user, userInfo } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
-  const asset = item.item
+  const smartAsset = item.item
+  const asset = smartAsset.value
   const [insertionVisibility, setInsertionVisibility] = React.useState(Visibility.visible)
   const [rowState, setRowState] = React.useState<assetsTable.AssetRowState>(() =>
     object.merge(assetRowUtils.INITIAL_ROW_STATE, { setVisibility: setInsertionVisibility })
   )
   const key = AssetTreeNode.getKey(item)
-  const isCloud = backend.type === backendModule.BackendType.remote
-  const outerVisibility = visibilities.get(key)
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const visibility =
-    outerVisibility == null || outerVisibility === Visibility.visible
+    visibilityRaw == null || visibilityRaw === Visibility.visible
       ? insertionVisibility
-      : outerVisibility
-  const hidden = hiddenRaw || visibility === Visibility.hidden
+      : visibilityRaw
+  const hidden = visibility === Visibility.hidden
 
   React.useEffect(() => {
     setItem(rawItem)
   }, [rawItem])
+
+  // Materialize the asset on the backend. If it already exists, this will not send a request to
+  // the backend.
+  React.useEffect(() => {
+    const materializedOrPromise = smartAsset.materialize()
+    if (!(materializedOrPromise instanceof Promise)) {
+      setAsset(materializedOrPromise.value)
+    } else {
+      void (async () => {
+        try {
+          rowState.setVisibility(Visibility.faded)
+          const materialized = await materializedOrPromise
+          rowState.setVisibility(Visibility.visible)
+          setAsset(materialized.value)
+          if (
+            backendModule.assetIsProject(asset) &&
+            asset.projectState.type === backendModule.ProjectState.placeholder &&
+            backendModule.assetIsProject(materialized.value)
+          ) {
+            dispatchAssetEvent({
+              type: AssetEventType.openProject,
+              id: materialized.value.id,
+              shouldAutomaticallySwitchPage: true,
+              runInBackground: false,
+            })
+          }
+        } catch (error) {
+          rowState.setVisibility(Visibility.visible)
+        }
+      })()
+    }
+    // This MUST only run once, on initialization.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   React.useEffect(() => {
     // Mutation is HIGHLY INADVISABLE in React, however it is useful here as we want to avoid
-    // re-rendering the parent.
-    rawItem.item = asset
+    // re - rendering the parent.
+    // @ts-expect-error Because `smartAsset` is of an unknown type, its parameter is contravariant.
+    // However, this is safe because the type of an asset cannot change.
+    rawItem.item = smartAsset.withValue(asset)
+    // FIXME: Must this be omitted?
+    // `smartAsset` is NOT a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asset, rawItem])
-  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   React.useEffect(() => {
     if (selected && insertionVisibility !== Visibility.visible) {
@@ -136,12 +177,10 @@ export default function AssetRow(props: AssetRowProps) {
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
-        newParentId ??= user?.rootDirectoryId ?? backendModule.DirectoryId('')
-        const copiedAsset = await backend.copyAsset(
-          asset.id,
+        newParentId ??= rootDirectory.value.id
+        const copiedAsset = await smartAsset.copy(
           newParentId,
-          asset.title,
-          nodeMap.current.get(newParentId)?.item.title ?? '(unknown)'
+          nodeMap.current.get(newParentId)?.item.value.title ?? '(unknown)'
         )
         setAsset(
           // This is SAFE, as the type of the copied asset is guaranteed to be the same
@@ -156,9 +195,10 @@ export default function AssetRow(props: AssetRowProps) {
       }
     },
     [
-      backend,
+      rootDirectory.value.id,
       user,
       userInfo,
+      smartAsset,
       asset,
       item.key,
       toastAndLog,
@@ -171,49 +211,44 @@ export default function AssetRow(props: AssetRowProps) {
   const doMove = React.useCallback(
     async (
       newParentKey: backendModule.AssetId | null,
-      newParentId: backendModule.DirectoryId | null
+      newParent: backendModule.SmartDirectory | null
     ) => {
-      const rootDirectoryId = user?.rootDirectoryId ?? backendModule.DirectoryId('')
-      const nonNullNewParentKey = newParentKey ?? rootDirectoryId
-      const nonNullNewParentId = newParentId ?? rootDirectoryId
+      const nonNullNewParentKey = newParentKey ?? rootDirectory.value.id
+      const nonNullNewParent = newParent ?? rootDirectory
       try {
         dispatchAssetListEvent({
           type: AssetListEventType.move,
           newParentKey: nonNullNewParentKey,
-          newParentId: nonNullNewParentId,
+          newParent: nonNullNewParent,
           key: item.key,
-          item: asset,
+          item: smartAsset,
         })
         setItem(oldItem =>
-          oldItem.with({ directoryKey: nonNullNewParentKey, directoryId: nonNullNewParentId })
+          oldItem.with({ directoryKey: nonNullNewParentKey, directory: nonNullNewParent })
         )
-        setAsset(object.merger({ parentId: nonNullNewParentId }))
-        await backend.updateAsset(
-          asset.id,
-          { parentDirectoryId: newParentId ?? rootDirectoryId, description: null },
-          asset.title
-        )
+        setAsset(object.merger({ parentId: nonNullNewParent.value.id }))
+        await smartAsset.update({ parentDirectoryId: nonNullNewParent.value.id })
       } catch (error) {
-        toastAndLog('moveAssetError', error, asset.title)
+        toastAndLog('moveAssetError', error, smartAsset.value.title)
         setAsset(object.merger({ parentId: asset.parentId }))
         setItem(oldItem =>
-          oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
+          oldItem.with({ directoryKey: item.directoryKey, directory: item.directory })
         )
         // Move the asset back to its original position.
         dispatchAssetListEvent({
           type: AssetListEventType.move,
           newParentKey: item.directoryKey,
-          newParentId: item.directoryId,
+          newParent: item.directory,
           key: item.key,
-          item: asset,
+          item: smartAsset,
         })
       }
     },
     [
-      backend,
-      user,
-      asset,
-      item.directoryId,
+      rootDirectory,
+      smartAsset,
+      asset.parentId,
+      item.directory,
       item.directoryKey,
       item.key,
       toastAndLog,
@@ -237,10 +272,10 @@ export default function AssetRow(props: AssetRowProps) {
   const doDelete = React.useCallback(
     async (forever = false) => {
       setInsertionVisibility(Visibility.hidden)
-      if (asset.type === backendModule.AssetType.directory) {
+      if (smartAsset.type === backendModule.AssetType.directory) {
         dispatchAssetListEvent({
           type: AssetListEventType.closeFolder,
-          id: asset.id,
+          folder: smartAsset,
           // This is SAFE, as this asset is already known to be a directory.
           // eslint-disable-next-line no-restricted-syntax
           key: item.key as backendModule.DirectoryId,
@@ -248,33 +283,30 @@ export default function AssetRow(props: AssetRowProps) {
       }
       try {
         dispatchAssetListEvent({ type: AssetListEventType.willDelete, key: item.key })
-        if (
-          asset.type === backendModule.AssetType.project &&
-          backend.type === backendModule.BackendType.local
-        ) {
+        if (smartAsset.type === backendModule.AssetType.project && !isCloud) {
           if (
-            asset.projectState.type !== backendModule.ProjectState.placeholder &&
-            asset.projectState.type !== backendModule.ProjectState.closed
+            smartAsset.value.projectState.type !== backendModule.ProjectState.placeholder &&
+            smartAsset.value.projectState.type !== backendModule.ProjectState.closed
           ) {
-            await backend.openProject(asset.id, null, asset.title)
+            await smartAsset.open()
           }
           try {
-            await backend.closeProject(asset.id, asset.title)
+            await smartAsset.close()
           } catch {
             // Ignored. The project was already closed.
           }
         }
-        await backend.deleteAsset(asset.id, forever, asset.title)
+        await smartAsset.delete(forever)
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
-        toastAndLog('deleteAssetError', error, asset.title)
+        toastAndLog('deleteAssetError', error, smartAsset.value.title)
       }
     },
     [
-      backend,
+      isCloud,
       dispatchAssetListEvent,
-      asset,
+      smartAsset,
       /* should never change */ item.key,
       /* should never change */ toastAndLog,
     ]
@@ -284,22 +316,17 @@ export default function AssetRow(props: AssetRowProps) {
     // Visually, the asset is deleted from the Trash view.
     setInsertionVisibility(Visibility.hidden)
     try {
-      await backend.undoDeleteAsset(asset.id, asset.title)
+      await smartAsset.undoDelete()
       dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
-      toastAndLog('restoreAssetError', error, asset.title)
+      toastAndLog('restoreAssetError', error, smartAsset.value.title)
     }
-  }, [backend, dispatchAssetListEvent, asset, toastAndLog, /* should never change */ item.key])
+  }, [dispatchAssetListEvent, smartAsset, toastAndLog, /* should never change */ item.key])
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
       // These events are handled in the specific `NameColumn` files.
-      case AssetEventType.newProject:
-      case AssetEventType.newFolder:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newDataLink:
-      case AssetEventType.newSecret:
       case AssetEventType.updateFiles:
       case AssetEventType.openProject:
       case AssetEventType.closeProject: {
@@ -307,7 +334,7 @@ export default function AssetRow(props: AssetRowProps) {
       }
       case AssetEventType.copy: {
         if (event.ids.has(item.key)) {
-          await doCopyOnBackend(event.newParentId)
+          await doCopyOnBackend(event.newParent.value.id)
         }
         break
       }
@@ -326,7 +353,7 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.move: {
         if (event.ids.has(item.key)) {
           setInsertionVisibility(Visibility.visible)
-          await doMove(event.newParentKey, event.newParentId)
+          await doMove(event.newParentKey, event.newParent)
         }
         break
       }
@@ -352,10 +379,10 @@ export default function AssetRow(props: AssetRowProps) {
       case AssetEventType.downloadSelected: {
         if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
           if (isCloud) {
-            switch (asset.type) {
+            switch (smartAsset.type) {
               case backendModule.AssetType.project: {
                 try {
-                  const details = await backend.getProjectDetails(asset.id, asset.title)
+                  const details = await smartAsset.getDetails()
                   if (details.url != null) {
                     download.download(details.url, asset.title)
                   } else {
@@ -369,7 +396,7 @@ export default function AssetRow(props: AssetRowProps) {
               }
               case backendModule.AssetType.file: {
                 try {
-                  const details = await backend.getFileDetails(asset.id, asset.title)
+                  const details = await smartAsset.getDetails()
                   if (details.url != null) {
                     download.download(details.url, asset.title)
                   } else {
@@ -383,7 +410,7 @@ export default function AssetRow(props: AssetRowProps) {
               }
               case backendModule.AssetType.dataLink: {
                 try {
-                  const value = await backend.getConnector(asset.id, asset.title)
+                  const value = await smartAsset.getValue()
                   const fileName = `${asset.title}.datalink`
                   download.download(
                     URL.createObjectURL(
@@ -417,11 +444,7 @@ export default function AssetRow(props: AssetRowProps) {
         if (event.id === asset.id && userInfo != null) {
           setInsertionVisibility(Visibility.hidden)
           try {
-            await backend.createPermission({
-              action: null,
-              resourceId: asset.id,
-              actorsIds: [userInfo.userId],
-            })
+            await smartAsset.setPermissions({ actorsIds: [userInfo.userId], action: null })
             dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
             setInsertionVisibility(Visibility.visible)
@@ -473,7 +496,7 @@ export default function AssetRow(props: AssetRowProps) {
           ]
           setAsset(object.merger({ labels: newLabels }))
           try {
-            await backend.associateTag(asset.id, newLabels, asset.title)
+            await smartAsset.setTags(newLabels)
           } catch (error) {
             setAsset(object.merger({ labels }))
             toastAndLog(null, error)
@@ -496,7 +519,7 @@ export default function AssetRow(props: AssetRowProps) {
           const newLabels = labels.filter(label => !event.labelNames.has(label))
           setAsset(object.merger({ labels: newLabels }))
           try {
-            await backend.associateTag(asset.id, newLabels, asset.title)
+            await smartAsset.setTags(newLabels)
           } catch (error) {
             setAsset(object.merger({ labels }))
             toastAndLog(null, error)
@@ -533,12 +556,15 @@ export default function AssetRow(props: AssetRowProps) {
     )
   }, [])
 
-  const onDragOver = (event: React.DragEvent<Element>) => {
-    const directoryKey =
-      item.item.type === backendModule.AssetType.directory ? item.key : item.directoryKey
+  const onDragOver = (event: React.DragEvent<HTMLTableRowElement>) => {
+    onDragOverRaw(event)
+    const directoryId =
+      item.item.type === backendModule.AssetType.directory
+        ? item.item.value.id
+        : item.directory.value.id
     const payload = drag.ASSET_ROWS.lookup(event)
     if (
-      (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) ||
+      (payload != null && payload.every(innerItem => innerItem.asset.parentId !== directoryId)) ||
       event.dataTransfer.types.includes('Files')
     ) {
       event.preventDefault()
@@ -589,7 +615,7 @@ export default function AssetRow(props: AssetRowProps) {
                 unsetModal()
                 onClick(innerProps, event)
                 if (
-                  asset.type === backendModule.AssetType.directory &&
+                  smartAsset.type === backendModule.AssetType.directory &&
                   eventModule.isDoubleClick(event) &&
                   !rowState.isEditingName
                 ) {
@@ -598,16 +624,17 @@ export default function AssetRow(props: AssetRowProps) {
                   window.setTimeout(() => {
                     setSelected(false)
                   })
-                  doToggleDirectoryExpansion(asset.id, item.key, asset.title)
+                  doToggleDirectoryExpansion(smartAsset, item.key)
                 }
               }}
               onContextMenu={event => {
                 if (allowContextMenu) {
                   event.preventDefault()
                   event.stopPropagation()
-                  onContextMenu?.(innerProps, event)
+                  onContextMenu(innerProps, event)
                   setModal(
                     <AssetContextMenu
+                      isCloud={isCloud}
                       innerProps={innerProps}
                       event={event}
                       eventTarget={
@@ -620,36 +647,32 @@ export default function AssetRow(props: AssetRowProps) {
                     />
                   )
                 } else {
-                  onContextMenu?.(innerProps, event)
+                  onContextMenu(innerProps, event)
                 }
               }}
               onDragStart={event => {
                 if (rowState.isEditingName || !isCloud) {
                   event.preventDefault()
                 } else {
-                  props.onDragStart?.(event)
+                  onDragStart(event)
                 }
               }}
               onDragEnter={event => {
                 if (dragOverTimeoutHandle.current != null) {
                   window.clearTimeout(dragOverTimeoutHandle.current)
                 }
-                if (backendModule.assetIsDirectory(asset)) {
+                if (smartAsset.type === backendModule.AssetType.directory) {
                   dragOverTimeoutHandle.current = window.setTimeout(() => {
-                    doToggleDirectoryExpansion(asset.id, item.key, asset.title, true)
+                    doToggleDirectoryExpansion(smartAsset, item.key, true)
                   }, DRAG_EXPAND_DELAY_MS)
                 }
                 // Required because `dragover` does not fire on `mouseenter`.
-                props.onDragOver?.(event)
                 onDragOver(event)
               }}
-              onDragOver={event => {
-                props.onDragOver?.(event)
-                onDragOver(event)
-              }}
+              onDragOver={onDragOver}
               onDragEnd={event => {
                 clearDragState()
-                props.onDragEnd?.(event)
+                onDragEnd(event)
               }}
               onDragLeave={event => {
                 if (
@@ -665,38 +688,33 @@ export default function AssetRow(props: AssetRowProps) {
                 ) {
                   clearDragState()
                 }
-                props.onDragLeave?.(event)
               }}
               onDrop={event => {
-                props.onDrop?.(event)
                 clearDragState()
-                const [directoryKey, directoryId, directoryTitle] =
+                onDrop(event)
+                const [newParentKey, newParent] =
                   item.item.type === backendModule.AssetType.directory
-                    ? [item.key, item.item.id, asset.title]
-                    : [item.directoryKey, item.directoryId, null]
+                    ? [item.key, item.item]
+                    : [item.directoryKey, item.directory]
                 const payload = drag.ASSET_ROWS.lookup(event)
-                if (payload != null && payload.every(innerItem => innerItem.key !== directoryKey)) {
+                if (payload != null && payload.every(innerItem => innerItem.key !== newParentKey)) {
                   event.preventDefault()
                   event.stopPropagation()
                   unsetModal()
-                  doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
-                  dispatchAssetEvent({
-                    type: AssetEventType.move,
-                    newParentKey: directoryKey,
-                    newParentId: directoryId,
-                    ids: new Set(payload.map(dragItem => dragItem.key)),
-                  })
+                  doToggleDirectoryExpansion(newParent, newParentKey, true)
+                  const ids = new Set(payload.map(dragItem => dragItem.key))
+                  dispatchAssetEvent({ type: AssetEventType.move, newParentKey, newParent, ids })
                 } else if (event.dataTransfer.types.includes('Files')) {
                   event.preventDefault()
                   event.stopPropagation()
-                  doToggleDirectoryExpansion(directoryId, directoryKey, directoryTitle, true)
+                  doToggleDirectoryExpansion(newParent, newParentKey, true)
                   dispatchAssetListEvent({
                     type: AssetListEventType.uploadFiles,
                     // This is SAFE, as it is guarded by the condition above:
                     // `item.item.type === backendModule.AssetType.directory`
                     // eslint-disable-next-line no-restricted-syntax
-                    parentKey: directoryKey as backendModule.DirectoryId,
-                    parentId: directoryId,
+                    parentKey: newParentKey as backendModule.DirectoryId,
+                    parent: newParent,
                     files: Array.from(event.dataTransfer.files),
                   })
                 }
@@ -709,7 +727,6 @@ export default function AssetRow(props: AssetRowProps) {
                 return (
                   <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                     <Render
-                      keyProp={key}
                       item={item}
                       setItem={setItem}
                       selected={selected}
@@ -730,6 +747,7 @@ export default function AssetRow(props: AssetRowProps) {
             // the entire context menu (once for the keyboard actions, once for the JSX).
             <AssetContextMenu
               hidden
+              isCloud={isCloud}
               innerProps={{
                 key,
                 item,

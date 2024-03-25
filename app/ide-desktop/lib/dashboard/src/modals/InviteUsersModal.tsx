@@ -9,7 +9,6 @@ import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -70,14 +69,15 @@ export interface InviteUsersModalProps {
 export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { eventTarget } = props
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState<string[]>([])
   const [email, setEmail] = React.useState<string>('')
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
-  const members = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
+  const members = asyncEffectHooks.useAsyncEffect([], async () => (await user?.listUsers()) ?? [], [
+    user,
+  ])
   const existingEmails = React.useMemo(
     () => new Set(members.map<string>(member => member.email)),
     [members]
@@ -98,10 +98,7 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
       for (const newEmail of newEmails) {
         void (async () => {
           try {
-            await backend.inviteUser({
-              organizationId: user.id,
-              userEmail: backendModule.EmailAddress(newEmail),
-            })
+            await user.invite(backendModule.EmailAddress(newEmail))
           } catch (error) {
             toastAndLog('couldNotInviteUser', error, newEmail)
           }

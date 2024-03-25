@@ -8,7 +8,6 @@ import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -36,10 +35,10 @@ const TYPE_SELECTOR_Y_OFFSET_PX = 32
 
 /** Props for a {@link ManagePermissionsModal}. */
 export interface ManagePermissionsModalProps<
-  Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
+  Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 > {
   readonly item: Asset
-  readonly setItem: React.Dispatch<React.SetStateAction<Asset>>
+  readonly setItem: React.Dispatch<React.SetStateAction<Asset['value']>>
   readonly self: backendModule.UserPermission
   /** Remove the current user's permissions from this asset. This MUST be a prop because it should
    * change the assets list. */
@@ -52,15 +51,15 @@ export interface ManagePermissionsModalProps<
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
 export default function ManagePermissionsModal<
-  Asset extends backendModule.AnyAsset = backendModule.AnyAsset,
+  Asset extends backendModule.AnySmartAsset = backendModule.AnySmartAsset,
 >(props: ManagePermissionsModalProps<Asset>) {
   const { item, setItem, self, doRemoveSelf, eventTarget } = props
-  const { user: user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
+  const { user } = authProvider.useNonPartialUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = textProvider.useText()
-  const [permissions, setPermissions] = React.useState(item.permissions ?? [])
+  const asset = item.value
+  const [permissions, setPermissions] = React.useState(asset.permissions ?? [])
   const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
   const [email, setEmail] = React.useState<string | null>(null)
   const [action, setAction] = React.useState(permissionsModule.PermissionAction.view)
@@ -75,12 +74,12 @@ export default function ManagePermissionsModal<
     [permissions, self.permission]
   )
   const usernamesOfUsersWithPermission = React.useMemo(
-    () => new Set(item.permissions?.map(userPermission => userPermission.user.user_name)),
-    [item.permissions]
+    () => new Set(asset.permissions?.map(userPermission => userPermission.user.user_name)),
+    [asset.permissions]
   )
   const emailsOfUsersWithPermission = React.useMemo(
-    () => new Set<string>(item.permissions?.map(userPermission => userPermission.user.user_email)),
-    [item.permissions]
+    () => new Set<string>(asset.permissions?.map(userPermission => userPermission.user.user_email)),
+    [asset.permissions]
   )
   const isOnlyOwner = React.useMemo(
     () =>
@@ -88,25 +87,23 @@ export default function ManagePermissionsModal<
       permissions.every(
         permission =>
           permission.permission !== permissionsModule.PermissionAction.own ||
-          permission.user.user_email === user?.email
+          permission.user.user_email === user?.value.email
       ),
-    [user?.email, permissions, self.permission]
+    [user?.value.email, permissions, self.permission]
   )
 
   React.useEffect(() => {
-    // This is SAFE, as the type of asset is not being changed.
-    // eslint-disable-next-line no-restricted-syntax
-    setItem(object.merger({ permissions } as Partial<Asset>))
+    setItem(object.merger<backendModule.AnyAsset>({ permissions }))
   }, [permissions, /* should never change */ setItem])
 
-  if (backend.type === backendModule.BackendType.local || user == null) {
+  if (user == null) {
     // This should never happen - the local backend does not have the "shared with" column,
     // and `organization` is absent only when offline - in which case the user should only
     // be able to access the local backend.
     // This MUST be an error, otherwise the hooks below are considered as conditionally called.
     throw new Error('Cannot share assets on the local backend.')
   } else {
-    const listedUsers = asyncEffectHooks.useAsyncEffect(null, () => backend.listUsers(), [])
+    const listedUsers = asyncEffectHooks.useAsyncEffect(null, () => user.listUsers(), [user])
     const allUsers = React.useMemo(
       () =>
         (listedUsers ?? []).filter(
@@ -140,10 +137,7 @@ export default function ManagePermissionsModal<
           setUsers([])
           setEmail('')
           if (email != null) {
-            await backend.inviteUser({
-              organizationId: user.id,
-              userEmail: backendModule.EmailAddress(email),
-            })
+            await user.invite(backendModule.EmailAddress(email))
             toast.toast.success(getText('inviteSuccess', email))
           }
         } catch (error) {
@@ -153,8 +147,7 @@ export default function ManagePermissionsModal<
         setUsers([])
         const addedUsersPermissions = users.map<backendModule.UserPermission>(newUser => ({
           user: {
-            // The names come from a third-party API and cannot be
-            // changed.
+            // The names come from a third-party API and cannot be changed.
             /* eslint-disable @typescript-eslint/naming-convention */
             pk: newUser.organizationId,
             sk: newUser.userId,
@@ -178,11 +171,8 @@ export default function ManagePermissionsModal<
               ...addedUsersPermissions,
             ].sort(backendModule.compareUserPermissions)
           )
-          await backend.createPermission({
-            actorsIds: addedUsersPermissions.map(userPermissions => userPermissions.user.sk),
-            resourceId: item.id,
-            action: action,
-          })
+          const actorsIds = addedUsersPermissions.map(userPermissions => userPermissions.user.sk)
+          await item.setPermissions({ actorsIds, action: action })
         } catch (error) {
           setPermissions(oldPermissions =>
             [
@@ -211,11 +201,7 @@ export default function ManagePermissionsModal<
               oldUserPermissions => oldUserPermissions.user.sk !== userToDelete.sk
             )
           )
-          await backend.createPermission({
-            actorsIds: [userToDelete.sk],
-            resourceId: item.id,
-            action: null,
-          })
+          await item.setPermissions({ actorsIds: [userToDelete.sk], action: null })
         } catch (error) {
           if (oldPermission != null) {
             setPermissions(oldPermissions =>
@@ -236,10 +222,7 @@ export default function ManagePermissionsModal<
           tabIndex={-1}
           style={
             position != null
-              ? {
-                  left: position.left + window.scrollX,
-                  top: position.top + window.scrollY,
-                }
+              ? { left: position.left + window.scrollX, top: position.top + window.scrollY }
               : {}
           }
           className="sticky w-manage-permissions-modal rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"

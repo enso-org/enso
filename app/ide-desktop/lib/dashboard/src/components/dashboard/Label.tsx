@@ -1,7 +1,7 @@
 /** @file An label that can be applied to an asset. */
 import * as React from 'react'
 
-import * as backend from '#/services/Backend'
+import * as colorModule from '#/utilities/color'
 
 // =============
 // === Label ===
@@ -22,7 +22,7 @@ interface InternalLabelProps
   readonly negated?: boolean
   /** When true, the button cannot be clicked. */
   readonly disabled?: boolean
-  readonly color: backend.LChColor
+  readonly color: colorModule.LChColor
   readonly className?: string
 }
 
@@ -54,7 +54,7 @@ export default function Label(props: InternalLabelProps) {
       } relative flex h-text items-center whitespace-nowrap rounded-full px-label-x transition-all before:absolute before:inset before:rounded-full ${
         negated ? 'before:border-2 before:border-delete' : ''
       } ${className} ${textColorClassName}`}
-      style={{ backgroundColor: backend.lChColorToCssColor(color) }}
+      style={{ backgroundColor: colorModule.lChColorToCssColor(color) }}
       {...passthrough}
     >
       {children}

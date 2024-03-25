@@ -25,9 +25,10 @@ export interface TopBarProps {
   readonly isCloud: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
-  readonly projectAsset: backendModule.ProjectAsset | null
+  readonly projectAsset: backendModule.SmartProject | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly isEditorDisabled: boolean
+  readonly backendType: backendModule.BackendType
   readonly setBackendType: (backendType: backendModule.BackendType) => void
   readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
@@ -46,7 +47,7 @@ export interface TopBarProps {
  * because `searchVal` may change parent component's project list. */
 export default function TopBar(props: TopBarProps) {
   const { supportsLocalBackend, isCloud, page, setPage, projectAsset, setProjectAsset } = props
-  const { isEditorDisabled, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { isEditorDisabled, backendType, setBackendType, isHelpChatOpen, setIsHelpChatOpen } = props
   const { query, setQuery, labels, suggestions, isAssetPanelEnabled } = props
   const { isAssetPanelVisible, setIsAssetPanelEnabled, doRemoveSelf, onSignOut } = props
   const supportsCloudBackend = process.env.ENSO_CLOUD_API_URL != null
@@ -56,7 +57,7 @@ export default function TopBar(props: TopBarProps) {
     <div className="relative z-1 m-top-bar mb flex h-row gap-top-bar">
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
-        <BackendSwitcher setBackendType={setBackendType} />
+        <BackendSwitcher backendType={backendType} setBackendType={setBackendType} />
       )}
       {page === pageSwitcher.Page.editor ? (
         <div className="flex-1" />
@@ -79,11 +80,13 @@ export default function TopBar(props: TopBarProps) {
             <AssetInfoBar
               isAssetPanelEnabled={isAssetPanelEnabled}
               setIsAssetPanelEnabled={setIsAssetPanelEnabled}
+              isCloud={isCloud}
             />
           )}
           {supportsCloudBackend && (
             <UserBar
               supportsLocalBackend={supportsLocalBackend}
+              isCloud={isCloud}
               page={page}
               setPage={setPage}
               isHelpChatOpen={isHelpChatOpen}
@@ -105,10 +108,12 @@ export default function TopBar(props: TopBarProps) {
               <AssetInfoBar
                 isAssetPanelEnabled={isAssetPanelEnabled}
                 setIsAssetPanelEnabled={setIsAssetPanelEnabled}
+                isCloud={isCloud}
               />
             )}
             <UserBar
               supportsLocalBackend={supportsLocalBackend}
+              isCloud={isCloud}
               page={page}
               setPage={setPage}
               isHelpChatOpen={isHelpChatOpen}

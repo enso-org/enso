@@ -5,7 +5,6 @@ import type * as text from '#/text'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
@@ -34,7 +33,7 @@ const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<backendModule.AssetType, text.TextI
 
 /** Props for a {@link UserPermission}. */
 export interface UserPermissionProps {
-  readonly asset: backendModule.Asset
+  readonly asset: backendModule.AnySmartAsset
   readonly self: backendModule.UserPermission
   readonly isOnlyOwner: boolean
   readonly userPermission: backendModule.UserPermission
@@ -46,7 +45,6 @@ export interface UserPermissionProps {
 export default function UserPermission(props: UserPermissionProps) {
   const { asset, self, isOnlyOwner, doDelete } = props
   const { userPermission: initialUserPermission, setUserPermission: outerSetUserPermission } = props
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [userPermission, setUserPermission] = React.useState(initialUserPermission)
@@ -60,9 +58,8 @@ export default function UserPermission(props: UserPermissionProps) {
     try {
       setUserPermission(newUserPermissions)
       outerSetUserPermission(newUserPermissions)
-      await backend.createPermission({
+      await asset.setPermissions({
         actorsIds: [newUserPermissions.user.sk],
-        resourceId: asset.id,
         action: newUserPermissions.permission,
       })
     } catch (error) {

@@ -3,10 +3,10 @@ import * as React from 'react'
 
 import PenIcon from 'enso-assets/pen.svg'
 
+import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
@@ -47,7 +47,6 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const { dispatchAssetEvent } = props
 
   const { user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [item, setItemInner] = React.useState(itemRaw)
@@ -70,7 +69,12 @@ export default function AssetProperties(props: AssetPropertiesProps) {
     },
     [/* should never change */ setItemRaw]
   )
-  const self = item.item.permissions?.find(permission => permission.user.user_email === user?.email)
+  const smartAsset = item.item
+  const asset = smartAsset.value
+  const setAsset = setAssetHooks.useSetAsset(asset, setItem)
+  const self = asset.permissions?.find(
+    permission => permission.user.user_email === user?.value.email
+  )
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
     ownsThisAsset ||
@@ -80,38 +84,30 @@ export default function AssetProperties(props: AssetPropertiesProps) {
   const isDataLinkDisabled = dataLinkValue === editedDataLinkValue || !isDataLinkSubmittable
 
   React.useEffect(() => {
-    setDescription(item.item.description ?? '')
-  }, [item.item.description])
+    setDescription(asset.description ?? '')
+  }, [asset.description])
 
   React.useEffect(() => {
     void (async () => {
       if (item.item.type === backendModule.AssetType.dataLink) {
-        const value = await backend.getConnector(item.item.id, item.item.title)
+        const value = await item.item.getValue()
         setDataLinkValue(value)
         setEditedDataLinkValue(value)
         setIsDataLinkFetched(true)
       }
     })()
-  }, [backend, item.item])
+  }, [item.item])
 
   const doEditDescription = async () => {
     setIsEditingDescription(false)
-    if (description !== item.item.description) {
-      const oldDescription = item.item.description
-      setItem(oldItem => oldItem.with({ item: object.merge(oldItem.item, { description }) }))
+    if (description !== asset.description) {
+      const oldDescription = asset.description
+      setAsset(object.merger({ description }))
       try {
-        await backend.updateAsset(
-          item.item.id,
-          { parentDirectoryId: null, description },
-          item.item.title
-        )
+        await smartAsset.update({ description })
       } catch (error) {
         toastAndLog('editDescriptionError')
-        setItem(oldItem =>
-          oldItem.with({
-            item: object.merge(oldItem.item, { description: oldDescription }),
-          })
-        )
+        setAsset(object.merger({ description: oldDescription }))
       }
     }
   }
@@ -126,7 +122,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
               image={PenIcon}
               onClick={() => {
                 setIsEditingDescription(true)
-                setQueuedDescripion(item.item.description)
+                setQueuedDescripion(asset.description)
               }}
             />
           )}
@@ -136,7 +132,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
           className="self-stretch py-side-panel-description-y"
         >
           {!isEditingDescription ? (
-            <span className="text">{item.item.description}</span>
+            <span className="text">{asset.description}</span>
           ) : (
             <form className="flex flex-col gap-modal" onSubmit={doEditDescription}>
               <textarea
@@ -200,7 +196,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                 <span className="text inline-block">{getText('labels')}</span>
               </td>
               <td className="w-full p">
-                {item.item.labels?.map(value => {
+                {asset.labels?.map(value => {
                   const label = labels.find(otherLabel => otherLabel.value === value)
                   return label == null ? null : (
                     <Label key={value} active disabled color={label.color} onClick={() => {}}>
@@ -245,12 +241,7 @@ export default function AssetProperties(props: AssetPropertiesProps) {
                           const oldDataLinkValue = dataLinkValue
                           try {
                             setDataLinkValue(editedDataLinkValue)
-                            await backend.createConnector({
-                              connectorId: item.item.id,
-                              name: item.item.title,
-                              parentDirectoryId: null,
-                              value: editedDataLinkValue,
-                            })
+                            await item.item.update({ value: editedDataLinkValue })
                           } catch (error) {
                             toastAndLog(null, error)
                             setDataLinkValue(oldDataLinkValue)

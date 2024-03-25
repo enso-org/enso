@@ -1,44 +1,26 @@
-/**
- * @file
- * Fetches the versions of the selected project asset
- */
+/** @file Fetch the versions of the selected project asset. */
 import * as reactQuery from '@tanstack/react-query'
 
-import type Backend from '#/services/Backend'
 import type * as backendService from '#/services/Backend'
 
-/**
- * Parameters for the useAssetVersions hook
- */
+/** Parameters for the {@link useAssetVersions} hook. */
 export interface UseAssetVersionsParams {
-  readonly assetId: backendService.AssetId
-  readonly title: string
-  readonly backend: Backend
+  readonly item: backendService.AnySmartAsset
   readonly queryKey?: reactQuery.QueryKey
   readonly enabled?: boolean
   readonly onError?: (error: unknown) => void
 }
 
-/**
- * Fetches the versions of the selected project asset
- */
+/** Fetch the versions of the selected project asset. */
 export function useAssetVersions(params: UseAssetVersionsParams) {
-  const {
-    enabled = true,
-    title,
-    assetId,
-    backend,
-    onError,
-    queryKey = ['assetVersions', assetId, title],
-  } = params
+  const { item, onError, queryKey = ['assetVersions', item.value.id] } = params
 
   return reactQuery.useQuery({
     queryKey,
-    enabled,
     queryFn: () =>
-      backend
-        .listAssetVersions(assetId, title)
-        .then(assetVersions => assetVersions.versions)
+      item
+        .listVersions()
+        .then(versions => versions.versions)
         .catch(backendError => {
           onError?.(backendError)
           throw backendError

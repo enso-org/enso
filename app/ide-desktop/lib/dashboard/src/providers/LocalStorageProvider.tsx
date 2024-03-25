@@ -13,12 +13,18 @@ export interface LocalStorageContextType {
   readonly localStorage: LocalStorage
 }
 
-// @ts-expect-error The default value will never be exposed, as using this without a `Provider`
-// is a mistake.
-const LocalStorageContext = React.createContext<LocalStorageContextType>(null)
+let globalLocalStorage: LocalStorage | null = null
+const LocalStorageContext = React.createContext<LocalStorageContextType>({
+  /** Return the global instance of {@link LocalStorage}. */
+  get localStorage() {
+    return (globalLocalStorage ??= new LocalStorage())
+  },
+})
 
 /** Props for a {@link LocalStorageProvider}. */
-export interface LocalStorageProviderProps extends Readonly<React.PropsWithChildren> {}
+export interface LocalStorageProviderProps extends React.PropsWithChildren {
+  readonly localStorage?: LocalStorage
+}
 
 // ============================
 // === LocalStorageProvider ===

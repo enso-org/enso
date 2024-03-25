@@ -5,7 +5,6 @@ import ChatIcon from 'enso-assets/chat.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -17,7 +16,7 @@ import Button from '#/components/Button'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
 
-import * as backendModule from '#/services/Backend'
+import type * as backendModule from '#/services/Backend'
 
 // ===============
 // === UserBar ===
@@ -26,11 +25,12 @@ import * as backendModule from '#/services/Backend'
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
   readonly supportsLocalBackend: boolean
+  readonly isCloud: boolean
   readonly page: pageSwitcher.Page
   readonly setPage: (page: pageSwitcher.Page) => void
   readonly isHelpChatOpen: boolean
   readonly setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
-  readonly projectAsset: backendModule.ProjectAsset | null
+  readonly projectAsset: backendModule.SmartProject | null
   readonly setProjectAsset: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>> | null
   readonly doRemoveSelf: () => void
   readonly onSignOut: () => void
@@ -38,20 +38,19 @@ export interface UserBarProps {
 
 /** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
-  const { supportsLocalBackend, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
+  const { supportsLocalBackend, isCloud, page, setPage, isHelpChatOpen, setIsHelpChatOpen } = props
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
   const self =
     user != null
-      ? projectAsset?.permissions?.find(
-          permissions => permissions.user.user_email === user.email
+      ? projectAsset?.value.permissions?.find(
+          permissions => permissions.user.user_email === user.value.email
         ) ?? null
       : null
   const shouldShowShareButton =
-    backend.type === backendModule.BackendType.remote &&
+    isCloud &&
     page === pageSwitcher.Page.editor &&
     projectAsset != null &&
     setProjectAsset != null &&
@@ -114,7 +113,7 @@ export default function UserBar(props: UserBarProps) {
         }}
       >
         <img
-          src={user?.profilePicture ?? DefaultUserIcon}
+          src={user?.value.profilePicture ?? DefaultUserIcon}
           alt={getText('openUserMenu')}
           className="pointer-events-none"
           height={28}

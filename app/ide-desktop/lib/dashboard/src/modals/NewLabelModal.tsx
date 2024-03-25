@@ -9,7 +9,9 @@ import * as textProvider from '#/providers/TextProvider'
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
 
-import * as backend from '#/services/Backend'
+import type * as backend from '#/services/Backend'
+
+import * as colorModule from '#/utilities/color'
 
 // =====================
 // === NewLabelModal ===
@@ -19,7 +21,7 @@ import * as backend from '#/services/Backend'
 export interface NewLabelModalProps {
   readonly labels: backend.Label[]
   readonly eventTarget: HTMLElement
-  readonly doCreate: (value: string, color: backend.LChColor) => void
+  readonly doCreate: (value: string, color: colorModule.LChColor) => void
 }
 
 /** A modal for creating a new label. */
@@ -34,8 +36,11 @@ export default function NewLabelModal(props: NewLabelModalProps) {
     () => new Set<string>(labels.map(label => label.value)),
     [labels]
   )
+  const leastUsedColor = React.useMemo(
+    () => colorModule.leastUsedColor(labels.map(label => label.color)),
+    [labels]
+  )
   const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-  const leastUsedColor = React.useMemo(() => backend.leastUsedColor(labels), [labels])
   const canSubmit = Boolean(value && !labelNames.has(value))
 
   const onSubmit = () => {
@@ -85,7 +90,7 @@ export default function NewLabelModal(props: NewLabelModalProps) {
                 ? 'text-tag-text placeholder-selected-frame'
                 : 'text-primary'
             }`}
-            style={color == null ? {} : { backgroundColor: backend.lChColorToCssColor(color) }}
+            style={color == null ? {} : { backgroundColor: colorModule.lChColorToCssColor(color) }}
             onInput={event => {
               setName(event.currentTarget.value)
             }}

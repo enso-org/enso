@@ -40,6 +40,8 @@ export default vite.defineConfig({
   },
   define: {
     IS_VITE: JSON.stringify(true),
+    REDIRECT_OVERRIDE: JSON.stringify(`http://localhost:${SERVER_PORT}`),
+    'process.env.SUPPORTS_LOCAL_BACKEND': 'undefined',
     // The sole hardcoded usage of `global` in aws-amplify.
     'global.TYPED_ARRAY_SUPPORT': JSON.stringify(true),
     ...appConfig.getDefines(SERVER_PORT),

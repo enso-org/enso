@@ -19,11 +19,3 @@
 export const PASSWORD_PATTERN =
   '(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[ ^$*.\\[\\]\\{\\}\\(\\)?"!@#%&\\/,><\':;\\|_~`=+\\-]).{6,256}'
 export const PASSWORD_REGEX = new RegExp('^' + PASSWORD_PATTERN + '$')
-
-// The Project Manager has restrictions on names of projects.
-/** Regex pattern for valid names for local projects.
- *
- * Validation rules:
- * - allow any non-empty string
- */
-export const LOCAL_PROJECT_NAME_PATTERN = '.*\\S.*'

@@ -55,6 +55,7 @@ export interface AssetPanelRequiredProps {
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
+  readonly isCloud: boolean
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly labels: backend.Label[]
@@ -63,8 +64,7 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
-
+  const { isCloud, item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
   const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [initialized, setInitialized] = React.useState(false)
@@ -104,7 +104,8 @@ export default function AssetPanel(props: AssetPanelProps) {
       }}
     >
       <div className="flex">
-        {item != null &&
+        {isCloud &&
+          item != null &&
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
             <button

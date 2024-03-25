@@ -7,7 +7,6 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as backendModule from '#/services/Backend'
@@ -20,14 +19,13 @@ import * as object from '#/utilities/object'
 
 /** Props for a {@link OrganizationSettingsTab}. */
 export interface OrganizationSettingsTabProps {
-  readonly organization: backendModule.OrganizationInfo
-  readonly setOrganization: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
+  readonly organization: backendModule.SmartOrganization | null
+  readonly setOrganizationInfo: React.Dispatch<React.SetStateAction<backendModule.OrganizationInfo>>
 }
 
 /** Settings tab for viewing and editing organization information. */
 export default function OrganizationSettingsTab(props: OrganizationSettingsTabProps) {
-  const { organization, setOrganization } = props
-  const { backend } = backendProvider.useBackend()
+  const { organization, setOrganizationInfo } = props
   const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const nameRef = React.useRef<HTMLInputElement>(null)
@@ -36,19 +34,19 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   const locationRef = React.useRef<HTMLInputElement>(null)
 
   const doUpdateName = async () => {
-    const oldName = organization.organization_name ?? null
+    const oldName = organization?.value?.organization_name ?? null
     const name = nameRef.current?.value ?? ''
     if (oldName !== name) {
       try {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        setOrganization(object.merger({ organization_name: name }))
-        const newOrganization = await backend.updateOrganization({ name })
+        setOrganizationInfo(object.merger({ organization_name: name }))
+        const newOrganization = await organization?.update({ name })
         if (newOrganization != null) {
-          setOrganization(newOrganization)
+          setOrganizationInfo(newOrganization)
         }
       } catch (error) {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        setOrganization(object.merger({ organization_name: oldName }))
+        setOrganizationInfo(object.merger({ organization_name: oldName }))
         toastAndLog(null, error)
         const ref = nameRef.current
         if (ref) {
@@ -59,17 +57,17 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   }
 
   const doUpdateEmail = async () => {
-    const oldEmail = organization.email ?? null
+    const oldEmail = organization?.value?.email ?? null
     const email = backendModule.EmailAddress(emailRef.current?.value ?? '')
     if (oldEmail !== email) {
       try {
-        setOrganization(object.merger({ email }))
-        const newOrganization = await backend.updateOrganization({ email })
+        setOrganizationInfo(object.merger({ email }))
+        const newOrganization = await organization?.update({ email })
         if (newOrganization != null) {
-          setOrganization(newOrganization)
+          setOrganizationInfo(newOrganization)
         }
       } catch (error) {
-        setOrganization(object.merger({ email: oldEmail }))
+        setOrganizationInfo(object.merger({ email: oldEmail }))
         toastAndLog(null, error)
         const ref = emailRef.current
         if (ref) {
@@ -80,14 +78,14 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   }
 
   const doUpdateWebsite = async () => {
-    const oldWebsite = organization.website ?? null
+    const oldWebsite = organization?.value?.website ?? null
     const website = backendModule.HttpsUrl(websiteRef.current?.value ?? '')
     if (oldWebsite !== website) {
       try {
-        setOrganization(object.merger({ website }))
-        await backend.updateOrganization({ website })
+        setOrganizationInfo(object.merger({ website }))
+        await organization?.update({ website })
       } catch (error) {
-        setOrganization(object.merger({ website: oldWebsite }))
+        setOrganizationInfo(object.merger({ website: oldWebsite }))
         toastAndLog(null, error)
         const ref = websiteRef.current
         if (ref) {
@@ -98,17 +96,17 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
   }
 
   const doUpdateLocation = async () => {
-    const oldLocation = organization.address ?? null
+    const oldLocation = organization?.value?.address ?? null
     const location = locationRef.current?.value ?? ''
     if (oldLocation !== location) {
       try {
-        setOrganization(object.merger({ address: location }))
-        const newOrganization = await backend.updateOrganization({ location })
+        setOrganizationInfo(object.merger({ address: location }))
+        const newOrganization = await organization?.update({ location })
         if (newOrganization != null) {
-          setOrganization(newOrganization)
+          setOrganizationInfo(newOrganization)
         }
       } catch (error) {
-        setOrganization(object.merger({ address: oldLocation }))
+        setOrganizationInfo(object.merger({ address: oldLocation }))
         toastAndLog(null, error)
         const ref = locationRef.current
         if (ref) {
@@ -124,11 +122,10 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
       toastAndLog('noNewProfilePictureError')
     } else {
       try {
-        const newOrganization = await backend.uploadOrganizationPicture(
-          { fileName: image.name },
-          image
-        )
-        setOrganization(newOrganization)
+        const newOrganization = await organization?.uploadPicture({ fileName: image.name }, image)
+        if (newOrganization != null) {
+          setOrganizationInfo(newOrganization)
+        }
       } catch (error) {
         toastAndLog(null, error)
       }
@@ -172,13 +169,13 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 <input
                   ref={nameRef}
                   className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
-                  key={organization.organization_name}
+                  key={organization?.value?.organization_name}
                   type="text"
                   size={1}
-                  defaultValue={organization.organization_name ?? ''}
+                  defaultValue={organization?.value?.organization_name ?? ''}
                   onBlur={doUpdateName}
                   onKeyDown={event => {
-                    onKeyDown(event, organization.organization_name ?? '')
+                    onKeyDown(event, organization?.value?.organization_name ?? '')
                   }}
                 />
               </span>
@@ -189,10 +186,10 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 <input
                   ref={emailRef}
                   className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
-                  key={organization.email}
+                  key={organization?.value?.email}
                   type="text"
                   size={1}
-                  defaultValue={organization.email ?? ''}
+                  defaultValue={organization?.value?.email ?? ''}
                   onBlur={event => {
                     if (isEmail(event.currentTarget.value)) {
                       void doUpdateEmail()
@@ -201,7 +198,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                     }
                   }}
                   onKeyDown={event => {
-                    onKeyDown(event, organization.email ?? '')
+                    onKeyDown(event, organization?.value?.email ?? '')
                   }}
                   onInput={event => {
                     event.currentTarget.setCustomValidity(
@@ -219,13 +216,13 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 <input
                   ref={websiteRef}
                   className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
-                  key={organization.website}
+                  key={organization?.value?.website}
                   type="text"
                   size={1}
-                  defaultValue={organization.website ?? ''}
+                  defaultValue={organization?.value?.website ?? ''}
                   onBlur={doUpdateWebsite}
                   onKeyDown={event => {
-                    onKeyDown(event, organization.website ?? '')
+                    onKeyDown(event, organization?.value?.website ?? '')
                   }}
                 />
               </span>
@@ -238,13 +235,13 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
                 <input
                   ref={locationRef}
                   className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
-                  key={organization.address}
+                  key={organization?.value?.address}
                   type="text"
                   size={1}
-                  defaultValue={organization.address ?? ''}
+                  defaultValue={organization?.value?.address ?? ''}
                   onBlur={doUpdateLocation}
                   onKeyDown={event => {
-                    onKeyDown(event, organization.address ?? '')
+                    onKeyDown(event, organization?.value?.address ?? '')
                   }}
                 />
               </span>
@@ -262,7 +259,7 @@ export default function OrganizationSettingsTab(props: OrganizationSettingsTabPr
             onChange={doUploadOrganizationPicture}
           />
           <img
-            src={organization.picture ?? DefaultUserIcon}
+            src={organization?.value?.picture ?? DefaultUserIcon}
             width={128}
             height={128}
             className="pointer-events-none"

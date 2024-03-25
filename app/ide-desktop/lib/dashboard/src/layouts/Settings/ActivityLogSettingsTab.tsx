@@ -9,7 +9,7 @@ import TrashIcon from 'enso-assets/trash.svg'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
+import * as authProvider from '#/providers/AuthProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import DateInput from '#/components/DateInput'
@@ -55,8 +55,8 @@ const EVENT_TYPE_NAME: Record<backendModule.EventType, string> = {
 
 /** Settings tab for viewing and editing organization members. */
 export default function ActivityLogSettingsTab() {
-  const { backend } = backendProvider.useBackend()
   const { getText } = textProvider.useText()
+  const { user } = authProvider.useNonPartialUserSession()
   const [startDate, setStartDate] = React.useState<Date | null>(null)
   const [endDate, setEndDate] = React.useState<Date | null>(null)
   const [types, setTypes] = React.useState<readonly backendModule.EventType[]>([])
@@ -65,9 +65,15 @@ export default function ActivityLogSettingsTab() {
   const [emailIndices, setEmailIndices] = React.useState<readonly number[]>(() => [])
   const [sortInfo, setSortInfo] =
     React.useState<sorting.SortInfo<ActivityLogSortableColumn> | null>(null)
-  const users = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
-  const allEmails = React.useMemo(() => users.map(user => user.email), [users])
-  const logs = asyncEffectHooks.useAsyncEffect(null, () => backend.getLogEvents(), [backend])
+  const users = asyncEffectHooks.useAsyncEffect([], async () => (await user?.listUsers()) ?? [], [
+    user,
+  ])
+  const allEmails = React.useMemo(() => users.map(otherUser => otherUser.email), [users])
+  const logs = asyncEffectHooks.useAsyncEffect(
+    null,
+    async () => (await user?.getLogEvents()) ?? [],
+    [user]
+  )
   const filteredLogs = React.useMemo(() => {
     const typesSet = new Set(types.length > 0 ? types : backendModule.EVENT_TYPES)
     const emailsSet = new Set(emails.length > 0 ? emails : allEmails)
@@ -135,12 +141,13 @@ export default function ActivityLogSettingsTab() {
               multiple
               items={backendModule.EVENT_TYPES}
               selectedIndices={typeIndices}
-              render={props => EVENT_TYPE_NAME[props.item]}
-              renderMultiple={props =>
-                props.items.length === 0 || props.items.length === backendModule.EVENT_TYPES.length
+              render={innerProps => EVENT_TYPE_NAME[innerProps.item]}
+              renderMultiple={innerProps =>
+                innerProps.items.length === 0 ||
+                innerProps.items.length === backendModule.EVENT_TYPES.length
                   ? 'All'
-                  : (props.items[0] != null ? EVENT_TYPE_NAME[props.items[0]] : '') +
-                    (props.items.length <= 1 ? '' : ` (+${props.items.length - 1})`)
+                  : (innerProps.items[0] != null ? EVENT_TYPE_NAME[innerProps.items[0]] : '') +
+                    (innerProps.items.length <= 1 ? '' : ` (+${innerProps.items.length - 1})`)
               }
               onClick={(items, indices) => {
                 setTypes(items)
@@ -154,12 +161,12 @@ export default function ActivityLogSettingsTab() {
               multiple
               items={allEmails}
               selectedIndices={emailIndices}
-              render={props => props.item}
-              renderMultiple={props =>
-                props.items.length === 0 || props.items.length === allEmails.length
+              render={innerProps => innerProps.item}
+              renderMultiple={innerProps =>
+                innerProps.items.length === 0 || innerProps.items.length === allEmails.length
                   ? 'All'
-                  : (props.items[0] ?? '') +
-                    (props.items.length <= 1 ? '' : `(+${props.items.length - 1})`)
+                  : (innerProps.items[0] ?? '') +
+                    (innerProps.items.length <= 1 ? '' : `(+${innerProps.items.length - 1})`)
               }
               onClick={(items, indices) => {
                 setEmails(items)

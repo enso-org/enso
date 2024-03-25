@@ -3,15 +3,9 @@ import * as React from 'react'
 
 import ConnectorIcon from 'enso-assets/connector.svg'
 
-import * as eventHooks from '#/hooks/eventHooks'
 import * as setAssetHooks from '#/hooks/setAssetHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -21,11 +15,10 @@ import * as backendModule from '#/services/Backend'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import Visibility from '#/utilities/Visibility'
 
-// =====================
-// === ConnectorName ===
-// =====================
+// ==========================
+// === DataLinkNameColumn ===
+// ==========================
 
 /** Props for a {@link DataLinkNameColumn}. */
 export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
@@ -35,15 +28,14 @@ export interface DataLinkNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
-  const { assetEvents, dispatchAssetListEvent, setIsAssetPanelTemporarilyVisible } = state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
+  const { setIsAssetPanelTemporarilyVisible } = state
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.dataLink) {
+  const smartAsset = item.item
+  if (smartAsset.type !== backendModule.AssetType.dataLink) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`DataLinkNameColumn` can only display Data Links.')
   }
+  const asset = smartAsset.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
 
   // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
@@ -52,61 +44,6 @@ export default function DataLinkNameColumn(props: DataLinkNameColumnProps) {
   const doRename = async () => {
     await Promise.resolve(null)
   }
-
-  eventHooks.useEventHandler(assetEvents, async event => {
-    switch (event.type) {
-      case AssetEventType.newProject:
-      case AssetEventType.newFolder:
-      case AssetEventType.uploadFiles:
-      case AssetEventType.newSecret:
-      case AssetEventType.openProject:
-      case AssetEventType.updateFiles:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. These events should all be unrelated to secrets.
-        // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
-        // are handled by `AssetRow`.
-        break
-      }
-      case AssetEventType.newDataLink: {
-        if (item.key === event.placeholderId) {
-          if (backend.type !== backendModule.BackendType.remote) {
-            toastAndLog('localBackendDataLinkError')
-          } else {
-            rowState.setVisibility(Visibility.faded)
-            try {
-              const { id } = await backend.createConnector({
-                parentDirectoryId: asset.parentId,
-                connectorId: null,
-                name: asset.title,
-                value: event.value,
-              })
-              rowState.setVisibility(Visibility.visible)
-              setAsset(object.merger({ id }))
-            } catch (error) {
-              dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-              toastAndLog('createDataLinkError', error)
-            }
-          }
-        }
-        break
-      }
-    }
-  })
 
   const handleClick = inputBindings.handler({
     editName: () => {

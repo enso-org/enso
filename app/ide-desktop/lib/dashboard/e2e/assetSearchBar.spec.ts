@@ -1,7 +1,7 @@
 /** @file Test the search bar and its suggestions. */
 import * as test from '@playwright/test'
 
-import * as backend from '#/services/Backend'
+import * as color from '#/utilities/color'
 
 import * as actions from './actions'
 
@@ -35,13 +35,13 @@ test.test('labels', async ({ page }) => {
   const { api } = await actions.mockAllAndLogin({ page })
   const searchBarInput = actions.locateSearchBarInput(page)
   const labels = actions.locateSearchBarLabels(page)
-  api.addLabel('aaaa', backend.COLORS[0])
+  api.addLabel('aaaa', color.COLORS[0])
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('bbbb', backend.COLORS[1]!)
+  api.addLabel('bbbb', color.COLORS[1]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('cccc', backend.COLORS[2]!)
+  api.addLabel('cccc', color.COLORS[2]!)
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  api.addLabel('dddd', backend.COLORS[3]!)
+  api.addLabel('dddd', color.COLORS[3]!)
   await actions.login({ page })
 
   await searchBarInput.click()

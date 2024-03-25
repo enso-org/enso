@@ -237,20 +237,20 @@ export const DEFAULT_PERMISSIONS: Permissions = Object.freeze({
 /** Return an array containing the owner permission if `owner` is not `null`,
  * else return an empty array (`[]`). */
 export function tryGetSingletonOwnerPermission(
-  owner: backend.User | null,
+  owner: backend.SmartUser | null,
   user: backend.SimpleUser | null
 ): backend.UserPermission[] {
-  return owner != null
+  return owner?.value != null
     ? [
         {
           user: {
             // The names are defined by the backend and cannot be changed.
             /* eslint-disable @typescript-eslint/naming-convention */
-            pk: owner.id,
+            pk: owner.value.id,
             sk: backend.UserId(''),
             user_subject: user?.userSubject ?? backend.Subject(''),
-            user_email: owner.email,
-            user_name: owner.name,
+            user_email: owner.value.email,
+            user_name: owner.value.name,
             /* eslint-enable @typescript-eslint/naming-convention */
           },
           permission: PermissionAction.own,

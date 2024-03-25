@@ -30,6 +30,6 @@ test.test('drive view', async ({ page }) => {
   await assetRows.nth(0).click({ button: 'right' })
   const contextMenu = actions.locateContextMenus(page)
   await test.expect(contextMenu).toBeVisible()
-  await actions.locateMoveToTrashButton(contextMenu).click()
+  await actions.locateDeleteButton(contextMenu).click()
   await test.expect(assetRows).toHaveCount(1)
 })

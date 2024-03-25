@@ -9,7 +9,6 @@ import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -29,9 +28,11 @@ import Labels from '#/layouts/Labels'
 import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
+import type Backend from '#/services/Backend'
 
 import * as array from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
+import type * as colorModule from '#/utilities/color'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -81,10 +82,9 @@ export interface DriveProps {
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
   readonly hideRows: boolean
+  readonly backend: Backend
+  readonly rootDirectory: backendModule.SmartDirectory | null
   readonly initialProjectName: string | null
-  /** These events will be dispatched the next time the assets list is refreshed, rather than
-   * immediately. */
-  readonly queuedAssetEvents: assetEvent.AssetEvent[]
   readonly assetListEvents: assetListEvent.AssetListEvent[]
   readonly dispatchAssetListEvent: (directoryEvent: assetListEvent.AssetListEvent) => void
   readonly assetEvents: assetEvent.AssetEvent[]
@@ -99,7 +99,7 @@ export interface DriveProps {
   readonly setIsAssetPanelTemporarilyVisible: (visible: boolean) => void
   readonly doCreateProject: (templateId: string | null) => void
   readonly doOpenEditor: (
-    project: backendModule.ProjectAsset,
+    project: backendModule.SmartProject,
     setProject: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>,
     switchPage: boolean
   ) => void
@@ -108,16 +108,15 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, hideRows, initialProjectName, queuedAssetEvents } = props
+  const { supportsLocalBackend, backend, hidden, hideRows, initialProjectName } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
-  const { setIsAssetPanelTemporarilyVisible } = props
+  const { rootDirectory, setIsAssetPanelTemporarilyVisible } = props
 
   const navigate = navigateHooks.useNavigate()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
-  const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   const [canDownload, setCanDownload] = React.useState(false)
@@ -135,17 +134,14 @@ export default function Drive(props: DriveProps) {
     () => new Map(labels.map(label => [label.value, label])),
     [labels]
   )
-  const rootDirectoryId = React.useMemo(
-    () => user?.rootDirectoryId ?? backendModule.DirectoryId(''),
-    [user]
-  )
   const isCloud = backend.type === backendModule.BackendType.remote
+  const isEnabled = user?.value.isEnabled ?? false
   const status =
     !isCloud && didLoadingProjectManagerFail
       ? DriveStatus.noProjectManager
       : isCloud && sessionType === authProvider.UserSessionType.offline
         ? DriveStatus.offline
-        : isCloud && user?.isEnabled !== true
+        : isCloud && !isEnabled
           ? DriveStatus.notEnabled
           : DriveStatus.ok
 
@@ -172,33 +168,27 @@ export default function Drive(props: DriveProps) {
 
   React.useEffect(() => {
     void (async () => {
-      if (backend.type !== backendModule.BackendType.local && user?.isEnabled === true) {
+      if (isCloud && isEnabled) {
         setLabels(await backend.listTags())
       }
     })()
-  }, [backend, user?.isEnabled, /* should never change */ setLabels])
+  }, [backend, isCloud, isEnabled, /* should never change */ setLabels])
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
-      if (isCloud && sessionType === authProvider.UserSessionType.offline) {
+      if (isCloud && user == null) {
         // This should never happen, however display a nice error message in case it does.
         toastAndLog('offlineUploadFilesError')
-      } else {
+      } else if (rootDirectory != null) {
         dispatchAssetListEvent({
           type: AssetListEventType.uploadFiles,
-          parentKey: rootDirectoryId,
-          parentId: rootDirectoryId,
+          parentKey: rootDirectory.value.id,
+          parent: rootDirectory,
           files,
         })
       }
     },
-    [
-      isCloud,
-      rootDirectoryId,
-      sessionType,
-      toastAndLog,
-      /* should never change */ dispatchAssetListEvent,
-    ]
+    [isCloud, user, rootDirectory, toastAndLog, /* should never change */ dispatchAssetListEvent]
   )
 
   const doEmptyTrash = React.useCallback(() => {
@@ -211,28 +201,32 @@ export default function Drive(props: DriveProps) {
       templateName: string | null = null,
       onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null = null
     ) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newProject,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        templateId,
-        templateName,
-        onSpinnerStateChange,
-      })
+      if (rootDirectory != null) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.newProject,
+          parentKey: rootDirectory.value.id,
+          parent: rootDirectory,
+          templateId,
+          templateName,
+          onSpinnerStateChange,
+        })
+      }
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectory, /* should never change */ dispatchAssetListEvent]
   )
 
   const doCreateDirectory = React.useCallback(() => {
-    dispatchAssetListEvent({
-      type: AssetListEventType.newFolder,
-      parentKey: rootDirectoryId,
-      parentId: rootDirectoryId,
-    })
-  }, [rootDirectoryId, /* should never change */ dispatchAssetListEvent])
+    if (rootDirectory != null) {
+      dispatchAssetListEvent({
+        type: AssetListEventType.newFolder,
+        parentKey: rootDirectory.value.id,
+        parent: rootDirectory,
+      })
+    }
+  }, [rootDirectory, /* should never change */ dispatchAssetListEvent])
 
   const doCreateLabel = React.useCallback(
-    async (value: string, color: backendModule.LChColor) => {
+    async (value: string, color: colorModule.LChColor) => {
       const newLabelName = backendModule.LabelName(value)
       const placeholderLabel: backendModule.Label = {
         id: backendModule.TagId(uniqueString.uniqueString()),
@@ -286,28 +280,32 @@ export default function Drive(props: DriveProps) {
 
   const doCreateSecret = React.useCallback(
     (name: string, value: string) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newSecret,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        name,
-        value,
-      })
+      if (rootDirectory != null) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.newSecret,
+          parentKey: rootDirectory.value.id,
+          parent: rootDirectory,
+          name,
+          value,
+        })
+      }
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectory, /* should never change */ dispatchAssetListEvent]
   )
 
   const doCreateDataLink = React.useCallback(
     (name: string, value: unknown) => {
-      dispatchAssetListEvent({
-        type: AssetListEventType.newDataLink,
-        parentKey: rootDirectoryId,
-        parentId: rootDirectoryId,
-        name,
-        value,
-      })
+      if (rootDirectory != null) {
+        dispatchAssetListEvent({
+          type: AssetListEventType.newDataLink,
+          parentKey: rootDirectory.value.id,
+          parent: rootDirectory,
+          name,
+          value,
+        })
+      }
     },
-    [rootDirectoryId, /* should never change */ dispatchAssetListEvent]
+    [rootDirectory, /* should never change */ dispatchAssetListEvent]
   )
 
   switch (status) {
@@ -378,6 +376,7 @@ export default function Drive(props: DriveProps) {
             </h1>
             <DriveBar
               category={category}
+              isCloud={isCloud}
               canDownload={canDownload}
               doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
@@ -407,29 +406,32 @@ export default function Drive(props: DriveProps) {
                 />
               </div>
             )}
-            <AssetsTable
-              hidden={hidden}
-              hideRows={hideRows}
-              query={query}
-              setQuery={setQuery}
-              setCanDownload={setCanDownload}
-              category={category}
-              allLabels={allLabels}
-              setSuggestions={setSuggestions}
-              initialProjectName={initialProjectName}
-              projectStartupInfo={projectStartupInfo}
-              deletedLabelNames={deletedLabelNames}
-              queuedAssetEvents={queuedAssetEvents}
-              assetEvents={assetEvents}
-              dispatchAssetEvent={dispatchAssetEvent}
-              assetListEvents={assetListEvents}
-              dispatchAssetListEvent={dispatchAssetListEvent}
-              setAssetPanelProps={setAssetPanelProps}
-              setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
-              doOpenEditor={doOpenEditor}
-              doCloseEditor={doCloseEditor}
-              doCreateLabel={doCreateLabel}
-            />
+            {rootDirectory != null && (
+              <AssetsTable
+                isCloud={isCloud}
+                rootDirectory={rootDirectory}
+                hidden={hidden}
+                hideRows={hideRows}
+                query={query}
+                setQuery={setQuery}
+                setCanDownload={setCanDownload}
+                category={category}
+                allLabels={allLabels}
+                setSuggestions={setSuggestions}
+                initialProjectName={initialProjectName}
+                projectStartupInfo={projectStartupInfo}
+                deletedLabelNames={deletedLabelNames}
+                assetEvents={assetEvents}
+                dispatchAssetEvent={dispatchAssetEvent}
+                assetListEvents={assetListEvents}
+                dispatchAssetListEvent={dispatchAssetListEvent}
+                setAssetPanelProps={setAssetPanelProps}
+                setIsAssetPanelTemporarilyVisible={setIsAssetPanelTemporarilyVisible}
+                doOpenEditor={doOpenEditor}
+                doCloseEditor={doCloseEditor}
+                doCreateLabel={doCreateLabel}
+              />
+            )}
           </div>
         </div>
       )

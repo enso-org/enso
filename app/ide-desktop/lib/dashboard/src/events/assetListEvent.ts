@@ -54,13 +54,13 @@ type SanityCheck<
 /** A signal to create a new directory. */
 interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
   readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
 }
 
 /** A signal to create a new project. */
 interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
   readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
   readonly templateId: string | null
   readonly templateName: string | null
   readonly onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
@@ -69,14 +69,14 @@ interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType
 /** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
   readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
   readonly files: File[]
 }
 
 /** A signal to create a new secret. */
 interface AssetListNewDataLinkEvent extends AssetListBaseEvent<AssetListEventType.newDataLink> {
   readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
   readonly name: string
   readonly value: unknown
 }
@@ -84,7 +84,7 @@ interface AssetListNewDataLinkEvent extends AssetListBaseEvent<AssetListEventTyp
 /** A signal to create a new secret. */
 interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
   readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
+  readonly parent: backend.SmartDirectory
   readonly name: string
   readonly value: string
 }
@@ -92,29 +92,29 @@ interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.
 /** A signal to insert new assets. The assets themselves need to be created by the caller. */
 interface AssetListInsertAssetsEvent extends AssetListBaseEvent<AssetListEventType.insertAssets> {
   readonly parentKey: backend.DirectoryId
-  readonly parentId: backend.DirectoryId
-  readonly assets: backend.AnyAsset[]
+  readonly parent: backend.SmartDirectory
+  readonly assets: backend.AnySmartAsset[]
 }
 
 /** A signal to close (collapse) a folder. */
 interface AssetListCloseFolderEvent extends AssetListBaseEvent<AssetListEventType.closeFolder> {
-  readonly id: backend.DirectoryId
+  readonly folder: backend.SmartDirectory
   readonly key: backend.DirectoryId
 }
 
 /** A signal that files should be copied. */
 interface AssetListCopyEvent extends AssetListBaseEvent<AssetListEventType.copy> {
   readonly newParentKey: backend.AssetId
-  readonly newParentId: backend.DirectoryId
-  readonly items: backend.AnyAsset[]
+  readonly newParent: backend.SmartDirectory
+  readonly items: backend.AnySmartAsset[]
 }
 
 /** A signal that a file has been moved. */
 interface AssetListMoveEvent extends AssetListBaseEvent<AssetListEventType.move> {
   readonly key: backend.AssetId
   readonly newParentKey: backend.AssetId
-  readonly newParentId: backend.DirectoryId
-  readonly item: backend.AnyAsset
+  readonly newParent: backend.SmartDirectory
+  readonly item: backend.AnySmartAsset
 }
 
 /** A signal that a file has been deleted. */

@@ -8,12 +8,9 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
-import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 
 import type * as column from '#/components/dashboard/column'
 import ProjectIcon from '#/components/dashboard/ProjectIcon'
@@ -27,7 +24,6 @@ import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import * as string from '#/utilities/string'
-import * as validation from '#/utilities/validation'
 import Visibility from '#/utilities/Visibility'
 
 // ===================
@@ -42,21 +38,35 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {}
  * This should never happen. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { item, setItem, selected, rowState, setRowState, state } = props
-  const { selectedKeys, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
-  const { nodeMap, doOpenManually, doOpenEditor, doCloseEditor } = state
+  const { isCloud, selectedKeys, assetEvents, nodeMap } = state
+  const { dispatchAssetEvent, doOpenManually, doOpenEditor, doCloseEditor } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
-  const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
-  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
-  const asset = item.item
-  if (asset.type !== backendModule.AssetType.project) {
+  const smartAsset = item.item
+  if (smartAsset.type !== backendModule.AssetType.project) {
     // eslint-disable-next-line no-restricted-syntax
     throw new Error('`ProjectNameColumn` can only display projects.')
   }
+  const smartAssetWithProjectState = React.useMemo(() => {
+    // This is a workaround for a temporary bad state in the backend causing the
+    // `projectState` key to be absent.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (smartAsset.value.projectState != null) {
+      return smartAsset
+    } else {
+      return smartAsset.withValue(
+        object.merge(smartAsset.value, {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          projectState: { type: backendModule.ProjectState.closed, volume_id: '' },
+        })
+      )
+    }
+  }, [smartAsset])
+  const asset = smartAssetWithProjectState.value
   const setAsset = setAssetHooks.useSetAsset(asset, setItem)
   const ownPermission =
-    asset.permissions?.find(permission => permission.user.user_email === user?.email) ?? null
+    asset.permissions?.find(permission => permission.user.user_email === user?.value.email) ?? null
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -65,12 +75,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   }
   const isRunning = backendModule.IS_OPENING_OR_OPENED[projectState.type]
   const canExecute =
-    backend.type === backendModule.BackendType.local ||
+    !isCloud ||
     (ownPermission != null && permissions.PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission])
   const isOtherUserUsingProject =
-    backend.type !== backendModule.BackendType.local &&
-    projectState.opened_by != null &&
-    projectState.opened_by !== user?.email
+    isCloud && projectState.opened_by != null && projectState.opened_by !== user?.value.email
 
   const doRename = async (newTitle: string) => {
     setRowState(object.merger({ isEditingName: false }))
@@ -80,11 +88,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       const oldTitle = asset.title
       setAsset(object.merger({ title: newTitle }))
       try {
-        await backend.updateProject(
-          asset.id,
-          { ami: null, ideVersion: null, projectName: newTitle },
-          asset.title
-        )
+        await smartAsset.update({ projectName: newTitle })
       } catch (error) {
         toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
@@ -94,79 +98,22 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
-      case AssetEventType.newFolder:
-      case AssetEventType.newDataLink:
-      case AssetEventType.newSecret:
-      case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
-      case AssetEventType.newProject: {
-        // This should only run before this project gets replaced with the actual project
-        // by this event handler. In both cases `key` will match, so using `key` here
-        // is a mistake.
-        if (asset.id === event.placeholderId) {
-          rowState.setVisibility(Visibility.faded)
-          try {
-            const createdProject = await backend.createProject({
-              parentDirectoryId: asset.parentId,
-              projectName: asset.title,
-              projectTemplateName: event.templateId,
-            })
-            rowState.setVisibility(Visibility.visible)
-            setAsset(
-              object.merge(asset, {
-                id: createdProject.projectId,
-                projectState: object.merge(projectState, {
-                  type: backendModule.ProjectState.placeholder,
-                }),
-              })
-            )
-            dispatchAssetEvent({
-              type: AssetEventType.openProject,
-              id: createdProject.projectId,
-              shouldAutomaticallySwitchPage: true,
-              runInBackground: false,
-            })
-          } catch (error) {
-            dispatchAssetListEvent({
-              type: AssetListEventType.delete,
-              key: item.key,
-            })
-            toastAndLog('createProjectError', error)
-          }
-        }
-        break
-      }
-      case AssetEventType.updateFiles:
-      case AssetEventType.uploadFiles: {
-        const file = event.files.get(item.key)
+      case AssetEventType.updateFiles: {
+        const file = event.files.get(item.item.value.id)
         if (file != null) {
-          const fileId = event.type !== AssetEventType.updateFiles ? null : asset.id
           rowState.setVisibility(Visibility.faded)
-          const { extension } = backendModule.extractProjectExtension(file.name)
           const title = backendModule.stripProjectExtension(asset.title)
           setAsset(object.merge(asset, { title }))
           try {
-            if (backend.type === backendModule.BackendType.local) {
+            if (isCloud) {
+              try {
+                const newSmartAsset = await smartAsset.update({ file })
+                rowState.setVisibility(Visibility.visible)
+                setAsset(newSmartAsset.value)
+              } catch (error) {
+                toastAndLog(null, error)
+              }
+            } else {
               let id: string
               if (
                 'backendApi' in window &&
@@ -186,40 +133,28 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 })
                 id = await response.text()
               }
-              const projectId = backendModule.ProjectId(id)
-              const listedProject = await backend.getProjectDetails(projectId, file.name)
+              const listedProject = await smartAsset.getDetails()
               rowState.setVisibility(Visibility.visible)
-              setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
-            } else {
-              const createdFile = await backend.uploadFile(
-                { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
-                file
+              setAsset(
+                object.merge(asset, {
+                  title: listedProject.packageName,
+                  id: backendModule.ProjectId(id),
+                })
               )
-              const project = createdFile.project
-              if (project == null) {
-                throw new Error('The uploaded file was not a project.')
-              } else {
-                rowState.setVisibility(Visibility.visible)
-                setAsset(
-                  object.merge(asset, { title, id: project.projectId, projectState: project.state })
-                )
-                return
-              }
             }
           } catch (error) {
             switch (event.type) {
-              case AssetEventType.uploadFiles: {
-                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
-                toastAndLog('uploadProjectError', error)
-                break
-              }
               case AssetEventType.updateFiles: {
                 toastAndLog('updateProjectError', error)
                 break
               }
             }
+            break
           }
         }
+        break
+      }
+      default: {
         break
       }
     }
@@ -276,19 +211,17 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         <SvgMask src={NetworkIcon} className="m-name-column-icon size-icon" />
       ) : (
         <ProjectIcon
-          keyProp={item.key}
-          // This is a workaround for a temporary bad state in the backend causing the
-          // `projectState` key to be absent.
-          item={object.merge(asset, { projectState })}
+          smartAsset={smartAssetWithProjectState}
           setItem={setAsset}
           assetEvents={assetEvents}
           doOpenManually={doOpenManually}
           doOpenEditor={switchPage => {
-            doOpenEditor(asset, setAsset, switchPage)
+            doOpenEditor(smartAsset, setAsset, switchPage)
           }}
           doCloseEditor={() => {
             doCloseEditor(asset)
           }}
+          state={state}
         />
       )}
       <EditableSpan
@@ -302,26 +235,21 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               : ''
         }`}
         checkSubmittable={newTitle =>
+          newTitle !== '' &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>
               // All siblings,
               child.key === item.key ||
               // that are not directories,
-              backendModule.assetIsDirectory(child.item) ||
+              backendModule.assetIsDirectory(child.item.value) ||
               // must have a different name.
-              child.item.title !== newTitle
+              child.item.value.title !== newTitle
           )
         }
         onSubmit={doRename}
         onCancel={() => {
           setRowState(object.merger({ isEditingName: false }))
         }}
-        {...(backend.type === backendModule.BackendType.local
-          ? {
-              inputPattern: validation.LOCAL_PROJECT_NAME_PATTERN,
-              inputTitle: getText('projectNameCannotBeEmpty'),
-            }
-          : {})}
       >
         {asset.title}
       </EditableSpan>

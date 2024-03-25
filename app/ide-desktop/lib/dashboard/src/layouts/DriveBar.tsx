@@ -8,7 +8,6 @@ import AddKeyIcon from 'enso-assets/add_key.svg'
 import DataDownloadIcon from 'enso-assets/data_download.svg'
 import DataUploadIcon from 'enso-assets/data_upload.svg'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -24,8 +23,6 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import * as backendModule from '#/services/Backend'
-
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 
 // ================
@@ -35,6 +32,7 @@ import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
   readonly category: Category
+  readonly isCloud: boolean
   readonly canDownload: boolean
   readonly doEmptyTrash: () => void
   readonly doCreateProject: () => void
@@ -48,19 +46,17 @@ export interface DriveBarProps {
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-  const { category, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
+  const { category, isCloud, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
-  const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-  const isCloud = backend.type === backendModule.BackendType.remote
   const effectiveCategory = isCloud ? category : Category.home
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      ...(backend.type !== backendModule.BackendType.local
+      ...(isCloud
         ? {
             newFolder: () => {
               doCreateDirectory()
@@ -74,7 +70,7 @@ export default function DriveBar(props: DriveBarProps) {
         uploadFilesRef.current?.click()
       },
     })
-  }, [backend.type, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
+  }, [isCloud, doCreateDirectory, doCreateProject, /* should never change */ inputBindings])
 
   switch (effectiveCategory) {
     case Category.recent: {

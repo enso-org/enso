@@ -14,7 +14,6 @@ import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
 
-import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
@@ -27,7 +26,6 @@ import type Backend from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 
-import * as errorModule from '#/utilities/error'
 import HttpClient, * as httpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
@@ -90,7 +88,7 @@ export interface PartialUserSession extends BaseUserSession<UserSessionType.part
 /** Object containing the currently signed-in user's session data. */
 export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
   /** User's organization information. */
-  readonly user: backendModule.User
+  readonly user: backendModule.SmartUser
   readonly userInfo: backendModule.SimpleUser | null
 }
 
@@ -117,7 +115,7 @@ interface AuthContextType {
     organizationId: string | null
   ) => Promise<boolean>
   readonly confirmSignUp: (email: string, code: string) => Promise<boolean>
-  readonly setUsername: (backend: Backend, username: string, email: string) => Promise<boolean>
+  readonly setUsername: (username: string, email: string) => Promise<boolean>
   readonly signInWithGoogle: () => Promise<boolean>
   readonly signInWithGitHub: () => Promise<boolean>
   readonly signInWithPassword: (email: string, password: string) => Promise<boolean>
@@ -142,6 +140,8 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 export interface AuthProviderProps {
   readonly shouldStartInOfflineMode: boolean
   readonly supportsLocalBackend: boolean
+  readonly backend: Backend
+  readonly setBackendWithoutSavingType: (backend: Backend) => void
   readonly authService: authServiceModule.AuthService | null
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
@@ -152,11 +152,10 @@ export interface AuthProviderProps {
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
   const { shouldStartInOfflineMode, supportsLocalBackend, authService, onAuthenticated } = props
-  const { children, projectManagerUrl } = props
+  const { backend, setBackendWithoutSavingType, children, projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
   const { cognito } = authService ?? {}
   const { session, deinitializeSession, onSessionError } = sessionProvider.useSession()
-  const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const { getText } = textProvider.useText()
   // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
@@ -174,10 +173,11 @@ export default function AuthProvider(props: AuthProviderProps) {
         return oldUserSession
       } else {
         return object.merge(oldUserSession, {
-          user:
+          user: oldUserSession.user.withValue(
             typeof valueOrUpdater !== 'function'
               ? valueOrUpdater
-              : valueOrUpdater(oldUserSession.user),
+              : valueOrUpdater(oldUserSession.user.value)
+          ),
         })
       }
     })
@@ -280,23 +280,23 @@ export default function AuthProvider(props: AuthProviderProps) {
         }
       } else {
         const client = new HttpClient([['Authorization', `Bearer ${session.accessToken}`]])
-        const backend = new RemoteBackend(client, logger, getText)
+        const remoteBackend = new RemoteBackend(client, logger, getText)
         // The backend MUST be the remote backend before login is finished.
         // This is because the "set username" flow requires the remote backend.
         if (!initialized || userSession == null || userSession.type === UserSessionType.offline) {
-          setBackendWithoutSavingType(backend)
+          setBackendWithoutSavingType(remoteBackend)
         }
         gtagEvent('cloud_open')
-        let user: backendModule.User | null
+        let user: backendModule.SmartUser | null
         let userInfo: backendModule.SimpleUser | null
         while (true) {
           try {
-            user = await backend.usersMe()
+            user = await remoteBackend.self()
             try {
               userInfo =
-                user?.isEnabled === true
-                  ? (await backend.listUsers()).find(
-                      listedUser => listedUser.email === user?.email
+                user?.value.isEnabled === true
+                  ? (await user.listUsers()).find(
+                      listedUser => listedUser.email === user?.value.email
                     ) ?? null
                   : null
             } catch {
@@ -333,9 +333,9 @@ export default function AuthProvider(props: AuthProviderProps) {
           }
         } else {
           sentry.setUser({
-            id: user.id,
-            email: user.email,
-            username: user.name,
+            id: user.value.id,
+            email: user.value.email,
+            username: user.value.name,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             ip_address: '{{auto}}',
           })
@@ -430,13 +430,14 @@ export default function AuthProvider(props: AuthProviderProps) {
     } else {
       gtagEvent('cloud_sign_up')
       const result = await cognito.signUp(username, password, organizationId)
-      if (result.ok) {
+      if (cognitoModule.isAmplifyError(result)) {
+        toastError(result.message)
+        return false
+      } else {
         toastSuccess(getText('signUpSuccess'))
         navigate(appUtils.LOGIN_PATH)
-      } else {
-        toastError(result.val.message)
+        return true
       }
-      return result.ok
     }
   }
 
@@ -446,8 +447,8 @@ export default function AuthProvider(props: AuthProviderProps) {
     } else {
       gtagEvent('cloud_confirm_sign_up')
       const result = await cognito.confirmSignUp(email, code)
-      if (result.err) {
-        switch (result.val.type) {
+      if (cognitoModule.isAmplifyError(result)) {
+        switch (result.type) {
           case cognitoModule.CognitoErrorType.userAlreadyConfirmed: {
             break
           }
@@ -457,13 +458,16 @@ export default function AuthProvider(props: AuthProviderProps) {
             return false
           }
           default: {
-            throw new errorModule.UnreachableCaseError(result.val.type)
+            // This is REQUIRED, as a sanity check to ensure that this case is impossible to reach.
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const sanity: never = result.type
+            throw new Error(`Unreachable value detected: ${JSON.stringify(result)}`)
           }
         }
       }
       toastSuccess(getText('confirmSignUpSuccess'))
       navigate(appUtils.LOGIN_PATH)
-      return result.ok
+      return true
     }
   }
 
@@ -473,20 +477,21 @@ export default function AuthProvider(props: AuthProviderProps) {
     } else {
       gtagEvent('cloud_sign_in', { provider: 'Email' })
       const result = await cognito.signInWithPassword(email, password)
-      if (result.ok) {
-        toastSuccess(getText('signInWithPasswordSuccess'))
-      } else {
-        if (result.val.type === cognitoModule.CognitoErrorType.userNotFound) {
+      if (cognitoModule.isAmplifyError(result)) {
+        if (result.type === cognitoModule.CognitoErrorType.userNotFound) {
           // It may not be safe to pass the user's password in the URL.
           navigate(`${appUtils.REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`)
         }
-        toastError(result.val.message)
+        toastError(result.message)
+        return false
+      } else {
+        toastSuccess(getText('signInWithPasswordSuccess'))
+        return true
       }
-      return result.ok
     }
   }
 
-  const setUsername = async (backend: Backend, username: string, email: string) => {
+  const setUsername = async (username: string, email: string) => {
     if (cognito == null) {
       return false
     } else if (backend.type === backendModule.BackendType.local) {
@@ -530,13 +535,14 @@ export default function AuthProvider(props: AuthProviderProps) {
       return false
     } else {
       const result = await cognito.forgotPassword(email)
-      if (result.ok) {
+      if (cognitoModule.isAmplifyError(result)) {
+        toastError(result.message)
+        return false
+      } else {
         toastSuccess(getText('forgotPasswordSuccess'))
         navigate(appUtils.LOGIN_PATH)
-      } else {
-        toastError(result.val.message)
+        return true
       }
-      return result.ok
     }
   }
 
@@ -545,13 +551,14 @@ export default function AuthProvider(props: AuthProviderProps) {
       return false
     } else {
       const result = await cognito.forgotPasswordSubmit(email, code, password)
-      if (result.ok) {
-        toastSuccess(getText('resetPasswordSuccess'))
-        navigate(appUtils.LOGIN_PATH)
+      if (cognitoModule.isAmplifyError(result)) {
+        toastError(result.message)
+        return false
       } else {
-        toastError(result.val.message)
+        toastSuccess(getText('forgotPasswordSuccess'))
+        navigate(appUtils.LOGIN_PATH)
+        return true
       }
-      return result.ok
     }
   }
 
@@ -560,12 +567,13 @@ export default function AuthProvider(props: AuthProviderProps) {
       return false
     } else {
       const result = await cognito.changePassword(oldPassword, newPassword)
-      if (result.ok) {
-        toastSuccess(getText('changePasswordSuccess'))
+      if (cognitoModule.isAmplifyError(result)) {
+        toastError(result.message)
+        return false
       } else {
-        toastError(result.val.message)
+        toastSuccess(getText('changePasswordSuccess'))
+        return true
       }
-      return result.ok
     }
   }
 

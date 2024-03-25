@@ -1,4 +1,5 @@
 /** @file Types and constants related to `Column`s. */
+
 import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 import BlankIcon from 'enso-assets/blank.svg'
@@ -8,8 +9,6 @@ import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
 import type * as text from '#/text'
-
-import * as backend from '#/services/Backend'
 
 // =============
 // === Types ===
@@ -97,20 +96,7 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 // =====================
 
 /** Return the full list of columns given the relevant current state. */
-export function getColumnList(
-  backendType: backend.BackendType,
-  enabledColumns: ReadonlySet<Column>
-) {
-  let columns: readonly Column[]
-  switch (backendType) {
-    case backend.BackendType.local: {
-      columns = LOCAL_COLUMNS
-      break
-    }
-    case backend.BackendType.remote: {
-      columns = CLOUD_COLUMNS
-      break
-    }
-  }
+export function getColumnList(isCloud: boolean, enabledColumns: ReadonlySet<Column>) {
+  const columns = isCloud ? CLOUD_COLUMNS : LOCAL_COLUMNS
   return columns.filter(column => enabledColumns.has(column))
 }
