@@ -44,7 +44,7 @@ public class BucketLocator {
       // TODO what will a more general locationConstraint, eg. `EU` will be mapped to?
       return Region.of(locationConstraint.toString());
     } catch (Exception e) {
-      Logger.getLogger("S3-BucketLocator").warning("Failed to locate bucket " + bucketName + ": " + e.getMessage());
+      Logger.getLogger("S3-BucketLocator").fine("Failed to locate bucket " + bucketName + ": " + e.getMessage());
       return null;
     }
   }
