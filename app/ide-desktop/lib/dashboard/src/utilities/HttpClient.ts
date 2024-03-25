@@ -8,21 +8,6 @@ import isNetworkError from 'is-network-error'
 export const FETCH_SUCCESS_EVENT_NAME = 'fetch-success'
 export const FETCH_ERROR_EVENT_NAME = 'fetch-error'
 
-/**
- * An error that is thrown when an HTTP request fails.
- */
-export class NetworkError extends Error {
-  /**
-   * Create a new network error with the specified message and status code.
-   */
-  constructor(
-    message: string = 'Network error',
-    public status: number | null = null
-  ) {
-    super(message)
-  }
-}
-
 // =============
 // === Types ===
 // =============

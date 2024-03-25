@@ -14,7 +14,6 @@ import Backend, * as backendModule from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
 import type HttpClient from '#/utilities/HttpClient'
-import * as httpClientModule from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 
 // =================
@@ -191,7 +190,7 @@ export default class RemoteBackend extends Backend {
           ((await response.json()) as RemoteBackendError)
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
     this.logger.error(message)
-    throw new httpClientModule.NetworkError(message, response?.status)
+    throw new Error(message)
   }
 
   /** Return a list of all users in the same organization. */
