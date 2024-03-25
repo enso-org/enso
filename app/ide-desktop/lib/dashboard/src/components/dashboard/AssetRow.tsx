@@ -23,6 +23,8 @@ import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
+import EditAssetDescriptionModal from '#/modals/EditAssetDescriptionModal'
+
 import * as backendModule from '#/services/Backend'
 import * as localBackend from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
@@ -80,11 +82,19 @@ export interface AssetRowProps
     props: AssetRowInnerProps,
     event: React.MouseEvent<HTMLTableRowElement>
   ) => void
+  readonly focusEditDescriptionField: () => void
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
+  const {
+    item: rawItem,
+    hidden: hiddenRaw,
+    selected,
+    isSoleSelected,
+    isKeyboardSelected,
+    focusEditDescriptionField,
+  } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
@@ -358,6 +368,26 @@ export default function AssetRow(props: AssetRowProps) {
       toastAndLog('restoreAssetError', error, asset.title)
     }
   }, [backend, dispatchAssetListEvent, asset, toastAndLog, /* should never change */ item.key])
+
+  const doTriggerDescriptionEdit = React.useCallback(() => {
+    setModal(
+      <EditAssetDescriptionModal
+        doChangeDescription={async description => {
+          if (description !== asset.description) {
+            setAsset(object.merger({ description }))
+
+            await backend
+              .updateAsset(item.item.id, { parentDirectoryId: null, description }, item.item.title)
+              .catch(error => {
+                setAsset(object.merger({ description: asset.description }))
+                throw error
+              })
+          }
+        }}
+        initialDescription={asset.description}
+      />
+    )
+  }, [setModal, asset.description, backend, item.item.id, item.item.title])
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
@@ -691,6 +721,7 @@ export default function AssetRow(props: AssetRowProps) {
                       doCut={doCut}
                       doPaste={doPaste}
                       doDelete={doDelete}
+                      doTriggerDescriptionEdit={doTriggerDescriptionEdit}
                     />
                   )
                 } else {
@@ -821,6 +852,7 @@ export default function AssetRow(props: AssetRowProps) {
               doCut={doCut}
               doPaste={doPaste}
               doDelete={doDelete}
+              doTriggerDescriptionEdit={doTriggerDescriptionEdit}
             />
           )}
         </>

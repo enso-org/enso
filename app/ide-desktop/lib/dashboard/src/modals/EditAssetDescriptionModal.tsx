@@ -1,0 +1,104 @@
+/**
+ * @file
+ *
+ * Modal for editing an asset's description.
+ */
+
+import * as React from 'react'
+
+import * as reactQuery from '@tanstack/react-query'
+
+import * as modalProvider from '#/providers/ModalProvider'
+
+import * as ariaComponents from '#/components/AriaComponents'
+import Modal from '#/components/Modal'
+
+/**
+ *
+ */
+export interface EditAssetDescriptionModalProps {
+  readonly actionButtonLabel?: string
+  readonly initialDescription: string | null
+  /**
+   * Callback to change the asset's description.
+   */
+  readonly doChangeDescription: (newDescription: string) => Promise<void>
+}
+
+/**
+ * Modal for editing an asset's description.
+ */
+export default function EditAssetDescriptionModal(props: EditAssetDescriptionModalProps) {
+  const { doChangeDescription, initialDescription, actionButtonLabel = 'Submit' } = props
+  const { unsetModal } = modalProvider.useSetModal()
+  const [description, setDescription] = React.useState(initialDescription ?? '')
+  const initialdescriptionRef = React.useRef(initialDescription)
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+  const { isPending, error, mutate } = reactQuery.useMutation({
+    mutationFn: doChangeDescription,
+    onSuccess: () => {
+      unsetModal()
+    },
+  })
+
+  React.useLayoutEffect(() => {
+    if (
+      textareaRef.current &&
+      typeof initialdescriptionRef.current === 'string' &&
+      initialdescriptionRef.current.length > 0
+    ) {
+      textareaRef.current.select()
+    }
+  }, [])
+
+  return (
+    <Modal centered className="bg-dim">
+      <form
+        data-testid="edit-description-modal"
+        className="pointer-events-auto relative flex w-confirm-delete-modal flex-col gap-modal rounded-default p-modal-wide py-modal before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+        onKeyDown={event => {
+          if (event.key !== 'Escape') {
+            event.stopPropagation()
+          }
+        }}
+        onClick={event => {
+          event.stopPropagation()
+        }}
+        onSubmit={event => {
+          event.preventDefault()
+          mutate(description)
+        }}
+      >
+        <div className="relative text-sm font-semibold">Edit Description</div>
+        <textarea
+          ref={textareaRef}
+          className="relative h-16 resize-none rounded-default bg-selected-frame px-4 py-2"
+          placeholder="Enter a description"
+          onChange={event => {
+            setDescription(event.target.value)
+          }}
+          value={description}
+          disabled={isPending}
+          autoFocus
+        />
+
+        {error && <div className="relative text-sm text-red-500">{error.message}</div>}
+
+        <div className="relative flex gap-buttons">
+          <ariaComponents.Button variant="submit" type="submit" loading={isPending}>
+            {actionButtonLabel}
+          </ariaComponents.Button>
+          <ariaComponents.Button
+            variant="cancel"
+            type="button"
+            onPress={unsetModal}
+            isDisabled={isPending}
+          >
+            Cancel
+          </ariaComponents.Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
