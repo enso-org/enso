@@ -296,10 +296,10 @@
   "latestIndicator": "(Latest)",
 
   "deleteLabelActionText": "delete the label '$0'",
-  "deleteSelectedAssetActionText": "selected item",
-  "deleteSelectedAssetsActionText": "$0 selected items",
-  "deleteSelectedAssetForeverActionText": "selected item forever",
-  "deleteSelectedAssetsForeverActionText": "$0 selected items forever",
+  "deleteSelectedAssetActionText": "delete '$0'",
+  "deleteSelectedAssetsActionText": "delete $0 selected items",
+  "deleteSelectedAssetForeverActionText": "delete '$0' forever",
+  "deleteSelectedAssetsForeverActionText": "delete $0 selected items forever",
 
   "enterTheNewKeyboardShortcutFor": "Enter the new keyboard shortcut for $0.",
   "noShortcutEntered": "No shortcut entered",

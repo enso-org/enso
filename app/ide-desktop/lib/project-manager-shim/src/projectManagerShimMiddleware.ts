@@ -135,9 +135,9 @@ export default function projectManagerShimMiddleware(
             case '/api/upload-project': {
                 const url = new URL(`https://example.com/${requestUrl}`)
                 const directory = url.searchParams.get('directory')
-                const directoryParams = directory == null ? [] : [directory]
+                const name = url.searchParams.get('name')
                 void projectManagement
-                    .uploadBundle(request, ...directoryParams)
+                    .uploadBundle(request, directory, name)
                     .then(id => {
                         response
                             .writeHead(HTTP_STATUS_OK, [

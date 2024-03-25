@@ -37,7 +37,11 @@ const HTTP_STATUS_NOT_FOUND = 404
 
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
-    readonly uploadProjectBundle: (project: stream.Readable, directory?: string) => Promise<string>
+    readonly uploadProjectBundle: (
+        project: stream.Readable,
+        directory: string | null,
+        name: string | null
+    ) => Promise<string>
     readonly runProjectManagerCommand: (
         cliArguments: string[],
         body?: NodeJS.ReadableStream
@@ -241,9 +245,9 @@ export class Server {
                 case '/api/upload-project': {
                     const url = new URL(`https://example.com/${requestUrl}`)
                     const directory = url.searchParams.get('directory')
-                    const directoryParams = directory == null ? [] : [directory]
+                    const name = url.searchParams.get('name')
                     void this.config.externalFunctions
-                        .uploadProjectBundle(request, ...directoryParams)
+                        .uploadProjectBundle(request, directory, name)
                         .then(id => {
                             response
                                 .writeHead(HTTP_STATUS_OK, [

@@ -24,6 +24,7 @@ const logger = console
 // === Constants ===
 // =================
 
+export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 /** The filename suffix for the project bundle, including the leading period character. */
 const BUNDLED_PROJECT_SUFFIX = `.enso-project`
@@ -39,18 +40,20 @@ const BUNDLED_PROJECT_SUFFIX = `.enso-project`
  * @throws {Error} if the path does not belong to a valid project. */
 export function importProjectFromPath(
     openedPath: string,
-    directory = getProjectsDirectory()
+    directory?: string | null,
+    name: string | null = null
 ): string {
+    directory ??= getProjectsDirectory()
     if (pathModule.extname(openedPath).endsWith(BUNDLED_PROJECT_SUFFIX)) {
         logger.log(`Path '${openedPath}' denotes a bundled project.`)
         // The second part of condition is for the case when someone names a directory
         // like `my-project.enso-project` and stores the project there.
         // Not the most fortunate move, but...
         if (isProjectRoot(openedPath)) {
-            return importDirectory(openedPath, directory)
+            return importDirectory(openedPath, directory, name)
         } else {
             // Project bundle was provided, so we need to extract it first.
-            return importBundle(openedPath, directory)
+            return importBundle(openedPath, directory, name)
         }
     } else {
         logger.log(`Opening non-bundled file: '${openedPath}'.`)
@@ -62,15 +65,22 @@ export function importProjectFromPath(
             const message = `File '${openedPath}' does not belong to the ${productName} project.`
             throw new Error(message)
         } else {
-            return importDirectory(rootPath, directory)
+            return importDirectory(rootPath, directory, name)
         }
     }
 }
 
 /** Import the project from a bundle.
  * @returns Project ID (from Project Manager's metadata) identifying the imported project. */
-export function importBundle(bundlePath: string, directory = getProjectsDirectory()): string {
-    logger.log(`Importing project '${bundlePath}' from bundle.`)
+export function importBundle(
+    bundlePath: string,
+    directory?: string | null,
+    name: string | null = null
+): string {
+    directory ??= getProjectsDirectory()
+    logger.log(
+        `Importing project '${bundlePath}' from bundle${name != null ? ` as '${name}'` : ''}.`
+    )
     // The bundle is a tarball, so we just need to extract it to the right location.
     const bundlePrefix = prefixInBundle(bundlePath)
     // We care about spurious '.' and '..' when stripping paths but not when generating name.
@@ -117,16 +127,18 @@ export function importBundle(bundlePath: string, directory = getProjectsDirector
         sync: true,
         strip: rootPieces.length,
     })
-    return updateIdAndDate(targetPath)
+    return bumpMetadata(targetPath, name ?? null)
 }
 
 /** Upload the project from a bundle. */
 export async function uploadBundle(
     bundle: stream.Readable,
-    directory = getProjectsDirectory()
+    directory?: string | null,
+    name: string | null = null
 ): Promise<string> {
-    logger.log(`Uploading project from bundle.`)
-    const targetPath = generateDirectoryName('Project', directory)
+    directory ??= getProjectsDirectory()
+    logger.log(`Uploading project from bundle${name != null ? ` as '${name}'` : ''}.`)
+    const targetPath = generateDirectoryName(name ?? 'Project', directory)
     fs.mkdirSync(targetPath, { recursive: true })
     await new Promise<void>(resolve => {
         bundle.pipe(tar.extract({ cwd: targetPath })).on('finish', resolve)
@@ -144,13 +156,18 @@ export async function uploadBundle(
             fs.rmdirSync(temporaryDirectoryName)
         }
     }
-    return updateIdAndDate(targetPath)
+    return bumpMetadata(targetPath, name ?? null)
 }
 
 /** Import the project so it becomes visible to the Project Manager.
  * @returns The project ID (from the Project Manager's metadata) identifying the imported project.
  * @throws {Error} if a race condition occurs when generating a unique project directory name. */
-export function importDirectory(rootPath: string, directory = getProjectsDirectory()): string {
+export function importDirectory(
+    rootPath: string,
+    directory?: string | null,
+    name: string | null = null
+): string {
+    directory ??= getProjectsDirectory()
     if (isProjectInstalled(rootPath, directory)) {
         // Project is already visible to Project Manager, so we can just return its ID.
         logger.log(`Project already installed at '${rootPath}'.`)
@@ -161,7 +178,9 @@ export function importDirectory(rootPath: string, directory = getProjectsDirecto
             throw new Error(`Project already installed, but missing metadata.`)
         }
     } else {
-        logger.log(`Importing a project copy from '${rootPath}'.`)
+        logger.log(
+            `Importing a project copy from '${rootPath}'${name != null ? ` as '${name}'` : ''}.`
+        )
         const targetPath = generateDirectoryName(rootPath, directory)
         if (fs.existsSync(targetPath)) {
             throw new Error(`Project directory '${targetPath}' already exists.`)
@@ -170,7 +189,7 @@ export function importDirectory(rootPath: string, directory = getProjectsDirecto
             fs.cpSync(rootPath, targetPath, { recursive: true })
             // Update the project ID, so we are certain that it is unique.
             // This would be violated, if we imported the same project multiple times.
-            return updateIdAndDate(targetPath)
+            return bumpMetadata(targetPath, name ?? null)
         }
     }
 }
@@ -211,7 +230,15 @@ export function getProjectId(projectRoot: string): string | null {
     return getMetadata(projectRoot)?.id ?? null
 }
 
-/** Create  */
+/** Update the package name. */
+export function updatePackageName(projectRoot: string, name: string) {
+    const path = pathModule.join(projectRoot, PACKAGE_METADATA_RELATIVE_PATH)
+    const contents = fs.readFileSync(path, { encoding: 'utf-8' })
+    const newContents = contents.replace(/^name: .*/, `name: ${name}`)
+    fs.writeFileSync(path, newContents)
+}
+
+/** Create a project's metadata. */
 export function createMetadata(): ProjectMetadata {
     return {
         id: generateId(),
@@ -365,7 +392,10 @@ export function generateId(): string {
 }
 
 /** Update the project's ID to a new, unique value, and its last opened date to the current date. */
-export function updateIdAndDate(projectRoot: string): string {
+export function bumpMetadata(projectRoot: string, name: string | null): string {
+    if (name != null) {
+        updatePackageName(projectRoot, name)
+    }
     return updateMetadata(projectRoot, metadata => ({
         ...metadata,
         id: generateId(),

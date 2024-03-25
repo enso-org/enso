@@ -177,9 +177,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 'path' in file &&
                 typeof file.path === 'string'
               ) {
-                id = await window.backendApi.importProjectFromPath(file.path, directory)
+                id = await window.backendApi.importProjectFromPath(file.path, directory, title)
               } else {
-                const searchParams = new URLSearchParams({ directory }).toString()
+                const searchParams = new URLSearchParams({ directory, name: title }).toString()
                 // Ideally this would use `file.stream()`, to minimize RAM
                 // requirements. for uploading large projects. Unfortunately,
                 // this requires HTTP/2, which is HTTPS-only, so it will not

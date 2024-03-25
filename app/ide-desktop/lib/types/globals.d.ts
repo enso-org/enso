@@ -32,7 +32,8 @@ interface BackendApi {
     /** Return the ID of the new project. */
     readonly importProjectFromPath: (
         openedPath: string,
-        directory: string | null
+        directory: string | null,
+        name: string
     ) => Promise<string>
 }
 

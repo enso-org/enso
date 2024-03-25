@@ -232,13 +232,13 @@ export default class LocalBackend extends Backend {
     })
     const path = projectManager.joinPath(
       projectsDirectory ?? ProjectManager.rootDirectory,
-      body.projectName
+      project.projectNormalizedName
     )
     return {
-      name: body.projectName,
+      name: project.projectName,
       organizationId: '',
       projectId: newProjectId(project.projectId),
-      packageName: body.projectName,
+      packageName: project.projectName,
       state: {
         type: backend.ProjectState.closed,
         // eslint-disable-next-line @typescript-eslint/naming-convention
