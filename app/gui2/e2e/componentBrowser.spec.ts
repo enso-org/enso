@@ -301,3 +301,17 @@ test('Component browser handling of overridden record-mode', async ({ page }) =>
   await expect(locate.componentBrowser(page)).toBeVisible()
   await expect(input).toHaveValue(`Data.read ${ADDED_PATH}`)
 })
+
+test('AI prompt', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const node = locate.graphNodeByBinding(page, 'data')
+  await node.click()
+  await expect(node).toBeSelected()
+  await locate.graphEditor(page).press('Enter')
+  await expect(locate.componentBrowser(page)).toBeVisible()
+
+  await page.keyboard.insertText('AI:convert to table')
+  await page.keyboard.press('Enter')
+  await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue('data.to_table')
+})

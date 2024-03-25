@@ -157,9 +157,9 @@ impl DocSectionCollector {
     fn finish(&mut self) -> Vec<DocSection> {
         self.finish_section();
         let result = self.sections.drain(..).collect();
-        let current_body = std::mem::take(&mut self.current_body);
-        let current_list = std::mem::take(&mut self.current_list);
-        let sections = std::mem::take(&mut self.sections);
+        let current_body = mem::take(&mut self.current_body);
+        let current_list = mem::take(&mut self.current_list);
+        let sections = mem::take(&mut self.sections);
         *self = Self {
             // Reuse the (empty) buffers.
             current_body,

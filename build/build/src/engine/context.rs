@@ -33,7 +33,6 @@ use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
-use sysinfo::SystemExt;
 
 
 
@@ -73,7 +72,7 @@ impl RunContext {
         triple: TargetTriple,
         external_runtime: Option<Arc<EnginePackageProvider>>,
     ) -> Result<Self> {
-        let paths = crate::paths::Paths::new_versions(&inner.repo_root, triple.versions)?;
+        let paths = Paths::new_versions(&inner.repo_root, triple.versions)?;
         let context = RunContext { config: config.into(), inner, paths, external_runtime };
         Ok(context)
     }
@@ -602,7 +601,7 @@ impl RunContext {
             }
         }
 
-        let graal_version = crate::engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
+        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
         for bundle in ret.bundles() {
             bundle.create(&self.repo_root, &graal_version).await?;
         }
@@ -642,7 +641,7 @@ impl RunContext {
                 if let Some(program) = run.next() {
                     debug!("Resolving program: {}", program.as_str());
                     let exe_path = ide_ci::program::lookup(program.as_str())?;
-                    ide_ci::program::Command::new(exe_path)
+                    Command::new(exe_path)
                         .args(run)
                         .current_dir(&self.paths.repo_root)
                         .spawn()?

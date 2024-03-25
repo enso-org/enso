@@ -2,6 +2,7 @@
 
 // === Non-Standard Linter Configuration ===
 #![allow(dead_code)]
+#![allow(missing_debug_implementations)]
 
 use enso_reflect as reflect;
 use enso_reflect_macros::Reflect;

@@ -12,7 +12,6 @@ use crate::prelude::*;
 
 use crate::cache::goodie;
 use crate::cache::Cache;
-use crate::cache::Goodie;
 use crate::env::known::PATH;
 use crate::github::RepoRef;
 use crate::programs::shaderc::Glslc;

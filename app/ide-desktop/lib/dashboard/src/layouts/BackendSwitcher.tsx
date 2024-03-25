@@ -5,6 +5,7 @@ import CloudIcon from 'enso-assets/cloud.svg'
 import NotCloudIcon from 'enso-assets/not_cloud.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import SvgMask from '#/components/SvgMask'
 
@@ -23,6 +24,7 @@ export interface BackendSwitcherProps {
 export default function BackendSwitcher(props: BackendSwitcherProps) {
   const { setBackendType } = props
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   const isCloud = backend.type === backendModule.BackendType.remote
 
   return (
@@ -36,7 +38,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       >
         <div className="flex items-center gap-icon-with-text">
           <SvgMask src={CloudIcon} />
-          <span className="text">Cloud</span>
+          <span className="text">{getText('cloud')}</span>
         </div>
       </button>
       <button
@@ -48,7 +50,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
       >
         <div className="flex items-center gap-icon-with-text">
           <SvgMask src={NotCloudIcon} />
-          <span className="text">Local</span>
+          <span className="text">{getText('local')}</span>
         </div>
       </button>
     </div>
