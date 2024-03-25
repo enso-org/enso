@@ -7,9 +7,12 @@ import * as stripe from '@stripe/stripe-js/pure'
 import * as toast from 'react-toastify'
 
 import * as appUtils from '#/appUtils'
+import type * as text from '#/text'
 
 import * as navigateHooks from '#/hooks/navigateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
+import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
 
@@ -27,6 +30,11 @@ let stripePromise: Promise<stripeTypes.Stripe | null> | null = null
 
 /** The delay in milliseconds before redirecting back to the main page. */
 const REDIRECT_DELAY_MS = 1_500
+
+const PLAN_TO_TEXT_ID: Readonly<Record<backendModule.Plan, text.TextId>> = {
+  [backendModule.Plan.solo]: 'soloPlanName',
+  [backendModule.Plan.team]: 'teamPlanName',
+} satisfies { [Plan in backendModule.Plan]: `${Plan}PlanName` }
 
 // =================
 // === Subscribe ===
@@ -51,6 +59,7 @@ export interface SubscribeProps {
  * paymentStatus: 'no_payment_required' || 'paid' || 'unpaid' }`). */
 export default function Subscribe(props: SubscribeProps) {
   const { backend } = props
+  const { getText } = textProvider.useText()
   const navigate = navigateHooks.useNavigate()
   // Plan that the user has currently selected, if any (e.g., 'solo', 'team', etc.).
   const [plan, setPlan] = React.useState(() => {
@@ -125,7 +134,9 @@ export default function Subscribe(props: SubscribeProps) {
           event.stopPropagation()
         }}
       >
-        <div className="self-center text-xl">Upgrade to {string.capitalizeFirst(plan)}</div>
+        <div className="self-center text-xl">
+          {getText('upgradeTo', string.capitalizeFirst(plan))}
+        </div>
         <div className="flex h-row items-stretch rounded-full bg-gray-500/30 text-base">
           {backendModule.PLANS.map(newPlan => (
             <button
@@ -138,7 +149,7 @@ export default function Subscribe(props: SubscribeProps) {
                 setPlan(newPlan)
               }}
             >
-              {string.capitalizeFirst(newPlan)}
+              {PLAN_TO_TEXT_ID[newPlan]}
             </button>
           ))}
         </div>

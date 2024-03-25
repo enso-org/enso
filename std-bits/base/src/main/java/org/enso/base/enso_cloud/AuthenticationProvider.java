@@ -1,51 +1,59 @@
 package org.enso.base.enso_cloud;
 
-import org.enso.base.Environment_Utils;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 public class AuthenticationProvider {
-  private static String token = null;
 
-  public static String setToken(String token) {
-    AuthenticationProvider.token = token;
-    return AuthenticationProvider.token;
+  public interface AuthenticationService {
+    String get_access_token();
+
+    void force_refresh();
   }
 
-  public static String getToken() {
-    return AuthenticationProvider.token;
+  private static Value authenticationServiceAsEnso = null;
+  private static AuthenticationService authenticationServiceAsJava = null;
+
+  public static void reset() {
+    authenticationServiceAsEnso = null;
+    authenticationServiceAsJava = null;
   }
 
-  public static String getAPIRootURI() {
-    var envUri = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URI");
-    var effectiveUri =
-        envUri == null ? "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/" : envUri;
-    var uriWithSlash = effectiveUri.endsWith("/") ? effectiveUri : effectiveUri + "/";
-    return uriWithSlash;
+  private static Value createAuthenticationService() {
+    var context = Context.getCurrent().getBindings("enso");
+    var module =
+        context.invokeMember("get_module", "Standard.Base.Enso_Cloud.Internal.Authentication");
+    var moduleType = module.invokeMember("get_associated_type");
+    var factory =
+        module.invokeMember("get_method", moduleType, "instantiate_authentication_service");
+    // The static method takes the module as the synthetic 'self' argument.
+    return factory.execute(moduleType);
   }
 
-  public record CloudWorkingDirectory(String name, String id, String organizationId) {}
+  private static void ensureServicesSetup() {
+    var ensoInstance = createAuthenticationService();
+    var javaInstance = ensoInstance.as(AuthenticationService.class);
+    authenticationServiceAsEnso = ensoInstance;
+    authenticationServiceAsJava = javaInstance;
+  }
 
-  public static CloudWorkingDirectory getCurrentWorkingDirectory() {
-    if (cachedWorkingDirectory != null) {
-      return cachedWorkingDirectory;
+  static AuthenticationService getAuthenticationService() {
+    if (authenticationServiceAsJava == null) {
+      ensureServicesSetup();
     }
 
-    String directoryId = Environment_Utils.get_environment_variable("ENSO_PROJECT_PATH");
-    if (directoryId == null) {
-      // No current working directory is set
-      return null;
-    }
-
-    // TODO we should be able to fetch the name and organizationId from the cloud:
-    String directoryName = "???";
-    String organizationId = "";
-    cachedWorkingDirectory = new CloudWorkingDirectory(directoryName, directoryId, organizationId);
-    return cachedWorkingDirectory;
+    return authenticationServiceAsJava;
   }
 
-  private static CloudWorkingDirectory cachedWorkingDirectory = null;
+  public static Value getAuthenticationServiceEnsoInstance() {
+    if (authenticationServiceAsEnso == null) {
+      ensureServicesSetup();
+    }
 
-  public static void flushCloudCaches() {
-    EnsoSecretReader.flushCache();
-    cachedWorkingDirectory = null;
+    return authenticationServiceAsEnso;
+  }
+
+  public static String getAccessToken() {
+    return getAuthenticationService().get_access_token();
   }
 }

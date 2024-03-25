@@ -8,6 +8,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
@@ -35,6 +36,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const { user } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const smartAsset = item.item
   const asset = smartAsset.value
@@ -55,7 +57,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
           <Label
             key={label}
             data-testid="asset-label"
-            title="Right click to remove label."
+            title={getText('rightClickToRemoveLabel')}
             color={labels.get(label)?.color ?? labelUtils.DEFAULT_LABEL_COLOR}
             active={!temporarilyRemovedLabels.has(label)}
             disabled={temporarilyRemovedLabels.has(label)}
@@ -72,7 +74,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 unsetModal()
                 setAsset(oldAsset => {
                   const newLabels = oldAsset.labels?.filter(oldLabel => oldLabel !== label) ?? []
-                  void smartAsset.setTags(newLabels).catch(error => {
+                  void smartAsset.setTags(newLabels).catch((error: unknown) => {
                     toastAndLog(null, error)
                     setAsset(oldAsset2 =>
                       oldAsset2.labels?.some(oldLabel => oldLabel === label) === true

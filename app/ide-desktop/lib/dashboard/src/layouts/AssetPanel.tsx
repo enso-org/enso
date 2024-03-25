@@ -2,11 +2,12 @@
 import * as React from 'react'
 
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 
 import AssetProperties from '#/layouts/AssetProperties'
-import AssetVersions from '#/layouts/AssetVersions'
+import AssetVersions from '#/layouts/AssetVersions/AssetVersions'
 import type Category from '#/layouts/CategorySwitcher/Category'
 
 import * as backend from '#/services/Backend'
@@ -54,6 +55,7 @@ export interface AssetPanelRequiredProps {
 
 /** Props for an {@link AssetPanel}. */
 export interface AssetPanelProps extends AssetPanelRequiredProps {
+  readonly isCloud: boolean
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
   readonly labels: backend.Label[]
@@ -62,8 +64,8 @@ export interface AssetPanelProps extends AssetPanelRequiredProps {
 
 /** A panel containing the description and settings for an asset. */
 export default function AssetPanel(props: AssetPanelProps) {
-  const { item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
-
+  const { isCloud, item, setItem, setQuery, category, labels, dispatchAssetEvent } = props
+  const { getText } = textProvider.useText()
   const { localStorage } = localStorageProvider.useLocalStorage()
   const [initialized, setInitialized] = React.useState(false)
   const [tab, setTab] = React.useState(() => {
@@ -102,7 +104,8 @@ export default function AssetPanel(props: AssetPanelProps) {
       }}
     >
       <div className="flex">
-        {item != null &&
+        {isCloud &&
+          item != null &&
           item.item.type !== backend.AssetType.secret &&
           item.item.type !== backend.AssetType.directory && (
             <button
@@ -117,7 +120,7 @@ export default function AssetPanel(props: AssetPanelProps) {
                 )
               }}
             >
-              Versions
+              {getText('versions')}
             </button>
           )}
         {/* Spacing. The top right asset and user bars overlap this area. */}
@@ -125,7 +128,7 @@ export default function AssetPanel(props: AssetPanelProps) {
       </div>
       {item == null || setItem == null ? (
         <div className="grid grow place-items-center text-lg">
-          Select exactly one asset to view its details.
+          {getText('selectExactlyOneAssetToViewItsDetails')}
         </div>
       ) : (
         <>
@@ -139,7 +142,7 @@ export default function AssetPanel(props: AssetPanelProps) {
               dispatchAssetEvent={dispatchAssetEvent}
             />
           )}
-          <AssetVersions hidden={tab !== AssetPanelTab.versions} item={item} />
+          {tab === AssetPanelTab.versions && <AssetVersions item={item} />}
         </>
       )}
     </div>

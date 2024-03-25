@@ -8,6 +8,7 @@ import * as setAssetHooks from '#/hooks/setAssetHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as column from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
@@ -34,6 +35,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, setItem, selected, state, rowState, setRowState } = props
   const { isCloud, selectedKeys, nodeMap, doToggleDirectoryExpansion } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const smartAsset = item.item
   if (smartAsset.type !== backendModule.AssetType.directory) {
@@ -53,7 +55,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       try {
         await smartAsset.update({ title: newTitle })
       } catch (error) {
-        toastAndLog('Could not rename folder', error)
+        toastAndLog('renameFolderError', error)
         setAsset(object.merger({ title: oldTitle }))
       }
     }
@@ -90,7 +92,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     >
       <SvgMask
         src={FolderArrowIcon}
-        alt={item.children == null ? 'Expand' : 'Collapse'}
+        alt={item.children == null ? getText('expand') : getText('collapse')}
         className={`m-name-column-icon hidden size-icon cursor-pointer transition-transform duration-arrow group-hover:inline-block ${
           item.children != null ? 'rotate-90' : ''
         }`}

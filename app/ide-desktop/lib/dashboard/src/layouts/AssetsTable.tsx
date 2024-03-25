@@ -8,6 +8,7 @@ import * as authProvider from '#/providers/AuthProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -50,7 +51,7 @@ import PasteType from '#/utilities/PasteType'
 import * as permissions from '#/utilities/permissions'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as set from '#/utilities/set'
-import SortDirection from '#/utilities/SortDirection'
+import * as sorting from '#/utilities/sorting'
 import Visibility from '#/utilities/Visibility'
 
 // ============================
@@ -96,19 +97,6 @@ const LOADING_SPINNER_SIZE_PX = 36
 const COLUMNS_SELECTOR_BASE_WIDTH_PX = 4
 /** The number of pixels the header bar should shrink per collapsed column. */
 const COLUMNS_SELECTOR_ICON_WIDTH_PX = 28
-/** The default placeholder row. */
-const PLACEHOLDER = (
-  <span className="px-cell-x placeholder">
-    You have no files. Go ahead and create one using the buttons above, or open a template from the
-    home screen.
-  </span>
-)
-/** A placeholder row for when a query (text or labels) is active. */
-const QUERY_PLACEHOLDER = (
-  <span className="px-cell-x placeholder">No files match the current filters.</span>
-)
-/** The placeholder row for the Trash category. */
-const TRASH_PLACEHOLDER = <span className="px-cell-x placeholder">Your trash is empty.</span>
 
 const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
   {
@@ -219,10 +207,8 @@ export interface AssetsTableState {
   readonly labels: Map<backendModule.LabelName, backendModule.Label>
   readonly deletedLabelNames: Set<backendModule.LabelName>
   readonly hasPasteData: boolean
-  readonly sortColumn: columnUtils.SortableColumn | null
-  readonly setSortColumn: (column: columnUtils.SortableColumn | null) => void
-  readonly sortDirection: SortDirection | null
-  readonly setSortDirection: (sortDirection: SortDirection | null) => void
+  readonly sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null
+  readonly setSortInfo: (sortInfo: sorting.SortInfo<columnUtils.SortableColumn> | null) => void
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly dispatchAssetListEvent: (event: assetListEvent.AssetListEvent) => void
@@ -312,13 +298,14 @@ export default function AssetsTable(props: AssetsTableProps) {
   const { user, userInfo, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [initialized, setInitialized] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
   const [enabledColumns, setEnabledColumns] = React.useState(columnUtils.DEFAULT_ENABLED_COLUMNS)
-  const [sortColumn, setSortColumn] = React.useState<columnUtils.SortableColumn | null>(null)
-  const [sortDirection, setSortDirection] = React.useState<SortDirection | null>(null)
+  const [sortInfo, setSortInfo] =
+    React.useState<sorting.SortInfo<columnUtils.SortableColumn> | null>(null)
   const [hasPasteData, setHasPasteData] = React.useState(false)
   const queuedProject = React.useRef(initialProjectName)
   const [selectedKeys, setSelectedKeysRaw] = React.useState<ReadonlySet<backendModule.AssetId>>(
@@ -329,12 +316,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     const rootParentDirectoryId = backendModule.DirectoryId('')
     return AssetTreeNode.fromSmartAsset(rootDirectory, rootParentDirectoryId, rootDirectory, -1)
   })
-  const placeholder =
-    category === Category.trash
-      ? TRASH_PLACEHOLDER
-      : query.query !== ''
-        ? QUERY_PLACEHOLDER
-        : PLACEHOLDER
   /** Events sent when the asset list was still loading. */
   const queuedAssetListEventsRef = React.useRef<assetListEvent.AssetListEvent[]>([])
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
@@ -350,15 +331,12 @@ export default function AssetsTable(props: AssetsTableProps) {
     [query]
   )
   const displayItems = React.useMemo(() => {
-    if (sortColumn == null || sortDirection == null) {
+    if (sortInfo == null) {
       return assetTree.preorderTraversal()
     } else {
-      const multiplier = {
-        [SortDirection.ascending]: 1,
-        [SortDirection.descending]: -1,
-      }[sortDirection]
+      const multiplier = sortInfo.direction === sorting.SortDirection.ascending ? 1 : -1
       let compare: (a: AssetTreeNode, b: AssetTreeNode) => number
-      switch (sortColumn) {
+      switch (sortInfo.field) {
         case columnUtils.Column.name: {
           compare = (a, b) => {
             const aTitle = a.item.value.title
@@ -386,7 +364,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       return assetTree.preorderTraversal(tree => [...tree].sort(compare))
     }
-  }, [assetTree, sortColumn, sortDirection])
+  }, [assetTree, sortInfo])
   const visibilities = React.useMemo(() => {
     const map = new Map<backendModule.AssetId, Visibility>()
     const processNode = (node: AssetTreeNode) => {
@@ -650,7 +628,7 @@ export default function AssetsTable(props: AssetsTableProps) {
           })
         })
       } else if (initialProjectName != null) {
-        toastAndLog(`Could not find project '${initialProjectName}'`)
+        toastAndLog('findProjectError', null, initialProjectName)
       }
     }
     // This effect MUST only run when `initialProjectName` is changed.
@@ -706,7 +684,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       // when opening a project file from explorer on Windows.
       const isInitialProject = (asset: backendModule.AnyAsset) =>
         asset.title === queuedProject.current || asset.id === queuedProject.current
-      if (queuedProject.current != null) {
+      const queuedProjectId = queuedProject.current
+      if (queuedProjectId != null) {
         const projectToLoad = newAssets
           .map(smartAsset => smartAsset.value)
           .filter(backendModule.assetIsProject)
@@ -722,15 +701,15 @@ export default function AssetsTable(props: AssetsTableProps) {
             })
           })
         } else {
-          toastAndLog(`Could not find project '${queuedProject.current}'`)
+          toastAndLog('findProjectError', null, queuedProjectId)
         }
       }
     },
     [
       rootDirectory,
+      toastAndLog,
       /* should never change */ queuedProject,
       /* should never change */ dispatchAssetEvent,
-      /* should never change */ toastAndLog,
     ]
   )
 
@@ -753,7 +732,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         setIsLoading(false)
         overwriteNodes(newAssets)
       })
-      .catch(error => {
+      .catch((error: unknown) => {
         if (!signal.aborted) {
           setIsLoading(false)
           toastAndLog(null, error)
@@ -1192,12 +1171,8 @@ export default function AssetsTable(props: AssetsTableProps) {
               dispatchAssetListEvent={dispatchAssetListEvent}
               siblingFileNames={siblingFilesByName.keys()}
               siblingProjectNames={siblingProjectsByName.keys()}
-              nonConflictingCount={
-                files.length +
-                projects.length -
-                conflictingFiles.length -
-                conflictingProjects.length
-              }
+              nonConflictingFileCount={files.length - conflictingFiles.length}
+              nonConflictingProjectCount={projects.length - conflictingProjects.length}
               doUploadNonConflicting={() => {
                 doToggleDirectoryExpansion(event.parent, event.parentKey, true)
                 const newFiles = files
@@ -1284,7 +1259,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       }
       case AssetListEventType.emptyTrash: {
         if (category !== Category.trash) {
-          toastAndLog('Can only empty trash when in Trash')
+          toastAndLog('canOnlyEmptyTrashWhenInTrash')
         } else if (assetTree.children != null) {
           const ids = new Set(assetTree.children.map(child => child.item.value.id))
           // This is required to prevent an infinite loop,
@@ -1363,11 +1338,11 @@ export default function AssetsTable(props: AssetsTableProps) {
       if (pasteData != null) {
         const newParentNode = nodeMapRef.current.get(newParentKey)
         if (pasteData.data.has(newParentKey)) {
-          toastAndLog('Cannot paste a folder into itself')
+          toastAndLog('pasteFolderIntoSelfError')
         } else if (newParentNode == null) {
-          toastAndLog('New parent folder was not found')
+          toastAndLog('noPasteTargetError')
         } else if (newParentNode.item.type !== backendModule.AssetType.directory) {
-          toastAndLog('New parent is not a folder')
+          toastAndLog('pasteIntoNonFolderError')
         } else {
           const newParent = newParentNode.item
           doToggleDirectoryExpansion(newParentNode.item, newParentKey, true)
@@ -1453,10 +1428,8 @@ export default function AssetsTable(props: AssetsTableProps) {
       labels: allLabels,
       deletedLabelNames,
       hasPasteData,
-      sortColumn,
-      setSortColumn,
-      sortDirection,
-      setSortDirection,
+      sortInfo,
+      setSortInfo,
       query,
       setQuery,
       assetEvents,
@@ -1482,8 +1455,7 @@ export default function AssetsTable(props: AssetsTableProps) {
       allLabels,
       deletedLabelNames,
       hasPasteData,
-      sortColumn,
-      sortDirection,
+      sortInfo,
       assetEvents,
       query,
       doToggleDirectoryExpansion,
@@ -1956,7 +1928,15 @@ export default function AssetsTable(props: AssetsTableProps) {
           {itemRows}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
-              {placeholder}
+              {category === Category.trash ? (
+                <span className="px-cell-x placeholder">{getText('yourTrashIsEmpty')}</span>
+              ) : query.query !== '' ? (
+                <span className="px-cell-x placeholder">
+                  {getText('noFilesMatchTheCurrentFilters')}
+                </span>
+              ) : (
+                <span className="px-cell-x placeholder">{getText('youHaveNoFiles')}</span>
+              )}
             </td>
           </tr>
         </tbody>
@@ -2021,9 +2001,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                       key={column}
                       active
                       image={columnUtils.COLUMN_ICONS[column]}
-                      alt={`${enabledColumns.has(column) ? 'Show' : 'Hide'} ${
-                        columnUtils.COLUMN_NAME[column]
-                      }`}
+                      alt={getText(columnUtils.COLUMN_SHOW_TEXT_ID[column])}
                       onClick={event => {
                         event.stopPropagation()
                         const newExtraColumns = new Set(enabledColumns)

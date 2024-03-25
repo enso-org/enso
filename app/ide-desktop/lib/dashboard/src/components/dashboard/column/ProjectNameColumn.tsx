@@ -90,7 +90,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       try {
         await smartAsset.update({ projectName: newTitle })
       } catch (error) {
-        toastAndLog('Could not rename project', error)
+        toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
       }
     }
@@ -98,28 +98,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
-      case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
-        // `delete`, `deleteForever`, `restore`, `download`, and `downloadSelected`
-        // are handled by`AssetRow`.
-        break
-      }
       case AssetEventType.updateFiles: {
         const file = event.files.get(item.item.value.id)
         if (file != null) {
@@ -165,10 +143,18 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               )
             }
           } catch (error) {
-            toastAndLog('Could not update project', error)
+            switch (event.type) {
+              case AssetEventType.updateFiles: {
+                toastAndLog('updateProjectError', error)
+                break
+              }
+            }
             break
           }
         }
+        break
+      }
+      default: {
         break
       }
     }
@@ -249,6 +235,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               : ''
         }`}
         checkSubmittable={newTitle =>
+          newTitle !== '' &&
           (nodeMap.current.get(item.directoryKey)?.children ?? []).every(
             child =>
               // All siblings,

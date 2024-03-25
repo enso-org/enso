@@ -53,28 +53,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
-      case AssetEventType.openProject:
-      case AssetEventType.closeProject:
-      case AssetEventType.copy:
-      case AssetEventType.cut:
-      case AssetEventType.cancelCut:
-      case AssetEventType.move:
-      case AssetEventType.delete:
-      case AssetEventType.deleteForever:
-      case AssetEventType.restore:
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected:
-      case AssetEventType.removeSelf:
-      case AssetEventType.temporarilyAddLabels:
-      case AssetEventType.temporarilyRemoveLabels:
-      case AssetEventType.addLabels:
-      case AssetEventType.removeLabels:
-      case AssetEventType.deleteLabel: {
-        // Ignored. These events should all be unrelated to projects.
-        // `delete`, `deleteForever`, `restoreMultiple`, `download`, and `downloadSelected`
-        // are handled by `AssetRow`.
-        break
-      }
       case AssetEventType.updateFiles: {
         const file = event.files.get(item.item.value.id)
         if (file != null) {
@@ -88,6 +66,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             break
           }
         }
+        break
+      }
+      default: {
         break
       }
     }

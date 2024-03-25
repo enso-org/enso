@@ -10,6 +10,7 @@ import DataUploadIcon from 'enso-assets/data_upload.svg'
 
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -48,6 +49,7 @@ export default function DriveBar(props: DriveBarProps) {
   const { category, isCloud, canDownload, doEmptyTrash, doCreateProject, doCreateDirectory } = props
   const { doCreateSecret, doCreateDataLink, doUploadFiles, dispatchAssetEvent } = props
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const uploadFilesRef = React.useRef<HTMLInputElement>(null)
   const effectiveCategory = isCloud ? category : Category.home
@@ -90,13 +92,13 @@ export default function DriveBar(props: DriveBarProps) {
                 event.stopPropagation()
                 setModal(
                   <ConfirmDeleteModal
-                    actionText="all trashed items forever"
+                    actionText={getText('allTrashedItemsForever')}
                     doDelete={doEmptyTrash}
                   />
                 )
               }}
             >
-              <span className="text whitespace-nowrap font-semibold">Clear Trash</span>
+              <span className="text whitespace-nowrap font-semibold">{getText('clearTrash')}</span>
             </button>
           </div>
         </div>
@@ -113,14 +115,14 @@ export default function DriveBar(props: DriveBarProps) {
                 doCreateProject()
               }}
             >
-              <span className="text whitespace-nowrap font-semibold">New Project</span>
+              <span className="text whitespace-nowrap font-semibold">{getText('newProject')}</span>
             </button>
             <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
               {isCloud && (
                 <Button
                   active
                   image={AddFolderIcon}
-                  alt="New Folder"
+                  alt={getText('newFolder')}
                   onClick={() => {
                     unsetModal()
                     doCreateDirectory()
@@ -131,7 +133,7 @@ export default function DriveBar(props: DriveBarProps) {
                 <Button
                   active
                   image={AddKeyIcon}
-                  alt="New Secret"
+                  alt={getText('newSecret')}
                   onClick={event => {
                     event.stopPropagation()
                     setModal(<UpsertSecretModal id={null} name={null} doCreate={doCreateSecret} />)
@@ -142,7 +144,7 @@ export default function DriveBar(props: DriveBarProps) {
                 <Button
                   active
                   image={AddConnectorIcon}
-                  alt="New Data Link"
+                  alt={getText('newDataLink')}
                   onClick={event => {
                     event.stopPropagation()
                     setModal(<UpsertDataLinkModal doCreate={doCreateDataLink} />)
@@ -169,7 +171,7 @@ export default function DriveBar(props: DriveBarProps) {
               <Button
                 active
                 image={DataUploadIcon}
-                alt="Upload Files"
+                alt={getText('uploadFiles')}
                 onClick={() => {
                   unsetModal()
                   uploadFilesRef.current?.click()
@@ -179,11 +181,9 @@ export default function DriveBar(props: DriveBarProps) {
                 active={canDownload}
                 disabled={!canDownload}
                 image={DataDownloadIcon}
-                alt="Download Files"
+                alt={getText('downloadFiles')}
                 error={
-                  isCloud
-                    ? 'You currently can only download files.'
-                    : 'First select a project to download.'
+                  isCloud ? getText('canOnlyDownloadFilesError') : getText('noProjectSelectedError')
                 }
                 onClick={event => {
                   event.stopPropagation()

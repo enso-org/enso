@@ -121,6 +121,11 @@ class SmartUser extends SmartObject<backend.User> implements backend.SmartUser {
   getOrganization() {
     return this.invalidOperation()
   }
+
+  /** Invalid operation. */
+  getLogEvents() {
+    return this.invalidOperation()
+  }
 }
 
 /** A smart wrapper around a {@link backend.AnyAsset}. */
@@ -156,7 +161,7 @@ class SmartAsset<T extends backend.AnyAsset = backend.AnyAsset>
       } catch (error) {
         throw new Error(
           `Could not delete project '${this.value.title}': ${
-            errorModule.tryGetMessage(error) ?? 'unknown error'
+            errorModule.getMessageOrToString(error) ?? 'unknown error'
           }.`
         )
       }
@@ -343,7 +348,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
       } catch (error) {
         throw new Error(
           `Could not open project '${this.value.title}': ${
-            errorModule.tryGetMessage(error) ?? 'unknown error'
+            errorModule.getMessageOrToString(error) ?? 'unknown error'
           }.`
         )
       } finally {
@@ -421,6 +426,11 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
     return this.invalidOperation()
   }
 
+  /** Invalid operation. */
+  getMainFile() {
+    return this.invalidOperation()
+  }
+
   /** Change the name, description, AMI, or parent of a project. */
   override async update(body: backend.UpdateAssetOrProjectRequestBody): Promise<this> {
     if (body.ami != null) {
@@ -456,7 +466,7 @@ class SmartProject extends SmartAsset<backend.ProjectAsset> implements backend.S
     } catch (error) {
       throw new Error(
         `Could not close project '${this.value.title}': ${
-          errorModule.tryGetMessage(error) ?? 'unknown error'
+          errorModule.getMessageOrToString(error) ?? 'unknown error'
         }.`
       )
     }
@@ -530,7 +540,7 @@ export default class LocalBackend extends Backend {
       } catch (error) {
         throw new Error(
           `Could not open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}: ${
-            errorModule.tryGetMessage(error) ?? 'unknown error'
+            errorModule.getMessageOrToString(error) ?? 'unknown error'
           }.`
         )
       } finally {

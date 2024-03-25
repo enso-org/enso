@@ -211,32 +211,32 @@ export function locateNameColumnToggle(page: test.Locator | test.Page) {
 
 /** Find a toggle for the "Modified" column (if any). */
 export function locateModifiedColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Modified date$/)
+  return page.getByAltText(/^(?:Show|Hide) Modified date column$/)
 }
 
 /** Find a toggle for the "Shared with" column (if any). */
 export function locateSharedWithColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Shared with$/)
+  return page.getByAltText(/^(?:Show|Hide) Shared with column$/)
 }
 
 /** Find a toggle for the "Labels" column (if any). */
 export function locateLabelsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Labels$/)
+  return page.getByAltText(/^(?:Show|Hide) Labels column$/)
 }
 
 /** Find a toggle for the "Accessed by projects" column (if any). */
 export function locateAccessedByProjectsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed by projects$/)
+  return page.getByAltText(/^(?:Show|Hide) Accessed by projects column$/)
 }
 
 /** Find a toggle for the "Accessed data" column (if any). */
 export function locateAccessedDataColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Accessed data$/)
+  return page.getByAltText(/^(?:Show|Hide) Accessed data column$/)
 }
 
 /** Find a toggle for the "Docs" column (if any). */
 export function locateDocsColumnToggle(page: test.Locator | test.Page) {
-  return page.getByAltText(/^(?:Show|Hide) Docs$/)
+  return page.getByAltText(/^(?:Show|Hide) Docs column$/)
 }
 
 /** Find a button for the "Recent" category (if any). */
@@ -445,17 +445,22 @@ export function locateSortDescendingIcon(page: test.Locator | test.Page) {
 
 /** Find a "home page" icon (if any). */
 export function locateHomePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Go to home page')
+  return page.getByAltText('Home tab')
 }
 
 /** Find a "drive page" icon (if any). */
 export function locateDrivePageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Go to drive page')
+  return page.getByAltText('Drive tab')
 }
 
 /** Find an "editor page" icon (if any). */
 export function locateEditorPageIcon(page: test.Locator | test.Page) {
-  return page.getByAltText('Go to editor page')
+  return page.getByAltText('Project tab')
+}
+
+/** Find a "settings page" icon (if any) on the current page. */
+export function locateSettingsPageIcon(page: test.Locator | test.Page) {
+  return page.getByAltText('Settings tab')
 }
 
 /** Find a "name" column heading (if any). */

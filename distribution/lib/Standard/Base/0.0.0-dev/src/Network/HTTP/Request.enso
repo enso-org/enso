@@ -82,7 +82,10 @@ type Request
     head : (Text | URI) -> Vector -> Request
     head url (headers = []) = Request.new HTTP_Method.Head url headers
 
-    ## Create a Post request.
+    ## ALIAS http post, upload
+       GROUP Output
+       ICON data_upload
+       Create a Post request.
 
        Arguments:
        - url: The address for the request.

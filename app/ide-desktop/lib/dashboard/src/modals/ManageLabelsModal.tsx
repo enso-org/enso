@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import ColorPicker from '#/components/ColorPicker'
 import Label from '#/components/dashboard/Label'
@@ -39,6 +40,7 @@ export default function ManageLabelsModal<
 >(props: ManageLabelsModalProps<Asset>) {
   const { item, setItem, allLabels, doCreateLabel, eventTarget } = props
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [labels, setLabelsRaw] = React.useState(item.value.labels ?? [])
   const [query, setQuery] = React.useState('')
@@ -145,11 +147,11 @@ export default function ManageLabelsModal<
           }}
         >
           <div className="flex h-row items-center gap-modal-tabs px-modal-tab-bar-x">
-            <h2 className="text text-sm font-bold">Labels</h2>
+            <h2 className="text text-sm font-bold">{getText('labels')}</h2>
           </div>
           <div className="flex gap-input-with-button">
             <div
-              className={`flex grow items-center rounded-full border border-black/10 px-input-x ${
+              className={`flex grow items-center rounded-full border border-primary/10 px-input-x ${
                 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
                 canSelectColor && color != null && color.lightness <= 50
                   ? 'text-tag-text placeholder-tag-text'
@@ -158,16 +160,14 @@ export default function ManageLabelsModal<
               style={
                 !canSelectColor || color == null
                   ? {}
-                  : {
-                      backgroundColor: colorModule.lChColorToCssColor(color),
-                    }
+                  : { backgroundColor: colorModule.lChColorToCssColor(color) }
               }
             >
               <input
                 autoFocus
                 type="text"
                 size={1}
-                placeholder="Type labels to search"
+                placeholder={getText('labelSearchPlaceholder')}
                 className="text grow bg-transparent"
                 onChange={event => {
                   setQuery(event.currentTarget.value)
@@ -179,7 +179,7 @@ export default function ManageLabelsModal<
               disabled={!canCreateNewLabel}
               className="button bg-invite px-button-x text-tag-text enabled:active"
             >
-              <div className="h-text py-modal-invite-button-text-y">Create</div>
+              <div className="h-text py-modal-invite-button-text-y">{getText('create')}</div>
             </button>
           </div>
           {canSelectColor && (

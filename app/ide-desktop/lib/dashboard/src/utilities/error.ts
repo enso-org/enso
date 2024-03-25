@@ -20,14 +20,14 @@ export type MustNotBeKnown<T> =
 
 /** Extract the `message` property of a value if it is a string. Intended to be used on
  * {@link Error}s. */
-export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null {
+export function getMessageOrToString<T>(error: MustNotBeKnown<T>): string | null {
   const unknownError: unknown = error
   return unknownError != null &&
     typeof unknownError === 'object' &&
     'message' in unknownError &&
     typeof unknownError.message === 'string'
     ? unknownError.message
-    : null
+    : String(error)
 }
 
 // ==============

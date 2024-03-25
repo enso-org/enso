@@ -6,6 +6,7 @@ import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Input from '#/components/Input'
 import SubmitButton from '#/components/SubmitButton'
@@ -18,6 +19,7 @@ import SubmitButton from '#/components/SubmitButton'
 export default function SetUsername() {
   const { setUsername: authSetUsername } = authProvider.useAuth()
   const { email } = authProvider.usePartialUserSession()
+  const { getText } = textProvider.useText()
 
   const [username, setUsername] = React.useState('')
 
@@ -31,18 +33,18 @@ export default function SetUsername() {
           await authSetUsername(username, email)
         }}
       >
-        <div className="self-center text-xl font-medium">Set your username</div>
+        <div className="self-center text-xl font-medium">{getText('setYourUsername')}</div>
         <Input
           id="username"
           type="text"
           name="username"
           autoComplete="off"
           icon={AtIcon}
-          placeholder="Enter your username"
+          placeholder={getText('usernamePlaceholder')}
           value={username}
           setValue={setUsername}
         />
-        <SubmitButton text="Set username" icon={ArrowRightIcon} />
+        <SubmitButton text={getText('setUsername')} icon={ArrowRightIcon} />
       </form>
     </div>
   )

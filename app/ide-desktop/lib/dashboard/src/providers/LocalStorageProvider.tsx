@@ -13,9 +13,13 @@ export interface LocalStorageContextType {
   readonly localStorage: LocalStorage
 }
 
-// @ts-expect-error The default value will never be exposed, as using this without a `Provider`
-// is a mistake.
-const LocalStorageContext = React.createContext<LocalStorageContextType>(null)
+let globalLocalStorage: LocalStorage | null = null
+const LocalStorageContext = React.createContext<LocalStorageContextType>({
+  /** Return the global instance of {@link LocalStorage}. */
+  get localStorage() {
+    return (globalLocalStorage ??= new LocalStorage())
+  },
+})
 
 /** Props for a {@link LocalStorageProvider}. */
 export interface LocalStorageProviderProps extends React.PropsWithChildren {
@@ -28,8 +32,8 @@ export interface LocalStorageProviderProps extends React.PropsWithChildren {
 
 /** A React Provider that lets components get the shortcut registry. */
 export default function LocalStorageProvider(props: LocalStorageProviderProps) {
-  const { localStorage: localStorageRaw, children } = props
-  const [localStorage] = React.useState(() => localStorageRaw ?? new LocalStorage())
+  const { children } = props
+  const localStorage = React.useMemo(() => new LocalStorage(), [])
 
   return (
     <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>

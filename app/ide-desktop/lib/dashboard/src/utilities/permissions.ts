@@ -1,5 +1,7 @@
 /** @file Utilities for working with permissions. */
-import * as backend from '../services/Backend'
+import type * as text from '#/text'
+
+import * as backend from '#/services/Backend'
 
 // ========================
 // === PermissionAction ===
@@ -134,9 +136,20 @@ export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, PermissionAc
   [Permission.edit]: PermissionAction.edit,
   [Permission.read]: PermissionAction.read,
   [Permission.view]: PermissionAction.view,
-  // SHould never happen, but provide a fallback just in case.
+  // Should never happen, but provide a fallback just in case.
   [Permission.delete]: PermissionAction.view,
 }
+
+/** The corresponding {@link text.TextId} for each {@link Permission}.
+ * Assumes no docs sub-permission and no execute sub-permission. */
+export const TYPE_TO_TEXT_ID: Readonly<Record<Permission, text.TextId>> = {
+  [Permission.owner]: 'ownerPermissionType',
+  [Permission.admin]: 'adminPermissionType',
+  [Permission.edit]: 'editPermissionType',
+  [Permission.read]: 'readPermissionType',
+  [Permission.view]: 'viewPermissionType',
+  [Permission.delete]: 'deletePermissionType',
+} satisfies { [P in Permission]: `${P}PermissionType` }
 
 /** The equivalent backend `PermissionAction` for a `Permissions`. */
 export function toPermissionAction(permissions: Permissions): PermissionAction {
@@ -233,8 +246,9 @@ export function tryGetSingletonOwnerPermission(
           user: {
             // The names are defined by the backend and cannot be changed.
             /* eslint-disable @typescript-eslint/naming-convention */
-            pk: user?.id ?? backend.Subject(''),
-            organization_id: owner.value.id,
+            pk: owner.value.id,
+            sk: backend.UserId(''),
+            user_subject: user?.userSubject ?? backend.Subject(''),
             user_email: owner.value.email,
             user_name: owner.value.name,
             /* eslint-enable @typescript-eslint/naming-convention */

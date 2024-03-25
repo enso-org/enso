@@ -785,14 +785,17 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             func_.expression = maybe_apply(mem::take(&mut func_.expression), arg).into();
             func
         }
-        (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs: rhs @ None }),
-                Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments })) => {
+        (
+            Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs: rhs @ None }),
+            Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs: None, arguments }),
+        ) => {
             func.span.code_length += arg.span.length_including_whitespace();
             *rhs = block::body_from_lines(mem::take(arguments)).into();
             func
         }
         (_, Variant::ArgumentBlockApplication(block)) if block.lhs.is_none() => {
-            let code = func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
+            let code =
+                func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
             arg.span.code_length = code;
             let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
@@ -803,7 +806,8 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OperatorBlockApplication(block)) if block.lhs.is_none() => {
-            let code = func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
+            let code =
+                func.span.code_length + arg.span.left_offset.code.length() + arg.span.code_length;
             arg.span.code_length = code;
             let func_left_offset = func.span.left_offset.take_as_prefix();
             let arg_left_offset = mem::replace(&mut arg.span.left_offset, func_left_offset);
@@ -814,22 +818,26 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             arg
         }
         (_, Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }))
-        if opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+            if opr.properties.is_assignment()
+                && let Variant::Ident(lhs) = &*lhs.variant =>
+        {
             let mut lhs = lhs.token.clone();
             lhs.left_offset += arg.span.left_offset;
             Tree::named_app(func, None, lhs, opr.clone(), rhs.clone(), None)
         }
         (_, Variant::Group(Group { open: Some(open), body: Some(body), close: Some(close) }))
-        if let box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-            = &body.variant
-        && opr.properties.is_assignment() && let Variant::Ident(lhs) = &*lhs.variant => {
+            if let box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) =
+                &body.variant
+                && opr.properties.is_assignment()
+                && let Variant::Ident(lhs) = &*lhs.variant =>
+        {
             let mut open = open.clone();
             open.left_offset += arg.span.left_offset;
             let open = Some(open);
             let close = Some(close.clone());
             Tree::named_app(func, open, lhs.token.clone(), opr.clone(), rhs.clone(), close)
         }
-        _ => Tree::app(func, arg)
+        _ => Tree::app(func, arg),
     }
 }
 
@@ -879,12 +887,15 @@ pub fn apply_operator<'s>(
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
     if let Ok(opr_) = &opr
-            && opr_.properties.is_token_joiner()
-            && let Some(lhs_) = lhs.as_mut()
-            && let Some(rhs_) = rhs.as_mut() {
+        && opr_.properties.is_token_joiner()
+        && let Some(lhs_) = lhs.as_mut()
+        && let Some(rhs_) = rhs.as_mut()
+    {
         return match (&mut *lhs_.variant, &mut *rhs_.variant) {
-            (Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
-                Variant::Number(Number { base: None, integer, fractional_digits })) => {
+            (
+                Variant::Number(func_ @ Number { base: _, integer: None, fractional_digits: None }),
+                Variant::Number(Number { base: None, integer, fractional_digits }),
+            ) => {
                 func_.integer = mem::take(integer);
                 func_.fractional_digits = mem::take(fractional_digits);
                 lhs_.span.code_length += rhs_.span.code_length;
@@ -893,14 +904,18 @@ pub fn apply_operator<'s>(
             _ => {
                 debug_assert!(false, "Unexpected use of token-joiner operator!");
                 apply(lhs.take().unwrap(), rhs.take().unwrap())
-            },
-        }
+            }
+        };
     }
-    if let Ok(opr_) = &opr && opr_.properties.is_special() {
+    if let Ok(opr_) = &opr
+        && opr_.properties.is_special()
+    {
         let tree = Tree::opr_app(lhs, opr, rhs);
         return tree.with_error("Invalid use of special operator.");
     }
-    if let Ok(opr_) = &opr && opr_.properties.is_type_annotation() {
+    if let Ok(opr_) = &opr
+        && opr_.properties.is_type_annotation()
+    {
         return match (lhs, rhs) {
             (Some(lhs), Some(rhs)) => Tree::type_annotated(lhs, opr.unwrap(), rhs),
             (lhs, rhs) => {
@@ -909,17 +924,26 @@ pub fn apply_operator<'s>(
             }
         };
     }
-    if let Ok(opr_) = &opr && !opr_.properties.can_form_section() && lhs.is_none() && rhs.is_none() {
+    if let Ok(opr_) = &opr
+        && !opr_.properties.can_form_section()
+        && lhs.is_none()
+        && rhs.is_none()
+    {
         let error = format!("Operator `{opr:?}` must be applied to two operands.");
         let invalid = Tree::opr_app(lhs, opr, rhs);
         return invalid.with_error(error);
     }
-    if let Ok(opr) = &opr && opr.properties.is_decimal()
+    if let Ok(opr) = &opr
+        && opr.properties.is_decimal()
         && let Some(lhs) = lhs.as_mut()
         && let box Variant::Number(lhs_) = &mut lhs.variant
         && lhs_.fractional_digits.is_none()
         && let Some(rhs) = rhs.as_mut()
-        && let box Variant::Number(Number { base: None, integer: Some(digits), fractional_digits: None }) = &mut rhs.variant
+        && let box Variant::Number(Number {
+            base: None,
+            integer: Some(digits),
+            fractional_digits: None,
+        }) = &mut rhs.variant
     {
         let dot = opr.clone();
         let digits = digits.clone();
@@ -947,13 +971,16 @@ pub fn apply_operator<'s>(
 /// For most inputs this will simply construct a `UnaryOprApp`; however, some operators are special.
 pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>) -> Tree<'s> {
     if opr.properties.is_annotation()
-            && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs {
+        && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs
+    {
         return match token.is_type {
             true => Tree::annotated_builtin(opr, token, vec![], None),
             false => Tree::annotated(opr, token, None, vec![], None),
         };
     }
-    if opr.properties.is_autoscope() && let Some(rhs) = rhs {
+    if opr.properties.is_autoscope()
+        && let Some(rhs) = rhs
+    {
         return if let box Variant::Ident(Ident { mut token }) = rhs.variant {
             let applied_to_type = token.variant.is_type;
             token.left_offset = rhs.span.left_offset;
@@ -961,12 +988,14 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
             return if applied_to_type {
                 autoscope_application
             } else {
-                autoscope_application
-                    .with_error("The auto-scope operator may only be applied to a capitalized identifier.")
-            }
+                autoscope_application.with_error(
+                    "The auto-scope operator may only be applied to a capitalized identifier.",
+                )
+            };
         } else {
-            Tree::unary_opr_app(opr, Some(rhs)).with_error("The auto-scope operator (..) may only be applied to an identifier.")
-        }
+            Tree::unary_opr_app(opr, Some(rhs))
+                .with_error("The auto-scope operator (..) may only be applied to an identifier.")
+        };
     }
     if !opr.properties.can_form_section() && rhs.is_none() {
         let error = format!("Operator `{opr:?}` must be applied to an operand.");
@@ -1508,7 +1537,8 @@ impl<'o, 't, 's> Iterator for LeftAssocRev<'o, 't, 's> {
     type Item = &'t Tree<'s>;
     fn next(&mut self) -> Option<Self::Item> {
         if let box Variant::OprApp(OprApp { lhs, opr: Ok(opr), rhs }) = &self.tree?.variant
-            && opr.code == self.operator {
+            && opr.code == self.operator
+        {
             self.tree = lhs.into();
             rhs.into()
         } else {

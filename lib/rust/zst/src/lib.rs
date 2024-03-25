@@ -8,12 +8,6 @@
 //! - Multiple ZST types are defined ([`ZST1`], [`ZST2`], etc) for different parameter count. This
 //!   allows the type parameters to be `?Sized`.
 
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
-
 use bytemuck::Pod;
 use bytemuck::Zeroable;
 use core::fmt::Debug;
@@ -96,7 +90,7 @@ macro_rules! define_zst {
             impl<$($bounds)*> Clone for $name<$($params)*> {
                 #[inline(always)]
                 fn clone(&self) -> Self {
-                    $name()
+                    *self
                 }
             }
 
@@ -117,8 +111,8 @@ macro_rules! define_zst {
 
             impl<$($bounds)*> PartialOrd for $name<$($params)*> {
                 #[inline(always)]
-                fn partial_cmp(&self, _: &Self) -> Option<std::cmp::Ordering> {
-                    Some(std::cmp::Ordering::Equal)
+                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                    Some(self.cmp(other))
                 }
             }
 

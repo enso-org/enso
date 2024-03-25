@@ -18,11 +18,13 @@ import type { QualifiedName } from '@/util/qualifiedName'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
 
-const props = defineProps<{ selectedEntry: Opt<SuggestionId> }>()
+const props = defineProps<{ selectedEntry: Opt<SuggestionId>; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [id: SuggestionId] }>()
 const db = useSuggestionDbStore()
 
 const documentation = computed<Docs>(() => {
+  if (props.aiMode)
+    return placeholder('AI assistant mode: write query in natural language and press Enter.')
   const entry = props.selectedEntry
   return entry ? lookupDocumentation(db.entries, entry) : placeholder('No suggestion selected.')
 })

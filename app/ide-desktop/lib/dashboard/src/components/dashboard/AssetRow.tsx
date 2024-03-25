@@ -9,6 +9,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -27,7 +28,6 @@ import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
-import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -44,10 +44,6 @@ const HEADER_HEIGHT_PX = 34
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
-/** Placeholder row for directories that are empty. */
-const EMPTY_DIRECTORY_PLACEHOLDER = (
-  <span className="px-name-column-x placeholder">This folder is empty.</span>
-)
 
 // ================
 // === AssetRow ===
@@ -96,6 +92,7 @@ export default function AssetRow(props: AssetRowProps) {
 
   const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
@@ -192,7 +189,7 @@ export default function AssetRow(props: AssetRowProps) {
           object.merger(copiedAsset.asset as Partial<backendModule.AnyAsset>)
         )
       } catch (error) {
-        toastAndLog(`Could not copy '${asset.title}'`, error)
+        toastAndLog('copyAssetError', error, asset.title)
         // Delete the new component representing the asset that failed to insert.
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       }
@@ -204,9 +201,9 @@ export default function AssetRow(props: AssetRowProps) {
       smartAsset,
       asset,
       item.key,
+      toastAndLog,
       /* should never change */ nodeMap,
       /* should never change */ setAsset,
-      /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
@@ -232,7 +229,7 @@ export default function AssetRow(props: AssetRowProps) {
         setAsset(object.merger({ parentId: nonNullNewParent.value.id }))
         await smartAsset.update({ parentDirectoryId: nonNullNewParent.value.id })
       } catch (error) {
-        toastAndLog(`Could not move '${smartAsset.value.title}'`, error)
+        toastAndLog('moveAssetError', error, smartAsset.value.title)
         setAsset(object.merger({ parentId: asset.parentId }))
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directory: item.directory })
@@ -254,8 +251,8 @@ export default function AssetRow(props: AssetRowProps) {
       item.directory,
       item.directoryKey,
       item.key,
+      toastAndLog,
       /* should never change */ setAsset,
-      /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
@@ -303,10 +300,7 @@ export default function AssetRow(props: AssetRowProps) {
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
-        toastAndLog(
-          errorModule.tryGetMessage(error)?.slice(0, -1) ??
-            `Could not delete ${backendModule.ASSET_TYPE_NAME[smartAsset.type]}`
-        )
+        toastAndLog('deleteAssetError', error, smartAsset.value.title)
       }
     },
     [
@@ -326,14 +320,9 @@ export default function AssetRow(props: AssetRowProps) {
       dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
-      toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[smartAsset.type]}`, error)
+      toastAndLog('restoreAssetError', error, smartAsset.value.title)
     }
-  }, [
-    dispatchAssetListEvent,
-    smartAsset,
-    /* should never change */ item.key,
-    /* should never change */ toastAndLog,
-  ])
+  }, [dispatchAssetListEvent, smartAsset, toastAndLog, /* should never change */ item.key])
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
@@ -397,12 +386,11 @@ export default function AssetRow(props: AssetRowProps) {
                   if (details.url != null) {
                     download.download(details.url, asset.title)
                   } else {
-                    toastAndLog(
-                      `Could not download project '${asset.title}': project has no source files`
-                    )
+                    const error: unknown = getText('projectHasNoSourceFilesPhrase')
+                    toastAndLog('downloadProjectError', error, asset.title)
                   }
                 } catch (error) {
-                  toastAndLog(`Could not download project '${asset.title}'`, error)
+                  toastAndLog('downloadProjectError', error, asset.title)
                 }
                 break
               }
@@ -412,10 +400,11 @@ export default function AssetRow(props: AssetRowProps) {
                   if (details.url != null) {
                     download.download(details.url, asset.title)
                   } else {
-                    toastAndLog(`Could not download file '${asset.title}': file not found`)
+                    const error: unknown = getText('fileNotFoundPhrase')
+                    toastAndLog('downloadFileError', error, asset.title)
                   }
                 } catch (error) {
-                  toastAndLog(`Could not download file '${asset.title}'`, error)
+                  toastAndLog('downloadFileError', error, asset.title)
                 }
                 break
               }
@@ -432,12 +421,12 @@ export default function AssetRow(props: AssetRowProps) {
                     fileName
                   )
                 } catch (error) {
-                  toastAndLog(`Could not download Data Link '${asset.title}'`, error)
+                  toastAndLog('downloadDataLinkError', error, asset.title)
                 }
                 break
               }
               default: {
-                toastAndLog('You can only download files and Data Links')
+                toastAndLog('downloadInvalidTypeError')
                 break
               }
             }
@@ -455,7 +444,7 @@ export default function AssetRow(props: AssetRowProps) {
         if (event.id === asset.id && userInfo != null) {
           setInsertionVisibility(Visibility.hidden)
           try {
-            await smartAsset.setPermissions({ action: null, userSubjects: [userInfo.id] })
+            await smartAsset.setPermissions({ actorsIds: [userInfo.userId], action: null })
             dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
             setInsertionVisibility(Visibility.visible)
@@ -801,7 +790,7 @@ export default function AssetRow(props: AssetRowProps) {
               className={`flex h-row items-center rounded-full ${indent.indentClass(item.depth)}`}
             >
               <img src={BlankIcon} />
-              {EMPTY_DIRECTORY_PLACEHOLDER}
+              <span className="px-name-column-x placeholder">{getText('thisFolderIsEmpty')}</span>
             </div>
           </td>
         </tr>

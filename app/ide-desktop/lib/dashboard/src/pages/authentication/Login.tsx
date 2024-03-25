@@ -13,13 +13,12 @@ import LockIcon from 'enso-assets/lock.svg'
 import * as appUtils from '#/appUtils'
 
 import * as authProvider from '#/providers/AuthProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Input from '#/components/Input'
 import Link from '#/components/Link'
 import SubmitButton from '#/components/SubmitButton'
 import SvgMask from '#/components/SvgMask'
-
-import * as validation from '#/utilities/validation'
 
 // =============
 // === Login ===
@@ -35,6 +34,7 @@ export default function Login(props: LoginProps) {
   const { supportsLocalBackend } = props
   const location = router.useLocation()
   const { signInWithGoogle, signInWithGitHub, signInWithPassword } = authProvider.useAuth()
+  const { getText } = textProvider.useText()
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email')
@@ -47,7 +47,7 @@ export default function Login(props: LoginProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-auth text-sm text-primary">
       <div className="flex w-full max-w-md flex-col gap-auth rounded-auth bg-selected-frame p-auth shadow-md">
-        <div className="self-center text-xl font-medium">Login to your account</div>
+        <div className="self-center text-xl font-medium">{getText('loginToYourAccount')}</div>
         <div className="flex flex-col gap-auth">
           <button
             onMouseDown={() => {
@@ -63,7 +63,7 @@ export default function Login(props: LoginProps) {
               src={GoogleIcon}
               className="absolute left top h-full w-icon px-font-awesome-icon-x text-blue-500"
             />
-            Sign up or login with Google
+            {getText('signUpOrLoginWithGoogle')}
           </button>
           <button
             onMouseDown={() => {
@@ -79,7 +79,7 @@ export default function Login(props: LoginProps) {
               src={GithubIcon}
               className="absolute left top h-full w-icon px-font-awesome-icon-x text-blue-500"
             />
-            Sign up or login with GitHub
+            {getText('signUpOrLoginWithGitHub')}
           </button>
         </div>
         <div />
@@ -99,7 +99,7 @@ export default function Login(props: LoginProps) {
             type="email"
             autoComplete="email"
             icon={AtIcon}
-            placeholder="Enter your email"
+            placeholder={getText('emailPlaceholder')}
             value={email}
             setValue={setEmail}
             shouldReportValidityRef={shouldReportValidityRef}
@@ -112,8 +112,8 @@ export default function Login(props: LoginProps) {
               type="password"
               autoComplete="current-password"
               icon={LockIcon}
-              placeholder="Enter your password"
-              error={validation.PASSWORD_ERROR}
+              placeholder={getText('passwordPlaceholder')}
+              error={getText('passwordValidationError')}
               value={password}
               setValue={setPassword}
               shouldReportValidityRef={shouldReportValidityRef}
@@ -122,22 +122,22 @@ export default function Login(props: LoginProps) {
               to={appUtils.FORGOT_PASSWORD_PATH}
               className="text-end text-xs text-blue-500 transition-all duration-auth hover:text-blue-700 focus:text-blue-700"
             >
-              Forgot Your Password?
+              {getText('forgotYourPassword')}
             </router.Link>
           </div>
-          <SubmitButton disabled={isSubmitting} text="Login" icon={ArrowRightIcon} />
+          <SubmitButton disabled={isSubmitting} text={getText('login')} icon={ArrowRightIcon} />
         </form>
       </div>
       <Link
         to={appUtils.REGISTRATION_PATH}
         icon={CreateAccountIcon}
-        text="Don't have an account?"
+        text={getText('dontHaveAnAccount')}
       />
       {supportsLocalBackend && (
         <Link
           to={appUtils.ENTER_OFFLINE_MODE_PATH}
           icon={ArrowRightIcon}
-          text="Continue without creating an account"
+          text={getText('continueWithoutCreatingAnAccount')}
         />
       )}
     </div>

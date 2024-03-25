@@ -41,6 +41,7 @@ object JsonRpc {
       .registerRequest(FileSystemCreateDirectory)
       .registerRequest(FileSystemDeleteDirectory)
       .registerRequest(FileSystemMoveDirectory)
+      .registerRequest(FileSystemWritePath)
       .finalized()
 
 }

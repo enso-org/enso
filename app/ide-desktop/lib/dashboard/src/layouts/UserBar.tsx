@@ -6,6 +6,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 import UserMenu from '#/layouts/UserMenu'
@@ -41,6 +42,7 @@ export default function UserBar(props: UserBarProps) {
   const { projectAsset, setProjectAsset, doRemoveSelf, onSignOut } = props
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { setModal, updateModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const self =
     user != null
       ? projectAsset?.value.permissions?.find(
@@ -73,7 +75,7 @@ export default function UserBar(props: UserBarProps) {
             setModal(<InviteUsersModal eventTarget={null} />)
           }}
         >
-          Invite
+          {getText('invite')}
         </button>
       )}
       {shouldShowShareButton && (
@@ -92,7 +94,7 @@ export default function UserBar(props: UserBarProps) {
             )
           }}
         >
-          Share
+          {getText('share')}
         </button>
       )}
       <button
@@ -112,7 +114,7 @@ export default function UserBar(props: UserBarProps) {
       >
         <img
           src={user?.value.profilePicture ?? DefaultUserIcon}
-          alt="Open user menu"
+          alt={getText('openUserMenu')}
           className="pointer-events-none"
           height={28}
           width={28}

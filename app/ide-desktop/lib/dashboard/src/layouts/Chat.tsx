@@ -2,12 +2,14 @@
 import * as React from 'react'
 
 import * as reactDom from 'react-dom'
-import * as toastify from 'react-toastify'
 
 import * as chat from 'enso-chat/chat'
 
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import ChatHeader from '#/layouts/ChatHeader'
 
@@ -75,7 +77,9 @@ export interface ChatProps {
 export default function Chat(props: ChatProps) {
   const { isOpen, doClose, endpoint } = props
   const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
+  const { getText } = textProvider.useText()
   const logger = loggerProvider.useLogger()
+  const toastAndLog = toastAndLogHooks.useToastAndLog()
 
   /** This is SAFE, because this component is only rendered when `accessToken` is present.
    * See `dashboard.tsx` for its sole usage. */
@@ -276,9 +280,7 @@ export default function Chat(props: ChatProps) {
     (newThreadId: chat.ThreadId) => {
       const threadData = threads.find(thread => thread.id === newThreadId)
       if (threadData == null) {
-        const message = `Unknown thread id '${newThreadId}'.`
-        toastify.toast.error(message)
-        logger.error(message)
+        toastAndLog('unknownThreadIdError', null, newThreadId)
       } else {
         sendMessage({
           type: chat.ChatMessageDataType.switchThread,
@@ -286,7 +288,7 @@ export default function Chat(props: ChatProps) {
         })
       }
     },
-    [threads, /* should never change */ sendMessage, /* should never change */ logger]
+    [threads, toastAndLog, /* should never change */ sendMessage]
   )
 
   const sendCurrentMessage = React.useCallback(
@@ -305,7 +307,7 @@ export default function Chat(props: ChatProps) {
             id: MessageId(String(Number(new Date()))),
             isStaffMessage: false,
             avatar: null,
-            name: 'Me',
+            name: getText('me'),
             content,
             reactions: [],
             timestamp: Number(new Date()),
@@ -342,6 +344,7 @@ export default function Chat(props: ChatProps) {
       threadId,
       threadTitle,
       shouldIgnoreMessageLimit,
+      getText,
       /* should never change */ sendMessage,
     ]
   )
@@ -446,7 +449,7 @@ export default function Chat(props: ChatProps) {
             ref={messageInputRef}
             rows={1}
             required
-            placeholder="Type your message ..."
+            placeholder={getText('chatInputPlaceholder')}
             className="w-full resize-none rounded-chat-input bg-transparent p-chat-input"
             onKeyDown={event => {
               switch (event.key) {
@@ -483,14 +486,14 @@ export default function Chat(props: ChatProps) {
                 sendCurrentMessage(event, true)
               }}
             >
-              New question? Click to start a new thread!
+              {getText('clickForNewQuestion')}
             </button>
             <button
               type="submit"
               disabled={!isReplyEnabled}
               className="rounded-full bg-blue-600/90 px-chat-button-x py-chat-button-y text-white selectable enabled:active"
             >
-              Reply!
+              {getText('replyExclamation')}
             </button>
           </div>
         </form>
@@ -501,7 +504,7 @@ export default function Chat(props: ChatProps) {
             className="mx-2 my-1 rounded-default bg-call-to-action/90 p-2 text-center leading-cozy text-white"
             onClick={upgradeToPro}
           >
-            Click here to upgrade to Enso Pro and get access to high-priority, live support!
+            {getText('upgradeToProNag')}
           </button>
         )}
       </div>,

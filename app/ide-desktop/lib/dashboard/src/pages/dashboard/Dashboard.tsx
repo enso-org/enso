@@ -2,14 +2,18 @@
  * interactive components. */
 import * as React from 'react'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 import * as eventHooks from '#/hooks/eventHooks'
+import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -30,6 +34,7 @@ import Settings from '#/layouts/Settings'
 import TopBar from '#/layouts/TopBar'
 
 import TheModal from '#/components/dashboard/TheModal'
+import Portal from '#/components/Portal'
 import type * as spinner from '#/components/Spinner'
 
 import * as backendModule from '#/services/Backend'
@@ -114,17 +119,24 @@ export interface DashboardProps {
 
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
-  const { supportsLocalBackend, backend, setBackend, appRunner } = props
-  const { initialProjectName: rawInitialProjectName, projectManagerUrl } = props
+  const { supportsLocalBackend, backend, setBackend, appRunner, initialProjectName } = props
+  const { projectManagerUrl } = props
   const logger = loggerProvider.useLogger()
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { modalRef } = modalProvider.useModalRef()
   const { unsetModal } = modalProvider.useSetModal()
   const { localStorage } = localStorageProvider.useLocalStorage()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const [initialized, setInitialized] = React.useState(false)
   const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-  const [page, setPage] = React.useState(() => localStorage.get('page') ?? pageSwitcher.Page.drive)
+  // These pages MUST be ROUTER PAGES.
+  const [page, setPage] = searchParamsState.useSearchParamsState(
+    'page',
+    () => localStorage.get('page') ?? pageSwitcher.Page.drive,
+    (value: unknown): value is pageSwitcher.Page =>
+      array.includes(Object.values(pageSwitcher.Page), value)
+  )
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
   const [labels, setLabels] = React.useState<backendModule.Label[]>([])
   const [suggestions, setSuggestions] = React.useState<assetSearchBar.Suggestion[]>([])
@@ -141,7 +153,6 @@ export default function Dashboard(props: DashboardProps) {
     () => localStorage.get('isAssetPanelVisible') ?? false
   )
   const [isAssetPanelTemporarilyVisible, setIsAssetPanelTemporarilyVisible] = React.useState(false)
-  const [initialProjectName, setInitialProjectName] = React.useState(rawInitialProjectName)
   const isCloud = backend.type === backendModule.BackendType.remote
   const self = asyncEffectHooks.useAsyncEffect(user, () => backend.self(), [backend])
   const rootDirectory = React.useMemo(() => self?.rootDirectory() ?? null, [self])
@@ -163,7 +174,7 @@ export default function Dashboard(props: DashboardProps) {
     if (query.query !== '') {
       setPage(pageSwitcher.Page.drive)
     }
-  }, [query])
+  }, [query, setPage])
 
   React.useEffect(() => {
     let currentBackend = backend
@@ -175,7 +186,7 @@ export default function Dashboard(props: DashboardProps) {
       setBackend(currentBackend)
     }
     const lastOpenedProject = localStorage.get('project')
-    if (rawInitialProjectName != null) {
+    if (initialProjectName != null) {
       if (page === pageSwitcher.Page.editor) {
         setPage(pageSwitcher.Page.drive)
       }
@@ -187,7 +198,7 @@ export default function Dashboard(props: DashboardProps) {
           const httpClient = new HttpClient(
             new Headers([['Authorization', `Bearer ${accessToken}`]])
           )
-          const remoteBackend = new RemoteBackend(httpClient, logger)
+          const remoteBackend = new RemoteBackend(httpClient, logger, getText)
           void (async () => {
             const abortController = new AbortController()
             setOpenProjectAbortController(abortController)
@@ -209,17 +220,13 @@ export default function Dashboard(props: DashboardProps) {
           })()
         }
       } else {
-        if (currentBackend.type === backendModule.BackendType.local) {
-          setInitialProjectName(id)
-        } else {
-          const localBackend = new LocalBackend(projectManagerUrl)
-          void (async () => {
-            await localBackend.openProject(id, null, title)
-            const projectAsset = await localBackend.getProject(id, title)
-            const details = await projectAsset.waitUntilReady()
-            setProjectStartupInfo({ details, projectAsset, backendType, accessToken: null })
-          })()
-        }
+        const localBackend = new LocalBackend(projectManagerUrl)
+        void (async () => {
+          await localBackend.openProject(id, null, title)
+          const projectAsset = await localBackend.getProject(id, title)
+          const details = await projectAsset.waitUntilReady()
+          setProjectStartupInfo({ details, projectAsset, backendType, accessToken: null })
+        })()
       }
     }
     // This MUST only run when the component is mounted.
@@ -291,13 +298,23 @@ export default function Dashboard(props: DashboardProps) {
           }
         },
       }),
-    [
-      inputBindings,
-      /* should never change */ modalRef,
-      /* should never change */ localStorage,
-      /* should never change */ unsetModal,
-    ]
+    [inputBindings, modalRef, localStorage, unsetModal, setPage]
   )
+
+  React.useEffect(() => {
+    if (detect.isOnElectron()) {
+      // We want to handle the back and forward buttons in electron the same way as in the browser.
+      // eslint-disable-next-line no-restricted-syntax
+      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+        goBack: () => {
+          window.navigationApi.goBack()
+        },
+        goForward: () => {
+          window.navigationApi.goForward()
+        },
+      })
+    }
+  }, [inputBindings])
 
   const setBackendType = React.useCallback(
     (newBackendType: backendModule.BackendType) => {
@@ -309,7 +326,7 @@ export default function Dashboard(props: DashboardProps) {
           }
           case backendModule.BackendType.remote: {
             const client = new HttpClient([['Authorization', `Bearer ${accessToken ?? ''}`]])
-            setBackend(new RemoteBackend(client, logger))
+            setBackend(new RemoteBackend(client, logger, getText))
             break
           }
         }
@@ -319,6 +336,7 @@ export default function Dashboard(props: DashboardProps) {
       backend.type,
       accessToken,
       logger,
+      getText,
       /* should never change */ projectManagerUrl,
       /* should never change */ setBackend,
     ]
@@ -363,7 +381,7 @@ export default function Dashboard(props: DashboardProps) {
         })
       }
     },
-    [backend, projectStartupInfo?.details.projectId, accessToken]
+    [backend, projectStartupInfo?.details.projectId, accessToken, setPage]
   )
 
   const doCloseEditor = React.useCallback((closingProject: backendModule.ProjectAsset) => {
@@ -385,7 +403,7 @@ export default function Dashboard(props: DashboardProps) {
       setPage(pageSwitcher.Page.drive)
     }
     setProjectStartupInfo(null)
-  }, [page])
+  }, [page, setPage])
 
   return (
     <>
@@ -481,6 +499,7 @@ export default function Dashboard(props: DashboardProps) {
         >
           {isAssetPanelVisible && (
             <AssetPanel
+              isCloud={isCloud}
               key={assetPanelProps?.item?.item.value.id}
               item={assetPanelProps?.item ?? null}
               setItem={assetPanelProps?.setItem ?? null}
@@ -492,9 +511,11 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </div>
       </div>
-      <div className="select-none text-xs text-primary">
-        <TheModal />
-      </div>
+      <Portal>
+        <div className="select-none text-xs text-primary">
+          <TheModal />
+        </div>
+      </Portal>
     </>
   )
 }

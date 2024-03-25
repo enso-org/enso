@@ -4,14 +4,16 @@ import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Syntax_Error
+import project.Internal.Data_Read_Helpers
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.URI.URI
-from project.Data.Boolean import Boolean, False, True
+from project.System.File_Format import Auto_Detect, File_Format
 
 ## ALIAS parse_uri, uri from text
    GROUP Conversions
+   ICON convert
    Convert Text to a URI.
 
    Throws a `Syntax_Error` when `self` cannot be parsed as a URI.
@@ -27,6 +29,7 @@ Text.to_uri self = URI.parse self
 
 ## ALIAS download, http get
    GROUP Input
+   ICON data_input
    Fetches from the URI and returns the response, parsing the body if the
    content-type is recognised. Returns an  error if the status code does not
    represent a successful response.
@@ -36,14 +39,17 @@ Text.to_uri self = URI.parse self
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse_response:  If successful should the body be attempted to be
-     parsed to an Enso native object.
-URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse_response=True =
-    Data.fetch self method headers try_auto_parse_response
+   - format: The format to use for interpreting the response.
+     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
+     cannot be determined automatically, a raw HTTP `Response` will be returned.
+@format Data_Read_Helpers.format_widget_with_raw_response
+URI.fetch : HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any
+URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] format=Auto_Detect =
+    Data.fetch self method headers format
 
 ## ALIAS upload, http post
-   GROUP Input
+   GROUP Output
+   ICON data_upload
    Writes the provided data to the provided URI. Returns the response,
    parsing the body if the content-type is recognised. Returns an  error if the
    status code does not represent a successful response.
@@ -53,8 +59,9 @@ URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse_re
    - method: The HTTP method to use. Must be one of `HTTP_Method.Post`,
      `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.
    - headers: The headers to send with the request. Defaults to an empty vector.
-   - try_auto_parse_response:  If successful should the body be attempted to be
-     parsed to an Enso native object.
+   - response_format: The format to use for interpreting the response.
+     Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format
+     cannot be determined automatically, a raw HTTP `Response` will be returned.
 
    ! Specifying Content Types
 
@@ -78,6 +85,7 @@ URI.fetch self (method:HTTP_Method=HTTP_Method.Get) headers=[] try_auto_parse_re
      - Text: shorthand for `Request_Body.Text that_text`.
      - File: shorthand for `Request_Body.Binary that_file`.
      - Any other Enso object: shorthand for `Request_Body.Json that_object`.
-URI.post : Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
-URI.post self (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (try_auto_parse_response:Boolean=True) =
-    Data.post self body method headers try_auto_parse_response
+@response_format Data_Read_Helpers.format_widget_with_raw_response
+URI.post : Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any
+URI.post self (body:Request_Body=Request_Body.Empty) (method:HTTP_Method=HTTP_Method.Post) (headers:(Vector (Header | Pair Text Text))=[]) (response_format = Auto_Detect) =
+    Data.post self body method headers response_format

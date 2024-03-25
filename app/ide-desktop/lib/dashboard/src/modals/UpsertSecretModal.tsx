@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Modal from '#/components/Modal'
 
@@ -25,6 +26,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { id, name: nameRaw, doCreate } = props
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
 
   const [name, setName] = React.useState(nameRaw ?? '')
   const [value, setValue] = React.useState('')
@@ -61,15 +63,15 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         }}
       >
         <h1 className="relative text-sm font-semibold">
-          {isCreatingSecret ? 'New Secret' : 'Edit Secret'}
+          {isCreatingSecret ? getText('newSecret') : getText('editSecret')}
         </h1>
         <label className="relative flex h-row items-center">
-          <div className="text w-modal-label">Name</div>
+          <div className="text w-modal-label">{getText('name')}</div>
           <input
             autoFocus
             disabled={!isNameEditable}
-            placeholder="Enter the name of the secret"
-            className="text grow rounded-full border border-black/10 bg-transparent px-input-x selectable enabled:active"
+            placeholder={getText('secretNamePlaceholder')}
+            className="text grow rounded-full border border-primary/10 bg-transparent px-input-x selectable enabled:active"
             value={name}
             onInput={event => {
               setName(event.currentTarget.value)
@@ -77,11 +79,13 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           />
         </label>
         <label className="relative flex h-row items-center">
-          <div className="text w-modal-label">Value</div>
+          <div className="text w-modal-label">{getText('value')}</div>
           <input
             autoFocus={!isNameEditable}
-            placeholder={isNameEditable ? 'Enter the value of the secret' : '●●●●●●●●'}
-            className="text grow rounded-full border border-black/10 bg-transparent px-input-x"
+            placeholder={
+              isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
+            }
+            className="text grow rounded-full border border-primary/10 bg-transparent px-input-x"
             onInput={event => {
               setValue(event.currentTarget.value)
             }}
@@ -89,10 +93,10 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         </label>
         <div className="relative flex gap-buttons">
           <button disabled={!canSubmit} type="submit" className="button bg-invite text-white">
-            {isCreatingSecret ? 'Create' : 'Update'}
+            {isCreatingSecret ? getText('create') : getText('update')}
           </button>
           <button type="button" className="button bg-selected-frame" onClick={unsetModal}>
-            Cancel
+            {getText('cancel')}
           </button>
         </div>
       </form>

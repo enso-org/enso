@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::cache::goodie;
-use crate::cache::goodie::Goodie;
 use crate::cache::Cache;
 use crate::env::known::PATH;
 use crate::github::RepoRef;
@@ -212,7 +211,6 @@ pub fn locate_graal() -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::programs::Java;
     use semver::BuildMetadata;
     use semver::Prerelease;
 

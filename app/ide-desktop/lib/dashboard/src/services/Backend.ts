@@ -15,9 +15,13 @@ import * as uniqueString from '#/utilities/uniqueString'
 // These are constructor functions that construct values of the type they are named after.
 /* eslint-disable @typescript-eslint/no-redeclare */
 
-/** Unique identifier for a user/organization. */
+/** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<string, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
+
+/** Unique identifier for a user. */
+export type UserId = newtype.Newtype<string, 'UserId'>
+export const UserId = newtype.newtypeConstructor<UserId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
@@ -344,10 +348,11 @@ export interface ResourceUsage {
 /** Metadata uniquely identifying a user. */
 export interface UserInfo {
   /* eslint-disable @typescript-eslint/naming-convention */
-  readonly pk: Subject
+  readonly pk: OrganizationId
+  readonly sk: UserId
+  readonly user_subject: Subject
   readonly user_name: string
   readonly user_email: EmailAddress
-  readonly organization_id: OrganizationId
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
@@ -363,9 +368,11 @@ export interface OrganizationInfo {
 }
 
 /** Metadata uniquely identifying a user inside an organization.
- * This is similar to {@link UserInfo}, but without `organization_id`. */
+ * This is similar to {@link UserInfo}, but with different field names. */
 export interface SimpleUser {
-  readonly id: Subject
+  readonly organizationId: OrganizationId
+  readonly userId: UserId
+  readonly userSubject: Subject
   readonly name: string
   readonly email: EmailAddress
 }
@@ -399,6 +406,72 @@ export enum FilterBy {
   trashed = 'Trashed',
 }
 
+// =============
+// === Event ===
+// =============
+
+/** An event in an audit log. */
+export interface Event {
+  readonly organizationId: OrganizationId
+  readonly userEmail: EmailAddress
+  readonly timestamp: dateTime.Rfc3339DateTime | null
+  // Called `EventKind` in the backend.
+  readonly metadata: EventMetadata
+}
+
+/** Possible types of event in an audit log. */
+export enum EventType {
+  GetSecret = 'getSecret',
+  DeleteAssets = 'deleteAssets',
+  ListSecrets = 'listSecrets',
+  OpenProject = 'openProject',
+  UploadFile = 'uploadFile',
+}
+
+export const EVENT_TYPES = Object.freeze(Object.values(EventType))
+
+/** An event indicating that a secret was accessed. */
+interface GetSecretEventMetadata {
+  readonly type: EventType.GetSecret
+  readonly secretId: SecretId
+}
+
+/** An event indicating that one or more assets were deleted. */
+interface DeleteAssetsEventMetadata {
+  readonly type: EventType.DeleteAssets
+}
+
+/** An event indicating that all secrets were listed. */
+interface ListSecretsEventMetadata {
+  readonly type: EventType.ListSecrets
+}
+
+/** An event indicating that a project was opened. */
+interface OpenProjectEventMetadata {
+  readonly type: EventType.OpenProject
+}
+
+/** An event indicating that a file was uploaded. */
+interface UploadFileEventMetadata {
+  readonly type: EventType.UploadFile
+}
+
+/** All possible types of metadata for an event in the audit log. */
+export type EventMetadata =
+  | DeleteAssetsEventMetadata
+  | GetSecretEventMetadata
+  | ListSecretsEventMetadata
+  | OpenProjectEventMetadata
+  | UploadFileEventMetadata
+
+/** A color in the LCh colorspace. */
+export interface LChColor {
+  readonly lightness: number
+  readonly chroma: number
+  readonly hue: number
+  readonly alpha?: number
+}
+
 // ===================================
 // === serializeProjectStartupInfo ===
 // ===================================
@@ -425,9 +498,9 @@ export enum AssetType {
   directory = 'directory',
   /** A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes. */
-  specialLoading = 'special-loading',
+  specialLoading = 'specialLoading',
   /** A special {@link AssetType} representing the sole child of an empty directory. */
-  specialEmpty = 'special-empty',
+  specialEmpty = 'specialEmpty',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
@@ -439,17 +512,6 @@ export interface IdType {
   readonly [AssetType.directory]: DirectoryId
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
-}
-
-/** The english name of each asset type. */
-export const ASSET_TYPE_NAME: Readonly<Record<AssetType, string>> = {
-  [AssetType.directory]: 'folder',
-  [AssetType.project]: 'project',
-  [AssetType.file]: 'file',
-  [AssetType.dataLink]: 'Data Link',
-  [AssetType.secret]: 'secret',
-  [AssetType.specialLoading]: 'special loading asset',
-  [AssetType.specialEmpty]: 'special empty asset',
 }
 
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
@@ -628,6 +690,10 @@ export interface S3ObjectVersion {
   versionId: string
   lastModified: dateTime.Rfc3339DateTime
   isLatest: boolean
+  /**
+   * The field points to an archive containing the all the project files object in the S3 bucket,
+   */
+  key: string
 }
 
 /** A list of asset versions. */
@@ -694,7 +760,7 @@ export interface UpdateOrganizationRequestBody {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-  readonly userSubjects: Subject[]
+  readonly actorsIds: UserId[]
   readonly action: permissions.PermissionAction | null
 }
 
@@ -880,6 +946,8 @@ export interface SmartUser extends SmartObject<User> {
   readonly listSecrets: () => Promise<SecretInfo[]>
   /** Get the details of the current user's organization. */
   readonly getOrganization: () => Promise<SmartOrganization>
+  /** List events in the organization's audit log. */
+  readonly getLogEvents: () => Promise<Event[]>
 }
 
 /** A smart wrapper around an {@link OrganizationInfo}. */
@@ -973,6 +1041,8 @@ export interface SmartProject extends SmartAsset<ProjectAsset> {
   readonly getDetails: () => Promise<Project>
   /** Return project memory, processor and storage usage. */
   readonly getResourceUsage: () => Promise<ResourceUsage>
+  /** Fetch the content of the `Main.enso` file. */
+  readonly getMainFile: (version: string) => Promise<string>
   /** Close a project. */
   readonly close: () => Promise<void>
   /** Resolve only when the project is ready to be opened. */

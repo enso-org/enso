@@ -5,6 +5,7 @@ import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
 
@@ -23,12 +24,13 @@ export default function MembersSettingsTab() {
     async () => (await user?.listUsers()) ?? null,
     [user]
   )
+  const { getText } = textProvider.useText()
   const isLoading = members == null
 
   return (
     <div className="flex flex-col gap-settings-subsection">
       <div className="flex flex-col gap-settings-section-header">
-        <h3 className="settings-subheading">Members</h3>
+        <h3 className="settings-subheading">{getText('members')}</h3>
         <div className="flex gap-drive-bar">
           <button
             className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
@@ -37,17 +39,17 @@ export default function MembersSettingsTab() {
               setModal(<InviteUsersModal eventTarget={null} />)
             }}
           >
-            <span className="text whitespace-nowrap font-semibold">Invite Members</span>
+            <span className="text whitespace-nowrap font-semibold">{getText('inviteMembers')}</span>
           </button>
         </div>
         <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-row">
               <th className="w-members-name-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                Name
+                {getText('name')}
               </th>
               <th className="w-members-email-column border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-                Email
+                {getText('email')}
               </th>
             </tr>
           </thead>
@@ -65,7 +67,7 @@ export default function MembersSettingsTab() {
               </tr>
             ) : (
               members.map(member => (
-                <tr key={member.id} className="h-row">
+                <tr key={member.userId} className="h-row">
                   <td className="text border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0 ">
                     {member.name}
                   </td>

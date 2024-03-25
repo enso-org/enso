@@ -3,6 +3,8 @@ import * as React from 'react'
 
 import SettingsIcon from 'enso-assets/settings.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import Button from '#/components/Button'
 
 /** Props for an {@link AssetInfoBar}. */
@@ -17,7 +19,7 @@ export interface AssetInfoBarProps {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function AssetInfoBar(props: AssetInfoBarProps) {
   const { isAssetPanelEnabled, setIsAssetPanelEnabled, isCloud } = props
-
+  const { getText } = textProvider.useText()
   return (
     <div
       className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-icons rounded-full bg-frame px-icons-x ${
@@ -28,10 +30,10 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
       }}
     >
       <Button
-        alt={isAssetPanelEnabled ? 'Close Asset Panel' : 'Open Asset Panel'}
+        alt={isAssetPanelEnabled ? getText('closeAssetPanel') : getText('openAssetPanel')}
         active={isAssetPanelEnabled}
         image={SettingsIcon}
-        error="Select exactly one asset to see its settings."
+        error={getText('multipleAssetsSettingsError')}
         onClick={() => {
           setIsAssetPanelEnabled(visible => !visible)
         }}

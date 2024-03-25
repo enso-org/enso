@@ -35,6 +35,7 @@
  * {@link authProvider.FullUserSession}). */
 import * as React from 'react'
 
+import * as reactQuery from '@tanstack/react-query'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
@@ -62,11 +63,14 @@ import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import Subscribe from '#/pages/subscribe/Subscribe'
 
+import * as rootComponent from '#/components/Root'
+
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 
 import * as array from '#/utilities/array'
+import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 
@@ -146,12 +150,13 @@ export interface AppProps {
 export default function App(props: AppProps) {
   // This is a React component even though it does not contain JSX.
   // eslint-disable-next-line no-restricted-syntax
-  const Router = detect.isOnElectron() ? router.MemoryRouter : router.BrowserRouter
+  const Router = detect.isOnElectron() ? router.HashRouter : router.BrowserRouter
+  const queryClient = React.useMemo(() => new reactQuery.QueryClient(), [])
   // Both `BackendProvider` and `InputBindingsProvider` depend on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
-    <>
+    <reactQuery.QueryClientProvider client={queryClient}>
       <toastify.ToastContainer
         position="top-center"
         theme="light"
@@ -166,7 +171,7 @@ export default function App(props: AppProps) {
           <AppRouter {...props} />
         </LocalStorageProvider>
       </Router>
-    </>
+    </reactQuery.QueryClientProvider>
   )
 }
 
@@ -192,6 +197,10 @@ function AppRouter(props: AppProps) {
     window.navigate = navigate
   }
   const [inputBindingsRaw] = React.useState(() => inputBindingsModule.createBindings())
+  const [root] = React.useState<React.RefObject<HTMLElement>>(() => ({
+    current: document.getElementById('enso-dashboard'),
+  }))
+
   React.useEffect(() => {
     const savedInputBindings = localStorage.get('inputBindings')
     if (savedInputBindings != null) {
@@ -209,6 +218,7 @@ function AppRouter(props: AppProps) {
       }
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+
   const inputBindings = React.useMemo(() => {
     const updateLocalStorage = () => {
       localStorage.set(
@@ -256,11 +266,14 @@ function AppRouter(props: AppProps) {
       },
     }
   }, [/* should never change */ localStorage, /* should never change */ inputBindingsRaw])
+
   const mainPageUrl = getMainPageUrl()
+
   const authService = React.useMemo(() => {
     const authConfig = { navigate, ...props }
     return authServiceModule.initAuthService(authConfig)
   }, [props, /* should never change */ navigate])
+
   const userSession = authService?.cognito.userSession.bind(authService.cognito) ?? null
   const registerAuthEventListener = authService?.registerAuthEventListener ?? null
   const initialBackend: Backend = isAuthenticationDisabled
@@ -284,9 +297,8 @@ function AppRouter(props: AppProps) {
     const onMouseUp = (event: MouseEvent) => {
       if (
         isClick &&
-        !(event.target instanceof HTMLInputElement) &&
-        !(event.target instanceof HTMLTextAreaElement) &&
-        !(event.target instanceof HTMLElement && event.target.isContentEditable)
+        !eventModule.isElementTextInput(event.target) &&
+        !eventModule.isElementPartOfMonaco(event.target)
       ) {
         const selection = document.getSelection()
         const app = document.getElementById('app')
@@ -302,6 +314,7 @@ function AppRouter(props: AppProps) {
         }
       }
     }
+
     const onSelectStart = () => {
       isClick = false
     }
@@ -314,6 +327,7 @@ function AppRouter(props: AppProps) {
       document.removeEventListener('selectstart', onSelectStart)
     }
   }, [])
+
   const routes = (
     <router.Routes>
       <React.Fragment>
@@ -375,5 +389,10 @@ function AppRouter(props: AppProps) {
     </SessionProvider>
   )
   result = <LoggerProvider logger={logger}>{result}</LoggerProvider>
+  result = (
+    <rootComponent.Root rootRef={root} navigate={navigate}>
+      {result}
+    </rootComponent.Root>
+  )
   return result
 }

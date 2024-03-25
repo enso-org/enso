@@ -2,7 +2,6 @@
 
 use super::*;
 
-use syn::punctuated::Punctuated;
 use syn::Token;
 
 

@@ -9,6 +9,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as loggerProvider from '#/providers/LoggerProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -62,6 +63,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const logger = loggerProvider.useLogger()
   const { user, accessToken } = authProvider.useNonPartialUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const smartAsset = item.item
   const asset = smartAsset.value
@@ -92,7 +94,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="undelete"
-            label="Restore From Trash"
+            label={getText('restoreFromTrashShortcut')}
             doAction={() => {
               unsetModal()
               dispatchAssetEvent({ type: AssetEventType.restore, ids: new Set([asset.id]) })
@@ -101,7 +103,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="delete"
-            label="Delete Forever"
+            label={getText('deleteForeverShortcut')}
             doAction={() => {
               setModal(
                 <ConfirmDeleteModal
@@ -176,14 +178,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               unsetModal()
               if (accessToken == null) {
-                toastAndLog('Cannot upload to cloud in offline mode')
+                toastAndLog('offlineUploadFilesError')
               } else {
                 try {
                   const client = new HttpClient([['Authorization', `Bearer ${accessToken}`]])
-                  const remoteBackend = new RemoteBackend(client, logger)
+                  const remoteBackend = new RemoteBackend(client, logger, getText)
                   const projectResponse = await fetch(
                     `./api/project-manager/projects/${asset.id}/enso-project`
                   )
+                  const fileName = `${asset.title}.enso-project`
                   // This DOES NOT update the cloud assets list when it
                   // completes, as the current backend is not the remote
                   // (cloud) backend. The user may change to the cloud backend
@@ -191,15 +194,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   // uncommon enough that it is not worth the added complexity.
                   await remoteBackend.uploadFile(
                     {
-                      fileName: `${asset.title}.enso-project`,
+                      fileName,
                       fileId: null,
                       parentDirectoryId: null,
                     },
-                    await projectResponse.blob()
+                    new File([await projectResponse.blob()], fileName)
                   )
-                  toast.toast.success('Successfully uploaded local project to cloud!')
+                  toast.toast.success(getText('uploadProjectToCloudSuccess'))
                 } catch (error) {
-                  toastAndLog('Could not upload local project to cloud', error)
+                  toastAndLog('uploadProjectToCloudError', error)
                 }
               }
             }}
@@ -254,7 +257,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="delete"
-            label={isCloud ? 'Delete' : 'Move To Trash'}
+            label={isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut')}
             doAction={() => {
               if (isCloud) {
                 unsetModal()
@@ -262,7 +265,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               } else {
                 setModal(
                   <ConfirmDeleteModal
-                    actionText={`delete the ${asset.type} '${asset.title}'`}
+                    actionText={getText('deleteTheAssetTypeTitle', asset.type, asset.title)}
                     doDelete={doDelete}
                   />
                 )
