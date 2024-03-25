@@ -58,14 +58,13 @@ interface InternalCategorySwitcherItemProps {
   readonly id: string
   readonly data: CategoryMetadata
   readonly isCurrent: boolean
-  readonly onPress: (event: aria.PressEvent) => void
   readonly onDragOver: (event: React.DragEvent) => void
   readonly onDrop: (event: React.DragEvent) => void
 }
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { id, data, isCurrent, onPress, onDragOver, onDrop } = props
+  const { id, data, isCurrent, onDragOver, onDrop } = props
   const { category, icon } = data
 
   return (
@@ -74,28 +73,26 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       textValue={category}
       className="relative after:pointer-events-none after:absolute after:inset after:rounded-full after:focus-ring-within"
     >
-      <aria.Button onPress={onPress}>
-        <div
-          title={`Go To ${category}`}
-          className={`selectable ${
-            isCurrent ? 'disabled bg-selected-frame active' : ''
-          } group flex h-row items-center gap-icon-with-text rounded-full px-button-x hover:bg-selected-frame`}
-          // Required because `dragover` does not fire on `mouseenter`.
-          onDragEnter={onDragOver}
-          onDragOver={onDragOver}
-          onDrop={onDrop}
-        >
-          <SvgMask
-            src={icon}
-            className={
-              // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
-              // eslint-disable-next-line no-restricted-syntax
-              category === Category.recent ? '-ml-0.5' : ''
-            }
-          />
-          <aria.Text slot="label">{category}</aria.Text>
-        </div>
-      </aria.Button>
+      <div
+        title={`Go To ${category}`}
+        className={`selectable ${
+          isCurrent ? 'disabled bg-selected-frame active' : ''
+        } group flex h-row items-center gap-icon-with-text rounded-full px-button-x hover:bg-selected-frame`}
+        // Required because `dragover` does not fire on `mouseenter`.
+        onDragEnter={onDragOver}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+      >
+        <SvgMask
+          src={icon}
+          className={
+            // This explicit class is a special-case due to the unusual shape of the "Recent" icon.
+            // eslint-disable-next-line no-restricted-syntax
+            category === Category.recent ? '-ml-0.5' : ''
+          }
+        />
+        <aria.Text slot="label">{category}</aria.Text>
+      </div>
     </aria.MenuItem>
   )
 }
@@ -152,9 +149,6 @@ export default function CategorySwitcher(props: CategorySwitcherProps) {
               id={data.category}
               data={data}
               isCurrent={category === data.category}
-              onPress={() => {
-                setCategory(data.category)
-              }}
               onDragOver={event => {
                 if (
                   (category === Category.trash && data.category === Category.home) ||

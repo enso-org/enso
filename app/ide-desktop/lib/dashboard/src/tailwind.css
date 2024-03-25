@@ -515,11 +515,11 @@ body::before {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgb(0 0 0 / 10%);
 }
 
 ::-webkit-scrollbar-corner {
-  background: rgba(0, 0, 0, 0);
+  background: rgb(0 0 0 / 0%);
 }
 
 [data-debug] [data-focus-area] {
