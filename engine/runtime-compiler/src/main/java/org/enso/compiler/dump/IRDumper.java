@@ -605,7 +605,9 @@ public class IRDumper {
     private Code(String code) {
         // Replace new lines with left-justify literals, so that all the lines
         // in the code are justified to the left side of the box.
-        String formattedCode = code.replace("\n", "\\l");
+        String formattedCode = code
+            .replace("\r", "\\l")
+            .replace("\n", "\\l");
         if (code.contains("\"")) {
           formattedCode = formattedCode.replace("\"", "\\\"");
         }
