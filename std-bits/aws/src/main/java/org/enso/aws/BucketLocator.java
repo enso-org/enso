@@ -33,14 +33,9 @@ public class BucketLocator {
     DefaultRegionProvider defaultRegionProvider = new DefaultRegionProvider(null, Region.US_EAST_1);
     var clientBuilder = new ClientBuilder(associatedCredential, defaultRegionProvider.getRegion());
     try (var client = clientBuilder.buildS3Client()) {
-      BucketLocationConstraint locationConstraint = client.getBucketLocation(builder -> builder.bucket(bucketName)).locationConstraint();
-      if (locationConstraint == null) {
-        // Weird edge case: documentation says that buckets in region us-east-1 return null
-        return Region.US_EAST_1;
-      }
-
-      // TODO what will a more general locationConstraint, eg. `EU` will be mapped to?
-      return Region.of(locationConstraint.toString());
+      var response = client.headBucket(b -> b.bucket(bucketName));
+      var regionId = response.sdkHttpResponse().firstMatchingHeader("x-amz-bucket-region");
+      return regionId.map(Region::of).orElse(null);
     }
   }
 }
