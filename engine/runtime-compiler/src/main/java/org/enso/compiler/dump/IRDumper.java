@@ -409,7 +409,54 @@ public class IRDumper {
               addNode(fqnMetaNode);
               createEdge(ir, fqnResolution, "FullyQualifiedNames.FQNResolution");
             }
-              // The rest is ignored
+            case BindingsMap bindingsMap -> {
+              if (bindingsMap.definedEntities().isEmpty()) {
+                bldr.addLabelLine("definedEntities: []");
+              } else {
+                bldr.addLabelLine("definedEntities: ");
+                for (int i = 0; i < bindingsMap.definedEntities().size(); i++) {
+                  var entity = bindingsMap.definedEntities().apply(i);
+                  switch (entity) {
+                    case BindingsMap.Type tp -> bldr.addLabelLine("  - Type(" + tp.name() + ")");
+                    case BindingsMap.ModuleMethod method -> bldr.addLabelLine("  - Method(" + method.name() + ")");
+                    case BindingsMap.PolyglotSymbol polySym -> bldr.addLabelLine("  - PolyglotSymbol(" + polySym.name() + ")");
+                    default -> throw unimpl(entity);
+                  }
+                }
+              }
+
+              if (bindingsMap.resolvedImports().isEmpty()) {
+                bldr.addLabelLine("resolvedImports: []");
+              } else {
+                bldr.addLabelLine("resolvedImports: ");
+                for (int i = 0; i < bindingsMap.resolvedImports().size(); i++) {
+                  var resolvedImport = bindingsMap.resolvedImports().apply(i);
+                  switch (resolvedImport.target()) {
+                    case ResolvedType resolvedType -> bldr.addLabelLine("  - ResolvedType(" + resolvedType.tp().name() + ")");
+                    case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine("  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
+                    default -> throw unimpl(resolvedImport.target());
+                  }
+                }
+              }
+
+              if (bindingsMap.resolvedExports().isEmpty()) {
+                bldr.addLabelLine("resolvedExports: []");
+              } else {
+                bldr.addLabelLine("resolvedExports: ");
+                for (int i = 0; i < bindingsMap.resolvedExports().size(); i++) {
+                  var resolvedExport = bindingsMap.resolvedExports().apply(i);
+                  switch (resolvedExport.target()) {
+                    case ResolvedType resolvedType -> bldr.addLabelLine("  - ResolvedType(" + resolvedType.tp().name() + ")");
+                    case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine("  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
+                    default -> throw unimpl(resolvedExport.target());
+                  }
+                }
+              }
+              var bmNode = bldr.build();
+              addNode(bmNode);
+              createEdge(ir, bindingsMap, "BindingsMap");
+            }
+            // The rest is ignored
             default -> {}
           }
           return null;
