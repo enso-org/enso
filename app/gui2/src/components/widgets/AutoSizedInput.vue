@@ -13,7 +13,6 @@ const emit = defineEmits<{
 const innerModel = modifiers.lazy ? ref(model.value) : model
 if (modifiers.lazy) watch(model, (newVal) => (innerModel.value = newVal))
 function onChange() {
-  console.log('onChange')
   if (modifiers.lazy) model.value = innerModel.value
   emit('change', innerModel.value)
 }
@@ -21,7 +20,6 @@ function onChange() {
 const inputNode = ref<HTMLInputElement>()
 useAutoBlur(inputNode)
 function onFocus() {
-  console.log('onFocus')
   if (props.autoSelect) {
     inputNode.value?.select()
   }
@@ -69,7 +67,6 @@ defineExpose({
     @input="emit('input', innerModel)"
     @change="onChange"
     @focus="onFocus"
-    @blur="console.error('input blurred')"
   />
 </template>
 

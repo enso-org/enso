@@ -121,7 +121,7 @@ async function expectInsideMain(page: Page) {
 }
 
 async function expectInsideFunc1(page: Page) {
-  await actions.expectNodePositionsInitialized(page, 128)
+  await actions.expectNodePositionsInitialized(page, 192)
   await expect(locate.graphNode(page)).toHaveCount(3)
   await expect(locate.graphNodeByBinding(page, 'f2')).toExist()
   await expect(locate.graphNodeByBinding(page, 'result')).toExist()

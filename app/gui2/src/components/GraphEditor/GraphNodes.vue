@@ -11,7 +11,7 @@ import { useProjectStore } from '@/stores/project'
 import type { AstId } from '@/util/ast/abstract'
 import type { Vec2 } from '@/util/data/vec2'
 import { stackItemsEqual } from 'shared/languageServerTypes'
-import { computed, toRaw, type Ref } from 'vue'
+import { computed, toRaw } from 'vue'
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
