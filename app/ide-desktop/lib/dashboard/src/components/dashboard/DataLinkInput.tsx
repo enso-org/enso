@@ -1,8 +1,8 @@
 /** @file A dynamic wizard for creating an arbitrary type of Data Link. */
 import * as React from 'react'
 
-import ConfiguredDataLinkValidator from '#/data/ConfiguredDataLinkValidator'
 import SCHEMA from '#/data/dataLinkSchema.json' assert { type: 'json' }
+import * as DataLinkValidator from '#/data/DataLinkValidator'
 
 import type * as jsonSchemaInput from '#/components/JSONSchemaInput'
 import JSONSchemaInput from '#/components/JSONSchemaInput'
@@ -22,9 +22,7 @@ const DEFS: Record<string, object> = SCHEMA.$defs
 /** Get a known schema using a path.
  * @throws {Error} when there is no schema present at the given path. */
 function getValidator(path: string) {
-  return error.assert<(value: unknown) => boolean>(() =>
-    ConfiguredDataLinkValidator.getSchema(path)
-  )
+  return error.assert<(value: unknown) => boolean>(() => DataLinkValidator.AJV.getSchema(path))
 }
 
 // =====================
