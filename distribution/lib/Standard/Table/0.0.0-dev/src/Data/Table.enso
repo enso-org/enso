@@ -2899,9 +2899,10 @@ type Table
           new_name = if as == '' then 'Running ' + statistic.to_text + ' of ' + of_col.name else as
           problem_builder = Problem_Builder.new error_on_missing_columns=True
           grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
+          source_column = self.columns_helper.select_columns_helper [of] Case_Sensitivity.Default True problem_builder
           grouping_java_columns = grouping_columns.map .java_column
           Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-            new_storage = AddRunning.create_grouped_running grouping_java_columns java_problem_aggregator
+            new_storage = AddRunning.create_grouped_running (source_column.at 0) grouping_java_columns java_problem_aggregator
             new_column = Column.from_storage new_name new_storage
             self.set new_column new_name set_mode=Set_Mode.Add
         if statistic == Statistic.Count then
