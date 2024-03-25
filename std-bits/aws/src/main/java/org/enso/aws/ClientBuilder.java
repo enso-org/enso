@@ -7,6 +7,7 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
@@ -42,6 +43,16 @@ public class ClientBuilder {
       }
       case AwsCredential.Profile profile -> ProfileCredentialsProvider.create(profile.name());
     };
+  }
+
+  /** Checks if the default credential is available. */
+  public static boolean isDefaultCredentialAvailable() {
+    try (var provider = DefaultCredentialsProvider.create()) {
+      provider.resolveCredentials();
+      return true;
+    } catch (SdkClientException e) {
+      return false;
+    }
   }
 
   /**
