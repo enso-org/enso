@@ -7,7 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.data.column.operation.cast.CastProblemAggregator;
+import org.enso.table.data.column.operation.cast.ToFloatStorageConverter;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
@@ -38,94 +41,97 @@ public class AddRunning {
     List<TextFoldingStrategy> textFoldingStrategy =
         ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, groupingStorages.length);
     Map<UnorderedMultiValueKey, RunningIterator> groups = new HashMap<>();
-    DoubleStorage sourceStorage = sourceColumn.getStorage();
+
+    var sourceStorage = sourceColumn.getStorage();
     for (int i = 0; i < n; i++) {
       UnorderedMultiValueKey key =
           new UnorderedMultiValueKey(groupingStorages, i, textFoldingStrategy);
       key.checkAndReportFloatingEquality(
           groupingProblemAggregator, columnIx -> groupingColumns[columnIx].getName());
       RunningIterator it = groups.computeIfAbsent(key, k -> new RunningIterator());
-      numbers[i] = Double.doubleToRawLongBits(it.next(sourceStorage.getItem(i)));
+      Object value = sourceStorage.getItemBoxed(i);
+      Long lValue = NumericConverter.tryConvertingToLong(value);
+      numbers[i] = Double.doubleToRawLongBits(it.next(lValue));
     }
     BitSet isNothing = new BitSet(n);
     isNothing.set(0, n);
     return new DoubleStorage(numbers, n, isNothing);
   }
 
-  public static Storage<Double> create_ordered_running(
-      Column sourceColumn, Column[] orderingColumns, int[] directions) {
-    if (orderingColumns.length == 0) {
-      throw new IllegalArgumentException("At least one ordering column is required.");
-    }
-    if (orderingColumns.length != directions.length) {
-      throw new IllegalArgumentException(
-          "The number of ordering columns and directions must be the same.");
-    }
+  // public static Storage<Double> create_ordered_running(
+  //     Column sourceColumn, Column[] orderingColumns, int[] directions) {
+  //   if (orderingColumns.length == 0) {
+  //     throw new IllegalArgumentException("At least one ordering column is required.");
+  //   }
+  //   if (orderingColumns.length != directions.length) {
+  //     throw new IllegalArgumentException(
+  //         "The number of ordering columns and directions must be the same.");
+  //   }
 
-    int n = orderingColumns[0].getSize();
-    Storage<?>[] orderingStorages =
-        Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
-    long[] numbers = new long[n];
-    List<OrderedMultiValueKey> keys =
-        new ArrayList<>(
-            IntStream.range(0, n)
-                .mapToObj(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
-                .toList());
+  //   int n = orderingColumns[0].getSize();
+  //   Storage<?>[] orderingStorages =
+  //       Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
+  //   long[] numbers = new long[n];
+  //   List<OrderedMultiValueKey> keys =
+  //       new ArrayList<>(
+  //           IntStream.range(0, n)
+  //               .mapToObj(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
+  //               .toList());
 
-    keys.sort(null);
+  //   keys.sort(null);
 
-    RunningIterator it = new RunningIterator();
-    DoubleStorage sourceStorage = sourceColumn.getStorage();
-    for (var key : keys) {
-      var i = key.getRowIndex();
-      numbers[i] = Double.doubleToRawLongBits(it.next(sourceStorage.getItem(i)));
-    }
-    BitSet isNothing = new BitSet(n);
-    isNothing.set(0, n);
-    return new DoubleStorage(numbers, n, isNothing);
-  }
+  //   RunningIterator it = new RunningIterator();
+  //   DoubleStorage sourceStorage = sourceColumn.getStorage();
+  //   for (var key : keys) {
+  //     var i = key.getRowIndex();
+  //     numbers[i] = Double.doubleToRawLongBits(it.next(sourceStorage.getItem(i)));
+  //   }
+  //   BitSet isNothing = new BitSet(n);
+  //   isNothing.set(0, n);
+  //   return new DoubleStorage(numbers, n, isNothing);
+  // }
 
-  public static Storage<Double> create_grouped_ordered_running(
-      Column sourceColumn,
-      Column[] orderingColumns,
-      int[] directions,
-      Column[] groupingColumns,
-      ProblemAggregator problemAggregator) {
-    if (orderingColumns.length == 0) {
-      throw new IllegalArgumentException("At least one ordering column is required.");
-    }
-    if (orderingColumns.length != directions.length) {
-      throw new IllegalArgumentException(
-          "The number of ordering columns and directions must be the same.");
-    }
+  // public static Storage<Double> create_grouped_ordered_running(
+  //     Column sourceColumn,
+  //     Column[] orderingColumns,
+  //     int[] directions,
+  //     Column[] groupingColumns,
+  //     ProblemAggregator problemAggregator) {
+  //   if (orderingColumns.length == 0) {
+  //     throw new IllegalArgumentException("At least one ordering column is required.");
+  //   }
+  //   if (orderingColumns.length != directions.length) {
+  //     throw new IllegalArgumentException(
+  //         "The number of ordering columns and directions must be the same.");
+  //   }
 
-    int n = orderingColumns[0].getSize();
-    Storage<?>[] orderingStorages =
-        Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
-    long[] numbers = new long[n];
-    MultiValueIndex<UnorderedMultiValueKey> groupIndex =
-        MultiValueIndex.makeUnorderedIndex(
-            groupingColumns, n, TextFoldingStrategy.unicodeNormalizedFold, problemAggregator);
+  //   int n = orderingColumns[0].getSize();
+  //   Storage<?>[] orderingStorages =
+  //       Arrays.stream(orderingColumns).map(Column::getStorage).toArray(Storage[]::new);
+  //   long[] numbers = new long[n];
+  //   MultiValueIndex<UnorderedMultiValueKey> groupIndex =
+  //       MultiValueIndex.makeUnorderedIndex(
+  //           groupingColumns, n, TextFoldingStrategy.unicodeNormalizedFold, problemAggregator);
 
-    for (var entry : groupIndex.mapping().entrySet()) {
-      List<Integer> indices = entry.getValue();
-      List<OrderedMultiValueKey> orderingKeys =
-          new ArrayList<>(
-              indices.stream()
-                  .map(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
-                  .toList());
-      orderingKeys.sort(null);
-      RunningIterator it = new RunningIterator();
-      DoubleStorage sourceStorage = sourceColumn.getStorage();
-      for (OrderedMultiValueKey key : orderingKeys) {
-        var i = key.getRowIndex();
-        numbers[i] = Double.doubleToRawLongBits(it.next(sourceStorage.getItem(i)));
-      }
-    }
-    BitSet isNothing = new BitSet(n);
-    isNothing.set(0, n);
-    return new DoubleStorage(numbers, n, isNothing);
-  }
+  //   for (var entry : groupIndex.mapping().entrySet()) {
+  //     List<Integer> indices = entry.getValue();
+  //     List<OrderedMultiValueKey> orderingKeys =
+  //         new ArrayList<>(
+  //             indices.stream()
+  //                 .map(i -> new OrderedMultiValueKey(orderingStorages, i, directions))
+  //                 .toList());
+  //     orderingKeys.sort(null);
+  //     RunningIterator it = new RunningIterator();
+  //     DoubleStorage sourceStorage = sourceColumn.getStorage();
+  //     for (OrderedMultiValueKey key : orderingKeys) {
+  //       var i = key.getRowIndex();
+  //       numbers[i] = Double.doubleToRawLongBits(it.next(sourceStorage.getItem(i)));
+  //     }
+  //   }
+  //   BitSet isNothing = new BitSet(n);
+  //   isNothing.set(0, n);
+  //   return new DoubleStorage(numbers, n, isNothing);
+  // }
 
   /**
    * A helper for computing consecutive numbers based on a start and step. It will throw an {@link
@@ -143,7 +149,7 @@ public class AddRunning {
         isFirst = false;
         current = value;
       } else {
-        current = Math.addExact(current, value);
+        current = current + value;
       }
       return current;
     }

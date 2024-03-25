@@ -88,7 +88,7 @@ add_specs suite_builder =
             # 4 | SG0456 | E         | 73.77        | 1
             expected_table = data.table.zip expected_column
             result.should_equal expected_table
-    suite_builder.group "running sum over integers" group_builder->
+    suite_builder.group "running sum" group_builder->
         data = Data.setup
         group_builder.specify "Not setting the as name gives default name based on of column" <|
             result = data.table.running Statistic.Sum "Ticket Price"
