@@ -9,6 +9,8 @@ use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
 use crate::engine::env;
 
+use crate::env::ENSO_AG_GRID_LICENSE_KEY;
+use crate::ide::web::env::VITE_ENSO_AG_GRID_LICENSE_KEY;
 use heck::ToKebabCase;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::Access;
@@ -20,7 +22,6 @@ use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
-
 
 
 /// This should be kept as recent as possible.
@@ -141,6 +142,13 @@ pub fn expose_cloud_vars(step: Step) -> Step {
         .with_variable_exposed(ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID)
         .with_variable_exposed(ENSO_CLOUD_COGNITO_DOMAIN)
         .with_variable_exposed(ENSO_CLOUD_COGNITO_REGION)
+}
+
+/// Expose variables for the GUI build.
+pub fn expose_gui_vars(step: Step) -> Step {
+    let step = step.with_secret_exposed_as(ENSO_AG_GRID_LICENSE_KEY, VITE_ENSO_AG_GRID_LICENSE_KEY);
+    // GUI includes the cloud-delivered dashboard.
+    expose_cloud_vars(step)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -285,7 +293,7 @@ impl JobArchetype for NewGuiBuild {
     fn job(&self, target: Target) -> Job {
         let command = "gui build";
         RunStepsBuilder::new(command)
-            .customize(|step| vec![expose_cloud_vars(step)])
+            .customize(|step| vec![expose_gui_vars(step)])
             .build_job("GUI build", target)
     }
 }
@@ -404,7 +412,7 @@ pub fn bump_electron_builder() -> Vec<Step> {
 /// * (macOS only) bumping the version of the Electron Builder to
 ///   [`ELECTRON_BUILDER_MACOS_VERSION`].
 pub fn prepare_packaging_steps(os: OS, step: Step) -> Vec<Step> {
-    let step = expose_cloud_vars(step);
+    let step = expose_gui_vars(step);
     let step = expose_os_specific_signing_secret(os, step);
     let mut steps = Vec::new();
     if os == OS::MacOS {

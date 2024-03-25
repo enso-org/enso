@@ -134,6 +134,12 @@ pub mod env {
         /// The AWS region for Amplify configuration, matching the domain region.
         ENSO_CLOUD_COGNITO_REGION, String;
     }
+
+    // GUI-specific environment variables
+    define_env_var! {
+        /// License key for the AG Grid library.
+        VITE_ENSO_AG_GRID_LICENSE_KEY, String;
+    }
 }
 
 #[derive(Clone, Debug)]
