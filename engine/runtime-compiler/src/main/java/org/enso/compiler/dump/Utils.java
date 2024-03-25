@@ -5,7 +5,7 @@ final class Utils {
 
   static String id(Object obj) {
     var className = obj.getClass().getSimpleName();
-    var hash = Integer.toHexString(obj.hashCode());
+    var hash = Integer.toHexString(System.identityHashCode(obj));
     return className + "_" + hash;
   }
 
