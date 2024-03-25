@@ -52,6 +52,14 @@ replace_username_in_data_link base_file =
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
     Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
+## To run these tests you need to set the following environment variables:
+   - ENSO_LIB_S3_AWS_ACCESS_KEY_ID
+   - ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY
+   - ENSO_LIB_S3_AWS_REGION
+
+   We add the `ENSO_LIB_S3` prefix to ensure that our tests do not rely on some
+   default behaviour and correctly test customizing credentials. In fact, in the
+   past we had a bug precisely due to relying on the defaults: https://github.com/enso-org/enso/issues/9284
 add_specs suite_builder =
     cloud_setup = Cloud_Tests_Setup.prepare
     suite_builder.group "S3 Path handling" group_builder->
@@ -535,3 +543,6 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
+
+test_credentials =
+    AWS_Credential.Key (Environment.get "ENSO_LIB_S3_AWS_ACCESS_KEY_ID") (Environment.get "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY")
