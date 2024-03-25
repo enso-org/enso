@@ -1104,7 +1104,8 @@ type DB_Table
         Array_Proxy.new self.internal_columns.length i->
             self.internal_columns.at i . name
 
-    ## Returns a vector of rows contained in this table.
+    ## ICON select_row
+       Returns a vector of rows contained in this table.
 
        In the database backend, it first materializes the table to in-memory.
 
