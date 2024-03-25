@@ -188,7 +188,8 @@ handle_s3_errors ~action bucket="" key="" =
 ## PRIVATE
 make_client : AWS_Credential -> S3Client
 make_client credentials:AWS_Credential =
-    builder = ClientBuilder.new (AWS_Credential.as_java credentials)
+    region = credentials.get_default_region.as_java
+    builder = ClientBuilder.new credentials.as_java region
     builder.buildS3Client
 
 ## PRIVATE

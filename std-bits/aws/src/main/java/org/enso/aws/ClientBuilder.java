@@ -7,17 +7,23 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
 public class ClientBuilder {
   private final AwsCredential awsCredential;
+  private final Region awsRegion;
 
-  public ClientBuilder(AwsCredential credential) {
+  public ClientBuilder(AwsCredential credential, Region awsRegion) {
     this.awsCredential = credential;
+    this.awsRegion = awsRegion;
   }
 
   public S3Client buildS3Client() {
-    return S3Client.builder().credentialsProvider(unsafeBuildCredentialProvider()).build();
+    return S3Client.builder()
+        .credentialsProvider(unsafeBuildCredentialProvider())
+        .region(awsRegion)
+        .build();
   }
 
   /**

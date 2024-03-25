@@ -1,4 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+
+polyglot java import software.amazon.awssdk.regions.Region as Java_Region
+polyglot java import org.enso.aws.DefaultRegionProvider
 
 ## AWS Region
 type AWS_Region
@@ -9,20 +15,37 @@ type AWS_Region
        4. If the region cannot be inferred in any way, `eu-west-1` is used as a fallback.
     Default
 
+    ## Resolves default region in the same manner as `Default`,
+       but in step (2), it uses the specified profile instead of a default one.
+    Default_With_Profile (profile_name : Text)
+
     ## AWS Region specified by its id.
     Region (id : Text)
 
     ## PRIVATE
-    all_regions -> Vector AWS_Region =
-        # TODO
-        []
+    all_regions -> Vector Text =
+        Java_Region.regions.map .id
 
     ## PRIVATE
-    region_selector_widget = Nothing
+    region_selector_widget (display : Display = Display.When_Modified) -> Widget =
+        fqn = Meta.get_qualified_type_name AWS_Region
+        options = [Option "Default" (fqn+".Default")] + AWS_Region.all_regions.map id->
+            code = "("+fqn+".Region "+id.pretty+")"
+            Option id code
+        Widget.Single_Choice values=options display=display
 
     ## PRIVATE
     resolve_id self -> Text = case self of
         AWS_Region.Region id -> id
         AWS_Region.Default ->
-            # TODO
-            Nothing
+            DefaultRegionProvider.new Nothing fallback_region . getRegion . id
+        AWS_Region.Default_With_Profile profile_name ->
+            DefaultRegionProvider.new profile_name fallback_region . getRegion . id
+
+    ## PRIVATE
+    as_java self -> Java_Region =
+        Java_Region.of self.resolve_id
+
+## PRIVATE
+   The fallback region used if all other methods cannot determine the default region.
+fallback_region = Java_Region.EU_WEST_1
