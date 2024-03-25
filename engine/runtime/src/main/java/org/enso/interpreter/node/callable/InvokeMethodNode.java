@@ -210,6 +210,30 @@ public abstract class InvokeMethodNode extends BaseNode {
     Type selfTpe = typesLibrary.getType(self);
     Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
     if (function == null) {
+      if (self instanceof Type t && isNamedAsAssociatedType(t)) {
+        CompilerDirectives.transferToInterpreter();
+        // if we represent a Module
+        var scope = t.getDefinitionScope();
+        var optionType = scope.getType(symbol.getName());
+        if (optionType.isPresent()) {
+          return optionType.get();
+        }
+        var module = scope.getModule();
+
+        var ctx = EnsoContext.get(this);
+        var moduleName =
+            module.getName().item().equals("Main")
+                ? module.getPackage().libraryName().toString()
+                : module.getName().toString();
+        var subModuleName = moduleName + "." + symbol.getName();
+        var optionModule = ctx.getTopScope().getModule(subModuleName);
+        if (optionModule.isPresent()) {
+          var subType = optionModule.get().getScope().getAssociatedType();
+          if (subType != null) {
+            return subType;
+          }
+        }
+      }
       throw methodNotFound(symbol, self);
     }
     var resolvedFuncArgCount = function.getSchema().getArgumentsCount();
@@ -272,6 +296,17 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
     assert arguments.length == invokeFunctionNode.getSchema().length;
     return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  private static boolean isNamedAsAssociatedType(Type t) {
+    var at = t.getDefinitionScope().getAssociatedType();
+
+    // XXX doesn't work for Polyglot - it is there 3x times!
+    // return at == t;
+
+    var atn = at.getName();
+    var tn = t.getName();
+    return atn.equals(tn);
   }
 
   private PanicException methodNotFound(UnresolvedSymbol symbol, Object self)
