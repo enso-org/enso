@@ -35,6 +35,7 @@ export default defineConfig({
           babel: { plugins: ['@babel/plugin-syntax-import-assertions'] },
         }),
       ]
+    : process.env.NODE_ENV === 'development' ? [await projectManagerShim()]
     : []),
   ],
   optimizeDeps: {
@@ -100,6 +101,18 @@ function gatewayServer(): Plugin {
       if (server.httpServer == null) return
 
       createGatewayServer(server.httpServer, undefined)
+    },
+  }
+}
+
+async function projectManagerShim(): Promise<Plugin> {
+  const module = await import(
+    '../ide-desktop/lib/project-manager-shim/src/projectManagerShimMiddleware'
+  )
+  return {
+    name: 'project-manager-shim',
+    configureServer(server) {
+      server.middlewares.use(module.default)
     },
   }
 }

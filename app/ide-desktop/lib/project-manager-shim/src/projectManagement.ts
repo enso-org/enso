@@ -17,9 +17,8 @@ import * as tar from 'tar'
 
 import * as common from 'enso-common'
 import * as buildUtils from 'enso-common/src/buildUtils'
-import * as config from 'enso-content-config'
 
-const logger = config.logger
+const logger = console
 
 // =================
 // === Constants ===

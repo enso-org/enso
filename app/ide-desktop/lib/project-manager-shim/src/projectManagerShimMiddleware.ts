@@ -92,7 +92,8 @@ interface ProjectEntry {
 /** A middleware that handles  */
 export default function projectManagerShimMiddleware(
     request: http.IncomingMessage,
-    response: http.ServerResponse
+    response: http.ServerResponse,
+    next: () => void
 ) {
     const requestUrl = request.url
     const requestPath = requestUrl?.split('?')[0]?.split('#')[0]
@@ -168,8 +169,16 @@ export default function projectManagerShimMiddleware(
                         .end('Command arguments must be an array of strings.')
                 } else {
                     void (async () => {
-                        let result = JSON.stringify({
-                            error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
+                        const toJSONRPCResult = (result: unknown) =>
+                            JSON.stringify({ jsonrpc: '2.0', id: 0, result })
+                        const toJSONRPCError = (message: string, data?: unknown) =>
+                            JSON.stringify({
+                                jsonrpc: '2.0',
+                                id: 0,
+                                error: { code: 0, message, ...(data != null ? { data } : {}) },
+                            })
+                        let result = toJSONRPCError(`Error running Project Manager command.`, {
+                            command: cliArguments,
                         })
                         try {
                             switch (cliArguments[0]) {
@@ -243,7 +252,7 @@ export default function projectManagerShimMiddleware(
                                                 }
                                             }
                                         }
-                                        result = JSON.stringify({ entries })
+                                        result = toJSONRPCResult({ entries })
                                     }
                                     break
                                 }
@@ -251,7 +260,7 @@ export default function projectManagerShimMiddleware(
                                     const directoryPath = cliArguments[1]
                                     if (directoryPath != null) {
                                         await fs.mkdir(directoryPath, { recursive: true })
-                                        result = JSON.stringify(null)
+                                        result = toJSONRPCResult(null)
                                     }
                                     break
                                 }
@@ -266,7 +275,7 @@ export default function projectManagerShimMiddleware(
                                                 .on('close', resolve)
                                                 .on('error', reject)
                                         })
-                                        result = JSON.stringify(null)
+                                        result = toJSONRPCResult(null)
                                     }
                                     break
                                 }
@@ -279,7 +288,7 @@ export default function projectManagerShimMiddleware(
                                         destinationPath != null
                                     ) {
                                         await fs.rename(sourcePath, destinationPath)
-                                        result = JSON.stringify(null)
+                                        result = toJSONRPCResult(null)
                                     }
                                     break
                                 }
@@ -287,7 +296,7 @@ export default function projectManagerShimMiddleware(
                                     const fileOrDirectoryPath = cliArguments[1]
                                     if (fileOrDirectoryPath != null) {
                                         await fs.rm(fileOrDirectoryPath, { recursive: true })
-                                        result = JSON.stringify(null)
+                                        result = toJSONRPCResult(null)
                                     }
                                     break
                                 }
@@ -371,6 +380,8 @@ export default function projectManagerShimMiddleware(
                 ...common.COOP_COEP_CORP_HEADERS,
             ])
             .end(PROJECTS_ROOT_DIRECTORY)
+    } else {
+        next()
     }
 }
 
