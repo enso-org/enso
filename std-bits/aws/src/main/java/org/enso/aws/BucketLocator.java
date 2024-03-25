@@ -4,6 +4,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.BucketLocationConstraint;
 
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 /**
  * A utility class for locating the region of an S3 bucket.
@@ -20,8 +21,9 @@ public class BucketLocator {
   }
 
   public static Region getBucketRegion(String bucketName, AwsCredential associatedCredential) {
-    if (cache.containsKey(bucketName)) {
-      return cache.get(bucketName);
+    Region cachedRegion = cache.get(bucketName);
+    if (cachedRegion != null) {
+      return cachedRegion;
     }
 
     Region found = locateBucket(bucketName, associatedCredential);
@@ -32,10 +34,18 @@ public class BucketLocator {
   private static Region locateBucket(String bucketName, AwsCredential associatedCredential) {
     DefaultRegionProvider defaultRegionProvider = new DefaultRegionProvider(null, Region.US_EAST_1);
     var clientBuilder = new ClientBuilder(associatedCredential, defaultRegionProvider.getRegion());
-    try (var client = clientBuilder.buildS3Client()) {
-      var response = client.headBucket(b -> b.bucket(bucketName));
-      var regionId = response.sdkHttpResponse().firstMatchingHeader("x-amz-bucket-region");
-      return regionId.map(Region::of).orElse(null);
+    try (var client = clientBuilder.buildGlobalS3Client()) {
+      BucketLocationConstraint locationConstraint = client.getBucketLocation(builder -> builder.bucket(bucketName)).locationConstraint();
+      if (locationConstraint == null) {
+        // Weird edge case: documentation says that buckets in region us-east-1 return null
+        return Region.US_EAST_1;
+      }
+
+      // TODO what will a more general locationConstraint, eg. `EU` will be mapped to?
+      return Region.of(locationConstraint.toString());
+    } catch (Exception e) {
+      Logger.getLogger("S3-BucketLocator").warning("Failed to locate bucket " + bucketName + ": " + e.getMessage());
+      return null;
     }
   }
 }

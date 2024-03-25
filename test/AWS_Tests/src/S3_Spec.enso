@@ -140,7 +140,7 @@ add_specs suite_builder =
 
     suite_builder.group "S3.list_buckets" pending=api_pending group_builder->
         group_builder.specify "should be able to list buckets" <|
-            bucket_list = S3.list_buckets . should_succeed
+            bucket_list = S3.list_buckets credentials=test_credentials . should_succeed
             if bucket_name != Nothing then bucket_list . should_contain bucket_name
 
         group_builder.specify "should handle auth issues" <|

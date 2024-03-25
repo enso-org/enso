@@ -11,6 +11,8 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
+import java.net.URI;
+
 public class ClientBuilder {
   private final AwsCredential awsCredential;
   private final Region awsRegion;
@@ -24,6 +26,18 @@ public class ClientBuilder {
     return S3Client.builder()
         .credentialsProvider(unsafeBuildCredentialProvider())
         .region(awsRegion)
+        .build();
+  }
+
+  /** Instantiates an S3Client configured in such a way that it can query buckets regardless of their region.
+   * <p>
+   * It is used by {@link BucketLocator} to find out the region of buckets.
+   */
+  S3Client buildGlobalS3Client() {
+    return S3Client.builder()
+        .credentialsProvider(unsafeBuildCredentialProvider())
+        .region(Region.US_EAST_1)
+        .endpointOverride(URI.create("https://s3.us-east-1.amazonaws.com"))
         .build();
   }
 
