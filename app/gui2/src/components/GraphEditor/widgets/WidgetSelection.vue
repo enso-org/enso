@@ -369,5 +369,7 @@ declare module '@/providers/widgetRegistry' {
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);
   opacity: 0.5;
+  /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
+  pointer-events: none;
 }
 </style>
