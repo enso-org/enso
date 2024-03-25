@@ -27,7 +27,7 @@ type AWS_Region
         Java_Region.regions.map .id
 
     ## PRIVATE
-    region_selector_widget (display : Display = Display.When_Modified) -> Widget =
+    default_widget (display : Display = Display.When_Modified) -> Widget =
         fqn = Meta.get_qualified_type_name AWS_Region
         options = [Option "Default" (fqn+".Default")] + AWS_Region.all_regions.map id->
             code = "("+fqn+".Region "+id.pretty+")"
