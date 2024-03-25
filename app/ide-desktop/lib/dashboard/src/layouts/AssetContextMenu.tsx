@@ -48,6 +48,7 @@ export interface AssetContextMenuProps {
   readonly doDelete: () => void
   readonly doCopy: () => void
   readonly doCut: () => void
+  readonly doTriggerDescriptionEdit: () => void
   readonly doPaste: (
     newParentKey: backendModule.AssetId,
     newParentId: backendModule.DirectoryId
@@ -56,7 +57,16 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, event, eventTarget, doCopy, doCut, doPaste, doDelete } = props
+  const {
+    innerProps,
+    event,
+    eventTarget,
+    doCopy,
+    doCut,
+    doPaste,
+    doDelete,
+    doTriggerDescriptionEdit,
+  } = props
   const { hidden = false } = props
   const { item, setItem, state, setRowState } = innerProps
   const { category, hasPasteData, labels, dispatchAssetEvent, dispatchAssetListEvent } = state
@@ -253,6 +263,16 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   }}
                 />
               )
+            }}
+          />
+        )}
+        {isCloud && (
+          <ContextMenuEntry
+            hidden={hidden}
+            action="editDescription"
+            label="Edit Description"
+            doAction={() => {
+              doTriggerDescriptionEdit()
             }}
           />
         )}
