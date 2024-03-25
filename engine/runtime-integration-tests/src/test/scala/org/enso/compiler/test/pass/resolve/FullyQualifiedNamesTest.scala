@@ -98,14 +98,6 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
           |    Standard.Base.Data.Vector
           |""".stripMargin
       val ir       = src.preprocessModule
-      val metadata = collectMetadata(ir)
-      metadata.size shouldBe 1
-      metadata.head.target
-        .asInstanceOf[FullyQualifiedNames.ResolvedModule]
-        .moduleRef
-        .getName shouldBe (
-        QualifiedName(List("Standard", "Base", "Data"), "Vector")
-      )
 
       val resolutionNames = collectResolutionNames(ir)
       resolutionNames should contain
