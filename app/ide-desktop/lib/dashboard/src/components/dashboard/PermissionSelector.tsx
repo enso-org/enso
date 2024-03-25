@@ -1,6 +1,8 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import PermissionTypeSelector from '#/components/dashboard/PermissionTypeSelector'
 import Modal from '#/components/Modal'
 
@@ -53,6 +55,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
   const { showDelete = false, disabled = false, input = false, typeSelectorYOffsetPx } = props
   const { error, selfPermission, action: actionRaw, assetType, className } = props
   const { onChange, doDelete } = props
+  const { getText } = textProvider.useText()
   const [action, setActionRaw] = React.useState(actionRaw)
   const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
   const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
@@ -138,7 +141,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             } h-text grow rounded-l-full px-permission-mini-button-x py-permission-mini-button-y`}
             onClick={doShowPermissionTypeSelector}
           >
-            {permission.type}
+            {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
           </button>
           <button
             type="button"
@@ -158,7 +161,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
               )
             }}
           >
-            docs
+            {getText('docsPermissionModifier')}
           </button>
           <button
             type="button"
@@ -178,7 +181,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
               )
             }}
           >
-            exec
+            {getText('execPermissionModifier')}
           </button>
         </div>
       )
@@ -195,7 +198,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
           } h-text w-permission-display rounded-full`}
           onClick={doShowPermissionTypeSelector}
         >
-          {permission.type}
+          {getText(permissionsModule.TYPE_TO_TEXT_ID[permission.type])}
         </button>
       )
       break

@@ -27,7 +27,7 @@ export interface LocalStorageProviderProps extends Readonly<React.PropsWithChild
 /** A React Provider that lets components get the shortcut registry. */
 export default function LocalStorageProvider(props: LocalStorageProviderProps) {
   const { children } = props
-  const [localStorage] = React.useState(() => new LocalStorage())
+  const localStorage = React.useMemo(() => new LocalStorage(), [])
 
   return (
     <LocalStorageContext.Provider value={{ localStorage }}>{children}</LocalStorageContext.Provider>

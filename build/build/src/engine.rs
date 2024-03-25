@@ -15,7 +15,6 @@ use ide_ci::cache::goodie::graalvm::Edition;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::github::Repo;
 use package::IsPackage;
-use std::collections::BTreeSet;
 
 
 // ==============

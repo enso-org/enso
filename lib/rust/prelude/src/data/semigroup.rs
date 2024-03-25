@@ -6,7 +6,6 @@
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 use std::hash::Hash;
-use std::iter::Extend;
 
 
 
@@ -122,7 +121,7 @@ impl<T: Clone> PartialSemigroup<&Vec<T>> for Vec<T> {
 
 impl<T: Clone> PartialSemigroup<Vec<T>> for Vec<T> {
     fn concat_mut(&mut self, other: Self) {
-        self.extend(other.into_iter())
+        self.extend(other)
     }
 }
 

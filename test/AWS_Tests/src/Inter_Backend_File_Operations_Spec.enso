@@ -1,0 +1,158 @@
+## This test file checks operations on files that are happening between various backends.
+
+   Because it relies not only on Standard.Base but also the S3 backend provided
+   by Standard.AWS, it is currently placed in `AWS_Tests`.
+   Once we start supporting more backends, we should consider creating
+   a separate test project for these integrations (e.g. `Integrator_Tests`).
+
+from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.AWS import S3_File
+
+from Standard.Test import all
+
+from project.S3_Spec import api_pending, writable_root
+
+add_specs suite_builder =
+    my_writable_s3_dir = writable_root / "inter-backend-test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/"
+    sources = [my_writable_s3_dir / "source1.txt", File.create_temporary_file "source2" ".txt"]
+    destinations = [my_writable_s3_dir / "destination1.txt", File.create_temporary_file "destination2" ".txt"]
+    sources.each source_file-> destinations.each destination_file-> if source_file.is_a File && destination_file.is_a File then Nothing else
+        src_typ = Meta.type_of source_file . to_display_text
+        dest_typ = Meta.type_of destination_file . to_display_text
+        suite_builder.group "("+src_typ+" -> "+dest_typ+") copying/moving" pending=api_pending group_builder->
+            group_builder.teardown <|
+                source_file.delete_if_exists
+                destination_file.delete_if_exists
+
+            group_builder.specify "should be able to copy files" <|
+                "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                destination_file.delete_if_exists
+
+                source_file.copy_to destination_file . should_succeed
+                destination_file.read . should_equal "Hello"
+                source_file.exists . should_be_true
+
+            group_builder.specify "should be able to move files" <|
+                "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                destination_file.delete_if_exists
+
+                source_file.move_to destination_file . should_succeed
+                destination_file.read . should_equal "Hello"
+                source_file.exists . should_be_false
+
+            group_builder.specify "should fail if the source file does not exist" <|
+                source_file.delete_if_exists
+                destination_file.delete_if_exists
+
+                r = source_file.copy_to destination_file
+                r.should_fail_with File_Error
+                r.catch.should_be_a File_Error.Not_Found
+
+                r2 = source_file.move_to destination_file
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Not_Found
+
+                destination_file.exists . should_be_false
+
+            group_builder.specify "should fail to copy/move a file if it exists and replace_existing=False" <|
+                "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                "World".write destination_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+
+                r = source_file.copy_to destination_file
+                r.should_fail_with File_Error
+                r.catch.should_be_a File_Error.Already_Exists
+
+                r2 = source_file.move_to destination_file
+                r2.should_fail_with File_Error
+                r2.catch.should_be_a File_Error.Already_Exists
+
+                destination_file.read . should_equal "World"
+
+            group_builder.specify "should overwrite existing destination in copy/move if replace_existing=True" <|
+                "Hello".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                "World".write destination_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+
+                source_file.copy_to destination_file replace_existing=True . should_succeed
+                destination_file.read . should_equal "Hello"
+                source_file.exists . should_be_true
+
+                "FooBar".write source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                source_file.move_to destination_file replace_existing=True . should_succeed
+                destination_file.read . should_equal "FooBar"
+                source_file.exists . should_be_false
+
+    sample_data_link_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
+    # TODO Enso_File datalink once Enso_File & cloud datalink write is supported
+    data_link_sources = [my_writable_s3_dir / "s3.datalink", File.create_temporary_file "local" ".datalink"]
+    data_link_destinations = [my_writable_s3_dir / "s3-target.datalink", File.create_temporary_file "local-target" ".datalink"]
+    ## This introduces a lot of combinations for testing the datalink copy/move logic, but unfortunately it is needed,
+       because various combinations of backends may rely on different logic (different operations happen under the hood
+       if a file is moved locally vs if it is moved from a local filesystem to S3 or vice versa), and all that different
+       logic may be prone to mis-handling datalinks - so we need to test all paths to ensure coverage.
+    data_link_sources.each source_file-> data_link_destinations.each destination_file->
+        src_typ = Meta.type_of source_file . to_display_text
+        dest_typ = Meta.type_of destination_file . to_display_text
+        suite_builder.group "("+src_typ+" -> "+dest_typ+") Data Link copying/moving" pending=api_pending group_builder->
+            group_builder.teardown <|
+                source_file.delete_if_exists
+                destination_file.delete_if_exists
+
+            group_builder.specify "should be able to copy a datalink file to a regular file" <|
+                regular_destination_file = destination_file.parent / destination_file.name+".txt"
+                regular_destination_file.delete_if_exists
+                Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
+
+                source_file.copy_to regular_destination_file . should_succeed
+                Panic.with_finalizer regular_destination_file.delete_if_exists <|
+                    # The raw datalink config is copied, so reading back the .txt file yields us the configuration:
+                    regular_destination_file.read . should_contain '"libraryName": "Standard.AWS"'
+
+            group_builder.specify "should be able to copy a datalink file to another datalink" <|
+                destination_file.delete_if_exists
+                Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
+
+                source_file.copy_to destination_file replace_existing=True . should_succeed
+                # Now the destination is _also_ a datalink, pointing to the same target as source, so reading it yields the target data:
+                destination_file.read . should_equal "Hello WORLD!"
+
+                # But if we read it raw, we can see that it is still a datalink, not just a copy of the data:
+                Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
+
+            group_builder.specify "should be able to move a datalink" <|
+                destination_file.delete_if_exists
+                Data_Link_Format.write_raw_config source_file sample_data_link_content replace_existing=True . should_succeed
+
+                source_file.move_to destination_file . should_succeed
+                source_file.exists . should_be_false
+
+                destination_file.read . should_equal "Hello WORLD!"
+                Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
+
+            group_builder.specify "should be able to move a regular file to become a datalink" <|
+                destination_file.delete_if_exists
+
+                regular_source_file = source_file.parent / source_file.name+".txt"
+                sample_data_link_content.write regular_source_file on_existing_file=Existing_File_Behavior.Overwrite . should_succeed
+                Panic.with_finalizer regular_source_file.delete_if_exists <|
+                    # The source file is not a datalink - it is a raw text file, so reading it gives us back the raw config
+                    regular_source_file.read . should_equal sample_data_link_content
+                    # Reading it raw will even fail:
+                    Test.expect_panic Illegal_Argument <|
+                        Data_Link_Format.read_raw_config regular_source_file
+
+                    regular_source_file.move_to destination_file . should_succeed
+                    regular_source_file.exists . should_be_false
+
+                    # However, the destination file _is_ a datalink, so it is read as target data:
+                    destination_file.read . should_equal "Hello WORLD!"
+                    # Unless we read it raw:
+                    Data_Link_Format.read_raw_config destination_file . should_equal sample_data_link_content
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

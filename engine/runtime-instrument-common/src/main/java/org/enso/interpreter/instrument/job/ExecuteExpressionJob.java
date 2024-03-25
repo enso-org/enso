@@ -26,7 +26,7 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
    */
   public ExecuteExpressionJob(
       UUID contextId, UUID visualizationId, UUID expressionId, String expression) {
-    super(ScalaConversions.cons(contextId, ScalaConversions.nil()), true, false);
+    super(ScalaConversions.cons(contextId, ScalaConversions.nil()), true, false, true);
     this.contextId = contextId;
     this.visualizationId = visualizationId;
     this.expressionId = expressionId;
@@ -58,6 +58,9 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
 
   @Override
   public boolean equalsTo(UniqueJob<?> that) {
-    return that instanceof ExecuteExpressionJob;
+    if (that instanceof ExecuteExpressionJob job) {
+      return contextId == job.contextId && expressionId == job.expressionId;
+    }
+    return false;
   }
 }

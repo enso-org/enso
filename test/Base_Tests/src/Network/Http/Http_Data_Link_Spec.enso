@@ -1,5 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_Format
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Network.HTTP.Response.Response
 
 from Standard.Test import all
 
@@ -15,40 +18,99 @@ add_specs suite_builder =
     data_link_root = enso_project.data / "datalinks"
     suite_builder.group "HTTP DataLink" pending=pending_has_url group_builder->
         group_builder.specify "should allow to read a web resource" <|
-            f = replace_url_in_datalink (data_link_root / "example-http.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http.datalink")
             r = f.read
             # Defaults to reading as text, because the resource read is called `js.txt`, implying Plain_Text format
             r.should_be_a Text
             r.trim.should_equal '{"hello": "world"}'
 
         group_builder.specify "should allow to read a web resource, with explicitly using default format" <|
-            f = replace_url_in_datalink (data_link_root / "example-http-format-explicit-default.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http-format-explicit-default.datalink")
             r = f.read
             r.should_be_a Text
             r.trim.should_equal '{"hello": "world"}'
 
         group_builder.specify "should allow to read a web resource, setting format to JSON" <|
-            f = replace_url_in_datalink (data_link_root / "example-http-format-json.datalink")
+            f = replace_url_in_data_link (data_link_root / "example-http-format-json.datalink")
             r = f.read
             js = '{"hello": "world"}'.parse_json
             r.should_equal js
             r.get "hello" . should_equal "world"
 
         group_builder.specify "will fail if invalid format is used" <|
-            r1 = (data_link_root / "example-http-format-invalid.datalink").read
-            r1.should_fail_with Illegal_State
-            r1.catch.to_display_text.should_contain "Unknown format"
+            f = replace_url_in_data_link (data_link_root / "example-http-format-invalid.datalink")
+            r = f.read
+            r.should_fail_with Illegal_State
+            r.catch.to_display_text.should_contain "Unknown format"
 
+        group_builder.specify "will fail if an unloaded format is used" <|
             # We assume that Base_Tests _do not_ import Standard.Table
-            r2 = (data_link_root / "example-http-format-delimited.datalink").read
-            r2.should_fail_with Illegal_State
-            r2.catch.to_display_text.should_contain "Unknown format"
+            f = replace_url_in_data_link (data_link_root / "example-http-format-delimited.datalink")
+            r = f.read
+            r.should_fail_with Illegal_State
+            r.catch.to_display_text.should_contain "Unknown format"
+
+        group_builder.specify "but will succeed if an unknown format is not used because it was overridden" <|
+            f = replace_url_in_data_link (data_link_root / "example-http-format-delimited.datalink")
+            r = f.read Plain_Text
+            r.should_be_a Text
+            r.trim.should_equal '{"hello": "world"}'
+
+        group_builder.specify "should be able to follow a datalink from HTTP in Data.read" <|
+            r1 = Data.read base_url_with_slash+"dynamic.datalink" JSON_Format
+            r1.should_equal ('{"hello": "world"}'.parse_json)
+
+            r2 = Data.read base_url_with_slash+"dynamic-datalink" Plain_Text
+            r2.trim.should_equal '{"hello": "world"}'
+
+        group_builder.specify "should be able to follow a datalink from HTTP in Data.fetch/post, if auto parse is on" <|
+            r1 = Data.fetch base_url_with_slash+"dynamic.datalink"
+            r1.trim.should_equal '{"hello": "world"}'
+
+            r2 = Data.fetch base_url_with_slash+"dynamic-datalink"
+            r2.trim.should_equal '{"hello": "world"}'
+
+            r3 = Data.post base_url_with_slash+"dynamic.datalink"
+            r3.trim.should_equal '{"hello": "world"}'
+
+        group_builder.specify "will return raw datalink config data in Data.fetch/post if auto parse is off" <|
+            r1 = Data.fetch base_url_with_slash+"dynamic.datalink" format=Raw_Response
+            r1.should_be_a Response
+
+            ## Normally .datalink is not a valid format, so we cannot decode it,
+               assuming that the server did not add some content type that would
+               make us treat the file e.g. as a text file.
+            r1_decoded = r1.decode
+            r1_decoded.should_fail_with File_Error
+            r1_decoded.catch . should_be_a File_Error.Unsupported_Type
+
+            # Still raw data link config is returned if we successfully decode it by overriding the format.
+            r1_plain = r1.decode Plain_Text
+            r1_plain.should_contain '"libraryName": "Standard.Base"'
+
+            r2 = Data.post base_url_with_slash+"dynamic-datalink" response_format=Raw_Response
+            r2.should_be_a Response
+            r2_decoded = r2.decode
+            r2_decoded.should_fail_with File_Error
+            r2_decoded.catch . should_be_a File_Error.Unsupported_Type
+
+            r2_plain = r2.decode Plain_Text
+            r2_plain.should_contain '"libraryName": "Standard.Base"'
+
+        group_builder.specify "should follow a datalink encountered in Data.download" <|
+            target_file = enso_project.data / "transient" / "my_download.txt"
+            target_file.delete_if_exists
+            Data.download base_url_with_slash+"dynamic.datalink" target_file . should_equal target_file
+
+            Panic.with_finalizer target_file.delete_if_exists <|
+                target_file.read.trim.should_equal '{"hello": "world"}'
+
 
 ## Reads the datalink as plain text and replaces the placeholder URL with actual
    URL of the server. It then writes the new contents to a temporary file and
    returns it.
-replace_url_in_datalink base_file =
-    content = base_file.read Plain_Text
+replace_url_in_data_link base_file =
+    content = Data_Link_Format.read_raw_config base_file
     new_content = content.replace "http://http-test-helper.local/" base_url_with_slash
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
-    new_content.write temp_file . if_not_error temp_file
+    Data_Link_Format.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file

@@ -4,6 +4,7 @@ import * as React from 'react'
 import SettingsIcon from 'enso-assets/settings.svg'
 
 import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import Button from '#/components/Button'
 
@@ -24,6 +25,7 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
     setIsAssetPanelEnabled: setIsAssetPanelVisible,
   } = props
   const { backend } = backendProvider.useBackend()
+  const { getText } = textProvider.useText()
   return (
     <div
       className={`pointer-events-auto flex h-row shrink-0 cursor-default items-center gap-icons rounded-full bg-frame px-icons-x ${
@@ -34,10 +36,10 @@ export default function AssetInfoBar(props: AssetInfoBarProps) {
       }}
     >
       <Button
-        alt={isAssetPanelVisible ? 'Close Asset Panel' : 'Open Asset Panel'}
+        alt={isAssetPanelVisible ? getText('closeAssetPanel') : getText('openAssetPanel')}
         active={isAssetPanelVisible}
         image={SettingsIcon}
-        error="Select exactly one asset to see its settings."
+        error={getText('multipleAssetsSettingsError')}
         onClick={() => {
           setIsAssetPanelVisible(visible => !visible)
         }}

@@ -5,6 +5,7 @@ import io.circe.literal._
 import org.enso.semver.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.logger.ReportLogsOnFailure
+import org.enso.pkg.validation.NameValidation
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.runtimeversionmanager.CurrentVersion
@@ -65,6 +66,7 @@ class ProjectManagementApiSpec
     "validate project name should allow arbitrary characters" in {
       implicit val client: WsTestClient = new WsTestClient(address)
       val projectName                   = "Enso-test-roject4/#$$%^@!"
+      val normalizedName                = NameValidation.normalizeName(projectName)
 
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -81,7 +83,8 @@ class ProjectManagementApiSpec
           "id":1,
           "result":{
             "projectId":$projectId,
-            "projectName":$projectName
+            "projectName":$projectName,
+            "projectNormalizedName":$normalizedName
             }
           }
           """)
@@ -130,7 +133,8 @@ class ProjectManagementApiSpec
             "id" : 1,
             "result" : {
               "projectId" : $projectId,
-              "projectName" : "Foo"
+              "projectName" : "Foo",
+              "projectNormalizedName": "Foo"
             }
           }
           """)
@@ -313,7 +317,8 @@ class ProjectManagementApiSpec
             "id" : 1,
             "result" : {
               "projectId" : $projectId,
-              "projectName" : "Foo"
+              "projectName" : "Foo",
+              "projectNormalizedName": "Foo"
             }
           }
           """)

@@ -13,7 +13,8 @@ import org.enso.projectmanager.boot.command.filesystem.{
   FileSystemCreateDirectoryCommand,
   FileSystemDeleteCommand,
   FileSystemListCommand,
-  FileSystemMoveDirectoryCommand
+  FileSystemMoveDirectoryCommand,
+  FileSystemWritePathCommand
 }
 import org.enso.projectmanager.boot.command.{CommandHandler, ProjectListCommand}
 import org.enso.projectmanager.boot.configuration.{
@@ -243,6 +244,14 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           config,
           from.toFile,
           to.toFile
+        )
+      commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_WRITE_PATH)) {
+      val path = Paths.get(options.getOptionValue(Cli.FILESYSTEM_WRITE_PATH))
+      val fileSystemMoveDirectoryCommand =
+        FileSystemWritePathCommand[ZIO[ZAny, +*, +*]](
+          config,
+          path.toFile
         )
       commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
     } else if (options.hasOption(Cli.PROJECT_LIST)) {

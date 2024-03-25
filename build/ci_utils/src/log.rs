@@ -115,12 +115,12 @@ impl IndicatifWriter {
 
 // === Trait `impl`s ===
 
-impl std::io::Write for IndicatifWriter {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+impl io::Write for IndicatifWriter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         global::with_suspend_multi_progress_bar(|| io::stderr().write(buf))
     }
 
-    fn flush(&mut self) -> std::io::Result<()> {
+    fn flush(&mut self) -> io::Result<()> {
         global::with_suspend_multi_progress_bar(|| io::stderr().flush())
     }
 }

@@ -60,15 +60,12 @@ impl Goodie for Binaryen {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cache;
-    use crate::cache::Goodie;
-    use crate::log::setup_logging;
 
     #[tokio::test]
     #[ignore]
     async fn install_wasm_opt() -> Result {
         setup_logging()?;
-        let cache = cache::Cache::new_default().await?;
+        let cache = Cache::new_default().await?;
         let binaryen = Binaryen { version: 108 };
         binaryen.install_if_missing(&cache).await?;
         dbg!(WasmOpt.lookup())?;
