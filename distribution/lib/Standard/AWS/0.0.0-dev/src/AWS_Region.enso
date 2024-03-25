@@ -1,0 +1,28 @@
+from Standard.Base import all
+
+## AWS Region
+type AWS_Region
+    ## The default AWS region is inferred based on the following settings:
+       1. If `AWS_REGION` environment variable is set, it is used as the default.
+       2. If the `~/.aws` configuration specifies a region, it is used.
+       3. If running in the Enso Cloud or on any EC2 instance, the region is inferred from the instance metadata.
+       4. If the region cannot be inferred in any way, `eu-west-1` is used as a fallback.
+    Default
+
+    ## AWS Region specified by its id.
+    Region (id : Text)
+
+    ## PRIVATE
+    all_regions -> Vector AWS_Region =
+        # TODO
+        []
+
+    ## PRIVATE
+    region_selector_widget = Nothing
+
+    ## PRIVATE
+    resolve_id self -> Text = case self of
+        AWS_Region.Region id -> id
+        AWS_Region.Default ->
+            # TODO
+            Nothing
