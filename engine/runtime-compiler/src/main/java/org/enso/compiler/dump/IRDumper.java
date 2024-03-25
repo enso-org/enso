@@ -24,6 +24,7 @@ import org.enso.compiler.core.ir.module.scope.Definition.Data;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedMethod;
@@ -160,6 +161,27 @@ public class IRDumper {
         createIRGraph(body);
         createEdge(explicitMethodIr, body, "body");
       }
+      case Method.Conversion conversionMethod ->  {
+        var bldr =
+            GraphVizNode.Builder.fromIr(conversionMethod)
+                .addLabelLine("methodName: " + conversionMethod.methodName().name());
+        addNode(bldr.build());
+        var body = conversionMethod.body();
+        createIRGraph(body);
+        createEdge(conversionMethod, body, "body");
+      }
+      case Method.Binding binding -> {
+        var bldr = GraphVizNode.Builder.fromIr(binding);
+        addNode(bldr.build());
+        for (int i = 0; i < binding.arguments().size(); i++) {
+          var arg = binding.arguments().apply(i);
+          createIRGraph(arg);
+          createEdge(binding, arg, "arg[" + i + "]");
+        }
+        var body = binding.body();
+        createIRGraph(body);
+        createEdge(binding, body, "body");
+      }
       case Definition.Type type -> {
         var typeNode =
             GraphVizNode.Builder.fromIr(type).addLabelLine("name: " + type.name().name()).build();
@@ -169,6 +191,20 @@ public class IRDumper {
           createIRGraph(member);
           createEdge(type, member, "member[" + i + "]");
         }
+      }
+      case Name.GenericAnnotation genericAnnotation -> {
+        var bldr = GraphVizNode.Builder.fromIr(genericAnnotation)
+            .addLabelLine("name: " + genericAnnotation.name())
+            .addLabelLine("isMethod: " + genericAnnotation.isMethod());
+        addNode(bldr.build());
+        var expr = genericAnnotation.expression();
+        createIRGraph(expr);
+        createEdge(genericAnnotation, expr, "expression");
+      }
+      case Name.BuiltinAnnotation builtinAnnotation ->  {
+        var bldr = GraphVizNode.Builder.fromIr(builtinAnnotation)
+            .addLabelLine("name: " + builtinAnnotation.name());
+        addNode(bldr.build());
       }
       default -> throw unimpl(definitionIr);
     }
@@ -318,11 +354,24 @@ public class IRDumper {
         var bldr =
             GraphVizNode.Builder.fromIr(importModIr)
                 .addLabelLine("isSynthetic: " + importModIr.isSynthetic())
-                .addLabelLine("name: " + importModIr.name().name().toString())
+                .addLabelLine("name: " + importModIr.name().name())
                 .addLabelLine("isAll: " + importModIr.isAll());
         if (importModIr.rename().isDefined()) {
           var rename = importModIr.rename().get();
           bldr.addLabelLine("rename: " + rename.name());
+        } else {
+          bldr.addLabelLine("rename: null");
+        }
+        addNode(bldr.build());
+      }
+      case Polyglot polyImport -> {
+        var bldr = GraphVizNode.Builder.fromIr(polyImport);
+        bldr.addLabelLine("entity: Entity(langName=" + polyImport.entity().langName() + ", visibleName=" + polyImport.entity().getVisibleName() + ")");
+        if (polyImport.rename().isDefined()) {
+          var rename = polyImport.rename().get();
+          bldr.addLabelLine("rename: " + rename);
+        } else {
+          bldr.addLabelLine("rename: null");
         }
         addNode(bldr.build());
       }
