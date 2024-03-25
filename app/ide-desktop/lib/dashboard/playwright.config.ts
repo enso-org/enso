@@ -6,6 +6,10 @@
  * default fonts. */
 import * as test from '@playwright/test'
 
+import * as appConfig from 'enso-common/src/appConfig'
+
+appConfig.loadTestEnvironmentVariables()
+
 /* eslint-disable @typescript-eslint/no-magic-numbers, @typescript-eslint/strict-boolean-expressions */
 
 export default test.defineConfig({

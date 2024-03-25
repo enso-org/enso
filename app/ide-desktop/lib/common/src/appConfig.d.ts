@@ -12,5 +12,7 @@ export function readEnvironmentFromFile(): Promise<void>
  * - the WebSocket URL for the chatbot
  * - the unique identifier for the cloud environment, for use in Sentry logs
  * - Stripe, Sentry and Amplify public keys */
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
 export function getDefines(serverPort?: number): Record<string, string>
+
+/** Load test environment variables, useful for when the Cloud backend is mocked or unnecessary. */
+export function loadTestEnvironmentVariables(): void
