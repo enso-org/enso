@@ -1123,6 +1123,9 @@ lazy val `js-websocket` = project
   .enablePlugins(JPMSPlugin)
   .configs(Test)
   .settings(
+    crossPaths := false,
+    autoScalaLibrary := false,
+    run / fork := true,
     modulePath := {
       JPMSUtils.filterModulesFromUpdate(
         update.value,

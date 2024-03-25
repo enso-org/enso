@@ -1,10 +1,13 @@
-package org.enso.polyfill.websocket;
+package org.enso.polyfill;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
+import org.enso.polyfill.websocket.WebSocketPolyfill;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Source;
@@ -12,17 +15,19 @@ import org.graalvm.polyglot.io.IOAccess;
 
 public class Main {
 
-    private static final String DEMO_PATH = "/all-y-websocket.js";
+    private static final String YDOC_SERVER_PATH = "/ydoc-server-bundle.js";
+    private static final String WASM_PATH = "/153299079965dcf860b5.wasm";
 
     private Main() {
     }
 
     public static void main(String[] args) throws Exception {
-        var demo = Main.class.getResource(DEMO_PATH);
+        ClasspathResource.createTempFile(WASM_PATH);
+        var demo = ClasspathResource.createTempFile(YDOC_SERVER_PATH);
         if (demo == null) {
-            throw new IOException("Cannot find " + DEMO_PATH);
+            throw new IOException("Cannot find " + YDOC_SERVER_PATH);
         }
-        var commonJsRoot = new File(demo.toURI()).getParent();
+        var commonJsRoot = new File(demo).getParent();
 
         HostAccess hostAccess = HostAccess.newBuilder(HostAccess.EXPLICIT)
                 .allowArrayAccess(true)
@@ -41,7 +46,7 @@ public class Main {
 
         try (var executor = Executors.newSingleThreadExecutor()) {
             var webSocketPolyfill = new WebSocketPolyfill(executor);
-            var demoJs = Source.newBuilder("js", demo)
+            var demoJs = Source.newBuilder("js", demo.toURL())
                     .mimeType("application/javascript+module")
                     .build();
 
@@ -57,5 +62,4 @@ public class Main {
             System.in.read();
         }
     }
-
 }
