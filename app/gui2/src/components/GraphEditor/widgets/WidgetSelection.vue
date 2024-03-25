@@ -3,6 +3,7 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownWidget from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
+import type { PortId } from '@/providers/portInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import {
   singleChoiceConfiguration,
@@ -34,7 +35,8 @@ const tree = injectWidgetTree()
 const widgetRoot = ref<HTMLElement>()
 const dropdownElement = ref<ComponentInstance<typeof DropdownWidget>>()
 
-const editedValue = ref<Ast.Ast | string | undefined>()
+const editedWidget = ref<PortId>()
+const editedValue = ref<Ast.Owned | string | undefined>()
 const isHovered = ref(false)
 
 class Tag {
@@ -141,8 +143,6 @@ const tags = computed(() => {
   return [...customTags.value, ...standardTags]
 })
 const filteredTags = computed(() => {
-  console.log(editedValuePattern.value)
-  console.log(editedTextLiteralValuePattern.value)
   return Array.from(tags.value, (tag, index) => ({
     tag,
     index,
@@ -204,7 +204,11 @@ const dropDownInteraction = WidgetEditHandler.New(props.input, {
   click: (e, _, childHandler) => {
     if (targetIsOutside(e, unrefElement(dropdownElement))) {
       if (childHandler) return childHandler()
-      else dropdownVisible.value = false
+      else {
+        dropDownInteraction.end()
+        if (editedWidget.value)
+          props.onUpdate({ portUpdate: { origin: editedWidget.value, value: editedValue.value } })
+      }
     }
     return false
   },
@@ -212,7 +216,8 @@ const dropDownInteraction = WidgetEditHandler.New(props.input, {
     dropdownVisible.value = true
     editedValue.value = undefined
   },
-  edit: (_, value) => {
+  edit: (origin, value) => {
+    editedWidget.value = origin
     editedValue.value = value
   },
   end: () => {

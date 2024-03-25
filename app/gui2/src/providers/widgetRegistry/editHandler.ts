@@ -70,11 +70,13 @@ export class WidgetEditHandler {
     }
     this.interaction = {
       cancel: () => {
+        console.error('cancel')
         noLongerActive()
         innerInteraction.cancel?.()
         parent?.interaction.cancel?.()
       },
       click: (event, navigator, childHandler) => {
+        console.error('click')
         const innerInteractionClick = innerInteraction.click
         const thisHandler =
           innerInteractionClick ?
@@ -93,6 +95,7 @@ export class WidgetEditHandler {
         parent?.interaction.edit?.(portId, value)
       },
       end: (portId) => {
+        console.error('end')
         noLongerActive()
         innerInteraction.end?.(portId)
         parent?.interaction.end?.(portId)

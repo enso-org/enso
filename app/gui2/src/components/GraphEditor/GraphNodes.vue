@@ -11,13 +11,15 @@ import { useProjectStore } from '@/stores/project'
 import type { AstId } from '@/util/ast/abstract'
 import type { Vec2 } from '@/util/data/vec2'
 import { stackItemsEqual } from 'shared/languageServerTypes'
-import { computed, toRaw } from 'vue'
+import { computed, toRaw, type Ref } from 'vue'
 
 const projectStore = useProjectStore()
 const graphStore = useGraphStore()
 const dragging = useDragging()
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
+
+const props = defineProps<{ nodesZIndexes: (id: NodeId) => number }>()
 
 const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
@@ -48,6 +50,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
     :key="id"
     :node="node"
     :edited="id === graphStore.editedNodeInfo?.id"
+    :style="{ 'z-index': nodesZIndexes(id) }"
     @pointerenter="hoverNode(id)"
     @pointerleave="hoverNode(undefined)"
     @delete="graphStore.deleteNodes([id])"
