@@ -1,7 +1,5 @@
 //! This module provides helpers for platform specific logic.
 
-use std::convert::TryFrom;
-
 
 
 // ================

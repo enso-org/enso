@@ -6,13 +6,13 @@ export const codeEditorBindings = defineKeybinds('code-editor', {
 
 export const interactionBindings = defineKeybinds('current-interaction', {
   cancel: ['Escape'],
-  click: ['PointerMain'],
 })
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
   applySuggestion: ['Tab'],
   acceptSuggestion: ['Enter'],
   acceptInput: ['Mod+Enter'],
+  acceptAIPrompt: ['Tab', 'Enter'],
   moveUp: ['ArrowUp'],
   moveDown: ['ArrowDown'],
 })

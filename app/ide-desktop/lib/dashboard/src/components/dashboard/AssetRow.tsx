@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -28,7 +29,6 @@ import AssetTreeNode from '#/utilities/AssetTreeNode'
 import * as dateTime from '#/utilities/dateTime'
 import * as download from '#/utilities/download'
 import * as drag from '#/utilities/drag'
-import * as errorModule from '#/utilities/error'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
@@ -45,10 +45,6 @@ const HEADER_HEIGHT_PX = 34
 /** The amount of time (in milliseconds) the drag item must be held over this component
  * to make a directory row expand. */
 const DRAG_EXPAND_DELAY_MS = 500
-/** Placeholder row for directories that are empty. */
-const EMPTY_DIRECTORY_PLACEHOLDER = (
-  <span className="px-name-column-x placeholder">This folder is empty.</span>
-)
 
 // ================
 // === AssetRow ===
@@ -87,13 +83,14 @@ export interface AssetRowProps
 export default function AssetRow(props: AssetRowProps) {
   const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
-  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent } = state
+  const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
   const { setIsAssetPanelTemporarilyVisible, scrollContainerRef } = state
 
   const { user, userInfo } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { setModal, unsetModal } = modalProvider.useSetModal()
+  const { getText } = textProvider.useText()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const [item, setItem] = React.useState(rawItem)
@@ -139,11 +136,12 @@ export default function AssetRow(props: AssetRowProps) {
             modifiedAt: dateTime.toRfc3339(new Date()),
           })
         )
+        newParentId ??= user?.rootDirectoryId ?? backendModule.DirectoryId('')
         const copiedAsset = await backend.copyAsset(
           asset.id,
-          newParentId ?? user?.rootDirectoryId ?? backendModule.DirectoryId(''),
+          newParentId,
           asset.title,
-          null
+          nodeMap.current.get(newParentId)?.item.title ?? '(unknown)'
         )
         setAsset(
           // This is SAFE, as the type of the copied asset is guaranteed to be the same
@@ -152,7 +150,7 @@ export default function AssetRow(props: AssetRowProps) {
           object.merger(copiedAsset.asset as Partial<backendModule.AnyAsset>)
         )
       } catch (error) {
-        toastAndLog(`Could not copy '${asset.title}'`, error)
+        toastAndLog('copyAssetError', error, asset.title)
         // Delete the new component representing the asset that failed to insert.
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       }
@@ -163,8 +161,9 @@ export default function AssetRow(props: AssetRowProps) {
       userInfo,
       asset,
       item.key,
+      toastAndLog,
+      /* should never change */ nodeMap,
       /* should never change */ setAsset,
-      /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
@@ -195,7 +194,7 @@ export default function AssetRow(props: AssetRowProps) {
           asset.title
         )
       } catch (error) {
-        toastAndLog(`Could not move '${asset.title}'`, error)
+        toastAndLog('moveAssetError', error, asset.title)
         setAsset(object.merger({ parentId: asset.parentId }))
         setItem(oldItem =>
           oldItem.with({ directoryKey: item.directoryKey, directoryId: item.directoryId })
@@ -217,8 +216,8 @@ export default function AssetRow(props: AssetRowProps) {
       item.directoryId,
       item.directoryKey,
       item.key,
+      toastAndLog,
       /* should never change */ setAsset,
-      /* should never change */ toastAndLog,
       /* should never change */ dispatchAssetListEvent,
     ]
   )
@@ -269,10 +268,7 @@ export default function AssetRow(props: AssetRowProps) {
         dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
       } catch (error) {
         setInsertionVisibility(Visibility.visible)
-        toastAndLog(
-          errorModule.tryGetMessage(error)?.slice(0, -1) ??
-            `Could not delete ${backendModule.ASSET_TYPE_NAME[asset.type]}`
-        )
+        toastAndLog('deleteAssetError', error, asset.title)
       }
     },
     [
@@ -292,15 +288,9 @@ export default function AssetRow(props: AssetRowProps) {
       dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
     } catch (error) {
       setInsertionVisibility(Visibility.visible)
-      toastAndLog(`Unable to restore ${backendModule.ASSET_TYPE_NAME[asset.type]}`, error)
+      toastAndLog('restoreAssetError', error, asset.title)
     }
-  }, [
-    backend,
-    dispatchAssetListEvent,
-    asset,
-    /* should never change */ item.key,
-    /* should never change */ toastAndLog,
-  ])
+  }, [backend, dispatchAssetListEvent, asset, toastAndLog, /* should never change */ item.key])
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
@@ -358,41 +348,59 @@ export default function AssetRow(props: AssetRowProps) {
         }
         break
       }
-      case AssetEventType.download: {
-        if (event.ids.has(item.key)) {
-          if (isCloud) {
-            if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog('Cannot download assets that are not files')
-            } else {
-              try {
-                const details = await backend.getFileDetails(asset.id, asset.title)
-                const file = details.file
-                download.download(download.s3URLToHTTPURL(file.path), asset.title)
-              } catch (error) {
-                toastAndLog('Could not download file', error)
-              }
-            }
-          } else {
-            download.download(
-              `./api/project-manager/projects/${asset.id}/enso-project`,
-              `${asset.title}.enso-project`
-            )
-          }
-        }
-        break
-      }
+      case AssetEventType.download:
       case AssetEventType.downloadSelected: {
-        if (selected) {
+        if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(item.key)) {
           if (isCloud) {
-            if (asset.type !== backendModule.AssetType.file) {
-              toastAndLog('Cannot download assets that are not files')
-            } else {
-              try {
-                const details = await backend.getFileDetails(asset.id, asset.title)
-                const file = details.file
-                download.download(details.url ?? download.s3URLToHTTPURL(file.path), asset.title)
-              } catch (error) {
-                toastAndLog('Could not download selected files', error)
+            switch (asset.type) {
+              case backendModule.AssetType.project: {
+                try {
+                  const details = await backend.getProjectDetails(asset.id, asset.title)
+                  if (details.url != null) {
+                    download.download(details.url, asset.title)
+                  } else {
+                    const error: unknown = getText('projectHasNoSourceFilesPhrase')
+                    toastAndLog('downloadProjectError', error, asset.title)
+                  }
+                } catch (error) {
+                  toastAndLog('downloadProjectError', error, asset.title)
+                }
+                break
+              }
+              case backendModule.AssetType.file: {
+                try {
+                  const details = await backend.getFileDetails(asset.id, asset.title)
+                  if (details.url != null) {
+                    download.download(details.url, asset.title)
+                  } else {
+                    const error: unknown = getText('fileNotFoundPhrase')
+                    toastAndLog('downloadFileError', error, asset.title)
+                  }
+                } catch (error) {
+                  toastAndLog('downloadFileError', error, asset.title)
+                }
+                break
+              }
+              case backendModule.AssetType.dataLink: {
+                try {
+                  const value = await backend.getConnector(asset.id, asset.title)
+                  const fileName = `${asset.title}.datalink`
+                  download.download(
+                    URL.createObjectURL(
+                      new File([JSON.stringify(value)], fileName, {
+                        type: 'application/json+x-enso-data-link',
+                      })
+                    ),
+                    fileName
+                  )
+                } catch (error) {
+                  toastAndLog('downloadDataLinkError', error, asset.title)
+                }
+                break
+              }
+              default: {
+                toastAndLog('downloadInvalidTypeError')
+                break
               }
             }
           } else {
@@ -412,7 +420,7 @@ export default function AssetRow(props: AssetRowProps) {
             await backend.createPermission({
               action: null,
               resourceId: asset.id,
-              userSubjects: [userInfo.id],
+              actorsIds: [userInfo.userId],
             })
             dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
           } catch (error) {
@@ -716,7 +724,7 @@ export default function AssetRow(props: AssetRowProps) {
               })}
             </tr>
           )}
-          {selected && allowContextMenu && insertionVisibility !== Visibility.hidden && (
+          {selected && allowContextMenu && !hidden && (
             // This is a copy of the context menu, since the context menu registers keyboard
             // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
             // the entire context menu (once for the keyboard actions, once for the JSX).
@@ -764,7 +772,7 @@ export default function AssetRow(props: AssetRowProps) {
               className={`flex h-row items-center rounded-full ${indent.indentClass(item.depth)}`}
             >
               <img src={BlankIcon} />
-              {EMPTY_DIRECTORY_PLACEHOLDER}
+              <span className="px-name-column-x placeholder">{getText('thisFolderIsEmpty')}</span>
             </div>
           </td>
         </tr>

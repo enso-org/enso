@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use derivative::Derivative;
+#[cfg(not(target_arch = "wasm32"))]
 use js_sys::Function;
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::JsCast;
@@ -39,7 +40,7 @@ pub struct OptionalFmMutClosure<Arg> {
 impl<Arg> OptionalFmMutClosure<Arg> {
     /// An empty closure storage.
     pub fn new() -> OptionalFmMutClosure<Arg> {
-        default()
+        Default::default()
     }
 
     /// Stores the given closure.

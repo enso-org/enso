@@ -10,6 +10,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import AssetEventType from '#/events/AssetEventType'
 import AssetListEventType from '#/events/AssetListEventType'
@@ -46,6 +47,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { backend } = backendProvider.useBackend()
   const { user } = authProvider.useNonPartialUserSession()
+  const { getText } = textProvider.useText()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const asset = item.item
   if (asset.type !== backendModule.AssetType.project) {
@@ -84,7 +86,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           asset.title
         )
       } catch (error) {
-        toastAndLog('Could not rename project', error)
+        toastAndLog('renameProjectError', error)
         setAsset(object.merger({ title: oldTitle }))
       }
     }
@@ -149,7 +151,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               type: AssetListEventType.delete,
               key: item.key,
             })
-            toastAndLog('Error creating new project', error)
+            toastAndLog('createProjectError', error)
           }
         }
         break
@@ -184,24 +186,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 })
                 id = await response.text()
               }
-              const listedProject = await backend.getProjectDetails(
-                backendModule.ProjectId(id),
-                null
-              )
+              const projectId = backendModule.ProjectId(id)
+              const listedProject = await backend.getProjectDetails(projectId, file.name)
               rowState.setVisibility(Visibility.visible)
-              setAsset(
-                object.merge(asset, {
-                  title: listedProject.packageName,
-                  id: backendModule.ProjectId(id),
-                })
-              )
+              setAsset(object.merge(asset, { title: listedProject.packageName, id: projectId }))
             } else {
               const createdFile = await backend.uploadFile(
-                {
-                  fileId,
-                  fileName: `${title}.${extension}`,
-                  parentDirectoryId: asset.parentId,
-                },
+                { fileId, fileName: `${title}.${extension}`, parentDirectoryId: asset.parentId },
                 file
               )
               const project = createdFile.project
@@ -210,11 +201,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
               } else {
                 rowState.setVisibility(Visibility.visible)
                 setAsset(
-                  object.merge(asset, {
-                    title,
-                    id: project.projectId,
-                    projectState: project.state,
-                  })
+                  object.merge(asset, { title, id: project.projectId, projectState: project.state })
                 )
                 return
               }
@@ -222,15 +209,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           } catch (error) {
             switch (event.type) {
               case AssetEventType.uploadFiles: {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.delete,
-                  key: item.key,
-                })
-                toastAndLog('Could not upload project', error)
+                dispatchAssetListEvent({ type: AssetListEventType.delete, key: item.key })
+                toastAndLog('uploadProjectError', error)
                 break
               }
               case AssetEventType.updateFiles: {
-                toastAndLog('Could not update project', error)
+                toastAndLog('updateProjectError', error)
                 break
               }
             }
@@ -335,7 +319,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         {...(backend.type === backendModule.BackendType.local
           ? {
               inputPattern: validation.LOCAL_PROJECT_NAME_PATTERN,
-              inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
+              inputTitle: getText('projectNameCannotBeEmpty'),
             }
           : {})}
       >

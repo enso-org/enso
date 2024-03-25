@@ -427,6 +427,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override getFileContent() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override createConnector() {
     return this.invalidOperation()
   }
@@ -487,6 +492,11 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override getCheckoutSession() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getLogEvents() {
     return this.invalidOperation()
   }
 }

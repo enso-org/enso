@@ -1,6 +1,9 @@
+import { selectionMouseBindings } from '@/bindings'
 import { useSelection } from '@/composables/selection'
+import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { isPointer, pointerButtonToEventInfo, type BindingInfo } from '@/util/shortcuts'
 import { expect, test, vi } from 'vitest'
 import { proxyRefs, ref, type Ref } from 'vue'
 
@@ -11,33 +14,36 @@ function selectionWithMockData(sceneMousePos?: Ref<Vec2>) {
   rects.set(3, Rect.FromBounds(1, 20, 10, 30))
   rects.set(4, Rect.FromBounds(20, 20, 30, 30))
   const navigator = proxyRefs({ sceneMousePos: sceneMousePos ?? ref(Vec2.Zero), scale: 1 })
-  const selection = useSelection(navigator, rects, 0)
+  const allPortsEnabled = () => true
+  const selection = useSelection(navigator, rects, allPortsEnabled, 0)
   selection.setSelection(new Set([1, 2]))
   return selection
 }
 
-// TODO[ao]: We should read the modifiers from `bindings.ts`, but I don't know how yet.
+const bindingReplace = selectionMouseBindings.bindings.replace
+const bindingAdd = selectionMouseBindings.bindings.add
+const bindingRemove = selectionMouseBindings.bindings.remove
+const bindingToggle = selectionMouseBindings.bindings.toggle
+const bindingInvert = selectionMouseBindings.bindings.invert
 
-// TODO[ao]: Skipping test, as they often fail in CI
-// (for example https://github.com/enso-org/enso/actions/runs/8102076908/job/22163122663)
 test.each`
-  click | modifiers                  | expected
-  ${1}  | ${[]}                      | ${[1]}
-  ${3}  | ${[]}                      | ${[3]}
-  ${1}  | ${['Shift']}               | ${[2]}
-  ${3}  | ${['Shift']}               | ${[1, 2, 3]}
-  ${1}  | ${['Mod', 'Shift']}        | ${[1, 2]}
-  ${3}  | ${['Mod', 'Shift']}        | ${[1, 2, 3]}
-  ${1}  | ${['Mod', 'Shift']}        | ${[1, 2]}
-  ${3}  | ${['Mod', 'Shift']}        | ${[1, 2, 3]}
-  ${1}  | ${['Alt', 'Shift']}        | ${[2]}
-  ${3}  | ${['Alt', 'Shift']}        | ${[1, 2]}
-  ${1}  | ${['Mod', 'Alt', 'Shift']} | ${[2]}
-  ${3}  | ${['Mod', 'Alt', 'Shift']} | ${[1, 2, 3]}
-`('Selection by single click at $click with $modifiers', ({ click, modifiers, expected }) => {
+  click | binding           | expected
+  ${1}  | ${bindingReplace} | ${[1]}
+  ${3}  | ${bindingReplace} | ${[3]}
+  ${1}  | ${bindingToggle}  | ${[2]}
+  ${3}  | ${bindingToggle}  | ${[1, 2, 3]}
+  ${1}  | ${bindingAdd}     | ${[1, 2]}
+  ${3}  | ${bindingAdd}     | ${[1, 2, 3]}
+  ${1}  | ${bindingAdd}     | ${[1, 2]}
+  ${3}  | ${bindingAdd}     | ${[1, 2, 3]}
+  ${1}  | ${bindingRemove}  | ${[2]}
+  ${3}  | ${bindingRemove}  | ${[1, 2]}
+  ${1}  | ${bindingInvert}  | ${[2]}
+  ${3}  | ${bindingInvert}  | ${[1, 2, 3]}
+`('Selection by single click at $click with $modifiers', ({ click, binding, expected }) => {
   const selection = selectionWithMockData()
   // Position is zero, because this method should not depend on click position
-  selection.handleSelectionOf(mockPointerEvent('click', Vec2.Zero, modifiers), new Set([click]))
+  selection.handleSelectionOf(mockPointerEvent('click', Vec2.Zero, binding), new Set([click]))
   expect(Array.from(selection.selected)).toEqual(expected)
 })
 
@@ -49,47 +55,45 @@ const areas: Record<string, Rect> = {
   all: Rect.FromBounds(0, 0, 30, 30),
 }
 
-// TODO[ao]: Skipping test, as they often fail in CI
-// (for example https://github.com/enso-org/enso/actions/runs/8102076908/job/22163122663)
 test.each`
-  areaId      | modifiers                  | expected
-  ${'left'}   | ${[]}                      | ${[1, 3]}
-  ${'right'}  | ${[]}                      | ${[2, 4]}
-  ${'top'}    | ${[]}                      | ${[1, 2]}
-  ${'bottom'} | ${[]}                      | ${[3, 4]}
-  ${'all'}    | ${[]}                      | ${[1, 2, 3, 4]}
-  ${'left'}   | ${['Shift']}               | ${[1, 2, 3]}
-  ${'right'}  | ${['Shift']}               | ${[1, 2, 4]}
-  ${'top'}    | ${['Shift']}               | ${[]}
-  ${'bottom'} | ${['Shift']}               | ${[1, 2, 3, 4]}
-  ${'all'}    | ${['Shift']}               | ${[1, 2, 3, 4]}
-  ${'left'}   | ${['Mod', 'Shift']}        | ${[1, 2, 3]}
-  ${'right'}  | ${['Mod', 'Shift']}        | ${[1, 2, 4]}
-  ${'top'}    | ${['Mod', 'Shift']}        | ${[1, 2]}
-  ${'bottom'} | ${['Mod', 'Shift']}        | ${[1, 2, 3, 4]}
-  ${'all'}    | ${['Mod', 'Shift']}        | ${[1, 2, 3, 4]}
-  ${'left'}   | ${['Alt', 'Shift']}        | ${[2]}
-  ${'right'}  | ${['Alt', 'Shift']}        | ${[1]}
-  ${'top'}    | ${['Alt', 'Shift']}        | ${[]}
-  ${'bottom'} | ${['Alt', 'Shift']}        | ${[1, 2]}
-  ${'all'}    | ${['Alt', 'Shift']}        | ${[]}
-  ${'left'}   | ${['Mod', 'Alt', 'Shift']} | ${[2, 3]}
-  ${'right'}  | ${['Mod', 'Alt', 'Shift']} | ${[1, 4]}
-  ${'top'}    | ${['Mod', 'Alt', 'Shift']} | ${[]}
-  ${'bottom'} | ${['Mod', 'Alt', 'Shift']} | ${[1, 2, 3, 4]}
-  ${'all'}    | ${['Mod', 'Alt', 'Shift']} | ${[3, 4]}
-`('Selection by dragging $area area with $modifiers', ({ areaId, modifiers, expected }) => {
+  areaId      | binding           | expected
+  ${'left'}   | ${bindingReplace} | ${[1, 3]}
+  ${'right'}  | ${bindingReplace} | ${[2, 4]}
+  ${'top'}    | ${bindingReplace} | ${[1, 2]}
+  ${'bottom'} | ${bindingReplace} | ${[3, 4]}
+  ${'all'}    | ${bindingReplace} | ${[1, 2, 3, 4]}
+  ${'left'}   | ${bindingToggle}  | ${[1, 2, 3]}
+  ${'right'}  | ${bindingToggle}  | ${[1, 2, 4]}
+  ${'top'}    | ${bindingToggle}  | ${[]}
+  ${'bottom'} | ${bindingToggle}  | ${[1, 2, 3, 4]}
+  ${'all'}    | ${bindingToggle}  | ${[1, 2, 3, 4]}
+  ${'left'}   | ${bindingAdd}     | ${[1, 2, 3]}
+  ${'right'}  | ${bindingAdd}     | ${[1, 2, 4]}
+  ${'top'}    | ${bindingAdd}     | ${[1, 2]}
+  ${'bottom'} | ${bindingAdd}     | ${[1, 2, 3, 4]}
+  ${'all'}    | ${bindingAdd}     | ${[1, 2, 3, 4]}
+  ${'left'}   | ${bindingRemove}  | ${[2]}
+  ${'right'}  | ${bindingRemove}  | ${[1]}
+  ${'top'}    | ${bindingRemove}  | ${[]}
+  ${'bottom'} | ${bindingRemove}  | ${[1, 2]}
+  ${'all'}    | ${bindingRemove}  | ${[]}
+  ${'left'}   | ${bindingInvert}  | ${[2, 3]}
+  ${'right'}  | ${bindingInvert}  | ${[1, 4]}
+  ${'top'}    | ${bindingInvert}  | ${[]}
+  ${'bottom'} | ${bindingInvert}  | ${[1, 2, 3, 4]}
+  ${'all'}    | ${bindingInvert}  | ${[3, 4]}
+`('Selection by dragging $area area with $modifiers', ({ areaId, binding, expected }) => {
   const area = areas[areaId]!
   const dragCase = (start: Vec2, stop: Vec2) => {
     const mousePos = ref(start)
     const selection = selectionWithMockData(mousePos)
 
-    selection.events.pointerdown(mockPointerEvent('pointerdown', mousePos.value, modifiers))
-    selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, modifiers))
+    selection.events.pointerdown(mockPointerEvent('pointerdown', mousePos.value, binding))
+    selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
     mousePos.value = stop
-    selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, modifiers))
+    selection.events.pointermove(mockPointerEvent('pointermove', mousePos.value, binding))
     expect(selection.selected).toEqual(new Set(expected))
-    selection.events.pointerdown(mockPointerEvent('pointerup', mousePos.value, modifiers))
+    selection.events.pointerdown(mockPointerEvent('pointerup', mousePos.value, binding))
     expect(selection.selected).toEqual(new Set(expected))
   }
 
@@ -112,8 +116,10 @@ class MockPointerEvent extends MouseEvent {
   }
 }
 
-function mockPointerEvent(type: string, pos: Vec2, modifiers: string[]): PointerEvent {
-  const modifiersSet = new Set(modifiers)
+function mockPointerEvent(type: string, pos: Vec2, binding: BindingInfo): PointerEvent {
+  const modifiersSet = new Set(binding.modifiers)
+  assert(isPointer(binding.key))
+  const { button, buttons } = pointerButtonToEventInfo(binding.key)
   const event = new MockPointerEvent(type, {
     altKey: modifiersSet.has('Alt'),
     ctrlKey: modifiersSet.has('Mod'),
@@ -121,8 +127,8 @@ function mockPointerEvent(type: string, pos: Vec2, modifiers: string[]): Pointer
     metaKey: modifiersSet.has('Meta'),
     clientX: pos.x,
     clientY: pos.y,
-    button: 0,
-    buttons: 1,
+    button,
+    buttons,
     currentTarget: document.createElement('div'),
   }) as PointerEvent
   return event

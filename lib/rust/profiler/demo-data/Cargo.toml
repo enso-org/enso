@@ -7,3 +7,6 @@ authors = ["Enso Team <contact@enso.org>"]
 [dependencies]
 futures = { workspace = true }
 enso-profiler = { path = ".." }
+
+[lints]
+workspace = true

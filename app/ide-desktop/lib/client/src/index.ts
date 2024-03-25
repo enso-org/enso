@@ -306,6 +306,7 @@ class App {
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)
+
                 if (this.args.groups.debug.options.devTools.value) {
                     window.webContents.openDevTools()
                 }
@@ -397,6 +398,15 @@ class App {
                 }
             }
         )
+
+        // Handling navigation events from renderer process
+        electron.ipcMain.on(ipc.Channel.goBack, () => {
+            this.window?.webContents.goBack()
+        })
+
+        electron.ipcMain.on(ipc.Channel.goForward, () => {
+            this.window?.webContents.goForward()
+        })
     }
 
     /** The server port. In case the server was not started, the port specified in the configuration

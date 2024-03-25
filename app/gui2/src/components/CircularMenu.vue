@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
-import { Vec2 } from '@/util/data/vec2'
 
 const props = defineProps<{
   isRecordingEnabledGlobally: boolean
@@ -19,7 +19,7 @@ const emit = defineEmits<{
   startEditingComment: []
   openFullMenu: []
   delete: []
-  addNode: [pos: Vec2 | undefined]
+  createNode: [options: NodeCreationOptions]
 }>()
 </script>
 
@@ -57,6 +57,7 @@ const emit = defineEmits<{
       <ToggleIcon
         icon="record"
         class="icon-container button slot7"
+        data-testid="overrideRecordingButton"
         :class="{ 'recording-overridden': props.isRecordingOverridden }"
         :alt="`${props.isRecordingOverridden ? 'Disable' : 'Enable'} recording`"
         :modelValue="props.isRecordingOverridden"
@@ -66,7 +67,7 @@ const emit = defineEmits<{
     <SmallPlusButton
       v-if="!isVisualizationVisible"
       class="below-slot5"
-      @addNode="emit('addNode', $event)"
+      @createNode="emit('createNode', $event)"
     />
   </div>
 </template>

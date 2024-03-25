@@ -357,7 +357,7 @@ impl<'s> Resolver<'s> {
             let items = self.items.drain(segment.items_start..).collect();
             (segment.header, def.pattern.resolve(items))
         });
-        pattern_matched_segments[..].reverse();
+        pattern_matched_segments.reverse();
         let unused_items_of_last_segment = match &mut pattern_matched_segments.last_mut().1 {
             Err(rest) => mem::take(rest),
             Ok(segment) => mem::take(&mut segment.rest),

@@ -942,7 +942,7 @@ Text.repeat : Integer -> Text
 Text.repeat self count=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
-## ALIAS first, last, left, mid, right, slice, substring
+## ALIAS first, last, left, mid, right, slice, substring, top, head, tail, limit
    GROUP Selections
    Creates a new Text by selecting the specified range of the input.
 

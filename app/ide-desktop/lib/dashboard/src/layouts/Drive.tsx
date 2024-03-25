@@ -1,16 +1,17 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
 
-import * as common from 'enso-common'
-
 import * as appUtils from '#/appUtils'
 
+import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as navigateHooks from '#/hooks/navigateHooks'
+import * as searchParamsState from '#/hooks/searchParamsStateHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import type * as assetEvent from '#/events/assetEvent'
 import AssetEventType from '#/events/AssetEventType'
@@ -79,6 +80,7 @@ enum DriveStatus {
 export interface DriveProps {
   readonly supportsLocalBackend: boolean
   readonly hidden: boolean
+  readonly hideRows: boolean
   readonly initialProjectName: string | null
   /** These events will be dispatched the next time the assets list is refreshed, rather than
    * immediately. */
@@ -106,7 +108,7 @@ export interface DriveProps {
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function Drive(props: DriveProps) {
-  const { supportsLocalBackend, hidden, initialProjectName, queuedAssetEvents } = props
+  const { supportsLocalBackend, hidden, hideRows, initialProjectName, queuedAssetEvents } = props
   const { query, setQuery, labels, setLabels, setSuggestions, projectStartupInfo } = props
   const { assetListEvents, dispatchAssetListEvent, assetEvents, dispatchAssetEvent } = props
   const { setAssetPanelProps, doOpenEditor, doCloseEditor } = props
@@ -117,10 +119,13 @@ export default function Drive(props: DriveProps) {
   const { type: sessionType, user } = authProvider.useNonPartialUserSession()
   const { backend } = backendProvider.useBackend()
   const { localStorage } = localStorageProvider.useLocalStorage()
-  const [canDownloadFiles, setCanDownloadFiles] = React.useState(false)
+  const { getText } = textProvider.useText()
+  const [canDownload, setCanDownload] = React.useState(false)
   const [didLoadingProjectManagerFail, setDidLoadingProjectManagerFail] = React.useState(false)
-  const [category, setCategory] = React.useState(
-    () => localStorage.get('driveCategory') ?? Category.home
+  const [category, setCategory] = searchParamsState.useSearchParamsState(
+    'driveCategory',
+    () => localStorage.get('driveCategory') ?? Category.home,
+    (value): value is Category => array.includes(Object.values(Category), value)
   )
   const [newLabelNames, setNewLabelNames] = React.useState(new Set<backendModule.LabelName>())
   const [deletedLabelNames, setDeletedLabelNames] = React.useState(
@@ -143,6 +148,11 @@ export default function Drive(props: DriveProps) {
         : isCloud && user?.isEnabled !== true
           ? DriveStatus.notEnabled
           : DriveStatus.ok
+
+  const onSetCategory = eventCallback.useEventCallback((value: Category) => {
+    setCategory(value)
+    localStorage.set('driveCategory', value)
+  })
 
   React.useEffect(() => {
     const onProjectManagerLoadingFailed = () => {
@@ -170,9 +180,9 @@ export default function Drive(props: DriveProps) {
 
   const doUploadFiles = React.useCallback(
     (files: File[]) => {
-      if (backend.type !== backendModule.BackendType.local && user == null) {
+      if (isCloud && sessionType === authProvider.UserSessionType.offline) {
         // This should never happen, however display a nice error message in case it does.
-        toastAndLog('Files cannot be uploaded while offline')
+        toastAndLog('offlineUploadFilesError')
       } else {
         dispatchAssetListEvent({
           type: AssetListEventType.uploadFiles,
@@ -182,7 +192,13 @@ export default function Drive(props: DriveProps) {
         })
       }
     },
-    [backend, user, rootDirectoryId, toastAndLog, /* should never change */ dispatchAssetListEvent]
+    [
+      isCloud,
+      rootDirectoryId,
+      sessionType,
+      toastAndLog,
+      /* should never change */ dispatchAssetListEvent,
+    ]
   )
 
   const doEmptyTrash = React.useCallback(() => {
@@ -238,7 +254,7 @@ export default function Drive(props: DriveProps) {
         labelNames => new Set([...labelNames].filter(labelName => labelName !== newLabelName))
       )
     },
-    [backend, /* should never change */ toastAndLog, /* should never change */ setLabels]
+    [backend, toastAndLog, /* should never change */ setLabels]
   )
 
   const doDeleteLabel = React.useCallback(
@@ -261,9 +277,9 @@ export default function Drive(props: DriveProps) {
     },
     [
       backend,
+      toastAndLog,
       /* should never change */ setQuery,
       /* should never change */ dispatchAssetEvent,
-      /* should never change */ toastAndLog,
       /* should never change */ setLabels,
     ]
   )
@@ -299,14 +315,14 @@ export default function Drive(props: DriveProps) {
       return (
         <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
           <div className="flex flex-col gap-status-page text-center text-base">
-            <div>You are not logged in.</div>
+            <div>{getText('youAreNotLoggedIn')}</div>
             <button
               className="button self-center bg-help text-white"
               onClick={() => {
                 navigate(appUtils.LOGIN_PATH)
               }}
             >
-              Login
+              {getText('login')}
             </button>
           </div>
         </div>
@@ -316,8 +332,7 @@ export default function Drive(props: DriveProps) {
       return (
         <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
           <div className="flex flex-col gap-status-page text-center text-base">
-            Could not connect to the Project Manager. Please try restarting {common.PRODUCT_NAME},
-            or manually launching the Project Manager.
+            {getText('couldNotConnectToPM')}
           </div>
         </div>
       )
@@ -326,9 +341,9 @@ export default function Drive(props: DriveProps) {
       return (
         <div className={`grid grow place-items-center ${hidden ? 'hidden' : ''}`}>
           <div className="flex flex-col gap-status-page text-center text-base">
-            Upgrade your plan to use {common.PRODUCT_NAME} Cloud.
+            {getText('upgradeToUseCloud')}
             <a className="button self-center bg-help text-white" href="https://enso.org/pricing">
-              Upgrade
+              {getText('upgrade')}
             </a>
             {!supportsLocalBackend && (
               <button
@@ -336,13 +351,13 @@ export default function Drive(props: DriveProps) {
                 onClick={async () => {
                   const downloadUrl = await github.getDownloadUrl()
                   if (downloadUrl == null) {
-                    toastAndLog('Could not find a download link for the current OS')
+                    toastAndLog('noAppDownloadError')
                   } else {
                     download.download(downloadUrl)
                   }
                 }}
               >
-                Download Free Edition
+                {getText('downloadFreeEdition')}
               </button>
             )}
           </div>
@@ -359,11 +374,11 @@ export default function Drive(props: DriveProps) {
         >
           <div className="flex flex-col gap-icons self-start">
             <h1 className="h-heading px-heading-x py-heading-y text-xl font-bold leading-snug">
-              {backend.type === backendModule.BackendType.remote ? 'Cloud Drive' : 'Local Drive'}
+              {isCloud ? getText('cloudDrive') : getText('localDrive')}
             </h1>
             <DriveBar
               category={category}
-              canDownloadFiles={canDownloadFiles}
+              canDownload={canDownload}
               doEmptyTrash={doEmptyTrash}
               doCreateProject={doCreateProject}
               doUploadFiles={doUploadFiles}
@@ -374,11 +389,11 @@ export default function Drive(props: DriveProps) {
             />
           </div>
           <div className="flex flex-1 gap-drive overflow-hidden">
-            {backend.type === backendModule.BackendType.remote && (
+            {isCloud && (
               <div className="flex w-drive-sidebar flex-col gap-drive-sidebar py-drive-sidebar-y">
                 <CategorySwitcher
                   category={category}
-                  setCategory={setCategory}
+                  setCategory={onSetCategory}
                   dispatchAssetEvent={dispatchAssetEvent}
                 />
                 <Labels
@@ -394,9 +409,10 @@ export default function Drive(props: DriveProps) {
             )}
             <AssetsTable
               hidden={hidden}
+              hideRows={hideRows}
               query={query}
               setQuery={setQuery}
-              setCanDownloadFiles={setCanDownloadFiles}
+              setCanDownload={setCanDownload}
               category={category}
               allLabels={allLabels}
               setSuggestions={setSuggestions}

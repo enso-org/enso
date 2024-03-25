@@ -3,45 +3,46 @@ import * as React from 'react'
 
 import SortAscendingIcon from 'enso-assets/sort_ascending.svg'
 
+import * as textProvider from '#/providers/TextProvider'
+
 import type * as column from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
 
-import SortDirection, * as sortDirectionModule from '#/utilities/SortDirection'
+import * as sorting from '#/utilities/sorting'
 
 /** A heading for the "Name" column. */
 export default function NameColumnHeading(props: column.AssetColumnHeadingProps): JSX.Element {
   const { state } = props
-  const { sortColumn, setSortColumn, sortDirection, setSortDirection } = state
-  const isSortActive = sortColumn === columnUtils.Column.name && sortDirection != null
-  const isDescending = sortDirection === SortDirection.descending
+  const { sortInfo, setSortInfo } = state
+  const { getText } = textProvider.useText()
+  const isSortActive = sortInfo?.field === columnUtils.Column.name
+  const isDescending = sortInfo?.direction === sorting.SortDirection.descending
 
   return (
     <button
       title={
         !isSortActive
-          ? 'Sort by name'
-          : sortDirection === SortDirection.ascending
-            ? 'Sort by name descending'
-            : 'Stop sorting by name'
+          ? getText('sortByName')
+          : isDescending
+            ? getText('stopSortingByName')
+            : getText('sortByNameDescending')
       }
       className="group flex h-drive-table-heading w-full items-center gap-icon-with-text px-name-column-x"
       onClick={event => {
         event.stopPropagation()
-        if (sortColumn === columnUtils.Column.name) {
-          setSortDirection(sortDirectionModule.NEXT_SORT_DIRECTION[sortDirection ?? 'null'])
+        const nextDirection = isSortActive
+          ? sorting.nextSortDirection(sortInfo.direction)
+          : sorting.SortDirection.ascending
+        if (nextDirection == null) {
+          setSortInfo(null)
         } else {
-          setSortColumn(columnUtils.Column.name)
-          setSortDirection(SortDirection.ascending)
+          setSortInfo({ field: columnUtils.Column.name, direction: nextDirection })
         }
       }}
     >
-      <span className="text-header">{columnUtils.COLUMN_NAME[columnUtils.Column.name]}</span>
+      <span className="text-header">{getText('nameColumnName')}</span>
       <img
-        alt={
-          !isSortActive || sortDirection === SortDirection.ascending
-            ? 'Sort Ascending'
-            : 'Sort Descending'
-        }
+        alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
         src={SortAscendingIcon}
         className={`transition-all duration-arrow ${
           isSortActive ? 'selectable active' : 'transparent group-hover:selectable'

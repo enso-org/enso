@@ -3,26 +3,14 @@
 //! compilation in order to run native tests of code which uses this API.
 
 // === Features ===
-#![allow(incomplete_features)]
-#![feature(default_free_fn)]
 #![feature(trait_alias)]
 #![feature(negative_impls)]
-#![feature(specialization)]
 #![feature(auto_traits)]
 #![feature(unsize)]
 #![feature(cell_update)]
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-#![allow(clippy::bool_to_int_with_if)]
-#![allow(clippy::let_and_return)]
 // === Non-Standard Linter Configuration ===
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
 use crate::prelude::*;
@@ -65,7 +53,6 @@ pub mod prelude {
     pub use enso_logging::warn;
     pub use enso_shapely::clone_ref::*;
     pub use std::cell::RefCell;
-    pub use std::default::default;
     pub use std::fmt::Debug;
     pub use std::marker::PhantomData;
     pub use std::ops::Deref;
@@ -257,7 +244,6 @@ macro_rules! ops {
                 use super::wasm_traits::*;
                 pub use enso_logging as logging;
                 pub use enso_logging::warn;
-                pub use std::default::default;
                 /// Extensions to the [`$target`] type.
                 pub trait Trait $defs
                 impl $(<$($arg: $($arg_tp)*),*>)? Trait for $target $(<$($arg),*>)?
@@ -270,7 +256,6 @@ macro_rules! ops {
                 use super::mock_traits::*;
                 pub use enso_logging as logging;
                 pub use enso_logging::warn;
-                pub use std::default::default;
                 /// Extensions to the [`$target`] type.
                 pub trait Trait $defs
                 impl $(<$($arg: $($arg_tp)*),*>)? Trait for $target $(<$($arg),*>)?
@@ -511,7 +496,7 @@ ops! { ObjectOps for Object
 
     mock_impl {
         fn keys_vec(_obj: &Object) -> Vec<String> {
-            default()
+            Default::default()
         }
     }
 }
@@ -889,7 +874,7 @@ pub fn add_event_listener<T: ?Sized + 'static>(
     name: &str,
     closure: Closure<T>,
 ) -> EventListenerHandle {
-    add_event_listener_with_options(target, name, closure, default())
+    add_event_listener_with_options(target, name, closure, Default::default())
 }
 
 /// Wrapper for [`add_event_listener`] setting the `capture` option keeping other options default.
@@ -899,7 +884,7 @@ pub fn add_event_listener_with_bool<T: ?Sized + 'static>(
     closure: Closure<T>,
     capture: bool,
 ) -> EventListenerHandle {
-    let options = EventListenerHandleOptions { capture, ..default() };
+    let options = EventListenerHandleOptions { capture, ..Default::default() };
     add_event_listener_with_options(target, name, closure, options)
 }
 
@@ -1026,7 +1011,7 @@ fn report_panic(info: &std::panic::PanicInfo) {
     if let Some(api) = enso_debug_api::console() {
         api.error(&msg);
     }
-    web_sys::console::error_1(&msg.into());
+    console::error_1(&msg.into());
 }
 
 
@@ -1070,7 +1055,7 @@ pub struct FrameCounter {
 impl FrameCounter {
     /// Creates a new frame counter.
     pub fn start_counting() -> Self {
-        let frames: Counter = default();
+        let frames: Counter = Default::default();
         let frames_handle = Rc::downgrade(&frames);
         let closure_handle = Rc::new(RefCell::new(None));
         let closure_handle_internal = Rc::downgrade(&closure_handle);

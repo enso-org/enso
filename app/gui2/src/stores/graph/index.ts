@@ -14,7 +14,7 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, bail } from '@/util/assert'
-import { Ast, RawAst, visitRecursive } from '@/util/ast'
+import { Ast } from '@/util/ast'
 import type {
   AstId,
   Module,
@@ -23,6 +23,7 @@ import type {
   NodeMetadataFields,
 } from '@/util/ast/abstract'
 import { MutableModule, isIdentifier } from '@/util/ast/abstract'
+import { RawAst, visitRecursive } from '@/util/ast/raw'
 import { partition } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -313,7 +314,7 @@ export const useGraphStore = defineStore('graph', () => {
         for (const id of ids) {
           const node = db.nodeIdToNode.get(id)
           if (!node) continue
-          const outerExpr = edit.tryGet(node.outerExprId)
+          const outerExpr = edit.getVersion(node.outerExpr)
           if (outerExpr) Ast.deleteFromParentBlock(outerExpr)
           nodeRects.delete(id)
         }
@@ -327,11 +328,12 @@ export const useGraphStore = defineStore('graph', () => {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
     edit((edit) => {
-      edit.getVersion(node.rootExpr).syncToCode(content)
+      const editExpr = edit.getVersion(node.innerExpr)
+      editExpr.syncToCode(content)
       if (withImports) {
         const conflicts = addMissingImports(edit, withImports)
         if (conflicts == null) return
-        const wholeAssignment = edit.getVersion(node.rootExpr)?.mutableParent()
+        const wholeAssignment = editExpr.mutableParent()
         if (wholeAssignment == null) {
           console.error('Cannot find parent of the node expression. Conflict resolution failed.')
           return
@@ -470,6 +472,10 @@ export const useGraphStore = defineStore('graph', () => {
     return getPortPrimaryInstance(id)?.rect.value
   }
 
+  function isPortEnabled(id: PortId): boolean {
+    return getPortRelativeRect(id) != null
+  }
+
   function getPortNodeId(id: PortId): NodeId | undefined {
     return db.getExpressionNodeId(id as string as Ast.AstId) ?? getPortPrimaryInstance(id)?.nodeId
   }
@@ -545,9 +551,7 @@ export const useGraphStore = defineStore('graph', () => {
     edit((edit) => f(edit.getVersion(ast).mutableNodeMetadata()), true, true)
   }
 
-  function viewModule(): Module {
-    return syncModule.value!
-  }
+  const viewModule = computed(() => syncModule.value!)
 
   function mockExpressionUpdate(
     locator: string | { binding: string; expr: string },
@@ -590,8 +594,8 @@ export const useGraphStore = defineStore('graph', () => {
    * are also moved after it, keeping their relative order.
    */
   function ensureCorrectNodeOrder(edit: MutableModule, sourceNodeId: NodeId, targetNodeId: NodeId) {
-    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExprId
-    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExprId
+    const sourceExpr = db.nodeIdToNode.get(sourceNodeId)?.outerExpr.id
+    const targetExpr = db.nodeIdToNode.get(targetNodeId)?.outerExpr.id
     const body = edit.getVersion(methodAstInModule(edit)!).bodyAsBlock()
     assert(sourceExpr != null)
     assert(targetExpr != null)
@@ -606,7 +610,9 @@ export const useGraphStore = defineStore('graph', () => {
       // Find all transitive dependencies of the moved target node.
       const deps = db.dependantNodes(targetNodeId)
 
-      const dependantLines = new Set(Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExprId))
+      const dependantLines = new Set(
+        Array.from(deps, (id) => db.nodeIdToNode.get(id)?.outerExpr.id),
+      )
       // Include the new target itself in the set of lines that must be placed after source node.
       dependantLines.add(targetExpr)
 
@@ -673,6 +679,7 @@ export const useGraphStore = defineStore('graph', () => {
     removePortInstance,
     getPortRelativeRect,
     getPortNodeId,
+    isPortEnabled,
     updatePortValue,
     setEditedNode,
     updateState,

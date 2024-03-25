@@ -8,6 +8,7 @@ from Standard.Base.Widget_Helpers import make_format_chooser
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Join_Condition.Join_Condition
+import project.Data.Join_Kind.Join_Kind
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Auto
@@ -142,8 +143,8 @@ make_filter_condition_selector table display=Display.Always =
    Make a join kind selector - Needed to override display.
 make_join_kind_selector : Display -> Widget
 make_join_kind_selector display=Display.Always =
-    meta = Meta.meta Value_Type
-    options = meta.constructors.map c-> Option c.name meta.qualified_name+"."+c.name
+    fqn = Meta.get_qualified_type_name Join_Kind
+    options = ["Inner", "Left_Outer", "Right_Outer", "Full", "Left_Exclusive", "Right_Exclusive"].map n-> Option n fqn+"."+n
     Single_Choice display=display values=options
 
 ## PRIVATE
@@ -205,8 +206,7 @@ write_table_selector =
     can_write type = if type == JSON_Format then True else
         Meta.meta type . methods . contains "write_table"
     all_types = [Auto_Detect] + (format_types.filter can_write)
-    make_name type_obj = type_obj.to_text.replace "_Format" "" . replace "_" " "
-    Single_Choice display=Display.Always values=(all_types.map n->(Option (make_name n) (File_Format.constructor_code n)))
+    Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)
 
 ## PRIVATE
    Make format selector based off value type
