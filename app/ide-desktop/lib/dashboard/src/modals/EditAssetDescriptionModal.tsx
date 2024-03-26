@@ -9,6 +9,7 @@ import * as React from 'react'
 import * as reactQuery from '@tanstack/react-query'
 
 import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import Modal from '#/components/Modal'
@@ -29,7 +30,12 @@ export interface EditAssetDescriptionModalProps {
  * Modal for editing an asset's description.
  */
 export default function EditAssetDescriptionModal(props: EditAssetDescriptionModalProps) {
-  const { doChangeDescription, initialDescription, actionButtonLabel = 'Submit' } = props
+  const { getText } = textProvider.useText()
+  const {
+    doChangeDescription,
+    initialDescription,
+    actionButtonLabel = getText('editAssetDescriptionModalSubmit'),
+  } = props
   const { unsetModal } = modalProvider.useSetModal()
   const [description, setDescription] = React.useState(initialDescription ?? '')
   const initialdescriptionRef = React.useRef(initialDescription)
@@ -70,11 +76,13 @@ export default function EditAssetDescriptionModal(props: EditAssetDescriptionMod
           mutate(description)
         }}
       >
-        <div className="relative text-sm font-semibold">Edit Description</div>
+        <div className="relative text-sm font-semibold">
+          {getText('editAssetDescriptionModalTitle')}
+        </div>
         <textarea
           ref={textareaRef}
           className="relative h-16 resize-none rounded-default bg-selected-frame px-4 py-2"
-          placeholder="Enter a description"
+          placeholder={getText('editAssetDescriptionModalPlaceholder')}
           onChange={event => {
             setDescription(event.target.value)
           }}
@@ -95,7 +103,7 @@ export default function EditAssetDescriptionModal(props: EditAssetDescriptionMod
             onPress={unsetModal}
             isDisabled={isPending}
           >
-            Cancel
+            {getText('editAssetDescriptionModalCancel')}
           </ariaComponents.Button>
         </div>
       </form>
