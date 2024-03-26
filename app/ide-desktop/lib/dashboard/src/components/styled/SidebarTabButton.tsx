@@ -1,8 +1,8 @@
 /** @file A styled button representing a tab on a sidebar. */
 import * as React from 'react'
 
-import * as aria from '#/components/aria'
-import FocusRing from '#/components/styled/FocusRing'
+import type * as aria from '#/components/aria'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 // ========================
@@ -25,17 +25,13 @@ export default function SidebarTabButton(props: SidebarTabButtonProps) {
   const { autoFocus = false, active = false, icon, label, onPress } = props
 
   return (
-    <FocusRing within>
-      <aria.MenuItem textValue={label}>
-        <aria.Button
-          autoFocus={autoFocus}
-          className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}
-          onPress={onPress}
-        >
-          <SvgMask src={icon} />
-          <span className="text">{label}</span>
-        </aria.Button>
-      </aria.MenuItem>
-    </FocusRing>
+    <UnstyledButton autoFocus={autoFocus} onPress={onPress} className="rounded-full">
+      <div
+        className={`button icon-with-text h-row px-button-x transition-colors selectable hover:bg-selected-frame ${active ? 'disabled bg-selected-frame active' : ''}`}
+      >
+        <SvgMask src={icon} />
+        <span className="text">{label}</span>
+      </div>
+    </UnstyledButton>
   )
 }

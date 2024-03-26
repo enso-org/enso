@@ -11,7 +11,6 @@ import SettingsTab from '#/layouts/Settings/SettingsTab'
 
 import * as aria from '#/components/aria'
 import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
 
 // =================
@@ -87,9 +86,6 @@ interface SettingsSectionData {
 // === SettingsSidebar ===
 // =======================
 
-/** Sentinel object indicating that the header should be rendered. */
-const HEADER_OBJECT = { isHeader: true }
-
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {
   readonly settingsTab: SettingsTab
@@ -108,46 +104,35 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
   return (
     <FocusArea direction="vertical">
       {(ref, innerProps) => (
-        <FocusRing within>
-          <aria.Menu
-            ref={ref}
-            aria-label="Settings sidebar"
-            items={SECTIONS}
-            dependencies={[settingsTab]}
-            className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
-            {...innerProps}
-          >
-            {section => (
-              <aria.Section
-                id={section.name}
-                items={[HEADER_OBJECT, ...section.tabs]}
-                dependencies={[settingsTab]}
-                className="flex flex-col items-start"
+        <div
+          ref={ref}
+          aria-label="Settings sidebar"
+          className="flex w-settings-sidebar shrink-0 flex-col gap-settings-sidebar overflow-y-auto"
+          {...innerProps}
+        >
+          {SECTIONS.map(section => (
+            <div key={section.name} className="flex flex-col items-start">
+              <aria.Header
+                id={`${section.name}_header`}
+                className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy"
               >
-                {tab =>
-                  'isHeader' in tab ? (
-                    <aria.Header
-                      id={`${section.name}.header`}
-                      className="mb-sidebar-section-heading-b h-text px-sidebar-section-heading-x py-sidebar-section-heading-y text-sm font-bold leading-cozy"
-                    >
-                      {section.name}
-                    </aria.Header>
-                  ) : (
-                    <SidebarTabButton
-                      id={tab.settingsTab}
-                      icon={tab.icon}
-                      label={tab.name}
-                      active={tab.settingsTab === settingsTab}
-                      onPress={() => {
-                        setSettingsTab(tab.settingsTab)
-                      }}
-                    />
-                  )
-                }
-              </aria.Section>
-            )}
-          </aria.Menu>
-        </FocusRing>
+                {section.name}
+              </aria.Header>
+              {section.tabs.map(tab => (
+                <SidebarTabButton
+                  key={tab.settingsTab}
+                  id={tab.settingsTab}
+                  icon={tab.icon}
+                  label={tab.name}
+                  active={tab.settingsTab === settingsTab}
+                  onPress={() => {
+                    setSettingsTab(tab.settingsTab)
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       )}
     </FocusArea>
   )
