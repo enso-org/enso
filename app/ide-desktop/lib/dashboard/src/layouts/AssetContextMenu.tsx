@@ -271,7 +271,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           <ContextMenuEntry
             hidden={hidden}
             action="editDescription"
-            label="Edit Description"
+            label={getText('editDescriptionShortcut')}
             doAction={() => {
               doTriggerDescriptionEdit()
             }}
