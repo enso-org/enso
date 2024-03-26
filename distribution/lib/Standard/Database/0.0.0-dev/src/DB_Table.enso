@@ -2391,7 +2391,9 @@ type DB_Table
        - `List`
        - `Range`
        - `Date_Range`
-       - `Pair
+       - `Pair`
+       - `Table`
+       - `Column`
 
        Any other values are treated as non-aggregate values, and their rows are kept
        unchanged.
