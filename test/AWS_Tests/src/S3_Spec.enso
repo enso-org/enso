@@ -478,7 +478,7 @@ add_specs suite_builder =
                 r.catch.to_display_text . should_contain "you may read it, modify and then write the new contents"
 
         group_builder.specify "should fail to write a file if permissions are lacking" <|
-            new_file = S3_File.new "s3://"+bucket_name+"/examples/no-write-permissions-here.txt"
+            new_file = S3_File.new "s3://"+bucket_name+"/examples/no-write-permissions-here.txt" credentials=test_credentials
             r = "Hello".write new_file
             r.should_fail_with S3_Error
             r.catch.to_display_text . should_contain "Access Denied"
