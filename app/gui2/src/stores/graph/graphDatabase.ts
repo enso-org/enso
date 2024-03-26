@@ -121,6 +121,7 @@ export class BindingsDb {
 
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
+  private highestZIndex = 0
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
   private readonly idFromExternalMap = reactive(new Map<ExternalId, Ast.AstId>())
   private bindings = new BindingsDb()
@@ -302,7 +303,10 @@ export class GraphDb {
   }
 
   moveNodeToTop(id: NodeId) {
-    this.nodeIdToNode.moveToLast(id)
+    const node = this.nodeIdToNode.get(id)
+    if (!node) return
+    node.zIndex = this.highestZIndex + 1
+    this.highestZIndex++
   }
 
   /** Get the method name from the stack item. */
@@ -358,7 +362,7 @@ export class GraphDb {
             vis: nodeMeta.get('visualization'),
           }
         }
-        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields })
+        this.nodeIdToNode.set(nodeId, { ...newNode, ...metadataFields, zIndex: this.highestZIndex })
       } else {
         const {
           outerExpr,
@@ -477,6 +481,7 @@ export class GraphDb {
       pattern,
       rootExpr: Ast.parse(code ?? '0'),
       innerExpr: Ast.parse(code ?? '0'),
+      zIndex: this.highestZIndex,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(asNodeId(id), node)
@@ -517,7 +522,9 @@ export interface NodeDataFromMetadata {
   vis: Opt<VisualizationMetadata>
 }
 
-export interface Node extends NodeDataFromAst, NodeDataFromMetadata {}
+export interface Node extends NodeDataFromAst, NodeDataFromMetadata {
+  zIndex: number
+}
 
 const baseMockNode = {
   position: Vec2.Zero,
