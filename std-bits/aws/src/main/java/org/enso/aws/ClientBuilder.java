@@ -2,16 +2,13 @@ package org.enso.aws;
 
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
 import org.enso.base.enso_cloud.HideableValue;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.*;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import java.net.URI;
+import java.util.function.Supplier;
 
 public class ClientBuilder {
   private final AwsCredential awsCredential;
@@ -46,8 +43,16 @@ public class ClientBuilder {
    * code.
    */
   private AwsCredentialsProvider unsafeBuildCredentialProvider() {
-    return switch (this.awsCredential) {
-      case AwsCredential.Default unused -> DefaultCredentialsProvider.create();
+    return unsafeBuildCredentialProvider(awsCredential, this::getDefaultCredentialChain);
+  }
+
+  /**
+   * The {@code AwsCredentialsProviders} may leak secrets, so it should never be returned to user
+   * code.
+   */
+  private AwsCredentialsProvider unsafeBuildCredentialProvider(AwsCredential credential, Supplier<AwsCredentialsProvider> defaultProviderFactory) {
+    return switch (credential) {
+      case AwsCredential.Default unused -> defaultProviderFactory.get();
       case AwsCredential.Key key -> {
         AwsBasicCredentials credentials =
             AwsBasicCredentials.create(
@@ -75,5 +80,52 @@ public class ClientBuilder {
    */
   private String unsafeResolveSecrets(HideableValue value) {
     return ExternalLibrarySecretHelper.resolveValue(value);
+  }
+
+  private static AwsCredential defaultCredentialOverride = null;
+
+  /** Sets an override for what credential should be resolved when `AWS_Credential.Default` is used. */
+  public static void setDefaultCredentialOverride(AwsCredential credential) {
+    if (credential instanceof AwsCredential.Default) {
+      throw new IllegalArgumentException("AWS_Credential.Default is not a valid selection for AWS_Credential.set_default_override");
+    }
+    defaultCredentialOverride = credential;
+  }
+
+  private AwsCredentialsProvider getDefaultCredentialChain() {
+    AwsCredential override = defaultCredentialOverride;
+    if (override != null) {
+      return AwsCredentialsProviderChain.builder()
+          .credentialsProviders(
+              new EnsoOverrideCredentialProvider(override),
+              DefaultCredentialsProvider.create()
+          )
+          .build();
+    } else {
+      return DefaultCredentialsProvider.create();
+    }
+  }
+
+  private class EnsoOverrideCredentialProvider implements AwsCredentialsProvider {
+    /**
+     * An additional element to the default credentials chain,
+     * allowing to override the meaning of `AWS_Credential.Default`,
+     * using `AWS_Credential.set_default_override`.
+     * <p>
+     * It is used mainly for testing.
+     */
+    private final AwsCredential override;
+
+    private EnsoOverrideCredentialProvider(AwsCredential credential) {
+      override = credential;
+    }
+
+    @Override
+    public AwsCredentials resolveCredentials() {
+      Supplier<AwsCredentialsProvider> defaultProviderFactory = () -> {
+        throw new IllegalArgumentException("AWS_Credential.Default is not a valid selection for AWS_Credential override.");
+      };
+      return unsafeBuildCredentialProvider(override, defaultProviderFactory).resolveCredentials();
+    }
   }
 }
