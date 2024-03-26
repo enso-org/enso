@@ -16,6 +16,7 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
 import FocusArea from '#/components/styled/FocusArea'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
@@ -245,19 +246,15 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
               )}
             </FocusArea>
           </form>
-          <FocusArea direction="horizontal">
-            {(ref, innerProps) => (
-              <div ref={ref} className="self-start" {...innerProps}>
-                <UnstyledButton
-                  isDisabled={!canSubmit}
-                  className="button bg-invite text-tag-text enabled:active"
-                  onPress={doSubmit}
-                >
-                  Invite
-                </UnstyledButton>
-              </div>
-            )}
-          </FocusArea>
+          <ButtonRow>
+            <UnstyledButton
+              isDisabled={!canSubmit}
+              className="button bg-invite text-tag-text enabled:active"
+              onPress={doSubmit}
+            >
+              Invite
+            </UnstyledButton>
+          </ButtonRow>
         </div>
       </div>
     </Modal>

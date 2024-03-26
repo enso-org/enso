@@ -527,6 +527,11 @@ body[data-debug] [data-focus-area] {
   outline-offset: -1px;
 }
 
+body[data-debug] .focus-child {
+  outline: 2px solid rgb(255 0 255 / 30%);
+  outline-offset: -1px;
+}
+
 body[data-debug] :focus {
   outline: 2px solid rgb(0 0 255 / 60%);
   outline-offset: -1px;

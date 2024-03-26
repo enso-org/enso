@@ -7,6 +7,9 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import ColorPicker from '#/components/ColorPicker'
 import Modal from '#/components/Modal'
+import ButtonRow from '#/components/styled/ButtonRow'
+import FocusArea from '#/components/styled/FocusArea'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backend from '#/services/Backend'
 
@@ -73,53 +76,63 @@ export default function NewLabelModal(props: NewLabelModalProps) {
         }}
       >
         <h1 className="relative text-sm font-semibold">New Label</h1>
-        <label className="relative flex items-center">
-          <div className="text w-modal-label">Name</div>
-          <input
-            autoFocus
-            size={1}
-            placeholder="Enter the name of the label"
-            className={`text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-              color != null && color.lightness <= 50
-                ? 'text-tag-text placeholder-selected-frame'
-                : 'text-primary'
-            }`}
-            style={
-              color == null
-                ? {}
-                : {
-                    backgroundColor: backend.lChColorToCssColor(color),
-                  }
-            }
-            onInput={event => {
-              setName(event.currentTarget.value)
-            }}
-          />
-        </label>
-        <label
-          className="relative flex items-center"
-          onClick={event => {
-            event.preventDefault()
-          }}
-        >
-          <div className="text w-modal-label">Color</div>
-          <div className="grow">
-            <ColorPicker setColor={setColor} />
-          </div>
-        </label>
-        <div className="relative flex gap-buttons">
-          <button
-            disabled={!canSubmit}
-            type="submit"
+        <FocusArea direction="horizontal">
+          {(ref, innerProps) => (
+            <label ref={ref} className="relative flex items-center" {...innerProps}>
+              <div className="text w-modal-label">Name</div>
+              <input
+                autoFocus
+                size={1}
+                placeholder="Enter the name of the label"
+                className={`focus-child text grow rounded-full border border-primary/10 bg-transparent px-input-x ${
+                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                  color != null && color.lightness <= 50
+                    ? 'text-tag-text placeholder-selected-frame'
+                    : 'text-primary'
+                }`}
+                style={
+                  color == null
+                    ? {}
+                    : {
+                        backgroundColor: backend.lChColorToCssColor(color),
+                      }
+                }
+                onInput={event => {
+                  setName(event.currentTarget.value)
+                }}
+              />
+            </label>
+          )}
+        </FocusArea>
+        <FocusArea direction="horizontal">
+          {(ref, innerProps) => (
+            <label
+              ref={ref}
+              className="relative flex items-center"
+              onClick={event => {
+                event.preventDefault()
+              }}
+              {...innerProps}
+            >
+              <div className="text w-modal-label">Color</div>
+              <div className="grow">
+                <ColorPicker setColor={setColor} />
+              </div>
+            </label>
+          )}
+        </FocusArea>
+        <ButtonRow>
+          <UnstyledButton
+            isDisabled={!canSubmit}
             className="button bg-invite text-white enabled:active"
+            onPress={onSubmit}
           >
             Create
-          </button>
-          <button type="button" className="button bg-selected-frame active" onClick={unsetModal}>
+          </UnstyledButton>
+          <UnstyledButton className="button bg-selected-frame active" onPress={unsetModal}>
             Cancel
-          </button>
-        </div>
+          </UnstyledButton>
+        </ButtonRow>
       </form>
     </Modal>
   )
