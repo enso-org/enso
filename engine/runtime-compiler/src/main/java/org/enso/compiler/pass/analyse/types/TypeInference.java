@@ -276,9 +276,6 @@ public final class TypeInference implements IRPass {
 
   private TypeRepresentation.TypeObject resolvedTypeAsTypeObject(BindingsMap.ResolvedType resolvedType) {
     // TODO check if we have access to package repository, otherwise this will not be reversible!
-    if (resolvedType.qualifiedName().item().equals("Illegal_Argument")) {
-      System.out.println("resolvedType: " + resolvedType);
-    }
     return new TypeRepresentation.TypeObject(resolvedType.qualifiedName());
   }
 
@@ -345,11 +342,6 @@ public final class TypeInference implements IRPass {
   }
 
   private BindingsMap.Type findResolvedType(PackageRepository packageRepository, QualifiedName typeName) {
-    if (typeName.item().equals("Illegal_Argument")) {
-      System.out.println("typeName: " + typeName);
-    }
-
-    // TODO or else?
     var moduleName = typeName.getParent().get();
     var module = packageRepository.getLoadedModule(moduleName.toString());
     if (module.isEmpty()) {
