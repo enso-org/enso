@@ -1,16 +1,16 @@
 package org.enso.compiler.phase;
 
 
-import org.enso.compiler.core.ir.expression.errors.ImportExport;
+import java.util.Objects;
 
 import org.enso.compiler.Compiler;
-import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.CompilerError;
-import org.enso.compiler.core.ir.module.scope.Import;
-import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.expression.errors.ImportExport;
 import org.enso.compiler.core.ir.module.scope.Export;
+import org.enso.compiler.core.ir.module.scope.Import;
+import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
@@ -32,12 +32,12 @@ public final class ImportResolverUtil extends ImportResolver {
     Module module,
     Import.Module imp
   ) {
-      var res = tryResolveImportNew(module, imp);
+    var res = tryResolveImportNew(module, imp);
 
-      var old = res;
-      assert res.equals(old = tryResolveImportOld(module, imp)) : "old:\n" + old._1.pretty() + "\nnew:\n" + res._1.pretty();
+    var old = res;
+    assert res.equals(old = tryResolveImportOld(module, imp)) : "old:\n" + old._1.pretty() + "\nnew:\n" + res._1.pretty();
 
-      return res;
+    return res;
   }
 
   private Tuple2<Import, Option<BindingsMap.ResolvedImport>> tryResolveImportNew(
@@ -46,14 +46,10 @@ public final class ImportResolverUtil extends ImportResolver {
   ) {
     var impName = imp.name().name();
     var exp = CollectionConverters.SeqHasAsJava(module.exports()).asJava().stream().map(e -> switch (e) {
-        case Export.Module ex when ex.name().name().equals(impName) -> ex;
-        case null, default -> null;
-    }).filter(e -> e != null).toList();
+      case Export.Module ex when ex.name().name().equals(impName) -> ex;
+      case null, default -> null;
+    }).filter(Objects::nonNull).toList();
     var fromAllExports = exp.stream().filter(ex -> ex.isAll()).toList();
-
-    // switch (fromAllExports) {
-    //   case _ :: _ :: _ =>
-
     if (fromAllExports.size() >= 2) {
         // Detect potential conflicts when importing all and hiding names for the exports of the same module
         var unqualifiedImports = fromAllExports.stream().filter(e -> e.onlyNames().isEmpty()).toList();
@@ -64,7 +60,7 @@ public final class ImportResolverUtil extends ImportResolver {
             } else {
                 return null;
             }
-        }).filter(e -> e != null).toList();
+        }).filter(Objects::nonNull).toList();
         var importsWithHiddenNames = fromAllExports.stream().map(e -> {
             if (e.hiddenNames().isDefined()) {
                 var hiddenNames = CollectionConverters.SeqHasAsJava(e.hiddenNames().get()).asJava();
@@ -72,12 +68,12 @@ public final class ImportResolverUtil extends ImportResolver {
             } else {
                 return null;
             }
-        }).filter(e -> e != null).toList();
+        }).filter(Objects::nonNull).toList();
 
         for (var h : importsWithHiddenNames) {
             var e = h._1;
             var hidden = h._2;
-            var unqualifiedConflicts = unqualifiedImports.stream().filter(x -> x != e).toList();
+            var unqualifiedConflicts = unqualifiedImports.stream().filter(Objects::nonNull).toList();
             if (!unqualifiedConflicts.isEmpty()) {
               var b = toScalaList(hidden.stream().map(x -> x.name()).toList());
               throw new HiddenNamesShadowUnqualifiedExport(
@@ -89,7 +85,7 @@ public final class ImportResolverUtil extends ImportResolver {
         for (var h : importsWithHiddenNames) {
             var e = h._1;
             var hidden = h._2;
-            var qualifiedConflicts = qualifiedImports.stream().filter(x -> x != e)
+            var qualifiedConflicts = qualifiedImports.stream().filter(Objects::nonNull)
               .flatMap(x -> x.stream())
               .filter(f -> hidden.stream().filter(x -> f.equals(x.name())).findAny().isPresent())
               .toList();
@@ -166,27 +162,27 @@ public final class ImportResolverUtil extends ImportResolver {
       compiler.ensureParsed(mod);
       var b = mod.getBindingsMap();
       if (b == null) {
-        compiler.context().updateModule(
-          mod,
-          u -> {
-            u.invalidateCache();
-            u.ir(null);
-            u.compilationStage(CompilationStage.INITIAL);
-          }
-        );
+        compiler.context().updateModule(mod, u -> {
+          u.invalidateCache();
+          u.ir(null);
+          u.compilationStage(CompilationStage.INITIAL);
+        });
         compiler.ensureParsed(mod, false);
         b = mod.getBindingsMap();
       }
 
-        var entities = CollectionConverters.SeqHasAsJava(b.definedEntities()).asJava();
-        var type = entities.stream().filter(e -> e.name().equals(tp))
-                .map(e -> switch (e) {
-                    case BindingsMap.Type t -> new ResolvedType(new BindingsMap$ModuleReference$Concrete(mod), t);
-                    case null, default -> null;
-                }).filter(e -> e != null).findFirst();
-        return type.orElse(null);
+      var entities = CollectionConverters.SeqHasAsJava(b.definedEntities()).asJava();
+      var type = entities.stream()
+        .filter(e -> e.name().equals(tp))
+        .map(e -> switch (e) {
+          case BindingsMap.Type t -> new ResolvedType(new BindingsMap$ModuleReference$Concrete(mod), t);
+          case null, default -> null;
+        })
+        .filter(Objects::nonNull)
+        .findFirst();
+      return type.orElse(null);
     } else {
-        return null;
+      return null;
     }
   }
 
