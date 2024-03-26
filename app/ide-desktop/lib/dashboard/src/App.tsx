@@ -64,6 +64,7 @@ import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import Login from '#/pages/authentication/Login'
 import Registration from '#/pages/authentication/Registration'
 import ResetPassword from '#/pages/authentication/ResetPassword'
+import RestoreAccount from '#/pages/authentication/RestoreAccount'
 import SetUsername from '#/pages/authentication/SetUsername'
 import Dashboard from '#/pages/dashboard/Dashboard'
 import Subscribe from '#/pages/subscribe/Subscribe'
@@ -386,6 +387,7 @@ function AppRouter(props: AppRouterProps) {
         <router.Route path={appUtils.FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
         <router.Route path={appUtils.RESET_PASSWORD_PATH} element={<ResetPassword />} />
         <router.Route path={appUtils.ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
+        <router.Route path={appUtils.RESTORE_USER_PATH} element={<RestoreAccount />} />
       </React.Fragment>
     </router.Routes>
   )
