@@ -1,20 +1,21 @@
 package org.enso.aws;
 
-import java.util.HashMap;
-import java.util.Optional;
-import java.util.logging.Logger;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
+import java.util.HashMap;
+import java.util.Optional;
+import java.util.logging.Logger;
+
 /**
  * A utility class for locating the region of an S3 bucket.
- *
- * <p>We cache the region to avoid fetching it all the time. Technically the region may change if a
- * bucket is deleted and re-created in another region, but that seems like a very unlikely scenario,
- * and usually the new bucket with the same name cannot be created immediately, so requiring a
- * restart of the engine in such a case seems OK.
+ * <p>
+ * We cache the region to avoid fetching it all the time.
+ * Technically the region may change if a bucket is deleted and re-created in another region,
+ * but that seems like a very unlikely scenario, and usually the new bucket with the same name cannot be created immediately,
+ * so requiring a restart of the engine in such a case seems OK.
  */
 public class BucketLocator {
   private static final HashMap<String, Region> cache = new HashMap<>();
@@ -33,12 +34,10 @@ public class BucketLocator {
     return found;
   }
 
-  /**
-   * The AWS docs recommend to use HeadBucket operation to get the region.
-   *
-   * <p>However, in practice we noticed it usually fails if the region the client is using is wrong.
-   * But the error response, contains the true bucket region which we can extract.
-   */
+  /** The AWS docs recommend to use HeadBucket operation to get the region.
+   * <p>
+   * However, in practice we noticed it usually fails if the region the client is using is wrong.
+   * But the error response, contains the true bucket region which we can extract. */
   private static Region locateBucket(String bucketName, AwsCredential associatedCredential) {
     var clientBuilder = new ClientBuilder(associatedCredential, null);
     try (var client = clientBuilder.buildGlobalS3Client()) {
@@ -47,8 +46,7 @@ public class BucketLocator {
     } catch (S3Exception error) {
       var details = error.awsErrorDetails();
       if (details == null) {
-        logger.fine(
-            "Failed to locate a bucket (missing details in error response): " + error.getMessage());
+        logger.fine("Failed to locate a bucket (missing details in error response): " + error.getMessage());
         return null;
       }
 
