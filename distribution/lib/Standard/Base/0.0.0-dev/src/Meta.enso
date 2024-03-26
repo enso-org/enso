@@ -81,6 +81,7 @@ type Type
 
     ## ADVANCED
        GROUP Metadata
+       ICON find
 
        Finds type specified by fully qualified name. Searches
        all the types known to the system by transitive closure
@@ -216,6 +217,7 @@ type Unresolved_Symbol
 
     ## ADVANCED
        GROUP Metadata
+       ICON metadata
 
        Starts building an instrumentation for a given node
     instrument : Instrumentor
