@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import NumericInputWidget from '@/components/widgets/NumericInputWidget.vue'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
-import { computed } from 'vue'
+import { computed, ref, type ComponentInstance } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
+const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
 const value = computed({
   get() {
     const valueStr = WidgetInput.valueRepr(props.input)
@@ -24,6 +26,12 @@ const limits = computed(() => {
   } else {
     return undefined
   }
+})
+
+const editHandler = WidgetEditHandler.New(props.input, {
+  cancel: () => inputComponent.value?.cancel(),
+  start: () => inputComponent.value?.focus(),
+  end: () => inputComponent.value?.blur(),
 })
 </script>
 
@@ -52,11 +60,15 @@ export const widgetDefinition = defineWidget(WidgetInput.isAstOrPlaceholder, {
 <template>
   <!-- See comment in GraphNode next to dragPointer definition about stopping pointerdown and pointerup -->
   <NumericInputWidget
+    ref="inputComponent"
     v-model="value"
     class="WidgetNumber r-24"
     :limits="limits"
     @pointerdown.stop
     @pointerup.stop
+    @focus="editHandler.start()"
+    @blur="editHandler.end()"
+    @input="editHandler.edit($event)"
   />
 </template>
 

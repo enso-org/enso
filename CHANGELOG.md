@@ -638,6 +638,8 @@
 - [Allow `Table.replace` to take mutiple target columns.][9406]
 - [Initial Snowflake Support - ability to read and query, not a completed
   dialect yet.][9435]
+- [Make expand_to_rows, expand_column support Rows, Tables, Column data
+  types][9533]
 - [Implemented `.to_integer`, `.to_float`, and `from` conversions for
   `Decimal`][9462]
 
@@ -931,6 +933,7 @@
 [9406]: https://github.com/enso-org/enso/pull/9406
 [9435]: https://github.com/enso-org/enso/pull/9435
 [9462]: https://github.com/enso-org/enso/pull/9462
+[9533]: https://github.com/enso-org/enso/pull/9533
 
 #### Enso Compiler
 
