@@ -214,6 +214,13 @@ add_specs suite_builder =
             expected = Table.new [["tables aaa", [1, 2, 3, 10]], ["tables bbb", [4, 5, 6, 11]], ["tables ccc", [7, 8, 9, 12]]]
             table.expand_to_rows "tables" . expand_column "tables" . should_equal expected
 
+        group_builder.specify "Expands rows within a column for ragged tables" <|
+            table1 = Table.new [["aaa", [1, 2, 3]], ["bbb", [4, 5, 6]]]
+            table2 = Table.new [["aaa", [10]], ["bbb", [11]], ["ccc", [12]]]
+            table = Table.new [["tables", [table1, table2]]]
+            expected = Table.new [["tables aaa", [1, 2, 3, 10]], ["tables bbb", [4, 5, 6, 11]], ["tables ccc", [Nothing, Nothing, Nothing, 12]]]
+            table.expand_to_rows "tables" . expand_column "tables" . should_equal expected
+
         group_builder.specify "Expands columns within a column" <|
             column1 = Column.from_vector "c1" ["a", "b", "c"]
             column2 = Column.from_vector "c2" ["d", "e"]
