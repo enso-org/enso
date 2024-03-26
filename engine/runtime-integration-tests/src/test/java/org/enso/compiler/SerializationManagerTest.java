@@ -13,7 +13,7 @@ import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.test.InterpreterContext;
-import org.enso.interpreter.util.ScalaCollections;
+import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
@@ -114,7 +114,7 @@ public class SerializationManagerTest {
             .findFirst()
             .get();
     Assert.assertEquals(
-        ScalaCollections.set("Standard.Base.Main", "Standard.Base.Data.Boolean").toList(),
+        ScalaConversions.set("Standard.Base.Main", "Standard.Base.Data.Boolean").toList(),
         booleanTrueSuggestion.reexports().toList());
 
     Suggestion.Constructor runtimeContextInputSuggestion =
@@ -124,7 +124,7 @@ public class SerializationManagerTest {
             .findFirst()
             .get();
     Assert.assertEquals(
-        ScalaCollections.set().toList(), runtimeContextInputSuggestion.reexports().toList());
+        ScalaConversions.set().toList(), runtimeContextInputSuggestion.reexports().toList());
 
     clearLibraryCache(standardBaseLibrary);
   }
