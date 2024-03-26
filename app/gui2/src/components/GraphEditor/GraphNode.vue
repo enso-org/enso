@@ -51,7 +51,7 @@ const emit = defineEmits<{
   outputPortClick: [portId: AstId]
   outputPortDoubleClick: [portId: AstId]
   doubleClick: []
-  createNode: [options: NodeCreationOptions]
+  createNodes: [options: NodeCreationOptions[]]
   'update:edited': [cursorPosition: number]
   'update:rect': [rect: Rect]
   'update:visualizationId': [id: Opt<VisualizationIdentifier>]
@@ -450,7 +450,7 @@ const documentation = computed<string | undefined>({
       @startEditingComment="editingComment = true"
       @openFullMenu="openFullMenu"
       @delete="emit('delete')"
-      @createNode="emit('createNode', $event)"
+      @createNodes="emit('createNodes', $event)"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
     />
@@ -471,7 +471,7 @@ const documentation = computed<string | undefined>({
       @update:visible="emit('update:visualizationVisible', $event)"
       @update:fullscreen="emit('update:visualizationFullscreen', $event)"
       @update:width="emit('update:visualizationWidth', $event)"
-      @createNode="emit('createNode', $event)"
+      @createNodes="emit('createNodes', $event)"
     />
     <Suspense>
       <GraphNodeComment

@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Numeric_Input, Single_Choice, Text_Input, Vector_Editor
+from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single_Choice, Text_Input, Vector_Editor
 from Standard.Base.System.File_Format import format_types
 from Standard.Base.Widget_Helpers import make_format_chooser
 
@@ -82,6 +82,13 @@ make_column_name_vector_selector : Table -> Display -> Widget
 make_column_name_vector_selector table display=Display.Always =
     item_editor = make_column_name_selector table display=Display.Always
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
+
+## PRIVATE
+   Make a multiple column-name selector that allows each value to be selected at most once.
+make_column_name_multi_selector : Table -> Display -> Widget
+make_column_name_multi_selector table display=Display.Always =
+    names = table.column_names.map n-> Option n n.pretty
+    Multiple_Choice values=names display=display
 
 ## PRIVATE
    Make a column reference by name selector.

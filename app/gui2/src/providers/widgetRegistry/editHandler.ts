@@ -18,6 +18,7 @@ export interface WidgetEditInteraction extends Interaction {
   start?(origin: PortId): void
   edit?(origin: PortId, value: Ast.Owned | string): void
   end?(origin: PortId): void
+  addItem?(): boolean
 }
 
 /**
@@ -50,7 +51,7 @@ export interface WidgetEditInteraction extends Interaction {
  * argument
  */
 export class WidgetEditHandler {
-  private interaction: WidgetEditInteraction
+  private readonly interaction: WidgetEditInteraction
   /** This, or one's child interaction which is currently active */
   private activeInteraction: WidgetEditInteraction | undefined
 
@@ -96,6 +97,9 @@ export class WidgetEditHandler {
         innerInteraction.end?.(portId)
         parent?.interaction.end?.(portId)
       },
+      addItem: () => {
+        return (innerInteraction.addItem?.() || parent?.interaction.addItem?.()) ?? false
+      },
     }
   }
 
@@ -135,5 +139,9 @@ export class WidgetEditHandler {
 
   isActive() {
     return this.activeInteraction ? this.interactionHandler.isActive(this.activeInteraction) : false
+  }
+
+  addItem() {
+    return this.interaction.addItem?.()
   }
 }
