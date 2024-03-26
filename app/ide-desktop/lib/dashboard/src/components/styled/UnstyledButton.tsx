@@ -15,6 +15,8 @@ import FocusRing from '#/components/styled/FocusRing'
 
 /** Props for a {@link UnstyledButton}. */
 export interface UnstyledButtonProps extends Readonly<React.PropsWithChildren> {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly 'aria-label'?: string
   readonly focusRingPlacement?: focusRing.FocusRingPlacement
   readonly autoFocus?: boolean
   /** When `true`, the button is not clickable. */
@@ -26,7 +28,14 @@ export interface UnstyledButtonProps extends Readonly<React.PropsWithChildren> {
 
 /** An unstyled button with a focus ring and focus movement behavior. */
 export default function UnstyledButton(props: UnstyledButtonProps) {
-  const { focusRingPlacement, autoFocus = false, isDisabled = false, className, style } = props
+  const {
+    focusRingPlacement,
+    autoFocus = false,
+    isDisabled = false,
+    className,
+    style,
+    ...buttonProps
+  } = props
   const { onPress } = props
   const { children } = props
   const focusDirection = focusDirectionProvider.useFocusDirection()
@@ -35,9 +44,10 @@ export default function UnstyledButton(props: UnstyledButtonProps) {
   return (
     <FocusRing {...(focusRingPlacement == null ? {} : { placement: focusRingPlacement })}>
       <aria.Button
+        {...buttonProps}
         autoFocus={autoFocus}
         isDisabled={isDisabled}
-        className={className ?? ''}
+        className={`focus-child ${className ?? ''}`}
         style={style ?? {}}
         onPress={onPress}
         onKeyDown={handleFocusMove}

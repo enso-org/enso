@@ -43,7 +43,7 @@ export default function Button(props: ButtonProps) {
       <aria.Button
         autoFocus={autoFocus}
         isDisabled={isDisabled}
-        className="relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring"
+        className="focus-child relative after:pointer-events-none after:absolute after:inset-button-focus-ring-inset after:rounded-button-focus-ring"
         onPress={onPress}
         onKeyDown={handleFocusMove}
       >

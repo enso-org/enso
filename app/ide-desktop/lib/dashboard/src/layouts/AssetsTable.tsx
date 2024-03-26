@@ -2303,6 +2303,10 @@ export default function AssetsTable(props: AssetsTableProps) {
               key: node.key,
               asset: node.item,
             }))
+            event.dataTransfer.setData(
+              'application/vnd.enso.assets+json',
+              JSON.stringify(nodes.map(node => node.key))
+            )
             drag.setDragImageToBlank(event)
             drag.ASSET_ROWS.bind(event, payload)
             setModal(

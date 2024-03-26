@@ -25,7 +25,7 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
       switch (event.key) {
         case keyPrevious: {
           const element = focusManager?.focusPrevious({
-            accept: other => !other.classList.contains('focus-skip'),
+            accept: other => other.classList.contains('focus-child'),
           })
           if (element != null) {
             reactEvent?.stopPropagation()
@@ -37,7 +37,7 @@ export function useHandleFocusMove(direction: 'horizontal' | 'vertical') {
         }
         case keyNext: {
           const element = focusManager?.focusNext({
-            accept: other => !other.classList.contains('focus-skip'),
+            accept: other => other.classList.contains('focus-child'),
           })
           if (element != null) {
             reactEvent?.stopPropagation()

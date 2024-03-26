@@ -21,6 +21,7 @@ import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDataLinkModal from '#/modals/UpsertDataLinkModal'
@@ -124,17 +125,15 @@ export default function DriveBar(props: DriveBarProps) {
           {(ref, innerProps) => (
             <div ref={ref} className="flex h-row py-drive-bar-y" {...innerProps}>
               <div className="flex gap-drive-bar">
-                <FocusRing>
-                  <aria.Button
-                    className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-                    onPress={() => {
-                      unsetModal()
-                      doCreateProject()
-                    }}
-                  >
-                    <span className="text whitespace-nowrap font-semibold">New Project</span>
-                  </aria.Button>
-                </FocusRing>
+                <UnstyledButton
+                  className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+                  onPress={() => {
+                    unsetModal()
+                    doCreateProject()
+                  }}
+                >
+                  <span className="text whitespace-nowrap font-semibold">New Project</span>
+                </UnstyledButton>
                 <div className="flex h-row items-center gap-icons rounded-full bg-frame px-drive-bar-icons-x text-black/50">
                   {isCloud && (
                     <Button

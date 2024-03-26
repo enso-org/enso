@@ -63,6 +63,7 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
         'auth-heading': 'var(--auth-heading-font-size)',
       },
       borderRadius: {
+        inherit: 'inherit',
         '2.5xl': '1.25rem',
         '4xl': '2rem',
         default: 'var(--default-corner-radius)',
@@ -436,10 +437,14 @@ export default /** @satisfies {import('tailwindcss').Config} */ ({
             },
           },
 
-          // === Outline classes ===
+          // === States ===
 
           '.focus-ring, .focus-ring:focus, .focus-ring-within[data-focus-visible=true]': {
             '@apply outline outline-2 -outline-offset-2 outline-primary transition-all': '',
+          },
+          '.drop-target-after': {
+            '@apply relative after:pointer-events-none after:absolute after:inset after:rounded-inherit [&[data-drop-target=true]]:after:bg-primary/10':
+              '',
           },
 
           // === Classes affecting opacity ===

@@ -522,17 +522,17 @@ body::before {
   background: rgb(0 0 0 / 0%);
 }
 
-[data-debug] [data-focus-area] {
+body[data-debug] [data-focus-area] {
   outline: 2px solid red;
   outline-offset: -1px;
 }
 
-[data-debug] :focus {
+body[data-debug] :focus {
   outline: 2px solid blue;
   outline-offset: -1px;
 }
 
-[data-debug] :focus-visible {
+body[data-debug] :focus-visible {
   outline: 2px solid green;
   outline-offset: -1px;
 }

@@ -5,6 +5,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 
 import Autocomplete from '#/components/Autocomplete'
 import Dropdown from '#/components/Dropdown'
+import Checkbox from '#/components/styled/Checkbox'
 
 import * as jsonSchema from '#/utilities/jsonSchema'
 import * as object from '#/utilities/object'
@@ -153,14 +154,10 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
         }
         case 'boolean': {
           children.push(
-            <input
-              type="checkbox"
-              readOnly={readOnly}
-              checked={typeof value === 'boolean' && value}
-              onChange={event => {
-                const newValue: boolean = event.currentTarget.checked
-                setValue(newValue)
-              }}
+            <Checkbox
+              isReadOnly={readOnly}
+              isSelected={typeof value === 'boolean' && value}
+              onChange={setValue}
             />
           )
           break
