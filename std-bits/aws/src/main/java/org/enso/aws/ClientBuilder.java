@@ -4,18 +4,52 @@ import java.net.URI;
 import java.util.function.Supplier;
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
 import org.enso.base.enso_cloud.HideableValue;
-import software.amazon.awssdk.auth.credentials.*;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProviderChain;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
 public class ClientBuilder {
+  private static AwsCredential defaultCredentialOverride = null;
   private final AwsCredential awsCredential;
   private final Region awsRegion;
 
   public ClientBuilder(AwsCredential credential, Region awsRegion) {
     this.awsCredential = credential;
     this.awsRegion = awsRegion;
+  }
+
+  /** Checks if the default credential is available. */
+  public static boolean isDefaultCredentialAvailable() {
+    try (var provider = DefaultCredentialsProvider.create()) {
+      provider.resolveCredentials();
+      return true;
+    } catch (SdkClientException e) {
+      return false;
+    }
+  }
+
+  /**
+   * Sets an override for what credential should be resolved when `AWS_Credential.Default` is used.
+   *
+   * <p>It returns the previous override value to allow restoring it if overrides are nested.
+   */
+  public static AwsCredential setDefaultCredentialOverride(AwsCredential credential) {
+    if (credential instanceof AwsCredential.Default) {
+      throw new IllegalArgumentException(
+          "AWS_Credential.Default is not a valid selection for"
+              + " AWS_Credential.set_default_override");
+    }
+
+    AwsCredential previous = defaultCredentialOverride;
+    defaultCredentialOverride = credential;
+    return previous;
   }
 
   public S3Client buildS3Client() {
@@ -66,41 +100,12 @@ public class ClientBuilder {
     };
   }
 
-  /** Checks if the default credential is available. */
-  public static boolean isDefaultCredentialAvailable() {
-    try (var provider = DefaultCredentialsProvider.create()) {
-      provider.resolveCredentials();
-      return true;
-    } catch (SdkClientException e) {
-      return false;
-    }
-  }
-
   /**
    * This function is allowed access to secrets. Extra care should be taken to ensure its result is
    * not leaked.
    */
   private String unsafeResolveSecrets(HideableValue value) {
     return ExternalLibrarySecretHelper.resolveValue(value);
-  }
-
-  private static AwsCredential defaultCredentialOverride = null;
-
-  /**
-   * Sets an override for what credential should be resolved when `AWS_Credential.Default` is used.
-   *
-   * <p>It returns the previous override value to allow restoring it if overrides are nested.
-   */
-  public static AwsCredential setDefaultCredentialOverride(AwsCredential credential) {
-    if (credential instanceof AwsCredential.Default) {
-      throw new IllegalArgumentException(
-          "AWS_Credential.Default is not a valid selection for"
-              + " AWS_Credential.set_default_override");
-    }
-
-    AwsCredential previous = defaultCredentialOverride;
-    defaultCredentialOverride = credential;
-    return previous;
   }
 
   private AwsCredentialsProvider getDefaultCredentialChain() {

@@ -19,6 +19,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
  */
 public class BucketLocator {
   private static final HashMap<String, Region> cache = new HashMap<>();
+  private static final Logger logger = Logger.getLogger(BucketLocator.class.getName());
 
   public static void flushCache() {
     cache.clear();
@@ -110,6 +111,4 @@ public class BucketLocator {
       return null;
     }
   }
-
-  private static final Logger logger = Logger.getLogger(BucketLocator.class.getName());
 }
