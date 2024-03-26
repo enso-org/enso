@@ -41,8 +41,19 @@ public class BucketLocator {
         return Region.US_EAST_1;
       }
 
-      // TODO what will a more general locationConstraint, eg. `EU` will be mapped to?
-      return Region.of(locationConstraint.toString());
+      if (locationConstraint == BucketLocationConstraint.UNKNOWN_TO_SDK_VERSION) {
+        Logger.getLogger("S3-BucketLocator").fine("AWS returned an unknown location constraint.");
+        return null;
+      }
+
+      var inferredRegion = Region.of(locationConstraint.toString());
+      boolean isKnown = Region.regions().contains(inferredRegion);
+      if (isKnown) {
+        return inferredRegion;
+      } else {
+        Logger.getLogger("S3-BucketLocator").fine("AWS returned a location constraint that cannot be mapped to a known region: " + locationConstraint);
+        return null;
+      }
     } catch (Exception e) {
       Logger.getLogger("S3-BucketLocator").fine("Failed to locate bucket " + bucketName + ": " + e.getMessage());
       return null;
