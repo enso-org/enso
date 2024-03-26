@@ -18,7 +18,9 @@ import org.enso.compiler.core.ir.Literal.Number;
 import org.enso.compiler.core.ir.Literal.Text;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Application;
+import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Definition.Data;
 import org.enso.compiler.core.ir.module.scope.Export;
@@ -237,6 +239,36 @@ public class IRDumper {
         createIRGraph(retVal);
         createEdge(block, retVal, "returnValue");
       }
+      case Case.Expr caseExpr ->  {
+        var isNested = caseExpr.isNested();
+        var caseNode =
+            GraphVizNode.Builder.fromIr(caseExpr)
+                .addLabelLine("isNested: " + isNested)
+                .build();
+        addNode(caseNode);
+        var scrutineeExpr = caseExpr.scrutinee();
+        createIRGraph(scrutineeExpr);
+        createEdge(caseExpr, scrutineeExpr, "scrutinee");
+        var branches = caseExpr.branches();
+        for (int i = 0; i < branches.size(); i++) {
+          var branch = branches.apply(i);
+          createIRGraph(branch);
+          createEdge(caseExpr, branch, "branch[" + i + "]");
+        }
+      }
+      case Case.Branch caseBranch -> {
+        var isTerminalBranch = caseBranch.terminalBranch();
+        var caseBranchNode = GraphVizNode.Builder.fromIr(caseBranch)
+            .addLabelLine("terminalBranch: " + isTerminalBranch)
+            .build();
+        addNode(caseBranchNode);
+        var pattern = caseBranch.pattern();
+        createIRGraph(pattern);
+        createEdge(caseBranch, pattern, "pattern");
+        var expr = caseBranch.expression();
+        createIRGraph(expr);
+        createEdge(caseBranch, expr, "expression");
+      }
       case Application.Prefix prefixApp -> {
         var prefixAppNode =
             GraphVizNode.Builder.fromIr(prefixApp)
@@ -301,6 +333,45 @@ public class IRDumper {
         var node = GraphVizNode.Builder.fromIr(expression).build();
         addNode(node);
       }
+    }
+  }
+
+  private void createIRGraph(Pattern pattern) {
+    var bldr = GraphVizNode.Builder.fromIr(pattern);
+    switch (pattern) {
+      case Pattern.Constructor constrPat -> {
+        var constr = constrPat.constructor();
+        bldr.addLabelLine("constructor: " + constr.name());
+        addNode(bldr.build());
+        var fields = constrPat.fields();
+        for (int i = 0; i < fields.size(); i++) {
+          var field = fields.apply(i);
+          createIRGraph(field);
+          createEdge(constrPat, field, "field[" + i + "]");
+        }
+      }
+      case Pattern.Type tp -> {
+        var name = tp.name();
+        var tpe = tp.tpe();
+        bldr.addLabelLine("name: " + name.name());
+        bldr.addLabelLine("tpe: " + tpe.name());
+        addNode(bldr.build());
+      }
+      case Pattern.Literal litPat -> {
+        addNode(bldr.build());
+        var lit = litPat.literal();
+        createIRGraph(lit);
+        createEdge(litPat, lit, "literal");
+      }
+      case Pattern.Name name -> {
+        bldr.addLabelLine("name: " + name.name().name());
+        addNode(bldr.build());
+      }
+      case Pattern.Documentation doc ->  {
+        bldr.addLabelLine("doc: " + doc.doc());
+        addNode(bldr.build());
+      }
+      default -> throw unimpl(pattern);
     }
   }
 
