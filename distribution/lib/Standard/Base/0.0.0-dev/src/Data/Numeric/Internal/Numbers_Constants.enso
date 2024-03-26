@@ -1,5 +1,3 @@
-private
-
 from project.Data.Numbers import Float
 
 polyglot java import java.lang.Double

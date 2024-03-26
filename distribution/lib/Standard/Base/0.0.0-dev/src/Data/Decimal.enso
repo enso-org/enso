@@ -514,6 +514,46 @@ type Decimal
     / : Decimal -> Decimal -> Decimal
     / self (that : Decimal) = self.divide that
 
+    ## ALIAS modulo, modulus
+       GROUP Operators
+       ICON math
+       Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Modulus  in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Computing the remainder when dividing 10 by 3 (which is 1).
+
+             remainder = Decimal.new 10 . remainder 3
+             # => 1
+    remainder : Decimal -> Decimal -> Decimal
+    remainder self (that : Decimal) =
+        handle_java_exception <|
+            Decimal.Value (self.big_decimal.remainder that.big_decimal)
+
+    ## ALIAS modulo, modulus, remainder
+       GROUP Operators
+       ICON math
+       Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Modulus  in Enso will undergo automatic conversions such that you need
+       not convert other numeric types to `Decimal` manually.
+
+       > Example
+         Computing the remainder when dividing 10 by 3 (which is 1).
+
+             remainder = Decimal.new 10 % 3
+             # => 1
+    % : Decimal -> Decimal -> Decimal
+    % self (that : Decimal) = self.remainder that
+
     ## GROUP Operators
        Compute the negation of this.
 
