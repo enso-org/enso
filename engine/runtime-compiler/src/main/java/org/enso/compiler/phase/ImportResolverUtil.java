@@ -141,7 +141,7 @@ public final class ImportResolverUtil extends ImportResolver {
             }
         }
     } else {
-        var loadingError = foundLib.left().getOrElse(String::new).toString();
+        var loadingError = foundLib.left().getOrElse(null).toString();
         var importError = new ImportExport(
             imp,
             new ImportExport.PackageCouldNotBeLoaded(
