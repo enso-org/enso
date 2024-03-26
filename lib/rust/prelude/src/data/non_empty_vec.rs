@@ -12,12 +12,10 @@ use std::vec::Drain;
 // ===================
 
 /// A version of [`std::vec::Vec`] that can't be empty.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut, Reflect)]
+#[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut, Reflect, Serialize, Deserialize)]
 #[reflect(transparent)]
-#[derive(crate::serde_reexports::Serialize)]
-#[derive(crate::serde_reexports::Deserialize)]
 pub struct NonEmptyVec<T> {
+    /// An internal vector that contains at least one element at all times.
     pub elems: Vec<T>,
 }
 
@@ -38,20 +36,6 @@ impl<T> NonEmptyVec<T> {
         NonEmptyVec { elems }
     }
 
-    /// Construct a new non-empty vector.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// #![allow(unused_mut)]
-    /// use enso_prelude::NonEmptyVec;
-    /// let mut vec: NonEmptyVec<usize> = NonEmptyVec::new_with_last(vec![], 0);
-    /// ```
-    pub fn new_with_last(mut elems: Vec<T>, last: T) -> NonEmptyVec<T> {
-        elems.push(last);
-        NonEmptyVec { elems: elems.into() }
-    }
-
     /// Length of the vector.
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
@@ -70,7 +54,7 @@ impl<T> NonEmptyVec<T> {
     /// ```
     pub fn singleton(first: T) -> NonEmptyVec<T> {
         let elems = vec![first];
-        Self { elems: elems.into() }
+        Self { elems }
     }
 
     /// Construct a new, `NonEmptyVec<T>` containing the provided element and with the
@@ -169,21 +153,6 @@ impl<T> NonEmptyVec<T> {
         self.elems.push(value)
     }
 
-    /// Remove an element from the back of the collection, returning it.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::<_>::new(0, vec![1]);
-    /// assert!(vec.pop_if_has_more_than_1_elem().is_some());
-    /// assert!(vec.pop_if_has_more_than_1_elem().is_none());
-    /// assert_eq!(vec.len(), 1);
-    /// ```
-    pub fn pop_if_has_more_than_1_elem(&mut self) -> Option<T> {
-        (self.len() > 1).and_option_from(|| self.elems.pop())
-    }
-
     /// Remove an element from the back of the collection, returning it and a new possibly empty
     /// vector.
     pub fn pop(mut self) -> (T, Vec<T>) {
@@ -245,7 +214,7 @@ impl<T> NonEmptyVec<T> {
 
     /// Convert this non-empty vector to vector.
     pub fn into_vec(self) -> Vec<T> {
-        self.elems.into()
+        self.elems
     }
 
     /// Consume this non-empty vector and return it's first element. The rest will be dropped.
@@ -258,9 +227,7 @@ impl<T> NonEmptyVec<T> {
         let elems = self.elems.into_iter().map(f).collect();
         NonEmptyVec { elems }
     }
-}
 
-impl<T> NonEmptyVec<T> {
     /// Obtain a mutable reference to the element in the vector at the specified `index`.
     ///
     /// # Examples
@@ -316,30 +283,6 @@ impl<T> NonEmptyVec<T> {
             self.elems.drain(range)
         }
     }
-
-    /// Insert the contents of an iterator at a specified index in the collection.
-    ///
-    /// This is optimal if:
-    /// - The specified index is equal to the length of the vector,
-    /// - or the lower bound of the iterator's `size_hint()` is exact.
-    ///
-    /// Otherwise, a temporary vector is allocated and the tail is moved twice.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the given index is greater than the length of the vector.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use enso_prelude::NonEmptyVec;
-    /// let mut vec = NonEmptyVec::new(0, vec![1, 4, 5]);
-    /// vec.extend_at(2, vec![2, 3]);
-    /// assert_eq!(&vec.as_slice(), &[0, 1, 2, 3, 4, 5])
-    /// ```
-    pub fn extend_at(&mut self, index: usize, elems: impl IntoIterator<Item = T>) {
-        self.splice(index..index, elems);
-    }
 }
 
 
@@ -354,15 +297,20 @@ impl<T: Default> Default for NonEmptyVec<T> {
 impl<T> TryFrom<Vec<T>> for NonEmptyVec<T> {
     type Error = ();
     fn try_from(elems: Vec<T>) -> Result<Self, Self::Error> {
-        (!elems.is_empty()).as_result_from(|| NonEmptyVec { elems: elems.into() }, || ())
+        if elems.is_empty() {
+            Err(())
+        } else {
+            Ok(NonEmptyVec { elems })
+        }
     }
 }
 
 impl<T> From<NonEmptyVec<T>> for Vec<T> {
     fn from(v: NonEmptyVec<T>) -> Self {
-        v.elems.into()
+        v.elems
     }
 }
+
 
 impl<T> IntoIterator for NonEmptyVec<T> {
     type Item = T;

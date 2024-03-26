@@ -19,17 +19,10 @@ crate-type = ["rlib"]
 enso-logging = { path = "../logging" }
 enso-reflect = { path = "../reflect" }
 enso-zst = { path = "../zst" }
-anyhow = { workspace = true }
 boolinator = { workspace = true }
 derivative = { workspace = true }
 derive_more = { workspace = true }
-failure = { workspace = true }
-futures = { workspace = true }
-itertools = { workspace = true }
-paste = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
-smallvec = { workspace = true }
 enso-macros = { path = "macros" }
 
 [lints]
