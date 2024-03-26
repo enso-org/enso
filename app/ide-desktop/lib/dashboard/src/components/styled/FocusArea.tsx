@@ -60,8 +60,22 @@ function FocusArea(props: FocusAreaProps) {
         rootRef.current = element
         unregisterNavigatorRef.current()
         if (element != null && focusManager != null) {
+          const focusFirst = focusManager.focusFirst.bind(null, {
+            accept: other => other.classList.contains('focus-child'),
+          })
+          const focusLast = focusManager.focusLast.bind(null, {
+            accept: other => other.classList.contains('focus-child'),
+          })
+          const focusCurrent = () =>
+            focusManager.focusFirst({
+              accept: other => other.classList.contains('focus-default'),
+            }) ?? focusFirst()
           unregisterNavigatorRef.current = navigator2D.register(element, {
-            focusPrimaryChild: focusManager.focusFirst.bind(null),
+            focusPrimaryChild: focusCurrent,
+            focusWhenPressed:
+              direction === 'horizontal'
+                ? { right: focusFirst, left: focusLast }
+                : { down: focusFirst, up: focusLast },
           })
         } else {
           unregisterNavigatorRef.current = () => {}
@@ -77,7 +91,7 @@ function FocusArea(props: FocusAreaProps) {
         // `react-aria-components`.
         // eslint-disable-next-line no-restricted-syntax
       }, focusWithinProps as FocusWithinProps),
-    [active, children, focusManager, focusWithinProps, navigator2D]
+    [active, direction, children, focusManager, focusWithinProps, navigator2D]
   )
 
   return (

@@ -17,10 +17,8 @@ import AssetEventType from '#/events/AssetEventType'
 
 import Category from '#/layouts/CategorySwitcher/Category'
 
-import * as aria from '#/components/aria'
 import Button from '#/components/styled/Button'
 import FocusArea from '#/components/styled/FocusArea'
-import FocusRing from '#/components/styled/FocusRing'
 import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -98,21 +96,19 @@ export default function DriveBar(props: DriveBarProps) {
           {(ref, innerProps) => (
             <div ref={ref} className="flex h-row py-drive-bar-y" {...innerProps}>
               <div className="flex gap-drive-bar">
-                <FocusRing>
-                  <aria.Button
-                    className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
-                    onPress={() => {
-                      setModal(
-                        <ConfirmDeleteModal
-                          actionText="all trashed items forever"
-                          doDelete={doEmptyTrash}
-                        />
-                      )
-                    }}
-                  >
-                    <span className="text whitespace-nowrap font-semibold">Clear Trash</span>
-                  </aria.Button>
-                </FocusRing>
+                <UnstyledButton
+                  className="flex h-row items-center rounded-full bg-frame px-new-project-button-x"
+                  onPress={() => {
+                    setModal(
+                      <ConfirmDeleteModal
+                        actionText="all trashed items forever"
+                        doDelete={doEmptyTrash}
+                      />
+                    )
+                  }}
+                >
+                  <span className="text whitespace-nowrap font-semibold">Clear Trash</span>
+                </UnstyledButton>
               </div>
             </div>
           )}

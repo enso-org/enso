@@ -81,7 +81,7 @@ export default function Labels(props: LabelsProps) {
                 return (
                   <aria.GridListItem
                     id={label.id}
-                    className="after:focus-ring-within group relative flex items-center gap-label-icons rounded-full after:absolute after:inset after:rounded-full"
+                    className="focus-child group relative flex items-center gap-label-icons rounded-full after:absolute after:inset after:rounded-full after:focus-ring-within"
                   >
                     <Label
                       draggable

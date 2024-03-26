@@ -70,7 +70,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     >
       <UnstyledButton
         aria-label={`Go To ${category}`}
-        className="rounded-inherit"
+        className={`rounded-inherit ${isCurrent ? 'focus-default' : ''}`}
         onPress={onPress}
       >
         <div
