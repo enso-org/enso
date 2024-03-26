@@ -10,12 +10,14 @@ type Rounding_Mode
     ## PRIVATE
     Value (rounding_mode : RoundingMode)
 
-    ## Round towards positive infinity for positive numbers, and negative
+    ## ICON math
+       Round towards positive infinity for positive numbers, and negative
        infinity for negative numbers. (This is the default.)
     half_up : Rounding_Mode
     half_up = Rounding_Mode.Value RoundingMode.HALF_UP
 
-    ## Rownd towards the nearest neighbor, with ties broken by rounding towards
+    ## ICON math
+       Rownd towards the nearest neighbor, with ties broken by rounding towards
        the nearest even neighbor.
     bankers : Rounding_Mode
     bankers = Rounding_Mode.Value RoundingMode.HALF_EVEN

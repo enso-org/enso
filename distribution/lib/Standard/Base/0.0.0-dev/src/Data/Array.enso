@@ -149,7 +149,7 @@ type Array
     sort self (order = Sort_Direction.Ascending) on=Nothing by=Nothing on_incomparable=Problem_Behavior.Ignore =
         Array_Like_Helpers.sort self order on by on_incomparable
 
-    ## ALIAS first, last, sample, slice, top, head, tail, limit
+    ## ALIAS first, head, last, limit, sample, slice, tail, top
        GROUP Selections
        ICON select_row
        Creates a new `Vector` with only the specified range of elements from the
@@ -586,6 +586,7 @@ type Array
         Array_Like_Helpers.partition_with_index self predicate
 
     ## GROUP Selections
+       ICON dataframe_map_row
        Swaps the rows and columns of a matrix represented by an array of arrays.
 
        ! Error Conditions

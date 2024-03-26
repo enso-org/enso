@@ -34,7 +34,8 @@ type Math_Context
     ## PRIVATE
     Value (math_context:MathContext)
 
-    ## Construct a `Math_Context` value.
+    ## ICON math
+       Construct a `Math_Context` value.
 
        Arguments:
        - precision: The non-negative int precision setting. A value of `0`

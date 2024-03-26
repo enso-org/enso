@@ -291,7 +291,8 @@ type Map key value
         trans_function = k -> v -> [function k, v]
         self.transform trans_function
 
-    ## Transforms the map's keys and values to create a new map.
+    ## ICON dataframe_map_column
+       Transforms the map's keys and values to create a new map.
 
        Arguments:
        - function: The function used to transform the map, taking a key and a

@@ -82,7 +82,8 @@ type Decimal
     ## PRIVATE
     Value (big_decimal : BigDecimal)
 
-    ## Construct a `Decimal` from a string or integer.
+    ## ICON number_input
+       Construct a `Decimal` from a string or integer.
 
        Arguments:
        - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
@@ -116,6 +117,7 @@ type Decimal
                 _ : Float -> Decimal.from_float x mc
 
     ## GROUP conversions
+       ICON convert
        Construct a `Decimal` from a `Text`.
 
        Arguments:
@@ -148,6 +150,7 @@ type Decimal
                 _ : Nothing -> Decimal.Value (Decimal_Utils.fromString s)
 
     ## GROUP conversions
+       ICON convert
        Construct a `Decimal` from an `Integer`.
 
        Arguments:
@@ -174,6 +177,7 @@ type Decimal
                 _ : Nothing -> Decimal.Value (Decimal_Utils.fromInteger i)
 
     ## GROUP conversions
+       ICON convert
        Construct a `Decimal` from a `Float`.
 
        Arguments:
@@ -516,6 +520,7 @@ type Decimal
     / self (that : Decimal) = self.divide that
 
     ## GROUP Operators
+       ICON operators
        Compute the negation of this.
 
        > Example
