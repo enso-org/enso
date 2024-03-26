@@ -1,4 +1,6 @@
 /** @file A class for handling navigation between elements on a 2D plane. */
+import * as detect from 'enso-common/src/detect'
+
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
 
@@ -22,6 +24,7 @@ export enum Direction {
   up = 'up',
   down = 'down',
 }
+const DIRECTIONS = Object.values(Direction)
 
 /** Return an object that is a mapping from every {@link Direction} to a specific value,
  * using the given mapping function. */
@@ -81,6 +84,7 @@ export default class Navigator2D {
     [Direction.down]: 'ArrowDown',
   }
   private isLayoutDirty = true
+  private readonly currentNeighbors = new Set<HTMLOrSVGElement>()
   private readonly focusedElements = new Set<Element>()
   private readonly elements = new Map<Element, ElementData>()
   private readonly resizeObserver = new ResizeObserver(entries => {
@@ -97,6 +101,63 @@ export default class Navigator2D {
   /** Create a {@link Navigator2D}. */
   constructor(options: Navigator2DOptions = {}) {
     this.directionKeys = options.directionKeys ?? this.directionKeys
+    if (detect.IS_DEV_MODE) {
+      let watching = false
+      let lastFocusedElement: Element | null = null
+      const onFocusIn = (event: FocusEvent) => {
+        if (event.target !== lastFocusedElement && event.target instanceof Element) {
+          lastFocusedElement = event.target
+          const target = event.target
+          // Wait for next tick, to ensure the current parent has been added to
+          // `focusedElements`.
+          setTimeout(() => {
+            for (const neighbor of this.currentNeighbors) {
+              delete neighbor.dataset.navigator2dNeighbor
+            }
+            this.currentNeighbors.clear()
+            for (const direction of DIRECTIONS) {
+              const neighbor = this.neighborInDirection(target, direction)
+              if (neighbor instanceof HTMLElement || neighbor instanceof SVGElement) {
+                this.currentNeighbors.add(neighbor)
+                neighbor.dataset.navigator2dNeighbor = ''
+              }
+            }
+          })
+        }
+      }
+      const onFocusOut = (event: FocusEvent) => {
+        if (event.target === lastFocusedElement) {
+          lastFocusedElement = null
+          for (const neighbor of this.currentNeighbors) {
+            delete neighbor.dataset.navigator2dNeighbor
+          }
+          this.currentNeighbors.clear()
+        }
+      }
+      const mutationObserver = new MutationObserver(() => {
+        if ('debugNavigator2d' in document.body.dataset) {
+          if (!watching) {
+            watching = true
+            // eslint-disable-next-line no-restricted-properties
+            console.debug('Showing `Navigator2D` neighbors.')
+            document.body.addEventListener('focusin', onFocusIn, { capture: true })
+            document.body.addEventListener('focusout', onFocusOut, { capture: true })
+          }
+        } else {
+          if (watching) {
+            watching = false
+            // eslint-disable-next-line no-restricted-properties
+            console.debug('Stopped showing `Navigator2D` neighbors.')
+            document.body.removeEventListener('focusin', onFocusIn, { capture: true })
+            document.body.removeEventListener('focusout', onFocusOut, { capture: true })
+          }
+        }
+      })
+      mutationObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['data-debug-navigator2d'],
+      })
+    }
   }
 
   /** Recomputes the neighbors of all elements.
@@ -213,51 +274,12 @@ export default class Navigator2D {
       }
     }
     if (shouldHandleEvent && shouldHandleKey) {
-      if (this.isLayoutDirty) {
-        this.recomputeLayout()
-      }
-      const isNavigatingVertically = direction === Direction.up || direction === Direction.down
-      const boundingBox = event.target.getBoundingClientRect()
-      const targetNeighbors = data.neighbors[direction]
-      let targetNeighbor = targetNeighbors[0]
-      let minimumVerticalDistance = Infinity
-      let minimumHorizontalDistance = Infinity
-      for (const neighbor of targetNeighbors) {
-        const neighborBoundingBox = neighbor.getBoundingClientRect()
-        const distanceFromLeft = boundingBox.left - neighborBoundingBox.right
-        const distanceFromRight = neighborBoundingBox.left - boundingBox.right
-        const horizontalDistance = Math.max(distanceFromLeft, distanceFromRight)
-        const distanceFromTop = boundingBox.top - neighborBoundingBox.bottom
-        const distanceFromBottom = neighborBoundingBox.top - boundingBox.bottom
-        const verticalDistance = Math.max(distanceFromTop, distanceFromBottom)
-        if (isNavigatingVertically) {
-          if (
-            horizontalDistance < minimumHorizontalDistance ||
-            (horizontalDistance === minimumHorizontalDistance &&
-              verticalDistance < minimumVerticalDistance)
-          ) {
-            targetNeighbor = neighbor
-            minimumHorizontalDistance = horizontalDistance
-            minimumVerticalDistance = verticalDistance
-          }
-        } else {
-          if (
-            verticalDistance < minimumVerticalDistance ||
-            (verticalDistance === minimumVerticalDistance &&
-              horizontalDistance < minimumHorizontalDistance)
-          ) {
-            targetNeighbor = neighbor
-            minimumHorizontalDistance = horizontalDistance
-            minimumVerticalDistance = verticalDistance
-          }
-        }
-      }
-      const focusTargetNeighbor =
-        targetNeighbor instanceof HTMLElement ? targetNeighbor.focus.bind(null) : null
+      const neighbor = this.neighborInDirection(event.target, direction)
+      const focusTargetNeighbor = neighbor instanceof HTMLElement ? neighbor.focus.bind(null) : null
       const focus =
-        targetNeighbor == null
+        neighbor == null
           ? null
-          : this.elements.get(targetNeighbor)?.focusWhenPressed[direction] ?? focusTargetNeighbor
+          : this.elements.get(neighbor)?.focusWhenPressed[direction] ?? focusTargetNeighbor
       if (focus != null) {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -273,11 +295,11 @@ export default class Navigator2D {
     const onFocusIn = () => {
       this.focusedElements.add(element)
     }
-    element.addEventListener('focusin', onFocusIn)
+    element.addEventListener('focusin', onFocusIn, { capture: true })
     const onFocusOut = () => {
       this.focusedElements.delete(element)
     }
-    element.addEventListener('focusout', onFocusOut)
+    element.addEventListener('focusout', onFocusOut, { capture: true })
     this.resizeObserver.observe(element)
     const mutationObserver = new MutationObserver(entries => {
       for (const entry of entries) {
@@ -330,5 +352,59 @@ export default class Navigator2D {
   /** Stop watching for layout changes on an element. */
   unregister(element: Element) {
     this.elements.get(element)?.dispose()
+  }
+
+  /** Keydown handler. Should only be declared once, globally.
+   * MUST be bound to this `Navigator2D` first using `.bind(navigator)`. */
+  private neighborInDirection(element: Element, direction: Direction) {
+    let nearestFocusedParent: Element | null = element
+    while (nearestFocusedParent != null && !this.focusedElements.has(nearestFocusedParent)) {
+      nearestFocusedParent = nearestFocusedParent.parentElement
+    }
+    const data = nearestFocusedParent == null ? null : this.elements.get(nearestFocusedParent)
+    if (data != null) {
+      if (this.isLayoutDirty) {
+        this.recomputeLayout()
+      }
+      const isNavigatingVertically = direction === Direction.up || direction === Direction.down
+      const boundingBox = element.getBoundingClientRect()
+      const targetNeighbors = data.neighbors[direction]
+      let targetNeighbor = targetNeighbors[0]
+      let minimumVerticalDistance = Infinity
+      let minimumHorizontalDistance = Infinity
+      for (const neighbor of targetNeighbors) {
+        const neighborBoundingBox = neighbor.getBoundingClientRect()
+        const distanceFromLeft = boundingBox.left - neighborBoundingBox.right
+        const distanceFromRight = neighborBoundingBox.left - boundingBox.right
+        const horizontalDistance = Math.max(0, distanceFromLeft, distanceFromRight)
+        const distanceFromTop = boundingBox.top - neighborBoundingBox.bottom
+        const distanceFromBottom = neighborBoundingBox.top - boundingBox.bottom
+        const verticalDistance = Math.max(0, distanceFromTop, distanceFromBottom)
+        if (isNavigatingVertically) {
+          if (
+            horizontalDistance < minimumHorizontalDistance ||
+            (horizontalDistance === minimumHorizontalDistance &&
+              verticalDistance < minimumVerticalDistance)
+          ) {
+            targetNeighbor = neighbor
+            minimumHorizontalDistance = horizontalDistance
+            minimumVerticalDistance = verticalDistance
+          }
+        } else {
+          if (
+            verticalDistance < minimumVerticalDistance ||
+            (verticalDistance === minimumVerticalDistance &&
+              horizontalDistance < minimumHorizontalDistance)
+          ) {
+            targetNeighbor = neighbor
+            minimumHorizontalDistance = horizontalDistance
+            minimumVerticalDistance = verticalDistance
+          }
+        }
+      }
+      return targetNeighbor ?? null
+    } else {
+      return null
+    }
   }
 }

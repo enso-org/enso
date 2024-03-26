@@ -523,16 +523,21 @@ body::before {
 }
 
 body[data-debug] [data-focus-area] {
-  outline: 2px solid red;
+  outline: 2px solid rgb(255 0 0 / 60%);
   outline-offset: -1px;
 }
 
 body[data-debug] :focus {
-  outline: 2px solid blue;
+  outline: 2px solid rgb(0 0 255 / 60%);
   outline-offset: -1px;
 }
 
 body[data-debug] :focus-visible {
-  outline: 2px solid green;
+  outline: 2px solid rgb(0 128 0 / 60%);
+  outline-offset: -1px;
+}
+
+body[data-debug] [data-navigator2d-neighbor] {
+  outline: 2px solid rgb(0 255 255 / 60%);
   outline-offset: -1px;
 }
