@@ -602,9 +602,6 @@ export const CONFIG = contentConfig.OPTIONS.merge(
         },
     })
 )
-CONFIG.groups.startup.options.platform.value = process.platform
-
-CONFIG.groups.engine.options.preferredVersion.value = BUNDLED_ENGINE_VERSION
 
 CONFIG.groups.engine.options.projectManagerUrl.passToWebApplication = true
 

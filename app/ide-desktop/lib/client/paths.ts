@@ -29,8 +29,3 @@ export function getProjectManagerBundlePath(): string {
 export function getProjectManagerInBundlePath(): string {
     return buildUtils.requireEnv('ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH')
 }
-
-/** Version of the Engine (backend) that is bundled along with this client build. */
-export function getBundledEngineVersion(): string {
-    return buildUtils.requireEnv('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION')
-}
