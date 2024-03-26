@@ -125,6 +125,7 @@ type XML_Document
             XML_Element.new java_element
 
     ## GROUP Metadata
+       ICON metadata
        Gets the tag of the root XML element of the document.
 
        > Example
@@ -136,6 +137,7 @@ type XML_Document
     name self = self.root_element.name
 
     ## GROUP Selections
+       ICON parse3
        Gets a child element of an XML document.
 
        Arguments:
@@ -162,6 +164,7 @@ type XML_Document
         _ : Text -> if key == self.root_element.name then self.root_element else if_missing
 
     ## GROUP Selections
+       ICON parse3
        Gets a child or attribute of an XML document.
 
        Arguments:
@@ -190,7 +193,8 @@ type XML_Document
             _ : Text -> Error.throw (No_Such_Key.Error self key)
         self.get key if_missing
 
-    ## Gets the raw XML of the document.
+    ## ICON metadata
+       Gets the raw XML of the document.
 
        > Example
          Get the outer XML of the document.
@@ -202,7 +206,8 @@ type XML_Document
         XML_Error.handle_java_exceptions <|
             XML_Utils.outerXML self.java_document False
 
-    ## Gets the raw XML of the document.
+    ## ICON metadata
+       Gets the raw XML of the document.
 
        > Example
          Get the inner XML of the document.
@@ -257,6 +262,7 @@ type XML_Document
         write_impl self.java_document path encoding on_existing_file include_xml_declaration on_problems
 
     ## GROUP Selections
+       ICON array_new
        Gets the child elements of an XML document.
 
        > Example
@@ -266,6 +272,7 @@ type XML_Document
     children self = [self.root_element]
 
     ## GROUP Metadata
+       ICON metadata
        Gets the number children of an XML document.
 
        `child_count` only counts child elements and child text nodes that are
@@ -281,11 +288,13 @@ type XML_Document
     child_count self = 1
 
     ## GROUP Metadata
+       ICON text
        Gets the unique set of child names of an XML document.
     child_names : Vector Text ! XML_Error
     child_names self = [self.root_element.name]
 
     ## GROUP Selections
+       ICON parse3
        Get an attribute of an XML document.
 
        Arguments:
@@ -302,17 +311,20 @@ type XML_Document
     attribute_names self = []
 
     ## GROUP Selections
+       ICON array_new
        Gets a map containing of the attributes of an XML document.
     attributes : Map Text Text ! XML_Error
     attributes self = Map.empty
 
     ## GROUP Selections
+       ICON metadata
        Gets the text (non-markup) contents of the element and its descendants,
        if any.
     text : Text ! XML_Error
     text self = self.root_element.text
 
-    ## Get elements denoted by the given XPath key.
+    ## ICON parse3
+       Get elements denoted by the given XPath key.
 
        Arguments:
        - key: The XPath string to use to search for elements.
@@ -329,7 +341,8 @@ type XML_Document
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (xpath.evaluate key self.java_document XPathConstants.NODESET)
 
-    ## Gets child elements matching a given tag name.
+    ## ICON parse3
+       Gets child elements matching a given tag name.
 
        Arguments:
        - tag_name: The tag name to search for.
@@ -338,7 +351,8 @@ type XML_Document
     get_children_by_tag_name self tag_name:Text =
         if tag_name=="*" || tag_name==self.root_element.name then [self.root_element] else []
 
-    ## Gets descendant elements matching a given tag name.
+    ## ICON parse3
+       Gets descendant elements matching a given tag name.
        This searches through all descendants of the node, not just immediate children.
 
        Arguments:
@@ -405,7 +419,7 @@ type XML_Element
             self.children.find (c-> c.name == key) . if_nothing if_missing
 
     ## GROUP Selections
-       ICON select_row
+       ICON parse3
        Gets a child or attribute of an XML element.
 
        Arguments:
@@ -464,6 +478,7 @@ type XML_Element
     child_count self = self.children_cache.length
 
     ## GROUP Metadata
+       ICON text
        Gets the unique set of child names of an XML element.
     child_names : Vector Text ! XML_Error
     child_names self =
@@ -616,7 +631,8 @@ type XML_Element
             xpath = XPathFactory.newInstance.newXPath
             only_wanted_nodes (xpath.evaluate key self.java_element XPathConstants.NODESET)
 
-    ## Gets child elements matching a given tag name.
+    ## ICON parse3
+       Gets child elements matching a given tag name.
 
        Arguments:
        - tag_name: The tag name to search for.

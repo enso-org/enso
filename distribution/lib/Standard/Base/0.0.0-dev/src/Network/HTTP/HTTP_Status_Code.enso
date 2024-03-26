@@ -4,7 +4,8 @@ import project.Data.Text.Text
 from project.Data.Text.Extensions import all
 
 type HTTP_Status_Code
-    ## 100 Continue.
+    ## ICON data_download
+       100 Continue.
     continue : HTTP_Status_Code
     continue = HTTP_Status_Code.Value 100
 
@@ -12,39 +13,48 @@ type HTTP_Status_Code
     switching_protocols : HTTP_Status_Code
     switching_protocols = HTTP_Status_Code.Value 101
 
-    ## 200 OK.
+    ## ICON data_download
+       200 OK.
     ok : HTTP_Status_Code
     ok = HTTP_Status_Code.Value 200
 
-    ## 201 Created.
+    ## ICON data_download
+       201 Created.
     created : HTTP_Status_Code
     created = HTTP_Status_Code.Value 201
 
-    ## 202 Accepted.
+    ## ICON data_download
+       202 Accepted.
     accepted : HTTP_Status_Code
     accepted = HTTP_Status_Code.Value 202
 
-    ## 203 Non-Authoritative Information.
+    ## ICON data_download
+       203 Non-Authoritative Information.
     non_authoritative_information : HTTP_Status_Code
     non_authoritative_information = HTTP_Status_Code.Value 203
 
-    ## 204 No Content.
+    ## ICON data_download
+       204 No Content.
     no_content : HTTP_Status_Code
     no_content = HTTP_Status_Code.Value 204
 
-    ## 205 Reset Content.
+    ## ICON data_download
+       205 Reset Content.
     reset_content : HTTP_Status_Code
     reset_content = HTTP_Status_Code.Value 205
 
-    ## 206 Partial Content.
+    ## ICON data_download
+       206 Partial Content.
     partial_content : HTTP_Status_Code
     partial_content = HTTP_Status_Code.Value 206
 
-    ## 300 Multiple Choices.
+    ## ICON data_download
+       300 Multiple Choices.
     multiple_choices : HTTP_Status_Code
     multiple_choices = HTTP_Status_Code.Value 300
 
-    ## 301 Moved Permanently.
+    ## ICON data_download
+       301 Moved Permanently.
     moved_permanently : HTTP_Status_Code
     moved_permanently = HTTP_Status_Code.Value 301
 
@@ -52,31 +62,38 @@ type HTTP_Status_Code
     found : HTTP_Status_Code
     found = HTTP_Status_Code.Value 302
 
-    ## 303 See Other.
+    ## ICON data_download
+       303 See Other.
     see_other : HTTP_Status_Code
     see_other = HTTP_Status_Code.Value 303
 
-    ## 304 Not Modified.
+    ## ICON data_download
+       304 Not Modified.
     not_modified : HTTP_Status_Code
     not_modified = HTTP_Status_Code.Value 304
 
-    ## 305 Use Proxy.
+    ## ICON data_download
+       305 Use Proxy.
     use_proxy : HTTP_Status_Code
     use_proxy = HTTP_Status_Code.Value 305
 
-    ## 307 Temporary Redirect.
+    ## ICON data_download
+       307 Temporary Redirect.
     temporary_redirect : HTTP_Status_Code
     temporary_redirect = HTTP_Status_Code.Value 307
 
-    ## 400 Bad Request.
+    ## ICON data_download
+       400 Bad Request.
     bad_request : HTTP_Status_Code
     bad_request = HTTP_Status_Code.Value 400
 
-    ## 401 Unauthorized.
+    ## ICON data_download
+       401 Unauthorized.
     unauthorized : HTTP_Status_Code
     unauthorized = HTTP_Status_Code.Value 401
 
-    ## 402 Payment Required.
+    ## ICON data_download
+       402 Payment Required.
     payment_required : HTTP_Status_Code
     payment_required = HTTP_Status_Code.Value 402
 
@@ -84,27 +101,33 @@ type HTTP_Status_Code
     forbidden : HTTP_Status_Code
     forbidden = HTTP_Status_Code.Value 403
 
-    ## 404 Not Found.
+    ## ICON data_download
+       404 Not Found.
     not_found : HTTP_Status_Code
     not_found = HTTP_Status_Code.Value 404
 
-    ## 405 Method Not Allowed.
+    ## ICON data_download
+       405 Method Not Allowed.
     method_not_allowed : HTTP_Status_Code
     method_not_allowed = HTTP_Status_Code.Value 405
 
-    ## 406 Not Acceptable.
+    ## ICON data_download
+       406 Not Acceptable.
     not_acceptable : HTTP_Status_Code
     not_acceptable = HTTP_Status_Code.Value 406
 
-    ## 407 Proxy Authentication Required.
+    ## ICON data_download
+       407 Proxy Authentication Required.
     proxy_authentication_required : HTTP_Status_Code
     proxy_authentication_required = HTTP_Status_Code.Value 407
 
-    ## 408 Request Timeout.
+    ## ICON data_download
+       408 Request Timeout.
     request_timeout : HTTP_Status_Code
     request_timeout = HTTP_Status_Code.Value 408
 
-    ## 409 Conflict.
+    ## ICON data_download
+       409 Conflict.
     conflict : HTTP_Status_Code
     conflict = HTTP_Status_Code.Value 409
 
@@ -112,27 +135,33 @@ type HTTP_Status_Code
     gone : HTTP_Status_Code
     gone = HTTP_Status_Code.Value 410
 
-    ## 411 Length Required.
+    ## ICON data_download
+       411 Length Required.
     length_required : HTTP_Status_Code
     length_required = HTTP_Status_Code.Value 411
 
-    ## 412 Precondition Failed.
+    ## ICON data_download
+       412 Precondition Failed.
     precondition_failed : HTTP_Status_Code
     precondition_failed = HTTP_Status_Code.Value 412
 
-    ## 413 Request Entity Too Large.
+    ## ICON data_download
+       413 Request Entity Too Large.
     request_entity_too_large : HTTP_Status_Code
     request_entity_too_large = HTTP_Status_Code.Value 413
 
-    ## 414 Request-URI Too Long.
+    ## ICON data_download
+       414 Request-URI Too Long.
     request_uri_too_long : HTTP_Status_Code
     request_uri_too_long = HTTP_Status_Code.Value 414
 
-    ## 415 Unsupported Media Type.
+    ## ICON data_download
+       415 Unsupported Media Type.
     unsupported_media_type : HTTP_Status_Code
     unsupported_media_type = HTTP_Status_Code.Value 415
 
-    ## 416 Requested Range Not Satisfiable.
+    ## ICON data_download
+       416 Requested Range Not Satisfiable.
     requested_range_not_satisfiable : HTTP_Status_Code
     requested_range_not_satisfiable = HTTP_Status_Code.Value 416
 
@@ -144,23 +173,28 @@ type HTTP_Status_Code
     internal_server_error : HTTP_Status_Code
     internal_server_error = HTTP_Status_Code.Value 500
 
-    ## 501 Not Implemented.
+    ## ICON data_download
+       501 Not Implemented.
     not_implemented : HTTP_Status_Code
     not_implemented = HTTP_Status_Code.Value 501
 
-    ## 502 Bad Gateway.
+    ## ICON data_download
+       502 Bad Gateway.
     bad_gateway : HTTP_Status_Code
     bad_gateway = HTTP_Status_Code.Value 502
 
-    ## 503 Service Unavailable.
+    ## ICON data_download
+       503 Service Unavailable.
     service_unavailable : HTTP_Status_Code
     service_unavailable = HTTP_Status_Code.Value 503
 
-    ## 504 Gateway Timeout
+    ## ICON data_download
+       504 Gateway Timeout
     gateway_timeout : HTTP_Status_Code
     gateway_timeout = HTTP_Status_Code.Value 504
 
-    ## 505 HTTP Version Not Supported.
+    ## ICON data_download
+       505 HTTP Version Not Supported.
     http_version_not_supported : HTTP_Status_Code
     http_version_not_supported = HTTP_Status_Code.Value 505
 
@@ -170,7 +204,8 @@ type HTTP_Status_Code
        - code: The numeric representation of the code.
     Value code:Integer
 
-    ## Does the status code represent a successful response?
+    ## ICON data_download
+       Does the status code represent a successful response?
     is_success : Boolean
     is_success self = self.code >= 200 && self.code < 300
 

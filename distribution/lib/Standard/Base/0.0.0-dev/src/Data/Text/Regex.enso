@@ -63,6 +63,7 @@ type Regex
     Value (case_insensitive : Boolean) (internal_regex_object : Any)
 
     ## GROUP Metadata
+       ICON metadata
        Gets the original pattern used to create this `Regex`.
     pattern : Text
     pattern self = self.internal_regex_object.pattern
@@ -130,6 +131,7 @@ type Regex
             builder.to_vector
 
     ## GROUP Selections
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Text` containing the matched text, or `Nothing` if the match
@@ -142,6 +144,7 @@ type Regex
        match_to_group_maybe <| self.match input
 
     ## GROUP Selections
+       ICON find
        Tries to match the provided `input` against the pattern `self`.
 
        Returns a `Vector Text`, each containing the matched text.
@@ -154,6 +157,7 @@ type Regex
        self.match_all input . map match_to_group_maybe
 
     ## GROUP Conversions
+       ICON split_text
        Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
@@ -198,6 +202,7 @@ type Regex
         builder.to_vector
 
     ## GROUP Conversions
+       ICON split_text
        Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
        together; otherwise the whole match is returned. Non-participating
@@ -367,6 +372,7 @@ type Regex
     group_count self = self.internal_regex_object.groupCount
 
     ## GROUP Metadata
+       ICON metadata
        Return a vector of all named group names.
     named_groups : Vector Text
     named_groups self =
@@ -482,7 +488,8 @@ type Regex_Syntax_Error
     to_display_text : Text
     to_display_text self = "Regex Syntax Error:" + self.message
 
-## Shorthand to create a regular expression from a Text value.
+## ICON text
+   Shorthand to create a regular expression from a Text value.
 
    If an empty regex is used, throws an Illegal_Argument error.
 

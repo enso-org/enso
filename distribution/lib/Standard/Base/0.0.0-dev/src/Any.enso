@@ -66,6 +66,7 @@ type Any
     to self target_type = target_type.from self ...
 
     ## GROUP Conversions
+       ICON text
        Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
 
@@ -307,6 +308,7 @@ type Any
     is_nothing self = False
 
     ## GROUP Logical
+       ICON operators
        If `self` is Nothing then returns `other`.
 
        > Example
@@ -318,6 +320,7 @@ type Any
         const self other
 
     ## GROUP Logical
+       ICON operators
        If `self` is Nothing then returns Nothing, otherwise returns the result
        of running the provided `action`.
 
@@ -467,6 +470,7 @@ type Any
     |> self ~function = function self
 
     ## GROUP Errors
+       ICON metadata
        Checks if any warnings (either all or of a specified type) are attached to the value.
 
        Arguments:

@@ -34,13 +34,14 @@ type Math_Context
     ## PRIVATE
     Value (math_context:MathContext)
 
-    ## Construct a `Math_Context` value.
+    ## ICON math
+       Construct a `Math_Context` value.
 
        Arguments:
        - precision: The non-negative int precision setting. A value of `0`
          specifies exact operations.
        - rounding_mode: The rounding mode to use.
-    new : Integer -> Rounding_Mode -> Math_Context
+    new : Integer | Unlimited -> Rounding_Mode -> Math_Context
     new (precision : Integer | Unlimited) (rounding_mode : Rounding_Mode = Rounding_Mode.half_up) =
         case precision of
             _ : Integer -> Math_Context.Value (MathContext.new precision rounding_mode.rounding_mode)
