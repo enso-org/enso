@@ -56,14 +56,14 @@ public class BucketLocator {
     } catch (S3Exception error) {
       var details = error.awsErrorDetails();
       if (details == null) {
-        Logger.getLogger("S3-BucketLocator").fine("Failed to locate bucket " + bucketName + ": " + error.getMessage());
+        logger.fine("Failed to locate a bucket (missing details in error response): " + error.getMessage());
         return null;
       }
 
       // We can extract the region from the error response as well.
       return findRegionInResponse(details.sdkHttpResponse());
     } catch (Exception e) {
-      Logger.getLogger("S3-BucketLocator").fine("Failed to locate bucket " + bucketName + ": " + e.getMessage());
+      logger.fine("Failed to locate a bucket using HeadBucket: " + e.getMessage());
       return null;
     }
   }
@@ -85,7 +85,7 @@ public class BucketLocator {
       }
 
       if (locationConstraint == BucketLocationConstraint.UNKNOWN_TO_SDK_VERSION) {
-        Logger.getLogger("S3-BucketLocator").fine("AWS returned an unknown location constraint.");
+        logger.fine("AWS returned an unknown location constraint.");
         return null;
       }
 
@@ -94,12 +94,14 @@ public class BucketLocator {
       if (isKnown) {
         return inferredRegion;
       } else {
-        Logger.getLogger("S3-BucketLocator").fine("AWS returned a location constraint that cannot be mapped to a known region: " + locationConstraint);
+        logger.fine("AWS returned a location constraint that cannot be mapped to a known region: " + locationConstraint);
         return null;
       }
     } catch (Exception e) {
-      Logger.getLogger("S3-BucketLocator").fine("Failed to locate bucket " + bucketName + ": " + e.getMessage());
+      logger.fine("Failed to locate a bucket (legacy GetBucketLocation): " + e.getMessage());
       return null;
     }
   }
+
+  private static final Logger logger = Logger.getLogger(BucketLocator.class.getName());
 }
