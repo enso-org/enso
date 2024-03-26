@@ -31,7 +31,8 @@ import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{
   ExportCycleException,
   ExportsResolution,
-  ImportResolver
+  ImportResolver,
+  ImportResolverUtil
 }
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
@@ -65,7 +66,7 @@ class Compiler(
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes(config)
   private val passManager: PassManager         = passes.passManager
-  private val importResolver: ImportResolver   = new ImportResolver(this)
+  private val importResolver: ImportResolver   = new ImportResolverUtil(this)
   private val irCachingEnabled                 = !context.isIrCachingDisabled
   private val useGlobalCacheLocations          = context.isUseGlobalCacheLocations
   private val isInteractiveMode                = context.isInteractiveMode

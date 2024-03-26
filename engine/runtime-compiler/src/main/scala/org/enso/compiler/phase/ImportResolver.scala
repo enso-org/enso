@@ -32,7 +32,7 @@ import java.io.IOException
   *
   * @param compiler the compiler instance for the compiling context.
   */
-class ImportResolver(compiler: Compiler) {
+abstract class ImportResolver(compiler: Compiler) {
   import ImportResolver._
 
   /** Runs the import mapping logic.
@@ -162,7 +162,9 @@ class ImportResolver(compiler: Compiler) {
     go(mutable.Stack(module), mutable.Set(), mutable.Set())
   }
 
-  private def tryResolveAsType(
+  private[phase] def getCompiler(): Compiler = compiler
+
+  def tryResolveAsType(
     name: Name.Qualified
   ): Option[ResolvedType] = {
     val tp  = name.parts.last.name
@@ -191,7 +193,12 @@ class ImportResolver(compiler: Compiler) {
     }
   }
 
-  private def tryResolveImport(
+  def tryResolveImport(
+    module: IRModule,
+    imp: Import.Module
+  ): (Import, Option[BindingsMap.ResolvedImport])
+
+  private[phase] def tryResolveImportOld(
     module: IRModule,
     imp: Import.Module
   ): (Import, Option[BindingsMap.ResolvedImport]) = {
@@ -314,10 +321,10 @@ object ImportResolver {
     def getMessage(): String
   }
 
-  private case class HiddenNamesShadowUnqualifiedExport(
+  private[phase] case class HiddenNamesShadowUnqualifiedExport(
     name: String,
     hiddenNames: List[String]
-  ) extends Exception(
+  ) extends RuntimeException(
         s"""Hidden '${hiddenNames.mkString(",")}' name${if (
           hiddenNames.size == 1
         ) ""
@@ -329,10 +336,10 @@ object ImportResolver {
       )
       with HiddenNamesConflict
 
-  private case class HiddenNamesShadowQualifiedExport(
+  private[phase] case class HiddenNamesShadowQualifiedExport(
     name: String,
     conflict: List[String]
-  ) extends Exception(
+  ) extends RuntimeException(
         s"""Hidden '${conflict.mkString(",")}' name${if (conflict.size == 1) ""
         else
           "s"} of the exported module ${name} conflict${if (conflict.size == 1)
