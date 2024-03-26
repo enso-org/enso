@@ -6,13 +6,18 @@ import isEmail from 'validator/es/lib/isEmail'
 import CrossIcon from 'enso-assets/cross.svg'
 
 import * as asyncEffectHooks from '#/hooks/asyncEffectHooks'
+import * as focusHooks from '#/hooks/focusHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
+import * as focusDirectionProvider from '#/providers/FocusDirectionProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 
+import * as aria from '#/components/aria'
 import Modal from '#/components/Modal'
+import FocusArea from '#/components/styled/FocusArea'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 
 import * as backendModule from '#/services/Backend'
 
@@ -37,6 +42,9 @@ interface InternalEmailProps {
 /** A self-validating email display. */
 function Email(props: InternalEmailProps) {
   const { email, isValid, doDelete } = props
+  const focusDirection = focusDirectionProvider.useFocusDirection()
+  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+
   return (
     <div
       // This UI element does not appear anywhere else.
@@ -45,13 +53,73 @@ function Email(props: InternalEmailProps) {
         isValid ? 'bg-dim/5' : 'bg-red-400/25 text-red-900'
       }`}
     >
-      {email}{' '}
+      <aria.Text className="focus-child" onKeyDown={handleFocusMove}>
+        {email}
+      </aria.Text>{' '}
       <img
-        className="cursor-pointer rounded-full hover:brightness-50"
+        role="button"
+        className="focus-child cursor-pointer rounded-full hover:brightness-50"
         src={CrossIcon}
         onClick={doDelete}
+        onKeyDown={handleFocusMove}
       />
     </div>
+  )
+}
+
+/** Props for a {@link EmailInput}. */
+interface InternalEmailInputProps {
+  readonly doAdd: (value: string) => void
+  readonly doDelete: () => void
+}
+
+/** An input for entering an email. */
+function EmailInput(props: InternalEmailInputProps) {
+  const { doAdd, doDelete } = props
+  const focusDirection = focusDirectionProvider.useFocusDirection()
+  const handleFocusMove = focusHooks.useHandleFocusMove(focusDirection)
+
+  const doSubmit = (element: HTMLInputElement, force = false) => {
+    const value = element.value + (force ? ' ' : '')
+    if (/ /.test(value)) {
+      const parts = value.split(' ')
+      for (const newPart of parts.slice(0, -1).filter(part => part !== '')) {
+        doAdd(newPart)
+      }
+      element.value = parts[parts.length - 1] ?? ''
+      element.style.width = `${MIN_EMAIL_INPUT_WIDTH}px`
+    } else {
+      element.style.width = '0px'
+      const contentWidth = element.scrollWidth
+      element.style.width = `${Math.max(contentWidth, MIN_EMAIL_INPUT_WIDTH)}px`
+    }
+  }
+
+  return (
+    <input
+      autoFocus
+      type="text"
+      placeholder="Type email to invite"
+      className="text max-w-full bg-transparent"
+      onKeyDown={event => {
+        if (
+          event.key === 'Backspace' &&
+          event.currentTarget.selectionStart === 0 &&
+          event.currentTarget.selectionEnd === 0
+        ) {
+          doDelete()
+        } else if (event.key === 'Enter' && event.currentTarget.value !== '') {
+          event.stopPropagation()
+          doSubmit(event.currentTarget, true)
+        } else {
+          handleFocusMove(event)
+        }
+      }}
+      onInput={event => {
+        event.stopPropagation()
+        doSubmit(event.currentTarget)
+      }}
+    />
   )
 }
 
@@ -73,7 +141,6 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
   const { unsetModal } = modalProvider.useSetModal()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const [newEmails, setNewEmails] = React.useState<string[]>([])
-  const [email, setEmail] = React.useState<string>('')
   const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
   const members = asyncEffectHooks.useAsyncEffect([], () => backend.listUsers(), [backend])
   const existingEmails = React.useMemo(
@@ -140,72 +207,57 @@ export default function InviteUsersModal(props: InviteUsersModalProps) {
             className="grow"
             onSubmit={event => {
               event.preventDefault()
-              if (email !== '') {
-                setNewEmails([...newEmails, email])
-                setEmail('')
-              } else if (canSubmit) {
+              if (canSubmit) {
                 doSubmit()
               }
             }}
           >
-            <label className="block min-h-paragraph-input rounded-default border border-primary/10 p-multiline-input">
-              {Array.from(newEmails, (newEmail, i) => (
-                <Email
-                  key={i}
-                  email={newEmail}
-                  isValid={
-                    isEmail(newEmail) &&
-                    !existingEmails.has(newEmail) &&
-                    newEmails.indexOf(newEmail) === i
-                  }
-                  doDelete={() => {
-                    setNewEmails([...newEmails.slice(0, i), ...newEmails.slice(i + 1)])
-                  }}
-                />
-              ))}
-              <input
-                autoFocus
-                type="text"
-                placeholder="Type email to invite"
-                className="text max-w-full bg-transparent"
-                value={email}
-                onKeyDown={event => {
-                  if (
-                    event.key === 'Backspace' &&
-                    event.currentTarget.selectionStart === 0 &&
-                    event.currentTarget.selectionEnd === 0
-                  ) {
-                    setNewEmails(newEmails.slice(0, -1))
-                  }
-                }}
-                onInput={event => {
-                  const element = event.currentTarget
-                  const value = element.value
-                  if (/ /.test(value)) {
-                    const parts = value.split(' ')
-                    setNewEmails([...newEmails, ...parts.slice(0, -1).filter(part => part !== '')])
-                    setEmail(parts[parts.length - 1] ?? '')
-                    element.style.width = `${MIN_EMAIL_INPUT_WIDTH}px`
-                  } else {
-                    setEmail(value)
-                    element.style.width = '0px'
-                    const contentWidth = element.scrollWidth
-                    element.style.width = `${Math.max(contentWidth, MIN_EMAIL_INPUT_WIDTH)}px`
-                  }
-                }}
-              />
-            </label>
+            <FocusArea direction="horizontal">
+              {(ref, innerProps) => (
+                <label
+                  ref={ref}
+                  className="block min-h-paragraph-input rounded-default border border-primary/10 p-multiline-input"
+                  {...innerProps}
+                >
+                  {Array.from(newEmails, (newEmail, i) => (
+                    <Email
+                      key={i}
+                      email={newEmail}
+                      isValid={
+                        isEmail(newEmail) &&
+                        !existingEmails.has(newEmail) &&
+                        newEmails.indexOf(newEmail) === i
+                      }
+                      doDelete={() => {
+                        setNewEmails([...newEmails.slice(0, i), ...newEmails.slice(i + 1)])
+                      }}
+                    />
+                  ))}
+                  <EmailInput
+                    doAdd={value => {
+                      setNewEmails(emails => [...emails, value])
+                    }}
+                    doDelete={() => {
+                      setNewEmails(emails => emails.slice(0, -1))
+                    }}
+                  />
+                </label>
+              )}
+            </FocusArea>
           </form>
-          <div className="self-start">
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className="button bg-invite text-tag-text enabled:active"
-              onClick={doSubmit}
-            >
-              Invite
-            </button>
-          </div>
+          <FocusArea direction="horizontal">
+            {(ref, innerProps) => (
+              <div ref={ref} className="self-start" {...innerProps}>
+                <UnstyledButton
+                  isDisabled={!canSubmit}
+                  className="button bg-invite text-tag-text enabled:active"
+                  onPress={doSubmit}
+                >
+                  Invite
+                </UnstyledButton>
+              </div>
+            )}
+          </FocusArea>
         </div>
       </div>
     </Modal>
