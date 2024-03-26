@@ -528,6 +528,9 @@ type Decimal
     ## GROUP CONVERSIONS
        Convert this to an `Integer`.
 
+       Conversion to `Integer` uses truncation: the fractional portion is
+       dropped.
+
        > Example
          Convert `Decimal` 2345.6 to an `Integer`.
              d = Decimal.new "2345.6"

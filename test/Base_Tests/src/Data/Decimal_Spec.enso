@@ -505,6 +505,7 @@ add_specs suite_builder =
             a = Decimal.new "12000"
             b = Decimal.new "12000" (Math_Context.new 2)
             c = Decimal.new "12000" (Math_Context.new 3)
+            d = Decimal.new "2345.6"
             huge_a = Decimal.new "3.4E320"
             huge_b = Decimal.new "3.400E320"
             huge_c = Decimal.new "3.4000000E320"
@@ -513,6 +514,7 @@ add_specs suite_builder =
             a.to_integer . should_equal 12000
             b.to_integer . should_equal 12000
             c.to_integer . should_equal 12000
+            d.to_integer . should_equal 2345
             huge_a.to_integer . should_equal huge_integer
             huge_b.to_integer . should_equal huge_integer
             huge_c.to_integer . should_equal huge_integer
@@ -520,6 +522,7 @@ add_specs suite_builder =
             (-a).to_integer . should_equal -12000
             (-b).to_integer . should_equal -12000
             (-c).to_integer . should_equal -12000
+            (-d).to_integer . should_equal -2345
             (-huge_a).to_integer . should_equal -huge_integer
             (-huge_b).to_integer . should_equal -huge_integer
             (-huge_c).to_integer . should_equal -huge_integer
