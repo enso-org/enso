@@ -92,12 +92,12 @@ import project.System.Platform
 import project.System.Process
 import project.System.Process.Exit_Code.Exit_Code
 import project.Warning.Warning
+from project.Data import Raw_Response
 from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 from project.Data.Json.Extensions import all
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Data.Text.Regex import regex
-from project.Data import Raw_Response
 from project.Errors.Problem_Behavior.Problem_Behavior import all
 from project.Meta.Enso_Project import enso_project
 from project.Network.Extensions import all
@@ -197,13 +197,14 @@ from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
 from project.Data.Json.Extensions export all
 from project.Data.Numbers export Float, Integer, Number
 from project.Data.Range.Extensions export all
+from project.Data export Raw_Response
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid
 from project.Data.Text.Extensions export all
 from project.Data.Text.Regex export regex
-from project.Data export Raw_Response
 from project.Errors.Problem_Behavior.Problem_Behavior export all
 from project.Function export all
 from project.Meta.Enso_Project export enso_project
 from project.Network.Extensions export all
 from project.System.File_Format export Auto_Detect, Bytes, File_Format, Infer, JSON_Format, Plain_Text_Format
 from project.System.File_Format.Plain_Text_Format export Plain_Text
+

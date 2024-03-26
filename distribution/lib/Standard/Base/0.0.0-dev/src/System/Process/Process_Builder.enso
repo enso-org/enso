@@ -3,7 +3,6 @@ import project.Data.Vector.Vector
 import project.System
 import project.System.Process.Exit_Code.Exit_Code
 import project.System.System_Process_Result
-
 from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
@@ -25,7 +24,8 @@ type Process_Builder
          set arguments and standard output. It results in much clearer code.
     Value command arguments stdin
 
-    ## Sets the arguments that should be passed to the created process.
+    ## ICON edit
+       Sets the arguments that should be passed to the created process.
 
        Arguments:
        - arguments: The arguments to pass to the process.
@@ -41,7 +41,8 @@ type Process_Builder
     set_arguments : Vector Text -> Process_Builder
     set_arguments self arguments = Process_Builder.Value self.command arguments self.stdin
 
-    ## Sets the text that will be used to feed standard input to the created
+    ## ICON edit
+       Sets the text that will be used to feed standard input to the created
        process.
 
        Arguments:
@@ -58,7 +59,8 @@ type Process_Builder
     set_stdin : Text -> Process_Builder
     set_stdin self stdin = Process_Builder.Value self.command self.arguments stdin
 
-    ## Create a process using a builder returning the result of execution.
+    ## ICON system
+       Create a process using a builder returning the result of execution.
 
        > Example
          Execute the process contained in the builder.

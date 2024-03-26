@@ -6,6 +6,7 @@ from project.Data.Boolean import Boolean, False, True
 
 ## ALIAS range
    GROUP Input
+   ICON number_input
 
    Creates an increasing range of integers from `self` to `n`.
 

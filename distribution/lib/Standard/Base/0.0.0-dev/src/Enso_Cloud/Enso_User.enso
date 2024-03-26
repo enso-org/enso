@@ -24,13 +24,15 @@ type Enso_User
        - is_enabled: Whether the user is enabled.
     User name:Text email:Text id:Text home:Enso_File is_enabled:Boolean=True
 
-    ## Fetch the current user.
+    ## ICON people
+       Fetch the current user.
     current : Enso_User
     current =
         json = Utils.http_request_as_json HTTP_Method.Get (Utils.cloud_root_uri + "users/me")
         Enso_User.from json
 
-    ## Lists all known users.
+    ## ICON people
+       Lists all known users.
     list : Vector Enso_User
     list =
         json = Utils.http_request_as_json HTTP_Method.Get (Utils.cloud_root_uri + "users")

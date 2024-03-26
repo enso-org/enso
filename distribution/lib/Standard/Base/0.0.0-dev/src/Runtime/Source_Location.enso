@@ -2,7 +2,6 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.System.File.File
-
 from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
@@ -56,7 +55,8 @@ type Source_Location
                 _ -> file.path
             formatted_file + ":" + indices
 
-    ## Return the source file corresponding to this location.
+    ## ICON metadata
+       Return the source file corresponding to this location.
     file : File | Nothing
     file self =
         source = self.prim_location.getSource

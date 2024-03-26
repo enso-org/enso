@@ -28,7 +28,8 @@ type Ref
     get : Any
     get self = @Builtin_Method "Ref.get"
 
-    ## Puts a new value into this reference, returning the old value.
+    ## ICON edit
+       Puts a new value into this reference, returning the old value.
 
        Arguments:
        - new_value: The new value to store in this ref.
