@@ -1,9 +1,13 @@
 package org.enso.aws;
 
+import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.BucketLocationConstraint;
+import software.amazon.awssdk.services.s3.model.HeadBucketResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
@@ -11,7 +15,8 @@ import java.util.logging.Logger;
  * <p>
  * We cache the region to avoid fetching it all the time.
  * Technically the region may change if a bucket is deleted and re-created in another region,
- * but that seems like a very unlikely scenario, so requiring a restart of the engine in such a case seems OK.
+ * but that seems like a very unlikely scenario, and usually the new bucket with the same name cannot be created immediately,
+ * so requiring a restart of the engine in such a case seems OK.
  */
 public class BucketLocator {
   private static final HashMap<String, Region> cache = new HashMap<>();
@@ -21,9 +26,8 @@ public class BucketLocator {
   }
 
   public static Region getBucketRegion(String bucketName, AwsCredential associatedCredential) {
-    Region cachedRegion = cache.get(bucketName);
-    if (cachedRegion != null) {
-      return cachedRegion;
+    if (cache.containsKey(bucketName)) {
+      return cache.get(bucketName);
     }
 
     Region found = locateBucket(bucketName, associatedCredential);
@@ -32,8 +36,47 @@ public class BucketLocator {
   }
 
   private static Region locateBucket(String bucketName, AwsCredential associatedCredential) {
-    DefaultRegionProvider defaultRegionProvider = new DefaultRegionProvider(null, Region.US_EAST_1);
-    var clientBuilder = new ClientBuilder(associatedCredential, defaultRegionProvider.getRegion());
+    Region region = locateBucketUsingHead(bucketName, associatedCredential);
+    if (region != null) {
+      return region;
+    }
+
+    return locateBucketLegacy(bucketName, associatedCredential);
+  }
+
+  /** The AWS docs recommend to use HeadBucket operation to get the region.
+   * <p>
+   * However, in practice we noticed it usually fails if the region the client is using is wrong.
+   * But the error response, contains the true bucket region which we can extract. */
+  private static Region locateBucketUsingHead(String bucketName, AwsCredential associatedCredential) {
+    var clientBuilder = new ClientBuilder(associatedCredential, null);
+    try (var client = clientBuilder.buildGlobalS3Client()) {
+      HeadBucketResponse response = client.headBucket(builder -> builder.bucket(bucketName));
+      return findRegionInResponse(response.sdkHttpResponse());
+    } catch (S3Exception error) {
+      var details = error.awsErrorDetails();
+      if (details == null) {
+        Logger.getLogger("S3-BucketLocator").fine("Failed to locate bucket " + bucketName + ": " + error.getMessage());
+        return null;
+      }
+
+      // We can extract the region from the error response as well.
+      return findRegionInResponse(details.sdkHttpResponse());
+    } catch (Exception e) {
+      Logger.getLogger("S3-BucketLocator").fine("Failed to locate bucket " + bucketName + ": " + e.getMessage());
+      return null;
+    }
+  }
+
+  private static Region findRegionInResponse(SdkHttpResponse response) {
+    Optional<String> regionId = response.firstMatchingHeader("x-amz-bucket-region");
+    return regionId.map(Region::of).orElse(null);
+  }
+
+  /** If the new way of getting the region does not work, we use the legacy method.
+   * It may not be able to recognize all regions, so it is only used as a fallback. */
+  private static Region locateBucketLegacy(String bucketName, AwsCredential associatedCredential) {
+    var clientBuilder = new ClientBuilder(associatedCredential, null);
     try (var client = clientBuilder.buildGlobalS3Client()) {
       BucketLocationConstraint locationConstraint = client.getBucketLocation(builder -> builder.bucket(bucketName)).locationConstraint();
       if (locationConstraint == null) {
