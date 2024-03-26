@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as aria from '#/components/aria'
+import FocusArea from '#/components/styled/FocusArea'
 
 // ===================
 // === ContextMenu ===
@@ -21,17 +21,25 @@ export default function ContextMenu(props: ContextMenuProps) {
   const { hidden = false, children } = props
 
   return hidden ? (
-    <>{children}</>
+    children
   ) : (
-    <div className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default">
-      <aria.Menu
-        aria-label={props['aria-label']}
-        className={`relative flex flex-col rounded-default ${
-          detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu'
-        } p-context-menu`}
-      >
-        {children}
-      </aria.Menu>
-    </div>
+    <FocusArea direction="vertical">
+      {(ref, innerProps) => (
+        <div
+          ref={ref}
+          className="pointer-events-auto relative rounded-default before:absolute before:h-full before:w-full before:rounded-default before:bg-selected-frame before:backdrop-blur-default"
+          {...innerProps}
+        >
+          <div
+            aria-label={props['aria-label']}
+            className={`relative flex flex-col rounded-default ${
+              detect.isOnMacOS() ? 'w-context-menu-macos' : 'w-context-menu'
+            } p-context-menu`}
+          >
+            {children}
+          </div>
+        </div>
+      )}
+    </FocusArea>
   )
 }

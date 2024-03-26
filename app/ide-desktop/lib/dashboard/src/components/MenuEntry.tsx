@@ -9,7 +9,7 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 
 import * as aria from '#/components/aria'
 import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
-import FocusRing from '#/components/styled/FocusRing'
+import UnstyledButton from '#/components/styled/UnstyledButton'
 import SvgMask from '#/components/SvgMask'
 
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -51,22 +51,22 @@ export default function MenuEntry(props: MenuEntryProps) {
   }, [isDisabled, inputBindings, action, doAction])
 
   return hidden ? null : (
-    <FocusRing within>
-      <aria.MenuItem textValue={label} className="flex w-full">
-        <aria.Button
-          isDisabled={isDisabled}
-          className={`flex h-row grow place-content-between items-center rounded-menu-entry p-menu-entry text-left selectable hover:bg-hover-bg enabled:active disabled:bg-transparent ${
-            isContextMenuEntry ? 'px-context-menu-entry-x' : ''
-          }`}
-          onPress={doAction}
-        >
-          <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
-            <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
-            <aria.Text slot="label">{label}</aria.Text>
-          </div>
-          <KeyboardShortcut action={action} />
-        </aria.Button>
-      </aria.MenuItem>
-    </FocusRing>
+    <UnstyledButton
+      isDisabled={isDisabled}
+      className="group flex w-full rounded-menu-entry"
+      onPress={doAction}
+    >
+      <div
+        className={`rounded-inherit flex h-row grow place-content-between items-center p-menu-entry text-left selectable hover:bg-hover-bg disabled:bg-transparent group-enabled:active ${
+          isContextMenuEntry ? 'px-context-menu-entry-x' : ''
+        }`}
+      >
+        <div title={title} className="flex items-center gap-menu-entry whitespace-nowrap">
+          <SvgMask src={info.icon ?? BlankIcon} color={info.color} className="size-icon" />
+          <aria.Text slot="label">{label}</aria.Text>
+        </div>
+        <KeyboardShortcut action={action} />
+      </div>
+    </UnstyledButton>
   )
 }

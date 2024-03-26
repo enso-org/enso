@@ -8,7 +8,6 @@ import * as modalProvider from '#/providers/ModalProvider'
 import type * as assetListEventModule from '#/events/assetListEvent'
 import AssetListEventType from '#/events/AssetListEventType'
 
-import * as aria from '#/components/aria'
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
 
@@ -46,28 +45,25 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
   return (
     <ContextMenu aria-label="Global context menu" hidden={hidden}>
       {!hidden && (
-        <aria.MenuItem className="hidden">
-          <input
-            ref={filesInputRef}
-            multiple
-            type="file"
-            id="context_menu_file_input"
-            {...(backend.type !== backendModule.BackendType.local
-              ? {}
-              : { accept: '.enso-project' })}
-            onInput={event => {
-              if (event.currentTarget.files != null) {
-                dispatchAssetListEvent({
-                  type: AssetListEventType.uploadFiles,
-                  parentKey: directoryKey ?? rootDirectoryId,
-                  parentId: directoryId ?? rootDirectoryId,
-                  files: Array.from(event.currentTarget.files),
-                })
-                unsetModal()
-              }
-            }}
-          />
-        </aria.MenuItem>
+        <input
+          ref={filesInputRef}
+          multiple
+          type="file"
+          id="context_menu_file_input"
+          className="hidden"
+          {...(backend.type !== backendModule.BackendType.local ? {} : { accept: '.enso-project' })}
+          onInput={event => {
+            if (event.currentTarget.files != null) {
+              dispatchAssetListEvent({
+                type: AssetListEventType.uploadFiles,
+                parentKey: directoryKey ?? rootDirectoryId,
+                parentId: directoryId ?? rootDirectoryId,
+                files: Array.from(event.currentTarget.files),
+              })
+              unsetModal()
+            }
+          }}
+        />
       )}
       <ContextMenuEntry
         hidden={hidden}

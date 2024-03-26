@@ -13,9 +13,9 @@ import * as modalProvider from '#/providers/ModalProvider'
 
 import * as pageSwitcher from '#/layouts/PageSwitcher'
 
-import * as aria from '#/components/aria'
 import MenuEntry from '#/components/MenuEntry'
 import Modal from '#/components/Modal'
+import FocusArea from '#/components/styled/FocusArea'
 
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
@@ -74,43 +74,48 @@ export default function UserMenu(props: UserMenuProps) {
             <div
               className={`grid transition-all duration-user-menu ${initialized ? 'grid-rows-1fr' : 'grid-rows-0fr'}`}
             >
-              <aria.Menu
-                aria-label="User menu"
-                autoFocus="first"
-                className="flex flex-col overflow-hidden"
-              >
-                {!supportsLocalBackend && (
-                  <MenuEntry
-                    action="downloadApp"
-                    doAction={async () => {
-                      unsetModal()
-                      const downloadUrl = await github.getDownloadUrl()
-                      if (downloadUrl == null) {
-                        toastAndLog('Could not find a download link for the current OS')
-                      } else {
-                        download.download(downloadUrl)
-                      }
-                    }}
-                  />
+              <FocusArea direction="vertical">
+                {(ref, innerProps) => (
+                  <div
+                    ref={ref}
+                    aria-label="User menu"
+                    className="flex flex-col overflow-hidden"
+                    {...innerProps}
+                  >
+                    {!supportsLocalBackend && (
+                      <MenuEntry
+                        action="downloadApp"
+                        doAction={async () => {
+                          unsetModal()
+                          const downloadUrl = await github.getDownloadUrl()
+                          if (downloadUrl == null) {
+                            toastAndLog('Could not find a download link for the current OS')
+                          } else {
+                            download.download(downloadUrl)
+                          }
+                        }}
+                      />
+                    )}
+                    <MenuEntry
+                      action="settings"
+                      doAction={() => {
+                        unsetModal()
+                        setPage(pageSwitcher.Page.settings)
+                      }}
+                    />
+                    <MenuEntry
+                      action="signOut"
+                      doAction={() => {
+                        onSignOut()
+                        // Wait until React has switched back to drive view, before signing out.
+                        window.setTimeout(() => {
+                          void signOut()
+                        }, 0)
+                      }}
+                    />
+                  </div>
                 )}
-                <MenuEntry
-                  action="settings"
-                  doAction={() => {
-                    unsetModal()
-                    setPage(pageSwitcher.Page.settings)
-                  }}
-                />
-                <MenuEntry
-                  action="signOut"
-                  doAction={() => {
-                    onSignOut()
-                    // Wait until React has switched back to drive view, before signing out.
-                    window.setTimeout(() => {
-                      void signOut()
-                    }, 0)
-                  }}
-                />
-              </aria.Menu>
+              </FocusArea>
             </div>
           </>
         ) : (
