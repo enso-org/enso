@@ -54,7 +54,9 @@ record GraphVizNode(
       sb.append(header).append("\\n");
     }
     for (var line : multiLineLabel) {
-      sb.append(line);
+      var formattedLine = line.replace("\"", "\\\"");
+      assert Utils.hasOneLine(formattedLine);
+      sb.append(formattedLine);
       // Justify every line to the left - it looks better in the resulting graph.
       sb.append("\\l");
     }
