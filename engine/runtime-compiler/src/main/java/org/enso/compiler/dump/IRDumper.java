@@ -34,7 +34,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.FQNResolution;
-import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedLibraryNamespace;
+import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedLibrary;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames.ResolvedModule;
 
 /**
@@ -518,11 +518,8 @@ public class IRDumper {
             }
             case FQNResolution fqnResolution -> {
               switch (fqnResolution.target()) {
-                case ResolvedLibraryNamespace resolvedLibraryNamespace -> {
-                  bldr.addLabelLine(
-                      "target: ResolvedLibraryNamespace("
-                          + resolvedLibraryNamespace.namespace()
-                          + ")");
+                case ResolvedLibrary resolvedLibrary -> {
+                  bldr.addLabelLine("target: ResolvedLibrary(" + resolvedLibrary.namespace() + ")");
                 }
                 case ResolvedModule resolvedModule -> {
                   bldr.addLabelLine(
