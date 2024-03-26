@@ -23,7 +23,7 @@ export default function WhatsNew() {
             <FocusRing>
               <a
                 ref={ref}
-                className="relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text col-span-2-news-item sm:col-span-2"
+                className="focus-child relative col-span-1 h-news-item rounded-default bg-v3 text-tag-text col-span-2-news-item sm:col-span-2"
                 rel="noreferrer"
                 target="_blank"
                 href="https://enso.org/"
@@ -47,7 +47,7 @@ export default function WhatsNew() {
             <FocusRing>
               <a
                 ref={ref}
-                className="relative h-news-item rounded-default bg-youtube text-tag-text"
+                className="focus-child relative h-news-item rounded-default bg-youtube text-tag-text"
                 rel="noreferrer"
                 target="_blank"
                 href="https://www.youtube.com/c/Enso_org"
@@ -72,7 +72,7 @@ export default function WhatsNew() {
             <FocusRing>
               <a
                 ref={ref}
-                className="relative h-news-item rounded-default bg-discord text-tag-text"
+                className="focus-child relative h-news-item rounded-default bg-discord text-tag-text"
                 rel="noreferrer"
                 target="_blank"
                 href="https://discord.gg/enso"

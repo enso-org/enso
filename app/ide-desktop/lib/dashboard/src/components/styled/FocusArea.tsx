@@ -59,7 +59,7 @@ function FocusArea(props: FocusAreaProps) {
       children(element => {
         rootRef.current = element
         unregisterNavigatorRef.current()
-        if (element != null && focusManager != null) {
+        if (active && element != null && focusManager != null) {
           const focusFirst = focusManager.focusFirst.bind(null, {
             accept: other => other.classList.contains('focus-child'),
           })

@@ -55,7 +55,9 @@ export default function TopBar(props: TopBarProps) {
   const shouldMakeSpaceForExtendedEditorMenu = page === pageSwitcher.Page.editor
 
   return (
-    <div className="relative z-1 m-top-bar mb flex h-row gap-top-bar">
+    <div
+      className={`relative z-1 m-top-bar flex h-row gap-top-bar ${page === pageSwitcher.Page.home ? 'mb-top-bar' : 'mb'}`}
+    >
       <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
       {supportsLocalBackend && supportsCloudBackend && page !== pageSwitcher.Page.editor && (
         <BackendSwitcher setBackendType={setBackendType} />

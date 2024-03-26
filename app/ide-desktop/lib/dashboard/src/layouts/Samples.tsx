@@ -117,7 +117,7 @@ function BlankProjectTile(props: InternalBlankProjectTileProps) {
           <FocusRing placement="after">
             <aria.Button
               ref={ref}
-              className="relative h-sample cursor-pointer before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-frame before:opacity-60 after:pointer-events-none after:absolute after:inset after:rounded-default"
+              className="focus-child relative h-sample cursor-pointer before:absolute before:inset before:h-full before:w-full before:rounded-default before:bg-frame before:opacity-60 after:pointer-events-none after:absolute after:inset after:rounded-default"
               onPress={onPress}
               {...innerProps}
             >
@@ -185,7 +185,7 @@ function ProjectTile(props: InternalProjectTileProps) {
             <aria.Button
               ref={ref}
               key={title}
-              className="relative flex h-sample grow cursor-pointer flex-col text-left after:pointer-events-none after:absolute after:inset after:rounded-default"
+              className="focus-child relative flex h-sample grow cursor-pointer flex-col text-left after:pointer-events-none after:absolute after:inset after:rounded-default"
               onPress={onPress}
               {...innerProps}
             >

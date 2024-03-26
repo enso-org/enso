@@ -373,7 +373,7 @@ export default function AssetSearchBar(props: AssetSearchBarProps) {
                     ? 'Type to search for projects, Data Links, users, and more.'
                     : 'Type to search for projects.'
                 }
-                className="peer text relative z-1 w-full bg-transparent placeholder:text-center"
+                className="focus-child peer text relative z-1 w-full bg-transparent placeholder:text-center"
                 onChange={event => {
                   if (querySource.current !== QuerySource.internal) {
                     querySource.current = QuerySource.typing
