@@ -621,15 +621,6 @@ macro_rules! generate_token_aliases {
                 Token(left_offset, code, variant::$variant($($($field),*)?))
             }
 
-            /// Constructor.
-            pub fn [<$variant:snake:lower _>]<'s> (
-                left_offset: impl Into<Offset<'s>>,
-                code: Code<'s>,
-                $($($field : $field_ty),*)?
-            ) -> Token<'s> {
-                Token(left_offset, code, variant::$variant($($($field),*)?)).into()
-            }
-
             impl<'s> From<Token<'s, variant::$variant>> for Token<'s, Variant> {
                 fn from(token: Token<'s, variant::$variant>) -> Self {
                     token.map_variant(|t| t.into())
