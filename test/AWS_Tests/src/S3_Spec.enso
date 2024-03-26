@@ -154,11 +154,10 @@ add_specs suite_builder =
             S3.list_buckets (AWS_Credential.Key "foo" "bar") . should_fail_with S3_Error
 
         group_builder.specify "should allow to use Enso secrets within credentials" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
-            credentials = test_credentials
-            secret_key_id = Enso_Secret.create "my_test_secret-AWS-keyid" credentials.access_key_id
+            secret_key_id = Enso_Secret.create "my_test_secret-AWS-keyid" test_credentials.access_key_id
             secret_key_id.should_succeed
             Panic.with_finalizer secret_key_id.delete <|
-                secret_key_value = Enso_Secret.create "my_test_secret-AWS-secretkey" credentials.secret_access_key
+                secret_key_value = Enso_Secret.create "my_test_secret-AWS-secretkey" test_credentials.secret_access_key
                 secret_key_value.should_succeed
                 Panic.with_finalizer secret_key_value.delete <| with_retries <|
                     r2 = S3.list_buckets (AWS_Credential.Key secret_key_id secret_key_value)
@@ -525,10 +524,10 @@ add_specs suite_builder =
         group_builder.specify "should be able to read a data link with custom credentials and secrets" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
             transformed_data_link_file = replace_username_in_data_link (enso_project.data / "credentials-with-secrets.datalink")
 
-            secret_key_id = Enso_Secret.create "datalink-secret-AWS-keyid" (Environment.get "AWS_ACCESS_KEY_ID")
+            secret_key_id = Enso_Secret.create "datalink-secret-AWS-keyid" test_credentials.access_key_id
             secret_key_id.should_succeed
             Panic.with_finalizer secret_key_id.delete <|
-                secret_key_value = Enso_Secret.create "datalink-secret-AWS-secretkey" (Environment.get "AWS_SECRET_ACCESS_KEY")
+                secret_key_value = Enso_Secret.create "datalink-secret-AWS-secretkey" test_credentials.secret_access_key
                 secret_key_value.should_succeed
                 Panic.with_finalizer secret_key_value.delete <| with_retries <|
                     transformed_data_link_file.read . should_equal "Hello WORLD!"
