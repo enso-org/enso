@@ -23,6 +23,7 @@ import project.Errors.Time_Error.Time_Error
 import project.Errors.Unimplemented.Unimplemented
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.Runtime
 import project.Runtime.Context
@@ -310,7 +311,8 @@ type Enso_File
        Deletes the file or directory.
     delete : Nothing
     delete self = if self.id == "" then Error.throw (Illegal_Argument.Error "The root directory cannot be deleted.") else
-        response = Utils.http_request HTTP_Method.Delete self.internal_uri
+        uri = URI.from (asset_uri self) . add_query_argument "force" "true"
+        response = Utils.http_request HTTP_Method.Delete uri
         response.if_not_error Nothing
 
     ## ICON data_output
@@ -427,3 +429,7 @@ get_download_url_for_file file:Enso_File -> Text =
     file_description = get_file_description file
     presigned_url = file_description |> get_required_field "url" expected_type=Text
     presigned_url
+
+## PRIVATE
+asset_uri : Text
+asset_uri file:Enso_File = Utils.assets_api + "/" + file.id
