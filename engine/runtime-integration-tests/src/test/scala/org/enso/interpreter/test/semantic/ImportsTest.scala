@@ -209,6 +209,14 @@ class ImportsTest extends PackageTest {
     )
   }
 
+  "Fully qualified names" should "resolve symbols via physical FQN from other project" in {
+    val res = evalTestProject(
+      "Test_Fully_Qualified_Name_2"
+    )
+    res.isBoolean shouldBe true
+    res.asBoolean() shouldBe true
+  }
+
   "Deeply nested modules" should "infer correct synthetic modules" in {
     evalTestProject(
       "Test_Deeply_Nested_Modules"
