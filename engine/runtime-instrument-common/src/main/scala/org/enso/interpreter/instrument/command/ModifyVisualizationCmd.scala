@@ -75,9 +75,7 @@ class ModifyVisualizationCmd(
 
           case Some(exec) =>
             for {
-              _ <- Future {
-                ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
-              }
+              _ <- ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
               _ <- ctx.jobProcessor.run(ExecuteJob(exec))
             } yield ()
         }

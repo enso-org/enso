@@ -6,7 +6,15 @@ import java.util.List;
 import org.enso.shttp.SimpleHttpHandler;
 
 public abstract class HandlerWithTokenAuth extends SimpleHttpHandler {
-  protected abstract String getSecretToken();
+  protected abstract boolean isTokenAllowed(String token);
+
+  protected int getNoTokenStatus() {
+    return 401;
+  }
+
+  protected int getInvalidTokenStatus(String token) {
+    return 401;
+  }
 
   protected abstract void handleAuthorized(HttpExchange exchange) throws IOException;
 
@@ -14,7 +22,7 @@ public abstract class HandlerWithTokenAuth extends SimpleHttpHandler {
   protected void doHandle(HttpExchange exchange) throws IOException {
     List<String> authHeaders = exchange.getRequestHeaders().get("Authorization");
     if (authHeaders == null || authHeaders.isEmpty()) {
-      sendResponse(401, "Not authorized.", exchange);
+      sendResponse(getNoTokenStatus(), "Not authorized.", exchange);
       return;
     } else if (authHeaders.size() > 1) {
       sendResponse(400, "Ambiguous Authorization headers.", exchange);
@@ -29,9 +37,9 @@ public abstract class HandlerWithTokenAuth extends SimpleHttpHandler {
     }
 
     String providedToken = authHeader.substring(prefix.length());
-    boolean authorized = providedToken.equals(getSecretToken());
+    boolean authorized = isTokenAllowed(providedToken);
     if (!authorized) {
-      sendResponse(401, "Invalid token.", exchange);
+      sendResponse(getInvalidTokenStatus(providedToken), "Invalid token.", exchange);
       return;
     }
 

@@ -124,7 +124,7 @@ export function graphNode(page: Page | Locator): Node {
 }
 export function graphNodeByBinding(page: Locator | Page, binding: string): Node {
   return graphNode(page).filter({
-    has: page.locator('.binding').and(page.getByText(binding)),
+    has: page.locator('.binding').and(page.getByText(binding, { exact: true })),
   }) as Node
 }
 export function graphNodeIcon(node: Node) {

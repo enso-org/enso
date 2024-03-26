@@ -6,6 +6,7 @@
 
 use crate::prelude::*;
 
+use std::default::Default;
 use std::marker::Unsize;
 
 
@@ -53,7 +54,7 @@ macro_rules! auto_impl_mock_default {
         $(
             impl $(<$($arg),*>)? MockDefault for $tp $(<$($arg),*>)? {
                 fn mock_default() -> Self {
-                    default()
+                    Default::default()
                 }
             }
         )*
@@ -113,21 +114,21 @@ macro_rules! mock_struct {
         impl $(<$($param $(:?$param_tp)?),*>)?
         MockDefault for $name $(<$($param),*>)? {
             fn mock_default() -> Self {
-                default()
+                std::default::Default::default()
             }
         }
 
         impl $(<$($param $(:?$param_tp)?),*>)?
         Clone for $name $(<$($param),*>)? {
             fn clone(&self) -> Self {
-                default()
+                std::default::Default::default()
             }
         }
 
         impl $(<$($param $(:?$param_tp)?),*>)?
         CloneRef for $name $(<$($param),*>)? {
             fn clone_ref(&self) -> Self {
-                default()
+                std::default::Default::default()
             }
         }
 
@@ -168,7 +169,7 @@ macro_rules! mock_struct_into_js_ref {
         impl $(<$($param $(:?$param_tp)?),*>)?
         From<$name $(<$($param),*>)?> for JsValue {
             fn from(_: $name $(<$($param),*>)?) -> Self {
-                default()
+                std::default::Default::default()
             }
         }
     };
@@ -190,7 +191,7 @@ macro_rules! mock_struct_deref {
         impl $(<$($param $(:?$param_tp)?),*>)?
         From<$name $(<$($param),*>)?> for $deref {
             fn from(_: $name) -> Self {
-                default()
+                std::default::Default::default()
             }
         }
     };
@@ -364,37 +365,37 @@ impl AsRef<JsValue> for wasm_bindgen::JsValue {
 
 impl From<wasm_bindgen::JsValue> for JsValue {
     fn from(_: wasm_bindgen::JsValue) -> Self {
-        default()
+        Default::default()
     }
 }
 
 impl From<js_sys::Uint8Array> for JsValue {
     fn from(_: js_sys::Uint8Array) -> Self {
-        default()
+        Default::default()
     }
 }
 
 impl From<f32> for JsValue {
     fn from(_: f32) -> Self {
-        default()
+        Default::default()
     }
 }
 
 impl From<&str> for JsValue {
     fn from(_: &str) -> Self {
-        default()
+        Default::default()
     }
 }
 
 impl From<&String> for JsValue {
     fn from(_: &String) -> Self {
-        default()
+        Default::default()
     }
 }
 
 impl From<String> for JsValue {
     fn from(_: String) -> Self {
-        default()
+        Default::default()
     }
 }
 
@@ -412,7 +413,7 @@ mock_data! { [NO_AS_REF] Closure<T: ?Sized>
 #[allow(missing_docs)]
 impl Closure<dyn FnOnce()> {
     pub fn once_into_js<F>(_fn_once: F) -> JsValue {
-        default()
+        Default::default()
     }
 }
 
@@ -673,7 +674,7 @@ mock_data! { HtmlElement => Element
 }
 impl From<HtmlElement> for EventTarget {
     fn from(_: HtmlElement) -> Self {
-        default()
+        Default::default()
     }
 }
 
@@ -699,7 +700,7 @@ mock_data! { FontFaceSet
 mock_data! { HtmlDivElement => HtmlElement }
 impl From<HtmlDivElement> for EventTarget {
     fn from(_: HtmlDivElement) -> Self {
-        default()
+        Default::default()
     }
 }
 impl PartialEq<HtmlDivElement> for HtmlDivElement {
@@ -848,7 +849,7 @@ pub static document: Document = Document::const_new();
 pub struct Iterator;
 impl MockDefault for Iterator {
     fn mock_default() -> Self {
-        default()
+        Default::default()
     }
 }
 
@@ -857,7 +858,7 @@ impl MockDefault for Iterator {
 pub struct IntoIter;
 impl MockDefault for IntoIter {
     fn mock_default() -> Self {
-        default()
+        Default::default()
     }
 }
 
@@ -865,7 +866,7 @@ impl IntoIterator for Iterator {
     type Item = Result<JsValue, JsValue>;
     type IntoIter = IntoIter;
     fn into_iter(self) -> IntoIter {
-        default()
+        Default::default()
     }
 }
 

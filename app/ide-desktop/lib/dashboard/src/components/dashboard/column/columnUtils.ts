@@ -7,6 +7,8 @@ import PeopleIcon from 'enso-assets/people.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
+import type * as text from '#/text'
+
 import * as backend from '#/services/Backend'
 
 // =============
@@ -65,16 +67,15 @@ export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
   [Column.docs]: DocsIcon,
 }
 
-/** English names for every column except for the name column. */
-export const COLUMN_NAME: Readonly<Record<Column, string>> = {
-  [Column.name]: 'Name',
-  [Column.modified]: 'Modified',
-  [Column.sharedWith]: 'Shared with',
-  [Column.labels]: 'Labels',
-  [Column.accessedByProjects]: 'Accessed by projects',
-  [Column.accessedData]: 'Accessed data',
-  [Column.docs]: 'Docs',
-}
+export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {
+  [Column.name]: 'nameColumnShow',
+  [Column.modified]: 'modifiedColumnShow',
+  [Column.sharedWith]: 'sharedWithColumnShow',
+  [Column.labels]: 'labelsColumnShow',
+  [Column.accessedByProjects]: 'accessedByProjectsColumnShow',
+  [Column.accessedData]: 'accessedDataColumnShow',
+  [Column.docs]: 'docsColumnShow',
+} satisfies { [C in Column]: `${C}ColumnShow` }
 
 const COLUMN_CSS_CLASSES =
   'text-left bg-clip-padding border-transparent border-y border-2 last:border-r-0 last:rounded-r-full last:w-full'

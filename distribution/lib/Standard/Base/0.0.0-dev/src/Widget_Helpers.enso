@@ -4,11 +4,19 @@ import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Meta
 import project.Metadata.Widget
 from project.Data.Boolean import Boolean, False, True
 from project.Metadata import make_single_choice
 from project.Metadata.Choice import Option
+
+## PRIVATE
+   Creates a Single_Choice Widget for text or secret value.
+make_text_secret_selector : Widget
+make_text_secret_selector =
+    fqn = Meta.get_qualified_type_name Enso_Secret
+    make_single_choice [['<Text Value>', '""'], ['<Secret Value>', fqn+".get"]]
 
 ## PRIVATE
    Creates a Regex / Text Widget for search and replace.

@@ -29,3 +29,6 @@ boolinator = { workspace = true }
 [dependencies.syn]
 version = "1.0"
 features = ['extra-traits', 'visit', 'full']
+
+[lints]
+workspace = true
