@@ -4,7 +4,6 @@ import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Error.Error
-import project.IO
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
@@ -624,22 +623,10 @@ Comparable.from (_ : Decimal) = Decimal_Comparator
 
 Comparable.from (_ : Number) = Decimal_Comparator
 
-Decimal.from (that : Text) =
-    IO.println "D.f T"
-    Decimal.parse that
+Decimal.from (that : Text) = Decimal.parse that
 
-Decimal.from (that : Number) =
-    IO.println "D.f N"
-    Decimal.new that
+Decimal.from (that : Number) = Decimal.new that
 
-Decimal.from (that : Integer) =
-    IO.println "D.f I"
-    Decimal.new that
+Integer.from (that : Decimal) = that.to_integer
 
-Integer.from (that : Decimal) =
-    IO.println "I.f D"
-    that.to_integer
-
-Float.from (that : Decimal) =
-    IO.println "F.f D"
-    that.to_float
+Float.from (that : Decimal) = that.to_float
