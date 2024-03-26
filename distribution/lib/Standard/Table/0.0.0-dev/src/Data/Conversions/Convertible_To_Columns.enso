@@ -32,12 +32,12 @@ Convertible_To_Columns.from (that:Map) =
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Pair) =
-    Convertible_To_Columns.Value ["0", "1"] (k-> index_get that k)
+    Convertible_To_Columns.Value ["0", "1"] (k-> that.at (Integer.parse k))
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Column) =
     fields = 0.up_to that.length . map _.to_text
-    Convertible_To_Columns.Value fields (k-> index_get that k)
+    Convertible_To_Columns.Value fields (k-> that.at (Integer.parse k))
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Row) =
@@ -46,7 +46,7 @@ Convertible_To_Columns.from (that:Row) =
 ## PRIVATE
 Convertible_To_Columns.from (that:Vector) =
     fields = 0.up_to that.length . map _.to_text
-    Convertible_To_Columns.Value fields (k-> index_get that k)
+    Convertible_To_Columns.Value fields (k-> that.at (Integer.parse k))
 
 ## PRIVATE
 Convertible_To_Columns.from (that:Array) = Convertible_To_Columns.from that.to_vector
@@ -72,8 +72,3 @@ Convertible_To_Columns.from (that:XML_Element) =
     value = if that_children.is_empty.not && has_child_nodes.not then [["Value", that.text]] else []
     as_map = Map.from_vector (name + tags + children + value)
     Convertible_To_Columns.from as_map
-
-## PRIVATE
-index_get that index:Text =
-    val = Integer.parse index
-    if val.is_error then Nothing else that.get val
