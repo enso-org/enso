@@ -84,12 +84,17 @@ public class ClientBuilder {
 
   private static AwsCredential defaultCredentialOverride = null;
 
-  /** Sets an override for what credential should be resolved when `AWS_Credential.Default` is used. */
-  public static void setDefaultCredentialOverride(AwsCredential credential) {
+  /** Sets an override for what credential should be resolved when `AWS_Credential.Default` is used.
+   * <p>
+   * It returns the previous override value to allow restoring it if overrides are nested. */
+  public static AwsCredential setDefaultCredentialOverride(AwsCredential credential) {
     if (credential instanceof AwsCredential.Default) {
       throw new IllegalArgumentException("AWS_Credential.Default is not a valid selection for AWS_Credential.set_default_override");
     }
+
+    AwsCredential previous = defaultCredentialOverride;
     defaultCredentialOverride = credential;
+    return previous;
   }
 
   private AwsCredentialsProvider getDefaultCredentialChain() {
