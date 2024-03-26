@@ -82,19 +82,11 @@ export interface AssetRowProps
     props: AssetRowInnerProps,
     event: React.MouseEvent<HTMLTableRowElement>
   ) => void
-  readonly focusEditDescriptionField: () => void
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 export default function AssetRow(props: AssetRowProps) {
-  const {
-    item: rawItem,
-    hidden: hiddenRaw,
-    selected,
-    isSoleSelected,
-    isKeyboardSelected,
-    focusEditDescriptionField,
-  } = props
+  const { item: rawItem, hidden: hiddenRaw, selected, isSoleSelected, isKeyboardSelected } = props
   const { setSelected, allowContextMenu, onContextMenu, state, columns, onClick } = props
   const { visibilities, assetEvents, dispatchAssetEvent, dispatchAssetListEvent, nodeMap } = state
   const { setAssetPanelProps, doToggleDirectoryExpansion, doCopy, doCut, doPaste } = state
@@ -387,7 +379,7 @@ export default function AssetRow(props: AssetRowProps) {
         initialDescription={asset.description}
       />
     )
-  }, [setModal, asset.description, backend, item.item.id, item.item.title])
+  }, [setModal, asset.description, setAsset, backend, item.item.id, item.item.title])
 
   eventHooks.useEventHandler(assetEvents, async event => {
     switch (event.type) {
