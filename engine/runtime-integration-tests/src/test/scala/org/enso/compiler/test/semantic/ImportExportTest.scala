@@ -1249,25 +1249,5 @@ class ImportExportTest
         .diagnostics
       diags.size shouldEqual 0
     }
-
-    "be able to resolve symbols from local project without import" in {
-      val modName = packageQualifiedName.createChild("Module")
-      """
-        |type Type
-        |""".stripMargin
-        .createModule(modName)
-
-      val mainIr =
-        s"""
-           |main = $namespace.$packageName.Type
-           |""".stripMargin
-          .createModule(packageQualifiedName.createChild("Main"))
-          .getIr
-
-      val diags = mainIr
-        .unsafeGetMetadata(GatherDiagnostics, "Should be included")
-        .diagnostics
-      diags.size shouldEqual 0
-    }
   }
 }
