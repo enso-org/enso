@@ -638,6 +638,8 @@
 - [Allow `Table.replace` to take mutiple target columns.][9406]
 - [Initial Snowflake Support - ability to read and query, not a completed
   dialect yet.][9435]
+- [Make expand_to_rows, expand_column support Rows, Tables, Column data
+  types][9533]
 - [Data Link for `Enso_File`.][9525]
 
 [debug-shortcuts]:
@@ -929,6 +931,7 @@
 [9343]: https://github.com/enso-org/enso/pull/9343
 [9406]: https://github.com/enso-org/enso/pull/9406
 [9435]: https://github.com/enso-org/enso/pull/9435
+[9533]: https://github.com/enso-org/enso/pull/9533
 [9525]: https://github.com/enso-org/enso/pull/9525
 
 #### Enso Compiler

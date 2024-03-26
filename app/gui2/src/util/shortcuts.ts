@@ -391,6 +391,9 @@ export function defineKeybinds<
     >,
   ): (event: Event_, stopAndPrevent?: boolean) => boolean {
     return (event, stopAndPrevent = true) => {
+      // Do not handle repeated keyboard events (held down key).
+      if (event instanceof KeyboardEvent && event.repeat) return false
+
       const eventModifierFlags = modifierFlagsForEvent(event)
       const keybinds =
         event instanceof KeyboardEvent ?
