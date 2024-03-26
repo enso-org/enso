@@ -28,6 +28,10 @@ test_credentials -> AWS_Credential | Nothing =
         secret_access_key.if_not_nothing <|
             AWS_Credential.Key access_key_id secret_access_key
 
+## Runs the action, overriding `AWS_Credential.Default` to point to `test_credentials`.
+with_default_credentials ~action =
+    AWS_Credential.with_default_override test_credentials action
+
 api_pending = if test_credentials.is_nothing then "No Access Key found." else Nothing
 
 bucket_name = "enso-data-samples"
@@ -253,9 +257,10 @@ add_specs suite_builder =
             r.should_be_a Vector
             r.at 0 . get "name" . should_equal "Green St Green"
 
-        group_builder.specify "should work with Data.read" pending=(if AWS_Credential.is_default_credential_available.not then "This test may only run if default AWS credentials are configured, because it relies on AWS_Credential.Default.") <|
-            r = Data.read "s3://"+bucket_name+"/examples/folder 2/hello.txt"
-            r.should_equal "Hello WORLD!"
+        group_builder.specify "should work with Data.read" <|
+            with_default_credentials <|
+                r = Data.read "s3://"+bucket_name+"/examples/folder 2/hello.txt"
+                r.should_equal "Hello WORLD!"
 
         group_builder.specify "should be able to read a file as bytes or stream" <|
             bytes = hello_txt.read_bytes
@@ -491,7 +496,7 @@ add_specs suite_builder =
 
         group_builder.specify "should fail to delete a file if the Output context is not enabled" <|
             Context.Output.with_disabled <|
-                hello_txt = S3_File.new "s3://"+bucket_name+"/examples/folder 2/hello.txt"
+                hello_txt = S3_File.new "s3://"+bucket_name+"/examples/folder 2/hello.txt" credentials=test_credentials
                 hello_txt.delete . should_fail_with Forbidden_Operation
 
         group_builder.specify "may fail with Not_Found if the file to delete does not exist, even if the Output Context is disabled" <|
@@ -512,7 +517,7 @@ add_specs suite_builder =
             r.catch.should_be_a File_Error.Not_Found
 
     suite_builder.group "DataLinks to S3_File" pending=api_pending group_builder->
-        group_builder.specify "should be able to read a data link of an S3 File" <|
+        group_builder.specify "should be able to read a data link of an S3 File" <| with_default_credentials <|
             # It reads the datalink description and then reads the actual S3 file contents:
             (enso_project.data / "simple.datalink") . read . should_equal "Hello WORLD!"
 
@@ -527,21 +532,21 @@ add_specs suite_builder =
                 Panic.with_finalizer secret_key_value.delete <| with_retries <|
                     transformed_data_link_file.read . should_equal "Hello WORLD!"
 
-        group_builder.specify "should be able to read a data link with a custom file format set" <|
+        group_builder.specify "should be able to read a data link with a custom file format set" <| with_default_credentials <|
             r = (enso_project.data / "format-delimited.datalink") . read
             # The datalink itself is configured to interpret the data as a Table delimited by space
             r.should_be_a Table
             r.column_names . should_equal ["Column 1", "Column 2"]
             r.rows.at 0 . to_vector . should_equal ["Hello", "WORLD!"]
 
-        group_builder.specify "should be able to read a data link stored on S3" <|
+        group_builder.specify "should be able to read a data link stored on S3" <| with_default_credentials <|
             s3_link = my_writable_dir / "my-simple.datalink"
             raw_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
             Data_Link_Format.write_raw_config s3_link raw_content replace_existing=True . should_succeed
             Panic.with_finalizer s3_link.delete <|
                 s3_link.read . should_equal "Hello WORLD!"
 
-        group_builder.specify "should be able to read an S3 data link overriding the format" <|
+        group_builder.specify "should be able to read an S3 data link overriding the format" <| with_default_credentials <|
             s3_link = my_writable_dir / "my-simple.datalink"
             raw_content = Data_Link_Format.read_raw_config (enso_project.data / "simple.datalink")
             Data_Link_Format.write_raw_config s3_link raw_content replace_existing=True . should_succeed
