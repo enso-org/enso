@@ -11,7 +11,7 @@ from Standard.Base.System.File_Format import parse_boolean_with_infer
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
-import project.Delimited.Quote_Style.Quote_Style
+import project.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Writer
 

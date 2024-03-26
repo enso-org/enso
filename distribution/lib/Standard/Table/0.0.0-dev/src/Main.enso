@@ -20,15 +20,15 @@ import project.Data.Table.Table
 import project.Data.Type.Value_Type.Auto
 import project.Data.Type.Value_Type.Bits
 import project.Data.Type.Value_Type.Value_Type
-import project.Delimited.Delimited_Format.Delimited_Format
-import project.Delimited.Quote_Style.Quote_Style
+import project.Delimited_Format.Delimited_Format
+import project.Quote_Style.Quote_Style
 import project.Excel.Excel_Format.Excel_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Workbook.Excel_Workbook
 import project.Extensions.Prefix_Name.Prefix_Name
 from project.Data.Constants import all
 from project.Data.Expression import expr
-from project.Delimited.Delimited_Format.Delimited_Format import Delimited
+from project.Delimited_Format.Delimited_Format import Delimited
 from project.Extensions.Table_Conversions import all
 
 export project.Data.Aggregate_Column.Aggregate_Column
@@ -52,13 +52,13 @@ export project.Data.Table.Table
 export project.Data.Type.Value_Type.Auto
 export project.Data.Type.Value_Type.Bits
 export project.Data.Type.Value_Type.Value_Type
-export project.Delimited.Delimited_Format.Delimited_Format
-export project.Delimited.Quote_Style.Quote_Style
+export project.Delimited_Format.Delimited_Format
+export project.Quote_Style.Quote_Style
 export project.Excel.Excel_Format.Excel_Format
 export project.Excel.Excel_Range.Excel_Range
 export project.Excel.Excel_Workbook.Excel_Workbook
 export project.Extensions.Prefix_Name.Prefix_Name
 from project.Data.Constants export all
 from project.Data.Expression export expr
-from project.Delimited.Delimited_Format.Delimited_Format export Delimited
+from project.Delimited_Format.Delimited_Format export Delimited
 from project.Extensions.Table_Conversions export all

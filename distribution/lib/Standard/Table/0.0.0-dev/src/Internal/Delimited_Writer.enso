@@ -7,8 +7,8 @@ import Standard.Base.System.Output_Stream.Output_Stream
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Table.Table
-import project.Delimited.Delimited_Format.Delimited_Format
-import project.Delimited.Quote_Style.Quote_Style
+import project.Delimited_Format.Delimited_Format
+import project.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems

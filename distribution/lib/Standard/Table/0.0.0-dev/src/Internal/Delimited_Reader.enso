@@ -6,8 +6,8 @@ import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table
-import project.Delimited.Delimited_Format.Delimited_Format
-import project.Delimited.Quote_Style.Quote_Style
+import project.Delimited_Format.Delimited_Format
+import project.Quote_Style.Quote_Style
 import project.Internal.Java_Problems
 from project.Errors import Empty_File_Error, Mismatched_Quote, Parser_Error
 

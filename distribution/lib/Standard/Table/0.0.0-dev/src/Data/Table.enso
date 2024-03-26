@@ -38,7 +38,7 @@ import project.Data.Row.Row
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Simple_Expression.Simple_Expression
 import project.Data.Sort_Column.Sort_Column
-import project.Delimited.Delimited_Format.Delimited_Format
+import project.Delimited_Format.Delimited_Format
 import project.Extensions.Prefix_Name.Prefix_Name
 import project.Extensions.Table_Conversions
 import project.Extensions.Table_Ref.Table_Ref
@@ -2698,13 +2698,13 @@ type Table
        - root_name: The name of the root tag in the XML.
        - row_name: The name of the row tag in the XML.
        - on_problems: Specifies how to handle warnings if they occur, reporting
-         them as warnings by default.     
+         them as warnings by default.
 
        ! Error Conditions
 
-         - If a column in `element_columns`, `attribute_columns` or `value_column` is not in 
+         - If a column in `element_columns`, `attribute_columns` or `value_column` is not in
            the input table, a `Missing_Input_Columns` is raised as an error.
-         - If any incomming columns aree not specified in one of `element_columns`, 
+         - If any incomming columns aree not specified in one of `element_columns`,
            `attribute_columns` or `value_column`, a `Unexpected_Extra_Columns`
            is reported according to the `on_problems` setting.
 
@@ -2712,10 +2712,10 @@ type Table
 
          Input Table `table`:
 
-            Title                  | Author              | Price | Year 
+            Title                  | Author              | Price | Year
            ------------------------+---------------------+-------+------
-            A Tale Of Two Cities   | Charles Dickens     | 9.99  | 1859 
-            The Great Gatsby       | F. Scott Fitzgerald | 5.99  | 1925 
+            A Tale Of Two Cities   | Charles Dickens     | 9.99  | 1859
+            The Great Gatsby       | F. Scott Fitzgerald | 5.99  | 1925
 
          Result `r = t.to_xml ["Year"] ["Author", "Price"] "Title" "Books" "Book"`:
 
@@ -2746,7 +2746,7 @@ type Table
 
         unused_columns = columns_helper.internal_columns.filter (Filter_Condition.Is_In resolved_element_columns+resolved_attribute_columns+[resolved_value_column] Filter_Action.Remove) . map .name
         if unused_columns.length > 0 then problem_builder.report_other_warning (Unexpected_Extra_Columns.Warning unused_columns)
-        
+
         problem_builder.attach_problems_before on_problems <|
             XML_Document.Value (Java_TableToXml.to_xml self.row_count java_element_columns java_attribute_column java_value_column root_name row_name)
 
