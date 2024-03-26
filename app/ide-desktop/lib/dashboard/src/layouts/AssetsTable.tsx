@@ -1355,12 +1355,29 @@ export default function AssetsTable(props: AssetsTableProps) {
           if (!event.shiftKey) {
             selectionStartIndexRef.current = null
           }
-          const index =
-            prevIndex == null
-              ? 0
-              : event.key === 'ArrowUp'
-                ? Math.max(0, prevIndex - 1)
-                : Math.min(visibleItems.length - 1, prevIndex + 1)
+          let index = prevIndex ?? 0
+          let oldIndex = index
+          if (prevIndex != null) {
+            let itemType = visibleItems[index]?.item.type
+            do {
+              oldIndex = index
+              index =
+                event.key === 'ArrowUp'
+                  ? Math.max(0, index - 1)
+                  : Math.min(visibleItems.length - 1, index + 1)
+              itemType = visibleItems[index]?.item.type
+            } while (
+              index !== oldIndex &&
+              (itemType === backendModule.AssetType.specialEmpty ||
+                itemType === backendModule.AssetType.specialLoading)
+            )
+            if (
+              itemType === backendModule.AssetType.specialEmpty ||
+              itemType === backendModule.AssetType.specialLoading
+            ) {
+              index = prevIndex
+            }
+          }
           setMostRecentlySelectedIndex(index, true)
           if (event.shiftKey) {
             event.preventDefault()
