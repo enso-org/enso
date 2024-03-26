@@ -14,6 +14,7 @@ import * as backendProvider from '#/providers/BackendProvider'
 import DateInput from '#/components/DateInput'
 import Dropdown from '#/components/Dropdown'
 import StatelessSpinner, * as statelessSpinner from '#/components/StatelessSpinner'
+import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
 import * as backendModule from '#/services/Backend'
@@ -118,54 +119,59 @@ export default function ActivityLogSettingsTab() {
     <div className="flex flex-col gap-settings-subsection">
       <div className="flex flex-col gap-settings-section-header">
         <h3 className="settings-subheading">Activity Log</h3>
-        <div className="flex gap-activity-log-filters">
-          <div className="flex items-center gap-activity-log-filter">
-            Start Date
-            <DateInput date={startDate} onInput={setStartDate} />
-          </div>
-          <div className="flex items-center gap-activity-log-filter">
-            End Date
-            <DateInput date={endDate} onInput={setEndDate} />
-          </div>
-          <div className="flex items-center gap-activity-log-filter">
-            Types
-            <Dropdown
-              multiple
-              items={backendModule.EVENT_TYPES}
-              selectedIndices={typeIndices}
-              render={props => EVENT_TYPE_NAME[props.item]}
-              renderMultiple={props =>
-                props.items.length === 0 || props.items.length === backendModule.EVENT_TYPES.length
-                  ? 'All'
-                  : (props.items[0] != null ? EVENT_TYPE_NAME[props.items[0]] : '') +
-                    (props.items.length <= 1 ? '' : ` (+${props.items.length - 1})`)
-              }
-              onClick={(items, indices) => {
-                setTypes(items)
-                setTypeIndices(indices)
-              }}
-            />
-          </div>
-          <div className="flex items-center gap-activity-log-filter">
-            Users
-            <Dropdown
-              multiple
-              items={allEmails}
-              selectedIndices={emailIndices}
-              render={props => props.item}
-              renderMultiple={props =>
-                props.items.length === 0 || props.items.length === allEmails.length
-                  ? 'All'
-                  : (props.items[0] ?? '') +
-                    (props.items.length <= 1 ? '' : `(+${props.items.length - 1})`)
-              }
-              onClick={(items, indices) => {
-                setEmails(items)
-                setEmailIndices(indices)
-              }}
-            />
-          </div>
-        </div>
+        <FocusArea direction="horizontal">
+          {(ref, innerProps) => (
+            <div ref={ref} className="flex gap-activity-log-filters" {...innerProps}>
+              <div className="flex items-center gap-activity-log-filter">
+                Start Date
+                <DateInput date={startDate} onInput={setStartDate} />
+              </div>
+              <div className="flex items-center gap-activity-log-filter">
+                End Date
+                <DateInput date={endDate} onInput={setEndDate} />
+              </div>
+              <div className="flex items-center gap-activity-log-filter">
+                Types
+                <Dropdown
+                  multiple
+                  items={backendModule.EVENT_TYPES}
+                  selectedIndices={typeIndices}
+                  render={props => EVENT_TYPE_NAME[props.item]}
+                  renderMultiple={props =>
+                    props.items.length === 0 ||
+                    props.items.length === backendModule.EVENT_TYPES.length
+                      ? 'All'
+                      : (props.items[0] != null ? EVENT_TYPE_NAME[props.items[0]] : '') +
+                        (props.items.length <= 1 ? '' : ` (+${props.items.length - 1})`)
+                  }
+                  onClick={(items, indices) => {
+                    setTypes(items)
+                    setTypeIndices(indices)
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-activity-log-filter">
+                Users
+                <Dropdown
+                  multiple
+                  items={allEmails}
+                  selectedIndices={emailIndices}
+                  render={props => props.item}
+                  renderMultiple={props =>
+                    props.items.length === 0 || props.items.length === allEmails.length
+                      ? 'All'
+                      : (props.items[0] ?? '') +
+                        (props.items.length <= 1 ? '' : `(+${props.items.length - 1})`)
+                  }
+                  onClick={(items, indices) => {
+                    setEmails(items)
+                    setEmailIndices(indices)
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </FocusArea>
         <table className="table-fixed self-start rounded-rows">
           <thead>
             <tr className="h-row">

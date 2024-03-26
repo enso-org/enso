@@ -66,7 +66,7 @@ function SettingsInput(props: SettingsInputProps, ref: React.ForwardedRef<HTMLIn
       <aria.Group className="relative rounded-full after:pointer-events-none after:absolute after:inset after:rounded-full">
         <aria.Input
           ref={ref}
-          className="settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
+          className="focus-child settings-value w-full rounded-full bg-transparent font-bold placeholder-black/30 transition-colors invalid:border invalid:border-red-700 hover:bg-selected-frame focus:bg-selected-frame"
           type={isShowingPassword ? 'text' : type}
           size={1}
           defaultValue={initialValue}

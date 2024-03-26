@@ -93,7 +93,8 @@ export default function DateInput(props: DateInputProps) {
     >
       <div
         role="button"
-        className={`flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`}
+        tabIndex={0}
+        className={`focus-child flex h-text w-date-picker items-center rounded-full border border-primary/10 px-date-input transition-colors hover:[&:not(:has(button:hover))]:bg-hover-bg ${date == null ? 'placeholder' : ''}`}
         onClick={() => {
           setIsPickerVisible(!isPickerVisible)
         }}

@@ -149,7 +149,7 @@ export default function Dropdown<T>(props: DropdownProps<T>) {
     <div
       ref={rootRef}
       tabIndex={0}
-      className={`group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy ${
+      className={`focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy ${
         className ?? ''
       }`}
       onFocus={event => {

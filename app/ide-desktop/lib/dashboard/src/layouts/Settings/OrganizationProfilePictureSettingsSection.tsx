@@ -65,7 +65,7 @@ export default function OrganizationProfilePictureSettingsSection(
               />
               <input
                 type="file"
-                className="w"
+                className="focus-child w"
                 accept="image/*"
                 onChange={doUploadOrganizationPicture}
               />

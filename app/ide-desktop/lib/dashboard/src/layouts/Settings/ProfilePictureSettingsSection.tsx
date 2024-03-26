@@ -52,7 +52,7 @@ export default function ProfilePictureSettingsSection() {
                 height={128}
                 className="pointer-events-none"
               />
-              <input type="file" className="w" accept="image/*" onChange={doUploadUserPicture} />
+              <input type="file" className="focus-child w" accept="image/*" onChange={doUploadUserPicture} />
             </label>
           </FocusRing>
           <span className="w-profile-picture-caption py-profile-picture-caption-y">
