@@ -339,7 +339,8 @@ type Enso_File
             if name.contains "/" then Error.throw (Illegal_Argument.Error "Resolving sub-paths (/) is not implemented. Temporary workaround: use the `/` operator multiple times.") else
                 self.list . find f-> f.name == name
 
-    ## Returns the text representation of the file descriptor.
+    ## PRIVATE
+       Returns the text representation of the file descriptor.
     to_text : Text
     to_text self -> Text =
         if self == Enso_File.root then "Cloud Root Directory" else
