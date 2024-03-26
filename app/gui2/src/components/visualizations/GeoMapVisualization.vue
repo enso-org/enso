@@ -100,6 +100,11 @@ const props = defineProps<{ data: Data }>()
 /** Mapbox API access token.
  * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits */
 const TOKEN = import.meta.env.VITE_ENSO_MAPBOX_API_TOKEN
+if (TOKEN == null) {
+  console.warn(
+    'Mapbox API token is missing, to use Geo Map visualization please provide VITE_ENSO_MAPBOX_API_TOKEN.',
+  )
+}
 const SCATTERPLOT_LAYER = 'Scatterplot_Layer'
 const DEFAULT_POINT_RADIUS = 150
 
