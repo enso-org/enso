@@ -4,14 +4,18 @@ package org.enso.compiler.phase;
 import org.enso.compiler.core.ir.expression.errors.ImportExport;
 
 import org.enso.compiler.Compiler;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
+import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.editions.LibraryName;
+import org.enso.polyglot.CompilationStage;
 
 import scala.Option;
 import scala.Tuple2;
@@ -121,9 +125,9 @@ public final class ImportResolverUtil extends ImportResolver {
             ));
             return new Tuple2<>(imp, someBinding);
         } else {
-            var optionTp = tryResolveAsType(imp.name());
-            if (optionTp.isDefined()) {
-                var someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), optionTp.get()));
+            var typ = tryResolveAsTypeNew(imp.name());
+            if (typ != null) {
+                var someBinding = Option.apply(new BindingsMap.ResolvedImport(imp, toScalaList(exp), typ));
                 return new Tuple2<>(imp, someBinding);
             } else {
                 return new Tuple2<>(
@@ -147,6 +151,42 @@ public final class ImportResolverUtil extends ImportResolver {
         return new Tuple2<>(
             importError, Option.empty()
         );
+    }
+  }
+
+  private ResolvedType tryResolveAsTypeNew(Name.Qualified name) {
+    var parts = CollectionConverters.SeqHasAsJava(name.parts()).asJava();
+    var last = parts.size() - 1;
+    var tp  = parts.get(last).name();
+    var modName = String.join(".", parts.subList(0, last).stream().map(n -> n.name()).toList());
+    var compiler = this.getCompiler();
+    var optionMod = compiler.getModule(modName);
+    if (optionMod.isDefined()) {
+      var mod= optionMod.get();
+      compiler.ensureParsed(mod);
+      var b = mod.getBindingsMap();
+      if (b == null) {
+        compiler.context().updateModule(
+          mod,
+          u -> {
+            u.invalidateCache();
+            u.ir(null);
+            u.compilationStage(CompilationStage.INITIAL);
+          }
+        );
+        compiler.ensureParsed(mod, false);
+        b = mod.getBindingsMap();
+      }
+
+        var entities = CollectionConverters.SeqHasAsJava(b.definedEntities()).asJava();
+        var type = entities.stream().filter(e -> e.name().equals(tp))
+                .map(e -> switch (e) {
+                    case BindingsMap.Type t -> new ResolvedType(new BindingsMap$ModuleReference$Concrete(mod), t);
+                    case null, default -> null;
+                }).filter(e -> e != null).findFirst();
+        return type.orElse(null);
+    } else {
+        return null;
     }
   }
 

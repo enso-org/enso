@@ -164,7 +164,7 @@ abstract class ImportResolver(compiler: Compiler) {
 
   private[phase] def getCompiler(): Compiler = compiler
 
-  def tryResolveAsType(
+  private def tryResolveAsType(
     name: Name.Qualified
   ): Option[ResolvedType] = {
     val tp  = name.parts.last.name
