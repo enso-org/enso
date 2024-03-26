@@ -95,7 +95,7 @@ type Set
 
     ## ALIAS add
        GROUP Calculations
-       ICON add_row
+       ICON row_add
        Adds a value to this set.
     insert : Any -> Set
     insert self value =

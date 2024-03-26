@@ -125,7 +125,7 @@ type Map key value
     size self = @Builtin_Method "Map.size"
 
     ## GROUP Calculations
-       ICON add_row
+       ICON row_add
        Inserts a key-value mapping into this map, overriding any existing
        instance of `key` with the new `value`.
 
@@ -152,7 +152,7 @@ type Map key value
     insert self key value = @Builtin_Method "Map.insert"
 
     ## GROUP Selections
-       ICON select_column
+       ICON table_clean
        Removes an entry specified by the given key from this map, and
        returns a new map without this entry. Throw `No_Such_Key.Error`
        if `key` is not present.
