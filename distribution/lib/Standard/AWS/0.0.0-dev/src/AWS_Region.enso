@@ -23,12 +23,12 @@ type AWS_Region
     Region (id : Text)
 
     ## PRIVATE
-    all_regions -> Vector Text =
+    all_region_ids -> Vector Text =
         Java_Region.regions.map .id
 
     ## PRIVATE
     default_widget (display : Display = Display.When_Modified) -> Widget =
-        options = [Option "Default" ("..Default")] + AWS_Region.all_regions.map id->
+        options = [Option "Default" ("..Default")] + AWS_Region.all_region_ids.map id->
             code = "(..Region "+id.pretty+")"
             Option id code
         Widget.Single_Choice values=options display=display
