@@ -28,8 +28,8 @@ type AWS_Region
 
     ## PRIVATE
     default_widget (display : Display = Display.When_Modified) -> Widget =
-        options = [Option "Default" ("AWS_Region.Default")] + AWS_Region.all_regions.map id->
-            code = "(AWS_Region.Region "+id.pretty+")"
+        options = [Option "Default" ("..Default")] + AWS_Region.all_regions.map id->
+            code = "(..Region "+id.pretty+")"
             Option id code
         Widget.Single_Choice values=options display=display
 
