@@ -1,0 +1,86 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Data.Column.Column
+import project.Data.Set_Mode.Set_Mode
+import project.Data.Sort_Column.Sort_Column
+import project.Data.Table.Table
+import project.Internal.Java_Problems
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Table_Helpers
+from project.Errors import Duplicate_Output_Column_Names
+
+polyglot java import java.lang.ArithmeticException
+polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
+polyglot java import org.enso.table.operations.AddRowNumber
+
+## PRIVATE
+add_row_number : Table -> Text -> Integer -> Integer -> Text | Integer | Regex | Vector (Integer | Text | Regex) -> Vector (Text | Sort_Column) | Text | Sort_Column -> Problem_Behavior -> Table
+add_row_number table name from step group_by order_by on_problems =
+    problem_builder = Problem_Builder.new error_on_missing_columns=True
+    grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
+    ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
+
+    handle_arithmetic_exception _ =
+        Error.throw (Illegal_Argument.Error "The row number has exceeded the 64-bit integer range. BigInteger numbering is currently not supported. Please use a smaller start/step.")
+
+    problem_builder.attach_problems_before on_problems <| Panic.catch ArithmeticException handler=handle_arithmetic_exception <| Panic.catch Unsupported_Argument_Types handler=handle_arithmetic_exception <|
+        new_column = case ordering.is_empty of
+            True ->
+                case grouping_columns.is_empty of
+                    True -> make_range_column name from step table.row_count
+                    False -> make_grouped_enumeration name grouping_columns from step on_problems
+            False -> make_grouped_ordered_enumeration name grouping_columns ordering from step on_problems
+
+        renamed_table = rename_columns_if_needed table name on_problems Table.new
+        renamed_table.set new_column name set_mode=Set_Mode.Add
+
+## PRIVATE
+   If the table already contains a column called `name` it will be renamed to a
+   unique name, so that a new column with this name can be added.
+rename_columns_if_needed table name on_problems build_table_from_columns =
+    column_names = table.column_names
+    if column_names.contains name . not then table else
+        problems = [Duplicate_Output_Column_Names.Error [name]]
+        on_problems.attach_problems_before problems <|
+            unique_name_strategy = table.column_naming_helper.create_unique_name_strategy
+            unique_name_strategy.mark_used column_names
+            new_name = unique_name_strategy.make_unique name
+            new_columns = table.columns.map column->
+                if column.name == name then column.rename new_name else column
+            build_table_from_columns new_columns
+
+## PRIVATE
+nth_index start step n =
+    start + n*step
+
+## PRIVATE
+make_range_column name start step length =
+    storage = LongRangeStorage.new start step length
+    Column.from_storage name storage
+
+## PRIVATE
+make_grouped_enumeration name grouping_columns start step on_problems =
+    grouping_java_columns = grouping_columns.map .java_column
+    Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        new_storage = AddRowNumber.create_grouped_numbering start step grouping_java_columns java_problem_aggregator
+        Column.from_storage name new_storage
+
+## PRIVATE
+   If the `grouping_columns` are empty, all rows are considered to be in the same group.
+make_grouped_ordered_enumeration name grouping_columns ordering from step on_problems =
+    ordering_columns = ordering.map c->
+        c.column.java_column
+    directions = ordering.map c->
+        c.associated_selector.direction.to_sign
+
+    grouping_java_columns = grouping_columns.map .java_column
+
+    new_storage = case grouping_java_columns.is_empty of
+        True ->
+            AddRowNumber.create_ordered_numbering from step ordering_columns directions
+        False ->
+            Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+                AddRowNumber.create_grouped_ordered_numbering from step ordering_columns directions grouping_java_columns java_problem_aggregator
+    Column.from_storage name new_storage
