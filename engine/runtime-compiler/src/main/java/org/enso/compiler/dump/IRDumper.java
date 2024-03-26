@@ -163,7 +163,7 @@ public class IRDumper {
         createIRGraph(body);
         createEdge(explicitMethodIr, body, "body");
       }
-      case Method.Conversion conversionMethod ->  {
+      case Method.Conversion conversionMethod -> {
         var bldr =
             GraphVizNode.Builder.fromIr(conversionMethod)
                 .addLabelLine("methodName: " + conversionMethod.methodName().name());
@@ -195,17 +195,19 @@ public class IRDumper {
         }
       }
       case Name.GenericAnnotation genericAnnotation -> {
-        var bldr = GraphVizNode.Builder.fromIr(genericAnnotation)
-            .addLabelLine("name: " + genericAnnotation.name())
-            .addLabelLine("isMethod: " + genericAnnotation.isMethod());
+        var bldr =
+            GraphVizNode.Builder.fromIr(genericAnnotation)
+                .addLabelLine("name: " + genericAnnotation.name())
+                .addLabelLine("isMethod: " + genericAnnotation.isMethod());
         addNode(bldr.build());
         var expr = genericAnnotation.expression();
         createIRGraph(expr);
         createEdge(genericAnnotation, expr, "expression");
       }
-      case Name.BuiltinAnnotation builtinAnnotation ->  {
-        var bldr = GraphVizNode.Builder.fromIr(builtinAnnotation)
-            .addLabelLine("name: " + builtinAnnotation.name());
+      case Name.BuiltinAnnotation builtinAnnotation -> {
+        var bldr =
+            GraphVizNode.Builder.fromIr(builtinAnnotation)
+                .addLabelLine("name: " + builtinAnnotation.name());
         addNode(bldr.build());
       }
       default -> throw unimpl(definitionIr);
@@ -239,12 +241,10 @@ public class IRDumper {
         createIRGraph(retVal);
         createEdge(block, retVal, "returnValue");
       }
-      case Case.Expr caseExpr ->  {
+      case Case.Expr caseExpr -> {
         var isNested = caseExpr.isNested();
         var caseNode =
-            GraphVizNode.Builder.fromIr(caseExpr)
-                .addLabelLine("isNested: " + isNested)
-                .build();
+            GraphVizNode.Builder.fromIr(caseExpr).addLabelLine("isNested: " + isNested).build();
         addNode(caseNode);
         var scrutineeExpr = caseExpr.scrutinee();
         createIRGraph(scrutineeExpr);
@@ -258,9 +258,10 @@ public class IRDumper {
       }
       case Case.Branch caseBranch -> {
         var isTerminalBranch = caseBranch.terminalBranch();
-        var caseBranchNode = GraphVizNode.Builder.fromIr(caseBranch)
-            .addLabelLine("terminalBranch: " + isTerminalBranch)
-            .build();
+        var caseBranchNode =
+            GraphVizNode.Builder.fromIr(caseBranch)
+                .addLabelLine("terminalBranch: " + isTerminalBranch)
+                .build();
         addNode(caseBranchNode);
         var pattern = caseBranch.pattern();
         createIRGraph(pattern);
@@ -298,10 +299,11 @@ public class IRDumper {
           createEdge(lambda, arg, "arg[" + i + "]");
         }
       }
-      case Expression.Binding exprBinding ->  {
-        var exprBindNode = GraphVizNode.Builder.fromIr(exprBinding)
-                              .addLabelLine("name: " + exprBinding.name().name())
-                                .build();
+      case Expression.Binding exprBinding -> {
+        var exprBindNode =
+            GraphVizNode.Builder.fromIr(exprBinding)
+                .addLabelLine("name: " + exprBinding.name().name())
+                .build();
         addNode(exprBindNode);
         createIRGraph(exprBinding.expression());
         createEdge(exprBinding, exprBinding.expression(), "expression");
@@ -367,7 +369,7 @@ public class IRDumper {
         bldr.addLabelLine("name: " + name.name().name());
         addNode(bldr.build());
       }
-      case Pattern.Documentation doc ->  {
+      case Pattern.Documentation doc -> {
         bldr.addLabelLine("doc: " + doc.doc());
         addNode(bldr.build());
       }
@@ -437,7 +439,12 @@ public class IRDumper {
       }
       case Polyglot polyImport -> {
         var bldr = GraphVizNode.Builder.fromIr(polyImport);
-        bldr.addLabelLine("entity: Entity(langName=" + polyImport.entity().langName() + ", visibleName=" + polyImport.entity().getVisibleName() + ")");
+        bldr.addLabelLine(
+            "entity: Entity(langName="
+                + polyImport.entity().langName()
+                + ", visibleName="
+                + polyImport.entity().getVisibleName()
+                + ")");
         if (polyImport.rename().isDefined()) {
           var rename = polyImport.rename().get();
           bldr.addLabelLine("rename: " + rename);
@@ -538,8 +545,10 @@ public class IRDumper {
                   var entity = bindingsMap.definedEntities().apply(i);
                   switch (entity) {
                     case BindingsMap.Type tp -> bldr.addLabelLine("  - Type(" + tp.name() + ")");
-                    case BindingsMap.ModuleMethod method -> bldr.addLabelLine("  - Method(" + method.name() + ")");
-                    case BindingsMap.PolyglotSymbol polySym -> bldr.addLabelLine("  - PolyglotSymbol(" + polySym.name() + ")");
+                    case BindingsMap.ModuleMethod method -> bldr.addLabelLine(
+                        "  - Method(" + method.name() + ")");
+                    case BindingsMap.PolyglotSymbol polySym -> bldr.addLabelLine(
+                        "  - PolyglotSymbol(" + polySym.name() + ")");
                     default -> throw unimpl(entity);
                   }
                 }
@@ -552,8 +561,10 @@ public class IRDumper {
                 for (int i = 0; i < bindingsMap.resolvedImports().size(); i++) {
                   var resolvedImport = bindingsMap.resolvedImports().apply(i);
                   switch (resolvedImport.target()) {
-                    case ResolvedType resolvedType -> bldr.addLabelLine("  - ResolvedType(" + resolvedType.tp().name() + ")");
-                    case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine("  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
+                    case ResolvedType resolvedType -> bldr.addLabelLine(
+                        "  - ResolvedType(" + resolvedType.tp().name() + ")");
+                    case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine(
+                        "  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
                     default -> throw unimpl(resolvedImport.target());
                   }
                 }
@@ -566,8 +577,10 @@ public class IRDumper {
                 for (int i = 0; i < bindingsMap.resolvedExports().size(); i++) {
                   var resolvedExport = bindingsMap.resolvedExports().apply(i);
                   switch (resolvedExport.target()) {
-                    case ResolvedType resolvedType -> bldr.addLabelLine("  - ResolvedType(" + resolvedType.tp().name() + ")");
-                    case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine("  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
+                    case ResolvedType resolvedType -> bldr.addLabelLine(
+                        "  - ResolvedType(" + resolvedType.tp().name() + ")");
+                    case BindingsMap.ResolvedModule resolvedModule -> bldr.addLabelLine(
+                        "  - ResolvedModule(" + resolvedModule.qualifiedName() + ")");
                     default -> throw unimpl(resolvedExport.target());
                   }
                 }
@@ -576,7 +589,7 @@ public class IRDumper {
               addNode(bmNode);
               createEdge(ir, bindingsMap, "BindingsMap");
             }
-            // The rest is ignored
+              // The rest is ignored
             default -> {}
           }
           return null;
@@ -668,22 +681,18 @@ public class IRDumper {
     }
   }
 
-  /**
-   * Just a wrapper for code, we need this to be able to add the code to the graph.
-   */
-    private record Code(String code) {
+  /** Just a wrapper for code, we need this to be able to add the code to the graph. */
+  private record Code(String code) {
 
     private Code(String code) {
-        // Replace new lines with left-justify literals, so that all the lines
-        // in the code are justified to the left side of the box.
-        String formattedCode = code
-            .replace("\r", "\\l")
-            .replace("\n", "\\l");
-        if (code.contains("\"")) {
-          formattedCode = formattedCode.replace("\"", "\\\"");
-        }
-        assert Utils.hasOneLine(formattedCode);
-        this.code = formattedCode;
+      // Replace new lines with left-justify literals, so that all the lines
+      // in the code are justified to the left side of the box.
+      String formattedCode = code.replace("\r", "\\l").replace("\n", "\\l");
+      if (code.contains("\"")) {
+        formattedCode = formattedCode.replace("\"", "\\\"");
       }
+      assert Utils.hasOneLine(formattedCode);
+      this.code = formattedCode;
     }
+  }
 }

@@ -97,7 +97,7 @@ class FullyQualifiedNamesTest extends AnyWordSpecLike with Matchers {
           |main =
           |    Standard.Base.Data.Vector
           |""".stripMargin
-      val ir       = src.preprocessModule
+      val ir = src.preprocessModule
 
       val resolutionNames = collectResolutionNames(ir)
       resolutionNames should contain
