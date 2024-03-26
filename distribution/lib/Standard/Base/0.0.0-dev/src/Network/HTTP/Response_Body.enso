@@ -109,6 +109,7 @@ type Response_Body
 
     ## ALIAS parse
        GROUP Input
+       ICON convert
        Uses the format to decode the body.
        If using `Auto_Detect`, the content-type will be used to determine the
        format.
@@ -133,6 +134,7 @@ type Response_Body
 
     ## ALIAS bytes
        GROUP Input
+       ICON convert
        Read the body as a byte array.
     decode_as_bytes : Vector
     decode_as_bytes self = self.decode Bytes
@@ -172,6 +174,7 @@ type Response_Body
         self.decode_as_text encoding . parse_json
 
     ## GROUP Metadata
+       ICON metadata
        The content type of the response.
     content_type : Text | Nothing
     content_type self = self.metadata.content_type
@@ -183,6 +186,7 @@ type Response_Body
 
     ## ALIAS to_file
        GROUP Output
+       ICON data_output
        Write response body to a File.
 
        Arguments:

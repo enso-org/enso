@@ -321,7 +321,7 @@ post (uri:(URI | Text)) (body:Request_Body=Request_Body.Empty) (method:HTTP_Meth
     Data_Read_Helpers.decode_http_response_following_data_links response (Data_Read_Helpers.handle_legacy_format "post" "response_format" response_format)
 
 ## GROUP Input
-   ICON data_download
+   ICON select_column
    Fetches from the provided URI and if successful writes to the file. Returns
    an error if the status code does not represent a successful response.
 

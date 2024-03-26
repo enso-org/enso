@@ -39,7 +39,8 @@ from project.System.File_Format import Auto_Detect, Bytes, File_Format, Plain_Te
 from project.System.File.Generic.File_Write_Strategy import generic_copy
 
 type Enso_File
-    ## Resolves an `enso://` path and returns the corresponding `Enso_File`
+    ## ICON data_input
+       Resolves an `enso://` path and returns the corresponding `Enso_File`
        instance.
 
        Arguments:
@@ -68,11 +69,13 @@ type Enso_File
        Represents a file or folder within the Enso cloud.
     Value name:Text id:Text organization:Text asset_type:Enso_Asset_Type
 
-    ## Represents the root folder of the current users.
+    ## ICON folder
+       Represents the root folder of the current users.
     root : Enso_File
     root = Enso_File.Value "/" "" "" Enso_Asset_Type.Directory
 
-    ## Represents the current working directory.
+    ## ICON folder
+       Represents the current working directory.
 
        If the workflow is running on the Cloud, this will be the directory
        containing the current project.
@@ -99,6 +102,7 @@ type Enso_File
             Enso_Asset_Type.Secret -> Error.throw (Illegal_Argument.Error "Secrets cannot be accessed directly.")
 
     ## GROUP Metadata
+       ICON metadata
        Checks if the folder or file exists
     exists : Boolean
     exists self =
@@ -106,6 +110,7 @@ type Enso_File
         response.code.is_success
 
     ## GROUP Metadata
+       ICON metadata
        Gets the size of a file in bytes.
     size : Integer
     size self -> Integer = if self.is_regular_file.not then Error.throw (Illegal_Argument.Error "`size` can only be queried for regular files.") else
@@ -113,6 +118,7 @@ type Enso_File
         get_required_field "size" metadata expected_type=Integer
 
     ## GROUP Metadata
+       ICON metadata
        Gets the creation time of a file.
     creation_time : Date_Time
     creation_time self -> Date_Time = if self.is_directory then Unimplemented.throw "Enso_File.creation_time is not implemented yet for directories." else
@@ -121,6 +127,7 @@ type Enso_File
             . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
+       ICON metadata
        Gets the last modified time of a file.
     last_modified_time : Date_Time
     last_modified_time self = if self.is_directory then Unimplemented.throw "Enso_File.last_modified_time is not implemented yet for directories." else
@@ -129,26 +136,31 @@ type Enso_File
             . catch Time_Error error-> Error.throw (Enso_Cloud_Error.Invalid_Response_Payload error)
 
     ## GROUP Metadata
+       ICON metadata
        Checks if this is a folder
     is_directory : Boolean
     is_directory self = self.asset_type == Enso_Asset_Type.Directory
 
     ## GROUP Metadata
+       ICON metadata
        Checks if this is a regular file
     is_regular_file : Boolean
     is_regular_file self = self.asset_type == Enso_Asset_Type.File
 
     ## GROUP Metadata
+       ICON folder
        Finds the parent Enso_File for this file.
     parent : Enso_File | Nothing
     parent self = Unimplemented.throw "Enso_File.parent is not implemented"
 
     ## GROUP Metadata
+       ICON metadata
        Returns the path of this file.
     path : Text
     path self = Unimplemented.throw "Enso_File.path is not implemented"
 
     ## GROUP Metadata
+       ICON metadata
        Checks if `self` is a descendant of `other`.
     is_descendant_of : Enso_File -> Boolean
     is_descendant_of self (other : Enso_File) =
@@ -260,6 +272,7 @@ type Enso_File
         self.read (Plain_Text_Format.Plain_Text encoding) on_problems
 
     ## GROUP Metadata
+       ICON metadata
        Returns the extension of the file.
     extension : Text
     extension self = case self.asset_type of
@@ -274,6 +287,7 @@ type Enso_File
                 if extension == "." then "" else extension
 
     ## GROUP Input
+       ICON data_input
        Gets a list of assets within self.
     list : Vector Enso_File
     list self =
@@ -299,7 +313,8 @@ type Enso_File
         response = Utils.http_request HTTP_Method.Delete self.internal_uri
         response.if_not_error Nothing
 
-    ## Deletes the file if it had existed.
+    ## ICON data_output
+       Deletes the file if it had existed.
     delete_if_exists : Nothing
     delete_if_exists self =
         r = self.delete
@@ -307,7 +322,8 @@ type Enso_File
             File_Error.Not_Found _ -> Nothing
             _ -> r
 
-    ## Copies the file to the specified destination.
+    ## ICON data_output
+       Copies the file to the specified destination.
 
        Arguments:
        - destination: the destination to move the file to.
@@ -317,7 +333,8 @@ type Enso_File
     copy_to self (destination : Writable_File) (replace_existing : Boolean = False) =
         generic_copy self destination.file replace_existing
 
-    ## Moves the file to the specified destination.
+    ## ICON data_output
+       Moves the file to the specified destination.
 
        Arguments:
        - destination: the destination to move the file to.
