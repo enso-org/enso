@@ -65,9 +65,7 @@ public class TypeInferenceConsistencyTest extends TestBase {
       var neg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
       fail("Expecting an exception, not: " + neg);
     } catch (PolyglotException e) {
-      // TODO why it does not have the full message like in REPL?
-      // The runtime error
-      assertContains("Not_Invokable", e.getMessage());
+      assertContains("Type error: expected a function, but got 1", e.getMessage());
     }
 
     // But we also expect the compile warning:
