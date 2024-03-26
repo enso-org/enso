@@ -99,12 +99,14 @@ class ActionTag {
 type ExpressionFilter = (tag: ExpressionTag) => boolean
 function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | undefined {
   const editedAst = typeof pattern === 'string' ? Ast.parse(pattern) : pattern
+  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedAst instanceof Ast.TextLiteral) {
+    if (props.input.value instanceof Ast.TextLiteral && props.input.value.code() === editedCode)
+      return undefined
     return (tag: ExpressionTag) =>
       tag.expressionAst instanceof Ast.TextLiteral &&
       tag.expressionAst.rawTextContent.startsWith(editedAst.rawTextContent)
   }
-  const editedCode = pattern instanceof Ast.Ast ? pattern.code() : pattern
   if (editedCode) {
     return (tag: ExpressionTag) => tag.expression.startsWith(editedCode)
   }
